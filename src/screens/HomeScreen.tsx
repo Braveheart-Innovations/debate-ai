@@ -2,7 +2,7 @@ import React from 'react';
 import { ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Header } from '../components/organisms';
+import { Header, HeaderActions } from '../components/organisms';
 import { DynamicAISelector } from '../components/organisms/DynamicAISelector';
 import { QuickStartsSection } from '../components/organisms/QuickStartsSection';
 import { PromptWizard } from '../components/organisms/PromptWizard';
@@ -78,6 +78,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         showTime={true}
         showDate={true}
         animated={true}
+        showProfileIcon={true}
+        rightElement={<HeaderActions variant="gradient" />}
       />
       
       <ScrollView 

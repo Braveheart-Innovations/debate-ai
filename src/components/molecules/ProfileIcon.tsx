@@ -3,13 +3,14 @@ import { View, TouchableOpacity, StyleSheet, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../theme';
 import { useSelector, useDispatch } from 'react-redux';
-import { RootState, setAuthModalVisible } from '../../store';
+import { RootState, setProfileSheetVisible } from '../../store';
 
 interface ProfileIconProps {
   onPress?: () => void;
+  variant?: 'default' | 'gradient';
 }
 
-export const ProfileIcon: React.FC<ProfileIconProps> = ({ onPress }) => {
+export const ProfileIcon: React.FC<ProfileIconProps> = ({ onPress, variant = 'default' }) => {
   const { theme } = useTheme();
   const dispatch = useDispatch();
   const { isAuthenticated, userProfile, isPremium } = useSelector((state: RootState) => state.auth);
@@ -18,7 +19,7 @@ export const ProfileIcon: React.FC<ProfileIconProps> = ({ onPress }) => {
     if (onPress) {
       onPress();
     } else {
-      dispatch(setAuthModalVisible(true));
+      dispatch(setProfileSheetVisible(true));
     }
   };
   
@@ -34,21 +35,32 @@ export const ProfileIcon: React.FC<ProfileIconProps> = ({ onPress }) => {
   };
   
   const initials = getInitials();
+  const isGradient = variant === 'gradient';
+  
+  // Use consistent styling with Settings icon for gradient variant
+  const iconColor = isGradient ? theme.colors.text.inverse : theme.colors.text.secondary;
+  const backgroundColor = isGradient ? 'transparent' : (
+    isAuthenticated 
+      ? (isPremium ? theme.colors.primary[500] : theme.colors.surface)
+      : theme.colors.surface
+  );
+  const borderColor = isGradient ? 'transparent' : (
+    isAuthenticated
+      ? (isPremium ? theme.colors.primary[500] : theme.colors.border)
+      : theme.colors.border
+  );
   
   return (
     <TouchableOpacity onPress={handlePress} style={styles.container}>
       <View style={[
         styles.iconContainer,
         { 
-          backgroundColor: isAuthenticated 
-            ? (isPremium ? theme.colors.primary[500] : theme.colors.surface)
-            : theme.colors.surface,
-          borderColor: isAuthenticated
-            ? (isPremium ? theme.colors.primary[500] : theme.colors.border)
-            : theme.colors.border,
+          backgroundColor,
+          borderColor,
+          borderWidth: isGradient ? 0 : 1.5,
         }
       ]}>
-        {isAuthenticated && initials ? (
+        {isAuthenticated && initials && !isGradient ? (
           <Text style={[
             styles.initials,
             { 
@@ -61,13 +73,13 @@ export const ProfileIcon: React.FC<ProfileIconProps> = ({ onPress }) => {
           </Text>
         ) : (
           <Ionicons 
-            name="person-outline" 
-            size={20} 
-            color={theme.colors.text.secondary}
+            name="person-circle-outline" 
+            size={isGradient ? 24 : 20} 
+            color={iconColor}
           />
         )}
       </View>
-      {isPremium && (
+      {isPremium && !isGradient && (
         <View style={[styles.premiumBadge, { backgroundColor: theme.colors.primary[400] }]}>
           <Ionicons name="star" size={8} color={theme.colors.background} />
         </View>

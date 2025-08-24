@@ -12,7 +12,6 @@ import VerificationPersistenceService from './src/services/VerificationPersisten
 import { initializeFirebase } from './src/services/firebase/config';
 import { getFirestore, doc, getDoc } from '@react-native-firebase/firestore';
 import { onAuthStateChanged } from './src/services/firebase/auth';
-import { AuthModal } from './src/components/organisms/auth/AuthModal';
 import { setAuthUser, setUserProfile } from './src/store';
 
 function AppContent() {
@@ -100,7 +99,6 @@ function AppContent() {
       <ThemeProvider>
         <AIServiceProvider>
           <AppNavigator />
-          <AuthModal />
           <StatusBar style="auto" />
         </AIServiceProvider>
       </ThemeProvider>

@@ -23,6 +23,20 @@ export { ProviderCard } from './ProviderCard';
 export { ErrorBoundary } from './ErrorBoundary';
 export { StreamingIndicator } from './StreamingIndicator';
 
+// Header Organisms
+export { HeaderActions } from './header/HeaderActions';
+export { NotificationBell } from './header/NotificationBell';
+
+// Profile Organisms
+export { ProfileSheet } from './profile/ProfileSheet';
+export { ProfileContent } from './profile/ProfileContent';
+
+// Settings Organisms
+export { UnifiedSettings } from './settings/UnifiedSettings';
+
+// Navigation Organisms
+export { CompareScreen } from './navigation/CompareScreen';
+
 // API Configuration Organisms
 export { APIConfigHeader } from './APIConfigHeader';
 export { APIConfigProgress } from './APIConfigProgress';

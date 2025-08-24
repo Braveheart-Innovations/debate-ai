@@ -16,6 +16,13 @@ export { IconButton } from './IconButton';
 export { SelectionIndicator } from './SelectionIndicator';
 export { SearchHighlight } from './SearchHighlight';
 
+// Header and Navigation Molecules
+export { HeaderIcon } from './HeaderIcon';
+export { ProfileAvatar } from './ProfileAvatar';
+export { SheetHandle } from './SheetHandle';
+export { SettingRow } from './SettingRow';
+export { TabBarIcon } from './TabBarIcon';
+
 // Share Modal Molecules
 export { ModalHeader } from './ModalHeader';
 export { SharePreviewCard } from './SharePreviewCard';

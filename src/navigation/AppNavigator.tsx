@@ -1,21 +1,26 @@
 import React, { useMemo } from 'react';
-import { View, Text, Platform } from 'react-native';
-import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
+import { View, Text, Platform, TouchableOpacity } from 'react-native';
+import { NavigationContainer, DefaultTheme, DarkTheme, NavigationProp } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useSelector } from 'react-redux';
-import { RootState } from '../store';
+import { useSelector, useDispatch } from 'react-redux';
+import { RootState, setProfileSheetVisible, showSheet } from '../store';
 import { RootStackParamList } from '../types';
 import { useTheme } from '../theme';
+import { SheetProvider } from '../contexts/SheetContext';
+import { 
+  ProfileSheet, 
+  UnifiedSettings, 
+  CompareScreen 
+} from '../components/organisms';
 
 // Import screens
 import WelcomeScreen from '../screens/WelcomeScreen';
 import HomeScreen from '../screens/HomeScreen';
 import ChatScreen from '../screens/ChatScreen';
 import HistoryScreen from '../screens/HistoryScreen';
-import SettingsScreen from '../screens/SettingsScreen';
 import APIConfigScreen from '../screens/APIConfigScreen';
 import DebateScreen from '../screens/DebateScreen';
 import DebateSetupScreen from '../screens/DebateSetupScreen';
@@ -43,24 +48,24 @@ const MainTabs = () => {
   
   return (
     <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: theme.colors.primary[500],
-        tabBarInactiveTintColor: theme.colors.text.secondary,
-        tabBarStyle: {
-          backgroundColor: isDark ? '#000000' : '#FFFFFF',
-          borderTopWidth: 1,
-          borderTopColor: theme.colors.border,
-          paddingBottom: insets.bottom > 0 ? insets.bottom : Platform.OS === 'android' ? 5 : 5,
-          paddingTop: 5,
-          height: totalHeight,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '500',
-        },
-      }}
-    >
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: theme.colors.primary[500],
+          tabBarInactiveTintColor: theme.colors.text.secondary,
+          tabBarStyle: {
+            backgroundColor: isDark ? '#000000' : '#FFFFFF',
+            borderTopWidth: 1,
+            borderTopColor: theme.colors.border,
+            paddingBottom: insets.bottom > 0 ? insets.bottom : Platform.OS === 'android' ? 5 : 5,
+            paddingTop: 5,
+            height: totalHeight,
+          },
+          tabBarLabelStyle: {
+            fontSize: 12,
+            fontWeight: '500',
+          },
+        }}
+      >
       <Tab.Screen
         name="Home"
         component={HomeScreen}
@@ -112,20 +117,91 @@ const MainTabs = () => {
         }}
       />
       <Tab.Screen
-        name="SettingsTab"
-        component={SettingsScreen}
+        name="Compare"
+        component={CompareScreen}
         options={{
-          tabBarLabel: 'Settings',
+          tabBarLabel: 'Compare',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons 
-              name={focused ? 'settings' : 'settings-outline'} 
+              name={focused ? 'git-compare' : 'git-compare-outline'} 
               size={24} 
               color={color} 
             />
           ),
         }}
       />
-    </Tab.Navigator>
+      </Tab.Navigator>
+  );
+};
+
+// Wrapper to include sheets and modals
+const MainTabsWithSheets = ({ navigation }: { navigation?: NavigationProp<RootStackParamList> }) => {
+  const { theme } = useTheme();
+  const dispatch = useDispatch();
+  const { profileSheetVisible } = useSelector((state: RootState) => state.auth);
+  const { activeSheet, sheetVisible } = useSelector((state: RootState) => state.navigation);
+  
+  const handleProfileSheetClose = () => {
+    dispatch(setProfileSheetVisible(false));
+  };
+
+  const handleSettingsPress = () => {
+    dispatch(showSheet({ sheet: 'settings', data: {} }));
+  };
+  
+  const handleSettingsClose = () => {
+    dispatch(showSheet({ sheet: null }));
+  };
+  
+  return (
+    <>
+      <MainTabs />
+      
+      {/* Profile Sheet */}
+      <ProfileSheet
+        visible={profileSheetVisible}
+        onClose={handleProfileSheetClose}
+        onSettingsPress={() => {
+          handleProfileSheetClose();
+          handleSettingsPress();
+        }}
+      />
+      
+      {/* Settings Sheet */}
+      {activeSheet === 'settings' && sheetVisible && (
+        <TouchableOpacity 
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 1000,
+          }}
+          activeOpacity={1}
+          onPress={handleSettingsClose}
+        >
+          <TouchableOpacity 
+            activeOpacity={1}
+            style={{
+            flex: 1,
+            backgroundColor: theme.colors.background,
+            marginTop: 100,
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+          }}>
+            <UnifiedSettings
+              onClose={handleSettingsClose}
+              onNavigateToAPIConfig={() => {
+                handleSettingsClose();
+                navigation?.navigate('APIConfig');
+              }}
+            />
+          </TouchableOpacity>
+        </TouchableOpacity>
+      )}
+    </>
   );
 };
 
@@ -189,18 +265,19 @@ export default function AppNavigator() {
   };
 
   return (
-    <NavigationContainer theme={navigationTheme}>
-      <Stack.Navigator
-        screenOptions={{
-          headerStyle: {
-            backgroundColor: isDark ? theme.colors.surface : theme.colors.primary[500],
-          },
-          headerTintColor: isDark ? theme.colors.text.primary : '#fff',
-          headerTitleStyle: {
-            fontWeight: 'bold',
-          },
-        }}
-      >
+    <SheetProvider>
+      <NavigationContainer theme={navigationTheme}>
+        <Stack.Navigator
+          screenOptions={{
+            headerStyle: {
+              backgroundColor: isDark ? theme.colors.surface : theme.colors.primary[500],
+            },
+            headerTintColor: isDark ? theme.colors.text.primary : '#fff',
+            headerTitleStyle: {
+              fontWeight: 'bold',
+            },
+          }}
+        >
         {!hasCompletedOnboarding ? (
           <Stack.Screen
             name="Welcome"
@@ -211,7 +288,7 @@ export default function AppNavigator() {
           <>
             <Stack.Screen
               name="MainTabs"
-              component={MainTabs}
+              component={MainTabsWithSheets}
               options={{ headerShown: false }}
             />
             <Stack.Screen
@@ -248,7 +325,8 @@ export default function AppNavigator() {
             )}
           </>
         )}
-      </Stack.Navigator>
-    </NavigationContainer>
+        </Stack.Navigator>
+      </NavigationContainer>
+    </SheetProvider>
   );
 }

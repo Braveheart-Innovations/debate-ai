@@ -10,7 +10,7 @@ import {
   EmptyHistoryState,
   HistoryListSkeleton 
 } from '../components/organisms/history';
-import { ErrorBoundary, Header } from '../components/organisms';
+import { ErrorBoundary, Header, HeaderActions } from '../components/organisms';
 import { 
   useSessionHistory, 
   useSessionSearch, 
@@ -140,6 +140,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
             showTime={true}
             showDate={true}
             animated={true}
+            rightElement={<HeaderActions variant="gradient" />}
           />
 
           {/* Search bar */}

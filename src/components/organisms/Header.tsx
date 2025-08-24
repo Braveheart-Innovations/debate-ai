@@ -715,15 +715,21 @@ export const Header: React.FC<HeaderProps> = ({
       {variant === 'gradient' ? (
         /* Gradient variant uses vertical layout structure */
         <Box style={styles.gradientContentContainer}>
-          {/* Profile icon in top right for gradient variant */}
-          {showProfileIcon && (
-            <Box style={[styles.timeContainer, { 
-              top: insets.top + theme.spacing.sm,
-              right: theme.spacing.lg 
-            }]}>
-              <ProfileIcon />
-            </Box>
-          )}
+          {/* Top right container for ProfileIcon and HeaderActions */}
+          <Box style={[styles.headerTopRightContainer, { 
+            top: insets.top + theme.spacing.sm,
+            right: theme.spacing.lg 
+          }]}>
+            {/* Profile icon */}
+            {showProfileIcon && <ProfileIcon variant="gradient" />}
+            
+            {/* Right element (HeaderActions) */}
+            {rightElement && (
+              <Box style={{ marginLeft: theme.spacing.sm }}>
+                {rightElement}
+              </Box>
+            )}
+          </Box>
           
           {/* Main content area with vertical layout */}
           <Box style={styles.gradientMainContent}>
@@ -862,6 +868,12 @@ const createStyles = (
   timeContainer: {
     position: 'absolute',
     alignItems: 'flex-end',
+    zIndex: 15,
+  },
+  headerTopRightContainer: {
+    position: 'absolute',
+    flexDirection: 'row',
+    alignItems: 'center',
     zIndex: 15,
   },
   dateContainer: {

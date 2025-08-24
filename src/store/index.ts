@@ -4,6 +4,7 @@ import { User, ChatSession, Message, UIMode, SubscriptionTier, AIConfig } from '
 import debateStatsReducer from './debateStatsSlice';
 import streamingReducer from './streamingSlice';
 import authReducer from './authSlice';
+import navigationReducer from './navigationSlice';
 
 // User slice
 interface UserState {
@@ -283,6 +284,7 @@ export const store = configureStore({
     debateStats: debateStatsReducer,
     streaming: streamingReducer,
     auth: authReducer,
+    navigation: navigationReducer,
   },
 });
 
@@ -312,6 +314,7 @@ export {
   setPremiumStatus,
   setAuthLoading,
   setAuthModalVisible,
+  setProfileSheetVisible,
   logout as authLogout 
 } from './authSlice';
 
@@ -334,3 +337,16 @@ export {
   selectStreamingSpeed,
   selectActiveStreamCount,
 } from './streamingSlice';
+
+export {
+  showSheet,
+  hideSheet,
+  clearSheet,
+  setHeaderTitle,
+  setHeaderSubtitle,
+  setShowHeaderActions,
+  setShowProfileIcon,
+  setNavigationLoading,
+  setLastNavigatedTab,
+  resetNavigationState,
+} from './navigationSlice';

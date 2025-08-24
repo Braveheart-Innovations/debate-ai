@@ -7,6 +7,7 @@ interface AuthState {
   isPremium: boolean;
   authLoading: boolean;
   authModalVisible: boolean;
+  profileSheetVisible: boolean;
   userProfile: {
     email: string | null;
     displayName: string | null;
@@ -23,6 +24,7 @@ const initialState: AuthState = {
   isPremium: false,
   authLoading: false,
   authModalVisible: false,
+  profileSheetVisible: false,
   userProfile: null,
 };
 
@@ -50,12 +52,16 @@ const authSlice = createSlice({
     setAuthModalVisible: (state, action: PayloadAction<boolean>) => {
       state.authModalVisible = action.payload;
     },
+    setProfileSheetVisible: (state, action: PayloadAction<boolean>) => {
+      state.profileSheetVisible = action.payload;
+    },
     logout: (state) => {
       state.user = null;
       state.isAuthenticated = false;
       state.isPremium = false;
       state.userProfile = null;
       state.authModalVisible = false;
+      state.profileSheetVisible = false;
     },
   },
 });
@@ -66,6 +72,7 @@ export const {
   setPremiumStatus,
   setAuthLoading,
   setAuthModalVisible,
+  setProfileSheetVisible,
   logout,
 } = authSlice.actions;
 
