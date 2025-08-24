@@ -17,6 +17,7 @@ import { Box } from '../atoms/Box';
 import { Typography } from '../molecules/Typography';
 import { Button } from '../molecules/Button';
 import { Badge } from '../molecules/Badge';
+import { ProfileIcon } from '../molecules/ProfileIcon';
 import { useTheme, Theme } from '../../theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -146,7 +147,8 @@ export interface HeaderProps {
   
   // Special features
   showDate?: boolean;
-  showTime?: boolean;
+  showTime?: boolean;  // Deprecated - will show profile icon instead
+  showProfileIcon?: boolean;
   roundInfo?: {
     current: number;
     total: number;
@@ -179,6 +181,7 @@ export const Header: React.FC<HeaderProps> = ({
   badge,
   showDate = false,
   showTime = false,
+  showProfileIcon = true,  // Default to showing profile icon
   roundInfo,
   participantsList,
   sessionCount,
@@ -672,24 +675,23 @@ export const Header: React.FC<HeaderProps> = ({
       );
     }
     
-    if (variant === 'gradient' && showTime) {
+    // Show profile icon by default in non-gradient variants
+    if (showProfileIcon && variant !== 'gradient') {
+      return (
+        <View style={[styles.sideSection, { alignItems: 'flex-end' }]}>
+          <ProfileIcon />
+        </View>
+      );
+    }
+    
+    // For gradient variant, show profile icon in top right corner
+    if (variant === 'gradient' && showProfileIcon) {
       return (
         <Box style={[styles.timeContainer, { 
           top: insets.top + theme.spacing.sm,
           right: theme.spacing.lg 
         }]}>
-          <Typography 
-            variant="body" 
-            weight="bold"
-            color="inverse"
-            style={styles.timeText}
-          >
-            {currentTime.toLocaleTimeString('en-US', { 
-              hour: 'numeric', 
-              minute: '2-digit',
-              hour12: true 
-            })}
-          </Typography>
+          <ProfileIcon />
         </Box>
       );
     }
@@ -713,24 +715,13 @@ export const Header: React.FC<HeaderProps> = ({
       {variant === 'gradient' ? (
         /* Gradient variant uses vertical layout structure */
         <Box style={styles.gradientContentContainer}>
-          {/* Time in top right for gradient variant */}
-          {showTime && (
+          {/* Profile icon in top right for gradient variant */}
+          {showProfileIcon && (
             <Box style={[styles.timeContainer, { 
               top: insets.top + theme.spacing.sm,
               right: theme.spacing.lg 
             }]}>
-              <Typography 
-                variant="body" 
-                weight="bold"
-                color="inverse"
-                style={styles.timeText}
-              >
-                {currentTime.toLocaleTimeString('en-US', { 
-                  hour: 'numeric', 
-                  minute: '2-digit',
-                  hour12: true 
-                })}
-              </Typography>
+              <ProfileIcon />
             </Box>
           )}
           

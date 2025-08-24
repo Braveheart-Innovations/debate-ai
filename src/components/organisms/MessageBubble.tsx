@@ -8,9 +8,11 @@ import Animated, {
 import Markdown from 'react-native-markdown-display';
 import { Box } from '../atoms';
 import { Typography } from '../molecules';
+import { StreamingIndicator } from './StreamingIndicator';
 import { useTheme } from '../../theme';
 import { Message } from '../../types';
 import { AI_BRAND_COLORS } from '../../constants/aiColors';
+import { useStreamingMessage } from '../../hooks/streaming';
 
 interface MessageBubbleProps {
   message: Message;
@@ -91,6 +93,45 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, s
   const isUser = message.senderType === 'user';
   const scale = useSharedValue(isLast ? 0 : 1);
   const { theme, isDark } = useTheme();
+  
+  // Hook for streaming messages
+  const { 
+    content: streamingContent, 
+    isStreaming, 
+    cursorVisible,
+    error: streamingError 
+  } = useStreamingMessage(message.id);
+  
+  // Determine what content to display
+  let displayContent = message.content;
+  let hasError = false;
+  let errorMessage = '';
+  
+  if (streamingError) {
+    // If there's a streaming error, show error message
+    hasError = true;
+    
+    // Provide user-friendly error messages
+    if (streamingError.includes('overload') || streamingError.includes('Overloaded')) {
+      errorMessage = '⚠️ Service temporarily busy. Please try again in a moment.';
+    } else if (streamingError.includes('verification')) {
+      errorMessage = '⚠️ Organization verification required for streaming.';
+    } else if (streamingError.includes('network') || streamingError.includes('connection')) {
+      errorMessage = '⚠️ Connection issue. Please check your internet.';
+    } else {
+      errorMessage = `⚠️ ${streamingError}`;
+    }
+    
+    // If we have partial content, show it with error indicator
+    if (streamingContent) {
+      displayContent = streamingContent + '\n\n[Message incomplete due to error]';
+    } else {
+      displayContent = errorMessage;
+    }
+  } else if (isStreaming) {
+    // Use streaming content while streaming
+    displayContent = streamingContent;
+  }
 
   useEffect(() => {
     if (isLast) {
@@ -152,9 +193,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, s
           <Typography 
             variant="caption" 
             weight="semibold"
-            style={{ color: aiColor?.border || theme.colors.text.secondary }}
+            style={{ color: hasError ? theme.colors.error[500] : (aiColor?.border || theme.colors.text.secondary) }}
           >
-            {message.sender}
+            {message.sender}{hasError ? ' ⚠️' : ''}
           </Typography>
         </Box>
       )}
@@ -165,10 +206,14 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, s
             backgroundColor: theme.colors.primary[500],
             borderBottomRightRadius: 4,
           } : {
-            backgroundColor: aiColor ? (isDark ? aiColor.dark : aiColor.light) : theme.colors.card,
+            backgroundColor: hasError 
+              ? theme.colors.error[50] 
+              : (aiColor ? (isDark ? aiColor.dark : aiColor.light) : theme.colors.card),
             borderBottomLeftRadius: 4,
             borderWidth: 1,
-            borderColor: aiColor?.border || theme.colors.border,
+            borderColor: hasError 
+              ? theme.colors.error[500] 
+              : (aiColor?.border || theme.colors.border),
           },
         ]}
       >
@@ -179,11 +224,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, s
             lineHeight: 22,
             color: theme.colors.text.inverse
           }}>
-            {searchTerm ? <HighlightedText text={message.content} searchTerm={searchTerm} /> : highlightMentions(message.content)}
+            {searchTerm ? <HighlightedText text={displayContent} searchTerm={searchTerm} /> : highlightMentions(displayContent)}
           </Typography>
         ) : (
-          // AI messages - render markdown
-          <Markdown
+          // AI messages - render markdown with streaming support
+          <>
+            <Markdown
             style={{
               body: { 
                 fontSize: 16, 
@@ -263,8 +309,18 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, s
               return false;
             }}
           >
-            {processMessageContent(message)}
+            {displayContent ? processMessageContent({ ...message, content: displayContent }) : ''}
           </Markdown>
+          {isStreaming && (
+            <Box style={styles.streamingContainer}>
+              <StreamingIndicator 
+                visible={cursorVisible} 
+                variant="cursor"
+                color={aiColor?.text || theme.colors.text.primary}
+              />
+            </Box>
+          )}
+          </>
         )}
       </Box>
       
@@ -353,5 +409,10 @@ const styles = StyleSheet.create({
   },
   citationItem: {
     paddingVertical: 2,
+  },
+  streamingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
   },
 });

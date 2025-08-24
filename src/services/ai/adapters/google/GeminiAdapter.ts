@@ -6,6 +6,7 @@ import {
   SendMessageResponse,
   AdapterCapabilities 
 } from '../../types/adapter.types';
+import EventSource from 'react-native-sse';
 
 export class GeminiAdapter extends BaseAdapter {
   getCapabilities(): AdapterCapabilities {
@@ -153,9 +154,12 @@ export class GeminiAdapter extends BaseAdapter {
   async *streamMessage(
     message: string,
     conversationHistory: Message[] = [],
-    attachments?: MessageAttachment[]
+    attachments?: MessageAttachment[],
+    _resumptionContext?: ResumptionContext,
+    modelOverride?: string
   ): AsyncGenerator<string, void, unknown> {
-    const resolvedModel = resolveModelAlias(this.config.model || getDefaultModel('google'));
+    const resolvedModel = modelOverride || 
+                         resolveModelAlias(this.config.model || getDefaultModel('google'));
     
     const contents = [
       ...this.formatHistoryForGemini(conversationHistory),
@@ -165,55 +169,122 @@ export class GeminiAdapter extends BaseAdapter {
       }
     ];
     
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${resolvedModel}:streamGenerateContent`,
+    // Create the request body
+    const requestBody = JSON.stringify({
+      contents,
+      generationConfig: {
+        temperature: this.config.parameters?.temperature || 0.7,
+        maxOutputTokens: this.config.parameters?.maxTokens || 2048,
+      },
+    });
+    
+    // Create EventSource for real streaming in React Native
+    // Note: Gemini API requires the API key in the URL for SSE
+    const es = new EventSource(
+      `https://generativelanguage.googleapis.com/v1beta/models/${resolvedModel}:streamGenerateContent?alt=sse&key=${this.config.apiKey}`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-goog-api-key': this.config.apiKey,
         },
-        body: JSON.stringify({
-          contents,
-          generationConfig: {
-            temperature: this.config.parameters?.temperature || 0.7,
-            maxOutputTokens: this.config.parameters?.maxTokens || 2048,
-          },
-        }),
+        body: requestBody,
       }
     );
     
-    if (!response.ok) {
-      await this.handleApiError(response, 'Gemini');
-    }
+    // Queue to handle SSE events
+    const eventQueue: string[] = [];
+    let resolver: ((value: IteratorResult<string, void>) => void) | null = null;
+    let isComplete = false;
+    let errorOccurred: Error | null = null;
+    let accumulatedText = '';
     
-    const reader = response.body?.getReader();
-    if (!reader) throw new Error('No response body');
-    
-    const decoder = new TextDecoder();
-    let buffer = '';
-    
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-      
-      for (const line of lines) {
-        if (line.trim() === '') continue;
-        
-        try {
+    // Handle incoming messages
+    es.addEventListener('message', (event) => {
+      try {
+        const line = event.data;
+        if (line) {
           const data = JSON.parse(line);
+          
+          // Check for text content in the Gemini response format
           const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
           if (text) {
-            yield text;
+            // Gemini may send accumulated text, so we need to extract only the new part
+            const newText = text.substring(accumulatedText.length);
+            if (newText) {
+              accumulatedText = text;
+              if (resolver) {
+                resolver({ value: newText, done: false });
+                resolver = null;
+              } else {
+                eventQueue.push(newText);
+              }
+            }
           }
-        } catch {
-          // Ignore parsing errors
+          
+          // Check if stream is finished
+          if (data.candidates?.[0]?.finishReason) {
+            isComplete = true;
+            if (resolver) {
+              resolver({ value: undefined, done: true });
+              resolver = null;
+            }
+          }
+        }
+      } catch (error) {
+        console.error('[GeminiAdapter] Error parsing SSE data:', error);
+      }
+    });
+    
+    // Handle errors
+    es.addEventListener('error', (error) => {
+      console.error('[GeminiAdapter] SSE error:', error);
+      const errorMessage = (error && typeof error === 'object' && 'message' in error) 
+        ? String(error.message) 
+        : 'SSE connection error';
+      errorOccurred = new Error(errorMessage);
+      isComplete = true;
+      es.close();
+      if (resolver) {
+        resolver({ value: undefined, done: true });
+        resolver = null;
+      }
+    });
+    
+    // Handle connection open
+    es.addEventListener('open', () => {
+      // SSE connection opened successfully
+    });
+    
+    // Yield chunks as they arrive
+    try {
+      while (!isComplete) {
+        if (errorOccurred) {
+          throw errorOccurred;
+        }
+        
+        if (eventQueue.length > 0) {
+          yield eventQueue.shift()!;
+        } else {
+          // Wait for next event
+          const result = await new Promise<IteratorResult<string, void>>((resolve) => {
+            resolver = resolve;
+            // Set a timeout to prevent hanging
+            setTimeout(() => {
+              if (resolver === resolve) {
+                resolve({ value: undefined, done: true });
+                resolver = null;
+                isComplete = true;
+              }
+            }, 30000); // 30 second timeout
+          });
+          
+          if (!result.done && result.value) {
+            yield result.value;
+          }
         }
       }
+    } finally {
+      es.close();
     }
   }
 }

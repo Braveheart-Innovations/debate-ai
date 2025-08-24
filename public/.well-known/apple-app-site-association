@@ -1,0 +1,12 @@
+{
+  "webcredentials": {
+    "apps": ["D7983XXW7B.com.braveheartinnovations.debateai"]
+  },
+  "applinks": {
+    "apps": [],
+    "details": [{
+      "appID": "D7983XXW7B.com.braveheartinnovations.debateai",
+      "paths": ["*"]
+    }]
+  }
+}

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Dark background with rounded corners -->
+  <rect x="0" y="0" width="1024" height="1024" fill="#1A1A1A" rx="81.92" ry="81.92"/>
+  
+  <!-- Overlapping circles with glow -->
+  
+  <g>
+    <!-- Outer glow -->
+    <circle cx="686.08" cy="512" r="172.032" fill="#C15F3C" opacity="0.15"/>
+    <!-- Main circle -->
+    <circle cx="686.08" cy="512" r="163.84" fill="#C15F3C" opacity="0.65"/>
+  </g>
+  <g>
+    <!-- Outer glow -->
+    <circle cx="645.3530166581517" cy="623.8964670942328" r="172.032" fill="#10A37F" opacity="0.15"/>
+    <!-- Main circle -->
+    <circle cx="645.3530166581517" cy="623.8964670942328" r="163.84" fill="#10A37F" opacity="0.65"/>
+  </g>
+  <g>
+    <!-- Outer glow -->
+    <circle cx="542.2286747682592" cy="683.4353336443652" r="172.032" fill="#4888F8" opacity="0.15"/>
+    <!-- Main circle -->
+    <circle cx="542.2286747682592" cy="683.4353336443652" r="163.84" fill="#4888F8" opacity="0.65"/>
+  </g>
+  <g>
+    <!-- Outer glow -->
+    <circle cx="424.96000000000004" cy="662.7577022907951" r="172.032" fill="#20808D" opacity="0.15"/>
+    <!-- Main circle -->
+    <circle cx="424.96000000000004" cy="662.7577022907951" r="163.84" fill="#20808D" opacity="0.65"/>
+  </g>
+  <g>
+    <!-- Outer glow -->
+    <circle cx="348.41830857358906" cy="571.5388665501324" r="172.032" fill="#FA520F" opacity="0.15"/>
+    <!-- Main circle -->
+    <circle cx="348.41830857358906" cy="571.5388665501324" r="163.84" fill="#FA520F" opacity="0.65"/>
+  </g>
+  <g>
+    <!-- Outer glow -->
+    <circle cx="348.41830857358906" cy="452.4611334498676" r="172.032" fill="#FF7759" opacity="0.15"/>
+    <!-- Main circle -->
+    <circle cx="348.41830857358906" cy="452.4611334498676" r="163.84" fill="#FF7759" opacity="0.65"/>
+  </g>
+  <g>
+    <!-- Outer glow -->
+    <circle cx="424.9599999999999" cy="361.24229770920493" r="172.032" fill="#0F6FFF" opacity="0.15"/>
+    <!-- Main circle -->
+    <circle cx="424.9599999999999" cy="361.24229770920493" r="163.84" fill="#0F6FFF" opacity="0.65"/>
+  </g>
+  <g>
+    <!-- Outer glow -->
+    <circle cx="542.2286747682592" cy="340.5646663556348" r="172.032" fill="#4D6BFE" opacity="0.15"/>
+    <!-- Main circle -->
+    <circle cx="542.2286747682592" cy="340.5646663556348" r="163.84" fill="#4D6BFE" opacity="0.65"/>
+  </g>
+  <g>
+    <!-- Outer glow -->
+    <circle cx="645.3530166581517" cy="400.10353290576717" r="172.032" fill="#1DA1F2" opacity="0.15"/>
+    <!-- Main circle -->
+    <circle cx="645.3530166581517" cy="400.10353290576717" r="163.84" fill="#1DA1F2" opacity="0.65"/>
+  </g>
+  
+  <!-- Center dark circle -->
+  <circle cx="512" cy="512" r="61.44" fill="#1A1A1A"/>
+</svg>

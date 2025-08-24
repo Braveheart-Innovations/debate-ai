@@ -2,6 +2,8 @@
 import { configureStore, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { User, ChatSession, Message, UIMode, SubscriptionTier, AIConfig } from '../types';
 import debateStatsReducer from './debateStatsSlice';
+import streamingReducer from './streamingSlice';
+import authReducer from './authSlice';
 
 // User slice
 interface UserState {
@@ -88,6 +90,14 @@ const chatSlice = createSlice({
     addMessage: (state, action: PayloadAction<Message>) => {
       if (state.currentSession) {
         state.currentSession.messages.push(action.payload);
+      }
+    },
+    updateMessage: (state, action: PayloadAction<{ id: string; content: string }>) => {
+      if (state.currentSession) {
+        const messageIndex = state.currentSession.messages.findIndex(m => m.id === action.payload.id);
+        if (messageIndex !== -1) {
+          state.currentSession.messages[messageIndex].content = action.payload.content;
+        }
       }
     },
     setTypingAI: (state, action: PayloadAction<{ ai: string; isTyping: boolean }>) => {
@@ -271,6 +281,8 @@ export const store = configureStore({
     chat: chatSlice.reducer,
     settings: settingsSlice.reducer,
     debateStats: debateStatsReducer,
+    streaming: streamingReducer,
+    auth: authReducer,
   },
 });
 
@@ -279,7 +291,7 @@ export type AppDispatch = typeof store.dispatch;
 
 // Export actions
 export const { setUser, updateUIMode, updateSubscription, logout } = userSlice.actions;
-export const { startSession, addMessage, setTypingAI, endSession, loadSession, setLoading, setAIPersonality, setAIModel, clearPersonalities, clearModels } = chatSlice.actions;
+export const { startSession, addMessage, updateMessage, setTypingAI, endSession, loadSession, setLoading, setAIPersonality, setAIModel, clearPersonalities, clearModels } = chatSlice.actions;
 export const { 
   updateTheme, 
   updateFontSize, 
@@ -293,4 +305,32 @@ export const {
   updateExpertMode 
 } = settingsSlice.actions;
 
+// Export auth actions
+export { 
+  setUser as setAuthUser,
+  setUserProfile,
+  setPremiumStatus,
+  setAuthLoading,
+  setAuthModalVisible,
+  logout as authLogout 
+} from './authSlice';
+
 export { startDebate, recordRoundWinner, recordOverallWinner, clearStats, preserveTopic, clearPreservedTopic } from './debateStatsSlice';
+export { 
+  startStreaming, 
+  updateStreamingContent, 
+  endStreaming, 
+  streamingError,
+  clearStreamingMessage,
+  clearCompletedStreams,
+  setProviderStreamingPreference,
+  setGlobalStreaming,
+  setStreamingSpeed,
+  cancelAllStreams,
+  selectStreamingMessage,
+  selectIsStreaming,
+  selectStreamingContent,
+  selectProviderStreamingEnabled,
+  selectStreamingSpeed,
+  selectActiveStreamCount,
+} from './streamingSlice';

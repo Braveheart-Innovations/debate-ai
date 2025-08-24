@@ -1,5 +1,6 @@
 import React from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSelector, useDispatch } from 'react-redux';
 import { Box } from '../components/atoms';
 import { Typography } from '../components/molecules';
 import { SettingButton } from '../components/molecules/settings';
@@ -14,6 +15,8 @@ import {
   useAuthSettings 
 } from '../hooks/settings';
 import { useTheme } from '../theme';
+import { RootState } from '../store';
+import { setGlobalStreaming, setStreamingSpeed } from '../store/streamingSlice';
 
 interface SettingsScreenProps {
   navigation: {
@@ -23,9 +26,14 @@ interface SettingsScreenProps {
 
 const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
   const { theme } = useTheme();
+  const dispatch = useDispatch();
   const themeSettings = useThemeSettings();
   const subscriptionSettings = useSubscriptionSettings();
   const authSettings = useAuthSettings();
+  
+  // Streaming settings from Redux
+  const streamingEnabled = useSelector((state: RootState) => state.streaming?.globalStreamingEnabled ?? true);
+  const streamingSpeed = useSelector((state: RootState) => state.streaming?.streamingSpeed ?? 'natural');
 
   // Define settings sections configuration
   const sections: SettingSectionConfig[] = [
@@ -65,6 +73,43 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
           onPress: () => navigation.navigate('APIConfig'),
           leftIcon: 'api',
           testID: 'settings-api-config-button',
+        },
+      ],
+    },
+    {
+      id: 'streaming',
+      title: 'Message Streaming',
+      description: 'Control how AI responses appear',
+      animationDelay: 350,
+      items: [
+        {
+          id: 'streaming-enabled',
+          type: 'switch',
+          label: 'Enable Streaming',
+          description: 'Show AI responses as they are generated',
+          value: streamingEnabled,
+          onChange: (value: boolean) => {
+            dispatch(setGlobalStreaming(value));
+          },
+          leftIcon: 'stream',
+          testID: 'settings-streaming-switch',
+        },
+        {
+          id: 'streaming-speed',
+          type: 'item',
+          label: 'Streaming Speed',
+          description: streamingEnabled ? `Currently: ${streamingSpeed.charAt(0).toUpperCase() + streamingSpeed.slice(1)}` : 'Enable streaming to adjust speed',
+          value: streamingSpeed,
+          onPress: streamingEnabled ? () => {
+            // Cycle through speeds: instant -> natural -> slow -> instant
+            const nextSpeed = streamingSpeed === 'instant' ? 'natural' : 
+                            streamingSpeed === 'natural' ? 'slow' : 'instant';
+            dispatch(setStreamingSpeed(nextSpeed));
+          } : undefined,
+          leftIcon: 'speed',
+          rightIcon: streamingEnabled ? 'chevron-right' : undefined,
+          disabled: !streamingEnabled,
+          testID: 'settings-streaming-speed',
         },
       ],
     },

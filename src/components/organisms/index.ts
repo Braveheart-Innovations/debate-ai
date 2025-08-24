@@ -18,10 +18,10 @@ export { SelectionSummary } from './SelectionSummary';
 export { DebateModeCard } from './DebateModeCard';
 export { AIServiceLoading } from './AIServiceLoading';
 export { AppLogo } from './AppLogo';
-export { AppIconGenerator } from './AppIconGenerator';
 export { ExpertModeSettings } from './ExpertModeSettings';
 export { ProviderCard } from './ProviderCard';
 export { ErrorBoundary } from './ErrorBoundary';
+export { StreamingIndicator } from './StreamingIndicator';
 
 // API Configuration Organisms
 export { APIConfigHeader } from './APIConfigHeader';

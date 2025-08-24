@@ -6,6 +6,10 @@ import {
   SendMessageResponse,
   AdapterCapabilities 
 } from '../../types/adapter.types';
+import EventSource, { CustomEvent } from 'react-native-sse';
+
+// Define Claude's custom SSE event types
+type ClaudeEventTypes = 'message_start' | 'content_block_start' | 'content_block_delta' | 'content_block_stop' | 'message_stop' | 'ping';
 
 export class ClaudeAdapter extends BaseAdapter {
   private lastModelUsed?: string;
@@ -107,7 +111,7 @@ export class ClaudeAdapter extends BaseAdapter {
           },
           body: JSON.stringify({
             model: modelId,
-            max_tokens: this.config.parameters?.maxTokens || 4096,
+            max_tokens: this.config.parameters?.maxTokens || 8192, // Claude requires this, use maximum
             temperature: this.config.parameters?.temperature || 0.7,
             top_p: this.config.parameters?.topP,
             top_k: this.config.parameters?.topK,
@@ -123,8 +127,12 @@ export class ClaudeAdapter extends BaseAdapter {
           const errorData = await response.json().catch(() => ({}));
           console.error(`[ClaudeAdapter] API Error ${response.status} for model ${modelId}:`, errorData);
           
-          if (response.status === 529 || response.status === 503) {
-            lastError = new Error(`Claude API error: ${response.status} (attempt ${attempt + 1}/${maxRetries})`);
+          // Handle overloaded errors with retry
+          if (response.status === 529 || response.status === 503 || 
+              (errorData.error?.type === 'overloaded_error')) {
+            lastError = new Error(`Claude API is temporarily overloaded (attempt ${attempt + 1}/${maxRetries})`);
+            // Exponential backoff: 1s, 2s, 4s
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
             continue;
           }
           
@@ -157,61 +165,180 @@ export class ClaudeAdapter extends BaseAdapter {
   async *streamMessage(
     message: string,
     conversationHistory: Message[] = [],
-    attachments?: MessageAttachment[]
+    attachments?: MessageAttachment[],
+    resumptionContext?: ResumptionContext,
+    modelOverride?: string
   ): AsyncGenerator<string, void, unknown> {
-    const modelId = resolveModelAlias(this.config.model || getDefaultModel('claude'));
-    const userContent = this.formatMessageContent(message, attachments);
+    const modelId = modelOverride || 
+                   resolveModelAlias(this.config.model || getDefaultModel('claude'));
     
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const userContent = this.formatMessageContent(message, attachments);
+    const formattedHistory = this.formatHistory(conversationHistory, resumptionContext);
+    
+    // Create the request body
+    const requestBody = JSON.stringify({
+      model: modelId,
+      max_tokens: this.config.parameters?.maxTokens || 8192, // Claude requires this, use maximum
+      temperature: this.config.parameters?.temperature || 0.7,
+      stream: true,
+      system: this.getSystemPrompt(),
+      messages: [
+        ...formattedHistory,
+        { role: 'user', content: userContent }
+      ],
+    });
+    
+    
+    // Create EventSource for real streaming in React Native
+    const es = new EventSource<ClaudeEventTypes>('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': this.config.apiKey,
         'anthropic-version': '2023-06-01',
       },
-      body: JSON.stringify({
-        model: modelId,
-        max_tokens: this.config.parameters?.maxTokens || 4096,
-        temperature: this.config.parameters?.temperature || 0.7,
-        stream: true,
-        system: this.getSystemPrompt(),
-        messages: [
-          ...this.formatHistory(conversationHistory),
-          { role: 'user', content: userContent }
-        ],
-      }),
+      body: requestBody,
+      timeoutBeforeConnection: 0, // Connect immediately
+      pollingInterval: 30000, // 30 second polling (shouldn't be needed for streaming)
     });
     
-    if (!response.ok) {
-      await this.handleApiError(response, 'Claude');
-    }
+    // Queue to handle SSE events
+    const eventQueue: string[] = [];
+    let resolver: ((value: IteratorResult<string, void>) => void) | null = null;
+    let isComplete = false;
+    let errorOccurred: Error | null = null;
     
-    const reader = response.body?.getReader();
-    if (!reader) throw new Error('No response body');
+    // Claude sends typed events, not generic 'message' events
+    // Handle content_block_delta events for streaming text
+    es.addEventListener('content_block_delta', (event: CustomEvent<'content_block_delta'>) => {
+      try {
+        const data = JSON.parse(event.data || '{}');
+          
+        if (data.delta?.text) {
+          if (resolver) {
+            resolver({ value: data.delta.text, done: false });
+            resolver = null;
+          } else {
+            eventQueue.push(data.delta.text);
+          }
+        }
+      } catch (error) {
+        console.error('[ClaudeAdapter] Error parsing content_block_delta:', error);
+      }
+    });
     
-    const decoder = new TextDecoder();
-    let buffer = '';
+    // Handle message_stop event for stream completion
+    es.addEventListener('message_stop', () => {
+      isComplete = true;
+      if (resolver) {
+        resolver({ value: undefined, done: true });
+        resolver = null;
+      }
+    });
     
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    // Handle other SSE events
+    es.addEventListener('message_start', () => {});
+    es.addEventListener('content_block_start', () => {});
+    es.addEventListener('content_block_stop', () => {});
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    es.addEventListener('ping' as any, () => {}); // Keep-alive signals
+    
+    // Handle errors
+    es.addEventListener('error', (error) => {
+      console.error('[ClaudeAdapter] SSE error event:', error);
       
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
+      // Parse the error data to check for specific error types
+      let errorMessage = 'SSE connection error';
+      let isOverloaded = false;
       
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          try {
-            const data = JSON.parse(line.slice(6));
-            if (data.type === 'content_block_delta' && data.delta?.text) {
-              yield data.delta.text;
-            }
-          } catch {
-            // Ignore parsing errors
+      try {
+        if (error && typeof error === 'object' && 'data' in error) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const errorData = JSON.parse((error as any).data);
+          if (errorData.error) {
+            errorMessage = errorData.error.message || errorMessage;
+            isOverloaded = errorData.error.type === 'overloaded_error';
+          }
+        }
+      } catch {
+        // If we can't parse the error, use the default message
+      }
+      
+      // Create appropriate error with user-friendly message
+      if (isOverloaded) {
+        errorOccurred = new Error(`Claude is temporarily overloaded. The service will retry automatically.`);
+      } else if (errorMessage.includes('rate_limit')) {
+        errorOccurred = new Error(`Rate limit reached. Please wait a moment before trying again.`);
+      } else if (errorMessage.includes('authentication') || errorMessage.includes('api_key')) {
+        errorOccurred = new Error(`Authentication failed. Please check your API key in Settings.`);
+      } else if (errorMessage.includes('network') || errorMessage.includes('connection')) {
+        errorOccurred = new Error(`Connection error. Please check your internet connection.`);
+      } else {
+        errorOccurred = new Error(errorMessage);
+      }
+      
+      isComplete = true;
+      es.close();
+      
+      // Resolve any pending promise to unblock the generator
+      if (resolver) {
+        resolver({ value: undefined, done: true });
+        resolver = null;
+      }
+    });
+    
+    // Handle connection open
+    es.addEventListener('open', () => {});
+    
+    // Yield chunks as they arrive
+    let yieldCount = 0;
+    
+    try {
+      while (!isComplete) {
+        // Check for errors immediately
+        if (errorOccurred) {
+          console.error(`[ClaudeAdapter] Error occurred, throwing:`, (errorOccurred as Error).message);
+          throw errorOccurred;
+        }
+        
+        if (eventQueue.length > 0) {
+          const chunk = eventQueue.shift()!;
+          yieldCount++;
+          yield chunk;
+        } else {
+          // Wait for next event
+          const result = await new Promise<IteratorResult<string, void>>((resolve) => {
+            resolver = resolve;
+            // Set a timeout to prevent hanging
+            setTimeout(() => {
+              if (resolver === resolve) {
+                resolve({ value: undefined, done: true });
+                resolver = null;
+                isComplete = true;
+              }
+            }, 30000); // 30 second timeout
+          });
+          
+          // Check for errors after waiting
+          if (errorOccurred) {
+            console.error(`[ClaudeAdapter] Error occurred after waiting, throwing:`, (errorOccurred as Error).message);
+            throw errorOccurred;
+          }
+          
+          if (!result.done && result.value) {
+            yieldCount++;
+            yield result.value;
           }
         }
       }
+      
+      // Final error check before completing
+      if (errorOccurred && yieldCount === 0) {
+        throw errorOccurred;
+      }
+      
+    } finally {
+      es.close();
     }
   }
 }

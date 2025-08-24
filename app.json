@@ -16,7 +16,14 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.braveheartinnovations.debateai"
+      "bundleIdentifier": "com.braveheartinnovations.debateai",
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "associatedDomains": [
+        "applinks:symposium-ai.firebaseapp.com",
+        "webcredentials:symposium-ai.firebaseapp.com",
+        "applinks:symposium-ai.web.app",
+        "webcredentials:symposium-ai.web.app"
+      ]
     },
     "android": {
       "adaptiveIcon": {
@@ -24,13 +31,17 @@
         "backgroundColor": "#1A1A1A"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.braveheartinnovations.debateai"
+      "package": "com.braveheartinnovations.debateai",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-secure-store"
+      "expo-secure-store",
+      "@react-native-firebase/app",
+      "@react-native-firebase/auth",
+      "expo-dev-client"
     ]
   }
 }

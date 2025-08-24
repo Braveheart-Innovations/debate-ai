@@ -5,6 +5,7 @@ import { AIProvider } from '../../../types';
 // Import individual adapters
 import { ClaudeAdapter } from '../adapters/claude/ClaudeAdapter';
 import { ChatGPTAdapter } from '../adapters/openai/ChatGPTAdapter';
+import { GPT5ResponsesAdapter } from '../adapters/openai/GPT5ResponsesAdapter';
 import { GeminiAdapter } from '../adapters/google/GeminiAdapter';
 import { PerplexityAdapter } from '../adapters/perplexity/PerplexityAdapter';
 import { MistralAdapter } from '../adapters/mistral/MistralAdapter';
@@ -31,6 +32,16 @@ const ADAPTER_REGISTRY: Record<string, new (config: AIAdapterConfig) => BaseAdap
 
 export class AdapterFactory {
   static create(config: AIAdapterConfig): BaseAdapter {
+    // Special handling for OpenAI: Route GPT-5 models to the Responses API adapter
+    if (config.provider === 'openai' || config.provider === 'chatgpt') {
+      const model = config.model || '';
+      if (model.startsWith('gpt-5')) {
+        return new GPT5ResponsesAdapter(config);
+      }
+      // Use regular ChatGPT adapter for other models
+      return new ChatGPTAdapter(config);
+    }
+    
     const AdapterClass = ADAPTER_REGISTRY[config.provider];
     
     if (!AdapterClass) {

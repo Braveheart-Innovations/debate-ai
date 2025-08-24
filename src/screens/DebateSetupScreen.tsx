@@ -2,11 +2,12 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSelector, useDispatch } from 'react-redux';
-import { RootState, setAIPersonality, setAIModel, preserveTopic, clearPreservedTopic } from '../store';
+import { RootState, setAIPersonality, setAIModel, preserveTopic, clearPreservedTopic, setAuthModalVisible } from '../store';
 
 import { Box } from '../components/atoms';
 import { Button } from '../components/molecules';
 import { Header } from '../components/organisms';
+import { hasFeatureAccess, getPremiumUpsellMessage } from '../services/PremiumService';
 import {
   DebateTopicSelector,
   DebateAISelector,
@@ -32,19 +33,15 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation }) => 
   const { theme } = useTheme();
   const dispatch = useDispatch();
   const scrollViewRef = useRef<ScrollView>(null);
-  const user = useSelector((state: RootState) => state.user.currentUser);
   const apiKeys = useSelector((state: RootState) => state.settings.apiKeys || {});
   const aiPersonalities = useSelector((state: RootState) => state.chat.aiPersonalities);
   const selectedModelsFromStore = useSelector((state: RootState) => state.chat.selectedModels);
   const preservedTopic = useSelector((state: RootState) => state.debateStats.preservedTopic);
   const preservedTopicMode = useSelector((state: RootState) => state.debateStats.preservedTopicMode);
+  const isPremium = useSelector((state: RootState) => state.auth.isPremium);
   
   // Pre-debate validation
   const validation = usePreDebateValidation(navigation);
-  
-  // TODO: Remove true || for production - defaulting to premium for development
-  // eslint-disable-next-line no-constant-binary-expression
-  const isPremium = true || user?.subscription === 'pro' || user?.subscription === 'business';
   
   // Get configured AIs based on which ones have API keys
   const configuredAIs = useMemo(() => {
@@ -165,6 +162,22 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation }) => 
   };
   
   const handleTopicModeChange = (mode: 'preset' | 'custom' | 'surprise') => {
+    // Check if user can use custom topics
+    if (mode === 'custom' && !hasFeatureAccess('customDebateTopics')) {
+      Alert.alert(
+        'Premium Feature',
+        getPremiumUpsellMessage('customDebateTopics'),
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Upgrade', 
+            onPress: () => dispatch(setAuthModalVisible(true))
+          }
+        ]
+      );
+      return;
+    }
+    
     setTopicMode(mode);
     // Auto-scroll to show the content when mode changes
     setTimeout(() => {

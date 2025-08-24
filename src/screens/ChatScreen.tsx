@@ -11,7 +11,7 @@ import {
   useChatSession,
   useChatMessages,
   useChatInput,
-  useAIResponses,
+  useAIResponsesWithStreaming,
   useMentions,
   useQuickStart,
 } from '../hooks/chat';
@@ -22,6 +22,7 @@ import {
   ChatInputBar,
   ChatTypingIndicators,
   ChatMentionSuggestions,
+  ChatWarnings,
 } from '../components/organisms/chat';
 
 
@@ -59,7 +60,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
   const messages = useChatMessages();
   const input = useChatInput();
   const mentions = useMentions();
-  const aiResponses = useAIResponses(resuming);
+  const aiResponses = useAIResponsesWithStreaming(resuming);
   const quickStart = useQuickStart({ initialPrompt, userPrompt, autoSend });
 
   // Handle message sending
@@ -186,6 +187,9 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
           showTime={true}
           animated={true}
         />
+
+        {/* Warnings (e.g., GPT-5 latency) */}
+        <ChatWarnings selectedAIs={session.selectedAIs} />
 
         {/* Message List */}
         <ChatMessageList

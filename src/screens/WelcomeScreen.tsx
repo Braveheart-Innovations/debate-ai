@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { GradientButton, Typography } from '../components/molecules';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AppIcon from '../../assets/icon.png';
 import { useTheme } from '../theme';
 import Animated, {
   useSharedValue,
@@ -23,7 +24,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useDispatch } from 'react-redux';
 import { completeOnboarding } from '../store';
-import { AppIconGenerator } from '../components/organisms';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const { width } = Dimensions.get('window');
@@ -167,7 +167,10 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
         {/* Hero Section */}
         <Animated.View style={[styles.logoContainer, animatedLogoStyle]}>
           <View style={styles.iconWrapper}>
-            <AppIconGenerator size={120} />
+            <Image 
+              source={AppIcon} 
+              style={{ width: 120, height: 120, borderRadius: 20 }}
+            />
           </View>
           <Typography 
             variant="heading" 

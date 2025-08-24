@@ -8,6 +8,7 @@ import {
   AdapterCapabilities,
   ProviderConfig 
 } from '../types/adapter.types';
+import EventSource from 'react-native-sse';
 
 export abstract class OpenAICompatibleAdapter extends BaseAdapter {
   protected abstract getProviderConfig(): ProviderConfig;
@@ -27,24 +28,34 @@ export abstract class OpenAICompatibleAdapter extends BaseAdapter {
     const resolvedModel = modelOverride || 
                          resolveModelAlias(this.config.model || getDefaultModel(this.config.provider));
     
+    const userContent = await Promise.resolve(this.formatUserMessage(message, attachments));
+    
     const messages: FormattedMessage[] = [
       { role: 'system', content: this.getSystemPrompt() },
       ...this.formatHistory(conversationHistory, resumptionContext),
-      { role: 'user', content: this.formatUserMessage(message, attachments) }
+      { role: 'user', content: userContent }
     ];
     
     try {
+      const requestBody: Record<string, unknown> = {
+        model: resolvedModel,
+        messages,
+        temperature: this.config.parameters?.temperature || 0.7,
+        stream: false,
+      };
+      
+      // Only set optional parameters if provided
+      if (this.config.parameters?.maxTokens) {
+        requestBody.max_tokens = this.config.parameters.maxTokens;
+      }
+      if (this.config.parameters?.topP !== undefined) {
+        requestBody.top_p = this.config.parameters.topP;
+      }
+      
       const response = await fetch(`${config.baseUrl}/chat/completions`, {
         method: 'POST',
         headers: config.headers(this.config.apiKey),
-        body: JSON.stringify({
-          model: resolvedModel,
-          messages,
-          temperature: this.config.parameters?.temperature || 0.7,
-          max_tokens: this.config.parameters?.maxTokens || 2048,
-          top_p: this.config.parameters?.topP,
-          stream: false,
-        }),
+        body: JSON.stringify(requestBody),
       });
       
       if (!response.ok) {
@@ -68,7 +79,7 @@ export abstract class OpenAICompatibleAdapter extends BaseAdapter {
     }
   }
   
-  protected formatUserMessage(message: string, attachments?: MessageAttachment[]): string | Array<{ type: string; text?: string; image_url?: { url: string } }> {
+  protected formatUserMessage(message: string, attachments?: MessageAttachment[]): string | Array<{ type: string; text?: string; image_url?: { url: string }; file?: { file_name: string; file_data: string } }> | Promise<string | Array<{ type: string; text?: string; image_url?: { url: string }; file?: { file_name: string; file_data: string } }>> {
     if (!attachments || attachments.length === 0) {
       return message;
     }
@@ -78,10 +89,10 @@ export abstract class OpenAICompatibleAdapter extends BaseAdapter {
       return message;
     }
     
-    const contentParts: Array<{ type: string; text?: string; image_url?: { url: string } }> = [{ type: 'text', text: message }];
+    const contentParts: Array<{ type: string; text?: string; image_url?: { url: string }; file?: { file_name: string; file_data: string } }> = [{ type: 'text', text: message }];
     
     for (const attachment of attachments) {
-      if (attachment.type === 'image') {
+      if (attachment.type === 'image' && capabilities.supportsImages) {
         contentParts.push({
           type: 'image_url',
           image_url: {
@@ -89,6 +100,14 @@ export abstract class OpenAICompatibleAdapter extends BaseAdapter {
               ? attachment.uri 
               : `data:${attachment.mimeType || 'image/jpeg'};base64,${attachment.base64}`
           }
+        });
+      } else if (attachment.type === 'document' && capabilities.supportsDocuments) {
+        // Document support is disabled in base class
+        // Each provider must override formatUserMessage to implement their own document handling
+        console.warn(`[${this.config.provider}] Document support not implemented in base adapter`);
+        contentParts.push({
+          type: 'text',
+          text: `[Document attachments not supported for ${this.config.provider}]`
         });
       }
     }
@@ -99,62 +118,179 @@ export abstract class OpenAICompatibleAdapter extends BaseAdapter {
   async *streamMessage(
     message: string,
     conversationHistory: Message[] = [],
-    attachments?: MessageAttachment[]
+    attachments?: MessageAttachment[],
+    resumptionContext?: ResumptionContext,
+    modelOverride?: string
   ): AsyncGenerator<string, void, unknown> {
     const config = this.getProviderConfig();
-    const resolvedModel = resolveModelAlias(this.config.model || getDefaultModel(this.config.provider));
+    const resolvedModel = modelOverride || 
+                         resolveModelAlias(this.config.model || getDefaultModel(this.config.provider));
+    
+    const userContent = await Promise.resolve(this.formatUserMessage(message, attachments));
     
     const messages: FormattedMessage[] = [
       { role: 'system', content: this.getSystemPrompt() },
-      ...this.formatHistory(conversationHistory),
-      { role: 'user', content: this.formatUserMessage(message, attachments) }
+      ...this.formatHistory(conversationHistory, resumptionContext),
+      { role: 'user', content: userContent }
     ];
     
-    const response = await fetch(`${config.baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: config.headers(this.config.apiKey),
-      body: JSON.stringify({
-        model: resolvedModel,
-        messages,
-        temperature: this.config.parameters?.temperature || 0.7,
-        max_tokens: this.config.parameters?.maxTokens || 2048,
-        stream: true,
-      }),
-    });
+    // Build request body with proper token parameter handling
+    const requestBodyObj: Record<string, unknown> = {
+      model: resolvedModel,
+      messages,
+      stream: true,
+    };
     
-    if (!response.ok) {
-      await this.handleApiError(response, this.config.provider);
+    // Check if this is an OpenAI provider and model requires special handling
+    if (this.config.provider === 'openai') {
+      // Import getModelById for OpenAI model config checking
+      const { getModelById } = await import('../../../config/modelConfigs');
+      const modelConfig = getModelById('openai', resolvedModel);
+      
+      const isO1Model = resolvedModel.startsWith('o1');
+      const isGPT5Model = resolvedModel.startsWith('gpt-5');
+      
+      // Handle temperature requirements
+      if (modelConfig?.requiresTemperature1 || isGPT5Model || isO1Model) {
+        // GPT-5 and O1 models require temperature=1
+        requestBodyObj.temperature = 1;
+      } else {
+        requestBodyObj.temperature = this.config.parameters?.temperature || 0.7;
+      }
+      
+      // Handle token parameter - GPT-5 and O1 use max_completion_tokens, others use max_tokens
+      if (isGPT5Model || isO1Model) {
+        // Don't set a default - let OpenAI use its own defaults
+        if (this.config.parameters?.maxTokens) {
+          requestBodyObj.max_completion_tokens = this.config.parameters.maxTokens;
+        }
+      } else if (this.config.parameters?.maxTokens) {
+        requestBodyObj.max_tokens = this.config.parameters.maxTokens;
+      }
+    } else {
+      // Non-OpenAI providers use standard parameters
+      requestBodyObj.temperature = this.config.parameters?.temperature || 0.7;
+      // Only set max_tokens if explicitly configured
+      if (this.config.parameters?.maxTokens) {
+        requestBodyObj.max_tokens = this.config.parameters.maxTokens;
+      }
     }
     
-    const reader = response.body?.getReader();
-    if (!reader) throw new Error('No response body');
+    const requestBody = JSON.stringify(requestBodyObj);
+    const headers = config.headers(this.config.apiKey);
     
-    const decoder = new TextDecoder();
-    let buffer = '';
+    // Create EventSource - THIS IS REQUIRED FOR REACT NATIVE
+    console.warn(`[${this.config.provider}] Creating EventSource connection...`);
+    const es = new EventSource(`${config.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json',
+        'Accept': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+      },
+      body: requestBody,
+      timeoutBeforeConnection: 0, // Connect immediately like Claude
+      pollingInterval: 30000, // 30 second polling like Claude
+      withCredentials: false,
+    });
     
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-      
-      for (const line of lines) {
-        if (line.trim() === '' || line.trim() === 'data: [DONE]') continue;
+    // Simple accumulator for chunks
+    const chunks: string[] = [];
+    let isComplete = false;
+    let errorOccurred: Error | null = null;
+    let lastMessageTime = Date.now();
+    
+    // Handle message events
+    let messageCount = 0;
+    es.addEventListener('message', (event) => {
+      messageCount++;
+      try {
+        const line = event.data;
         
-        if (line.startsWith('data: ')) {
-          try {
-            const data = JSON.parse(line.slice(6));
-            const content = data.choices?.[0]?.delta?.content;
-            if (content) {
-              yield content;
-            }
-          } catch {
-            // Ignore parse errors
+        // Log every 50th message to see what's happening
+        if (messageCount % 50 === 0 || messageCount <= 5) {
+          console.warn(`[${this.config.provider}] Message ${messageCount}:`, line?.substring(0, 100));
+        }
+        
+        if (line === '[DONE]') {
+          console.warn(`[${this.config.provider}] Received [DONE] signal`);
+          isComplete = true;
+          es.close();
+          return;
+        }
+        
+        const data = JSON.parse(line || '{}');
+        const content = data.choices?.[0]?.delta?.content;
+        const finishReason = data.choices?.[0]?.finish_reason;
+        
+        if (content) {
+          chunks.push(content);
+          lastMessageTime = Date.now();
+        }
+        
+        if (finishReason) {
+          console.warn(`[${this.config.provider}] Finish reason: ${finishReason}`);
+          isComplete = true;
+          es.close();
+        }
+        
+        // Check for empty delta which might indicate end
+        if (data.choices?.[0]?.delta && Object.keys(data.choices[0].delta).length === 0 && !content) {
+          console.warn(`[${this.config.provider}] Empty delta detected, might be end of stream`);
+        }
+      } catch (error) {
+        console.error(`[${this.config.provider}] Error parsing SSE data:`, error);
+      }
+    });
+    
+    // Handle errors
+    es.addEventListener('error', (error) => {
+      console.error(`[${this.config.provider}] SSE error:`, error);
+      errorOccurred = new Error(String(error));
+      isComplete = true;
+      es.close();
+    });
+    
+    // Handle connection open
+    es.addEventListener('open', () => {
+      console.warn(`[${this.config.provider}] SSE connection opened`);
+    });
+    
+    // Simple yielding - yield all chunks as they accumulate
+    let lastYieldIndex = 0;
+    let iterations = 0;
+    
+    try {
+      while (!isComplete || lastYieldIndex < chunks.length) {
+        iterations++;
+        
+        if (errorOccurred) {
+          throw errorOccurred;
+        }
+        
+        // Yield ALL accumulated chunks
+        while (lastYieldIndex < chunks.length) {
+          yield chunks[lastYieldIndex];
+          lastYieldIndex++;
+        }
+        
+        // If stream isn't complete, wait a bit for more chunks
+        if (!isComplete) {
+          // Check for idle timeout
+          const idleTime = Date.now() - lastMessageTime;
+          if (idleTime > 10000 && chunks.length > 0) {
+            console.warn(`[${this.config.provider}] No new messages for ${idleTime}ms, ending stream`);
+            break;
           }
+          
+          // Small delay to let chunks accumulate
+          await new Promise(resolve => setTimeout(resolve, 50));
         }
       }
+    } finally {
+      console.warn(`[${this.config.provider}] Stream complete. Messages: ${messageCount}, Chunks: ${chunks.length}, Iterations: ${iterations}`);
+      es.close();
     }
   }
 }

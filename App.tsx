@@ -9,15 +9,60 @@ import { AIServiceProvider } from './src/providers/AIServiceProvider';
 import { ThemeProvider } from './src/theme';
 import secureStorage from './src/services/secureStorage';
 import VerificationPersistenceService from './src/services/VerificationPersistenceService';
+import { initializeFirebase } from './src/services/firebase/config';
+import { getFirestore, doc, getDoc } from '@react-native-firebase/firestore';
+import { onAuthStateChanged } from './src/services/firebase/auth';
+import { AuthModal } from './src/components/organisms/auth/AuthModal';
+import { setAuthUser, setUserProfile } from './src/store';
 
 function AppContent() {
   const dispatch = useDispatch();
 
   useEffect(() => {
+    let authUnsubscribe: (() => void) | undefined;
+    
     // Initialize app on startup
     const initializeApp = async () => {
       try {
-        // Load stored API keys
+        // Initialize Firebase first
+        await initializeFirebase();
+        console.log('Firebase initialized');
+        
+        // Set up auth state listener
+        authUnsubscribe = onAuthStateChanged(async (user) => {
+          if (user) {
+            dispatch(setAuthUser(user));
+            
+            // Fetch user profile from Firestore
+            try {
+              const db = getFirestore();
+              const userDocRef = doc(db, 'users', user.uid);
+              const profileDoc = await getDoc(userDocRef);
+              
+              if (profileDoc.exists()) {
+                const profileData = profileDoc.data();
+                dispatch(setUserProfile({
+                  email: user.email,
+                  displayName: profileData?.displayName || user.displayName,
+                  photoURL: user.photoURL,
+                  createdAt: profileData?.createdAt?.toDate() || new Date(),
+                  membershipStatus: profileData?.membershipStatus || 'free',
+                  preferences: profileData?.preferences || {},
+                }));
+              }
+            } catch (error) {
+              console.error('Error fetching user profile:', error);
+            }
+            
+            console.log('User authenticated with Firebase:', user.uid);
+          } else {
+            // No user signed in, optionally sign in anonymously
+            dispatch(setAuthUser(null));
+            dispatch(setUserProfile(null));
+          }
+        });
+        
+        // Load stored API keys (BYOK - users' own keys stay on device)
         const storedKeys = await secureStorage.getApiKeys();
         if (storedKeys) {
           dispatch(updateApiKeys(storedKeys));
@@ -41,6 +86,13 @@ function AppContent() {
     };
 
     initializeApp();
+    
+    // Cleanup function
+    return () => {
+      if (authUnsubscribe) {
+        authUnsubscribe();
+      }
+    };
   }, [dispatch]);
 
   return (
@@ -48,6 +100,7 @@ function AppContent() {
       <ThemeProvider>
         <AIServiceProvider>
           <AppNavigator />
+          <AuthModal />
           <StatusBar style="auto" />
         </AIServiceProvider>
       </ThemeProvider>

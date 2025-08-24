@@ -1,6 +1,10 @@
 import { AIConfig } from '../types';
 import { getModelById } from '../config/modelConfigs';
 import { AdapterFactory } from '../services/ai';
+import type { AdapterCapabilities } from '../services/ai/types/adapter.types';
+
+// Cache for adapter capabilities to avoid recreating adapters
+const capabilitiesCache = new Map<string, AdapterCapabilities>();
 
 /**
  * Determines what types of attachments are supported based on selected AIs
@@ -29,24 +33,32 @@ export const getAttachmentSupport = (selectedAIs: AIConfig[]): { images: boolean
     return { images: false, documents: false };
   }
   
-  // Check adapter capabilities
-  try {
-    const adapter = AdapterFactory.create({
-      provider: ai.provider,
-      apiKey: 'dummy', // Not used for capability check
-      model: ai.model,
-    });
-    
-    const capabilities = adapter.getCapabilities();
-    
-    return {
-      images: Boolean(model.supportsVision && (capabilities.supportsImages ?? capabilities.attachments)),
-      documents: Boolean(model.supportsDocuments && (capabilities.supportsDocuments ?? false))
-    };
-  } catch (error) {
-    console.warn(`Could not check attachment support for ${ai.provider}:`, error);
-    return { images: false, documents: false };
+  // Check adapter capabilities (with caching)
+  const cacheKey = `${ai.provider}:${ai.model}`;
+  let capabilities: AdapterCapabilities;
+  
+  if (capabilitiesCache.has(cacheKey)) {
+    capabilities = capabilitiesCache.get(cacheKey)!;
+  } else {
+    try {
+      const adapter = AdapterFactory.create({
+        provider: ai.provider,
+        apiKey: 'dummy', // Not used for capability check
+        model: ai.model,
+      });
+      
+      capabilities = adapter.getCapabilities();
+      capabilitiesCache.set(cacheKey, capabilities);
+    } catch (error) {
+      console.warn(`Could not check attachment support for ${ai.provider}:`, error);
+      return { images: false, documents: false };
+    }
   }
+  
+  return {
+    images: Boolean(model.supportsVision && (capabilities.supportsImages ?? capabilities.attachments)),
+    documents: Boolean(model.supportsDocuments && (capabilities.supportsDocuments ?? false))
+  };
 };
 
 /**
@@ -75,20 +87,29 @@ export const getAttachmentSupportMessage = (selectedAIs: AIConfig[]): string => 
     return `${model.name} doesn't support image attachments`;
   }
   
-  // Check adapter capabilities
-  try {
-    const adapter = AdapterFactory.create({
-      provider: ai.provider,
-      apiKey: 'dummy',
-      model: ai.model,
-    });
-    
-    const capabilities = adapter.getCapabilities();
-    if (!capabilities.attachments) {
-      return `${ai.provider} adapter doesn't support attachments yet`;
+  // Check adapter capabilities (with caching)
+  const cacheKey = `${ai.provider}:${ai.model}`;
+  let capabilities: AdapterCapabilities;
+  
+  if (capabilitiesCache.has(cacheKey)) {
+    capabilities = capabilitiesCache.get(cacheKey)!;
+  } else {
+    try {
+      const adapter = AdapterFactory.create({
+        provider: ai.provider,
+        apiKey: 'dummy',
+        model: ai.model,
+      });
+      
+      capabilities = adapter.getCapabilities();
+      capabilitiesCache.set(cacheKey, capabilities);
+    } catch {
+      return `Could not verify attachment support for ${ai.provider}`;
     }
-  } catch {
-    return `Could not verify attachment support for ${ai.provider}`;
+  }
+  
+  if (!capabilities.attachments) {
+    return `${ai.provider} adapter doesn't support attachments yet`;
   }
   
   return 'You can attach images or documents';
