@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { CompareMessageBubble } from './CompareMessageBubble';
-import { ChatTypingIndicators } from '../chat/ChatTypingIndicators';
-import { Button } from '../../molecules';
+import { ContinueButton } from './ContinueButton';
+import { CompareTypingIndicator } from './CompareTypingIndicator';
 import { Box } from '../../atoms';
 import { Message, AIConfig } from '../../../types';
 import { useTheme } from '../../../theme';
@@ -92,21 +92,18 @@ export const CompareResponsePane: React.FC<CompareResponsePaneProps> = ({
         )}
         
         {/* Typing Indicator */}
-        {isTyping && !streamingContent && (
-          <ChatTypingIndicators typingAIs={[ai.name]} />
-        )}
+        <CompareTypingIndicator 
+          isVisible={isTyping && !streamingContent}
+          side={side}
+        />
       </ScrollView>
       
       {/* Continue Button */}
-      <View style={[styles.footer, { borderTopColor: theme.colors.border }]}>
-        <Button
-          title="Continue with this AI"
-          onPress={onContinueWithAI}
-          variant="ghost"
-          size="small"
-          disabled={isDisabled}
-        />
-      </View>
+      <ContinueButton
+        onPress={onContinueWithAI}
+        isDisabled={isDisabled}
+        side={side}
+      />
     </View>
   );
 };
@@ -133,11 +130,5 @@ const styles = StyleSheet.create({
   },
   messageWrapper: {
     marginBottom: 6, // Reduced from 8
-  },
-  footer: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderTopWidth: 1,
-    alignItems: 'center',
   },
 });

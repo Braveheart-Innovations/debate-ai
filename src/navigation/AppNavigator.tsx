@@ -104,20 +104,6 @@ const MainTabs = () => {
         }}
       />
       <Tab.Screen
-        name="History"
-        component={HistoryScreen}
-        options={{
-          tabBarLabel: 'History',
-          tabBarIcon: ({ color }) => (
-            <MaterialIcons 
-              name="history" 
-              size={26} 
-              color={color} 
-            />
-          ),
-        }}
-      />
-      <Tab.Screen
         name="Compare"
         component={CompareSetupScreen}
         options={{
@@ -126,6 +112,20 @@ const MainTabs = () => {
             <Ionicons 
               name={focused ? 'git-compare' : 'git-compare-outline'} 
               size={24} 
+              color={color} 
+            />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="History"
+        component={HistoryScreen}
+        options={{
+          tabBarLabel: 'History',
+          tabBarIcon: ({ color }) => (
+            <MaterialIcons 
+              name="history" 
+              size={26} 
               color={color} 
             />
           ),
