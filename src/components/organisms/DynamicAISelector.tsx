@@ -20,6 +20,9 @@ interface DynamicAISelectorProps {
   isPremium: boolean;
   customSubtitle?: string;
   hideStartButton?: boolean;  // New prop to hide the start button
+  hideHeader?: boolean;  // New prop to hide the section header
+  columnCount?: number;  // New prop to override column count
+  containerWidth?: number;  // New prop to override container width calculation
   aiPersonalities?: { [aiId: string]: string };
   selectedModels?: { [aiId: string]: string };
   onPersonalityChange?: (aiId: string, personalityId: string) => void;
@@ -36,6 +39,9 @@ export const DynamicAISelector: React.FC<DynamicAISelectorProps> = ({
   isPremium,
   customSubtitle,
   hideStartButton = false,
+  hideHeader = false,
+  columnCount,
+  containerWidth,
   aiPersonalities = {},
   selectedModels = {},
   onPersonalityChange,
@@ -63,26 +69,28 @@ export const DynamicAISelector: React.FC<DynamicAISelectorProps> = ({
     onAddAI();
   };
   
-  // Always use 2 columns for clean, consistent layout
+  // Use provided column count or default to 2 columns for clean, consistent layout
   const getGridLayout = () => {
-    return 2; // Always 2 columns for optimal spacing and readability
+    return columnCount || 2; // Default to 2 columns for optimal spacing and readability
   };
   
   const columns = getGridLayout();
-  const containerPadding = theme.spacing.lg * 2; // Left + right padding from parent
+  const baseWidth = containerWidth || screenWidth;
+  const containerPadding = containerWidth ? 0 : theme.spacing.lg * 2; // No padding if containerWidth provided
   const itemGap = theme.spacing.md; // Improved visual separation (12px)
-  const cardWidth = (screenWidth - containerPadding - (itemGap * (columns - 1))) / columns;
+  const cardWidth = (baseWidth - containerPadding - (itemGap * (columns - 1))) / columns;
   
   return (
     <Box>
-      <SectionHeader
-        title="Choose Your AIs"
-        subtitle={getSubtitle()}
-        icon="🤖"
-        onAction={handleAddAI}
-        actionLabel="+ Add AI"
-      />
-      
+      {!hideHeader && (
+        <SectionHeader
+          title="Choose Your AIs"
+          subtitle={getSubtitle()}
+          icon="🤖"
+          onAction={handleAddAI}
+          actionLabel="+ Add AI"
+        />
+      )}
       
       {/* AI Grid Layout - Only AI cards, no Add button */}
       <View style={{ marginBottom: theme.spacing.lg, overflow: 'visible', zIndex: 1 }}>

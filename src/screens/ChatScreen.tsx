@@ -24,6 +24,7 @@ import {
   ChatMentionSuggestions,
   ChatWarnings,
 } from '../components/organisms/chat';
+import { AIConfig, Message } from '../types';
 
 
 interface ChatScreenProps {
@@ -38,6 +39,8 @@ interface ChatScreenProps {
       initialPrompt?: string;
       userPrompt?: string;
       autoSend?: boolean;
+      selectedAIs?: AIConfig[];
+      initialMessages?: Message[];
     };
   };
 }
@@ -49,7 +52,9 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
     initialPrompt, 
     userPrompt, 
     autoSend,
-    resuming 
+    resuming,
+    // selectedAIs, // TODO: Implement continuation from Compare
+    // initialMessages // TODO: Implement continuation from Compare
   } = route.params;
 
   // AI Service state

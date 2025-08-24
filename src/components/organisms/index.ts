@@ -34,9 +34,6 @@ export { ProfileContent } from './profile/ProfileContent';
 // Settings Organisms
 export { UnifiedSettings } from './settings/UnifiedSettings';
 
-// Navigation Organisms
-export { CompareScreen } from './navigation/CompareScreen';
-
 // API Configuration Organisms
 export { APIConfigHeader } from './APIConfigHeader';
 export { APIConfigProgress } from './APIConfigProgress';
@@ -46,6 +43,9 @@ export { APIComingSoon } from './APIComingSoon';
 
 // Debate organisms
 export * from './debate';
+
+// Compare organisms  
+export * from './compare';
 
 // Stats Organisms
 export { 

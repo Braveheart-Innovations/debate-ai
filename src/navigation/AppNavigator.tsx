@@ -12,8 +12,7 @@ import { useTheme } from '../theme';
 import { SheetProvider } from '../contexts/SheetContext';
 import { 
   ProfileSheet, 
-  UnifiedSettings, 
-  CompareScreen 
+  UnifiedSettings
 } from '../components/organisms';
 
 // Import screens
@@ -25,6 +24,8 @@ import APIConfigScreen from '../screens/APIConfigScreen';
 import DebateScreen from '../screens/DebateScreen';
 import DebateSetupScreen from '../screens/DebateSetupScreen';
 import StatsScreen from '../screens/StatsScreen';
+import CompareSetupScreen from '../screens/CompareSetupScreen';
+import CompareScreen from '../screens/CompareScreen';
 // import SubscriptionScreen from '../screens/SubscriptionScreen';
 // import ExpertModeScreen from '../screens/ExpertModeScreen';
 
@@ -118,7 +119,7 @@ const MainTabs = () => {
       />
       <Tab.Screen
         name="Compare"
-        component={CompareScreen}
+        component={CompareSetupScreen}
         options={{
           tabBarLabel: 'Compare',
           tabBarIcon: ({ color, focused }) => (
@@ -299,6 +300,11 @@ export default function AppNavigator() {
             <Stack.Screen
               name="Debate"
               component={DebateScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="CompareSession"
+              component={CompareScreen}
               options={{ headerShown: false }}
             />
             <Stack.Screen

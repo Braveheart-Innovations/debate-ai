@@ -5,6 +5,7 @@ import debateStatsReducer from './debateStatsSlice';
 import streamingReducer from './streamingSlice';
 import authReducer from './authSlice';
 import navigationReducer from './navigationSlice';
+import compareReducer from './compareSlice';
 
 // User slice
 interface UserState {
@@ -285,6 +286,7 @@ export const store = configureStore({
     streaming: streamingReducer,
     auth: authReducer,
     navigation: navigationReducer,
+    compare: compareReducer,
   },
 });
 
@@ -350,3 +352,23 @@ export {
   setLastNavigatedTab,
   resetNavigationState,
 } from './navigationSlice';
+
+export {
+  setLeftAI,
+  setRightAI,
+  swapAIs,
+  addCompareMessage,
+  clearMessages,
+  startCompareStreaming,
+  updateCompareStreamingContent,
+  endCompareStreaming,
+  compareStreamingError,
+  startCompareSession,
+  clearCompareSession,
+  setCompareOrientation,
+  toggleSyncScroll,
+  selectCompareState,
+  selectSelectedAIs,
+  selectIsComparing,
+  selectCompareStreamingStates,
+} from './compareSlice';

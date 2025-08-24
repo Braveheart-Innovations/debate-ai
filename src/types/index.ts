@@ -143,11 +143,20 @@ export type RootStackParamList = {
   Welcome: undefined;
   MainTabs: undefined;
   Home: undefined;
-  Chat: { sessionId: string; initialPrompt?: string };
+  Chat: { 
+    sessionId: string; 
+    initialPrompt?: string;
+    selectedAIs?: AIConfig[];
+    initialMessages?: Message[];
+    aiPersonalities?: { [aiId: string]: string };
+    selectedModels?: { [aiId: string]: string };
+  };
   Settings: undefined;
   APIConfig: undefined;
   Subscription: undefined;
   ExpertMode: undefined;
   Debate: { selectedAIs: AI[]; topic?: string; personalities?: { [key: string]: string } };
+  Compare?: undefined;
+  CompareSession: { leftAI: AIConfig; rightAI: AIConfig };
   Stats: undefined;
 };
