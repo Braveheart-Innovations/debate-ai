@@ -111,7 +111,7 @@ const CompareSetupScreen: React.FC<CompareSetupScreenProps> = ({ navigation }) =
         title="Compare AIs"
         subtitle={bothSelected ? "Ready to compare" : "Select two AIs to compare"}
         showTime={false}
-        showDate={false}
+        showDate={true}
         animated={true}
         showProfileIcon={true}
         rightElement={<HeaderActions variant="gradient" />}

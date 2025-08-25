@@ -228,7 +228,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
           title="Comparing"
           subtitle={`${leftAI.name} vs ${rightAI.name}`}
           showTime={false}
-          showDate={false}
+          showDate={true}
           animated={true}
           showProfileIcon={false}
           rightElement={

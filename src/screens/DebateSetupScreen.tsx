@@ -6,7 +6,7 @@ import { RootState, setAIPersonality, setAIModel, preserveTopic, clearPreservedT
 
 import { Box } from '../components/atoms';
 import { Button } from '../components/molecules';
-import { Header } from '../components/organisms';
+import { Header, HeaderActions } from '../components/organisms';
 import { hasFeatureAccess, getPremiumUpsellMessage } from '../services/PremiumService';
 import {
   DebateTopicSelector,
@@ -215,12 +215,13 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation }) => 
         showTime={true}
         showDate={true}
         animated={true}
+        rightElement={<HeaderActions variant="gradient" />}
       />
       
-      {/* Stats Button */}
+      {/* Stats Button - positioned in lower right of header */}
       <Box style={{ 
         position: 'absolute', 
-        top: 60, 
+        top: 140,  // Position at bottom of gradient header
         right: 16,
         zIndex: 10,
       }}>

@@ -715,10 +715,10 @@ export const Header: React.FC<HeaderProps> = ({
       {variant === 'gradient' ? (
         /* Gradient variant uses vertical layout structure */
         <Box style={styles.gradientContentContainer}>
-          {/* Top right container for ProfileIcon and HeaderActions */}
+          {/* Top right container for ProfileIcon and HeaderActions - positioned absolutely */}
           <Box style={[styles.headerTopRightContainer, { 
-            top: insets.top + theme.spacing.sm,
-            right: theme.spacing.lg 
+            top: 0,  // Position at top of content container where date is
+            right: 0 
           }]}>
             {/* Profile icon */}
             {showProfileIcon && <ProfileIcon variant="gradient" />}
