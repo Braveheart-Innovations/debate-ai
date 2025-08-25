@@ -3,6 +3,15 @@
 ## Overview
 This guide provides detailed steps to enhance the Profile authentication system with social login capabilities (Apple Sign In and Google Sign In), improve UI consistency with gradient headers, and fix header icon positioning issues.
 
+## Implementation Progress
+- [x] Header Icon Positioning Fix - **COMPLETED**
+- [ ] Dependencies Installation - **IN PROGRESS**
+- [ ] Platform Configuration
+- [ ] Component Architecture
+- [ ] Implementation Steps
+- [ ] Testing
+- [ ] Migration
+
 ## Table of Contents
 1. [Header Icon Positioning Fix](#1-header-icon-positioning-fix)
 2. [Dependencies Installation](#2-dependencies-installation)
@@ -14,70 +23,56 @@ This guide provides detailed steps to enhance the Profile authentication system 
 
 ---
 
-## 1. Header Icon Positioning Fix
+## 1. Header Icon Positioning Fix ✅ COMPLETED
 
 ### Issue
-The HeaderActions icons are currently positioned in the lower right of the gradient header, interfering with text rendering.
+The HeaderActions icons were positioned in the lower right of the gradient header, interfering with text rendering.
 
-### Solution
-Move the icons to the upper right corner by modifying the `headerTopRightContainer` styles.
+### Solution Implemented
+Moved the icons to the upper right corner by modifying the `headerTopRightContainer` positioning.
 
 ### File: `src/components/organisms/Header.tsx`
 
-#### Current Issue (Lines 719-732):
-```typescript
-{/* Top right container for ProfileIcon and HeaderActions */}
-<Box style={[styles.headerTopRightContainer, { 
-  top: insets.top + theme.spacing.sm,
-  right: theme.spacing.lg 
-}]}>
-```
+#### Changes Made:
+- Moved `headerTopRightContainer` inside the `gradientContentContainer`
+- Set position to `top: 0, right: 0` to align with date text
+- Icons now appear at the same level as "Sun, Aug 24" text
 
-#### Fix Implementation:
-```typescript
-// Update the headerTopRightContainer positioning (line 873-878)
-headerTopRightContainer: {
-  position: 'absolute',
-  flexDirection: 'row',
-  alignItems: 'center',
-  zIndex: 15,
-  // Move to upper right - adjust top position
-  top: 0,  // Will be overridden with insets.top in JSX
-}
+### Additional Fixes:
+- Added `HeaderActions` to DebateSetupScreen for Settings icon
+- Repositioned Stats button to lower right of gradient header (top: 140)
+- Added date display to CompareScreen and CompareSetupScreen for consistency
 
-// In the JSX (lines 719-732), adjust the top positioning:
-<Box style={[styles.headerTopRightContainer, { 
-  top: insets.top + 8,  // Reduced from theme.spacing.sm for upper positioning
-  right: theme.spacing.lg 
-}]}>
-```
-
-This positions the icons in the upper right corner, preventing interference with the title and subtitle text.
+**Status: ✅ Completed and pushed to repository**
 
 ---
 
 ## 2. Dependencies Installation
 
-### Required Packages
+### Required Packages (Expo Compatible)
 
 ```bash
-# Social Authentication
-npm install @invertase/react-native-apple-authentication@^2.3.0
-npm install @react-native-google-signin/google-signin@^10.1.0
+# Social Authentication for Expo
+npx expo install expo-apple-authentication
+npx expo install expo-auth-session expo-crypto
 
-# Secure Storage (for token management)
-npm install react-native-keychain@^8.1.2
+# Google Sign In (using expo-auth-session)
+# No additional package needed - expo-auth-session handles OAuth
+
+# Secure Storage (already installed)
+# expo-secure-store is already in the project
 
 # Already installed (verify versions):
 # - @react-native-firebase/auth@^23.1.1
 # - expo-linear-gradient@^14.1.5
 # - expo-blur@^14.1.5
+# - expo-secure-store@~14.2.3
 ```
 
-### iOS Pod Installation
-```bash
-cd ios && pod install && cd ..
-```
+### Note for Expo Managed Workflow
+- No pod installation needed
+- No manual iOS/Android configuration required for basic setup
+- EAS Build will handle native dependencies
 
 ---
 

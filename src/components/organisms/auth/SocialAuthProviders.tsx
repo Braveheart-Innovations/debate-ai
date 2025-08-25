@@ -1,0 +1,134 @@
+import React, { useState } from 'react';
+import { View, StyleSheet, Platform, Alert } from 'react-native';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import { GoogleSigninButton } from '@react-native-google-signin/google-signin';
+import { Typography } from '../../molecules/Typography';
+import { useTheme } from '../../../theme';
+import { useDispatch } from 'react-redux';
+import { 
+  signInWithApple, 
+  signInWithGoogle 
+} from '../../../services/firebase/auth';
+import { setAuthUser, setUserProfile } from '../../../store/authSlice';
+
+interface SocialAuthProvidersProps {
+  onSuccess?: () => void;
+  onError?: (error: Error) => void;
+}
+
+export const SocialAuthProviders: React.FC<SocialAuthProvidersProps> = ({
+  onSuccess,
+  onError,
+}) => {
+  const { theme } = useTheme();
+  const dispatch = useDispatch();
+  const [loadingProvider, setLoadingProvider] = useState<'apple' | 'google' | null>(null);
+  const [appleAuthAvailable, setAppleAuthAvailable] = useState(false);
+
+  // Check if Apple Authentication is available
+  React.useEffect(() => {
+    if (Platform.OS === 'ios') {
+      AppleAuthentication.isAvailableAsync().then(setAppleAuthAvailable);
+    }
+  }, []);
+
+  const handleAppleSignIn = async () => {
+    if (Platform.OS !== 'ios' || !appleAuthAvailable) return;
+    
+    setLoadingProvider('apple');
+    try {
+      const { user, profile } = await signInWithApple();
+      dispatch(setAuthUser(user));
+      dispatch(setUserProfile(profile));
+      onSuccess?.();
+    } catch (error) {
+      console.error('Apple Sign In error:', error);
+      if (error instanceof Error && error.message !== 'User cancelled') {
+        onError?.(error);
+        Alert.alert('Sign In Failed', 'Unable to sign in with Apple. Please try again.');
+      }
+    } finally {
+      setLoadingProvider(null);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setLoadingProvider('google');
+    try {
+      const { user, profile } = await signInWithGoogle();
+      dispatch(setAuthUser(user));
+      dispatch(setUserProfile(profile));
+      onSuccess?.();
+    } catch (error) {
+      console.error('Google Sign In error:', error);
+      if (error instanceof Error && !error.message.includes('cancelled')) {
+        onError?.(error);
+        Alert.alert('Sign In Failed', 'Unable to sign in with Google. Please try again.');
+      }
+    } finally {
+      setLoadingProvider(null);
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      {/* Platform-specific ordering - Apple first on iOS */}
+      {Platform.OS === 'ios' && appleAuthAvailable && (
+        <AppleAuthentication.AppleAuthenticationButton
+          buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+          buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+          cornerRadius={12}
+          style={styles.appleButton}
+          onPress={handleAppleSignIn}
+        />
+      )}
+      
+      {/* Google Sign In Button - Available on all platforms */}
+      <GoogleSigninButton
+        size={GoogleSigninButton.Size.Wide}
+        color={GoogleSigninButton.Color.Dark}
+        onPress={handleGoogleSignIn}
+        disabled={loadingProvider !== null}
+        style={styles.googleButton}
+      />
+      
+      {/* Divider */}
+      <View style={styles.divider}>
+        <View style={[styles.dividerLine, { backgroundColor: theme.colors.border }]} />
+        <Typography variant="caption" color="secondary" style={styles.dividerText}>
+          OR
+        </Typography>
+        <View style={[styles.dividerLine, { backgroundColor: theme.colors.border }]} />
+      </View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    width: '100%',
+    paddingVertical: 16,
+  },
+  appleButton: {
+    width: '100%',
+    height: 48,
+    marginVertical: 8,
+  },
+  googleButton: {
+    width: '100%',
+    height: 48,
+    marginVertical: 8,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+  },
+  dividerText: {
+    marginHorizontal: 16,
+  },
+});

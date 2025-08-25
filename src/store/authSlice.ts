@@ -15,7 +15,13 @@ interface AuthState {
     createdAt: Date | null;
     membershipStatus: 'free' | 'premium';
     preferences?: Record<string, unknown>;
+    authProvider?: 'email' | 'apple' | 'google' | 'anonymous';
   } | null;
+  // Social auth state
+  isAnonymous: boolean;
+  lastAuthMethod: 'email' | 'apple' | 'google' | 'anonymous' | null;
+  socialAuthLoading: boolean;
+  socialAuthError: string | null;
 }
 
 const initialState: AuthState = {
@@ -26,6 +32,11 @@ const initialState: AuthState = {
   authModalVisible: false,
   profileSheetVisible: false,
   userProfile: null,
+  // Social auth state
+  isAnonymous: false,
+  lastAuthMethod: null,
+  socialAuthLoading: false,
+  socialAuthError: null,
 };
 
 const authSlice = createSlice({
@@ -62,6 +73,31 @@ const authSlice = createSlice({
       state.userProfile = null;
       state.authModalVisible = false;
       state.profileSheetVisible = false;
+      state.isAnonymous = false;
+      state.lastAuthMethod = null;
+      state.socialAuthLoading = false;
+      state.socialAuthError = null;
+    },
+    // Social auth actions
+    setSocialAuthLoading: (state, action: PayloadAction<boolean>) => {
+      state.socialAuthLoading = action.payload;
+    },
+    setSocialAuthError: (state, action: PayloadAction<string | null>) => {
+      state.socialAuthError = action.payload;
+    },
+    setLastAuthMethod: (state, action: PayloadAction<AuthState['lastAuthMethod']>) => {
+      state.lastAuthMethod = action.payload;
+    },
+    setIsAnonymous: (state, action: PayloadAction<boolean>) => {
+      state.isAnonymous = action.payload;
+      if (action.payload) {
+        state.lastAuthMethod = 'anonymous';
+      }
+    },
+    setAuthUser: (state, action: PayloadAction<User | null>) => {
+      state.user = action.payload;
+      state.isAuthenticated = !!action.payload;
+      state.isAnonymous = action.payload?.isAnonymous || false;
     },
   },
 });
@@ -74,6 +110,12 @@ export const {
   setAuthModalVisible,
   setProfileSheetVisible,
   logout,
+  // Social auth actions
+  setSocialAuthLoading,
+  setSocialAuthError,
+  setLastAuthMethod,
+  setIsAnonymous,
+  setAuthUser,
 } = authSlice.actions;
 
 export default authSlice.reducer;
