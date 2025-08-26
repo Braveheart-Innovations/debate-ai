@@ -345,14 +345,16 @@ export const Header: React.FC<HeaderProps> = ({
   const renderBackground = () => {
     if (variantStyles.needsGradient) {
       
-      // Get theme-appropriate gradients
+      // Get theme-appropriate gradients using AI provider colors
+      // Match the app logo colors: Claude orange, OpenAI green, Gemini blue
       const primaryGradient = isDark 
-        ? [theme.colors.gradients.primary[0], theme.colors.gradients.primary[1], theme.colors.primary[700] as string]
-        : [theme.colors.gradients.primary[0], theme.colors.gradients.premium[1], theme.colors.gradients.sunrise[0] as string];
+        ? ['#C15F3C', '#10A37F', '#4888F8'] // Claude orange -> OpenAI green -> Gemini blue
+        : ['#D97757', '#10A37F', '#4888F8']; // More blue presence in light mode
         
+      // Complementary AI provider colors for accents
       const accentGradient = isDark
-        ? [theme.colors.gradients.ocean[0], theme.colors.gradients.forest[1]]
-        : [theme.colors.gradients.sunset[0], theme.colors.gradients.ocean[1]];
+        ? ['#20808D', '#FA520F'] // Perplexity teal -> Mistral orange
+        : ['#FF7759', '#4D6BFE']; // Cohere coral -> DeepSeek blue
 
       return (
         <>
@@ -713,11 +715,18 @@ export const Header: React.FC<HeaderProps> = ({
       {renderBackground()}
       
       {variant === 'gradient' ? (
-        /* Gradient variant uses vertical layout structure */
-        <Box style={styles.gradientContentContainer}>
-          {/* Top right container for ProfileIcon and HeaderActions - positioned absolutely */}
-          <Box style={[styles.headerTopRightContainer, { 
-            top: 0,  // Position at top of content container where date is
+        <>
+          {/* Gradient variant uses vertical layout structure */}
+          <Box style={styles.gradientContentContainer}>
+            {/* Main content area with vertical layout */}
+            <Box style={styles.gradientMainContent}>
+              {renderCenterSection()}
+            </Box>
+          </Box>
+          
+          {/* Top right container for ProfileIcon and HeaderActions - positioned absolutely OUTSIDE main content */}
+          <View style={[styles.headerTopRightContainer, { 
+            top: 0,
             right: 0 
           }]}>
             {/* Profile icon */}
@@ -725,17 +734,12 @@ export const Header: React.FC<HeaderProps> = ({
             
             {/* Right element (HeaderActions) */}
             {rightElement && (
-              <Box style={{ marginLeft: theme.spacing.sm }}>
+              <View style={{ marginLeft: theme.spacing.sm }}>
                 {rightElement}
-              </Box>
+              </View>
             )}
-          </Box>
-          
-          {/* Main content area with vertical layout */}
-          <Box style={styles.gradientMainContent}>
-            {renderCenterSection()}
-          </Box>
-        </Box>
+          </View>
+        </>
       ) : (
         <HeaderContent 
           style={[
@@ -874,7 +878,7 @@ const createStyles = (
     position: 'absolute',
     flexDirection: 'row',
     alignItems: 'center',
-    zIndex: 15,
+    zIndex: 999,  // Increased z-index to ensure it's on top
   },
   dateContainer: {
     alignItems: 'flex-start',
@@ -901,7 +905,7 @@ const createStyles = (
   gradientMainContent: {
     justifyContent: 'flex-start',
     alignItems: 'flex-start',
-    zIndex: 15,
+    zIndex: 10,  // Lower than headerTopRightContainer
     minHeight: 45,
     paddingTop: theme.spacing.xs,
   },
