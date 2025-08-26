@@ -32,7 +32,10 @@ export { ProfileSheet } from './profile/ProfileSheet';
 export { ProfileContent } from './profile/ProfileContent';
 
 // Settings Organisms
-export { UnifiedSettings } from './settings/UnifiedSettings';
+export { SettingsContent } from './settings/SettingsContent';
+
+// Support Organisms
+export { SupportScreen } from './support/SupportScreen';
 
 // API Configuration Organisms
 export { APIConfigHeader } from './APIConfigHeader';

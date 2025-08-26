@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-export type SheetType = 'profile' | 'settings' | 'notifications' | 'help' | null;
+export type SheetType = 'profile' | 'settings' | 'support' | null;
 
 interface NavigationState {
   // Sheet management

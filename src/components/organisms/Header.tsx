@@ -17,7 +17,6 @@ import { Box } from '../atoms/Box';
 import { Typography } from '../molecules/Typography';
 import { Button } from '../molecules/Button';
 import { Badge } from '../molecules/Badge';
-import { ProfileIcon } from '../molecules/ProfileIcon';
 import { useTheme, Theme } from '../../theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -147,8 +146,7 @@ export interface HeaderProps {
   
   // Special features
   showDate?: boolean;
-  showTime?: boolean;  // Deprecated - will show profile icon instead
-  showProfileIcon?: boolean;
+  showTime?: boolean;
   roundInfo?: {
     current: number;
     total: number;
@@ -181,7 +179,6 @@ export const Header: React.FC<HeaderProps> = ({
   badge,
   showDate = false,
   showTime = false,
-  showProfileIcon = true,  // Default to showing profile icon
   roundInfo,
   participantsList,
   sessionCount,
@@ -677,27 +674,6 @@ export const Header: React.FC<HeaderProps> = ({
       );
     }
     
-    // Show profile icon by default in non-gradient variants
-    if (showProfileIcon && variant !== 'gradient') {
-      return (
-        <View style={[styles.sideSection, { alignItems: 'flex-end' }]}>
-          <ProfileIcon />
-        </View>
-      );
-    }
-    
-    // For gradient variant, show profile icon in top right corner
-    if (variant === 'gradient' && showProfileIcon) {
-      return (
-        <Box style={[styles.timeContainer, { 
-          top: insets.top + theme.spacing.sm,
-          right: theme.spacing.lg 
-        }]}>
-          <ProfileIcon />
-        </Box>
-      );
-    }
-    
     return <View style={styles.sideSection} />;
   };
   
@@ -724,21 +700,15 @@ export const Header: React.FC<HeaderProps> = ({
             </Box>
           </Box>
           
-          {/* Top right container for ProfileIcon and HeaderActions - positioned absolutely OUTSIDE main content */}
-          <View style={[styles.headerTopRightContainer, { 
-            top: 0,
-            right: 0 
-          }]}>
-            {/* Profile icon */}
-            {showProfileIcon && <ProfileIcon variant="gradient" />}
-            
-            {/* Right element (HeaderActions) */}
-            {rightElement && (
-              <View style={{ marginLeft: theme.spacing.sm }}>
-                {rightElement}
-              </View>
-            )}
-          </View>
+          {/* Top right container for HeaderActions - positioned absolutely OUTSIDE main content */}
+          {rightElement && (
+            <View style={[styles.headerTopRightContainer, { 
+              top: 0,
+              right: 0 
+            }]}>
+              {rightElement}
+            </View>
+          )}
         </>
       ) : (
         <HeaderContent 

@@ -6,13 +6,14 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSelector, useDispatch } from 'react-redux';
-import { RootState, setProfileSheetVisible, showSheet } from '../store';
+import { RootState, showSheet, clearSheet } from '../store';
 import { RootStackParamList } from '../types';
 import { useTheme } from '../theme';
 import { SheetProvider } from '../contexts/SheetContext';
 import { 
   ProfileSheet, 
-  UnifiedSettings
+  SettingsContent,
+  SupportScreen
 } from '../components/organisms';
 
 // Import screens
@@ -139,19 +140,10 @@ const MainTabs = () => {
 const MainTabsWithSheets = ({ navigation }: { navigation?: NavigationProp<RootStackParamList> }) => {
   const { theme } = useTheme();
   const dispatch = useDispatch();
-  const { profileSheetVisible } = useSelector((state: RootState) => state.auth);
   const { activeSheet, sheetVisible } = useSelector((state: RootState) => state.navigation);
   
-  const handleProfileSheetClose = () => {
-    dispatch(setProfileSheetVisible(false));
-  };
-
-  const handleSettingsPress = () => {
-    dispatch(showSheet({ sheet: 'settings', data: {} }));
-  };
-  
-  const handleSettingsClose = () => {
-    dispatch(showSheet({ sheet: null }));
+  const handleSheetClose = () => {
+    dispatch(clearSheet());
   };
   
   return (
@@ -159,14 +151,36 @@ const MainTabsWithSheets = ({ navigation }: { navigation?: NavigationProp<RootSt
       <MainTabs />
       
       {/* Profile Sheet */}
-      <ProfileSheet
-        visible={profileSheetVisible}
-        onClose={handleProfileSheetClose}
-        onSettingsPress={() => {
-          handleProfileSheetClose();
-          handleSettingsPress();
-        }}
-      />
+      {activeSheet === 'profile' && sheetVisible && (
+        <TouchableOpacity 
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 1000,
+          }}
+          activeOpacity={1}
+          onPress={handleSheetClose}
+        >
+          <TouchableOpacity 
+            activeOpacity={1}
+            style={{
+            flex: 1,
+            backgroundColor: theme.colors.background,
+            marginTop: 100,
+          }}>
+            <ProfileSheet
+              onClose={handleSheetClose}
+              onSettingsPress={() => {
+                dispatch(showSheet({ sheet: 'settings' }));
+              }}
+            />
+          </TouchableOpacity>
+        </TouchableOpacity>
+      )}
       
       {/* Settings Sheet */}
       {activeSheet === 'settings' && sheetVisible && (
@@ -181,7 +195,7 @@ const MainTabsWithSheets = ({ navigation }: { navigation?: NavigationProp<RootSt
             zIndex: 1000,
           }}
           activeOpacity={1}
-          onPress={handleSettingsClose}
+          onPress={handleSheetClose}
         >
           <TouchableOpacity 
             activeOpacity={1}
@@ -189,16 +203,41 @@ const MainTabsWithSheets = ({ navigation }: { navigation?: NavigationProp<RootSt
             flex: 1,
             backgroundColor: theme.colors.background,
             marginTop: 100,
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
           }}>
-            <UnifiedSettings
-              onClose={handleSettingsClose}
+            <SettingsContent
+              onClose={handleSheetClose}
               onNavigateToAPIConfig={() => {
-                handleSettingsClose();
+                handleSheetClose();
                 navigation?.navigate('APIConfig');
               }}
             />
+          </TouchableOpacity>
+        </TouchableOpacity>
+      )}
+      
+      {/* Support Sheet */}
+      {activeSheet === 'support' && sheetVisible && (
+        <TouchableOpacity 
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 1000,
+          }}
+          activeOpacity={1}
+          onPress={handleSheetClose}
+        >
+          <TouchableOpacity 
+            activeOpacity={1}
+            style={{
+            flex: 1,
+            backgroundColor: theme.colors.background,
+            marginTop: 100,
+          }}>
+            <SupportScreen onClose={handleSheetClose} />
           </TouchableOpacity>
         </TouchableOpacity>
       )}

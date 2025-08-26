@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Image } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import AppIcon from '../../../../assets/icon.png';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../../store';
 import { logout, setAuthUser, setUserProfile, setIsAnonymous } from '../../../store/authSlice';
@@ -268,85 +267,51 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
         style={[styles.container, { backgroundColor: theme.colors.background }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Hero Section */}
-        <View style={styles.heroSection}>
-          <LinearGradient
-            colors={['rgba(99, 102, 241, 0.1)', 'rgba(139, 92, 246, 0.1)', 'transparent']}
-            style={styles.heroBackground}
-          >
-            <View style={styles.appBranding}>
-              <View style={styles.logoContainer}>
-                <Image 
-                  source={AppIcon} 
-                  style={styles.appLogo}
-                />
-                <View style={styles.logoGlow} />
-              </View>
-              
-              <View style={styles.brandingText}>
-                <Typography 
-                  variant="title" 
-                  weight="bold" 
-                  color="primary"
-                  style={styles.appTitle}
-                >
-                  Symposium AI
-                </Typography>
-                <Typography 
-                  variant="body" 
-                  color="secondary"
-                  style={styles.appTagline}
-                >
-                  Where Ideas Converge.
-                </Typography>
-                <Typography 
-                  variant="body" 
-                  color="secondary"
-                  style={styles.appTaglineSecond}
-                >
-                  Where Understanding Emerges.
-                </Typography>
-              </View>
-            </View>
-            
-            <View style={styles.featureHighlights}>
-              <View style={styles.featureItem}>
-                <Typography variant="caption" weight="medium" color="brand">
-                  🎭 AI Debate Arena
-                </Typography>
-              </View>
-              <View style={styles.featureItem}>
-                <Typography variant="caption" weight="medium" color="brand">
-                  💬 Multi-AI Chat
-                </Typography>
-              </View>
-              <View style={styles.featureItem}>
-                <Typography variant="caption" weight="medium" color="brand">
-                  🛡️ Hallucination Shield
-                </Typography>
-              </View>
-            </View>
-          </LinearGradient>
-        </View>
-
-        {/* Auth Card */}
-        <View style={[styles.authCard, { backgroundColor: theme.colors.surface }]}>
+        {/* Get Started Section */}
+        <View style={styles.getStartedSection}>
           <Typography 
             variant="heading" 
             weight="semibold" 
             color="primary"
-            style={styles.authTitle}
+            style={styles.getStartedTitle}
           >
             Get Started
           </Typography>
           <Typography 
             variant="body" 
             color="secondary"
-            style={styles.authSubtitle}
+            style={styles.getStartedSubtitle}
           >
-            Join thousands debating with AI
+            Sign in to Use Premium Features
           </Typography>
-          
+        </View>
+        
+        {/* Premium Feature Bubbles */}
+        <View style={styles.premiumFeatures}>
+          <View style={[styles.featureBubble, { backgroundColor: theme.colors.primary[50] }]}>
+            <Typography variant="caption" weight="medium" color="primary">
+              Customized Debates
+            </Typography>
+          </View>
+          <View style={[styles.featureBubble, { backgroundColor: theme.colors.primary[50] }]}>
+            <Typography variant="caption" weight="medium" color="primary">
+              Chat with 3+ AIs
+            </Typography>
+          </View>
+          <View style={[styles.featureBubble, { backgroundColor: theme.colors.primary[50] }]}>
+            <Typography variant="caption" weight="medium" color="primary">
+              Personality Types
+            </Typography>
+          </View>
+          <View style={[styles.featureBubble, { backgroundColor: theme.colors.primary[50] }]}>
+            <Typography variant="caption" weight="medium" color="primary">
+              Comparison Mode
+            </Typography>
+          </View>
+        </View>
+
+        {/* Auth Card */}
+        <View style={[styles.authCard, { backgroundColor: theme.colors.surface }]}>
           {/* Social Auth Providers - Native buttons */}
           <View style={styles.authProviderContainer}>
             <SocialAuthProviders onSuccess={onClose} />
@@ -558,64 +523,35 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  // Hero Section Styles
-  heroSection: {
-    marginBottom: 20,
-  },
-  heroBackground: {
+  getStartedSection: {
+    alignItems: 'center',
+    paddingTop: 24,
+    paddingBottom: 12,
     paddingHorizontal: 20,
-    paddingVertical: 32,
   },
-  appBranding: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  logoContainer: {
-    position: 'relative',
-    marginBottom: 16,
-  },
-  appLogo: {
-    width: 100,
-    height: 100,
-    borderRadius: 24,
-    shadowColor: '#6366f1',
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  logoGlow: {
-    position: 'absolute',
-    top: -10,
-    left: -10,
-    right: -10,
-    bottom: -10,
-    borderRadius: 34,
-    backgroundColor: 'rgba(99, 102, 241, 0.2)',
-    zIndex: -1,
-  },
-  brandingText: {
-    alignItems: 'center',
-  },
-  appTitle: {
+  getStartedTitle: {
     fontSize: 28,
     letterSpacing: 0.5,
     textAlign: 'center',
   },
-  appTagline: {
+  getStartedSubtitle: {
     marginTop: 8,
     textAlign: 'center',
     fontSize: 16,
-    fontStyle: 'italic',
   },
-  appTaglineSecond: {
-    marginTop: 2,
-    textAlign: 'center',
-    fontSize: 16,
-    fontStyle: 'italic',
+  premiumFeatures: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  featureBubble: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginBottom: 4,
   },
   featureHighlights: {
     flexDirection: 'row',
@@ -635,9 +571,9 @@ const styles = StyleSheet.create({
   // Auth Card Styles
   authCard: {
     marginHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: 16,
     borderRadius: 16,
-    padding: 24,
+    padding: 20,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -646,14 +582,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 4,
-  },
-  authTitle: {
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  authSubtitle: {
-    textAlign: 'center',
-    marginBottom: 24,
   },
   authProviderContainer: {
     marginBottom: 16,
@@ -862,6 +790,7 @@ const styles = StyleSheet.create({
   disclaimer: {
     textAlign: 'center',
     paddingHorizontal: 40,
-    marginTop: 16,
+    marginTop: 12,
+    marginBottom: 8,
   },
 });

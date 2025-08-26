@@ -3,7 +3,7 @@ import { View, TouchableOpacity, StyleSheet, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../theme';
 import { useSelector, useDispatch } from 'react-redux';
-import { RootState, setProfileSheetVisible } from '../../store';
+import { RootState, showSheet } from '../../store';
 
 interface ProfileIconProps {
   onPress?: () => void;
@@ -19,7 +19,7 @@ export const ProfileIcon: React.FC<ProfileIconProps> = ({ onPress, variant = 'de
     if (onPress) {
       onPress();
     } else {
-      dispatch(setProfileSheetVisible(true));
+      dispatch(showSheet({ sheet: 'profile' }));
     }
   };
   
@@ -51,7 +51,11 @@ export const ProfileIcon: React.FC<ProfileIconProps> = ({ onPress, variant = 'de
   );
   
   return (
-    <TouchableOpacity onPress={handlePress} style={styles.container}>
+    <TouchableOpacity 
+      onPress={handlePress} 
+      style={styles.container}
+      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      activeOpacity={0.7}>
       <View style={[
         styles.iconContainer,
         { 
@@ -91,6 +95,10 @@ export const ProfileIcon: React.FC<ProfileIconProps> = ({ onPress, variant = 'de
 const styles = StyleSheet.create({
   container: {
     position: 'relative',
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   iconContainer: {
     width: 36,
