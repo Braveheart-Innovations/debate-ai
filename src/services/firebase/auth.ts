@@ -164,13 +164,21 @@ export type User = FirebaseAuthTypes.User;
  * Must be called before using Google Sign In
  */
 export const configureGoogleSignIn = () => {
-  GoogleSignin.configure({
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '', // From Firebase Console
+  const config: {
+    webClientId: string;
+    offlineAccess: boolean;
+    iosClientId?: string;
+  } = {
+    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '', // Required for Firebase
     offlineAccess: true,
-    hostedDomain: '',
-    forceCodeForRefreshToken: true,
-    accountName: '',
-  });
+  };
+  
+  // iOS requires the iOS client ID
+  if (Platform.OS === 'ios' && process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID) {
+    config.iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+  }
+  
+  GoogleSignin.configure(config);
 };
 
 /**
@@ -181,7 +189,7 @@ interface UserProfile {
   email: string | null;
   displayName: string | null;
   photoURL: string | null;
-  createdAt: unknown;
+  createdAt: Date | null;
   membershipStatus: 'free' | 'premium';
   isPremium: boolean;
   authProvider: string;
@@ -298,7 +306,11 @@ const getOrCreateUserProfile = async (
   const userDoc = await getDoc(userDocRef);
   
   if (userDoc.exists()) {
-    return userDoc.data() as UserProfile;
+    const data = userDoc.data();
+    return {
+      ...data,
+      createdAt: data?.createdAt?.toDate ? data.createdAt.toDate() : new Date()
+    } as UserProfile;
   }
   
   // Create new user profile
@@ -308,14 +320,17 @@ const getOrCreateUserProfile = async (
     displayName: additionalData?.displayName || user.displayName || 'User',
     photoURL: additionalData?.photoURL || user.photoURL,
     createdAt: serverTimestamp(),
-    membershipStatus: 'free',
+    membershipStatus: 'free' as const,
     isPremium: false,
     authProvider: additionalData?.authProvider || 'unknown',
     preferences: {},
   };
   
   await setDoc(userDocRef, newProfile);
-  return newProfile;
+  return {
+    ...newProfile,
+    createdAt: new Date()  // Convert to Date for the return value
+  } as UserProfile;
 };
 
 /**

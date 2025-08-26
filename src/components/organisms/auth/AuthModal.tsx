@@ -9,10 +9,11 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import AppIcon from '../../../../assets/icon.png';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, setAuthModalVisible, setAuthUser, setUserProfile } from '../../../store';
 import { useTheme } from '../../../theme';
@@ -142,16 +143,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
   
   const renderProfileView = () => (
     <View style={styles.profileContainer}>
-      <View style={[styles.avatarContainer, { backgroundColor: theme.colors.surface }]}>
-        {userProfile?.photoURL ? (
-          <View /> // Placeholder for image
-        ) : (
-          <Typography variant="heading" color="primary">
-            {userProfile?.displayName?.[0]?.toUpperCase() || 'A'}
-          </Typography>
-        )}
-      </View>
-      
       <Typography variant="title" weight="bold" style={styles.profileName}>
         {userProfile?.displayName || 'Anonymous User'}
       </Typography>
@@ -204,17 +195,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
   );
   
   const renderAuthView = () => (
+      
     <View style={styles.authContainer}>
-      <Typography variant="heading" weight="bold" style={styles.title}>
-        {authMode === 'signup' ? 'Create Account' : 'Welcome Back'}
-      </Typography>
-      
-      <Typography variant="body" color="secondary" style={styles.subtitle}>
-        {authMode === 'signup' 
-          ? 'Sign up to unlock premium features' 
-          : 'Sign in to access your account'}
-      </Typography>
-      
       <EmailAuthForm
         mode={authMode === 'profile' ? 'signin' : authMode}
         onSubmit={handleEmailAuth}
@@ -270,14 +252,31 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
           />
           
           <View style={[styles.modal, { backgroundColor: theme.colors.background }]}>
-            <LinearGradient
-              colors={[theme.colors.primary[400], theme.colors.primary[600]]}
-              style={styles.gradientHeader}
-            >
-              <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-                <Ionicons name="close" size={24} color={theme.colors.text.inverse} />
+            <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
+              <View style={styles.headerContent}>
+                <Image 
+                  source={AppIcon} 
+                  style={styles.appLogo}
+                />
+                <View style={styles.headerTextContainer}>
+                  <Typography variant="title" weight="bold">
+                    Welcome to Symposium AI
+                  </Typography>
+                  <Typography variant="caption" color="secondary">
+                    Where Ideas Converge. Where Understanding Emerges.
+                  </Typography>
+                </View>
+              </View>
+              <TouchableOpacity 
+                onPress={handleClose}
+                style={[styles.closeButton, { backgroundColor: theme.colors.surface }]}
+                activeOpacity={0.7}
+              >
+                <Typography variant="title" weight="bold" style={styles.closeIcon}>
+                  ×
+                </Typography>
               </TouchableOpacity>
-            </LinearGradient>
+            </View>
             
             <ScrollView 
               contentContainerStyle={styles.content}
@@ -332,18 +331,40 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  gradientHeader: {
-    height: 80,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    justifyContent: 'center',
+  },
+  headerContent: {
+    flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
+  },
+  appLogo: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    marginRight: 12,
+  },
+  headerTextContainer: {
+    flex: 1,
   },
   closeButton: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    padding: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeIcon: {
+    fontSize: 24,
+    lineHeight: 24,
   },
   content: {
     padding: 24,
@@ -354,14 +375,6 @@ const styles = StyleSheet.create({
   },
   authContainer: {
     alignItems: 'center',
-  },
-  title: {
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  subtitle: {
-    marginBottom: 32,
-    textAlign: 'center',
   },
   divider: {
     flexDirection: 'row',
@@ -385,14 +398,7 @@ const styles = StyleSheet.create({
   },
   profileContainer: {
     alignItems: 'center',
-  },
-  avatarContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
+    paddingTop: 20,
   },
   profileName: {
     marginBottom: 4,

@@ -7,10 +7,13 @@ import {
   Dimensions,
   PanResponder,
   TouchableWithoutFeedback,
+  TouchableOpacity,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SheetHandle } from '../../molecules/SheetHandle';
 import { ProfileContent } from './ProfileContent';
+import { Typography } from '../../molecules/Typography';
 import { useTheme } from '../../../theme';
 
 interface ProfileSheetProps {
@@ -21,7 +24,7 @@ interface ProfileSheetProps {
 }
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const SHEET_HEIGHT = SCREEN_HEIGHT * 0.4; // 40% of screen height
+const SHEET_HEIGHT = SCREEN_HEIGHT * 0.85; // Increased for auth content
 const SWIPE_THRESHOLD = 50;
 
 export const ProfileSheet: React.FC<ProfileSheetProps> = ({
@@ -30,11 +33,16 @@ export const ProfileSheet: React.FC<ProfileSheetProps> = ({
   onSettingsPress,
   onSubscriptionPress,
 }) => {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   
   const translateY = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const panY = useRef(0);
+  
+  // Get gradient colors (same as UnifiedSettings)
+  const gradientColors: readonly [string, string, ...string[]] = isDark
+    ? [theme.colors.gradients.primary[0], theme.colors.gradients.primary[1], theme.colors.primary[700] as string]
+    : [theme.colors.gradients.primary[0], theme.colors.gradients.premium[1], theme.colors.gradients.sunrise[0] as string];
 
   const panResponder = useRef(
     PanResponder.create({
@@ -100,10 +108,6 @@ export const ProfileSheet: React.FC<ProfileSheetProps> = ({
     closeSheet();
   };
 
-  if (!visible) {
-    return null;
-  }
-
   return (
     <Modal
       transparent
@@ -126,12 +130,34 @@ export const ProfileSheet: React.FC<ProfileSheetProps> = ({
               transform: [{ translateY }],
             }
           ]}
-          {...panResponder.panHandlers}
         >
-          <View style={styles.handleContainer}>
-            <SheetHandle />
-          </View>
+          {/* Gradient Header with handle */}
+          <LinearGradient
+            colors={gradientColors}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.headerGradient}
+          >
+            <View style={styles.handleContainer} {...panResponder.panHandlers}>
+              <SheetHandle />
+            </View>
+            
+            <View style={styles.header}>
+              <Typography variant="heading" weight="semibold" color="inverse">
+                Profile
+              </Typography>
+              <TouchableOpacity
+                onPress={closeSheet}
+                style={styles.closeButton}
+              >
+                <Typography variant="heading" weight="medium" color="inverse">
+                  ✕
+                </Typography>
+              </TouchableOpacity>
+            </View>
+          </LinearGradient>
           
+          {/* Profile Content */}
           <ProfileContent
             onClose={closeSheet}
             onSettingsPress={onSettingsPress}
@@ -153,18 +179,40 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   sheet: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: -4,
+      height: -8,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 16,
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 20,
+  },
+  headerGradient: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingBottom: 16,
   },
   handleContainer: {
-    paddingTop: 8,
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingBottom: 16,
+  },
+  closeButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    minWidth: 36,
+    minHeight: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
