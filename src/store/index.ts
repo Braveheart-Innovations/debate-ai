@@ -316,7 +316,6 @@ export {
   setPremiumStatus,
   setAuthLoading,
   setAuthModalVisible,
-  setProfileSheetVisible,
   logout as authLogout 
 } from './authSlice';
 

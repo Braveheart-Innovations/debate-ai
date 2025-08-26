@@ -78,7 +78,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         showTime={true}
         showDate={true}
         animated={true}
-        showProfileIcon={true}
         rightElement={<HeaderActions variant="gradient" />}
       />
       

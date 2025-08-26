@@ -230,7 +230,6 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
           showTime={false}
           showDate={true}
           animated={true}
-          showProfileIcon={false}
           rightElement={
             <Button
               title="Start Over"

@@ -113,7 +113,6 @@ const CompareSetupScreen: React.FC<CompareSetupScreenProps> = ({ navigation }) =
         showTime={false}
         showDate={true}
         animated={true}
-        showProfileIcon={true}
         rightElement={<HeaderActions variant="gradient" />}
       />
       

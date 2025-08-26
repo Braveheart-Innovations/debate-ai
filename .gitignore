@@ -13,6 +13,10 @@ expo-env.d.ts
 .kotlin/
 *.orig.*
 *.jks
+*.keystore
+android/keystore.properties
+android/app/*.keystore
+android/app/*.jks
 *.p8
 *.p12
 *.key
@@ -31,6 +35,7 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
 
 # typescript
@@ -91,6 +96,7 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
 
 # typescript

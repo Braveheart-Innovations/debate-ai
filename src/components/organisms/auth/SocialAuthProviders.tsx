@@ -39,7 +39,15 @@ export const SocialAuthProviders: React.FC<SocialAuthProvidersProps> = ({
     try {
       const { user, profile } = await signInWithApple();
       dispatch(setAuthUser(user));
-      dispatch(setUserProfile(profile));
+      dispatch(setUserProfile({
+        email: profile.email,
+        displayName: profile.displayName,
+        photoURL: profile.photoURL,
+        createdAt: profile.createdAt,
+        membershipStatus: profile.membershipStatus,
+        preferences: profile.preferences,
+        authProvider: 'apple'
+      }));
       onSuccess?.();
     } catch (error) {
       console.error('Apple Sign In error:', error);
@@ -57,7 +65,15 @@ export const SocialAuthProviders: React.FC<SocialAuthProvidersProps> = ({
     try {
       const { user, profile } = await signInWithGoogle();
       dispatch(setAuthUser(user));
-      dispatch(setUserProfile(profile));
+      dispatch(setUserProfile({
+        email: profile.email,
+        displayName: profile.displayName,
+        photoURL: profile.photoURL,
+        createdAt: profile.createdAt,
+        membershipStatus: profile.membershipStatus,
+        preferences: profile.preferences,
+        authProvider: 'google'
+      }));
       onSuccess?.();
     } catch (error) {
       console.error('Google Sign In error:', error);

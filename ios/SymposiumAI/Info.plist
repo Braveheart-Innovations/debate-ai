@@ -36,6 +36,12 @@
           <string>exp+symposium-ai</string>
         </array>
       </dict>
+      <dict>
+        <key>CFBundleURLSchemes</key>
+        <array>
+          <string>com.googleusercontent.apps.248794683640-7su8cmoma5rvtg1hbmtsohmbec4qrc4p</string>
+        </array>
+      </dict>
     </array>
     <key>CFBundleVersion</key>
     <string>1</string>
