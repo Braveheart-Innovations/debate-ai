@@ -94,6 +94,7 @@ export interface ChatSession {
   createdAt: number;
   startTime?: number;
   lastMessageAt?: number;
+  sessionType?: 'chat' | 'comparison' | 'debate'; // New field for history organization
 }
 
 export interface PersonalityConfig {

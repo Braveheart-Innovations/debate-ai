@@ -20,6 +20,7 @@ export { SearchHighlight } from './SearchHighlight';
 export { HeaderIcon } from './HeaderIcon';
 export { ProfileAvatar } from './ProfileAvatar';
 export { SheetHandle } from './SheetHandle';
+export { StorageIndicator } from './StorageIndicator';
 export { SheetHeader } from './SheetHeader';
 export { SettingRow } from './SettingRow';
 export { TabBarIcon } from './TabBarIcon';

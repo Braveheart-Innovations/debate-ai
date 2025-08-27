@@ -50,23 +50,80 @@ export const useSessionActions = (navigation: HistoryScreenNavigationProps): Use
   }, []);
 
   /**
-   * Resume a session (navigate to chat with session loaded)
+   * Resume a session based on its type
    */
   const resumeSession = useCallback((session: ChatSession) => {
     try {
-      // Dispatch session to Redux store
-      dispatch(loadSession(session));
+      const sessionType = session.sessionType || 'chat';
       
-      // Navigate to chat screen with session parameters
-      navigation.navigate('Chat', { 
-        sessionId: session.id, 
-        resuming: true 
-      });
+      switch (sessionType) {
+        case 'debate': {
+          // Debates are completed events - view transcript or rematch
+          const topic = session.messages.find(m => m.sender === 'Debate Host')?.content || 'Debate';
+          Alert.alert(
+            'Debate Results',
+            `Topic: ${topic}\nParticipants: ${session.selectedAIs.map(ai => ai.name).join(' vs ')}\n\nDebates cannot be resumed once completed.`,
+            [
+              { text: 'Close', style: 'cancel' },
+              { 
+                text: 'Rematch', 
+                onPress: () => {
+                  // Navigate to debate tab to start new debate with same setup
+                  navigation.navigate('MainTabs', { 
+                    screen: 'DebateTab',
+                    params: {
+                      selectedAIs: session.selectedAIs,
+                      suggestedTopic: topic
+                    }
+                  });
+                }
+              }
+            ]
+          );
+          break;
+        }
+          
+        case 'comparison':
+          // Comparisons may be resumable if they diverged to a single AI chat
+          // For now, offer to start new comparison with same AIs
+          Alert.alert(
+            'Comparison Session',
+            'Start a new comparison with the same AIs?',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              {
+                text: 'New Comparison',
+                onPress: () => {
+                  if (session.selectedAIs.length >= 2) {
+                    navigation.navigate('MainTabs', {
+                      screen: 'CompareTab',
+                      params: {
+                        leftAI: session.selectedAIs[0],
+                        rightAI: session.selectedAIs[1]
+                      }
+                    });
+                  }
+                }
+              }
+            ]
+          );
+          break;
+          
+        case 'chat':
+        default:
+          // Regular chat resume - preserve existing functionality exactly
+          dispatch(loadSession(session));
+          navigation.navigate('Chat', { 
+            sessionId: session.id, 
+            resuming: true 
+          });
+          break;
+      }
     } catch (error) {
       console.error('Error resuming session:', error);
       Alert.alert(
         'Error',
-        'Failed to resume the conversation. Please try again.',
+        'Failed to open the session. Please try again.',
         [{ text: 'OK' }]
       );
     }

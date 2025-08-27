@@ -403,4 +403,55 @@ export class StorageService {
       throw new Error('Failed to import session data');
     }
   }
+
+  /**
+   * Get sessions filtered by type
+   */
+  static async getSessionsByType(type: 'chat' | 'comparison' | 'debate'): Promise<ChatSession[]> {
+    const sessions = await this.getAllSessions();
+    return sessions.filter(session => {
+      // If no sessionType field, treat as chat for backward compatibility
+      if (!session.sessionType) return type === 'chat';
+      return session.sessionType === type;
+    });
+  }
+
+  /**
+   * Get storage counts by type
+   */
+  static async getStorageCounts(): Promise<{ chat: number; comparison: number; debate: number }> {
+    const sessions = await this.getAllSessions();
+    return sessions.reduce((counts, session) => {
+      const type = session.sessionType || 'chat';
+      counts[type] = (counts[type] || 0) + 1;
+      return counts;
+    }, { chat: 0, comparison: 0, debate: 0 });
+  }
+
+  /**
+   * Enforce storage limits for free tier users
+   */
+  static async enforceStorageLimits(
+    type: 'chat' | 'comparison' | 'debate',
+    isPremium: boolean
+  ): Promise<{ deleted: boolean; deletedId?: string }> {
+    // No limits for premium users
+    if (isPremium) return { deleted: false };
+
+    const LIMITS = { chat: 3, comparison: 3, debate: 3 };
+    const sessions = await this.getSessionsByType(type);
+    
+    if (sessions.length >= LIMITS[type]) {
+      // Sort by creation time (oldest first)
+      const sorted = sessions.sort((a, b) => a.createdAt - b.createdAt);
+      const oldestSession = sorted[0];
+      
+      // Delete the oldest session
+      await this.deleteSession(oldestSession.id);
+      
+      return { deleted: true, deletedId: oldestSession.id };
+    }
+
+    return { deleted: false };
+  }
 }

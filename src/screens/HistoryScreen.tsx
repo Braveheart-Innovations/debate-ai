@@ -1,6 +1,10 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ScrollView } from 'react-native';
 import { Box } from '../components/atoms';
+import { Button, StorageIndicator } from '../components/molecules';
+import { useSelector } from 'react-redux';
+import { RootState } from '../store';
 import { useTheme } from '../theme';
 import { useFocusEffect } from '@react-navigation/native';
 import { 
@@ -27,6 +31,12 @@ interface HistoryScreenProps {
 
 export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
   const { theme } = useTheme();
+  const [activeTab, setActiveTab] = useState<'all' | 'chat' | 'comparison' | 'debate'>('all');
+  
+  // Check if user is premium
+  const currentUser = useSelector((state: RootState) => state.user.currentUser);
+  const isPremium = currentUser?.subscription === 'pro' || currentUser?.subscription === 'business';
+  
   // Compose hooks for different concerns
   const { sessions, isLoading, error, refresh } = useSessionHistory();
   const { searchQuery, setSearchQuery, filteredSessions, clearSearch } = useSessionSearch(sessions);
@@ -34,13 +44,33 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
   useSessionStats(sessions); // For future analytics features
   useSubscriptionLimits(sessions.length);
   
+  // Filter sessions by type
+  const typeFilteredSessions = useMemo(() => {
+    if (activeTab === 'all') return filteredSessions;
+    return filteredSessions.filter(session => {
+      // Sessions without sessionType are treated as 'chat' for backward compatibility
+      const type = session.sessionType || 'chat';
+      return type === activeTab;
+    });
+  }, [filteredSessions, activeTab]);
+  
+  // Get counts for each type
+  const sessionCounts = useMemo(() => {
+    return sessions.reduce((counts, session) => {
+      const type = session.sessionType || 'chat';
+      counts[type] = (counts[type] || 0) + 1;
+      counts.all = (counts.all || 0) + 1;
+      return counts;
+    }, { all: 0, chat: 0, comparison: 0, debate: 0 });
+  }, [sessions]);
+  
   // Memoize total message count to avoid expensive recalculation on every render
   const totalMessageCount = useMemo(() => {
     return sessions.reduce((sum, session) => sum + session.messages.length, 0);
   }, [sessions]);
   
   // Pagination for large datasets (only enable for non-premium users with 100+ sessions or search results)
-  const shouldUsePagination = filteredSessions.length > 100 || (!searchQuery && sessions.length > 100);
+  const shouldUsePagination = typeFilteredSessions.length > 100 || (!searchQuery && sessions.length > 100);
   const {
     currentPageSessions,
     hasMorePages,
@@ -48,18 +78,18 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
     loadMore,
     resetPagination
   } = useSessionPagination({
-    sessions: filteredSessions,
+    sessions: typeFilteredSessions,
     pageSize: 20,
     initialPageSize: 15
   });
 
   // Use paginated sessions if pagination is enabled, otherwise use all filtered sessions
-  const displaySessions = shouldUsePagination ? currentPageSessions : filteredSessions;
+  const displaySessions = shouldUsePagination ? currentPageSessions : typeFilteredSessions;
 
-  // Reset pagination when search query changes
+  // Reset pagination when search query or tab changes
   useEffect(() => {
     resetPagination();
-  }, [searchQuery, resetPagination]);
+  }, [searchQuery, activeTab, resetPagination]);
 
   // Refresh sessions when screen comes into focus (tab navigation)
   useFocusEffect(
@@ -112,15 +142,27 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
 
   // Determine empty state type
   const getEmptyStateType = () => {
-    if (searchQuery && filteredSessions.length === 0) {
+    if (searchQuery && typeFilteredSessions.length === 0) {
       return 'no-results';
     }
     return 'no-sessions';
   };
 
-  // Handle navigation to start new chat
-  const handleStartChat = () => {
-    navigation.navigate('Home');
+  // Handle navigation based on active tab
+  const handleStartNew = () => {
+    switch (activeTab) {
+      case 'debate':
+        navigation.navigate('MainTabs', { screen: 'DebateTab' });
+        break;
+      case 'comparison':
+        navigation.navigate('MainTabs', { screen: 'CompareTab' });
+        break;
+      case 'chat':
+      case 'all':
+      default:
+        navigation.navigate('Home');
+        break;
+    }
   };
 
   // Handle clear search
@@ -143,6 +185,33 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
             rightElement={<HeaderActions variant="gradient" />}
           />
 
+          {/* Storage indicator for free tier */}
+          {!isPremium && (
+            <StorageIndicator
+              segments={[
+                { 
+                  count: sessionCounts.chat, 
+                  limit: 3, 
+                  color: theme.colors.primary[500], 
+                  label: 'Chats' 
+                },
+                { 
+                  count: sessionCounts.comparison, 
+                  limit: 3, 
+                  color: theme.colors.secondary[500], 
+                  label: 'Compare' 
+                },
+                { 
+                  count: sessionCounts.debate, 
+                  limit: 3, 
+                  color: theme.colors.warning[500], 
+                  label: 'Debates' 
+                },
+              ]}
+              onUpgrade={() => navigation.navigate('Premium')}
+            />
+          )}
+
           {/* Search bar */}
           <HistorySearchBar
             value={searchQuery}
@@ -150,6 +219,33 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
             onClear={handleClearSearch}
             placeholder="Search messages or AI names..."
           />
+
+          {/* Type filter tabs */}
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            style={{ flexGrow: 0 }}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8, gap: 8 }}
+          >
+            {(['all', 'chat', 'comparison', 'debate'] as const).map(tab => {
+              const label = tab === 'comparison' ? 'Compare' : tab.charAt(0).toUpperCase() + tab.slice(1);
+              const count = sessionCounts[tab];
+              const isActive = activeTab === tab;
+              // Calculate min width based on whether button is active and has count
+              const minWidth = isActive && count > 0 ? 110 : 90;
+              
+              return (
+                <Button
+                  key={tab}
+                  title={`${label}${count > 0 ? ` (${count})` : ''}`}
+                  onPress={() => setActiveTab(tab)}
+                  variant={isActive ? 'primary' : 'ghost'}
+                  size="small"
+                  style={{ minWidth, paddingHorizontal: 16 }}
+                />
+              );
+            })}
+          </ScrollView>
 
           {/* Session list */}
           <HistoryList
@@ -168,9 +264,30 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
               <EmptyHistoryState
                 type={getEmptyStateType()}
                 searchTerm={searchQuery}
-                onStartChat={handleStartChat}
+                onStartChat={handleStartNew}
                 onRetry={refresh}
                 onClearSearch={handleClearSearch}
+                emptyStateConfig={
+                  activeTab === 'debate' ? {
+                    icon: 'sword-cross',
+                    iconLibrary: 'material-community',
+                    title: 'No debates yet',
+                    message: 'Start a debate to see it here',
+                    actionText: 'Start Debating'
+                  } : activeTab === 'comparison' ? {
+                    icon: 'git-compare-outline',
+                    iconLibrary: 'ionicons',
+                    title: 'No comparisons yet',
+                    message: 'Compare AI responses to see them here',
+                    actionText: 'Start Comparing'
+                  } : activeTab === 'chat' ? {
+                    icon: 'chatbubbles-outline',
+                    iconLibrary: 'ionicons',
+                    title: 'No chats yet',
+                    message: 'Start a conversation to see it here',
+                    actionText: 'Start Chatting'
+                  } : undefined
+                }
               />
             }
           />

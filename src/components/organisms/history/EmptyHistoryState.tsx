@@ -1,31 +1,37 @@
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Box } from '../../atoms';
 import { Typography, Button } from '../../molecules';
 import { EmptyHistoryStateProps } from '../../../types/history';
+import { useTheme } from '../../../theme';
 
 export const EmptyHistoryState: React.FC<EmptyHistoryStateProps> = ({
   type,
   searchTerm,
   onRetry,
   onStartChat,
-  onClearSearch
+  onClearSearch,
+  emptyStateConfig
 }) => {
+  const { theme } = useTheme();
 
   const getEmptyStateContent = () => {
     switch (type) {
       case 'no-sessions':
         return {
-          emoji: '💬',
-          title: 'No conversations yet',
-          message: 'Start a new chat to see it here',
-          actionText: 'Start Chatting',
+          icon: emptyStateConfig?.icon,
+          iconLibrary: emptyStateConfig?.iconLibrary,
+          title: emptyStateConfig?.title || 'No conversations yet',
+          message: emptyStateConfig?.message || 'Start a new chat to see it here',
+          actionText: emptyStateConfig?.actionText || 'Start Chatting',
           action: onStartChat
         };
       
       case 'no-results':
         return {
-          emoji: '🔍',
+          icon: 'search',
+          iconLibrary: 'ionicons',
           title: 'No matches found',
           message: searchTerm 
             ? `No conversations match "${searchTerm}"`
@@ -36,7 +42,8 @@ export const EmptyHistoryState: React.FC<EmptyHistoryStateProps> = ({
       
       case 'loading-error':
         return {
-          emoji: '⚠️',
+          icon: 'alert-circle-outline',
+          iconLibrary: 'ionicons',
           title: 'Failed to load conversations',
           message: 'Check your connection and try again',
           actionText: 'Retry',
@@ -45,7 +52,8 @@ export const EmptyHistoryState: React.FC<EmptyHistoryStateProps> = ({
       
       default:
         return {
-          emoji: '💬',
+          icon: 'chatbubbles-outline',
+          iconLibrary: 'ionicons',
           title: 'No conversations',
           message: 'Nothing to show here',
           actionText: undefined,
@@ -54,13 +62,40 @@ export const EmptyHistoryState: React.FC<EmptyHistoryStateProps> = ({
     }
   };
 
-  const { emoji, title, message, actionText, action } = getEmptyStateContent();
+  const { icon, iconLibrary, title, message, actionText, action } = getEmptyStateContent();
+
+  const renderIcon = () => {
+    if (!icon) return null;
+
+    const iconColor = theme.colors.text.secondary;
+    const iconSize = 48;
+
+    if (iconLibrary === 'material-community') {
+      return (
+        <MaterialCommunityIcons 
+          name={icon as keyof typeof MaterialCommunityIcons.glyphMap} 
+          size={iconSize} 
+          color={iconColor} 
+        />
+      );
+    }
+    
+    return (
+      <Ionicons 
+        name={icon as keyof typeof Ionicons.glyphMap} 
+        size={iconSize} 
+        color={iconColor} 
+      />
+    );
+  };
 
   return (
     <Box style={styles.container}>
-      <Typography style={styles.emoji}>
-        {emoji}
-      </Typography>
+      {icon && (
+        <View style={styles.iconContainer}>
+          {renderIcon()}
+        </View>
+      )}
       
       <Typography 
         variant="title" 
@@ -88,19 +123,6 @@ export const EmptyHistoryState: React.FC<EmptyHistoryStateProps> = ({
         />
       )}
 
-      {/* Additional help text for empty sessions */}
-      {type === 'no-sessions' && (
-        <Box style={styles.helpContainer}>
-          <Typography 
-            variant="caption" 
-            color="secondary" 
-            align="center"
-            style={styles.helpText}
-          >
-            Start by selecting AIs and asking a question. Your conversations will be saved here automatically.
-          </Typography>
-        </Box>
-      )}
     </Box>
   );
 };
@@ -110,13 +132,12 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 32,
+    paddingTop: 16, // Match HistoryList's paddingVertical
+    paddingBottom: 40,
+    paddingHorizontal: 20, // Match HistoryList's paddingHorizontal
   },
-  emoji: {
-    fontSize: 48,
+  iconContainer: {
     marginBottom: 16,
-    textAlign: 'center',
   },
   title: {
     marginBottom: 8,
@@ -128,13 +149,5 @@ const styles = StyleSheet.create({
   actionButton: {
     marginBottom: 16,
     minWidth: 120,
-  },
-  helpContainer: {
-    marginTop: 8,
-    paddingHorizontal: 16,
-  },
-  helpText: {
-    lineHeight: 16,
-    opacity: 0.7,
   },
 });

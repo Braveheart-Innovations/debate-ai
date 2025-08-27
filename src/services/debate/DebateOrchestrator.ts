@@ -4,13 +4,15 @@
  * Coordinates between all other debate services and manages state transitions
  */
 
-import { AI, Message } from '../../types';
+import { AI, Message, ChatSession } from '../../types';
 import { AIService } from '../aiAdapter';
 import { DebateRulesEngine } from './DebateRulesEngine';
 import { VotingService } from './VotingService';
 import { DebatePromptBuilder } from './DebatePromptBuilder';
 import { DEBATE_CONSTANTS } from '../../config/debateConstants';
 import { UNIVERSAL_PERSONALITIES } from '../../config/personalities';
+import { StorageService } from '../chat/StorageService';
+import { store } from '../../store';
 
 export interface DebateSession {
   id: string;
@@ -538,6 +540,44 @@ export class DebateOrchestrator {
       data: { session: this.session, overallWinner: winnerId, finalScores: scores },
       timestamp: Date.now(),
     });
+
+    // Save the debate to history
+    this.saveDebateToHistory();
+  }
+
+  /**
+   * Save completed debate to history
+   * Note: Messages should be collected by the DebateScreen via events
+   */
+  private async saveDebateToHistory(): Promise<void> {
+    if (!this.session) return;
+
+    try {
+      // Check if user is premium
+      const state = store.getState();
+      const currentUser = state.user.currentUser;
+      const isPremium = currentUser?.subscription === 'pro' || currentUser?.subscription === 'business';
+      
+      // Enforce storage limits before saving
+      await StorageService.enforceStorageLimits('debate', isPremium);
+      
+      // Create debate session for storage
+      // Messages should be added by the DebateScreen which listens to events
+      const debateSession: ChatSession = {
+        id: `debate_${this.session.id}`,
+        sessionType: 'debate',
+        selectedAIs: this.session.participants,
+        messages: [], // Will be populated by DebateScreen
+        isActive: false,
+        createdAt: this.session.startTime,
+        lastMessageAt: Date.now(),
+      };
+      
+      // Save to storage
+      await StorageService.saveSession(debateSession);
+    } catch (error) {
+      console.error('Failed to save debate to history:', error);
+    }
   }
   
   /**

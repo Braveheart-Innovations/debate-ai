@@ -15,7 +15,8 @@ import { Button } from '../components/molecules';
 
 import { useTheme } from '../theme';
 import { useAIService } from '../providers/AIServiceProvider';
-import { AIConfig, Message } from '../types';
+import { AIConfig, Message, ChatSession } from '../types';
+import { StorageService } from '../services/chat/StorageService';
 
 interface CompareScreenProps {
   navigation: {
@@ -37,8 +38,9 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
   const { aiService, isInitialized } = useAIService();
   const { leftAI, rightAI } = route.params;
   
-  // Get models from Redux
+  // Get models and user status from Redux
   const selectedModels = useSelector((state: RootState) => state.chat.selectedModels);
+  const currentUser = useSelector((state: RootState) => state.user.currentUser);
   
   // View mode state
   const [viewMode, setViewMode] = useState<ViewMode>('split');
@@ -59,6 +61,46 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
   // Track conversation history separately for each AI
   const leftHistoryRef = useRef<Message[]>([]);
   const rightHistoryRef = useRef<Message[]>([]);
+  
+  // Save comparison session to history
+  const saveComparisonSession = useCallback(async () => {
+    if (userMessages.length === 0) return; // Don't save empty sessions
+    
+    try {
+      const isPremium = currentUser?.subscription === 'pro' || currentUser?.subscription === 'business';
+      
+      // Enforce storage limits
+      await StorageService.enforceStorageLimits('comparison', isPremium);
+      
+      // Combine all messages for storage
+      const allMessages: Message[] = [];
+      userMessages.forEach((userMsg, index) => {
+        allMessages.push(userMsg);
+        if (leftMessages[index]) {
+          allMessages.push(leftMessages[index]);
+        }
+        if (rightMessages[index]) {
+          allMessages.push(rightMessages[index]);
+        }
+      });
+      
+      // Create comparison session
+      const comparisonSession: ChatSession = {
+        id: `compare_${Date.now()}`,
+        sessionType: 'comparison',
+        selectedAIs: [leftAI, rightAI],
+        messages: allMessages,
+        isActive: false,
+        createdAt: Date.now(),
+        lastMessageAt: Date.now(),
+      };
+      
+      // Save to storage
+      await StorageService.saveSession(comparisonSession);
+    } catch (error) {
+      console.error('Failed to save comparison to history:', error);
+    }
+  }, [userMessages, leftMessages, rightMessages, leftAI, rightAI, currentUser]);
   
   const handleSend = useCallback(async () => {
     if (!inputText.trim() || !aiService || !isInitialized) return;
@@ -166,14 +208,16 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
         { text: 'Cancel', style: 'cancel' },
         { 
           text: 'Continue', 
-          onPress: () => {
+          onPress: async () => {
             setViewMode('left-only');
             setContinuedSide('left');
+            // Save the comparison session as diverged
+            await saveComparisonSession();
           }
         }
       ]
     );
-  }, [leftAI]);
+  }, [leftAI, saveComparisonSession]);
   
   const handleContinueWithRight = useCallback(() => {
     Alert.alert(
@@ -183,14 +227,16 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
         { text: 'Cancel', style: 'cancel' },
         { 
           text: 'Continue', 
-          onPress: () => {
+          onPress: async () => {
             setViewMode('right-only');
             setContinuedSide('right');
+            // Save the comparison session as diverged
+            await saveComparisonSession();
           }
         }
       ]
     );
-  }, [rightAI]);
+  }, [rightAI, saveComparisonSession]);
   
   const handleExpandLeft = useCallback(() => {
     setViewMode(viewMode === 'left-full' ? 'split' : 'left-full');
@@ -200,16 +246,23 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
     setViewMode(viewMode === 'right-full' ? 'split' : 'right-full');
   }, [viewMode]);
   
-  const handleStartOver = () => {
+  const handleStartOver = useCallback(() => {
     Alert.alert(
       'Start Over',
       'This will end the current comparison. Are you sure?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Start Over', onPress: () => navigation.goBack() }
+        { 
+          text: 'Start Over', 
+          onPress: async () => {
+            // Save the comparison session before leaving
+            await saveComparisonSession();
+            navigation.goBack();
+          }
+        }
       ]
     );
-  };
+  }, [saveComparisonSession, navigation]);
   
   const isProcessing = leftTyping || rightTyping;
   

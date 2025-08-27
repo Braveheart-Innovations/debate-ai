@@ -1,5 +1,28 @@
 // History Screen type definitions
-import { ChatSession } from './index';
+import { ChatSession, AIConfig, Message } from './index';
+
+// Extended session types for different interaction modes
+export interface ComparisonSessionData extends Partial<ChatSession> {
+  sessionType: 'comparison';
+  hasDiverged: boolean;
+  divergedAt?: number;
+  continuedWithAI?: string; // ID of AI that was selected if diverged
+  leftAI: AIConfig;
+  rightAI: AIConfig;
+  leftThread: Message[]; // Messages from left AI
+  rightThread: Message[]; // Messages from right AI
+  sharedPrompts: string[]; // User prompts sent to both AIs
+}
+
+export interface DebateSessionData extends Partial<ChatSession> {
+  sessionType: 'debate';
+  topic: string;
+  winner: string; // AI ID of winner
+  scores: Record<string, { points: number; roundWins: number }>;
+  transcript: Message[];
+  duration?: number; // Duration in seconds
+  roundCount: number;
+}
 
 // Search and Filter Types
 export interface SearchOptions {
@@ -143,6 +166,13 @@ export interface EmptyHistoryStateProps {
   onRetry?: () => void;
   onStartChat?: () => void;
   onClearSearch?: () => void;
+  emptyStateConfig?: {
+    icon?: string;
+    iconLibrary?: 'ionicons' | 'material-community';
+    title?: string;
+    message?: string;
+    actionText?: string;
+  };
 }
 
 // Hook Return Types
