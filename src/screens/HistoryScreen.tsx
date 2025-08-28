@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ScrollView } from 'react-native';
+import { ScrollView, View, Alert } from 'react-native';
 import { Box } from '../components/atoms';
 import { Button, StorageIndicator } from '../components/molecules';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
 import { useTheme } from '../theme';
 import { useFocusEffect } from '@react-navigation/native';
+import { StorageService } from '../services/chat';
 import { 
   HistorySearchBar, 
   HistoryList, 
@@ -40,7 +41,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
   // Compose hooks for different concerns
   const { sessions, isLoading, error, refresh } = useSessionHistory();
   const { searchQuery, setSearchQuery, filteredSessions, clearSearch } = useSessionSearch(sessions);
-  const { deleteSession, resumeSession } = useSessionActions(navigation);
+  const { deleteSession, resumeSession } = useSessionActions(navigation, refresh);
   useSessionStats(sessions); // For future analytics features
   useSubscriptionLimits(sessions.length);
   
@@ -48,19 +49,20 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
   const typeFilteredSessions = useMemo(() => {
     if (activeTab === 'all') return filteredSessions;
     return filteredSessions.filter(session => {
-      // Sessions without sessionType are treated as 'chat' for backward compatibility
-      const type = session.sessionType || 'chat';
-      return type === activeTab;
+      // Only show sessions with explicit sessionType matching the filter
+      return session.sessionType === activeTab;
     });
   }, [filteredSessions, activeTab]);
   
   // Get counts for each type
   const sessionCounts = useMemo(() => {
-    return sessions.reduce((counts, session) => {
-      const type = session.sessionType || 'chat';
-      counts[type] = (counts[type] || 0) + 1;
-      counts.all = (counts.all || 0) + 1;
-      return counts;
+    return sessions.reduce((acc, session) => {
+      // Only count sessions with explicit sessionType
+      if (session.sessionType) {
+        acc[session.sessionType] = (acc[session.sessionType] || 0) + 1;
+      }
+      acc.all = (acc.all || 0) + 1;
+      return acc;
     }, { all: 0, chat: 0, comparison: 0, debate: 0 });
   }, [sessions]);
   
@@ -91,13 +93,37 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
     resetPagination();
   }, [searchQuery, activeTab, resetPagination]);
 
+  // Clear all storage function (for debugging)
+  const handleClearAllStorage = () => {
+    Alert.alert(
+      'Clear All Storage?',
+      'This will permanently delete ALL sessions from history. This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear All',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await StorageService.clearAllSessions();
+              refresh();
+              Alert.alert('Success', 'All storage has been cleared.');
+            } catch {
+              Alert.alert('Error', 'Failed to clear storage.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   // Refresh sessions when screen comes into focus (tab navigation)
   useFocusEffect(
     React.useCallback(() => {
-      // Small delay to ensure storage is updated
+      // Increased delay to ensure storage operations complete
       const timer = setTimeout(() => {
         refresh();
-      }, 100);
+      }, 300);
       return () => clearTimeout(timer);
     }, [refresh])
   );
@@ -182,7 +208,17 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
             showTime={true}
             showDate={true}
             animated={true}
-            rightElement={<HeaderActions variant="gradient" />}
+            rightElement={
+              <Box style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Button
+                  title="Clear All"
+                  onPress={handleClearAllStorage}
+                  variant="danger"
+                  size="small"
+                />
+                <HeaderActions variant="gradient" />
+              </Box>
+            }
           />
 
           {/* Storage indicator for free tier */}
@@ -196,9 +232,9 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
                   label: 'Chats' 
                 },
                 { 
-                  count: sessionCounts.comparison, 
+                  count: sessionCounts.comparison || 0, 
                   limit: 3, 
-                  color: theme.colors.secondary[500], 
+                  color: theme.colors.success[500], 
                   label: 'Compare' 
                 },
                 { 
@@ -221,18 +257,16 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
           />
 
           {/* Type filter tabs */}
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            style={{ flexGrow: 0 }}
-            contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8, gap: 8 }}
-          >
-            {(['all', 'chat', 'comparison', 'debate'] as const).map(tab => {
+          <View style={{ height: 50 }}>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8, gap: 8 }}
+            >
+              {(['all', 'chat', 'comparison', 'debate'] as const).map(tab => {
               const label = tab === 'comparison' ? 'Compare' : tab.charAt(0).toUpperCase() + tab.slice(1);
               const count = sessionCounts[tab];
               const isActive = activeTab === tab;
-              // Calculate min width based on whether button is active and has count
-              const minWidth = isActive && count > 0 ? 110 : 90;
               
               return (
                 <Button
@@ -241,11 +275,12 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
                   onPress={() => setActiveTab(tab)}
                   variant={isActive ? 'primary' : 'ghost'}
                   size="small"
-                  style={{ minWidth, paddingHorizontal: 16 }}
+                  style={{ minWidth: 100, paddingHorizontal: 16 }}
                 />
               );
             })}
-          </ScrollView>
+            </ScrollView>
+          </View>
 
           {/* Session list */}
           <HistoryList

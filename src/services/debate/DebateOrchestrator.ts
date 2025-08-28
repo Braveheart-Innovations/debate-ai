@@ -119,6 +119,18 @@ export class DebateOrchestrator {
       throw new Error('No active debate session');
     }
     
+    // Enforce storage limits BEFORE starting the debate
+    // This ensures we have room for this new debate
+    try {
+      const state = store.getState();
+      const currentUser = state.user.currentUser;
+      const isPremium = currentUser?.subscription === 'pro' || currentUser?.subscription === 'business';
+      
+      await StorageService.enforceStorageLimits('debate', isPremium, true);
+    } catch {
+      // Continue anyway - don't block the debate
+    }
+    
     // Store the initial messages
     this.currentMessages = [...existingMessages];
     
@@ -553,21 +565,15 @@ export class DebateOrchestrator {
     if (!this.session) return;
 
     try {
-      // Check if user is premium
-      const state = store.getState();
-      const currentUser = state.user.currentUser;
-      const isPremium = currentUser?.subscription === 'pro' || currentUser?.subscription === 'business';
+      // Use the session ID directly (it's already prefixed with 'debate_')
+      const sessionId = this.session.id;
       
-      // Enforce storage limits before saving
-      await StorageService.enforceStorageLimits('debate', isPremium);
-      
-      // Create debate session for storage
-      // Messages should be added by the DebateScreen which listens to events
       const debateSession: ChatSession = {
-        id: `debate_${this.session.id}`,
+        id: sessionId,
         sessionType: 'debate',
+        topic: this.session.topic, // Store the debate topic directly
         selectedAIs: this.session.participants,
-        messages: [], // Will be populated by DebateScreen
+        messages: this.currentMessages, // Use the actual messages from the debate
         isActive: false,
         createdAt: this.session.startTime,
         lastMessageAt: Date.now(),

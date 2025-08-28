@@ -16,7 +16,8 @@ export const useSessionHistory = (): UseSessionHistoryReturn => {
     (state: RootState) => state.user.currentUser?.subscription || 'free'
   );
 
-  const maxSessions = subscription === 'free' ? 3 : Infinity;
+  // Free users can have 3 of EACH type (9 total), not 3 total
+  const maxSessions = subscription === 'free' ? 9 : Infinity;
 
   /**
    * Load sessions from storage
@@ -43,10 +44,9 @@ export const useSessionHistory = (): UseSessionHistoryReturn => {
         allSessions = [];
       }
 
-      // Apply subscription limits - sessions are already sorted by most recent
-      const limitedSessions = subscription === 'free' 
-        ? allSessions.slice(0, maxSessions) 
-        : allSessions;
+      // Don't limit here - storage already enforces per-type limits
+      // Free users get 3 chats + 3 comparisons + 3 debates = 9 total possible
+      const limitedSessions = allSessions;
 
       setSessions(limitedSessions);
 

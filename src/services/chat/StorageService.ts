@@ -76,6 +76,12 @@ export class StorageService {
    */
   static async saveSession(session: ChatSession): Promise<void> {
     try {
+      // Critical check: Prevent saving Redux debate sessions
+      if (session.sessionType === 'debate' && !session.id.startsWith('debate_')) {
+        // Skip saving Redux debate sessions - they should only be saved via DebateOrchestrator
+        return;
+      }
+      
       // Save the individual session
       const sessionKey = this.getSessionKey(session.id);
       await AsyncStorage.setItem(sessionKey, JSON.stringify(session));
@@ -138,7 +144,9 @@ export class StorageService {
       const sessions = await Promise.all(sessionPromises);
       
       // Filter out any null values and return
-      return sessions.filter((s): s is ChatSession => s !== null);
+      const validSessions = sessions.filter((s): s is ChatSession => s !== null);
+      
+      return validSessions;
     } catch (error) {
       console.error('Error getting all sessions:', error);
       return [];
@@ -409,11 +417,11 @@ export class StorageService {
    */
   static async getSessionsByType(type: 'chat' | 'comparison' | 'debate'): Promise<ChatSession[]> {
     const sessions = await this.getAllSessions();
-    return sessions.filter(session => {
-      // If no sessionType field, treat as chat for backward compatibility
-      if (!session.sessionType) return type === 'chat';
-      return session.sessionType === type;
-    });
+    
+    // Only return sessions that explicitly match the requested type
+    const filtered = sessions.filter(session => session.sessionType === type);
+    
+    return filtered;
   }
 
   /**
@@ -422,31 +430,44 @@ export class StorageService {
   static async getStorageCounts(): Promise<{ chat: number; comparison: number; debate: number }> {
     const sessions = await this.getAllSessions();
     return sessions.reduce((counts, session) => {
-      const type = session.sessionType || 'chat';
-      counts[type] = (counts[type] || 0) + 1;
+      // Only count sessions with explicit sessionType
+      if (session.sessionType) {
+        counts[session.sessionType] = (counts[session.sessionType] || 0) + 1;
+      }
       return counts;
     }, { chat: 0, comparison: 0, debate: 0 });
   }
 
   /**
    * Enforce storage limits for free tier users
+   * Should be called BEFORE saving a new session to check if we need to make room
    */
   static async enforceStorageLimits(
     type: 'chat' | 'comparison' | 'debate',
-    isPremium: boolean
+    isPremium: boolean,
+    isNewSession: boolean = true
   ): Promise<{ deleted: boolean; deletedId?: string }> {
     // No limits for premium users
-    if (isPremium) return { deleted: false };
+    if (isPremium) {
+      return { deleted: false };
+    }
 
     const LIMITS = { chat: 3, comparison: 3, debate: 3 };
     const sessions = await this.getSessionsByType(type);
     
-    if (sessions.length >= LIMITS[type]) {
+    // If we're adding a new session and already at limit, delete the oldest
+    if (isNewSession && sessions.length >= LIMITS[type]) {
       // Sort by creation time (oldest first)
       const sorted = sessions.sort((a, b) => a.createdAt - b.createdAt);
       const oldestSession = sorted[0];
       
-      // Delete the oldest session
+      // CRITICAL CHECK: Make sure we're deleting the right type
+      if (oldestSession.sessionType !== type) {
+        // Don't delete wrong type!
+        return { deleted: false };
+      }
+      
+      // Delete the oldest session to make room for the new one
       await this.deleteSession(oldestSession.id);
       
       return { deleted: true, deletedId: oldestSession.id };

@@ -75,6 +75,7 @@ const chatSlice = createSlice({
       selectedAIs: AIConfig[]; 
       aiPersonalities?: { [aiId: string]: string };
       selectedModels?: { [aiId: string]: string };
+      sessionType?: 'chat' | 'comparison' | 'debate';
     }>) => {
       const newSession: ChatSession = {
         id: `session_${Date.now()}`,
@@ -82,6 +83,7 @@ const chatSlice = createSlice({
         messages: [],
         isActive: true,
         createdAt: Date.now(),
+        sessionType: action.payload.sessionType || 'chat', // Default to chat if not specified
       };
       // console.log('Redux - Starting new session:', newSession.id);
       state.currentSession = newSession;

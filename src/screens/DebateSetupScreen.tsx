@@ -27,9 +27,15 @@ interface DebateSetupScreenProps {
   navigation: {
     navigate: (screen: string, params?: Record<string, unknown>) => void;
   };
+  route?: {
+    params?: {
+      preselectedAIs?: AIConfig[];
+      prefilledTopic?: string;
+    };
+  };
 }
 
-const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation }) => {
+const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route }) => {
   const { theme } = useTheme();
   const dispatch = useDispatch();
   const scrollViewRef = useRef<ScrollView>(null);
@@ -65,9 +71,11 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation }) => 
   }, [apiKeys]);
   
   const [currentStep, setCurrentStep] = useState<'topic' | 'ai' | 'personality'>('topic');
-  const [selectedAIs, setSelectedAIs] = useState<AIConfig[]>([]);
-  const [selectedTopic, setSelectedTopic] = useState<string>(preservedTopic || '');
-  const [customTopic, setCustomTopic] = useState(preservedTopicMode === 'custom' ? (preservedTopic || '') : '');
+  const [selectedAIs, setSelectedAIs] = useState<AIConfig[]>(route?.params?.preselectedAIs || []);
+  const [selectedTopic, setSelectedTopic] = useState<string>(route?.params?.prefilledTopic || preservedTopic || '');
+  const [customTopic, setCustomTopic] = useState(
+    route?.params?.prefilledTopic || (preservedTopicMode === 'custom' ? (preservedTopic || '') : '')
+  );
   const [topicMode, setTopicMode] = useState<'preset' | 'custom' | 'surprise'>(preservedTopicMode || 'preset');
   const [selectedModels, setSelectedModels] = useState<Record<string, string>>(selectedModelsFromStore || {});
   

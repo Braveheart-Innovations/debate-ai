@@ -56,8 +56,8 @@ export const useDebateSession = (_selectedAIs: AI[]): UseDebateSessionReturn => 
       setError(null);
       setStatus(DebateStatus.INITIALIZING);
       
-      // Create Redux session first
-      dispatch(startSession({ selectedAIs: participants }));
+      // Create Redux session for the UI to display messages
+      dispatch(startSession({ selectedAIs: participants, sessionType: 'debate' }));
       
       // Initialize debate session
       const debateSession = await orchestrator.initializeDebate(topic, participants, personalities);

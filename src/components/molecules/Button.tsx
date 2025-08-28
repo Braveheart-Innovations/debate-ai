@@ -36,8 +36,9 @@ export const Button: React.FC<ButtonProps> = ({
       case 'small':
         return {
           paddingHorizontal: 12,
-          paddingVertical: 6,
+          paddingVertical: 8,
           borderRadius: 6,
+          minHeight: 32,
         };
       case 'large':
         return {
@@ -60,6 +61,8 @@ export const Button: React.FC<ButtonProps> = ({
       case 'primary':
         return {
           backgroundColor: theme.colors.primary[500],
+          borderWidth: 1,
+          borderColor: theme.colors.primary[500],
         };
       case 'secondary':
         return {
@@ -76,10 +79,14 @@ export const Button: React.FC<ButtonProps> = ({
       case 'danger':
         return {
           backgroundColor: theme.colors.error[500],
+          borderWidth: 1,
+          borderColor: theme.colors.error[500],
         };
       default:
         return {
           backgroundColor: theme.colors.primary[500],
+          borderWidth: 1,
+          borderColor: theme.colors.primary[500],
         };
     }
   };

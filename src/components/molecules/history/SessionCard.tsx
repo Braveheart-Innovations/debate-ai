@@ -18,9 +18,39 @@ export const SessionCard: React.FC<SessionCardProps> = ({
 }) => {
   const { theme } = useTheme();
   
-  const lastMessage = session.messages[session.messages.length - 1];
-  const preview = lastMessage?.content || 'No messages yet';
   const aiNames = session.selectedAIs.map(ai => ai.name).join(' • ');
+  const sessionType = session.sessionType; // No default - must be explicitly set
+  
+  // Get appropriate preview based on session type
+  const getPreview = () => {
+    if (sessionType === 'debate') {
+      // For debates, show the topic - first check if stored as attribute
+      if (session.topic) {
+        return `Topic: ${session.topic}`;
+      }
+      // Fall back to extracting from host message for older sessions
+      const topicMessage = session.messages.find(m => m.sender === 'Debate Host');
+      if (topicMessage) {
+        // Extract topic from the host message (topic is in quotes at the start)
+        const topicMatch = topicMessage.content.match(/^"([^"]+)"/);
+        const topic = topicMatch ? topicMatch[1] : 'Debate';
+        return `Topic: ${topic}`;
+      }
+      return 'Debate completed';
+    } else if (sessionType === 'comparison') {
+      const lastMessage = session.messages[session.messages.length - 1];
+      const comparisonData = session as { hasDiverged?: boolean; continuedWithAI?: string } & typeof session;
+      if (comparisonData.hasDiverged) {
+        return `Diverged to ${comparisonData.continuedWithAI || 'single AI'}`;
+      }
+      return lastMessage?.content || 'Comparison in progress';
+    } else {
+      const lastMessage = session.messages[session.messages.length - 1];
+      return lastMessage?.content || 'No messages yet';
+    }
+  };
+  
+  const preview = getPreview();
   
   // Check if this session contains the search term for highlighting
   const containsSearchTerm = searchTerm && (
@@ -91,7 +121,9 @@ export const SessionCard: React.FC<SessionCardProps> = ({
           {/* Footer */}
           <Box style={styles.footer}>
             <Typography variant="caption" color="secondary">
-              {session.messages.length} message{session.messages.length !== 1 ? 's' : ''}
+              {sessionType === 'debate' ? `Debate • ${session.messages.length} messages` : 
+               sessionType === 'comparison' ? `Comparison • ${session.messages.length} messages` : 
+               `${session.messages.length} message${session.messages.length !== 1 ? 's' : ''}`}
             </Typography>
             
             {/* Search Match Badge */}

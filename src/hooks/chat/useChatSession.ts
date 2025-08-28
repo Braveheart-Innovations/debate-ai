@@ -17,6 +17,7 @@ export interface ChatSessionHook {
 export const useChatSession = (): ChatSessionHook => {
   const dispatch = useDispatch();
   const { currentSession } = useSelector((state: RootState) => state.chat);
+  const isPremium = useSelector((state: RootState) => state.auth.isPremium);
 
   const loadSession = async (id: string): Promise<void> => {
     try {
@@ -32,7 +33,21 @@ export const useChatSession = (): ChatSessionHook => {
   const saveSession = async (): Promise<void> => {
     if (!currentSession) return;
     
+    // Don't save debate Redux sessions - debates save directly via DebateOrchestrator
+    if (currentSession.sessionType === 'debate') {
+      // Silent skip for debate sessions
+      return;
+    }
+    
     try {
+      // Check if this is a new session (not yet saved)
+      const existingSession = await StorageService.loadSession(currentSession.id);
+      
+      // Only enforce limits for new chat sessions
+      if (!existingSession) {
+        await StorageService.enforceStorageLimits('chat', isPremium, true);
+      }
+      
       await StorageService.saveSession(currentSession);
     } catch (error) {
       console.error('Error saving session:', error);

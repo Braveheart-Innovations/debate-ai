@@ -75,6 +75,9 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
         `"${topicToUse}"\n\n${selectedAIs[0].name} opens the debate.`
       );
       
+      // Small delay to ensure Redux has updated
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       // Start the debate flow
       await flow.startDebate();
       

@@ -24,6 +24,7 @@ import HistoryScreen from '../screens/HistoryScreen';
 import APIConfigScreen from '../screens/APIConfigScreen';
 import DebateScreen from '../screens/DebateScreen';
 import DebateSetupScreen from '../screens/DebateSetupScreen';
+import DebateTranscriptScreen from '../screens/DebateTranscriptScreen';
 import StatsScreen from '../screens/StatsScreen';
 import CompareSetupScreen from '../screens/CompareSetupScreen';
 import CompareScreen from '../screens/CompareScreen';
@@ -339,6 +340,11 @@ export default function AppNavigator() {
             <Stack.Screen
               name="Debate"
               component={DebateScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="DebateTranscript"
+              component={DebateTranscriptScreen}
               options={{ headerShown: false }}
             />
             <Stack.Screen

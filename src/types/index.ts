@@ -95,6 +95,7 @@ export interface ChatSession {
   startTime?: number;
   lastMessageAt?: number;
   sessionType?: 'chat' | 'comparison' | 'debate'; // New field for history organization
+  topic?: string; // For debate sessions to store the debate topic
 }
 
 export interface PersonalityConfig {
@@ -157,7 +158,8 @@ export type RootStackParamList = {
   Subscription: undefined;
   ExpertMode: undefined;
   Debate: { selectedAIs: AI[]; topic?: string; personalities?: { [key: string]: string } };
+  DebateTranscript: { session: ChatSession };
   Compare?: undefined;
-  CompareSession: { leftAI: AIConfig; rightAI: AIConfig };
+  CompareSession: { leftAI: AIConfig; rightAI: AIConfig; sessionId?: string; resuming?: boolean };
   Stats: undefined;
 };

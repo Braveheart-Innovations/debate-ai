@@ -25,8 +25,10 @@ interface CompareScreenProps {
   };
   route: {
     params: {
-      leftAI: AIConfig;
-      rightAI: AIConfig;
+      leftAI?: AIConfig;
+      rightAI?: AIConfig;
+      sessionId?: string;
+      resuming?: boolean;
     };
   };
 }
@@ -36,20 +38,61 @@ type ViewMode = 'split' | 'left-full' | 'right-full' | 'left-only' | 'right-only
 const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
   const { theme } = useTheme();
   const { aiService, isInitialized } = useAIService();
-  const { leftAI, rightAI } = route.params;
   
   // Get models and user status from Redux
   const selectedModels = useSelector((state: RootState) => state.chat.selectedModels);
   const currentUser = useSelector((state: RootState) => state.user.currentUser);
   
-  // View mode state
-  const [viewMode, setViewMode] = useState<ViewMode>('split');
-  const [continuedSide, setContinuedSide] = useState<'left' | 'right' | null>(null);
+  // Check if we're resuming a session
+  const currentSession = useSelector((state: RootState) => 
+    route.params?.resuming ? state.chat.currentSession : null
+  );
   
-  // State for messages
-  const [userMessages, setUserMessages] = useState<Message[]>([]);
-  const [leftMessages, setLeftMessages] = useState<Message[]>([]);
-  const [rightMessages, setRightMessages] = useState<Message[]>([]);
+  // Use AIs from resumed session or from params
+  const leftAI = currentSession?.selectedAIs[0] || route.params?.leftAI;
+  const rightAI = currentSession?.selectedAIs[1] || route.params?.rightAI;
+  
+  // Check if resumed session had diverged
+  const resumedSessionData = currentSession as ChatSession & { hasDiverged?: boolean; continuedWithAI?: string };
+  const hadDiverged = resumedSessionData?.hasDiverged || false;
+  const continuedWithAIName = resumedSessionData?.continuedWithAI;
+  
+  // View mode state - initialize based on resumed session state
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    if (hadDiverged && continuedWithAIName && leftAI) {
+      return continuedWithAIName === leftAI.name ? 'left-only' : 'right-only';
+    }
+    return 'split';
+  });
+  
+  const [continuedSide, setContinuedSide] = useState<'left' | 'right' | null>(() => {
+    if (hadDiverged && continuedWithAIName && leftAI) {
+      return continuedWithAIName === leftAI.name ? 'left' : 'right';
+    }
+    return null;
+  });
+  
+  // State for messages - initialize from resumed session if available
+  const [userMessages, setUserMessages] = useState<Message[]>(() => {
+    if (currentSession && route.params?.resuming) {
+      return currentSession.messages.filter(m => m.sender === 'You');
+    }
+    return [];
+  });
+  
+  const [leftMessages, setLeftMessages] = useState<Message[]>(() => {
+    if (currentSession && route.params?.resuming && leftAI) {
+      return currentSession.messages.filter(m => m.sender === leftAI.name);
+    }
+    return [];
+  });
+  
+  const [rightMessages, setRightMessages] = useState<Message[]>(() => {
+    if (currentSession && route.params?.resuming && rightAI) {
+      return currentSession.messages.filter(m => m.sender === rightAI.name);
+    }
+    return [];
+  });
   const [inputText, setInputText] = useState('');
   
   // Streaming and typing states
@@ -59,18 +102,31 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
   const [rightStreamingContent, setRightStreamingContent] = useState('');
   
   // Track conversation history separately for each AI
-  const leftHistoryRef = useRef<Message[]>([]);
-  const rightHistoryRef = useRef<Message[]>([]);
+  const leftHistoryRef = useRef<Message[]>(currentSession && route.params?.resuming && leftAI
+    ? currentSession.messages.filter(m => m.sender === 'You' || m.sender === leftAI.name)
+    : []);
+  const rightHistoryRef = useRef<Message[]>(currentSession && route.params?.resuming && rightAI
+    ? currentSession.messages.filter(m => m.sender === 'You' || m.sender === rightAI.name)
+    : []);
   
   // Save comparison session to history
+  // Use a stable session ID - either from resumed session or create new one
+  const sessionId = useRef(currentSession?.id || `compare_${Date.now()}`).current;
+  const [hasBeenSaved, setHasBeenSaved] = useState(route.params?.resuming || false);
+  
   const saveComparisonSession = useCallback(async () => {
     if (userMessages.length === 0) return; // Don't save empty sessions
     
     try {
       const isPremium = currentUser?.subscription === 'pro' || currentUser?.subscription === 'business';
       
-      // Enforce storage limits
-      await StorageService.enforceStorageLimits('comparison', isPremium);
+      // Check if this session already exists
+      const existingSession = await StorageService.loadSession(sessionId);
+      
+      // Only enforce storage limits for truly NEW sessions (not updates)
+      if (!existingSession && !hasBeenSaved) {
+        await StorageService.enforceStorageLimits('comparison', isPremium, true);
+      }
       
       // Combine all messages for storage
       const allMessages: Message[] = [];
@@ -84,15 +140,19 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
         }
       });
       
-      // Create comparison session
-      const comparisonSession: ChatSession = {
-        id: `compare_${Date.now()}`,
+      // Create comparison session with divergence metadata if applicable
+      const comparisonSession: ChatSession & { hasDiverged?: boolean; continuedWithAI?: string } = {
+        id: sessionId,
         sessionType: 'comparison',
-        selectedAIs: [leftAI, rightAI],
+        selectedAIs: [leftAI!, rightAI!], // We know they exist here as this is only called when messages exist
         messages: allMessages,
         isActive: false,
         createdAt: Date.now(),
         lastMessageAt: Date.now(),
+        ...(continuedSide && {
+          hasDiverged: true,
+          continuedWithAI: continuedSide === 'left' ? leftAI!.name : rightAI!.name
+        })
       };
       
       // Save to storage
@@ -100,10 +160,10 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
     } catch (error) {
       console.error('Failed to save comparison to history:', error);
     }
-  }, [userMessages, leftMessages, rightMessages, leftAI, rightAI, currentUser]);
+  }, [userMessages, leftMessages, rightMessages, leftAI, rightAI, currentUser, continuedSide, sessionId, hasBeenSaved]);
   
   const handleSend = useCallback(async () => {
-    if (!inputText.trim() || !aiService || !isInitialized) return;
+    if (!inputText.trim() || !aiService || !isInitialized || !leftAI || !rightAI) return;
     
     const messageText = inputText.trim();
     setInputText('');
@@ -198,9 +258,19 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
     });
     }
     
-  }, [inputText, aiService, isInitialized, leftAI, rightAI, selectedModels, viewMode, continuedSide]);
+    // Save session after sending messages
+    if (!hasBeenSaved) {
+      setHasBeenSaved(true);
+    }
+    // Auto-save the session after new messages
+    setTimeout(() => {
+      saveComparisonSession();
+    }, 1000);
+    
+  }, [inputText, aiService, isInitialized, leftAI, rightAI, selectedModels, viewMode, continuedSide, hasBeenSaved, saveComparisonSession]);
   
   const handleContinueWithLeft = useCallback(() => {
+    if (!leftAI) return;
     Alert.alert(
       'Continue with ' + leftAI.name,
       'This will end the comparison and continue chatting with only ' + leftAI.name + '. The other conversation will be disabled. Are you sure?',
@@ -220,6 +290,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
   }, [leftAI, saveComparisonSession]);
   
   const handleContinueWithRight = useCallback(() => {
+    if (!rightAI) return;
     Alert.alert(
       'Continue with ' + rightAI.name,
       'This will end the comparison and continue chatting with only ' + rightAI.name + '. The other conversation will be disabled. Are you sure?',
@@ -265,6 +336,12 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
   }, [saveComparisonSession, navigation]);
   
   const isProcessing = leftTyping || rightTyping;
+  
+  // Navigate back if AIs are not provided (must be after all hooks)
+  if (!leftAI || !rightAI) {
+    navigation.goBack();
+    return null;
+  }
   
   return (
     <KeyboardAvoidingView 

@@ -18,9 +18,15 @@ interface CompareSetupScreenProps {
   navigation: {
     navigate: (screen: string, params?: Record<string, unknown>) => void;
   };
+  route?: {
+    params?: {
+      preselectedLeftAI?: AIConfig;
+      preselectedRightAI?: AIConfig;
+    };
+  };
 }
 
-const CompareSetupScreen: React.FC<CompareSetupScreenProps> = ({ navigation }) => {
+const CompareSetupScreen: React.FC<CompareSetupScreenProps> = ({ navigation, route }) => {
   const { theme } = useTheme();
   const dispatch = useDispatch();
   const apiKeys = useSelector((state: RootState) => state.settings.apiKeys || {});
@@ -50,9 +56,13 @@ const CompareSetupScreen: React.FC<CompareSetupScreenProps> = ({ navigation }) =
       });
   }, [apiKeys]);
   
-  // Separate states for left and right AI selection
-  const [leftAI, setLeftAI] = useState<AIConfig[]>([]);
-  const [rightAI, setRightAI] = useState<AIConfig[]>([]);
+  // Separate states for left and right AI selection - initialize from route params if available
+  const [leftAI, setLeftAI] = useState<AIConfig[]>(
+    route?.params?.preselectedLeftAI ? [route.params.preselectedLeftAI] : []
+  );
+  const [rightAI, setRightAI] = useState<AIConfig[]>(
+    route?.params?.preselectedRightAI ? [route.params.preselectedRightAI] : []
+  );
   
   // Separate personality and model states
   const [leftPersonalities, setLeftPersonalities] = useState<{ [aiId: string]: string }>({});

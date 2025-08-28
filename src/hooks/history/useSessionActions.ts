@@ -6,7 +6,10 @@ import { loadSession } from '../../store';
 import { ChatSession } from '../../types';
 import { UseSessionActionsReturn, HistoryScreenNavigationProps } from '../../types/history';
 
-export const useSessionActions = (navigation: HistoryScreenNavigationProps): UseSessionActionsReturn => {
+export const useSessionActions = (
+  navigation: HistoryScreenNavigationProps,
+  onRefresh?: () => void
+): UseSessionActionsReturn => {
   const dispatch = useDispatch();
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -31,6 +34,10 @@ export const useSessionActions = (navigation: HistoryScreenNavigationProps): Use
               try {
                 setIsProcessing(true);
                 await StorageService.deleteSession(sessionId);
+                // Refresh the list after successful deletion
+                if (onRefresh) {
+                  onRefresh();
+                }
                 resolve();
               } catch (error) {
                 console.error('Error deleting session:', error);
@@ -47,67 +54,158 @@ export const useSessionActions = (navigation: HistoryScreenNavigationProps): Use
         ]
       );
     });
-  }, []);
+  }, [onRefresh]);
 
   /**
    * Resume a session based on its type
    */
   const resumeSession = useCallback((session: ChatSession) => {
     try {
-      const sessionType = session.sessionType || 'chat';
+      const sessionType = session.sessionType || 'chat'; // Keep backward compat here for resuming old sessions
       
       switch (sessionType) {
         case 'debate': {
           // Debates are completed events - view transcript or rematch
-          const topic = session.messages.find(m => m.sender === 'Debate Host')?.content || 'Debate';
+          // Use stored topic first, fall back to extraction for older sessions
+          let topic = session.topic || 'Unknown Topic';
+          let winner = '';
+          
+          if (!session.topic) {
+            // Extract topic from the debate host message for older sessions
+            const topicMessage = session.messages.find(m => m.sender === 'Debate Host');
+            if (topicMessage) {
+              // Topic is in quotes at the beginning of the host message
+              const topicMatch = topicMessage.content.match(/^"([^"]+)"/);
+              topic = topicMatch ? topicMatch[1] : 'Unknown Topic';
+            }
+          }
+          
+          // Find winner message
+          const winnerMessage = session.messages.find(m => 
+            m.sender === 'Debate Host' && m.content.includes('OVERALL WINNER')
+          );
+          
+          if (winnerMessage) {
+            const winnerMatch = winnerMessage.content.match(/OVERALL WINNER: (.+?)!/);
+            const tieMatch = winnerMessage.content.includes('DEBATE ENDED IN A TIE');
+            
+            if (tieMatch) {
+              winner = '\n\n🏆 Result: TIE';
+            } else if (winnerMatch) {
+              winner = `\n\n🏆 Winner: ${winnerMatch[1]}`;
+            }
+          }
+          
           Alert.alert(
             'Debate Results',
-            `Topic: ${topic}\nParticipants: ${session.selectedAIs.map(ai => ai.name).join(' vs ')}\n\nDebates cannot be resumed once completed.`,
+            `Topic: ${topic}\nParticipants: ${session.selectedAIs.map(ai => ai.name).join(' vs ')}${winner}\n\nDebates cannot be resumed once completed.`,
             [
-              { text: 'Close', style: 'cancel' },
+              { text: 'View Transcript', onPress: () => {
+                // Navigate to the transcript screen with the session data
+                navigation.navigate('DebateTranscript', { session });
+              }},
               { 
                 text: 'Rematch', 
                 onPress: () => {
-                  // Navigate to debate tab to start new debate with same setup
+                  // Navigate to debate setup with pre-filled data
                   navigation.navigate('MainTabs', { 
                     screen: 'DebateTab',
+                    initial: false,
                     params: {
-                      selectedAIs: session.selectedAIs,
-                      suggestedTopic: topic
+                      screen: 'DebateSetup',
+                      params: {
+                        preselectedAIs: session.selectedAIs,
+                        prefilledTopic: topic
+                      }
                     }
                   });
                 }
-              }
+              },
+              { text: 'Close', style: 'cancel' }
             ]
           );
           break;
         }
           
-        case 'comparison':
-          // Comparisons may be resumable if they diverged to a single AI chat
-          // For now, offer to start new comparison with same AIs
-          Alert.alert(
-            'Comparison Session',
-            'Start a new comparison with the same AIs?',
-            [
-              { text: 'Cancel', style: 'cancel' },
-              {
-                text: 'New Comparison',
-                onPress: () => {
-                  if (session.selectedAIs.length >= 2) {
-                    navigation.navigate('MainTabs', {
-                      screen: 'CompareTab',
-                      params: {
-                        leftAI: session.selectedAIs[0],
-                        rightAI: session.selectedAIs[1]
-                      }
+        case 'comparison': {
+          // Check if the comparison diverged
+          const comparisonData = session as { hasDiverged?: boolean; continuedWithAI?: string } & typeof session;
+          
+          if (comparisonData.hasDiverged && comparisonData.continuedWithAI) {
+            // Comparison diverged - can resume as regular chat
+            Alert.alert(
+              'Comparison Session',
+              `This comparison diverged when you continued with ${comparisonData.continuedWithAI}. Resume the conversation?`,
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Resume Chat',
+                  onPress: () => {
+                    // Load as regular chat session
+                    dispatch(loadSession(session));
+                    navigation.navigate('Chat', { 
+                      sessionId: session.id, 
+                      resuming: true 
                     });
                   }
+                },
+                {
+                  text: 'New Comparison',
+                  onPress: () => {
+                    if (session.selectedAIs.length >= 2) {
+                      navigation.navigate('MainTabs', {
+                        screen: 'Compare',
+                        initial: false,
+                        params: {
+                          preselectedLeftAI: session.selectedAIs[0],
+                          preselectedRightAI: session.selectedAIs[1]
+                        }
+                      });
+                    }
+                  }
                 }
-              }
-            ]
-          );
+              ]
+            );
+          } else {
+            // Comparison not diverged - can continue comparing
+            Alert.alert(
+              'Comparison Session',
+              'Continue this comparison or start a new one?',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Continue Comparison',
+                  onPress: () => {
+                    // Load comparison session and navigate to CompareScreen
+                    dispatch(loadSession(session));
+                    navigation.navigate('CompareSession', {
+                      sessionId: session.id,
+                      resuming: true,
+                      leftAI: session.selectedAIs[0],
+                      rightAI: session.selectedAIs[1]
+                    });
+                  }
+                },
+                {
+                  text: 'New Comparison',
+                  onPress: () => {
+                    if (session.selectedAIs.length >= 2) {
+                      navigation.navigate('MainTabs', {
+                        screen: 'Compare',
+                        initial: false,
+                        params: {
+                          preselectedLeftAI: session.selectedAIs[0],
+                          preselectedRightAI: session.selectedAIs[1]
+                        }
+                      });
+                    }
+                  }
+                }
+              ]
+            );
+          }
           break;
+        }
           
         case 'chat':
         default:
@@ -230,6 +328,11 @@ export const useSessionActions = (navigation: HistoryScreenNavigationProps): Use
                   await StorageService.deleteSession(sessionId);
                 }
                 
+                // Refresh the list after successful bulk deletion
+                if (onRefresh) {
+                  onRefresh();
+                }
+                
                 resolve();
               } catch (error) {
                 console.error('Error in bulk delete:', error);
@@ -246,7 +349,7 @@ export const useSessionActions = (navigation: HistoryScreenNavigationProps): Use
         ]
       );
     });
-  }, []);
+  }, [onRefresh]);
 
   // Future features like duplicate and export will be added here
 
