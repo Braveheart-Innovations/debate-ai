@@ -9,7 +9,6 @@ import { FlatList, ListRenderItem } from 'react-native';
 import { Box } from '../../atoms';
 import { DebateMessageBubble, DebateTypingIndicator } from '../../molecules';
 import { SystemAnnouncement } from './SystemAnnouncement';
-import { useTheme } from '../../../theme';
 import { Message } from '../../../types';
 
 export interface DebateMessageListProps {
@@ -19,73 +18,60 @@ export interface DebateMessageListProps {
   showsVerticalScrollIndicator?: boolean;
 }
 
-// Memoized message item component
+// Helper functions moved outside component for performance
+const detectType = (msg: Message): 'topic' | 'round-winner' | 'debate-complete' | 'overall-winner' | 'debate-start' | null => {
+  if (msg.sender !== 'Debate Host' && msg.sender !== 'System') return null;
+  
+  const content = msg.content.toLowerCase();
+  
+  // Check for round winner format: "Round X: Name" 
+  if (/round\s+\d+:\s*\w+/i.test(msg.content)) return 'round-winner';
+  
+  // Check for debate start
+  if (content.includes('opens the debate')) return 'debate-start';
+  
+  // Check for other patterns
+  if (content.includes('wins round') || content.includes('round winner')) return 'round-winner';
+  if (content.includes('debate complete') || content.includes('debate has ended')) return 'debate-complete';
+  if (content.includes('overall winner') || content.includes('winner is')) return 'overall-winner';
+  if (msg.content.startsWith('"') && msg.content.includes('"')) return 'topic';
+  
+  return null;
+};
+
+const getLabel = (type: string): string => {
+  switch (type) {
+    case 'topic': return 'DEBATE TOPIC';
+    case 'debate-start': return 'DEBATE BEGINS';
+    case 'round-winner': return 'ROUND RESULT';
+    case 'debate-complete': return 'DEBATE ENDED';
+    case 'overall-winner': return 'CHAMPION';
+    default: return 'ANNOUNCEMENT';
+  }
+};
+
+const getIcon = (type: string): string => {
+  switch (type) {
+    case 'topic': return ''; // No icon for cleaner look
+    case 'debate-start': return '🥊';
+    case 'round-winner': return '🎯';
+    case 'debate-complete': return '🏁';
+    case 'overall-winner': return '🏆';
+    default: return '📢';
+  }
+};
+
+// Memoized message item component - optimized
 const MessageItem = memo<{ message: Message; index: number }>(({ message, index }) => {
-  const { theme } = useTheme();
-  const detectType = (msg: Message): 'topic' | 'round-winner' | 'debate-complete' | 'overall-winner' | 'debate-start' | null => {
-    if (msg.sender !== 'Debate Host' && msg.sender !== 'System') return null;
-    
-    const content = msg.content.toLowerCase();
-    
-    // Check for round winner format: "Round X: Name" 
-    if (/round\s+\d+:\s*\w+/i.test(msg.content)) return 'round-winner';
-    
-    // Check for debate start
-    if (content.includes('opens the debate')) return 'debate-start';
-    
-    // Check for other patterns
-    if (content.includes('wins round') || content.includes('round winner')) return 'round-winner';
-    if (content.includes('debate complete') || content.includes('debate has ended')) return 'debate-complete';
-    if (content.includes('overall winner') || content.includes('winner is')) return 'overall-winner';
-    if (msg.content.startsWith('"') && msg.content.includes('"')) return 'topic';
-    
-    return null;
-  };
-
-  const getLabel = (type: string): string => {
-    switch (type) {
-      case 'topic': return 'DEBATE TOPIC';
-      case 'debate-start': return 'DEBATE BEGINS';
-      case 'round-winner': return 'ROUND RESULT';
-      case 'debate-complete': return 'DEBATE ENDED';
-      case 'overall-winner': return 'CHAMPION';
-      default: return 'ANNOUNCEMENT';
-    }
-  };
-  
-  const getIcon = (type: string): string => {
-    switch (type) {
-      case 'topic': return ''; // No icon for cleaner look
-      case 'debate-start': return '🥊';
-      case 'round-winner': return '🎯';
-      case 'debate-complete': return '🏁';
-      case 'overall-winner': return '🏆';
-      default: return '📢';
-    }
-  };
-  
-  const getGradient = (type: string): [string, string] => {
-    switch (type) {
-      case 'topic': return [theme.colors.semantic.primary, theme.colors.semantic.secondary];
-      case 'debate-start': return [theme.colors.semantic.info, theme.colors.semantic.primary];
-      case 'round-winner': return [theme.colors.semantic.success, theme.colors.semantic.info];
-      case 'debate-complete': return [theme.colors.semantic.warning, theme.colors.semantic.error];
-      case 'overall-winner': return [theme.colors.semantic.gold, theme.colors.semantic.secondary];
-      default: return [theme.colors.overlays.soft, theme.colors.overlays.subtle];
-    }
-  };
-
   const systemType = detectType(message);
   
   if (systemType) {
     return (
       <SystemAnnouncement
-        key={`${message.id}-${index}`}
         type={systemType}
         label={getLabel(systemType)}
         content={message.content}
         icon={getIcon(systemType)}
-        gradient={getGradient(systemType)}
         animation="slide-up"
       />
     );
@@ -93,15 +79,18 @@ const MessageItem = memo<{ message: Message; index: number }>(({ message, index 
   
   return (
     <DebateMessageBubble
-      key={`${message.id}-${index}`}
       message={message}
       index={index}
     />
   );
 }, (prevProps, nextProps) => {
-  // Only re-render if message id or content changes
-  return prevProps.message.id === nextProps.message.id && 
-         prevProps.message.content === nextProps.message.content;
+  // Improved comparison function
+  if (prevProps.index !== nextProps.index) return false;
+  if (prevProps.message.id !== nextProps.message.id) return false;
+  if (prevProps.message.content !== nextProps.message.content) return false;
+  if (prevProps.message.sender !== nextProps.message.sender) return false;
+  if (prevProps.message.timestamp !== nextProps.message.timestamp) return false;
+  return true;
 });
 
 MessageItem.displayName = 'MessageItem';
@@ -115,30 +104,32 @@ export const DebateMessageList: React.FC<DebateMessageListProps> = ({
   const flatListRef = useRef<FlatList>(null);
 
   // Auto-scroll to new messages
-  const scrollToEnd = () => {
+  const scrollToEnd = useCallback(() => {
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: true });
     }, 100);
-  };
+  }, []);
 
   // Scroll when new messages are added
   useEffect(() => {
     if (messages.length > 0) {
       scrollToEnd();
     }
-  }, [messages.length]);
+  }, [messages.length, scrollToEnd]);
 
-  // Memoized render function
+  // Memoized render function with proper types
   const renderItem: ListRenderItem<Message> = useCallback(({ item, index }) => {
     return <MessageItem message={item} index={index} />;
   }, []);
   
-  // Memoized key extractor
+  // Memoized key extractor - optimized
   const keyExtractor = useCallback((item: Message, index: number) => {
-    return `${item.id || index}-${item.timestamp || index}`;
+    // Use a stable key based on id or index
+    return item.id ? `msg-${item.id}` : `idx-${index}`;
   }, []);
 
-  const renderTypingIndicator = () => {
+  // Memoized typing indicator
+  const renderTypingIndicator = useCallback(() => {
     if (typingAIs.length === 0) return null;
     
     return (
@@ -148,29 +139,31 @@ export const DebateMessageList: React.FC<DebateMessageListProps> = ({
         ))}
       </Box>
     );
-  };
+  }, [typingAIs]);
 
   return (
     <FlatList
       ref={flatListRef}
       data={messages}
-      keyExtractor={keyExtractor}
       renderItem={renderItem}
-      ListFooterComponent={renderTypingIndicator}
+      keyExtractor={keyExtractor}
+      showsVerticalScrollIndicator={showsVerticalScrollIndicator}
       contentContainerStyle={[
-        {
-          paddingHorizontal: 16,
-          paddingVertical: 16,
-        },
+        { paddingTop: 8, paddingBottom: 16 },
         contentContainerStyle,
       ]}
-      onContentSizeChange={scrollToEnd}
-      showsVerticalScrollIndicator={showsVerticalScrollIndicator}
+      ListFooterComponent={renderTypingIndicator}
+      // Performance optimizations
       removeClippedSubviews={true}
       maxToRenderPerBatch={10}
       updateCellsBatchingPeriod={50}
-      windowSize={10}
-      initialNumToRender={20}
+      initialNumToRender={15}
+      windowSize={15}
+      getItemLayout={(_, index) => ({
+        length: 100, // Estimated average item height
+        offset: 100 * index,
+        index,
+      })}
     />
   );
 };

@@ -133,14 +133,6 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
     );
   };
   
-  // Handle new debate from victory screen
-  const handleNewDebate = () => {
-    // Reset session and navigate to setup
-    session.resetSession();
-    navigation.navigate('MainTabs', { screen: 'DebateTab' });
-  };
-  
-  
   // Handle view transcript
   const handleViewTranscript = () => {
     if (messages.messages.length === 0) {
@@ -217,7 +209,6 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
               { round: 1, winner: winner[1].name, topic: topicSelection.finalTopic || 'Debate Topic' },
               { round: 2, winner: winner[1].name, topic: topicSelection.finalTopic || 'Debate Topic' }
             ]}
-            onNewDebate={handleNewDebate}
             onViewTranscript={handleViewTranscript}
             topic={topicSelection.finalTopic}
             participants={selectedAIs}
@@ -308,7 +299,7 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
         animated={true}
         rightElement={<HeaderActions variant="gradient" />}
         actionButton={
-          (flow.isDebateActive || (flow.isDebateEnded && !isShowingVictory))
+          (flow.isDebateActive || flow.isDebateEnded)
             ? { label: 'Start Over', onPress: handleStartOver, variant: 'danger' }
             : undefined
         }

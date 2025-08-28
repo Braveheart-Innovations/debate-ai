@@ -142,6 +142,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
               showTime={true}
               showDate={true}
               animated={true}
+              rightElement={<HeaderActions variant="gradient" />}
             />
 
             {/* Don't show search bar during loading */}
@@ -208,17 +209,12 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
             showTime={true}
             showDate={true}
             animated={true}
-            rightElement={
-              <Box style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Button
-                  title="Clear All"
-                  onPress={handleClearAllStorage}
-                  variant="danger"
-                  size="small"
-                />
-                <HeaderActions variant="gradient" />
-              </Box>
-            }
+            rightElement={<HeaderActions variant="gradient" />}
+            actionButton={{
+              label: 'Clear All',
+              onPress: handleClearAllStorage,
+              variant: 'danger'
+            }}
           />
 
           {/* Storage indicator for free tier */}

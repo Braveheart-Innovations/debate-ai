@@ -5,13 +5,12 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../store';
 
 import { 
-  Header, 
+  Header,
+  HeaderActions, 
   CompareSplitView, 
   CompareUserMessage 
 } from '../components/organisms';
 import { ChatInputBar } from '../components/organisms/chat';
-import { Box } from '../components/atoms';
-import { Button } from '../components/molecules';
 
 import { useTheme } from '../theme';
 import { useAIService } from '../providers/AIServiceProvider';
@@ -347,27 +346,25 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
     <KeyboardAvoidingView 
       style={styles.keyboardContainer}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={0}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
       <SafeAreaView 
         style={[styles.container, { backgroundColor: theme.colors.background }]}
-        edges={['top', 'left', 'right']}
+        edges={['top', 'left', 'right', 'bottom']}
       >
         <Header
           variant="gradient"
           title="Comparing"
           subtitle={`${leftAI.name} vs ${rightAI.name}`}
-          showTime={false}
+          showTime={true}
           showDate={true}
           animated={true}
-          rightElement={
-            <Button
-              title="Start Over"
-              onPress={handleStartOver}
-              variant="ghost"
-              size="small"
-            />
-          }
+          rightElement={<HeaderActions variant="gradient" />}
+          actionButton={{
+            label: 'Start Over',
+            onPress: handleStartOver,
+            variant: 'danger'
+          }}
         />
         
         <ScrollView 
@@ -404,7 +401,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
         </ScrollView>
         
         {/* Input Bar */}
-        <Box style={styles.inputContainer}>
+        <SafeAreaView edges={['bottom']} style={styles.inputContainer}>
           <ChatInputBar
             inputText={inputText}
             onInputChange={setInputText}
@@ -416,7 +413,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
             }
             disabled={isProcessing}
           />
-        </Box>
+        </SafeAreaView>
       </SafeAreaView>
     </KeyboardAvoidingView>
   );
@@ -437,7 +434,7 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: 'rgba(0,0,0,0.1)',
   },

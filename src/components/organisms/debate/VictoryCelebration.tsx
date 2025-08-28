@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
+import { View, StyleSheet, Dimensions, ScrollView } from 'react-native';
 import Animated, {
   FadeIn,
   ZoomIn,
@@ -38,7 +38,6 @@ export interface VictoryCelebrationProps {
   winner: AI;
   scores: ScoreBoard;
   rounds: RoundResult[];
-  onNewDebate: () => void;
   onViewTranscript: () => void;
   topic?: string;
   participants?: AI[];
@@ -49,7 +48,6 @@ export const VictoryCelebration: React.FC<VictoryCelebrationProps> = ({
   winner,
   scores,
   rounds,
-  onNewDebate,
   onViewTranscript,
   topic,
   participants,
@@ -116,138 +114,141 @@ export const VictoryCelebration: React.FC<VictoryCelebrationProps> = ({
           }
           style={styles.gradientBackdrop}
         >
-          <Animated.View entering={ZoomIn.springify()} style={dynamicCardStyles}>
-            <Animated.View style={[styles.trophyContainer, trophyStyle]}>
-              <Typography variant="title" style={styles.trophy}>
-                🏆
-              </Typography>
-              <View style={[
-                styles.glowEffect, 
-                { backgroundColor: `${winnerColors[400]}40` }
-              ]} />
-            </Animated.View>
-            
-            <Animated.View style={contentStyle}>
-              <Typography 
-                variant="caption" 
-                weight="semibold" 
-                align="center" 
-                color="secondary"
-                style={styles.championLabel}
-              >
-                DEBATE CHAMPION
-              </Typography>
-              
-              <LinearGradient
-                colors={[winnerColors[400], winnerColors[600]]}
-                style={styles.winnerNameContainer}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <Typography 
-                  variant="title" 
-                  weight="bold" 
-                  align="center" 
-                  style={{
-                    ...styles.winnerName,
-                    color: theme.colors.text.white,
-                  }}
-                >
-                  {winner.name}
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{
+              flexGrow: 1,
+              justifyContent: 'center',
+              alignItems: 'center',
+              paddingBottom: 40,
+              paddingHorizontal: 20,
+            }}
+          >
+            <Animated.View entering={ZoomIn.springify()} style={dynamicCardStyles}>
+              <Animated.View style={[styles.trophyContainer, trophyStyle]}>
+                <Typography variant="title" style={styles.trophy}>
+                  🏆
                 </Typography>
-              </LinearGradient>
+                <View style={[
+                  styles.glowEffect, 
+                  { backgroundColor: `${winnerColors[400]}40` }
+                ]} />
+              </Animated.View>
               
-              <View style={styles.scoreContainer}>
+              <Animated.View style={contentStyle}>
                 <Typography 
-                  variant="body" 
+                  variant="caption" 
                   weight="semibold" 
                   align="center" 
                   color="secondary"
-                  style={styles.finalScoreLabel}
+                  style={styles.championLabel}
                 >
-                  Final Scores
+                  DEBATE CHAMPION
                 </Typography>
                 
-                <View style={styles.scoresWrapper}>
-                  {Object.entries(scores).map(([aiId, score]) => {
-                    const aiColors = aiId === winner.id ? winnerColors : theme.colors.gray;
-                    const isWinner = aiId === winner.id;
-                    
-                    return (
-                      <View key={aiId} style={[
-                        styles.scoreItem,
-                        { backgroundColor: theme.colors.overlays.soft },
-                        isWinner && styles.winnerScoreItem,
-                        isWinner && { 
-                          backgroundColor: theme.colors.semantic.winner,
-                          borderColor: theme.colors.semantic.winnerBorder,
-                        }
-                      ]}>
-                        <View style={styles.scoreItemHeader}>
-                          <Typography 
-                            variant="body" 
-                            weight={isWinner ? "bold" : "semibold"}
-                            align="center"
-                            style={{ color: isWinner ? winnerColors[600] : theme.colors.text.primary, marginBottom: 4 }}
-                          >
-                            {score.name}
-                            {isWinner && " 👑"}
-                          </Typography>
-                          <Typography 
-                            variant="subtitle" 
-                            weight="bold"
-                            align="center"
-                            style={{ color: isWinner ? winnerColors[600] : theme.colors.text.primary }}
-                          >
-                            {score.roundWins} {score.roundWins === 1 ? 'round' : 'rounds'}
-                          </Typography>
+                <LinearGradient
+                  colors={[winnerColors[400], winnerColors[600]]}
+                  style={styles.winnerNameContainer}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <Typography 
+                    variant="title" 
+                    weight="bold" 
+                    align="center" 
+                    style={{
+                      ...styles.winnerName,
+                      color: theme.colors.text.white,
+                    }}
+                  >
+                    {winner.name}
+                  </Typography>
+                </LinearGradient>
+                
+                <View style={styles.scoreContainer}>
+                  <Typography 
+                    variant="body" 
+                    weight="semibold" 
+                    align="center" 
+                    color="secondary"
+                    style={styles.finalScoreLabel}
+                  >
+                    Final Scores
+                  </Typography>
+                  
+                  <View style={styles.scoresWrapper}>
+                    {Object.entries(scores).map(([aiId, score]) => {
+                      const aiColors = aiId === winner.id ? winnerColors : theme.colors.gray;
+                      const isWinner = aiId === winner.id;
+                      
+                      return (
+                        <View key={aiId} style={[
+                          styles.scoreItem,
+                          { backgroundColor: theme.colors.overlays.soft },
+                          isWinner && styles.winnerScoreItem,
+                          isWinner && { 
+                            backgroundColor: theme.colors.semantic.winner,
+                            borderColor: theme.colors.semantic.winnerBorder,
+                          }
+                        ]}>
+                          <View style={styles.scoreItemHeader}>
+                            <Typography 
+                              variant="body" 
+                              weight={isWinner ? "bold" : "semibold"}
+                              align="center"
+                              style={{ color: isWinner ? winnerColors[600] : theme.colors.text.primary, marginBottom: 4 }}
+                            >
+                              {score.name}
+                              {isWinner && " 👑"}
+                            </Typography>
+                            <Typography 
+                              variant="subtitle" 
+                              weight="bold"
+                              align="center"
+                              style={{ color: isWinner ? winnerColors[600] : theme.colors.text.primary }}
+                            >
+                              {score.roundWins} {score.roundWins === 1 ? 'round' : 'rounds'}
+                            </Typography>
+                          </View>
+                          
+                          <View style={[styles.scoreBar, { backgroundColor: theme.colors.overlays.strong }]}>
+                            <Animated.View
+                              entering={FadeIn.delay(800).duration(600)}
+                              style={[
+                                styles.scoreBarFill,
+                                {
+                                  width: `${Math.max((score.roundWins / Math.max(rounds.length, 1)) * 100, 5)}%`,
+                                  backgroundColor: aiColors[500] || theme.colors.primary[500],
+                                },
+                              ]}
+                            />
+                          </View>
                         </View>
-                        
-                        <View style={[styles.scoreBar, { backgroundColor: theme.colors.overlays.strong }]}>
-                          <Animated.View
-                            entering={FadeIn.delay(800).duration(600)}
-                            style={[
-                              styles.scoreBarFill,
-                              {
-                                width: `${Math.max((score.roundWins / Math.max(rounds.length, 1)) * 100, 5)}%`,
-                                backgroundColor: aiColors[500] || theme.colors.primary[500],
-                              },
-                            ]}
-                          />
-                        </View>
-                      </View>
-                    );
-                  })}
+                      );
+                    })}
+                  </View>
                 </View>
-              </View>
-              
-              <View style={styles.actions}>
-                <GradientButton
-                  title="📸 Share Results"
-                  onPress={() => setShowShareCard(true)}
-                  gradient={[winnerColors[400], winnerColors[600]]}
-                  fullWidth
-                  style={styles.primaryAction}
-                />
                 
-                <Button
-                  title="🎯 Start New Debate"
-                  onPress={onNewDebate}
-                  variant="ghost"
-                  size="large"
-                  fullWidth
-                />
-                
-                <Button
-                  title="📄 View Transcript"
-                  onPress={onViewTranscript}
-                  variant="ghost"
-                  size="medium"
-                  fullWidth
-                />
-              </View>
+                <View style={styles.actions}>
+                  <GradientButton
+                    title="📸 Share Results"
+                    onPress={() => setShowShareCard(true)}
+                    gradient={[winnerColors[400], winnerColors[600]]}
+                    fullWidth
+                    style={styles.primaryAction}
+                  />
+                  
+                  <Button
+                    title="📄 View Transcript"
+                    onPress={onViewTranscript}
+                    variant="ghost"
+                    size="medium"
+                    fullWidth
+                  />
+                </View>
+              </Animated.View>
             </Animated.View>
-          </Animated.View>
+          </ScrollView>
           
           {/* Confetti effect */}
           <ConfettiEffect colors={[winnerColors[400], winnerColors[600], winnerColors[500]]} />
@@ -357,16 +358,13 @@ const styles = StyleSheet.create({
   },
   gradientBackdrop: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
   },
   card: {
     borderRadius: 24,
     padding: 32,
     alignItems: 'center',
-    maxWidth: width * 0.9,
     width: '100%',
+    maxWidth: 400, // Fixed max width for larger screens
   },
   trophyContainer: {
     position: 'relative',
