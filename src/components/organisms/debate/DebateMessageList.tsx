@@ -22,13 +22,16 @@ export interface DebateMessageListProps {
 // Memoized message item component
 const MessageItem = memo<{ message: Message; index: number }>(({ message, index }) => {
   const { theme } = useTheme();
-  const detectType = (msg: Message): 'topic' | 'round-winner' | 'debate-complete' | 'overall-winner' | null => {
+  const detectType = (msg: Message): 'topic' | 'round-winner' | 'debate-complete' | 'overall-winner' | 'debate-start' | null => {
     if (msg.sender !== 'Debate Host' && msg.sender !== 'System') return null;
     
     const content = msg.content.toLowerCase();
     
     // Check for round winner format: "Round X: Name" 
     if (/round\s+\d+:\s*\w+/i.test(msg.content)) return 'round-winner';
+    
+    // Check for debate start
+    if (content.includes('opens the debate')) return 'debate-start';
     
     // Check for other patterns
     if (content.includes('wins round') || content.includes('round winner')) return 'round-winner';
@@ -42,6 +45,7 @@ const MessageItem = memo<{ message: Message; index: number }>(({ message, index 
   const getLabel = (type: string): string => {
     switch (type) {
       case 'topic': return 'DEBATE TOPIC';
+      case 'debate-start': return 'DEBATE BEGINS';
       case 'round-winner': return 'ROUND RESULT';
       case 'debate-complete': return 'DEBATE ENDED';
       case 'overall-winner': return 'CHAMPION';
@@ -52,6 +56,7 @@ const MessageItem = memo<{ message: Message; index: number }>(({ message, index 
   const getIcon = (type: string): string => {
     switch (type) {
       case 'topic': return ''; // No icon for cleaner look
+      case 'debate-start': return '🥊';
       case 'round-winner': return '🎯';
       case 'debate-complete': return '🏁';
       case 'overall-winner': return '🏆';
@@ -62,6 +67,7 @@ const MessageItem = memo<{ message: Message; index: number }>(({ message, index 
   const getGradient = (type: string): [string, string] => {
     switch (type) {
       case 'topic': return [theme.colors.semantic.primary, theme.colors.semantic.secondary];
+      case 'debate-start': return [theme.colors.semantic.info, theme.colors.semantic.primary];
       case 'round-winner': return [theme.colors.semantic.success, theme.colors.semantic.info];
       case 'debate-complete': return [theme.colors.semantic.warning, theme.colors.semantic.error];
       case 'overall-winner': return [theme.colors.semantic.gold, theme.colors.semantic.secondary];

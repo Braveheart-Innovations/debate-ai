@@ -709,6 +709,21 @@ export const Header: React.FC<HeaderProps> = ({
               {rightElement}
             </View>
           )}
+          
+          {/* Action button positioned in lower right of header for gradient variant */}
+          {actionButton && (
+            <View style={[styles.headerActionButtonContainer, { 
+              bottom: 8,
+              right: 16 
+            }]}>
+              <Button
+                title={actionButton.label}
+                onPress={actionButton.onPress}
+                variant={actionButton.variant || 'danger'}
+                size="small"
+              />
+            </View>
+          )}
         </>
       ) : (
         <HeaderContent 
@@ -849,6 +864,10 @@ const createStyles = (
     flexDirection: 'row',
     alignItems: 'center',
     zIndex: 999,  // Increased z-index to ensure it's on top
+  },
+  headerActionButtonContainer: {
+    position: 'absolute',
+    zIndex: 1000,  // Higher z-index to ensure button is clickable
   },
   dateContainer: {
     alignItems: 'flex-start',

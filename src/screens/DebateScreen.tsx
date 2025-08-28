@@ -20,6 +20,7 @@ import {
 } from '../hooks/debate';
 import {
   Header,
+  HeaderActions,
   TopicSelector,
   DebateMessageList,
   VotingInterface,
@@ -27,6 +28,7 @@ import {
 } from '../components/organisms';
 import { VictoryCelebration } from '../components/organisms/debate/VictoryCelebration';
 import { TranscriptModal } from '../components/organisms/debate/TranscriptModal';
+import { DebateTopic } from '../components/organisms/debate/DebateTopic';
 
 interface DebateScreenProps {
   navigation: {
@@ -70,9 +72,9 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
         initialPersonalities || {}
       );
       
-      // Add initial host message with quotes to trigger SystemAnnouncement
+      // Add initial host message
       messages.addHostMessage(
-        `"${topicToUse}"\n\n${selectedAIs[0].name} opens the debate.`
+        `${selectedAIs[0].name} opens the debate.`
       );
       
       // Small delay to ensure Redux has updated
@@ -298,15 +300,27 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
       backgroundColor: theme.colors.background,
     }}>
       <Header
-        variant="default"
-        title={topicSelection.finalTopic || 'AI Debate'}
-        roundInfo={{ current: flow.currentRound, total: flow.maxRounds }}
+        variant="gradient"
+        title="Debate Arena"
+        subtitle={selectedAIs.length >= 2 ? `${selectedAIs[0].name} vs ${selectedAIs[1].name}` : 'Choose Your Combatants'}
+        showTime={true}
+        showDate={true}
+        animated={true}
+        rightElement={<HeaderActions variant="gradient" />}
         actionButton={
           (flow.isDebateActive || (flow.isDebateEnded && !isShowingVictory))
             ? { label: 'Start Over', onPress: handleStartOver, variant: 'danger' }
             : undefined
         }
       />
+      
+      {/* Show the topic persistently when debate is active or ended */}
+      {(flow.isDebateActive || flow.isDebateEnded) && topicSelection.finalTopic && !isShowingVictory && (
+        <DebateTopic 
+          topic={topicSelection.finalTopic}
+          roundInfo={{ current: flow.currentRound, total: flow.maxRounds }}
+        />
+      )}
       
       {renderContent()}
       

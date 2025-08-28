@@ -11,6 +11,7 @@ export { ScoreDisplay } from './ScoreDisplay';
 export { SystemAnnouncement } from './SystemAnnouncement';
 export { RichTopicInput } from './RichTopicInput';
 export { VictoryCelebration } from './VictoryCelebration';
+export { DebateTopic } from './DebateTopic';
 export { default as ShareModal } from './ShareModal';
 
 // Debate Setup Components
