@@ -257,9 +257,10 @@ export abstract class OpenAICompatibleAdapter extends BaseAdapter {
       console.warn(`[${this.config.provider}] SSE connection opened`);
     });
     
-    // Simple yielding - yield all chunks as they accumulate
+    // Yield chunks with immediate first chunk for responsiveness
     let lastYieldIndex = 0;
     let iterations = 0;
+    let firstChunk = true;
     
     try {
       while (!isComplete || lastYieldIndex < chunks.length) {
@@ -269,13 +270,22 @@ export abstract class OpenAICompatibleAdapter extends BaseAdapter {
           throw errorOccurred;
         }
         
-        // Yield ALL accumulated chunks
+        // Yield all accumulated chunks
         while (lastYieldIndex < chunks.length) {
-          yield chunks[lastYieldIndex];
+          const chunk = chunks[lastYieldIndex];
           lastYieldIndex++;
+          
+          // Immediate first chunk for responsiveness
+          if (firstChunk) {
+            yield chunk;
+            firstChunk = false;
+            continue;
+          }
+          
+          yield chunk;
         }
         
-        // If stream isn't complete, wait a bit for more chunks
+        // If stream isn't complete, wait for more chunks
         if (!isComplete) {
           // Check for idle timeout
           const idleTime = Date.now() - lastMessageTime;
@@ -284,8 +294,9 @@ export abstract class OpenAICompatibleAdapter extends BaseAdapter {
             break;
           }
           
-          // Small delay to let chunks accumulate
-          await new Promise(resolve => setTimeout(resolve, 50));
+          // Shorter initial delay for responsiveness, then normal accumulation
+          const waitTime = firstChunk ? 10 : 50;
+          await new Promise(resolve => setTimeout(resolve, waitTime));
         }
       }
     } finally {

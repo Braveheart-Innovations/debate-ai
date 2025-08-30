@@ -290,8 +290,10 @@ export class ClaudeAdapter extends BaseAdapter {
     // Handle connection open
     es.addEventListener('open', () => {});
     
-    // Yield chunks as they arrive
+    // Yield chunks with smart buffering for smoother output
     let yieldCount = 0;
+    let buffer = '';
+    let firstChunk = true;
     
     try {
       while (!isComplete) {
@@ -303,9 +305,38 @@ export class ClaudeAdapter extends BaseAdapter {
         
         if (eventQueue.length > 0) {
           const chunk = eventQueue.shift()!;
-          yieldCount++;
-          yield chunk;
+          
+          // Immediate first chunk for responsiveness
+          if (firstChunk) {
+            yieldCount++;
+            yield chunk;
+            firstChunk = false;
+            continue;
+          }
+          
+          // Buffer subsequent chunks for smoothness
+          buffer += chunk;
+          
+          // Flush at word boundaries or when buffer is large enough
+          const shouldFlush = buffer.length > 20 || 
+                            buffer.includes('\n') || 
+                            buffer.endsWith(' ') ||
+                            buffer.endsWith('.') ||
+                            buffer.endsWith(',');
+          
+          if (shouldFlush) {
+            yieldCount++;
+            yield buffer;
+            buffer = '';
+          }
         } else {
+          // If we have buffered content and no new events, flush it
+          if (buffer.length > 0) {
+            yieldCount++;
+            yield buffer;
+            buffer = '';
+          }
+          
           // Wait for next event
           const result = await new Promise<IteratorResult<string, void>>((resolve) => {
             resolver = resolve;
@@ -326,10 +357,30 @@ export class ClaudeAdapter extends BaseAdapter {
           }
           
           if (!result.done && result.value) {
-            yieldCount++;
-            yield result.value;
+            // Handle resolved chunk same as queued chunks
+            if (firstChunk) {
+              yieldCount++;
+              yield result.value;
+              firstChunk = false;
+            } else {
+              buffer += result.value;
+              const shouldFlush = buffer.length > 20 || 
+                                buffer.includes('\n') || 
+                                buffer.endsWith(' ');
+              if (shouldFlush) {
+                yieldCount++;
+                yield buffer;
+                buffer = '';
+              }
+            }
           }
         }
+      }
+      
+      // Flush any remaining buffer
+      if (buffer.length > 0) {
+        yieldCount++;
+        yield buffer;
       }
       
       // Final error check before completing

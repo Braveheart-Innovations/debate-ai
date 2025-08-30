@@ -25,6 +25,8 @@ import {
   ChatWarnings,
 } from '../components/organisms/chat';
 import { AIConfig, Message } from '../types';
+import { useDispatch, useSelector } from 'react-redux';
+import { cancelAllStreams, selectActiveStreamCount, RootState } from '../store';
 
 
 interface ChatScreenProps {
@@ -56,6 +58,10 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
     // selectedAIs, // TODO: Implement continuation from Compare
     // initialMessages // TODO: Implement continuation from Compare
   } = route.params;
+
+  // Redux and streaming state
+  const dispatch = useDispatch();
+  const activeStreams = useSelector((state: RootState) => selectActiveStreamCount(state));
 
   // AI Service state
   const { aiService, isInitialized, isLoading, error } = useAIService();
@@ -191,6 +197,11 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
           showBackButton={true}
           showTime={true}
           animated={true}
+          actionButton={activeStreams > 0 ? {
+            label: 'Stop',
+            onPress: () => dispatch(cancelAllStreams()),
+            variant: 'danger',
+          } : undefined}
         />
 
         {/* Warnings (e.g., GPT-5 latency) */}

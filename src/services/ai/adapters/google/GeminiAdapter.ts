@@ -169,85 +169,91 @@ export class GeminiAdapter extends BaseAdapter {
       }
     ];
     
-    // Create the request body
     const requestBody = JSON.stringify({
       contents,
       generationConfig: {
         temperature: this.config.parameters?.temperature || 0.7,
         maxOutputTokens: this.config.parameters?.maxTokens || 2048,
+        topP: this.config.parameters?.topP || 0.95,
+        topK: this.config.parameters?.topK || 40,
       },
     });
     
-    // Create EventSource for real streaming in React Native
-    // Note: Gemini API requires the API key in the URL for SSE
-    const es = new EventSource(
-      `https://generativelanguage.googleapis.com/v1beta/models/${resolvedModel}:streamGenerateContent?alt=sse&key=${this.config.apiKey}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: requestBody,
-      }
-    );
+    // Create EventSource for SSE streaming
+    // Note: EventSource in React Native may not support custom headers properly,
+    // so we need to put the API key in the URL despite what the docs say
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${resolvedModel}:streamGenerateContent?alt=sse&key=${this.config.apiKey}`;
     
-    // Queue to handle SSE events
-    const eventQueue: string[] = [];
-    let resolver: ((value: IteratorResult<string, void>) => void) | null = null;
+    const es = new EventSource(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: requestBody,
+      timeoutBeforeConnection: 0, // Connect immediately
+      pollingInterval: 30000, // 30 second polling
+      withCredentials: false,
+    });
+    
+    // Accumulator for text chunks
+    const chunks: string[] = [];
     let isComplete = false;
     let errorOccurred: Error | null = null;
-    let accumulatedText = '';
     
-    // Handle incoming messages
+    // Handle message events
     es.addEventListener('message', (event) => {
       try {
         const line = event.data;
-        if (line) {
-          const data = JSON.parse(line);
-          
-          // Check for text content in the Gemini response format
-          const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (text) {
-            // Gemini may send accumulated text, so we need to extract only the new part
-            const newText = text.substring(accumulatedText.length);
-            if (newText) {
-              accumulatedText = text;
-              if (resolver) {
-                resolver({ value: newText, done: false });
-                resolver = null;
-              } else {
-                eventQueue.push(newText);
-              }
-            }
-          }
-          
-          // Check if stream is finished
-          if (data.candidates?.[0]?.finishReason) {
-            isComplete = true;
-            if (resolver) {
-              resolver({ value: undefined, done: true });
-              resolver = null;
-            }
-          }
+        if (!line) return;
+        
+        // Parse the JSON data
+        const data = JSON.parse(line);
+        
+        // Extract text from Gemini response
+        // Per documentation, Gemini sends INCREMENTAL text chunks, not accumulated
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        
+        if (text) {
+          // Push the text chunk directly - it's already incremental
+          chunks.push(text);
+        }
+        
+        // Check if stream is complete
+        const finishReason = data.candidates?.[0]?.finishReason;
+        if (finishReason) {
+          isComplete = true;
+          es.close();
         }
       } catch (error) {
-        console.error('[GeminiAdapter] Error parsing SSE data:', error);
+        console.error('[GeminiAdapter] Error parsing message:', error);
+        console.error('[GeminiAdapter] Raw data:', event.data);
       }
     });
     
     // Handle errors
     es.addEventListener('error', (error) => {
       console.error('[GeminiAdapter] SSE error:', error);
-      const errorMessage = (error && typeof error === 'object' && 'message' in error) 
-        ? String(error.message) 
-        : 'SSE connection error';
+      
+      // Parse error message if possible
+      let errorMessage = 'SSE connection error';
+      try {
+        if (error && typeof error === 'object' && 'data' in error) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const errorData = JSON.parse((error as any).data);
+          if (errorData.error) {
+            errorMessage = errorData.error.message || errorData.error.status || errorMessage;
+          }
+        }
+      } catch {
+        // If we can't parse the error, use the raw message
+        if (error && typeof error === 'object' && 'message' in error) {
+          errorMessage = String(error.message);
+        }
+      }
+      
       errorOccurred = new Error(errorMessage);
       isComplete = true;
       es.close();
-      if (resolver) {
-        resolver({ value: undefined, done: true });
-        resolver = null;
-      }
     });
     
     // Handle connection open
@@ -255,32 +261,36 @@ export class GeminiAdapter extends BaseAdapter {
       // SSE connection opened successfully
     });
     
-    // Yield chunks as they arrive
+    // Yield chunks with immediate first chunk for responsiveness
+    let lastYieldIndex = 0;
+    let firstChunk = true;
+    
     try {
-      while (!isComplete) {
+      while (!isComplete || lastYieldIndex < chunks.length) {
         if (errorOccurred) {
           throw errorOccurred;
         }
         
-        if (eventQueue.length > 0) {
-          yield eventQueue.shift()!;
-        } else {
-          // Wait for next event
-          const result = await new Promise<IteratorResult<string, void>>((resolve) => {
-            resolver = resolve;
-            // Set a timeout to prevent hanging
-            setTimeout(() => {
-              if (resolver === resolve) {
-                resolve({ value: undefined, done: true });
-                resolver = null;
-                isComplete = true;
-              }
-            }, 30000); // 30 second timeout
-          });
+        // Yield all accumulated chunks
+        while (lastYieldIndex < chunks.length) {
+          const chunk = chunks[lastYieldIndex];
+          lastYieldIndex++;
           
-          if (!result.done && result.value) {
-            yield result.value;
+          // Immediate first chunk, no waiting
+          if (firstChunk) {
+            yield chunk;
+            firstChunk = false;
+            continue;
           }
+          
+          yield chunk;
+        }
+        
+        // If stream isn't complete, wait for more chunks
+        if (!isComplete) {
+          // Shorter wait for initial chunks, longer for later ones
+          const waitTime = firstChunk ? 10 : 50;
+          await new Promise(resolve => setTimeout(resolve, waitTime));
         }
       }
     } finally {

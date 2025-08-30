@@ -1,6 +1,7 @@
 import { BaseAdapter } from '../ai/base/BaseAdapter';
-import { Message, MessageAttachment } from '../../types';
-import { ResumptionContext } from '../ai/types/adapter.types';
+import { Message, MessageAttachment, AIProvider, PersonalityConfig, ModelParameters } from '../../types';
+import { ResumptionContext, AIAdapterConfig } from '../ai/types/adapter.types';
+import { AdapterFactory } from '../ai/factory/AdapterFactory';
 
 // Chunk buffer configuration
 interface BufferConfig {
@@ -12,7 +13,15 @@ interface BufferConfig {
 // Stream configuration
 interface StreamConfig {
   messageId: string;
-  adapter: BaseAdapter;
+  adapter?: BaseAdapter;  // Optional - for backward compatibility
+  adapterConfig?: {  // New: configuration to create adapter dynamically
+    provider: AIProvider;
+    apiKey: string;
+    model: string;
+    personality?: PersonalityConfig;
+    parameters?: ModelParameters;
+    isDebateMode?: boolean;
+  };
   message: string;
   conversationHistory: Message[];
   resumptionContext?: ResumptionContext;
@@ -38,6 +47,8 @@ class ChunkBuffer {
   private flushTimer: NodeJS.Timeout | null = null;
   private readonly config: BufferConfig;
   private readonly onFlush: (content: string) => void;
+  private firstChunk = true;
+  private startTime = Date.now();
 
   constructor(config: BufferConfig, onFlush: (content: string) => void) {
     this.config = config;
@@ -45,6 +56,13 @@ class ChunkBuffer {
   }
 
   append(chunk: string): void {
+    // Immediate first chunk for responsiveness
+    if (this.firstChunk) {
+      this.firstChunk = false;
+      this.onFlush(chunk);
+      return;
+    }
+
     if (!this.config.enabled) {
       this.onFlush(chunk);
       return;
@@ -60,16 +78,31 @@ class ChunkBuffer {
   }
 
   private shouldFlush(): boolean {
-    const totalSize = this.buffer.join('').length;
-    return totalSize >= this.config.maxBufferSize;
+    const content = this.buffer.join('');
+    const totalSize = content.length;
+    
+    // Adaptive thresholds based on elapsed time
+    const elapsed = Date.now() - this.startTime;
+    const adaptiveSize = elapsed < 1000 ? 10 : this.config.maxBufferSize;
+    
+    // Flush at natural boundaries or size limit
+    return totalSize >= adaptiveSize ||
+           content.endsWith(' ') ||
+           content.endsWith('\n') ||
+           content.endsWith('.') ||
+           content.endsWith(',');
   }
 
   private scheduleFlush(): void {
     if (this.flushTimer) return;
 
+    // Adaptive timing - faster initially, slower later
+    const elapsed = Date.now() - this.startTime;
+    const adaptiveInterval = elapsed < 1000 ? 30 : this.config.flushInterval;
+
     this.flushTimer = setTimeout(() => {
       this.flush();
-    }, this.config.flushInterval);
+    }, adaptiveInterval);
   }
 
   flush(): void {
@@ -111,9 +144,34 @@ export class StreamingService {
     config: StreamConfig,
     onChunk: (chunk: string) => void,
     onComplete: (finalContent: string) => void,
-    onError: (error: Error) => void
+    onError: (error: Error) => void,
+    onEvent?: (event: unknown) => void
   ): Promise<void> {
-    const { messageId, adapter, message, conversationHistory, resumptionContext, attachments, modelOverride } = config;
+    const { messageId, message, conversationHistory, resumptionContext, attachments, modelOverride } = config;
+    
+    // Create adapter dynamically based on model if config provided
+    let adapter: BaseAdapter;
+    if (config.adapterConfig) {
+      const { provider, apiKey, model, personality, parameters, isDebateMode } = config.adapterConfig;
+      const adapterConfig: AIAdapterConfig = {
+        provider,
+        apiKey,
+        model,
+        personality,
+        parameters,
+        isDebateMode
+      };
+      // Use the new createWithModel method to get the correct adapter
+      adapter = AdapterFactory.createWithModel(adapterConfig, model);
+    } else if (config.adapter) {
+      // Backward compatibility: use provided adapter
+      adapter = config.adapter;
+    } else {
+      const error = new Error('Either adapter or adapterConfig must be provided');
+      console.error(`[StreamingService] Error:`, error.message);
+      onError(error);
+      return;
+    }
 
     // Debug logging removed for production
 
@@ -157,6 +215,9 @@ export class StreamingService {
     this.activeStreams.set(messageId, streamState);
 
     try {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`[StreamingService] Start stream ${messageId}`);
+      }
       // Check if adapter has streamMessage method
       type StreamingAdapter = BaseAdapter & {
         streamMessage: (
@@ -164,7 +225,9 @@ export class StreamingService {
           conversationHistory: Message[],
           attachments?: MessageAttachment[],
           resumptionContext?: ResumptionContext,
-          modelOverride?: string
+          modelOverride?: string,
+          abortSignal?: AbortSignal,
+          onEvent?: (event: unknown) => void
         ) => AsyncGenerator<string, void, unknown>;
       };
       
@@ -182,7 +245,9 @@ export class StreamingService {
         conversationHistory,
         attachments,
         resumptionContext,
-        modelOverride
+        modelOverride,
+        abortController.signal,
+        onEvent
       );
 
       // Stream generator created
@@ -216,6 +281,9 @@ export class StreamingService {
 
         // Buffer and flush chunk
         buffer.append(chunk);
+        if (process.env.NODE_ENV === 'development' && (iterationCount <= 3 || iterationCount % 100 === 0)) {
+          console.warn(`[StreamingService] chunk #${iterationCount} (${chunk.length})`);
+        }
       }
       
       // Stream iteration complete
@@ -231,6 +299,9 @@ export class StreamingService {
       this.activeStreams.delete(messageId);
 
       // Call completion callback
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`[StreamingService] Complete ${messageId}, chunks=${streamState.chunksReceived}, bytes=${streamState.bytesReceived}`);
+      }
       onComplete(fullContent);
 
     } catch (error) {
@@ -241,9 +312,16 @@ export class StreamingService {
       this.activeStreams.delete(messageId);
 
       if (error instanceof Error) {
+        if (process.env.NODE_ENV === 'development') {
+          console.error(`[StreamingService] Error for ${messageId}:`, error.message);
+        }
         onError(error);
       } else {
-        onError(new Error(String(error)));
+        const err = new Error(String(error));
+        if (process.env.NODE_ENV === 'development') {
+          console.error(`[StreamingService] Error for ${messageId}:`, err.message);
+        }
+        onError(err);
       }
     }
   }

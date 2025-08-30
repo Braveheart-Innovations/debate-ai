@@ -11,7 +11,7 @@ import {
   selectStreamingSpeed,
   setProviderVerificationError,
 } from '../../store/streamingSlice';
-import { Message, MessageAttachment } from '../../types';
+import { Message, MessageAttachment, PersonalityConfig } from '../../types';
 import { useAIService } from '../../providers/AIServiceProvider';
 import { ChatService, PromptBuilder } from '../../services/chat';
 import { getPersonality } from '../../config/personalities';
@@ -41,6 +41,9 @@ export const useAIResponsesWithStreaming = (isResuming?: boolean): AIResponsesHo
     typingAIs, 
     aiPersonalities 
   } = useSelector((state: RootState) => state.chat);
+  
+  // Get API keys for dynamic adapter creation
+  const apiKeys = useSelector((state: RootState) => state.settings.apiKeys);
   
   // Get streaming settings from state
   const streamingSpeed = useSelector(selectStreamingSpeed);
@@ -158,16 +161,28 @@ export const useAIResponsesWithStreaming = (isResuming?: boolean): AIResponsesHo
           // Variable to store the final content after streaming
           let streamedContent = '';
 
-          // Stream the response
+          // Get API key for this provider
+          const apiKey = apiKeys[ai.provider];
+          if (!apiKey) {
+            throw new Error(`No API key configured for ${ai.provider}`);
+          }
+          
+          // Stream the response with dynamic adapter creation
           await streamingService.streamResponse(
             {
               messageId: aiMessage.id,
-              adapter,
+              adapterConfig: {
+                provider: ai.provider,
+                apiKey,
+                model: ai.model,  // Pass the actual model for correct routing
+                personality: personality as PersonalityConfig | undefined,
+                isDebateMode: conversationContext.isDebateMode,
+              },
               message: promptForAI,
               conversationHistory: conversationContext.messages.slice(0, -1),
               resumptionContext,
               attachments: aiAttachments,
-              modelOverride: ai.model,
+              modelOverride: ai.model,  // Keep for backward compatibility
               speed: streamingSpeed,
             },
             // On chunk received
@@ -267,6 +282,36 @@ export const useAIResponsesWithStreaming = (isResuming?: boolean): AIResponsesHo
                   }));
                 }
               }
+            },
+            (event: unknown) => {
+              try {
+                const e = event as Record<string, unknown>;
+                const type = String(e?.type || '');
+                // Handle output images inline (best-effort)
+                if (type.includes('output_image')) {
+                  const ee = e as { image?: { url?: string; b64?: string; data?: string }; delta?: { image?: { url?: string; b64?: string; data?: string } }; image_url?: string };
+                  const imageUrl = ee?.image?.url || ee?.delta?.image?.url || ee?.image_url;
+                  const imageB64 = ee?.image?.b64 || ee?.delta?.image?.b64 || ee?.image?.data || ee?.delta?.image?.data;
+                  if (imageUrl) {
+                    dispatch(updateStreamingContent({ messageId: aiMessage.id, chunk: `\n\n![image](${imageUrl})\n\n` }));
+                  } else if (imageB64) {
+                    const dataUrl = `data:image/png;base64,${imageB64}`;
+                    dispatch(updateStreamingContent({ messageId: aiMessage.id, chunk: `\n\n![image](${dataUrl})\n\n` }));
+                  } else {
+                    dispatch(updateStreamingContent({ messageId: aiMessage.id, chunk: `\n\n[image content]\n\n` }));
+                  }
+                }
+                // Handle tool calls by appending a small inline block
+                if (type.includes('tool')) {
+                  const name = (e as { tool?: { name?: string }; name?: string }).tool?.name || (e as { name?: string }).name || 'tool';
+                  const args = (e as { tool?: { arguments?: unknown }; arguments?: unknown; params?: unknown; parameters?: unknown }).tool?.arguments || (e as { arguments?: unknown }).arguments || (e as { params?: unknown }).params || (e as { parameters?: unknown }).parameters;
+                  const snippet = '```json\n' + JSON.stringify(args, null, 2).slice(0, 400) + '\n```';
+                  dispatch(updateStreamingContent({ messageId: aiMessage.id, chunk: `\n\n[${name} call]\n${snippet}\n` }));
+                }
+                if (process.env.NODE_ENV === 'development') {
+                  console.warn(`[${ai.name}] event`, JSON.stringify(event).slice(0, 200));
+                }
+              } catch (e) { void e; }
             }
           );
 
@@ -518,6 +563,34 @@ export const useAIResponsesWithStreaming = (isResuming?: boolean): AIResponsesHo
                   }));
                 }
               }
+            },
+            (event: unknown) => {
+              try {
+                const e = event as Record<string, unknown>;
+                const type = String(e?.type || '');
+                if (type.includes('output_image')) {
+                  const ee = e as { image?: { url?: string; b64?: string; data?: string }; delta?: { image?: { url?: string; b64?: string; data?: string } }; image_url?: string };
+                  const imageUrl = ee?.image?.url || ee?.delta?.image?.url || ee?.image_url;
+                  const imageB64 = ee?.image?.b64 || ee?.delta?.image?.b64 || ee?.image?.data || ee?.delta?.image?.data;
+                  if (imageUrl) {
+                    dispatch(updateStreamingContent({ messageId: aiMessage.id, chunk: `\n\n![image](${imageUrl})\n\n` }));
+                  } else if (imageB64) {
+                    const dataUrl = `data:image/png;base64,${imageB64}`;
+                    dispatch(updateStreamingContent({ messageId: aiMessage.id, chunk: `\n\n![image](${dataUrl})\n\n` }));
+                  } else {
+                    dispatch(updateStreamingContent({ messageId: aiMessage.id, chunk: `\n\n[image content]\n\n` }));
+                  }
+                }
+                if (type.includes('tool')) {
+                  const name = (e as { tool?: { name?: string }; name?: string }).tool?.name || (e as { name?: string }).name || 'tool';
+                  const args = (e as { tool?: { arguments?: unknown }; arguments?: unknown; params?: unknown; parameters?: unknown }).tool?.arguments || (e as { arguments?: unknown }).arguments || (e as { params?: unknown }).params || (e as { parameters?: unknown }).parameters;
+                  const snippet = '```json\n' + JSON.stringify(args, null, 2).slice(0, 400) + '\n```';
+                  dispatch(updateStreamingContent({ messageId: aiMessage.id, chunk: `\n\n[${name} call]\n${snippet}\n` }));
+                }
+                if (process.env.NODE_ENV === 'development') {
+                  console.warn(`[${ai.name}] event`, JSON.stringify(event).slice(0, 200));
+                }
+              } catch (e) { void e; }
             }
           );
 
