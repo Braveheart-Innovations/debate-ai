@@ -9,7 +9,6 @@ import {
   View,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
   ActivityIndicator,
   Alert,
   Platform,
@@ -22,6 +21,7 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Typography } from '../../molecules';
 import { GradientButton } from '../../molecules';
+import { ModalHeader } from '../../molecules/ModalHeader';
 import { useTheme } from '../../../theme';
 import { Message } from '../../../types';
 import { AI_BRAND_COLORS } from '../../../constants/aiColors';
@@ -418,20 +418,7 @@ export const TranscriptModal: React.FC<TranscriptModalProps> = ({
     >
       <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
         {/* Header */}
-        <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
-          <Typography variant="title" weight="bold">
-            Debate Transcript
-          </Typography>
-          <TouchableOpacity 
-            onPress={onClose} 
-            style={[styles.closeButton, { backgroundColor: theme.colors.surface }]}
-            activeOpacity={0.7}
-          >
-            <Typography variant="body" weight="bold" style={{ fontSize: 20, color: theme.colors.text.primary }}>
-              ✕
-            </Typography>
-          </TouchableOpacity>
-        </View>
+        <ModalHeader title="Debate Transcript" onClose={onClose} variant="gradient" />
 
         {/* Metadata */}
         <View style={styles.metadata}>

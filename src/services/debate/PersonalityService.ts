@@ -225,6 +225,21 @@ export class PersonalityService {
     };
   }
 
+  /**
+   * Get compact trait snapshot for UI meters
+   */
+  static getTraitSnapshot(personalityId: string): { formality: number; humor: number; energy: number } {
+    const option = getPersonality(personalityId) || getPersonality('default');
+    if (!option) {
+      return { formality: 0.6, humor: 0.3, energy: 0.4 };
+    }
+    const traits = this.extractTraitsFromPersonality(option);
+    const mods = this.getDebateModifiersFromPersonality(option);
+    // Use aggression as an energy proxy for UI
+    const energy = Math.max(0, Math.min(1, mods.aggression));
+    return { formality: traits.formality, humor: traits.humor, energy };
+  }
+
   // Private helper methods
 
   private static convertToPersonality(personalityOption: PersonalityOption): Personality {

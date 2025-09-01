@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Typography } from '../molecules';
-// import { useTheme } from '../../theme';
 import { UNIVERSAL_PERSONALITIES } from '../../config/personalities';
 import { PersonalityBadge } from './PersonalityBadge';
 import * as Haptics from 'expo-haptics';
 import { PersonalityModal } from './debate/PersonalityModal';
+import { useNavigation } from '@react-navigation/native';
 
 interface PersonalityPickerProps {
   currentPersonalityId: string;
@@ -20,8 +20,8 @@ export const PersonalityPicker: React.FC<PersonalityPickerProps> = ({
   isPremium,
   aiName,
 }) => {
-  // const { theme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
+  const navigation = useNavigation();
   
   const currentPersonality = UNIVERSAL_PERSONALITIES.find(p => p.id === currentPersonalityId) || UNIVERSAL_PERSONALITIES[0];
   
@@ -57,6 +57,10 @@ export const PersonalityPicker: React.FC<PersonalityPickerProps> = ({
         availablePersonalities={availablePersonalities}
         isPremium={isPremium}
         aiName={aiName}
+        onUpgrade={() => {
+          setIsOpen(false);
+          navigation.navigate('Subscription' as never);
+        }}
       />
     </View>
   );

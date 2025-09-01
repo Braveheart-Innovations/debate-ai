@@ -28,6 +28,7 @@ import DebateTranscriptScreen from '../screens/DebateTranscriptScreen';
 import StatsScreen from '../screens/StatsScreen';
 import CompareSetupScreen from '../screens/CompareSetupScreen';
 import CompareScreen from '../screens/CompareScreen';
+import UpgradeScreen from '../screens/UpgradeScreen';
 // import SubscriptionScreen from '../screens/SubscriptionScreen';
 // import ExpertModeScreen from '../screens/ExpertModeScreen';
 
@@ -364,8 +365,8 @@ export default function AppNavigator() {
             />
             <Stack.Screen
               name="Subscription"
-              component={PlaceholderScreen}
-              options={{ title: 'Upgrade' }}
+              component={UpgradeScreen}
+              options={{ headerShown: false }}
             />
             {uiMode === 'expert' && (
               <Stack.Screen

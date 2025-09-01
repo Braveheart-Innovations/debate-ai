@@ -7,6 +7,7 @@ import React from 'react';
 import { TouchableOpacity } from 'react-native';
 import { useTheme } from '../../theme';
 import { Typography } from './Typography';
+import { Box } from '../atoms';
 import { Personality } from '../../types/debate';
 
 export interface PersonalityChipProps {
@@ -17,6 +18,7 @@ export interface PersonalityChipProps {
   size?: 'small' | 'medium' | 'large';
   color?: string;
   showIcon?: boolean;
+  showMeters?: boolean; // optional tiny trait meters
 }
 
 const PERSONALITY_ICONS: Record<string, string> = {
@@ -42,6 +44,7 @@ export const PersonalityChip: React.FC<PersonalityChipProps> = ({
   size = 'medium',
   color,
   showIcon = true,
+  showMeters = false,
 }) => {
   const { theme } = useTheme();
 
@@ -100,6 +103,48 @@ export const PersonalityChip: React.FC<PersonalityChipProps> = ({
         {icon && `${icon} `}{personality.name}
         {personality.isPremium && !isSelected && ' 🔒'}
       </Typography>
+      {showMeters && (
+        <>
+          <Typography variant="caption" style={{ color: textColor, fontSize: 10, marginTop: 2 }}>
+            {/* Tiny bars: F/H/E */}
+          </Typography>
+          <TinyMeters 
+            formality={personality.traits?.formality ?? 0.5}
+            humor={personality.traits?.humor ?? 0.3}
+            energy={personality.debateModifiers?.aggression ?? 0.4}
+            trackColor={isSelected ? 'rgba(255,255,255,0.25)' : theme.colors.border}
+            fillColors={{
+              formality: isSelected ? '#fff' : theme.colors.primary[500],
+              humor: isSelected ? '#fff' : theme.colors.warning[600],
+              energy: isSelected ? '#fff' : theme.colors.success[600],
+            }}
+          />
+        </>
+      )}
     </TouchableOpacity>
+  );
+};
+
+const TinyMeters: React.FC<{
+  formality: number;
+  humor: number;
+  energy: number;
+  trackColor: string;
+  fillColors: { formality: string; humor: string; energy: string };
+}> = ({ formality, humor, energy, trackColor, fillColors }) => {
+  const bar = (val: number, color: string) => (
+    <>
+      <Box style={{ width: 36, height: 4, borderRadius: 3, backgroundColor: trackColor }}>
+        <Box style={{ width: Math.max(6, Math.round(val * 36)), height: 4, borderRadius: 3, backgroundColor: color }} />
+      </Box>
+    </>
+  );
+
+  return (
+    <Box style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 6 }}>
+      {bar(formality, fillColors.formality)}
+      {bar(humor, fillColors.humor)}
+      {bar(energy, fillColors.energy)}
+    </Box>
   );
 };

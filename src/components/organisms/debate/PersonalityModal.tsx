@@ -9,7 +9,9 @@ import { useTheme } from '../../../theme';
 import { Typography } from '../../molecules';
 import { ModalHeader } from '../../molecules/ModalHeader';
 import { GradientButton, Button } from '../../molecules';
-import { PersonalityOption } from '../../../config/personalities';
+import { PersonalityOption, UNIVERSAL_PERSONALITIES } from '../../../config/personalities';
+import { PersonalityService } from '../../../services/debate/PersonalityService';
+import { ScrollView } from 'react-native';
 
 export interface PersonalityModalProps {
   visible: boolean;
@@ -52,7 +54,7 @@ export const PersonalityModal: React.FC<PersonalityModalProps> = ({
   selectedPersonalityId,
   availablePersonalities,
   isPremium,
-  aiName: _aiName,
+  aiName,
   onPreview,
   onUpgrade,
   disableBackdropDismiss = false,
@@ -69,24 +71,21 @@ export const PersonalityModal: React.FC<PersonalityModalProps> = ({
   }, [localSelection, isPremium]);
 
   const sortedPersonas = useMemo(() => {
-    // Keep free first for non-premium, otherwise stable order
     if (isPremium) return availablePersonalities;
-    return [...availablePersonalities].sort((a, b) => {
+    const list = [...availablePersonalities];
+    list.sort((a, b) => {
       const aFree = FREE_SET.has(a.id) ? 1 : 0;
       const bFree = FREE_SET.has(b.id) ? 1 : 0;
       return bFree - aFree;
     });
-  }, [availablePersonaltiesHash(availablePersonalities), isPremium]);
-
-  function availablePersonaltiesHash(list: PersonalityOption[]) {
-    // stable memo key
-    return list.map(p => p.id).join('|');
-  }
+    return list;
+  }, [availablePersonalities, isPremium]);
 
   const renderItem = ({ item }: { item: PersonalityOption }) => {
     const isSelected = localSelection === item.id;
     const isLocked = !isPremium && !FREE_SET.has(item.id);
     const icon = ICONS[item.id] || '🤖';
+    const snapshot = PersonalityService.getTraitSnapshot(item.id);
 
     return (
       <TouchableOpacity
@@ -115,6 +114,12 @@ export const PersonalityModal: React.FC<PersonalityModalProps> = ({
         <Typography variant="caption" color="secondary" numberOfLines={2}>
           {item.description}
         </Typography>
+        {/* Trait meters */}
+        <View style={{ flexDirection: 'row', marginTop: 8, gap: 8 }}>
+          {renderMeter('F', snapshot.formality, theme.colors.primary[400])}
+          {renderMeter('H', snapshot.humor, theme.colors.warning[500])}
+          {renderMeter('E', snapshot.energy, theme.colors.success[500])}
+        </View>
         {previewingId === item.id && (
           <View style={{ marginTop: 8 }}>
             <Typography variant="caption" style={{ fontStyle: 'italic' }}>
@@ -161,7 +166,28 @@ export const PersonalityModal: React.FC<PersonalityModalProps> = ({
         style={[styles.backdrop, { backgroundColor: 'rgba(0,0,0,0.5)' }]}
       />
       <View style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
-        <ModalHeader title="Choose a Personality" onClose={onClose} />
+        <ModalHeader title="Choose a Personality" onClose={onClose} subtitle={aiName ? `for ${aiName}` : undefined} variant="gradient" />
+        {/* Featured pairings row */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8, gap: 8 }}>
+          {getFeaturedPairings().map((pair) => (
+            <TouchableOpacity
+              key={pair.key}
+              onPress={() => setLocalSelection(pair.firstId)}
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                borderRadius: 16,
+                backgroundColor: theme.colors.surface,
+                borderWidth: 1,
+                borderColor: theme.colors.border,
+              }}
+            >
+              <Typography variant="caption" weight="semibold">
+                {pair.firstName} + {pair.secondName}
+              </Typography>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
 
         <View style={{ flex: 1, paddingHorizontal: 16 }}>
           <FlatList
@@ -227,3 +253,27 @@ const styles = StyleSheet.create({
 });
 
 export default PersonalityModal;
+
+// Helpers
+function getFeaturedPairings() {
+  const combos = PersonalityService.getRecommendedCombinations();
+  return combos.slice(0, 4).map((c, idx) => {
+    const firstId = c.personalities[0];
+    const secondId = c.personalities[1];
+    const firstName = UNIVERSAL_PERSONALITIES.find(p => p.id === firstId)?.name || firstId;
+    const secondName = UNIVERSAL_PERSONALITIES.find(p => p.id === secondId)?.name || secondId;
+    return { key: `${firstId}-${secondId}-${idx}`, firstId, secondId, firstName, secondName };
+  });
+}
+
+function renderMeter(label: string, value: number, color: string) {
+  const width = Math.max(8, Math.round(value * 48)); // 0–48px
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+      <Typography variant="caption" color="secondary" style={{ width: 10 }}>{label}</Typography>
+      <View style={{ width: 50, height: 6, borderRadius: 4, backgroundColor: 'rgba(0,0,0,0.08)' }}>
+        <View style={{ width, height: 6, borderRadius: 4, backgroundColor: color }} />
+      </View>
+    </View>
+  );
+}

@@ -129,6 +129,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
               <ModalHeader 
                 title="Share Debate"
                 onClose={onClose || (() => {})}
+                variant="gradient"
               />
 
               {/* KeyboardAvoidingView for better mobile experience */}

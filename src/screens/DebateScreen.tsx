@@ -11,6 +11,7 @@ import Animated, { FadeIn, FadeOut, Layout } from 'react-native-reanimated';
 import { Typography } from '../components/molecules';
 import { useTheme } from '../theme';
 import { AI } from '../types';
+import { getPersonality } from '../config/personalities';
 import {
   useDebateSession,
   useDebateFlow,
@@ -142,6 +143,15 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
     setShowTranscript(true);
   };
   
+  // Build display name with personality from setup
+  const displayName = (ai: AI) => {
+    const pid = initialPersonalities?.[ai.id];
+    if (!pid) return ai.name;
+    const p = getPersonality(pid);
+    if (!p || pid === 'default') return ai.name;
+    return `${ai.name} (${p.name})`;
+  };
+
   // Show loading state while waiting for orchestrator when topic is provided
   const isLoading = initialTopic && !session.orchestrator && !session.isInitialized;
   
@@ -168,7 +178,7 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
           />
           <Typography variant="title" align="center">Initializing Debate...</Typography>
           <Typography variant="body" color="secondary" align="center" style={{ marginTop: 8 }}>
-            Setting up the arena for {selectedAIs[0]?.name} vs {selectedAIs[1]?.name}
+            Setting up the arena for {selectedAIs[0] ? displayName(selectedAIs[0]) : ''} vs {selectedAIs[1] ? displayName(selectedAIs[1]) : ''}
           </Typography>
         </Animated.View>
       );
@@ -236,7 +246,7 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
               exiting={FadeOut.duration(200)}
             >
               <VotingInterface
-                participants={selectedAIs}
+                participants={selectedAIs.map(ai => ({ ...ai, name: displayName(ai) }))}
                 isOverallVote={voting.isOverallVote}
                 isFinalVote={voting.isFinalVote}
                 votingRound={voting.votingRound}
@@ -254,7 +264,7 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
               layout={Layout.springify()}
             >
               <ScoreDisplay
-                participants={selectedAIs}
+                participants={selectedAIs.map(ai => ({ ...ai, name: displayName(ai) }))}
                 scores={voting.scores}
               />
             </Animated.View>
@@ -293,7 +303,7 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
       <Header
         variant="gradient"
         title="Debate Arena"
-        subtitle={selectedAIs.length >= 2 ? `${selectedAIs[0].name} vs ${selectedAIs[1].name}` : 'Choose Your Combatants'}
+        subtitle={selectedAIs.length >= 2 ? `${displayName(selectedAIs[0])} vs ${displayName(selectedAIs[1])}` : 'Choose Your Combatants'}
         showTime={true}
         showDate={true}
         animated={true}
@@ -320,14 +330,14 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
         visible={showTranscript}
         onClose={() => setShowTranscript(false)}
         topic={topicSelection.finalTopic || 'AI Debate'}
-        participants={selectedAIs.map(ai => ({ id: ai.id, name: ai.name }))}
+        participants={selectedAIs.map(ai => ({ id: ai.id, name: displayName(ai) }))}
         messages={messages.messages}
         winner={voting.scores && Object.keys(voting.scores).length > 0 ? (() => {
           const winner = Object.entries(voting.scores).reduce((prev, current) => 
             prev[1].roundWins > current[1].roundWins ? prev : current
           );
           const winnerAI = selectedAIs.find(ai => ai.id === winner[0]);
-          return winnerAI ? { id: winnerAI.id, name: winnerAI.name } : undefined;
+          return winnerAI ? { id: winnerAI.id, name: displayName(winnerAI) } : undefined;
         })() : undefined}
         scores={voting.scores || undefined}
       />
