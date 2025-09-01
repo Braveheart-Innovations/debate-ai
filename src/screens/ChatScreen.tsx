@@ -5,6 +5,11 @@ import { AIServiceLoading, Header } from '../components/organisms';
 import { useAIService } from '../providers/AIServiceProvider';
 import { MessageAttachment } from '../types';
 import { getAttachmentSupport } from '../utils/attachmentUtils';
+import { useSelector, useDispatch } from 'react-redux';
+import { RootState, addMessage, updateMessage } from '../store';
+import { ImageService } from '../services/images/ImageService';
+import { getProviderCapabilities } from '../config/providerCapabilities';
+import { ImageGenerationModal } from '../components/organisms/chat/ImageGenerationModal';
 
 // Chat-specific hooks
 import {
@@ -25,8 +30,7 @@ import {
   ChatWarnings,
 } from '../components/organisms/chat';
 import { AIConfig, Message } from '../types';
-import { useDispatch, useSelector } from 'react-redux';
-import { cancelAllStreams, selectActiveStreamCount, RootState } from '../store';
+import { cancelAllStreams, selectActiveStreamCount } from '../store';
 
 
 interface ChatScreenProps {
@@ -62,6 +66,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
   // Redux and streaming state
   const dispatch = useDispatch();
   const activeStreams = useSelector((state: RootState) => selectActiveStreamCount(state));
+  const apiKeys = useSelector((state: RootState) => state.settings.apiKeys);
 
   // AI Service state
   const { aiService, isInitialized, isLoading, error } = useAIService();
@@ -73,6 +78,78 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
   const mentions = useMentions();
   const aiResponses = useAIResponsesWithStreaming(resuming);
   const quickStart = useQuickStart({ initialPrompt, userPrompt, autoSend });
+
+  const imageGenerationEnabled = session.selectedAIs.some(ai => getProviderCapabilities(ai.provider).imageGeneration?.supported);
+  const controllersRef = React.useRef<Record<string, AbortController>>({});
+  const [imageModalVisible, setImageModalVisible] = React.useState(false);
+  const [imageModalPrompt, setImageModalPrompt] = React.useState('');
+
+  const handleGenerateImage = async (opts: { prompt: string; size: 'auto' | 'square' | 'portrait' | 'landscape' }, reuseMessageId?: string) => {
+    try {
+      const providerAI = session.selectedAIs.find(ai => ai.provider === 'openai') || session.selectedAIs[0];
+      const apiKey = apiKeys.openai;
+      if (!apiKey) {
+        throw new Error('OpenAI API key not configured');
+      }
+      // Placeholder message
+      const messageId = reuseMessageId || `msg_${Date.now()}_${providerAI.id}`;
+      if (!reuseMessageId) {
+        const placeholder = {
+          id: messageId,
+          sender: providerAI.name,
+          senderType: 'ai' as const,
+          content: 'Generating image…',
+          timestamp: Date.now(),
+          metadata: { providerMetadata: { imageGenerating: true, imagePhase: 'sending', imageStartTime: Date.now(), imageParams: { size: opts.size, prompt: opts.prompt } } }
+        };
+        dispatch(addMessage(placeholder));
+      } else {
+        dispatch(updateMessage({ id: messageId, content: 'Generating image…', attachments: [], metadata: { providerMetadata: { imageGenerating: true, imagePhase: 'sending', imageStartTime: Date.now(), imageParams: { size: opts.size, prompt: opts.prompt } } } }));
+      }
+      // Map UI sizes to OpenAI sizes
+      const sizeMap: Record<typeof opts.size, 'auto' | '1024x1024' | '1024x1536' | '1536x1024'> = {
+        auto: 'auto',
+        square: '1024x1024',
+        portrait: '1024x1536',
+        landscape: '1536x1024',
+      };
+      const controller = new AbortController();
+      controllersRef.current[messageId] = controller;
+      const images = await ImageService.generateImage({
+        provider: 'openai',
+        apiKey,
+        prompt: opts.prompt,
+        size: sizeMap[opts.size],
+        n: 1,
+        signal: controller.signal,
+      });
+      const img = images[0];
+      const uri = img.url ? img.url : (img.b64 ? `data:${img.mimeType};base64,${img.b64}` : undefined);
+      if (uri) {
+        dispatch(updateMessage({ id: messageId, content: '', attachments: [{ type: 'image', uri, mimeType: img.mimeType }], metadata: { providerMetadata: { imageGenerating: false, imagePhase: 'done' } } }));
+      } else {
+        dispatch(updateMessage({ id: messageId, content: 'Image generated.', metadata: { providerMetadata: { imageGenerating: false, imagePhase: 'done' } } }));
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      // Update placeholder with error state
+      // messageId is defined above
+      dispatch(updateMessage({ id: reuseMessageId || Object.keys(controllersRef.current).slice(-1)[0] as string, content: `Failed to generate image: ${errorMsg}`, attachments: [], metadata: { providerMetadata: { imageGenerating: false, imagePhase: 'error' } } }));
+    }
+  };
+
+  const handleCancelImage = (message: Message) => {
+    const ctrl = controllersRef.current[message.id];
+    if (ctrl) ctrl.abort();
+    dispatch(updateMessage({ id: message.id, content: 'Generation cancelled.', metadata: { providerMetadata: { imageGenerating: false, imagePhase: 'cancelled' } } }));
+  };
+
+  const handleRetryImage = (message: Message) => {
+    const meta = message.metadata as { providerMetadata?: { imageParams?: { size?: 'auto' | 'square' | 'portrait' | 'landscape'; prompt?: string } } } | undefined;
+    const params = meta?.providerMetadata?.imageParams || { prompt: '', size: 'square' as const };
+    if (!params.prompt) return;
+    handleGenerateImage({ prompt: params.prompt, size: params.size || 'square' }, message.id);
+  };
 
   // Handle message sending
   const handleSendMessage = useCallback(async (messageText?: string, attachments?: MessageAttachment[]): Promise<void> => {
@@ -214,6 +291,8 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
           searchTerm={searchTerm}
           onContentSizeChange={messages.scrollToBottom}
           onScrollToSearchResult={handleScrollToSearchResult}
+          onCancelImage={handleCancelImage}
+          onRetryImage={handleRetryImage}
         />
 
         {/* Typing Indicators */}
@@ -231,10 +310,24 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
           inputText={input.inputText}
           onInputChange={handleInputChange}
           onSend={handleSendMessage}
+          onOpenImageModal={() => {
+            setImageModalPrompt(input.inputText.trim());
+            setImageModalVisible(true);
+          }}
           placeholder="Type a message..."
           disabled={aiResponses.isProcessing}
           attachmentSupport={getAttachmentSupport(session.selectedAIs)}
           maxAttachments={20}
+          imageGenerationEnabled={imageGenerationEnabled}
+        />
+        <ImageGenerationModal
+          visible={imageModalVisible}
+          initialPrompt={imageModalPrompt}
+          onClose={() => setImageModalVisible(false)}
+          onGenerate={(opts) => {
+            setImageModalVisible(false);
+            handleGenerateImage(opts);
+          }}
         />
       </KeyboardAvoidingView>
     </SafeAreaView>

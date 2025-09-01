@@ -1,0 +1,188 @@
+{
+  "provider": "grok",
+  "models": [
+    {
+      "id": "grok-2-1212",
+      "name": "grok-2-1212",
+      "_raw": {
+        "id": "grok-2-1212",
+        "created": 1737331200,
+        "object": "model",
+        "owned_by": "xai"
+      },
+      "supportsVision": true,
+      "supportsDocuments": true,
+      "supportsImageGeneration": false,
+      "supportsVideoGeneration": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "grok-2-vision-1212",
+      "name": "grok-2-vision-1212",
+      "_raw": {
+        "id": "grok-2-vision-1212",
+        "created": 1733961600,
+        "object": "model",
+        "owned_by": "xai"
+      },
+      "supportsVision": true,
+      "supportsDocuments": true,
+      "supportsImageGeneration": false,
+      "supportsVideoGeneration": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "grok-3",
+      "name": "grok-3",
+      "_raw": {
+        "id": "grok-3",
+        "created": 1743724800,
+        "object": "model",
+        "owned_by": "xai"
+      },
+      "supportsVision": true,
+      "supportsDocuments": true,
+      "supportsImageGeneration": false,
+      "supportsVideoGeneration": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "grok-3-fast",
+      "name": "grok-3-fast",
+      "_raw": {
+        "id": "grok-3-fast",
+        "created": 1743724800,
+        "object": "model",
+        "owned_by": "xai"
+      },
+      "supportsVision": true,
+      "supportsDocuments": true,
+      "supportsImageGeneration": false,
+      "supportsVideoGeneration": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "grok-3-mini",
+      "name": "grok-3-mini",
+      "_raw": {
+        "id": "grok-3-mini",
+        "created": 1743724800,
+        "object": "model",
+        "owned_by": "xai"
+      },
+      "supportsVision": true,
+      "supportsDocuments": true,
+      "supportsImageGeneration": false,
+      "supportsVideoGeneration": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "grok-3-mini-fast",
+      "name": "grok-3-mini-fast",
+      "_raw": {
+        "id": "grok-3-mini-fast",
+        "created": 1743724800,
+        "object": "model",
+        "owned_by": "xai"
+      },
+      "supportsVision": true,
+      "supportsDocuments": true,
+      "supportsImageGeneration": false,
+      "supportsVideoGeneration": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "grok-4-0709",
+      "name": "grok-4-0709",
+      "_raw": {
+        "id": "grok-4-0709",
+        "created": 1752019200,
+        "object": "model",
+        "owned_by": "xai"
+      },
+      "supportsVision": true,
+      "supportsDocuments": true,
+      "supportsImageGeneration": false,
+      "supportsVideoGeneration": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "grok-4-0709-eu",
+      "name": "grok-4-0709-eu",
+      "_raw": {
+        "id": "grok-4-0709-eu",
+        "created": 1752019200,
+        "object": "model",
+        "owned_by": "xai"
+      },
+      "supportsVision": true,
+      "supportsDocuments": true,
+      "supportsImageGeneration": false,
+      "supportsVideoGeneration": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "grok-code-fast-1",
+      "name": "grok-code-fast-1",
+      "_raw": {
+        "id": "grok-code-fast-1",
+        "created": 1755993600,
+        "object": "model",
+        "owned_by": "xai"
+      },
+      "supportsVision": true,
+      "supportsDocuments": true,
+      "supportsImageGeneration": false,
+      "supportsVideoGeneration": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "grok-2-image-1212",
+      "name": "grok-2-image-1212",
+      "_raw": {
+        "id": "grok-2-image-1212",
+        "created": 1736726400,
+        "object": "model",
+        "owned_by": "xai"
+      },
+      "supportsVision": true,
+      "supportsDocuments": true,
+      "supportsImageGeneration": true,
+      "supportsVideoGeneration": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    }
+  ],
+  "meta": {
+    "discoveredAt": "2025-08-31T17:55:26.187Z"
+  }
+}

@@ -11,6 +11,12 @@ export interface ModelConfig {
   supportsWebSearch?: boolean;  // For Perplexity models with web search
   requiresTemperature1?: boolean;  // For GPT-5 and O1 models
   useMaxCompletionTokens?: boolean;  // For GPT-5 models that use max_completion_tokens
+  // Extended capability flags (2025-08):
+  supportsImageInput?: boolean;      // Alias of supportsVision (explicit)
+  supportsImageGeneration?: boolean; // Can generate images (e.g., gpt-image-1)
+  supportsVoiceInput?: boolean;      // Realtime voice input (STT)
+  supportsVoiceOutput?: boolean;     // Realtime voice output (TTS)
+  supportsRealtime?: boolean;        // Realtime API support
 }
 
 export interface ProviderModels {
@@ -94,8 +100,10 @@ export const AI_MODELS: ProviderModels = {
       name: 'GPT-5',
       description: 'Latest flagship model with advanced reasoning (August 2025)',
       contextLength: 272000,
-      isDefault: true,
+      isDefault: false,
+      isPremium: true,
       supportsVision: true,
+      supportsImageInput: true,
       supportsDocuments: true,
       supportsFunctions: true,
       requiresTemperature1: true, // GPT-5 models require temperature=1
@@ -107,6 +115,7 @@ export const AI_MODELS: ProviderModels = {
       description: 'Efficient GPT-5 for faster responses',
       contextLength: 272000,
       supportsVision: true,
+      supportsImageInput: true,
       supportsDocuments: true,
       supportsFunctions: true,
       requiresTemperature1: true,
@@ -118,6 +127,7 @@ export const AI_MODELS: ProviderModels = {
       description: 'Ultra-fast GPT-5 for simple tasks',
       contextLength: 272000,
       supportsVision: true,
+      supportsImageInput: true,
       supportsDocuments: true,
       supportsFunctions: true,
       requiresTemperature1: true,
@@ -129,6 +139,7 @@ export const AI_MODELS: ProviderModels = {
       description: 'Enhanced GPT-4 with improvements (April 2025)',
       contextLength: 128000,
       supportsVision: true,
+      supportsImageInput: true,
       supportsDocuments: true,
       supportsFunctions: true,
     },
@@ -138,6 +149,7 @@ export const AI_MODELS: ProviderModels = {
       description: 'Efficient GPT-4.1 variant',
       contextLength: 128000,
       supportsVision: true,
+      supportsImageInput: true,
       supportsDocuments: true,
       supportsFunctions: true,
     },
@@ -147,15 +159,21 @@ export const AI_MODELS: ProviderModels = {
       description: 'Omni-modal model with vision and audio',
       contextLength: 128000,
       supportsVision: true,
+      supportsImageInput: true,
       supportsDocuments: true,
       supportsFunctions: true,
+      supportsRealtime: true,
+      supportsVoiceInput: true,
+      supportsVoiceOutput: true,
     },
     {
       id: 'gpt-4o-mini',
       name: 'GPT-4o Mini',
       description: 'Cost-effective multimodal model',
       contextLength: 128000,
+      isDefault: true,
       supportsVision: true,
+      supportsImageInput: true,
       supportsDocuments: true,
       supportsFunctions: true,
     },
@@ -165,6 +183,7 @@ export const AI_MODELS: ProviderModels = {
       description: 'Fast GPT-4 with latest knowledge',
       contextLength: 128000,
       supportsVision: true,
+      supportsImageInput: true,
       supportsDocuments: true,
       supportsFunctions: true,
     },
@@ -177,6 +196,7 @@ export const AI_MODELS: ProviderModels = {
       requiresTemperature1: true,
       useMaxCompletionTokens: true,
       supportsVision: true,
+      supportsImageInput: true,
       supportsDocuments: true,
     },
     {
@@ -187,6 +207,7 @@ export const AI_MODELS: ProviderModels = {
       requiresTemperature1: true,
       useMaxCompletionTokens: true,
       supportsVision: true,
+      supportsImageInput: true,
       supportsDocuments: true,
     },
     {
@@ -198,6 +219,7 @@ export const AI_MODELS: ProviderModels = {
       requiresTemperature1: true,
       useMaxCompletionTokens: true,
       supportsVision: true,
+      supportsImageInput: true,
       supportsDocuments: true,
     },
     {
@@ -206,8 +228,18 @@ export const AI_MODELS: ProviderModels = {
       description: 'Legacy model, very cost-effective',
       contextLength: 16385,
       supportsVision: true,
+      supportsImageInput: true,
       supportsDocuments: true,
       supportsFunctions: true,
+    },
+    // Images generation model (Responses tool or Images API)
+    {
+      id: 'gpt-image-1',
+      name: 'GPT Image 1',
+      description: 'Image generation model',
+      contextLength: 0,
+      supportsImageGeneration: true,
+      // Not a chat-completion model; no document/vision input here
     },
   ],
   google: [
@@ -306,7 +338,6 @@ export const AI_MODELS: ProviderModels = {
       name: 'Mistral Medium',
       description: 'Latest multimodal flagship (August 2025)',
       contextLength: 128000,
-      isDefault: true,
       isPremium: true,
       supportsVision: true,
       supportsDocuments: true,
@@ -345,6 +376,7 @@ export const AI_MODELS: ProviderModels = {
       name: 'Mistral Small',
       description: 'Enterprise-grade with vision (June 2025)',
       contextLength: 32768,
+      isDefault: true,
       supportsVision: true,
       supportsDocuments: true,
       supportsFunctions: true,
@@ -374,7 +406,7 @@ export const AI_MODELS: ProviderModels = {
       name: 'Command R Plus',
       description: 'Most capable for RAG and search',
       contextLength: 128000,
-      isDefault: true,
+      isDefault: false,
       isPremium: true,
       supportsFunctions: true,
       supportsVision: true,
@@ -385,6 +417,7 @@ export const AI_MODELS: ProviderModels = {
       name: 'Command R',
       description: 'Optimized for retrieval tasks',
       contextLength: 128000,
+      isDefault: true,
       supportsFunctions: true,
       supportsVision: true,
       supportsDocuments: true,
@@ -422,7 +455,7 @@ export const AI_MODELS: ProviderModels = {
       name: 'Llama 3.1 70B',
       description: 'Powerful and efficient',
       contextLength: 130000,
-      isDefault: true,
+      isDefault: false,
       supportsVision: true,
       supportsDocuments: true,
     },
@@ -431,6 +464,7 @@ export const AI_MODELS: ProviderModels = {
       name: 'Llama 3.1 8B',
       description: 'Fast and lightweight',
       contextLength: 130000,
+      isDefault: true,
       supportsVision: true,
       supportsDocuments: true,
     },
@@ -576,9 +610,72 @@ export const PROVIDER_SUPPORTED_PARAMS: { [key: string]: (keyof ModelParameters)
   grok: ['temperature', 'maxTokens', 'topP', 'stopSequences', 'seed'],
 };
 
+// Curated model IDs per provider (limit 4–5) to avoid overwhelming users in selectors.
+// Defaults reflect mid-tier choices for free users; flagship/frontier marked premium.
+export const CURATED_MODEL_IDS: { [providerId: string]: string[] } = {
+  claude: [
+    'claude-3-7-sonnet-20250219',
+    'claude-sonnet-4-20250514',
+    'claude-opus-4-1-20250805',
+    'claude-3-5-haiku-20241022',
+  ],
+  openai: [
+    'gpt-4o-mini',
+    'gpt-4o',
+    'gpt-4.1',
+    'gpt-5',
+    'gpt-image-1',
+  ],
+  google: [
+    'gemini-2.5-flash',
+    'gemini-2.5-pro',
+    'gemini-2.5-flash-lite',
+    'gemini-2.0-flash',
+    'gemini-1.5-pro',
+  ],
+  perplexity: [
+    'sonar',
+    'sonar-pro',
+  ],
+  mistral: [
+    'mistral-small-latest',
+    'mistral-medium-latest',
+    'mistral-large-2411',
+    'pixtral-large-latest',
+  ],
+  cohere: [
+    'command-r-08-2024',
+    'command-r-plus-08-2024',
+    'command-light',
+  ],
+  together: [
+    'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
+    'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo',
+    'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo',
+    'Qwen/Qwen2.5-72B-Instruct-Turbo',
+  ],
+  deepseek: [
+    'deepseek-chat',
+    'deepseek-reasoning',
+  ],
+  grok: [
+    'grok-2-1212',
+    'grok-3',
+    'grok-4-0709',
+    'grok-2-vision-1212',
+    'grok-2-image-1212',
+  ],
+};
+
 // Helper function to get models for a specific provider
 export const getProviderModels = (providerId: string): ModelConfig[] => {
-  return AI_MODELS[providerId] || [];
+  const all = AI_MODELS[providerId] || [];
+  const curated = CURATED_MODEL_IDS[providerId];
+  if (curated && curated.length) {
+    // Preserve declaration order by filtering
+    return all.filter(m => curated.includes(m.id));
+  }
+  return all;
 };
 
 // Helper function to get the default model for a provider

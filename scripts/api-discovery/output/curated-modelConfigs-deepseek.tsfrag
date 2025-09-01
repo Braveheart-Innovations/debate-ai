@@ -1,0 +1,20 @@
+// Curated ModelConfig entries for AI_MODELS['deepseek'] (default + recommended)
+{
+      id: 'deepseek-reasoner',
+      name: 'deepseek-reasoner',
+      description: 'Curated via discovery on 2025-08-31',
+      contextLength: 128000,
+      supportsVision: true,
+      supportsDocuments: true,
+      supportsImageInput: true,
+      isDefault: true,
+    },
+{
+      id: 'deepseek-chat',
+      name: 'deepseek-chat',
+      description: 'Curated via discovery on 2025-08-31',
+      contextLength: 128000,
+      supportsVision: true,
+      supportsDocuments: true,
+      supportsImageInput: true,
+    },

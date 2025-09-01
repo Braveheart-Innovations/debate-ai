@@ -1,0 +1,20 @@
+// Curated ModelConfig entries for AI_MODELS['claude'] (default + recommended)
+{
+      id: 'claude-4.1-opus-20250805',
+      name: 'Claude 4.1 Opus',
+      description: 'Curated via discovery on 2025-08-31',
+      contextLength: 128000,
+      supportsVision: true,
+      supportsDocuments: true,
+      supportsImageInput: true,
+      isDefault: true,
+    },
+{
+      id: 'claude-4-sonnet-20250514',
+      name: 'Claude 4 Sonnet',
+      description: 'Curated via discovery on 2025-08-31',
+      contextLength: 128000,
+      supportsVision: true,
+      supportsDocuments: true,
+      supportsImageInput: true,
+    },

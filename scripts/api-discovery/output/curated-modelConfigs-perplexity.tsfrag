@@ -1,0 +1,20 @@
+// Curated ModelConfig entries for AI_MODELS['perplexity'] (default + recommended)
+{
+      id: 'sonar-pro',
+      name: 'Sonar Pro',
+      description: 'Curated via discovery on 2025-08-31',
+      contextLength: 128000,
+      supportsVision: true,
+      supportsDocuments: true,
+      supportsImageInput: true,
+      isDefault: true,
+    },
+{
+      id: 'sonar',
+      name: 'Sonar',
+      description: 'Curated via discovery on 2025-08-31',
+      contextLength: 128000,
+      supportsVision: true,
+      supportsDocuments: true,
+      supportsImageInput: true,
+    },

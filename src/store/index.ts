@@ -1,6 +1,6 @@
 // Redux store configuration
 import { configureStore, createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { User, ChatSession, Message, UIMode, SubscriptionTier, AIConfig } from '../types';
+import { User, ChatSession, Message, UIMode, SubscriptionTier, AIConfig, MessageAttachment, MessageMetadata } from '../types';
 import debateStatsReducer from './debateStatsSlice';
 import streamingReducer from './streamingSlice';
 import authReducer from './authSlice';
@@ -96,11 +96,20 @@ const chatSlice = createSlice({
         state.currentSession.messages.push(action.payload);
       }
     },
-    updateMessage: (state, action: PayloadAction<{ id: string; content: string }>) => {
+    updateMessage: (state, action: PayloadAction<{ id: string; content?: string; attachments?: MessageAttachment[]; metadata?: Partial<MessageMetadata> }>) => {
       if (state.currentSession) {
         const messageIndex = state.currentSession.messages.findIndex(m => m.id === action.payload.id);
         if (messageIndex !== -1) {
-          state.currentSession.messages[messageIndex].content = action.payload.content;
+          if (action.payload.content !== undefined) {
+            state.currentSession.messages[messageIndex].content = action.payload.content;
+          }
+          if (action.payload.attachments !== undefined) {
+            state.currentSession.messages[messageIndex].attachments = action.payload.attachments;
+          }
+          if (action.payload.metadata !== undefined) {
+            const currentMeta = state.currentSession.messages[messageIndex].metadata || {} as MessageMetadata;
+            state.currentSession.messages[messageIndex].metadata = { ...currentMeta, ...action.payload.metadata } as MessageMetadata;
+          }
         }
       }
     },

@@ -1,0 +1,44 @@
+{
+  "provider": "claude",
+  "models": [
+    {
+      "id": "claude-3-7-sonnet-20250219",
+      "name": "Claude 3.7 Sonnet",
+      "supportsVision": true,
+      "supportsDocuments": true,
+      "supportsImageGeneration": false,
+      "supportsVideoGeneration": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "claude-4-sonnet-20250514",
+      "name": "Claude 4 Sonnet",
+      "supportsVision": true,
+      "supportsDocuments": true,
+      "supportsImageGeneration": false,
+      "supportsVideoGeneration": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "claude-4.1-opus-20250805",
+      "name": "Claude 4.1 Opus",
+      "supportsVision": true,
+      "supportsDocuments": true,
+      "supportsImageGeneration": false,
+      "supportsVideoGeneration": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    }
+  ],
+  "meta": {
+    "discoveredAt": "2025-08-31T17:55:24.264Z"
+  }
+}

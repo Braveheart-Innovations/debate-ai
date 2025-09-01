@@ -1,0 +1,2 @@
+// Insert into getProviderCapabilities('grok') imageGeneration models/sizes
+imageGeneration: { supported: true, models: ["grok-2-image-1212"], sizes: ["1024x1024"], maxPromptLength: 4000 },

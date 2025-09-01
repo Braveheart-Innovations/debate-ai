@@ -1,0 +1,19 @@
+// Insert the following ModelConfig entries into AI_MODELS['deepseek'] array
+{
+      id: 'deepseek-chat',
+      name: 'deepseek-chat',
+      description: 'Discovered via API on 2025-08-31',
+      contextLength: 128000,
+      supportsVision: true,
+      supportsDocuments: true,
+      supportsImageInput: true,
+    },
+{
+      id: 'deepseek-reasoner',
+      name: 'deepseek-reasoner',
+      description: 'Discovered via API on 2025-08-31',
+      contextLength: 128000,
+      supportsVision: true,
+      supportsDocuments: true,
+      supportsImageInput: true,
+    },

@@ -1,0 +1,1535 @@
+{
+  "provider": "openai",
+  "models": [
+    {
+      "id": "gpt-4-0613",
+      "name": "gpt-4-0613",
+      "_raw": {
+        "id": "gpt-4-0613",
+        "object": "model",
+        "created": 1686588896,
+        "owned_by": "openai"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "gpt-4",
+      "name": "gpt-4",
+      "_raw": {
+        "id": "gpt-4",
+        "object": "model",
+        "created": 1687882411,
+        "owned_by": "openai"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "gpt-3.5-turbo",
+      "name": "gpt-3.5-turbo",
+      "_raw": {
+        "id": "gpt-3.5-turbo",
+        "object": "model",
+        "created": 1677610602,
+        "owned_by": "openai"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "gpt-audio",
+      "name": "gpt-audio",
+      "_raw": {
+        "id": "gpt-audio",
+        "object": "model",
+        "created": 1756339249,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": true,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "gpt-5-nano",
+      "name": "gpt-5-nano",
+      "_raw": {
+        "id": "gpt-5-nano",
+        "object": "model",
+        "created": 1754426384,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "gpt-audio-2025-08-28",
+      "name": "gpt-audio-2025-08-28",
+      "_raw": {
+        "id": "gpt-audio-2025-08-28",
+        "object": "model",
+        "created": 1756256146,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": true,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "gpt-realtime",
+      "name": "gpt-realtime",
+      "_raw": {
+        "id": "gpt-realtime",
+        "object": "model",
+        "created": 1756271701,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": true,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": true,
+      "supportsImageInput": false
+    },
+    {
+      "id": "gpt-realtime-2025-08-28",
+      "name": "gpt-realtime-2025-08-28",
+      "_raw": {
+        "id": "gpt-realtime-2025-08-28",
+        "object": "model",
+        "created": 1756271773,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": true,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": true,
+      "supportsImageInput": false
+    },
+    {
+      "id": "davinci-002",
+      "name": "davinci-002",
+      "_raw": {
+        "id": "davinci-002",
+        "object": "model",
+        "created": 1692634301,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "babbage-002",
+      "name": "babbage-002",
+      "_raw": {
+        "id": "babbage-002",
+        "object": "model",
+        "created": 1692634615,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "gpt-3.5-turbo-instruct",
+      "name": "gpt-3.5-turbo-instruct",
+      "_raw": {
+        "id": "gpt-3.5-turbo-instruct",
+        "object": "model",
+        "created": 1692901427,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "gpt-3.5-turbo-instruct-0914",
+      "name": "gpt-3.5-turbo-instruct-0914",
+      "_raw": {
+        "id": "gpt-3.5-turbo-instruct-0914",
+        "object": "model",
+        "created": 1694122472,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "dall-e-3",
+      "name": "dall-e-3",
+      "_raw": {
+        "id": "dall-e-3",
+        "object": "model",
+        "created": 1698785189,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsImageGeneration": true,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "dall-e-2",
+      "name": "dall-e-2",
+      "_raw": {
+        "id": "dall-e-2",
+        "object": "model",
+        "created": 1698798177,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsImageGeneration": true,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "gpt-4-1106-preview",
+      "name": "gpt-4-1106-preview",
+      "_raw": {
+        "id": "gpt-4-1106-preview",
+        "object": "model",
+        "created": 1698957206,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "gpt-3.5-turbo-1106",
+      "name": "gpt-3.5-turbo-1106",
+      "_raw": {
+        "id": "gpt-3.5-turbo-1106",
+        "object": "model",
+        "created": 1698959748,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "tts-1-hd",
+      "name": "tts-1-hd",
+      "_raw": {
+        "id": "tts-1-hd",
+        "object": "model",
+        "created": 1699046015,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": true,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "tts-1-1106",
+      "name": "tts-1-1106",
+      "_raw": {
+        "id": "tts-1-1106",
+        "object": "model",
+        "created": 1699053241,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": true,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "tts-1-hd-1106",
+      "name": "tts-1-hd-1106",
+      "_raw": {
+        "id": "tts-1-hd-1106",
+        "object": "model",
+        "created": 1699053533,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": true,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "text-embedding-3-small",
+      "name": "text-embedding-3-small",
+      "_raw": {
+        "id": "text-embedding-3-small",
+        "object": "model",
+        "created": 1705948997,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "text-embedding-3-large",
+      "name": "text-embedding-3-large",
+      "_raw": {
+        "id": "text-embedding-3-large",
+        "object": "model",
+        "created": 1705953180,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "gpt-4-0125-preview",
+      "name": "gpt-4-0125-preview",
+      "_raw": {
+        "id": "gpt-4-0125-preview",
+        "object": "model",
+        "created": 1706037612,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "gpt-4-turbo-preview",
+      "name": "gpt-4-turbo-preview",
+      "_raw": {
+        "id": "gpt-4-turbo-preview",
+        "object": "model",
+        "created": 1706037777,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "gpt-3.5-turbo-0125",
+      "name": "gpt-3.5-turbo-0125",
+      "_raw": {
+        "id": "gpt-3.5-turbo-0125",
+        "object": "model",
+        "created": 1706048358,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "gpt-4-turbo",
+      "name": "gpt-4-turbo",
+      "_raw": {
+        "id": "gpt-4-turbo",
+        "object": "model",
+        "created": 1712361441,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "gpt-4-turbo-2024-04-09",
+      "name": "gpt-4-turbo-2024-04-09",
+      "_raw": {
+        "id": "gpt-4-turbo-2024-04-09",
+        "object": "model",
+        "created": 1712601677,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "gpt-4o",
+      "name": "gpt-4o",
+      "_raw": {
+        "id": "gpt-4o",
+        "object": "model",
+        "created": 1715367049,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "gpt-4o-2024-05-13",
+      "name": "gpt-4o-2024-05-13",
+      "_raw": {
+        "id": "gpt-4o-2024-05-13",
+        "object": "model",
+        "created": 1715368132,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "gpt-4o-mini-2024-07-18",
+      "name": "gpt-4o-mini-2024-07-18",
+      "_raw": {
+        "id": "gpt-4o-mini-2024-07-18",
+        "object": "model",
+        "created": 1721172717,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "gpt-4o-mini",
+      "name": "gpt-4o-mini",
+      "_raw": {
+        "id": "gpt-4o-mini",
+        "object": "model",
+        "created": 1721172741,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "gpt-4o-2024-08-06",
+      "name": "gpt-4o-2024-08-06",
+      "_raw": {
+        "id": "gpt-4o-2024-08-06",
+        "object": "model",
+        "created": 1722814719,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "chatgpt-4o-latest",
+      "name": "chatgpt-4o-latest",
+      "_raw": {
+        "id": "chatgpt-4o-latest",
+        "object": "model",
+        "created": 1723515131,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "o1-mini-2024-09-12",
+      "name": "o1-mini-2024-09-12",
+      "_raw": {
+        "id": "o1-mini-2024-09-12",
+        "object": "model",
+        "created": 1725648979,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "o1-mini",
+      "name": "o1-mini",
+      "_raw": {
+        "id": "o1-mini",
+        "object": "model",
+        "created": 1725649008,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "gpt-4o-realtime-preview-2024-10-01",
+      "name": "gpt-4o-realtime-preview-2024-10-01",
+      "_raw": {
+        "id": "gpt-4o-realtime-preview-2024-10-01",
+        "object": "model",
+        "created": 1727131766,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": true,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": true,
+      "supportsImageInput": true
+    },
+    {
+      "id": "gpt-4o-audio-preview-2024-10-01",
+      "name": "gpt-4o-audio-preview-2024-10-01",
+      "_raw": {
+        "id": "gpt-4o-audio-preview-2024-10-01",
+        "object": "model",
+        "created": 1727389042,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "gpt-4o-audio-preview",
+      "name": "gpt-4o-audio-preview",
+      "_raw": {
+        "id": "gpt-4o-audio-preview",
+        "object": "model",
+        "created": 1727460443,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "gpt-4o-realtime-preview",
+      "name": "gpt-4o-realtime-preview",
+      "_raw": {
+        "id": "gpt-4o-realtime-preview",
+        "object": "model",
+        "created": 1727659998,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": true,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": true,
+      "supportsImageInput": true
+    },
+    {
+      "id": "omni-moderation-latest",
+      "name": "omni-moderation-latest",
+      "_raw": {
+        "id": "omni-moderation-latest",
+        "object": "model",
+        "created": 1731689265,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "omni-moderation-2024-09-26",
+      "name": "omni-moderation-2024-09-26",
+      "_raw": {
+        "id": "omni-moderation-2024-09-26",
+        "object": "model",
+        "created": 1732734466,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "gpt-4o-realtime-preview-2024-12-17",
+      "name": "gpt-4o-realtime-preview-2024-12-17",
+      "_raw": {
+        "id": "gpt-4o-realtime-preview-2024-12-17",
+        "object": "model",
+        "created": 1733945430,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": true,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": true,
+      "supportsImageInput": true
+    },
+    {
+      "id": "gpt-4o-audio-preview-2024-12-17",
+      "name": "gpt-4o-audio-preview-2024-12-17",
+      "_raw": {
+        "id": "gpt-4o-audio-preview-2024-12-17",
+        "object": "model",
+        "created": 1734034239,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "gpt-4o-mini-realtime-preview-2024-12-17",
+      "name": "gpt-4o-mini-realtime-preview-2024-12-17",
+      "_raw": {
+        "id": "gpt-4o-mini-realtime-preview-2024-12-17",
+        "object": "model",
+        "created": 1734112601,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": true,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": true,
+      "supportsImageInput": true
+    },
+    {
+      "id": "gpt-4o-mini-audio-preview-2024-12-17",
+      "name": "gpt-4o-mini-audio-preview-2024-12-17",
+      "_raw": {
+        "id": "gpt-4o-mini-audio-preview-2024-12-17",
+        "object": "model",
+        "created": 1734115920,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "o1-2024-12-17",
+      "name": "o1-2024-12-17",
+      "_raw": {
+        "id": "o1-2024-12-17",
+        "object": "model",
+        "created": 1734326976,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "o1",
+      "name": "o1",
+      "_raw": {
+        "id": "o1",
+        "object": "model",
+        "created": 1734375816,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "gpt-4o-mini-realtime-preview",
+      "name": "gpt-4o-mini-realtime-preview",
+      "_raw": {
+        "id": "gpt-4o-mini-realtime-preview",
+        "object": "model",
+        "created": 1734387380,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": true,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": true,
+      "supportsImageInput": true
+    },
+    {
+      "id": "gpt-4o-mini-audio-preview",
+      "name": "gpt-4o-mini-audio-preview",
+      "_raw": {
+        "id": "gpt-4o-mini-audio-preview",
+        "object": "model",
+        "created": 1734387424,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "o3-mini",
+      "name": "o3-mini",
+      "_raw": {
+        "id": "o3-mini",
+        "object": "model",
+        "created": 1737146383,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "o3-mini-2025-01-31",
+      "name": "o3-mini-2025-01-31",
+      "_raw": {
+        "id": "o3-mini-2025-01-31",
+        "object": "model",
+        "created": 1738010200,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "gpt-4o-2024-11-20",
+      "name": "gpt-4o-2024-11-20",
+      "_raw": {
+        "id": "gpt-4o-2024-11-20",
+        "object": "model",
+        "created": 1739331543,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "gpt-4o-search-preview-2025-03-11",
+      "name": "gpt-4o-search-preview-2025-03-11",
+      "_raw": {
+        "id": "gpt-4o-search-preview-2025-03-11",
+        "object": "model",
+        "created": 1741388170,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "gpt-4o-search-preview",
+      "name": "gpt-4o-search-preview",
+      "_raw": {
+        "id": "gpt-4o-search-preview",
+        "object": "model",
+        "created": 1741388720,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "gpt-4o-mini-search-preview-2025-03-11",
+      "name": "gpt-4o-mini-search-preview-2025-03-11",
+      "_raw": {
+        "id": "gpt-4o-mini-search-preview-2025-03-11",
+        "object": "model",
+        "created": 1741390858,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "gpt-4o-mini-search-preview",
+      "name": "gpt-4o-mini-search-preview",
+      "_raw": {
+        "id": "gpt-4o-mini-search-preview",
+        "object": "model",
+        "created": 1741391161,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "gpt-4o-transcribe",
+      "name": "gpt-4o-transcribe",
+      "_raw": {
+        "id": "gpt-4o-transcribe",
+        "object": "model",
+        "created": 1742068463,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "gpt-4o-mini-transcribe",
+      "name": "gpt-4o-mini-transcribe",
+      "_raw": {
+        "id": "gpt-4o-mini-transcribe",
+        "object": "model",
+        "created": 1742068596,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "o1-pro-2025-03-19",
+      "name": "o1-pro-2025-03-19",
+      "_raw": {
+        "id": "o1-pro-2025-03-19",
+        "object": "model",
+        "created": 1742251504,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "o1-pro",
+      "name": "o1-pro",
+      "_raw": {
+        "id": "o1-pro",
+        "object": "model",
+        "created": 1742251791,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "gpt-4o-mini-tts",
+      "name": "gpt-4o-mini-tts",
+      "_raw": {
+        "id": "gpt-4o-mini-tts",
+        "object": "model",
+        "created": 1742403959,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": true,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "o3-2025-04-16",
+      "name": "o3-2025-04-16",
+      "_raw": {
+        "id": "o3-2025-04-16",
+        "object": "model",
+        "created": 1744133301,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "o4-mini-2025-04-16",
+      "name": "o4-mini-2025-04-16",
+      "_raw": {
+        "id": "o4-mini-2025-04-16",
+        "object": "model",
+        "created": 1744133506,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "o3",
+      "name": "o3",
+      "_raw": {
+        "id": "o3",
+        "object": "model",
+        "created": 1744225308,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "o4-mini",
+      "name": "o4-mini",
+      "_raw": {
+        "id": "o4-mini",
+        "object": "model",
+        "created": 1744225351,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "gpt-4.1-2025-04-14",
+      "name": "gpt-4.1-2025-04-14",
+      "_raw": {
+        "id": "gpt-4.1-2025-04-14",
+        "object": "model",
+        "created": 1744315746,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "gpt-4.1",
+      "name": "gpt-4.1",
+      "_raw": {
+        "id": "gpt-4.1",
+        "object": "model",
+        "created": 1744316542,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "gpt-4.1-mini-2025-04-14",
+      "name": "gpt-4.1-mini-2025-04-14",
+      "_raw": {
+        "id": "gpt-4.1-mini-2025-04-14",
+        "object": "model",
+        "created": 1744317547,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "gpt-4.1-mini",
+      "name": "gpt-4.1-mini",
+      "_raw": {
+        "id": "gpt-4.1-mini",
+        "object": "model",
+        "created": 1744318173,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "gpt-4.1-nano-2025-04-14",
+      "name": "gpt-4.1-nano-2025-04-14",
+      "_raw": {
+        "id": "gpt-4.1-nano-2025-04-14",
+        "object": "model",
+        "created": 1744321025,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "gpt-4.1-nano",
+      "name": "gpt-4.1-nano",
+      "_raw": {
+        "id": "gpt-4.1-nano",
+        "object": "model",
+        "created": 1744321707,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "gpt-image-1",
+      "name": "GPT Image 1",
+      "supportsImageGeneration": true,
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "codex-mini-latest",
+      "name": "codex-mini-latest",
+      "_raw": {
+        "id": "codex-mini-latest",
+        "object": "model",
+        "created": 1746673257,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "o3-pro",
+      "name": "o3-pro",
+      "_raw": {
+        "id": "o3-pro",
+        "object": "model",
+        "created": 1748475349,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "gpt-4o-realtime-preview-2025-06-03",
+      "name": "gpt-4o-realtime-preview-2025-06-03",
+      "_raw": {
+        "id": "gpt-4o-realtime-preview-2025-06-03",
+        "object": "model",
+        "created": 1748907838,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": true,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": true,
+      "supportsImageInput": true
+    },
+    {
+      "id": "gpt-4o-audio-preview-2025-06-03",
+      "name": "gpt-4o-audio-preview-2025-06-03",
+      "_raw": {
+        "id": "gpt-4o-audio-preview-2025-06-03",
+        "object": "model",
+        "created": 1748908498,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "o3-pro-2025-06-10",
+      "name": "o3-pro-2025-06-10",
+      "_raw": {
+        "id": "o3-pro-2025-06-10",
+        "object": "model",
+        "created": 1749166761,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "o4-mini-deep-research",
+      "name": "o4-mini-deep-research",
+      "_raw": {
+        "id": "o4-mini-deep-research",
+        "object": "model",
+        "created": 1749685485,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "o3-deep-research",
+      "name": "o3-deep-research",
+      "_raw": {
+        "id": "o3-deep-research",
+        "object": "model",
+        "created": 1749840121,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "o3-deep-research-2025-06-26",
+      "name": "o3-deep-research-2025-06-26",
+      "_raw": {
+        "id": "o3-deep-research-2025-06-26",
+        "object": "model",
+        "created": 1750865219,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "o4-mini-deep-research-2025-06-26",
+      "name": "o4-mini-deep-research-2025-06-26",
+      "_raw": {
+        "id": "o4-mini-deep-research-2025-06-26",
+        "object": "model",
+        "created": 1750866121,
+        "owned_by": "system"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "gpt-5-chat-latest",
+      "name": "gpt-5-chat-latest",
+      "_raw": {
+        "id": "gpt-5-chat-latest",
+        "object": "model",
+        "created": 1754073306,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "gpt-5-2025-08-07",
+      "name": "gpt-5-2025-08-07",
+      "_raw": {
+        "id": "gpt-5-2025-08-07",
+        "object": "model",
+        "created": 1754075360,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "gpt-5",
+      "name": "gpt-5",
+      "_raw": {
+        "id": "gpt-5",
+        "object": "model",
+        "created": 1754425777,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "gpt-5-mini-2025-08-07",
+      "name": "gpt-5-mini-2025-08-07",
+      "_raw": {
+        "id": "gpt-5-mini-2025-08-07",
+        "object": "model",
+        "created": 1754425867,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "gpt-5-mini",
+      "name": "gpt-5-mini",
+      "_raw": {
+        "id": "gpt-5-mini",
+        "object": "model",
+        "created": 1754425928,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "gpt-5-nano-2025-08-07",
+      "name": "gpt-5-nano-2025-08-07",
+      "_raw": {
+        "id": "gpt-5-nano-2025-08-07",
+        "object": "model",
+        "created": 1754426303,
+        "owned_by": "system"
+      },
+      "supportsVision": true,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "gpt-3.5-turbo-16k",
+      "name": "gpt-3.5-turbo-16k",
+      "_raw": {
+        "id": "gpt-3.5-turbo-16k",
+        "object": "model",
+        "created": 1683758102,
+        "owned_by": "openai-internal"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "tts-1",
+      "name": "tts-1",
+      "_raw": {
+        "id": "tts-1",
+        "object": "model",
+        "created": 1681940951,
+        "owned_by": "openai-internal"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": true,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "whisper-1",
+      "name": "whisper-1",
+      "_raw": {
+        "id": "whisper-1",
+        "object": "model",
+        "created": 1677532384,
+        "owned_by": "openai-internal"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    },
+    {
+      "id": "text-embedding-ada-002",
+      "name": "text-embedding-ada-002",
+      "_raw": {
+        "id": "text-embedding-ada-002",
+        "object": "model",
+        "created": 1671217299,
+        "owned_by": "openai-internal"
+      },
+      "supportsVision": false,
+      "supportsDocuments": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsVideoGeneration": false,
+      "supportsRealtime": false,
+      "supportsImageInput": false
+    }
+  ],
+  "meta": {
+    "discoveredAt": "2025-08-31T17:55:24.116Z"
+  }
+}

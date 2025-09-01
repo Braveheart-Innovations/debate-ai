@@ -1,0 +1,27 @@
+// Curated ModelConfig entries for AI_MODELS['mistral'] (default + recommended)
+{
+      id: 'mistral-large-latest',
+      name: 'mistral-large-latest',
+      description: 'Curated via discovery on 2025-08-31',
+      contextLength: 128000,
+      supportsVision: true,
+      supportsDocuments: true,
+      isDefault: true,
+    },
+{
+      id: 'mistral-medium-latest',
+      name: 'mistral-medium-latest',
+      description: 'Curated via discovery on 2025-08-31',
+      contextLength: 128000,
+      supportsVision: true,
+      supportsDocuments: true,
+    },
+{
+      id: 'pixtral-large-latest',
+      name: 'pixtral-large-latest',
+      description: 'Curated via discovery on 2025-08-31',
+      contextLength: 128000,
+      supportsVision: true,
+      supportsDocuments: true,
+      supportsImageInput: true,
+    },

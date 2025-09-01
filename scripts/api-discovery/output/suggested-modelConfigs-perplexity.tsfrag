@@ -1,0 +1,19 @@
+// Insert the following ModelConfig entries into AI_MODELS['perplexity'] array
+{
+      id: 'sonar',
+      name: 'Sonar',
+      description: 'Discovered via API on 2025-08-31',
+      contextLength: 128000,
+      supportsVision: true,
+      supportsDocuments: true,
+      supportsImageInput: true,
+    },
+{
+      id: 'sonar-pro',
+      name: 'Sonar Pro',
+      description: 'Discovered via API on 2025-08-31',
+      contextLength: 128000,
+      supportsVision: true,
+      supportsDocuments: true,
+      supportsImageInput: true,
+    },

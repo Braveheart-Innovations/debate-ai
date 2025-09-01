@@ -6,6 +6,8 @@ import Animated, {
   useSharedValue,
 } from 'react-native-reanimated';
 import Markdown from 'react-native-markdown-display';
+import { Image, View } from 'react-native';
+import { ImageBubble } from './chat/ImageBubble';
 import { Box } from '../atoms';
 import { Typography } from '../molecules';
 import { StreamingIndicator } from './StreamingIndicator';
@@ -308,9 +310,32 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, s
               );
               return false;
             }}
+            rules={{
+              // Custom image renderer to avoid spreading key in props (RN warning) and to control sizing
+              image: (node: { key?: string; attributes?: { src?: string; href?: string; alt?: string } }) => {
+                const src: string | undefined = node?.attributes?.src || node?.attributes?.href;
+                const alt: string | undefined = node?.attributes?.alt;
+                if (!src) return null;
+                return (
+                  <View key={node?.key || `img_${Math.random()}`} style={{ marginVertical: 8 }}>
+                    <Image
+                      source={{ uri: src }}
+                      style={{ width: '100%', height: 220, borderRadius: 8 }}
+                      resizeMode="cover"
+                      accessible
+                      accessibilityLabel={alt || 'image'}
+                    />
+                  </View>
+                );
+              },
+            }}
           >
             {displayContent ? processMessageContent({ ...message, content: displayContent }) : ''}
           </Markdown>
+          {/* Render image attachments if present */}
+          {!isUser && message.attachments && message.attachments.length > 0 && (
+            <ImageBubble uris={message.attachments.filter(a => a.type === 'image').map(a => a.uri)} />
+          )}
           {isStreaming && (
             <Box style={styles.streamingContainer}>
               <StreamingIndicator 

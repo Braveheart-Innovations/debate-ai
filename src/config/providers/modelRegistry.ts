@@ -9,6 +9,12 @@ export interface ModelDefinition extends ModelConfig {
     functions?: boolean;
     streaming: boolean;
     webSearch?: boolean;
+    imageInput?: boolean;
+    documentInput?: boolean;
+    imageGeneration?: boolean;
+    voiceInput?: boolean;
+    voiceOutput?: boolean;
+    realtime?: boolean;
   };
   releaseDate?: string;
   deprecated?: boolean;

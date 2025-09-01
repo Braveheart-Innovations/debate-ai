@@ -18,25 +18,31 @@ export interface ChatInputBarProps {
   inputText: string;
   onInputChange: (text: string) => void;
   onSend: (messageText?: string, attachments?: MessageAttachment[]) => void;
+  onOpenImageModal?: () => void;
   placeholder?: string;
   disabled?: boolean;
   multiline?: boolean;
   attachmentSupport?: { images: boolean; documents: boolean };
   maxAttachments?: number;
+  imageGenerationEnabled?: boolean;
 }
 
 export const ChatInputBar: React.FC<ChatInputBarProps> = ({
   inputText,
   onInputChange,
   onSend,
+  onOpenImageModal,
   placeholder = "Type a message...",
   disabled = false,
   multiline = true,
   attachmentSupport = { images: false, documents: false },
   maxAttachments = 20, // Claude's limit
+  imageGenerationEnabled = false,
 }) => {
   const { theme } = useTheme();
   const [attachments, setAttachments] = useState<MessageAttachment[]>([]);
+  // keep prompt prefill only in parent modal
+  // Image modal state handled inside ImageGenerationModal; keep only prompt prefill here
   const canSend = (inputText.trim().length > 0 || attachments.length > 0) && !disabled;
   
   const handleSend = () => {
@@ -257,6 +263,26 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
           borderTopColor: theme.colors.border,
         }
       ]}>
+        {imageGenerationEnabled && (
+          <TouchableOpacity
+            style={[
+              styles.attachButton,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+              }
+            ]}
+            onPress={() => {
+              if (onOpenImageModal) onOpenImageModal();
+            }}
+            disabled={disabled}
+          >
+            <RNText style={[
+              styles.attachButtonText,
+              { color: theme.colors.text.primary }
+            ]}>🖼️</RNText>
+          </TouchableOpacity>
+        )}
         {(attachmentSupport.images || attachmentSupport.documents) && (
           <TouchableOpacity
             style={[
@@ -308,6 +334,8 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
           <RNText style={styles.sendButtonText}>↑</RNText>
         </TouchableOpacity>
       </Box>
+
+      {/* Image modal rendered at screen level for consistent overlay */}
     </Box>
   );
 };
@@ -413,5 +441,48 @@ const styles = StyleSheet.create({
   documentName: {
     fontSize: 10,
     textAlign: 'center',
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCard: {
+    width: '90%',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  modalInput: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 8,
+    padding: 8,
+    minHeight: 60,
+    marginBottom: 8,
+  },
+  modalRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
+  },
+  chip: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  modalActions: {
+    marginTop: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
 });

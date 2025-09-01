@@ -1,0 +1,23 @@
+// Curated ModelConfig entries for AI_MODELS['cohere'] (default + recommended)
+{
+      id: 'command-r-plus-08-2024',
+      name: 'command-r-plus-08-2024',
+      description: 'Curated via discovery on 2025-08-31',
+      contextLength: 128000,
+      supportsDocuments: true,
+      isDefault: true,
+    },
+{
+      id: 'command-r7b-12-2024',
+      name: 'command-r7b-12-2024',
+      description: 'Curated via discovery on 2025-08-31',
+      contextLength: 128000,
+      supportsDocuments: true,
+    },
+{
+      id: 'command-light',
+      name: 'command-light',
+      description: 'Curated via discovery on 2025-08-31',
+      contextLength: 128000,
+      supportsDocuments: true,
+    },

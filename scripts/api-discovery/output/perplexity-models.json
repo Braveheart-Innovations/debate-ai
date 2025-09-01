@@ -1,0 +1,32 @@
+{
+  "provider": "perplexity",
+  "models": [
+    {
+      "id": "sonar",
+      "name": "Sonar",
+      "supportsVision": true,
+      "supportsDocuments": true,
+      "supportsImageGeneration": false,
+      "supportsVideoGeneration": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    },
+    {
+      "id": "sonar-pro",
+      "name": "Sonar Pro",
+      "supportsVision": true,
+      "supportsDocuments": true,
+      "supportsImageGeneration": false,
+      "supportsVideoGeneration": false,
+      "supportsVoiceInput": false,
+      "supportsVoiceOutput": false,
+      "supportsRealtime": false,
+      "supportsImageInput": true
+    }
+  ],
+  "meta": {
+    "discoveredAt": "2025-08-31T17:55:24.586Z"
+  }
+}

@@ -3,6 +3,8 @@ import { FlatList, StyleSheet } from 'react-native';
 import { Box } from '../../atoms';
 import { Typography } from '../../molecules';
 import { MessageBubble } from '../MessageBubble';
+import { ImageMessageRow } from './ImageMessageRow';
+import { ImageGeneratingRow } from './ImageGeneratingRow';
 import { useTheme } from '../../../theme';
 import { Message } from '../../../types';
 
@@ -12,6 +14,8 @@ export interface ChatMessageListProps {
   searchTerm?: string;
   onContentSizeChange?: () => void;
   onScrollToSearchResult?: (messageIndex: number) => void;
+  onCancelImage?: (message: Message) => void;
+  onRetryImage?: (message: Message) => void;
 }
 
 export const ChatMessageList: React.FC<ChatMessageListProps> = ({
@@ -20,6 +24,8 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
   searchTerm,
   onContentSizeChange,
   onScrollToSearchResult,
+  onCancelImage,
+  onRetryImage,
 }) => {
   const { theme } = useTheme();
 
@@ -48,13 +54,25 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
     }
   };
 
-  const renderMessage = ({ item, index }: { item: Message; index: number }) => (
-    <MessageBubble 
-      message={item} 
-      isLast={index === messages.length - 1}
-      searchTerm={searchTerm}
-    />
-  );
+  const isUserMessage = (m: Message) => m.senderType === 'user';
+  const renderMessage = ({ item, index }: { item: Message; index: number }) => {
+    const meta = item.metadata as { providerMetadata?: Record<string, unknown> } | undefined;
+    const isGenerating = !!meta?.providerMetadata && meta.providerMetadata['imageGenerating'] === true;
+    if (!isUserMessage(item) && isGenerating) {
+      return <ImageGeneratingRow message={item} onCancel={onCancelImage} onRetry={onRetryImage} />;
+    }
+    const hasImageOnly = (item.attachments && item.attachments.length > 0 && item.attachments.some(a => a.type === 'image')) && (!item.content || item.content.trim() === '');
+    if (!isUserMessage(item) && hasImageOnly) {
+      return <ImageMessageRow message={item} />;
+    }
+    return (
+      <MessageBubble 
+        message={item} 
+        isLast={index === messages.length - 1}
+        searchTerm={searchTerm}
+      />
+    );
+  };
 
   const renderEmptyState = () => (
     <Box style={styles.emptyState}>
