@@ -18,6 +18,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.braveheartinnovations.debateai",
       "googleServicesFile": "./GoogleService-Info.plist",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Symposium AI uses the microphone for realtime voice conversations and speech transcription."
+      },
       "associatedDomains": [
         "applinks:symposium-ai.firebaseapp.com",
         "webcredentials:symposium-ai.firebaseapp.com",
