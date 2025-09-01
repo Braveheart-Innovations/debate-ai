@@ -6,7 +6,13 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../store';
-import { addMessage, setTypingAI } from '../../store';
+import { addMessage, setTypingAI, updateMessage } from '../../store';
+import {
+  startStreaming,
+  updateStreamingContent,
+  endStreaming,
+  streamingError,
+} from '../../store/streamingSlice';
 import { DebateOrchestrator, DebateEvent, DebateStatus } from '../../services/debate';
 import { Message } from '../../types';
 
@@ -64,7 +70,38 @@ export const useDebateFlow = (orchestrator: DebateOrchestrator | null): UseDebat
         setIsDebateEnded(true);
         setIsDebateActive(false);
         break;
-        
+      
+      // Streaming lifecycle events
+      case 'stream_started': {
+        const messageId = String((event.data as { messageId?: string }).messageId || '');
+        const aiProvider = String((event.data as { aiProvider?: string }).aiProvider || '');
+        if (messageId) dispatch(startStreaming({ messageId, aiProvider }));
+        break;
+      }
+      case 'stream_chunk': {
+        const messageId = String((event.data as { messageId?: string }).messageId || '');
+        const chunk = String((event.data as { chunk?: string }).chunk || '');
+        if (messageId && chunk) dispatch(updateStreamingContent({ messageId, chunk }));
+        break;
+      }
+      case 'stream_completed': {
+        const messageId = String((event.data as { messageId?: string }).messageId || '');
+        const finalContent = String((event.data as { finalContent?: string }).finalContent || '');
+        const modelUsed = (event.data as { modelUsed?: string }).modelUsed;
+        if (messageId) {
+          dispatch(endStreaming({ messageId, finalContent }));
+          // Persist final content to the chat store
+          dispatch(updateMessage({ id: messageId, content: finalContent, metadata: modelUsed ? { modelUsed } : {} }));
+        }
+        break;
+      }
+      case 'stream_error': {
+        const messageId = String((event.data as { messageId?: string }).messageId || '');
+        const error = String((event.data as { error?: string }).error || 'Streaming error');
+        if (messageId) dispatch(streamingError({ messageId, error }));
+        break;
+      }
+      
       case 'error_occurred':
         if (event.data.error) {
           const debateError = event.data.error as { message: string };

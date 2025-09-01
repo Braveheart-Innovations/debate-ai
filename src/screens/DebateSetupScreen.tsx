@@ -2,7 +2,8 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSelector, useDispatch } from 'react-redux';
-import { RootState, setAIPersonality, setAIModel, preserveTopic, clearPreservedTopic, setAuthModalVisible } from '../store';
+import { RootState, setAIPersonality, setAIModel, preserveTopic, clearPreservedTopic, setAuthModalVisible, setGlobalStreaming, setStreamingSpeed } from '../store';
+import { setProviderStreamingPreference } from '../store/streamingSlice';
 
 import { Box } from '../components/atoms';
 import { Button } from '../components/molecules';
@@ -45,6 +46,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
   const preservedTopic = useSelector((state: RootState) => state.debateStats.preservedTopic);
   const preservedTopicMode = useSelector((state: RootState) => state.debateStats.preservedTopicMode);
   const isPremium = useSelector((state: RootState) => state.auth.isPremium);
+  const streamingState = useSelector((state: RootState) => state.streaming);
   
   // Pre-debate validation
   const validation = usePreDebateValidation(navigation);
@@ -296,6 +298,81 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
             onNext={handleAINext}
             onBack={() => setCurrentStep('topic')}
           />
+        )}
+        
+        {/* Streaming Settings (per-provider) */}
+        {currentStep === 'ai' && selectedAIs.length > 0 && (
+          <Box
+            style={{
+              marginTop: theme.spacing.lg,
+              padding: theme.spacing.md,
+              borderRadius: 12,
+              backgroundColor: theme.colors.card,
+              borderWidth: 1,
+              borderColor: theme.colors.border,
+            }}
+          >
+            {/* Global streaming toggle */}
+            <Box style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <Button
+                title={streamingState?.globalStreamingEnabled ? 'Streaming: On' : 'Streaming: Off'}
+                onPress={() => dispatch(setGlobalStreaming(!(streamingState?.globalStreamingEnabled ?? true)))}
+                variant={streamingState?.globalStreamingEnabled ? 'primary' : 'secondary'}
+                size="small"
+                style={{ alignSelf: 'flex-start' }}
+              />
+              <Button
+                title={`Speed: ${((streamingState?.streamingSpeed || 'natural') as 'instant' | 'natural' | 'slow').replace(/^(\w)/, (m) => m.toUpperCase())}`}
+                onPress={() => {
+                  if (!streamingState?.globalStreamingEnabled) return;
+                  const current = (streamingState?.streamingSpeed || 'natural') as 'instant' | 'natural' | 'slow';
+                  const next = current === 'instant' ? 'natural' : current === 'natural' ? 'slow' : 'instant';
+                  dispatch(setStreamingSpeed(next));
+                }}
+                variant={streamingState?.globalStreamingEnabled ? 'secondary' : 'ghost'}
+                size="small"
+                disabled={!streamingState?.globalStreamingEnabled}
+              />
+            </Box>
+            {selectedAIs.map(ai => {
+              const providerId = ai.id;
+              const providerPref = streamingState?.streamingPreferences?.[providerId]?.enabled ?? true;
+              const hasVerificationError = !!streamingState?.providerVerificationErrors?.[providerId];
+              const willStream = (streamingState?.globalStreamingEnabled ?? true) && providerPref && !hasVerificationError;
+              const statusText = hasVerificationError
+                ? 'Won’t stream (verification required)'
+                : willStream
+                  ? 'Will stream'
+                  : 'Won’t stream';
+              return (
+                <Box key={providerId} style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingVertical: 8,
+                }}>
+                  <Box>
+                    <Button
+                      title={`${ai.name}: ${statusText}`}
+                      onPress={() => {}}
+                      variant="ghost"
+                      size="small"
+                      disabled
+                    />
+                  </Box>
+                  <Box>
+                    <Button
+                      title={providerPref ? 'Streaming On' : 'Streaming Off'}
+                      onPress={() => dispatch(setProviderStreamingPreference({ providerId, enabled: !providerPref }))}
+                      variant={providerPref ? 'secondary' : 'ghost'}
+                      size="small"
+                      disabled={!!hasVerificationError}
+                    />
+                  </Box>
+                </Box>
+              );
+            })}
+          </Box>
         )}
         
         {/* Step 3: Personality Selection (Premium Only) */}

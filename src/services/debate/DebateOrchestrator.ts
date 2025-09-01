@@ -13,6 +13,8 @@ import { DEBATE_CONSTANTS } from '../../config/debateConstants';
 import { UNIVERSAL_PERSONALITIES } from '../../config/personalities';
 import { StorageService } from '../chat/StorageService';
 import { store } from '../../store';
+import { getStreamingService } from '../streaming/StreamingService';
+import { setProviderVerificationError } from '../../store/streamingSlice';
 
 export interface DebateSession {
   id: string;
@@ -44,7 +46,20 @@ export interface DebateError {
 }
 
 export interface DebateEvent {
-  type: 'message_added' | 'round_changed' | 'voting_started' | 'debate_ended' | 'error_occurred' | 'debate_started' | 'typing_started' | 'typing_stopped' | 'voting_completed';
+  type:
+    | 'message_added'
+    | 'round_changed'
+    | 'voting_started'
+    | 'debate_ended'
+    | 'error_occurred'
+    | 'debate_started'
+    | 'typing_started'
+    | 'typing_stopped'
+    | 'voting_completed'
+    | 'stream_started'
+    | 'stream_chunk'
+    | 'stream_completed'
+    | 'stream_error';
   data: Record<string, unknown>;
   timestamp: number;
 }
@@ -208,13 +223,6 @@ export class DebateOrchestrator {
     this.session.messageCount = messageCount;
     
     try {
-      // Emit typing started
-      this.emitEvent({
-        type: 'typing_started',
-        data: { aiName: currentAI.name },
-        timestamp: Date.now(),
-      });
-      
       // Build contextual prompt
       const personalityId = personalities[currentAI.id] || 'default';
       const contextualPrompt = this.promptBuilder.buildContextualPrompt(
@@ -226,62 +234,184 @@ export class DebateOrchestrator {
         messageCount,
         maxMessages
       );
-      
-      // Get AI response
-      const debateMessages = existingMessages.filter(msg => 
-        msg.timestamp >= (this.session?.startTime || 0)
-      );
-      
-      const response = await this.aiService.sendMessage(
-        currentAI.id,
-        contextualPrompt,
-        debateMessages,
-        true, // isDebateMode
-        undefined, // no resumption context
-        undefined, // no attachments in debate
-        currentAI.model // Pass the specific model for this AI
-      );
-      
-      // Create AI message
-      const personalityName = UNIVERSAL_PERSONALITIES.find(p => p.id === personalityId)?.name || 'Default';
-      const { response: responseText, modelUsed } = response;
-      const aiMessage: Message = {
-        id: `msg_${Date.now()}_${currentAI.id}`,
-        sender: `${currentAI.name} (${personalityName})`,
-        senderType: 'ai',
-        content: responseText,
-        timestamp: Date.now(),
-        metadata: modelUsed ? { modelUsed } : undefined,
-      };
-      
-      // Add message to our tracked messages
-      this.currentMessages = [...existingMessages, aiMessage];
-      
-      // Emit message event
-      this.emitEvent({
-        type: 'message_added',
-        data: { message: aiMessage },
-        timestamp: Date.now(),
-      });
-      
-      // Emit typing stopped
-      this.emitEvent({
-        type: 'typing_stopped',
-        data: { aiName: currentAI.name },
-        timestamp: Date.now(),
-      });
-      
-      // Schedule next round
-      const nextMessageCount = messageCount + 1;
-      if (nextMessageCount <= maxMessages && this.session.status === DebateStatus.ACTIVE) {
-        const nextAIIndex = this.rulesEngine.getNextAIIndex(aiIndex, participants.length);
-        const delay = DEBATE_CONSTANTS.DELAYS.AI_RESPONSE;
-        
-        this.scheduleNextRound(nextAIIndex, nextMessageCount, this.currentMessages, delay);
+
+      // Get debate-only conversation slice
+      const debateMessages = existingMessages.filter(msg => msg.timestamp >= (this.session?.startTime || 0));
+
+      // Prefer streaming if adapter supports it
+      const adapter = this.aiService.getAdapter(currentAI.id);
+      const supportsStreaming = !!adapter?.getCapabilities()?.streaming;
+      // Respect global/provider streaming preferences
+      const streamingState = store.getState().streaming;
+      const providerId = currentAI.id;
+      const providerEnabled = streamingState?.streamingPreferences?.[providerId]?.enabled ?? true;
+      const globalEnabled = streamingState?.globalStreamingEnabled ?? true;
+      const providerHasVerificationError = !!streamingState?.providerVerificationErrors?.[providerId];
+      const streamingAllowed = globalEnabled && providerEnabled && !providerHasVerificationError;
+      const streamSpeed = (streamingState?.streamingSpeed as 'instant' | 'natural' | 'slow') || 'natural';
+
+      if (adapter && supportsStreaming && streamingAllowed) {
+        // Create placeholder message and emit immediately
+        const personalityName = UNIVERSAL_PERSONALITIES.find(p => p.id === personalityId)?.name || 'Default';
+        const placeholderMessage: Message = {
+          id: `msg_${Date.now()}_${currentAI.id}`,
+          sender: `${currentAI.name} (${personalityName})`,
+          senderType: 'ai',
+          content: '',
+          timestamp: Date.now(),
+          metadata: { modelUsed: currentAI.model },
+        };
+
+        const messageId = placeholderMessage.id;
+        this.currentMessages = [...existingMessages, placeholderMessage];
+        this.emitEvent({ type: 'message_added', data: { message: placeholderMessage }, timestamp: Date.now() });
+        this.emitEvent({ type: 'stream_started', data: { messageId, aiProvider: currentAI.id }, timestamp: Date.now() });
+
+        const streamingService = getStreamingService();
+        let finalContent = '';
+        let hadError = false;
+
+        let errorForFallback: string | null = null;
+        await streamingService.streamResponse(
+          {
+            messageId,
+            adapter,
+            message: contextualPrompt,
+            conversationHistory: debateMessages,
+            modelOverride: currentAI.model,
+            speed: streamSpeed,
+          },
+          (chunk: string) => {
+            this.emitEvent({ type: 'stream_chunk', data: { messageId, chunk }, timestamp: Date.now() });
+          },
+          (completeText: string) => {
+            finalContent = completeText;
+            this.emitEvent({ type: 'stream_completed', data: { messageId, finalContent: completeText, modelUsed: currentAI.model }, timestamp: Date.now() });
+          },
+          (err: Error) => {
+            hadError = true;
+            const msg = err?.message || '';
+            errorForFallback = msg;
+            this.emitEvent({ type: 'stream_error', data: { messageId, error: msg }, timestamp: Date.now() });
+          }
+        );
+
+        if (!hadError) {
+          // Update local message content for subsequent prompts/history
+          const updated = { ...placeholderMessage, content: finalContent };
+          this.currentMessages = [...existingMessages, updated];
+        } else {
+          // Determine if we should fallback to non-streaming
+          const msgStr = String(errorForFallback || '');
+          const isVerificationError = (
+            msgStr.includes('organization verification') ||
+            msgStr.includes('Streaming requires organization verification') ||
+            msgStr.includes('must be verified to stream') ||
+            msgStr.includes('Verify Organization')
+          );
+          const lower = msgStr.toLowerCase();
+          const isOverloadError = (
+            lower.includes('overload') ||
+            lower.includes('temporarily busy') ||
+            lower.includes('rate limit')
+          );
+
+          if (isVerificationError) {
+            try {
+              store.dispatch(setProviderVerificationError({ providerId, hasError: true }));
+            } catch { /* ignore */ }
+          }
+
+          if (isVerificationError || isOverloadError) {
+            try {
+              const fallback = await this.aiService.sendMessage(
+                currentAI.id,
+                contextualPrompt,
+                debateMessages,
+                true,
+                undefined,
+                undefined,
+                currentAI.model
+              );
+              const { response: text } = typeof fallback === 'string' ? { response: fallback } : fallback;
+              finalContent = text;
+              // Emit completion to update the placeholder message and end stream state in UI
+              this.emitEvent({ type: 'stream_completed', data: { messageId, finalContent: text, modelUsed: currentAI.model }, timestamp: Date.now() });
+              const updated = { ...placeholderMessage, content: text };
+              this.currentMessages = [...existingMessages, updated];
+            } catch {
+              // As last resort, append a host error message so the flow continues
+              const errorMessage: Message = {
+                id: `msg_${Date.now()}_error`,
+                sender: 'Debate Host',
+                senderType: 'user',
+                content: DEBATE_CONSTANTS.MESSAGES.ERROR(currentAI.name),
+                timestamp: Date.now(),
+              };
+              this.emitEvent({ type: 'message_added', data: { message: errorMessage }, timestamp: Date.now() });
+              this.currentMessages = [...existingMessages, placeholderMessage, errorMessage];
+            }
+          } else {
+            // Non-recoverable error: add a host error message
+            const errorMessage: Message = {
+              id: `msg_${Date.now()}_error`,
+              sender: 'Debate Host',
+              senderType: 'user',
+              content: DEBATE_CONSTANTS.MESSAGES.ERROR(currentAI.name),
+              timestamp: Date.now(),
+            };
+            this.emitEvent({ type: 'message_added', data: { message: errorMessage }, timestamp: Date.now() });
+            this.currentMessages = [...existingMessages, placeholderMessage, errorMessage];
+          }
+        }
+
+        // Schedule next round
+        const nextMessageCount = messageCount + 1;
+        if (nextMessageCount <= maxMessages && this.session.status === DebateStatus.ACTIVE) {
+          const nextAIIndex = this.rulesEngine.getNextAIIndex(aiIndex, participants.length);
+          const delay = DEBATE_CONSTANTS.DELAYS.AI_RESPONSE;
+          this.scheduleNextRound(nextAIIndex, nextMessageCount, this.currentMessages, delay);
+        } else {
+          this.endDebate();
+        }
       } else {
-        this.endDebate();
+        // Non-streaming fallback (retain existing typing behavior)
+        this.emitEvent({ type: 'typing_started', data: { aiName: currentAI.name }, timestamp: Date.now() });
+
+        const response = await this.aiService.sendMessage(
+          currentAI.id,
+          contextualPrompt,
+          debateMessages,
+          true,
+          undefined,
+          undefined,
+          currentAI.model
+        );
+
+        const personalityName = UNIVERSAL_PERSONALITIES.find(p => p.id === personalityId)?.name || 'Default';
+        const { response: responseText, modelUsed } = response;
+        const aiMessage: Message = {
+          id: `msg_${Date.now()}_${currentAI.id}`,
+          sender: `${currentAI.name} (${personalityName})`,
+          senderType: 'ai',
+          content: responseText,
+          timestamp: Date.now(),
+          metadata: modelUsed ? { modelUsed } : undefined,
+        };
+        this.currentMessages = [...existingMessages, aiMessage];
+        this.emitEvent({ type: 'message_added', data: { message: aiMessage }, timestamp: Date.now() });
+        this.emitEvent({ type: 'typing_stopped', data: { aiName: currentAI.name }, timestamp: Date.now() });
+
+        const nextMessageCount = messageCount + 1;
+        if (nextMessageCount <= maxMessages && this.session.status === DebateStatus.ACTIVE) {
+          const nextAIIndex = this.rulesEngine.getNextAIIndex(aiIndex, participants.length);
+          const delay = DEBATE_CONSTANTS.DELAYS.AI_RESPONSE;
+          this.scheduleNextRound(nextAIIndex, nextMessageCount, this.currentMessages, delay);
+        } else {
+          this.endDebate();
+        }
       }
-      
+
     } catch (error) {
       await this.handleDebateError(error as Error, currentAI, aiIndex, messageCount, existingMessages);
     }

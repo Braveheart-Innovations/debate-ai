@@ -15,9 +15,11 @@ import { StyleSheet, Linking } from 'react-native';
 import Markdown from 'react-native-markdown-display';
 import { Box } from '../atoms';
 import { Typography } from './Typography';
+import { StreamingIndicator } from '../organisms/StreamingIndicator';
 import { useTheme } from '../../theme';
 import { Message } from '../../types';
 import { AI_BRAND_COLORS } from '../../constants/aiColors';
+import { useStreamingMessage } from '../../hooks/streaming/useStreamingMessage';
 
 export interface DebateMessageBubbleProps {
   message: Message;
@@ -33,6 +35,7 @@ export const DebateMessageBubble: React.FC<DebateMessageBubbleProps> = React.mem
 }) => {
   const { theme, isDark } = useTheme();
   const isHost = message.sender === 'Debate Host';
+  const { content: streamingContent, isStreaming, cursorVisible, error: streamingError, chunksReceived } = useStreamingMessage(message.id);
   
   
   // Get AI-specific color from the message sender using theme brand colors
@@ -189,8 +192,38 @@ export const DebateMessageBubble: React.FC<DebateMessageBubbleProps> = React.mem
             return false;
           }}
         >
-          {message.content}
+          {(() => {
+            // If streaming error, still prefer showing whatever content exists
+            if (isStreaming) return streamingContent || '';
+            // When not streaming, show the saved message content
+            return message.content;
+          })()}
         </Markdown>
+        {isStreaming && (
+          <Box style={{ marginTop: 4, flexDirection: 'row', alignItems: 'center' }}>
+            {/* Use dots until first chunk arrives, then blink cursor based on state */}
+            {chunksReceived === 0 ? (
+              <StreamingIndicator visible={!streamingError} variant="dots" color={aiColor?.border || theme.colors.text.primary} />
+            ) : (
+              <StreamingIndicator visible={!!(cursorVisible && !streamingError)} variant="cursor" color={aiColor?.border || theme.colors.text.primary} />
+            )}
+          </Box>
+        )}
+        {/* Subtle inline error indicator if stream had an error */}
+        {!isStreaming && streamingError && (
+          <Box style={{ marginTop: 6 }}>
+            <Typography variant="caption" color="secondary" style={{ color: theme.colors.warning[600] }}>
+              {(() => {
+                const err = (streamingError || '').toLowerCase();
+                if (err.includes('overload') || err.includes('temporarily busy')) return '⚠️ Service temporarily busy. Showing finalized response.';
+                if (err.includes('verification')) return '⚠️ Streaming disabled for this provider. Showing full response.';
+                if (err.includes('network') || err.includes('connection')) return '⚠️ Connection issue. Showing finalized response.';
+                return `⚠️ Streaming issue: ${streamingError}`;
+              })()}
+              
+            </Typography>
+          </Box>
+        )}
       </Box>
     </Animated.View>
   );
