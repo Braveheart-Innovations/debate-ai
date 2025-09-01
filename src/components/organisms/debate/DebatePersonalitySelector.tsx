@@ -11,8 +11,8 @@ import { Typography, GradientButton, Button, SectionHeader } from '../../molecul
 import { AIAvatar } from '../AIAvatar';
 import { AIConfig } from '../../../types';
 import { UNIVERSAL_PERSONALITIES } from '../../../config/personalities';
-import { PersonalityService } from '../../../services/debate/PersonalityService';
-import { ScrollView } from 'react-native';
+// PersonalityService removed from this view to simplify UI
+import { } from 'react-native';
 import PersonalityModal from './PersonalityModal';
 
 interface DebatePersonalitySelectorProps {
@@ -63,46 +63,7 @@ export const DebatePersonalitySelector: React.FC<DebatePersonalitySelectorProps>
         icon="🎭"
       />
       
-      {/* Featured Pairings */}
-      {selectedAIs.length === 2 && (
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          style={{ marginBottom: theme.spacing.md }}
-          contentContainerStyle={{ paddingHorizontal: theme.spacing.sm, gap: theme.spacing.xs }}
-        >
-          {PersonalityService.getRecommendedCombinations().slice(0, 4).map((combo) => {
-            const a = UNIVERSAL_PERSONALITIES.find(p => p.id === combo.personalities[0]);
-            const b = UNIVERSAL_PERSONALITIES.find(p => p.id === combo.personalities[1]);
-            if (!a || !b) return null;
-            return (
-              <TouchableOpacity
-                key={`${a.id}-${b.id}`}
-                onPress={() => {
-                  // Apply to the two selected AIs in order
-                  onPersonalityChange(selectedAIs[0].id, a.id);
-                  onPersonalityChange(selectedAIs[1].id, b.id);
-                }}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  paddingHorizontal: 12,
-                  paddingVertical: 8,
-                  backgroundColor: theme.colors.surface,
-                  borderRadius: 16,
-                  borderWidth: 1,
-                  borderColor: theme.colors.border,
-                  marginRight: theme.spacing.xs,
-                }}
-              >
-                <Typography variant="caption" weight="semibold">
-                  {a.name} + {b.name}
-                </Typography>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      )}
+      {/* Removed top suggested pairings to focus on clear personality info */}
       
       {/* Topic & AIs Summary */}
       <View style={{

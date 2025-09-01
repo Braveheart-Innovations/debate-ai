@@ -128,9 +128,9 @@ export class PersonalityService {
         personalities: ['prof_sage', 'brody'],
       },
       {
-        name: 'Empathy vs Scrutiny',
-        description: 'Bestie vs Ivy — warmth vs evidence',
-        personalities: ['bestie', 'skeptic'],
+        name: 'Support vs Challenge',
+        description: 'Bestie vs Devlin — empathy vs stress-test',
+        personalities: ['bestie', 'devlin'],
       },
       {
         name: 'Equanimity vs Pressure-Test',
@@ -138,14 +138,14 @@ export class PersonalityService {
         personalities: ['zen', 'devlin'],
       },
       {
-        name: 'Wit vs Pragmatism',
-        description: 'George vs Jordan — satire vs action plan',
-        personalities: ['george', 'pragmatist'],
+        name: 'Wit vs Structure',
+        description: 'George vs Prof. Sage — satire vs outline',
+        personalities: ['george', 'prof_sage'],
       },
       {
-        name: 'Story vs Evidence',
-        description: 'Scout vs Ivy — narrative vs proof',
-        personalities: ['scout', 'skeptic'],
+        name: 'Story vs Structure',
+        description: 'Scout vs Prof. Sage — narrative vs outline',
+        personalities: ['scout', 'prof_sage'],
       },
     ];
   }
@@ -166,10 +166,10 @@ export class PersonalityService {
     const combination = [personality1.id, personality2.id].sort().join('-');
     const bonusCombinations = [
       'prof_sage-brody',
-      'bestie-skeptic',
+      'bestie-devlin',
       'zen-devlin',
-      'george-pragmatist',
-      'scout-skeptic',
+      'george-prof_sage',
+      'scout-prof_sage',
     ];
 
     if (bonusCombinations.includes(combination)) {
@@ -214,12 +214,10 @@ export class PersonalityService {
       prof_sage: { usage: 28, rating: 4.4, category: 'popular' },
       brody: { usage: 20, rating: 4.1, category: 'popular' },
       bestie: { usage: 18, rating: 4.2, category: 'balanced' },
-      skeptic: { usage: 16, rating: 4.3, category: 'balanced' },
       zen: { usage: 12, rating: 4.4, category: 'unique' },
       scout: { usage: 10, rating: 4.0, category: 'unique' },
       devlin: { usage: 9, rating: 4.1, category: 'unique' },
       george: { usage: 8, rating: 4.0, category: 'unique' },
-      pragmatist: { usage: 8, rating: 4.2, category: 'unique' },
       enforcer: { usage: 5, rating: 3.9, category: 'unique' },
       traditionalist: { usage: 5, rating: 4.0, category: 'unique' },
     };
@@ -266,12 +264,10 @@ export class PersonalityService {
       prof_sage: { formality: 0.8, humor: 0.2, technicality: 0.7, empathy: 0.6 },
       brody: { formality: 0.3, humor: 0.4, technicality: 0.4, empathy: 0.5 },
       bestie: { formality: 0.4, humor: 0.4, technicality: 0.4, empathy: 0.9 },
-      skeptic: { formality: 0.7, humor: 0.2, technicality: 0.8, empathy: 0.5 },
       zen: { formality: 0.6, humor: 0.3, technicality: 0.4, empathy: 0.9 },
       scout: { formality: 0.5, humor: 0.4, technicality: 0.5, empathy: 0.7 },
       devlin: { formality: 0.6, humor: 0.3, technicality: 0.7, empathy: 0.4 },
       george: { formality: 0.5, humor: 0.8, technicality: 0.5, empathy: 0.4 },
-      pragmatist: { formality: 0.6, humor: 0.3, technicality: 0.6, empathy: 0.7 },
       enforcer: { formality: 0.7, humor: 0.2, technicality: 0.7, empathy: 0.4 },
       traditionalist: { formality: 0.7, humor: 0.3, technicality: 0.6, empathy: 0.5 },
     };
@@ -295,12 +291,10 @@ export class PersonalityService {
       prof_sage: { argumentStyle: 'logical', interruption: 0.2, concession: 0.6, aggression: 0.3 },
       brody: { argumentStyle: 'emotional', interruption: 0.5, concession: 0.3, aggression: 0.6 },
       bestie: { argumentStyle: 'emotional', interruption: 0.2, concession: 0.7, aggression: 0.2 },
-      skeptic: { argumentStyle: 'logical', interruption: 0.4, concession: 0.3, aggression: 0.5 },
       zen: { argumentStyle: 'balanced', interruption: 0.1, concession: 0.8, aggression: 0.1 },
       scout: { argumentStyle: 'balanced', interruption: 0.3, concession: 0.5, aggression: 0.4 },
       devlin: { argumentStyle: 'logical', interruption: 0.6, concession: 0.2, aggression: 0.6 },
       george: { argumentStyle: 'emotional', interruption: 0.6, concession: 0.3, aggression: 0.4 },
-      pragmatist: { argumentStyle: 'balanced', interruption: 0.3, concession: 0.5, aggression: 0.4 },
       enforcer: { argumentStyle: 'logical', interruption: 0.6, concession: 0.2, aggression: 0.6 },
       traditionalist: { argumentStyle: 'logical', interruption: 0.3, concession: 0.5, aggression: 0.4 },
     };

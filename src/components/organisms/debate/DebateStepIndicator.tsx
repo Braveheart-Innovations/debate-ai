@@ -43,12 +43,12 @@ export const DebateStepIndicator: React.FC<DebateStepIndicatorProps> = ({
       icon: '🤖',
       description: 'Select 2 AIs',
     },
-    ...(isPremium ? [{
+    {
       id: 'personality' as DebateStep,
       label: 'Personalities',
       icon: '🎭',
-      description: 'Set the tone',
-    }] : []),
+      description: isPremium ? 'Set the tone' : 'Premium feature',
+    },
   ];
 
   const currentStepIndex = steps.findIndex(step => step.id === currentStep);
