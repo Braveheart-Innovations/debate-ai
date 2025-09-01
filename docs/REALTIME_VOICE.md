@@ -10,8 +10,8 @@ This guide documents how to run advanced, low‑latency voice with OpenAI and Go
 - Optional server helpers (ephemeral tokens) are supported, but not required for OpenAI WebRTC.
 
 ## Prerequisites
-- Install Expo WebRTC (for OpenAI WebRTC):
-  - `npx expo install expo-webrtc`
+- Install WebRTC (for OpenAI WebRTC) via Expo:
+  - `npx expo install react-native-webrtc`
 - iOS permissions: ensure `NSMicrophoneUsageDescription` is set (Expo config injects a default if provided in app.json).
 - Android: `RECORD_AUDIO` is requested automatically in the managed workflow.
 
@@ -20,7 +20,7 @@ This guide documents how to run advanced, low‑latency voice with OpenAI and Go
 - Flow (all on device, BYOK):
   1) Read user OpenAI key from SecureStore
   2) POST `https://api.openai.com/v1/realtime/sessions` (Authorization: Bearer <user key>) to mint an ephemeral session
-  3) Create RTCPeerConnection via `expo-webrtc`, add microphone track
+  3) Create RTCPeerConnection via `react-native-webrtc`, add microphone track
   4) Create offer, POST SDP to `https://api.openai.com/v1/realtime?model=...` (Authorization: Bearer <ephemeral>)
   5) Apply SDP answer and start duplex audio
 - UI: In Voice modal, toggle “Advanced (Realtime)” to use WebRTC; Whisper STT is the fallback.
@@ -64,11 +64,10 @@ This guide documents how to run advanced, low‑latency voice with OpenAI and Go
   - Connect with `GeminiRealtimeService` using `?access_token=<token>` and send `setup`
 
 ## Troubleshooting
-- Expo Go cannot load `expo-webrtc`; use a custom dev client or release build
+- Expo Go cannot load WebRTC; use a custom dev client or release build (react-native-webrtc)
 - If RTC offer/answer fails, confirm ephemeral token is valid and `OpenAI-Beta: realtime=v1` (OpenAI) or correct Gemini endpoint is used
 - For Gemini audio, ensure you resample to 16k PCM16 LE mono for input and handle 24k output
 
 ## Security Notes
 - BYOK: user keys are stored on device in SecureStore and never shared
 - For Gemini, use ephemeral tokens minted by a trusted backend; never embed master keys in the app
-

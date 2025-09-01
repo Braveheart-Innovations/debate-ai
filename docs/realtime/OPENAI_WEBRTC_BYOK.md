@@ -15,13 +15,13 @@ BYOK Considerations
 - Keys never leave the device except to talk to OpenAI; none are stored on your servers.
 
 What’s in this repo
-- Service scaffold: src/services/voice/OpenAIWebRTCService.ts
+- Service: src/services/voice/OpenAIWebRTCService.ts
   - mintEphemeralSession() — implemented
-  - startWebRTC() — placeholder until react-native-webrtc is added
+  - startWebRTC() — implemented using react-native-webrtc
 - Dev script: scripts/realtime/check-openai-webrtc-session.mjs to validate session minting.
 
 Next Steps to Enable in App
-- Add react-native-webrtc (or Expo’s equivalent) and implement OpenAIWebRTCService.startWebRTC():
+- Add react-native-webrtc and use OpenAIWebRTCService.startWebRTC():
   - Create RTCPeerConnection; set audio constraints for AEC/NS/AGC.
   - Attach mic; create data channel; create offer.
   - POST offer SDP with Authorization: Bearer <ephemeral>; set answer.
@@ -35,4 +35,3 @@ Tool/Function Calling (Advanced Mode)
 Testing
 - Run check‑openai-webrtc-session.mjs with OPENAI_API_KEY to confirm session minting.
 - Add a small dev screen to attempt offer/answer once webrtc is installed.
-

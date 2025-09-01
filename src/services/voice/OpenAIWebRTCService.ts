@@ -7,7 +7,7 @@
 // 5) Set remote description from response; start duplex audio
 
 import APIKeyService from '../APIKeyService';
-import { RTCPeerConnection, RTCSessionDescription, mediaDevices } from 'expo-webrtc';
+import { RTCPeerConnection, RTCSessionDescription, mediaDevices } from 'react-native-webrtc';
 
 export interface EphemeralSession {
   client_secret?: { value: string; expires_at?: string };
