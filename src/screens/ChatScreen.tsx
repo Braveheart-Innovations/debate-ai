@@ -8,8 +8,12 @@ import { getAttachmentSupport } from '../utils/attachmentUtils';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, addMessage, updateMessage } from '../store';
 import { ImageService } from '../services/images/ImageService';
-import { getProviderCapabilities } from '../config/providerCapabilities';
+// import { getProviderCapabilities } from '../config/providerCapabilities';
+import { useMergedModalityAvailability } from '../hooks/multimodal/useModalityAvailability';
 import { ImageGenerationModal } from '../components/organisms/chat/ImageGenerationModal';
+import { VideoGenerationModal } from '../components/organisms/chat/VideoGenerationModal';
+import APIKeyService from '../services/APIKeyService';
+import VideoService from '../services/videos/VideoService';
 
 // Chat-specific hooks
 import {
@@ -79,34 +83,33 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
   const aiResponses = useAIResponsesWithStreaming(resuming);
   const quickStart = useQuickStart({ initialPrompt, userPrompt, autoSend });
 
-  const imageGenerationEnabled = session.selectedAIs.some(ai => getProviderCapabilities(ai.provider).imageGeneration?.supported);
+  const availability = useMergedModalityAvailability(
+    session.selectedAIs.map(ai => ({ provider: ai.provider, model: ai.model }))
+  );
+  const imageGenerationEnabled = availability.imageGeneration.supported;
   const controllersRef = React.useRef<Record<string, AbortController>>({});
   const [imageModalVisible, setImageModalVisible] = React.useState(false);
   const [imageModalPrompt, setImageModalPrompt] = React.useState('');
+  const [videoModalVisible, setVideoModalVisible] = React.useState(false);
 
   const handleGenerateImage = async (opts: { prompt: string; size: 'auto' | 'square' | 'portrait' | 'landscape' }, reuseMessageId?: string) => {
     try {
       const providerAI = session.selectedAIs.find(ai => ai.provider === 'openai') || session.selectedAIs[0];
       const apiKey = apiKeys.openai;
-      if (!apiKey) {
-        throw new Error('OpenAI API key not configured');
-      }
-      // Placeholder message
+      if (!apiKey) throw new Error('OpenAI API key not configured');
       const messageId = reuseMessageId || `msg_${Date.now()}_${providerAI.id}`;
       if (!reuseMessageId) {
-        const placeholder = {
+        dispatch(addMessage({
           id: messageId,
           sender: providerAI.name,
-          senderType: 'ai' as const,
+          senderType: 'ai',
           content: 'Generating image…',
           timestamp: Date.now(),
           metadata: { providerMetadata: { imageGenerating: true, imagePhase: 'sending', imageStartTime: Date.now(), imageParams: { size: opts.size, prompt: opts.prompt } } }
-        };
-        dispatch(addMessage(placeholder));
+        }));
       } else {
         dispatch(updateMessage({ id: messageId, content: 'Generating image…', attachments: [], metadata: { providerMetadata: { imageGenerating: true, imagePhase: 'sending', imageStartTime: Date.now(), imageParams: { size: opts.size, prompt: opts.prompt } } } }));
       }
-      // Map UI sizes to OpenAI sizes
       const sizeMap: Record<typeof opts.size, 'auto' | '1024x1024' | '1024x1536' | '1536x1024'> = {
         auto: 'auto',
         square: '1024x1024',
@@ -115,14 +118,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
       };
       const controller = new AbortController();
       controllersRef.current[messageId] = controller;
-      const images = await ImageService.generateImage({
-        provider: 'openai',
-        apiKey,
-        prompt: opts.prompt,
-        size: sizeMap[opts.size],
-        n: 1,
-        signal: controller.signal,
-      });
+      const images = await ImageService.generateImage({ provider: 'openai', apiKey, prompt: opts.prompt, size: sizeMap[opts.size], n: 1, signal: controller.signal });
       const img = images[0];
       const uri = img.url ? img.url : (img.b64 ? `data:${img.mimeType};base64,${img.b64}` : undefined);
       if (uri) {
@@ -132,9 +128,8 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
-      // Update placeholder with error state
-      // messageId is defined above
-      dispatch(updateMessage({ id: reuseMessageId || Object.keys(controllersRef.current).slice(-1)[0] as string, content: `Failed to generate image: ${errorMsg}`, attachments: [], metadata: { providerMetadata: { imageGenerating: false, imagePhase: 'error' } } }));
+      const lastId = Object.keys(controllersRef.current).slice(-1)[0] as string;
+      dispatch(updateMessage({ id: reuseMessageId || lastId, content: `Failed to generate image: ${errorMsg}`, attachments: [], metadata: { providerMetadata: { imageGenerating: false, imagePhase: 'error' } } }));
     }
   };
 
@@ -147,6 +142,24 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
   const handleRetryImage = (message: Message) => {
     const meta = message.metadata as { providerMetadata?: { imageParams?: { size?: 'auto' | 'square' | 'portrait' | 'landscape'; prompt?: string } } } | undefined;
     const params = meta?.providerMetadata?.imageParams || { prompt: '', size: 'square' as const };
+
+  /* const handleGenerateVideo = async (opts: { prompt: string; resolution: '720p' | '1080p'; duration: 5 | 10 | 15 }) => {
+    try {
+      const providerAI = session.selectedAIs[0];
+      const apiKey = await APIKeyService.getKey(providerAI.provider);
+      if (!apiKey) throw new Error(`${providerAI.provider} API key not configured`);
+      const videos = await VideoService.generateVideo({ provider: providerAI.provider as any, apiKey, prompt: opts.prompt, resolution: opts.resolution, duration: opts.duration });
+      if (videos && videos.length > 0) {
+        const messageId = `msg_${Date.now()}_${providerAI.id}`;
+        const v = videos[0];
+        dispatch(addMessage({ id: messageId, sender: providerAI.name, senderType: 'ai', content: '', timestamp: Date.now(), attachments: [{ type: 'video', uri: v.uri, mimeType: v.mimeType }] }));
+      }
+    } catch (e) {
+      const err = e instanceof Error ? e.message : 'Video generation failed';
+      alert(err);
+    }
+  };
+
     if (!params.prompt) return;
     handleGenerateImage({ prompt: params.prompt, size: params.size || 'square' }, message.id);
   };
@@ -319,6 +332,20 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
           attachmentSupport={getAttachmentSupport(session.selectedAIs)}
           maxAttachments={20}
           imageGenerationEnabled={imageGenerationEnabled}
+          modalityAvailability={{
+            imageUpload: availability.imageUpload.supported,
+            documentUpload: availability.documentUpload.supported,
+            imageGeneration: availability.imageGeneration.supported,
+            videoGeneration: availability.videoGeneration.supported,
+            voice: availability.voiceInput.supported,
+          }}
+          modalityReasons={{
+            imageUpload: availability.imageUpload.supported ? undefined : 'Selected model(s) do not support image input',
+            documentUpload: availability.documentUpload.supported ? undefined : 'Selected model(s) do not support document/PDF input',
+            imageGeneration: availability.imageGeneration.supported ? undefined : 'Selected provider(s) do not support image generation',
+            videoGeneration: availability.videoGeneration.supported ? undefined : 'Selected provider(s) do not support video generation',
+            voice: availability.voiceInput.supported ? undefined : 'Selected model(s) do not support voice input',
+          }}
         />
         <ImageGenerationModal
           visible={imageModalVisible}
@@ -329,6 +356,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
             handleGenerateImage(opts);
           }}
         />
+        <VideoGenerationModal visible={videoModalVisible} onClose={() => setVideoModalVisible(false)} onGenerate={() => { setVideoModalVisible(false); alert('Video generation coming soon'); }} />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

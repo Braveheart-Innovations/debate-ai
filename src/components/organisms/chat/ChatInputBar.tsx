@@ -1,30 +1,29 @@
 import React, { useState } from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, Text as RNText, ScrollView, Image, Alert } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import * as DocumentPicker from 'expo-document-picker';
+import { StyleSheet, TextInput, TouchableOpacity, Text as RNText, ScrollView, Image } from 'react-native';
+import MultimodalButton from '../../molecules/MultimodalButton';
+import { ImageUploadModal } from './ImageUploadModal';
+import { DocumentUploadModal } from './DocumentUploadModal';
+import { VoiceModal } from './VoiceModal';
 import { Box } from '../../atoms';
 import { useTheme } from '../../../theme';
 import { MessageAttachment } from '../../../types';
-import { processImageForClaude, getReadableFileSize } from '../../../utils/imageProcessing';
-import { 
-  processDocumentForClaude, 
-  isSupportedDocumentType,
-  validateDocumentSize,
-  getDocumentIcon,
-  getFileExtensionFromMimeType
-} from '../../../utils/documentProcessing';
+import { getReadableFileSize } from '../../../utils/imageProcessing';
+import { getDocumentIcon, getFileExtensionFromMimeType } from '../../../utils/documentProcessing';
 
 export interface ChatInputBarProps {
   inputText: string;
   onInputChange: (text: string) => void;
   onSend: (messageText?: string, attachments?: MessageAttachment[]) => void;
   onOpenImageModal?: () => void;
+  onOpenVideoModal?: () => void;
   placeholder?: string;
   disabled?: boolean;
   multiline?: boolean;
   attachmentSupport?: { images: boolean; documents: boolean };
   maxAttachments?: number;
   imageGenerationEnabled?: boolean;
+  modalityAvailability?: { imageUpload: boolean; documentUpload: boolean; imageGeneration: boolean; videoGeneration: boolean; voice: boolean };
+  modalityReasons?: { imageUpload?: string; documentUpload?: string; imageGeneration?: string; videoGeneration?: string; voice?: string };
 }
 
 export const ChatInputBar: React.FC<ChatInputBarProps> = ({
@@ -32,15 +31,21 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
   onInputChange,
   onSend,
   onOpenImageModal,
+  onOpenVideoModal,
   placeholder = "Type a message...",
   disabled = false,
   multiline = true,
   attachmentSupport = { images: false, documents: false },
   maxAttachments = 20, // Claude's limit
   imageGenerationEnabled = false,
+  modalityAvailability,
+  modalityReasons,
 }) => {
   const { theme } = useTheme();
   const [attachments, setAttachments] = useState<MessageAttachment[]>([]);
+  const [showImageUpload, setShowImageUpload] = useState(false);
+  const [showDocUpload, setShowDocUpload] = useState(false);
+  const [showVoice, setShowVoice] = useState(false);
   // keep prompt prefill only in parent modal
   // Image modal state handled inside ImageGenerationModal; keep only prompt prefill here
   const canSend = (inputText.trim().length > 0 || attachments.length > 0) && !disabled;
@@ -52,136 +57,11 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
     }
   };
   
-  const pickAttachment = async () => {
-    if (attachments.length >= maxAttachments) {
-      Alert.alert('Limit Reached', `Maximum ${maxAttachments} attachments allowed per message`);
-      return;
-    }
-    
-    // Show action sheet based on what's supported
-    const options = [];
-    if (attachmentSupport.documents) {
-      options.push({
-        text: 'Document',
-        onPress: pickDocument,
-      });
-    }
-    if (attachmentSupport.images) {
-      options.push({
-        text: 'Image', 
-        onPress: pickImage,
-      });
-    }
-    options.push({
-      text: 'Cancel',
-      style: 'cancel' as const,
-    });
-    
-    Alert.alert(
-      'Add Attachment',
-      'What would you like to attach?',
-      options,
-      { cancelable: true }
-    );
-  };
+  // (legacy attachment sheet removed; now handled via MultimodalButton)
   
-  const pickDocument = async () => {
-    if (attachments.length >= maxAttachments) {
-      Alert.alert('Limit Reached', `Maximum ${maxAttachments} attachments allowed per message`);
-      return;
-    }
-    
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: '*/*', // Allow all file types, we'll validate later
-        copyToCacheDirectory: true,
-        multiple: false, // expo-document-picker doesn't support multiple selection
-      });
-      
-      if (result.canceled || !result.assets || result.assets.length === 0) {
-        return;
-      }
-      
-      const asset = result.assets[0];
-      
-      // Validate document type
-      if (!isSupportedDocumentType(asset.mimeType || '')) {
-        Alert.alert(
-          'Unsupported File Type',
-          'Please select a PDF, TXT, MD, CSV, JSON, XML, HTML, DOCX, XLSX, or PPTX file.'
-        );
-        return;
-      }
-      
-      // Validate file size
-      if (asset.size) {
-        const sizeValidation = validateDocumentSize(asset.size);
-        if (!sizeValidation.valid) {
-          Alert.alert('File Too Large', sizeValidation.error || 'File exceeds size limit');
-          return;
-        }
-      }
-      
-      // Process document
-      const processed = await processDocumentForClaude(
-        asset.uri,
-        asset.mimeType || 'application/octet-stream',
-        asset.name
-      );
-      
-      setAttachments([...attachments, processed]);
-    } catch (error) {
-      Alert.alert('Error', `Failed to pick document: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  };
   
-  const pickImage = async () => {
-    if (attachments.length >= maxAttachments) {
-      Alert.alert('Limit Reached', `Maximum ${maxAttachments} attachments allowed per message`);
-      return;
-    }
-    
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsMultipleSelection: true,
-        quality: 0.9,
-        base64: true,
-      });
-      
-      if (!result.canceled && result.assets) {
-        const newAttachments: MessageAttachment[] = [];
-        
-        for (const asset of result.assets) {
-          if (attachments.length + newAttachments.length >= maxAttachments) break;
-          
-          try {
-            // Process image for Claude
-            const processed = await processImageForClaude(
-              asset.uri,
-              asset.mimeType || 'image/jpeg',
-              asset.fileName || undefined
-            );
-            
-            newAttachments.push({
-              type: 'image',
-              uri: asset.uri,
-              mimeType: asset.mimeType || 'image/jpeg',
-              base64: processed.base64,
-              fileName: asset.fileName || undefined,
-              fileSize: processed.fileSize,
-            });
-          } catch (error) {
-            Alert.alert('Error', `Failed to process image: ${error instanceof Error ? error.message : 'Unknown error'}`);
-          }
-        }
-        
-        setAttachments([...attachments, ...newAttachments]);
-      }
-    } catch (error) {
-      Alert.alert('Error', `Failed to pick image: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  };
+  
+  
   
   const removeAttachment = (index: number) => {
     setAttachments(attachments.filter((_, i) => i !== index));
@@ -263,43 +143,28 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
           borderTopColor: theme.colors.border,
         }
       ]}>
-        {imageGenerationEnabled && (
-          <TouchableOpacity
-            style={[
-              styles.attachButton,
-              {
-                backgroundColor: theme.colors.surface,
-                borderColor: theme.colors.border,
-              }
-            ]}
-            onPress={() => {
-              if (onOpenImageModal) onOpenImageModal();
+        {(((modalityAvailability?.imageUpload ?? attachmentSupport.images)
+          || (modalityAvailability?.documentUpload ?? attachmentSupport.documents)
+          || (modalityAvailability?.imageGeneration ?? imageGenerationEnabled)
+          || (modalityAvailability?.videoGeneration ?? false))) && (
+          <MultimodalButton
+            disabled={disabled}
+            availability={{
+              imageUpload: modalityAvailability?.imageUpload ?? attachmentSupport.images,
+              documentUpload: modalityAvailability?.documentUpload ?? attachmentSupport.documents,
+              imageGeneration: modalityAvailability?.imageGeneration ?? imageGenerationEnabled,
+              videoGeneration: modalityAvailability?.videoGeneration ?? false,
+              voice: modalityAvailability?.voice ?? false,
             }}
-            disabled={disabled}
-          >
-            <RNText style={[
-              styles.attachButtonText,
-              { color: theme.colors.text.primary }
-            ]}>🖼️</RNText>
-          </TouchableOpacity>
-        )}
-        {(attachmentSupport.images || attachmentSupport.documents) && (
-          <TouchableOpacity
-            style={[
-              styles.attachButton,
-              {
-                backgroundColor: theme.colors.surface,
-                borderColor: theme.colors.border,
-              }
-            ]}
-            onPress={pickAttachment}
-            disabled={disabled}
-          >
-            <RNText style={[
-              styles.attachButtonText,
-              { color: theme.colors.text.primary }
-            ]}>📎</RNText>
-          </TouchableOpacity>
+            availabilityReasons={modalityReasons}
+            onSelect={(key) => {
+              if (key === 'imageUpload') setShowImageUpload(true);
+              else if (key === 'documentUpload') setShowDocUpload(true);
+              else if (key === 'imageGeneration') onOpenImageModal?.();
+              else if (key === 'videoGeneration') onOpenVideoModal?.();
+              else if (key === 'voice') setShowVoice(true);
+            }}
+          />
         )}
         
         <TextInput
@@ -335,7 +200,25 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
         </TouchableOpacity>
       </Box>
 
-      {/* Image modal rendered at screen level for consistent overlay */}
+      {/* Multimodal modals */}
+      <ImageUploadModal
+        visible={showImageUpload}
+        onClose={() => setShowImageUpload(false)}
+        onUpload={(atts) => setAttachments(prev => { const combined = [...prev, ...atts]; return combined.slice(0, maxAttachments); })}
+      />
+      <DocumentUploadModal
+        visible={showDocUpload}
+        onClose={() => setShowDocUpload(false)}
+        onUpload={(atts) => setAttachments(prev => { const combined = [...prev, ...atts]; return combined.slice(0, maxAttachments); })}
+      />
+      <VoiceModal
+        visible={showVoice}
+        onClose={() => setShowVoice(false)}
+        onTranscribed={(text) => {
+          onInputChange(text);
+          setShowVoice(false);
+        }}
+      />
     </Box>
   );
 };

@@ -67,7 +67,7 @@ export interface MessageMetadata {
 }
 
 export interface MessageAttachment {
-  type: 'image' | 'document';
+  type: 'image' | 'document' | 'video';
   uri: string;
   mimeType: string;
   base64?: string;

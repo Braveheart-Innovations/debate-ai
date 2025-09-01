@@ -6,7 +6,7 @@ import { ModelSelector } from './ModelSelector';
 import { ParameterSlider } from './ParameterSlider';
 import { useTheme } from '../../theme';
 import { 
-  AI_MODELS,
+  getProviderModels,
   ModelParameters,
   DEFAULT_PARAMETERS,
   PARAMETER_RANGES,
@@ -35,7 +35,7 @@ export const ProviderExpertSettings: React.FC<ProviderExpertSettingsProps> = ({
   onParameterChange,
 }) => {
   const { theme } = useTheme();
-  const models = AI_MODELS[providerId] || [];
+  const models = getProviderModels(providerId) || [];
   const supportedParams = PROVIDER_SUPPORTED_PARAMS[providerId] || [];
   
   const handleReset = () => {

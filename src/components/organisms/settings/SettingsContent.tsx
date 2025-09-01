@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
-import { RootState, setGlobalStreaming, setStreamingSpeed } from '../../../store';
+import { RootState, setGlobalStreaming, setStreamingSpeed, setPremiumStatus } from '../../../store';
 import { Typography } from '../../molecules/Typography';
 import { SheetHeader } from '../../molecules/SheetHeader';
 import { SettingRow } from '../../molecules/SettingRow';
@@ -24,6 +24,7 @@ export const SettingsContent: React.FC<SettingsContentProps> = ({
   const dispatch = useDispatch();
   const streamingEnabled = useSelector((state: RootState) => state.streaming?.globalStreamingEnabled ?? true);
   const streamingSpeed = useSelector((state: RootState) => state.streaming?.streamingSpeed ?? 'natural');
+  const isPremium = useSelector((state: RootState) => state.auth.isPremium);
   
   const themeSettings = useThemeSettings();
 
@@ -81,6 +82,20 @@ export const SettingsContent: React.FC<SettingsContentProps> = ({
       </View>
       
       <View style={[styles.section, { backgroundColor: theme.colors.surface }]}>
+        <SettingRow
+          title="Premium Mode"
+          subtitle={isPremium ? 'Premium features unlocked' : 'Simulate premium to test UI'}
+          icon="star"
+          rightElement={
+            <Button
+              title={isPremium ? 'On' : 'Off'}
+              onPress={() => dispatch(setPremiumStatus(!isPremium))}
+              variant={isPremium ? 'primary' : 'secondary'}
+              size="small"
+            />
+          }
+        />
+        
         <SettingRow
           title="Dark Mode"
           subtitle="Easier on the eyes at night"

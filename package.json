@@ -38,7 +38,9 @@
     "axios": "^1.11.0",
     "expo": "~53.0.20",
     "expo-apple-authentication": "~7.2.4",
+    "expo-av": "~14.0.4",
     "expo-auth-session": "~6.2.1",
+    "expo-media-library": "~16.0.4",
     "expo-blur": "^14.1.5",
     "expo-clipboard": "^7.1.5",
     "expo-constants": "~17.1.7",
@@ -84,4 +86,4 @@
     "typescript-eslint": "^8.39.0"
   },
   "private": true
-}
+  }

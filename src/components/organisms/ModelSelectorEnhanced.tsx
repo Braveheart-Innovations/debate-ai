@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { View, TouchableOpacity, ScrollView, Modal, Dimensions } from 'react-native';
-// import { useSelector } from 'react-redux';
-// import { RootState } from '../../store';
+import { useSelector, useDispatch } from 'react-redux';
+import { RootState, showSheet } from '../../store';
 import { Typography, Badge } from '../molecules';
 import { useTheme } from '../../theme';
-import { AI_MODELS } from '../../config/modelConfigs';
+import { getProviderModels } from '../../config/modelConfigs';
 import { MODEL_PRICING } from '../../config/modelPricing';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeIn } from 'react-native-reanimated';
@@ -29,24 +29,21 @@ export const ModelSelectorEnhanced: React.FC<ModelSelectorEnhancedProps> = ({
   aiName = '',
 }) => {
   const { theme } = useTheme();
-  // const user = useSelector((state: RootState) => state.user.currentUser);
-  // const isPremium = user?.subscription === 'pro' || user?.subscription === 'business';
-  // TESTING: Premium checks disabled
+  const dispatch = useDispatch();
+  const isPremium = useSelector((state: RootState) => state.auth.isPremium);
   
   const [isModalVisible, setIsModalVisible] = useState(false);
   
   const models = useMemo(() => {
-    return AI_MODELS[providerId] || [];
+    return getProviderModels(providerId) || [];
   }, [providerId]);
   
   const selectedModelInfo = useMemo(() => {
     return models.find(m => m.id === selectedModel);
   }, [models, selectedModel]);
   
-  const canSelectModel = (_model: typeof models[0]) => {
-    // TESTING: Premium checks disabled - all models available
-    // if (!isPremium && model.isPremium) return false;
-    return true;
+  const canSelectModel = (model: typeof models[0]) => {
+    return isPremium || !model.isPremium;
   };
   
   const handleModelSelect = (modelId: string) => {
@@ -255,6 +252,29 @@ export const ModelSelectorEnhanced: React.FC<ModelSelectorEnhancedProps> = ({
                   );
                 })}
               </ScrollView>
+
+              {/* Upsell CTA for free users when premium models exist */}
+              {!isPremium && models.some(m => m.isPremium) && (
+                <View style={{ paddingHorizontal: theme.spacing.md, paddingBottom: theme.spacing.md }}>
+                  <Typography variant="caption" color="secondary" style={{ marginBottom: 8 }}>
+                    Premium models offer better quality and features.
+                  </Typography>
+                  <TouchableOpacity
+                    onPress={() => dispatch(showSheet({ sheet: 'settings' }))}
+                    style={{
+                      alignSelf: 'flex-start',
+                      backgroundColor: theme.colors.primary[500],
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      borderRadius: 8,
+                    }}
+                  >
+                    <Typography variant="body" weight="semibold" style={{ color: '#fff' }}>
+                      Upgrade to unlock
+                    </Typography>
+                  </TouchableOpacity>
+                </View>
+              )}
             </Animated.View>
           </View>
         </Modal>

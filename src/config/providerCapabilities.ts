@@ -8,6 +8,12 @@ export interface ProviderCapabilities {
     sizes?: string[];
     maxPromptLength?: number;
   };
+  videoGeneration?: {
+    supported: boolean;
+    models?: string[];
+    resolutions?: string[];
+    maxPromptLength?: number;
+  };
 }
 
 export function getProviderCapabilities(provider: AIProvider): ProviderCapabilities {
@@ -25,6 +31,12 @@ export function getProviderCapabilities(provider: AIProvider): ProviderCapabilit
           ],
           maxPromptLength: 4000,
         },
+        videoGeneration: {
+          supported: true,
+          models: ['gpt-video-1'],
+          resolutions: ['720p', '1080p'],
+          maxPromptLength: 4000,
+        },
       };
     case 'google':
       return {
@@ -37,6 +49,9 @@ export function getProviderCapabilities(provider: AIProvider): ProviderCapabilit
           ],
           maxPromptLength: 4000,
         },
+        videoGeneration: {
+          supported: false,
+        },
       };
     case 'grok':
       return {
@@ -46,6 +61,7 @@ export function getProviderCapabilities(provider: AIProvider): ProviderCapabilit
           sizes: [IMAGE_GENERATION_CONSTANTS.SIZES.SQUARE_1024],
           maxPromptLength: 4000,
         },
+        videoGeneration: { supported: false },
       };
     default:
       return { imageGeneration: { supported: false } };

@@ -11,6 +11,7 @@ import {
   CompareUserMessage 
 } from '../components/organisms';
 import { ChatInputBar } from '../components/organisms/chat';
+import { useMergedModalityAvailability } from '../hooks/multimodal/useModalityAvailability';
 
 import { useTheme } from '../theme';
 import { useAIService } from '../providers/AIServiceProvider';
@@ -335,6 +336,17 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
   }, [saveComparisonSession, navigation]);
   
   const isProcessing = leftTyping || rightTyping;
+  const selectedList = (() => {
+    if (!leftAI || !rightAI) return [] as any[];
+    if (viewMode === 'left-only' || continuedSide === 'left') return [{ provider: leftAI.provider, model: (selectedModels[leftAI.id] || leftAI.model) }];
+    if (viewMode === 'right-only' || continuedSide === 'right') return [{ provider: rightAI.provider, model: (selectedModels[rightAI.id] || rightAI.model) }];
+    return [
+      { provider: leftAI.provider, model: selectedModels[leftAI.id] || leftAI.model },
+      { provider: rightAI.provider, model: selectedModels[rightAI.id] || rightAI.model },
+    ];
+  })();
+  const availability = useMergedModalityAvailability(selectedList as any);
+  const imageGenerationEnabled = availability.imageGeneration.supported;
   
   // Navigate back if AIs are not provided (must be after all hooks)
   if (!leftAI || !rightAI) {
@@ -412,6 +424,21 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
               "Ask both AIs..."
             }
             disabled={isProcessing}
+            imageGenerationEnabled={imageGenerationEnabled}
+            modalityAvailability={{
+              imageUpload: availability.imageUpload.supported,
+              documentUpload: availability.documentUpload.supported,
+              imageGeneration: availability.imageGeneration.supported,
+              videoGeneration: availability.videoGeneration.supported,
+              voice: availability.voiceInput.supported,
+            }}
+            modalityReasons={{
+              imageUpload: availability.imageUpload.supported ? undefined : 'Selected model(s) do not support image input',
+              documentUpload: availability.documentUpload.supported ? undefined : 'Selected model(s) do not support document/PDF input',
+              imageGeneration: availability.imageGeneration.supported ? undefined : 'Selected provider(s) do not support image generation',
+              videoGeneration: availability.videoGeneration.supported ? undefined : 'Selected provider(s) do not support video generation',
+              voice: availability.voiceInput.supported ? undefined : 'Selected model(s) do not support voice input',
+            }}
           />
         </SafeAreaView>
       </SafeAreaView>
