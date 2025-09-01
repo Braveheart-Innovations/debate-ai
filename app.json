@@ -29,7 +29,6 @@
       ]
     },
     "android": {
-      "newArchEnabled": false,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1A1A1A"
@@ -46,6 +45,15 @@
       "@react-native-firebase/app",
       "@react-native-firebase/auth",
       "@react-native-google-signin/google-signin",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "newArchEnabled": true,
+            "ndkVersion": "26.1.10909125"
+          }
+        }
+      ],
       "expo-dev-client"
     ]
   }
