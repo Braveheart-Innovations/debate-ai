@@ -183,6 +183,7 @@ interface SettingsState {
     perplexity?: string;
     [key: string]: string | undefined; // Allow any provider
   };
+  realtimeRelayUrl?: string; // Optional WS relay URL for OpenAI Realtime (WS path)
   verifiedProviders: string[]; // List of provider IDs that have been verified
   verificationTimestamps: {
     [key: string]: number; // Unix timestamp of when each provider was verified
@@ -202,6 +203,7 @@ const initialSettingsState: SettingsState = {
   theme: 'auto',
   fontSize: 'medium',
   apiKeys: {},
+  realtimeRelayUrl: undefined,
   verifiedProviders: [],
   verificationTimestamps: {},
   verificationModels: {},
@@ -237,6 +239,9 @@ const settingsSlice = createSlice({
         }
       });
       state.verifiedProviders = state.verifiedProviders.filter(p => !verifiedToRemove.includes(p));
+    },
+    setRealtimeRelayUrl: (state, action: PayloadAction<string | undefined>) => {
+      state.realtimeRelayUrl = action.payload?.trim() || undefined;
     },
     setVerifiedProviders: (state, action: PayloadAction<string[]>) => {
       state.verifiedProviders = action.payload;
@@ -312,6 +317,7 @@ export const {
   updateFontSize, 
   setAPIKey, 
   updateApiKeys, 
+  setRealtimeRelayUrl,
   setVerifiedProviders,
   addVerifiedProvider,
   removeVerifiedProvider,

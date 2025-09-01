@@ -6,6 +6,7 @@ type EventHandler = (data: unknown) => void;
 
 export interface RealtimeOptions {
   model?: string; // default gpt-4o-realtime-preview-2024-10-01
+  relayUrl?: string; // optional override relay URL
 }
 
 export class OpenAIRealtimeService {
@@ -13,9 +14,11 @@ export class OpenAIRealtimeService {
   private onEventHandlers: Record<string, EventHandler[]> = {};
   private audioBuffers: string[] = []; // base64 audio chunks from output events
   private model: string;
+  private relayUrl?: string;
 
   constructor(opts?: RealtimeOptions) {
     this.model = opts?.model || getRealtimeModel();
+    this.relayUrl = opts?.relayUrl;
   }
 
   on(event: string, handler: EventHandler) {
@@ -30,7 +33,7 @@ export class OpenAIRealtimeService {
   async connect(): Promise<void> {
     const apiKey = await APIKeyService.getKey('openai');
     if (!apiKey) throw new Error('OpenAI API key not configured');
-    const relay = getRealtimeRelayUrl();
+    const relay = this.relayUrl || getRealtimeRelayUrl();
     if (!relay) {
       throw new Error('Realtime relay not configured. Set OPENAI_REALTIME_RELAY_URL to a deployed proxy that forwards to OpenAI Realtime with proper headers.');
     }

@@ -11,6 +11,8 @@ import TranscriptionService from '../../../services/voice/TranscriptionService';
 import OpenAIRealtimeService from '../../../services/voice/OpenAIRealtimeService';
 import * as ReactRef from 'react';
 import { isRealtimeConfigured } from '../../../config/realtime';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../../store';
 
 interface VoiceModalProps {
   visible: boolean;
@@ -26,7 +28,9 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ visible, onClose, onStar
   const recordingRef = ReactRef.useRef<unknown>(null);
   const [busy, setBusy] = useState(false);
   const [advanced, setAdvanced] = useState(false);
-  const realtimeAvailable = isRealtimeConfigured();
+  const hasOpenAIKey = useSelector((state: RootState) => Boolean(state.settings.apiKeys?.openai));
+  const configuredRelay = useSelector((state: RootState) => state.settings.realtimeRelayUrl);
+  const realtimeAvailable = hasOpenAIKey || isRealtimeConfigured();
   const realtimeRef = ReactRef.useRef<OpenAIRealtimeService | null>(null);
 
   const handleStart = async () => {
@@ -42,7 +46,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ visible, onClose, onStar
       await recordingObj.startAsync();
       recordingRef.current = recordingObj;
       if (advanced) {
-        const svc = new OpenAIRealtimeService();
+        const svc = new OpenAIRealtimeService({ relayUrl: configuredRelay });
         realtimeRef.current = svc;
         await svc.connect();
       }
