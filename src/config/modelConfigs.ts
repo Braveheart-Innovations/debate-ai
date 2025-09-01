@@ -104,7 +104,7 @@ export const AI_MODELS: ProviderModels = {
       isPremium: true,
       supportsVision: true,
       supportsImageInput: true,
-      supportsDocuments: true,
+      supportsDocuments: false,
       supportsFunctions: true,
       requiresTemperature1: true, // GPT-5 models require temperature=1
       useMaxCompletionTokens: true, // Uses max_completion_tokens instead of max_tokens
@@ -116,7 +116,7 @@ export const AI_MODELS: ProviderModels = {
       contextLength: 272000,
       supportsVision: true,
       supportsImageInput: true,
-      supportsDocuments: true,
+      supportsDocuments: false,
       supportsFunctions: true,
       requiresTemperature1: true,
       useMaxCompletionTokens: true,
@@ -128,7 +128,7 @@ export const AI_MODELS: ProviderModels = {
       contextLength: 272000,
       supportsVision: true,
       supportsImageInput: true,
-      supportsDocuments: true,
+      supportsDocuments: false,
       supportsFunctions: true,
       requiresTemperature1: true,
       useMaxCompletionTokens: true,
@@ -140,7 +140,7 @@ export const AI_MODELS: ProviderModels = {
       contextLength: 128000,
       supportsVision: true,
       supportsImageInput: true,
-      supportsDocuments: true,
+      supportsDocuments: false,
       supportsFunctions: true,
     },
     {
@@ -150,7 +150,7 @@ export const AI_MODELS: ProviderModels = {
       contextLength: 128000,
       supportsVision: true,
       supportsImageInput: true,
-      supportsDocuments: true,
+      supportsDocuments: false,
       supportsFunctions: true,
     },
     {
@@ -160,7 +160,7 @@ export const AI_MODELS: ProviderModels = {
       contextLength: 128000,
       supportsVision: true,
       supportsImageInput: true,
-      supportsDocuments: true,
+      supportsDocuments: false,
       supportsFunctions: true,
       supportsRealtime: true,
       supportsVoiceInput: true,
@@ -174,7 +174,7 @@ export const AI_MODELS: ProviderModels = {
       isDefault: true,
       supportsVision: true,
       supportsImageInput: true,
-      supportsDocuments: true,
+      supportsDocuments: false,
       supportsFunctions: true,
     },
     {
@@ -184,7 +184,7 @@ export const AI_MODELS: ProviderModels = {
       contextLength: 128000,
       supportsVision: true,
       supportsImageInput: true,
-      supportsDocuments: true,
+      supportsDocuments: false,
       supportsFunctions: true,
     },
     {
@@ -197,7 +197,7 @@ export const AI_MODELS: ProviderModels = {
       useMaxCompletionTokens: true,
       supportsVision: true,
       supportsImageInput: true,
-      supportsDocuments: true,
+      supportsDocuments: false,
     },
     {
       id: 'o1-mini',
@@ -208,7 +208,7 @@ export const AI_MODELS: ProviderModels = {
       useMaxCompletionTokens: true,
       supportsVision: true,
       supportsImageInput: true,
-      supportsDocuments: true,
+      supportsDocuments: false,
     },
     {
       id: 'o1-pro',

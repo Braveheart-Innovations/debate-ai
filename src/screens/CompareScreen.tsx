@@ -336,8 +336,8 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
   }, [saveComparisonSession, navigation]);
   
   const isProcessing = leftTyping || rightTyping;
-  const selectedList = (() => {
-    if (!leftAI || !rightAI) return [] as any[];
+  const selectedList: Array<{ provider: string; model: string }> = (() => {
+    if (!leftAI || !rightAI) return [];
     if (viewMode === 'left-only' || continuedSide === 'left') return [{ provider: leftAI.provider, model: (selectedModels[leftAI.id] || leftAI.model) }];
     if (viewMode === 'right-only' || continuedSide === 'right') return [{ provider: rightAI.provider, model: (selectedModels[rightAI.id] || rightAI.model) }];
     return [
@@ -345,7 +345,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
       { provider: rightAI.provider, model: selectedModels[rightAI.id] || rightAI.model },
     ];
   })();
-  const availability = useMergedModalityAvailability(selectedList as any);
+  const availability = useMergedModalityAvailability(selectedList);
   const imageGenerationEnabled = availability.imageGeneration.supported;
   
   // Navigate back if AIs are not provided (must be after all hooks)

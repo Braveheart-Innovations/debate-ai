@@ -6,11 +6,13 @@ export class TranscriptionService {
     if (!apiKey) throw new Error('OpenAI API key not configured');
 
     const formData = new FormData();
-    formData.append('file', {
+    const file: { uri: string; type: string; name: string } = {
       uri: audioUri,
       type: mimeType,
       name: fileName,
-    } as any);
+    };
+    // React Native FormData file param
+    formData.append('file', file as unknown as Blob);
     formData.append('model', 'whisper-1');
 
     const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {

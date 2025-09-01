@@ -31,12 +31,8 @@ export function getProviderCapabilities(provider: AIProvider): ProviderCapabilit
           ],
           maxPromptLength: 4000,
         },
-        videoGeneration: {
-          supported: true,
-          models: ['gpt-video-1'],
-          resolutions: ['720p', '1080p'],
-          maxPromptLength: 4000,
-        },
+        // Video generation is out of scope for v1; keep disabled
+        videoGeneration: { supported: false },
       };
     case 'google':
       return {

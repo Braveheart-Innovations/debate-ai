@@ -1,4 +1,5 @@
 import { getModelById } from '../../config/modelConfigs';
+import { AIProvider } from '../../types';
 import { getProviderCapabilities } from '../../config/providerCapabilities';
 
 export interface ModalityFlag {
@@ -26,10 +27,10 @@ export interface ModalityAvailability {
  */
 export function getModalityAvailability(providerId: string, modelId: string): ModalityAvailability {
   const model = getModelById(providerId, modelId);
-  const caps = getProviderCapabilities(providerId as any);
+  const caps = getProviderCapabilities(providerId as AIProvider);
 
   const imageGen = caps.imageGeneration;
-  const videoGen: any = (caps as any).videoGeneration; // Optional future block
+  const videoGen = caps.videoGeneration as { supported?: boolean; models?: string[]; resolutions?: string[] } | undefined;
 
   return {
     imageUpload: { supported: Boolean(model?.supportsImageInput || model?.supportsVision) },
@@ -110,4 +111,3 @@ export function useModalityAvailability(providerId: string, modelId: string): Mo
 export function useMergedModalityAvailability(items: Array<{ provider: string; model: string }>): ModalityAvailability {
   return mergeAvailabilities(items);
 }
-

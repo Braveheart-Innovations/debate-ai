@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { TouchableOpacity, View, StyleSheet } from 'react-native';
+import { TouchableOpacity, View, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../theme';
 import { Typography } from './Typography';
@@ -46,7 +46,6 @@ export const MultimodalButton: React.FC<MultimodalButtonProps> = ({ availability
                     setExpanded(false);
                     onSelect(item.key);
                   } else if (availabilityReasons?.[item.key]) {
-                    const { Alert } = require('react-native');
                     Alert.alert('Unavailable', availabilityReasons[item.key]!);
                   }
                 }}

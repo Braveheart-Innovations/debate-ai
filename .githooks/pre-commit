@@ -1,0 +1,16 @@
+#!/bin/sh
+echo "Running pre-commit checks..."
+
+# TypeScript typecheck
+npm run -s typecheck || {
+  echo "Typecheck failed. Aborting commit." >&2
+  exit 1
+}
+
+# ESLint
+npm run -s lint || {
+  echo "Lint failed. Aborting commit." >&2
+  exit 1
+}
+
+echo "All pre-commit checks passed."

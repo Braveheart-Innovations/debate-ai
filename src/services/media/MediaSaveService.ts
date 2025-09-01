@@ -62,7 +62,7 @@ export class MediaSaveService {
           await MediaLibrary.createAlbumAsync(opts.album, asset, false);
           albumCreated = true;
         }
-      } catch {}
+      } catch (e) { void e; }
     }
     return { assetId: asset.id, uri: asset.uri || fileUri, albumCreated };
   }
@@ -79,4 +79,3 @@ export class MediaSaveService {
 }
 
 export default MediaSaveService;
-

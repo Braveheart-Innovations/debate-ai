@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback } from 'react';
-import { KeyboardAvoidingView, Platform } from 'react-native';
+import { KeyboardAvoidingView, Platform, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AIServiceLoading, Header } from '../components/organisms';
 import { useAIService } from '../providers/AIServiceProvider';
@@ -11,9 +11,8 @@ import { ImageService } from '../services/images/ImageService';
 // import { getProviderCapabilities } from '../config/providerCapabilities';
 import { useMergedModalityAvailability } from '../hooks/multimodal/useModalityAvailability';
 import { ImageGenerationModal } from '../components/organisms/chat/ImageGenerationModal';
-import { VideoGenerationModal } from '../components/organisms/chat/VideoGenerationModal';
-import APIKeyService from '../services/APIKeyService';
-import VideoService from '../services/videos/VideoService';
+// import APIKeyService from '../services/APIKeyService';
+// import VideoService from '../services/videos/VideoService';
 
 // Chat-specific hooks
 import {
@@ -90,7 +89,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
   const controllersRef = React.useRef<Record<string, AbortController>>({});
   const [imageModalVisible, setImageModalVisible] = React.useState(false);
   const [imageModalPrompt, setImageModalPrompt] = React.useState('');
-  const [videoModalVisible, setVideoModalVisible] = React.useState(false);
+  // Video generation is out of scope for v1; remove UI
 
   const handleGenerateImage = async (opts: { prompt: string; size: 'auto' | 'square' | 'portrait' | 'landscape' }, reuseMessageId?: string) => {
     try {
@@ -120,7 +119,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
       controllersRef.current[messageId] = controller;
       const images = await ImageService.generateImage({ provider: 'openai', apiKey, prompt: opts.prompt, size: sizeMap[opts.size], n: 1, signal: controller.signal });
       const img = images[0];
-      const uri = img.url ? img.url : (img.b64 ? `data:${img.mimeType};base64,${img.b64}` : undefined);
+      const uri = img.url ? img.url : (img.b64 ? `data:${img.mimeType};basee64,${img.b64}` : undefined);
       if (uri) {
         dispatch(updateMessage({ id: messageId, content: '', attachments: [{ type: 'image', uri, mimeType: img.mimeType }], metadata: { providerMetadata: { imageGenerating: false, imagePhase: 'done' } } }));
       } else {
@@ -159,7 +158,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
       alert(err);
     }
   };
-
+*/
     if (!params.prompt) return;
     handleGenerateImage({ prompt: params.prompt, size: params.size || 'square' }, message.id);
   };
@@ -263,6 +262,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={0}
       >
+        <View style={{ flex: 1 }}>
         {/* Header */}
         <Header
           variant="gradient"
@@ -347,16 +347,18 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
             voice: availability.voiceInput.supported ? undefined : 'Selected model(s) do not support voice input',
           }}
         />
-        <ImageGenerationModal
-          visible={imageModalVisible}
-          initialPrompt={imageModalPrompt}
-          onClose={() => setImageModalVisible(false)}
-          onGenerate={(opts) => {
-            setImageModalVisible(false);
-            handleGenerateImage(opts);
-          }}
-        />
-        <VideoGenerationModal visible={videoModalVisible} onClose={() => setVideoModalVisible(false)} onGenerate={() => { setVideoModalVisible(false); alert('Video generation coming soon'); }} />
+        </View>
+        <View>
+          <ImageGenerationModal
+            visible={imageModalVisible}
+            initialPrompt={imageModalPrompt}
+            onClose={() => setImageModalVisible(false)}
+            onGenerate={(opts) => {
+              setImageModalVisible(false);
+              handleGenerateImage(opts);
+            }}
+          />
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

@@ -1,7 +1,7 @@
 import APIKeyService from '../APIKeyService';
 import * as FileSystem from 'expo-file-system';
 
-type EventHandler = (data: any) => void;
+type EventHandler = (data: unknown) => void;
 
 export interface RealtimeOptions {
   model?: string; // default gpt-4o-realtime-preview-2024-10-01
@@ -9,7 +9,7 @@ export interface RealtimeOptions {
 
 export class OpenAIRealtimeService {
   private ws: WebSocket | null = null;
-  private onEventHandlers: { [type: string]: EventHandler[] } = {};
+  private onEventHandlers: Record<string, EventHandler[]> = {};
   private audioBuffers: string[] = []; // base64 audio chunks from output events
   private model: string;
 
@@ -22,7 +22,7 @@ export class OpenAIRealtimeService {
     this.onEventHandlers[event].push(handler);
   }
 
-  private emit(event: string, data: any) {
+  private emit(event: string, data: unknown) {
     (this.onEventHandlers[event] || []).forEach(h => h(data));
   }
 
@@ -30,7 +30,7 @@ export class OpenAIRealtimeService {
     const apiKey = await APIKeyService.getKey('openai');
     if (!apiKey) throw new Error('OpenAI API key not configured');
     const url = `wss://api.openai.com/v1/realtime?model=${encodeURIComponent(this.model)}`;
-    this.ws = (new (global as any).WebSocket(url)) as any;
+    this.ws = new WebSocket(url);
     const ws = this.ws;
     if (!ws) return;
     
@@ -38,7 +38,7 @@ export class OpenAIRealtimeService {
     ws.onopen = () => {
       this.emit('open', {});
     };
-    ws.onmessage = (msg: any) => {
+    ws.onmessage = (msg: { data: string }) => {
       try {
         const data = typeof msg.data === 'string' ? JSON.parse(msg.data) : msg.data;
         if (data && data.type === 'output_audio.delta' && data.delta) {
@@ -50,11 +50,11 @@ export class OpenAIRealtimeService {
         if (data && data.type === 'error') {
           this.emit('error', data);
         }
-      } catch (e) {
+      } catch {
         // Ignore non-JSON messages
       }
     };
-    ws.onerror = (e: any) => this.emit('error', e);
+    ws.onerror = (e: unknown) => this.emit('error', e);
     ws.onclose = () => this.emit('close', {});
   }
 

@@ -29,11 +29,11 @@ export const ImageMessageRow: React.FC<ImageMessageRowProps> = ({ message }) => 
       <ImageBubble uris={uris} onPressImage={(uri) => setLightboxUri(uri)} />
       <Box style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
         <TouchableOpacity onPress={async () => {
-          try { await MediaSaveService.saveFileUri(uris[0], { album: 'Symposium AI' }); } catch {}
+          try { await MediaSaveService.saveFileUri(uris[0], { album: 'Symposium AI' }); } catch (e) { void e; }
         }} style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: theme.colors.surface }}>
           <Typography variant="caption" style={{ color: theme.colors.text.primary }}>Save</Typography>
         </TouchableOpacity>
-        <TouchableOpacity onPress={async () => { try { if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uris[0]); } catch {} }} style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: theme.colors.surface }}>
+        <TouchableOpacity onPress={async () => { try { if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uris[0]); } catch (e) { void e; } }} style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: theme.colors.surface }}>
           <Typography variant="caption" style={{ color: theme.colors.text.primary }}>Share</Typography>
         </TouchableOpacity>
       </Box>

@@ -72,5 +72,8 @@ Phase 5 – Testing & hardening
 - Don’t implement on-device PDF parsing unless a specific product need emerges; prefer provider-native ingestion (Claude/Gemini) and inform users where OpenAI lacks PDF upload support.
 - Voice realtime/tts can be added later; start with transcription.
 
+## Out of Scope for v1
+- Video generation: The UI and provider capability are disabled in the app for the initial release to prioritize image generation and realtime voice. Dev discovery can continue tracking video, but no runtime surface is exposed until we have a stable provider and API access.
+
 ---
 This plan lets us deliver visible value early (button, states, one happy path) while we iteratively refine capability accuracy through BYOK‑aware discovery, without introducing parallel infrastructure or drifting from existing code patterns.

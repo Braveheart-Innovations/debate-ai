@@ -28,7 +28,14 @@ export const VideoMessageRow: React.FC<VideoMessageRowProps> = ({ message }) => 
       <TouchableOpacity onPress={() => setLightboxUri(uris[0])} style={{ backgroundColor: theme.colors.surface, borderRadius: 8, padding: 8 }}>
         <Typography variant="body" color="secondary">Tap to play video</Typography>
       </TouchableOpacity>
-      <Box style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}><TouchableOpacity onPress={async () => { try { await MediaSaveService.saveFileUri(uris[0], { album: 'Symposium AI' }); } catch {} }} style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: theme.colors.surface }}><Typography variant="caption" style={{ color: theme.colors.text.primary }}>Save</Typography></TouchableOpacity><TouchableOpacity onPress={async () => { try { if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uris[0]); } catch {} }} style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: theme.colors.surface }}><Typography variant="caption" style={{ color: theme.colors.text.primary }}>Share</Typography></TouchableOpacity></Box>
+      <Box style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
+        <TouchableOpacity onPress={async () => { try { await MediaSaveService.saveFileUri(uris[0], { album: 'Symposium AI' }); } catch (e) { void e; } }} style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: theme.colors.surface }}>
+          <Typography variant="caption" style={{ color: theme.colors.text.primary }}>Save</Typography>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={async () => { try { if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uris[0]); } catch (e) { void e; } }} style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: theme.colors.surface }}>
+          <Typography variant="caption" style={{ color: theme.colors.text.primary }}>Share</Typography>
+        </TouchableOpacity>
+      </Box>
       <Box style={styles.metaRow}>
         <Typography variant="caption" color="secondary">{new Date(message.timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</Typography>
       </Box>

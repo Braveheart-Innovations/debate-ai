@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, TextInput, TouchableOpacity, Text as RNText, ScrollView, Image } from 'react-native';
-import MultimodalButton from '../../molecules/MultimodalButton';
+// We now render the options row above the input instead of expanding inline
+import MultimodalOptionsRow from '../../molecules/MultimodalOptionsRow';
 import { ImageUploadModal } from './ImageUploadModal';
 import { DocumentUploadModal } from './DocumentUploadModal';
 import { VoiceModal } from './VoiceModal';
@@ -46,6 +47,7 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
   const [showImageUpload, setShowImageUpload] = useState(false);
   const [showDocUpload, setShowDocUpload] = useState(false);
   const [showVoice, setShowVoice] = useState(false);
+  const [showModalityRow, setShowModalityRow] = useState(false);
   // keep prompt prefill only in parent modal
   // Image modal state handled inside ImageGenerationModal; keep only prompt prefill here
   const canSend = (inputText.trim().length > 0 || attachments.length > 0) && !disabled;
@@ -135,6 +137,32 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
         </ScrollView>
       )}
       
+      {/* Modality selection row (shown when "+" tapped) */}
+      {(((modalityAvailability?.imageUpload ?? attachmentSupport.images)
+        || (modalityAvailability?.documentUpload ?? attachmentSupport.documents)
+        || (modalityAvailability?.imageGeneration ?? imageGenerationEnabled)
+        || (modalityAvailability?.videoGeneration ?? false)
+        || (modalityAvailability?.voice ?? false)) && showModalityRow) && (
+        <MultimodalOptionsRow
+          availability={{
+            imageUpload: modalityAvailability?.imageUpload ?? attachmentSupport.images,
+            documentUpload: modalityAvailability?.documentUpload ?? attachmentSupport.documents,
+            imageGeneration: modalityAvailability?.imageGeneration ?? imageGenerationEnabled,
+            videoGeneration: modalityAvailability?.videoGeneration ?? false,
+            voice: modalityAvailability?.voice ?? false,
+          }}
+          availabilityReasons={modalityReasons}
+          onSelect={(key) => {
+            if (key === 'imageUpload') setShowImageUpload(true);
+            else if (key === 'documentUpload') setShowDocUpload(true);
+            else if (key === 'imageGeneration') onOpenImageModal?.();
+            else if (key === 'videoGeneration') onOpenVideoModal?.();
+            else if (key === 'voice') setShowVoice(true);
+          }}
+          onClose={() => setShowModalityRow(false)}
+        />
+      )}
+
       {/* Input row */}
       <Box style={[
         styles.inputContainer,
@@ -143,28 +171,19 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
           borderTopColor: theme.colors.border,
         }
       ]}>
+        {/* Plus button to toggle modality row */}
         {(((modalityAvailability?.imageUpload ?? attachmentSupport.images)
           || (modalityAvailability?.documentUpload ?? attachmentSupport.documents)
           || (modalityAvailability?.imageGeneration ?? imageGenerationEnabled)
-          || (modalityAvailability?.videoGeneration ?? false))) && (
-          <MultimodalButton
-            disabled={disabled}
-            availability={{
-              imageUpload: modalityAvailability?.imageUpload ?? attachmentSupport.images,
-              documentUpload: modalityAvailability?.documentUpload ?? attachmentSupport.documents,
-              imageGeneration: modalityAvailability?.imageGeneration ?? imageGenerationEnabled,
-              videoGeneration: modalityAvailability?.videoGeneration ?? false,
-              voice: modalityAvailability?.voice ?? false,
-            }}
-            availabilityReasons={modalityReasons}
-            onSelect={(key) => {
-              if (key === 'imageUpload') setShowImageUpload(true);
-              else if (key === 'documentUpload') setShowDocUpload(true);
-              else if (key === 'imageGeneration') onOpenImageModal?.();
-              else if (key === 'videoGeneration') onOpenVideoModal?.();
-              else if (key === 'voice') setShowVoice(true);
-            }}
-          />
+          || (modalityAvailability?.videoGeneration ?? false)
+          || (modalityAvailability?.voice ?? false))) && (
+            <TouchableOpacity
+              onPress={() => !disabled && setShowModalityRow(prev => !prev)}
+              activeOpacity={0.8}
+              style={[styles.attachButton, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}
+            >
+              <RNText style={styles.attachButtonText}>{showModalityRow ? '×' : '+'}</RNText>
+            </TouchableOpacity>
         )}
         
         <TextInput
@@ -232,7 +251,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderTopWidth: 1,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   input: {
     flex: 1,

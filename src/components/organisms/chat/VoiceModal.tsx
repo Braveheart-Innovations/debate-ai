@@ -22,7 +22,7 @@ interface VoiceModalProps {
 export const VoiceModal: React.FC<VoiceModalProps> = ({ visible, onClose, onStart, onStop, onTranscribed }) => {
   const { theme } = useTheme();
   const [recording, setRecording] = useState(false);
-  const recordingRef = ReactRef.useRef<any>(null);
+  const recordingRef = ReactRef.useRef<unknown>(null);
   const [busy, setBusy] = useState(false);
   const [advanced, setAdvanced] = useState(false);
   const realtimeRef = ReactRef.useRef<OpenAIRealtimeService | null>(null);
@@ -32,8 +32,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ visible, onClose, onStar
     onStart?.();
     // Use expo-av if available
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const { Audio } = require('expo-av');
+      const { Audio } = await import('expo-av');
       await Audio.requestPermissionsAsync();
       await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
       const recordingObj = new Audio.Recording();
@@ -45,7 +44,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ visible, onClose, onStar
         realtimeRef.current = svc;
         await svc.connect();
       }
-    } catch (e) {
+    } catch {
       Alert.alert('Recording Not Available', 'expo-av not available or recording failed to start. You can still choose an existing audio file.');
     }
   };
@@ -56,8 +55,9 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ visible, onClose, onStar
     try {
       if (recordingRef.current) {
         setBusy(true);
-        await recordingRef.current.stopAndUnloadAsync();
-        const uri = recordingRef.current.getURI();
+        const rec = recordingRef.current as { stopAndUnloadAsync: () => Promise<void>; getURI: () => string | null };
+        await rec.stopAndUnloadAsync();
+        const uri = rec.getURI();
         if (uri) {
           if (advanced && realtimeRef.current) {
             try {
@@ -66,7 +66,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ visible, onClose, onStar
               setTimeout(async () => {
                 const out = await realtimeRef.current?.saveOutputAudioToFile();
                 if (out) {
-                  const { Audio } = require('expo-av');
+                  const { Audio } = await import('expo-av');
                   const sound = new Audio.Sound();
                   await sound.loadAsync({ uri: out });
                   await sound.playAsync();
