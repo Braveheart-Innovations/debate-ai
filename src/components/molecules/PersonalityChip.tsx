@@ -21,17 +21,17 @@ export interface PersonalityChipProps {
 
 const PERSONALITY_ICONS: Record<string, string> = {
   default: '🤖',
-  comedian: '😄',
-  philosopher: '🤔',
-  debater: '⚔️',
-  analytical: '📊',
-  sarcastic: '😏',
-  dramatic: '🎭',
-  nerdy: '🤓',
+  prof_sage: '🎓',
+  brody: '🏈',
+  bestie: '💖',
   zen: '🧘',
-  contrarian: '🔄',
-  optimist: '😊',
   skeptic: '🔍',
+  scout: '📖',
+  devlin: '😈',
+  george: '🎤',
+  pragmatist: '🧭',
+  enforcer: '📎',
+  traditionalist: '🧱',
 };
 
 export const PersonalityChip: React.FC<PersonalityChipProps> = ({

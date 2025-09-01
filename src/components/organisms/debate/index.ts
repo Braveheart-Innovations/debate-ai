@@ -18,6 +18,7 @@ export { default as ShareModal } from './ShareModal';
 export { DebateTopicSelector } from './DebateTopicSelector';
 export { DebateAISelector } from './DebateAISelector';
 export { DebatePersonalitySelector } from './DebatePersonalitySelector';
+export { default as PersonalityModal } from './PersonalityModal';
 export { DebateSetupSummary } from './DebateSetupSummary';
 export { DebateStepIndicator } from './DebateStepIndicator';
 

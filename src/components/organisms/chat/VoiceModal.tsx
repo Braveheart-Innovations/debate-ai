@@ -10,6 +10,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import TranscriptionService from '../../../services/voice/TranscriptionService';
 import OpenAIRealtimeService from '../../../services/voice/OpenAIRealtimeService';
 import * as ReactRef from 'react';
+import { isRealtimeConfigured } from '../../../config/realtime';
 
 interface VoiceModalProps {
   visible: boolean;
@@ -25,6 +26,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ visible, onClose, onStar
   const recordingRef = ReactRef.useRef<unknown>(null);
   const [busy, setBusy] = useState(false);
   const [advanced, setAdvanced] = useState(false);
+  const realtimeAvailable = isRealtimeConfigured();
   const realtimeRef = ReactRef.useRef<OpenAIRealtimeService | null>(null);
 
   const handleStart = async () => {
@@ -123,9 +125,16 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ visible, onClose, onStar
                     Tip: Ensure microphone permissions are granted in system settings.
                   </Typography>
                   <Box style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 }}>
-                    <TouchableOpacity onPress={() => setAdvanced(!advanced)} style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: theme.colors.surface }}>
-                      <Typography variant="caption" style={{ color: theme.colors.text.primary }}>{advanced ? 'Advanced (Realtime) On' : 'Advanced (Realtime) Off'}</Typography>
+                    <TouchableOpacity onPress={() => setAdvanced(!advanced)} disabled={!realtimeAvailable} style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: theme.colors.surface, opacity: realtimeAvailable ? 1 : 0.6 }}>
+                      <Typography variant="caption" style={{ color: theme.colors.text.primary }}>
+                        {advanced ? 'Advanced (Realtime) On' : 'Advanced (Realtime) Off'}
+                      </Typography>
                     </TouchableOpacity>
+                    {!realtimeAvailable && (
+                      <Typography variant="caption" color="secondary">
+                        Configure OPENAI_REALTIME_RELAY_URL to enable realtime.
+                      </Typography>
+                    )}
                   </Box>
                     <TouchableOpacity onPress={pickAudioAndTranscribe} style={{ marginTop: 12 }}>
                       <Typography variant="body" weight="semibold" color="primary">

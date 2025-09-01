@@ -3,7 +3,7 @@
  * Handles personality selection for each AI in the debate (Premium feature)
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { View, TouchableOpacity } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useTheme } from '../../../theme';
@@ -11,6 +11,7 @@ import { Typography, GradientButton, Button, SectionHeader } from '../../molecul
 import { AIAvatar } from '../AIAvatar';
 import { AIConfig } from '../../../types';
 import { UNIVERSAL_PERSONALITIES } from '../../../config/personalities';
+import PersonalityModal from './PersonalityModal';
 
 interface DebatePersonalitySelectorProps {
   selectedTopic: string;
@@ -34,6 +35,8 @@ export const DebatePersonalitySelector: React.FC<DebatePersonalitySelectorProps>
   onBack,
 }) => {
   const { theme } = useTheme();
+  const [modalVisible, setModalVisible] = useState(false);
+  const [activeAI, setActiveAI] = useState<AIConfig | null>(null);
 
   const displayTopic = topicMode === 'custom' ? customTopic : selectedTopic;
 
@@ -92,7 +95,7 @@ export const DebatePersonalitySelector: React.FC<DebatePersonalitySelectorProps>
         </View>
       </View>
       
-      {/* Personality Selection for Each AI */}
+      {/* Personality Selection for Each AI (launch modal) */}
       <View style={{ gap: theme.spacing.md }}>
         {selectedAIs.map((ai) => {
           const currentPersonality = aiPersonalities[ai.id] || 'default';
@@ -126,40 +129,45 @@ export const DebatePersonalitySelector: React.FC<DebatePersonalitySelectorProps>
                   </Typography>
                 </View>
               </View>
-              
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.xs }}>
-                {UNIVERSAL_PERSONALITIES.map((personality) => {
-                  const isSelected = currentPersonality === personality.id;
-                  return (
-                    <TouchableOpacity
-                      key={personality.id}
-                      onPress={() => onPersonalityChange(ai.id, personality.id)}
-                      style={{
-                        paddingHorizontal: theme.spacing.md,
-                        paddingVertical: theme.spacing.sm,
-                        borderRadius: theme.borderRadius.full,
-                        backgroundColor: isSelected ? ai.color : theme.colors.surface,
-                        borderWidth: 1,
-                        borderColor: isSelected ? ai.color : theme.colors.border,
-                      }}
-                    >
-                      <Typography 
-                        variant="caption" 
-                        weight={isSelected ? 'bold' : 'medium'}
-                        style={{ 
-                          color: isSelected ? '#fff' : theme.colors.text.primary 
-                        }}
-                      >
-                        {personality.name}
-                      </Typography>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+              <TouchableOpacity
+                onPress={() => {
+                  setActiveAI(ai);
+                  setModalVisible(true);
+                }}
+                style={{
+                  alignSelf: 'flex-start',
+                  paddingHorizontal: theme.spacing.md,
+                  paddingVertical: theme.spacing.sm,
+                  borderRadius: theme.borderRadius.full,
+                  backgroundColor: theme.colors.surface,
+                  borderWidth: 1,
+                  borderColor: theme.colors.border,
+                }}
+              >
+                <Typography variant="caption" weight="medium">
+                  Choose Personality →
+                </Typography>
+              </TouchableOpacity>
             </View>
           );
         })}
       </View>
+
+      {/* Modal */}
+      <PersonalityModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        onConfirm={(personalityId) => {
+          if (activeAI) {
+            onPersonalityChange(activeAI.id, personalityId);
+          }
+          setModalVisible(false);
+        }}
+        selectedPersonalityId={activeAI ? aiPersonalities[activeAI.id] || 'default' : 'default'}
+        availablePersonalities={UNIVERSAL_PERSONALITIES}
+        isPremium={true}
+        aiName={activeAI?.name}
+      />
       
       {/* Start Debate Button */}
       <GradientButton

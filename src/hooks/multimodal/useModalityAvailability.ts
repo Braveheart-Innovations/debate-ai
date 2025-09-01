@@ -31,11 +31,13 @@ export function getModalityAvailability(providerId: string, modelId: string): Mo
 
   const imageGen = caps.imageGeneration;
   const videoGen = caps.videoGeneration as { supported?: boolean; models?: string[]; resolutions?: string[] } | undefined;
+  // Provider-level fallbacks: enable basic voice input via STT even if model doesn't advertise realtime voice
+  const providerSupportsSTT = providerId === 'openai' || providerId === 'google';
 
   return {
     imageUpload: { supported: Boolean(model?.supportsImageInput || model?.supportsVision) },
     documentUpload: { supported: Boolean(model?.supportsDocuments) },
-    voiceInput: { supported: Boolean(model?.supportsVoiceInput) },
+    voiceInput: { supported: Boolean(model?.supportsVoiceInput || providerSupportsSTT) },
     voiceOutput: { supported: Boolean(model?.supportsVoiceOutput) },
     realtime: { supported: Boolean(model?.supportsRealtime) },
     imageGeneration: {

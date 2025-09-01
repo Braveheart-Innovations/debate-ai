@@ -29,15 +29,13 @@ export class PersonalityService {
    * Get available personalities based on premium status
    */
   static getAvailablePersonalities(isPremium: boolean): Personality[] {
-    // Free users get basic personalities
-    const freePersonalities = ['default', 'debater', 'analytical'];
-    
+    // Free users: default + Prof. Sage teaser
+    const freePersonalities = ['default', 'prof_sage'];
     if (!isPremium) {
       return UNIVERSAL_PERSONALITIES
         .filter(p => freePersonalities.includes(p.id))
         .map(p => PersonalityService.convertToPersonality(p));
     }
-
     // Premium users get all personalities
     return UNIVERSAL_PERSONALITIES.map(p => PersonalityService.convertToPersonality(p));
   }
@@ -125,34 +123,29 @@ export class PersonalityService {
   }[] {
     return [
       {
-        name: 'Classic Debate',
-        description: 'Logical vs Analytical - structured and evidence-based',
-        personalities: ['debater', 'analytical'],
+        name: 'Order vs Swagger',
+        description: 'Prof. Sage vs Brody — structure vs punch',
+        personalities: ['prof_sage', 'brody'],
       },
       {
-        name: 'Fun Contrast',
-        description: 'Comedian vs Dramatic - entertaining and engaging',
-        personalities: ['comedian', 'dramatic'],
+        name: 'Empathy vs Scrutiny',
+        description: 'Bestie vs Ivy — warmth vs evidence',
+        personalities: ['bestie', 'skeptic'],
       },
       {
-        name: 'Philosophical Depth',
-        description: 'Philosopher vs Skeptic - deep thinking and questioning',
-        personalities: ['philosopher', 'skeptic'],
+        name: 'Equanimity vs Pressure-Test',
+        description: 'Zenji vs Devlin — calm vs challenge',
+        personalities: ['zen', 'devlin'],
       },
       {
-        name: 'Opposing Views',
-        description: 'Optimist vs Contrarian - positive vs challenging perspectives',
-        personalities: ['optimist', 'contrarian'],
+        name: 'Wit vs Pragmatism',
+        description: 'George vs Jordan — satire vs action plan',
+        personalities: ['george', 'pragmatist'],
       },
       {
-        name: 'Wit & Wisdom',
-        description: 'Sarcastic vs Zen - clever humor vs calm wisdom',
-        personalities: ['sarcastic', 'zen'],
-      },
-      {
-        name: 'Modern Clash',
-        description: 'Nerdy vs Default - pop culture vs balanced approach',
-        personalities: ['nerdy', 'default'],
+        name: 'Story vs Evidence',
+        description: 'Scout vs Ivy — narrative vs proof',
+        personalities: ['scout', 'skeptic'],
       },
     ];
   }
@@ -172,11 +165,11 @@ export class PersonalityService {
     // Specific interesting combinations
     const combination = [personality1.id, personality2.id].sort().join('-');
     const bonusCombinations = [
-      'comedian-dramatic',
-      'optimist-skeptic',
-      'philosopher-contrarian',
-      'sarcastic-zen',
-      'analytical-nerdy',
+      'prof_sage-brody',
+      'bestie-skeptic',
+      'zen-devlin',
+      'george-pragmatist',
+      'scout-skeptic',
     ];
 
     if (bonusCombinations.includes(combination)) {
@@ -184,7 +177,7 @@ export class PersonalityService {
     }
 
     // High-energy combinations
-    const highEnergy = ['dramatic', 'comedian', 'contrarian'];
+    const highEnergy = ['brody', 'george', 'devlin'];
     const highEnergyCount = [personality1.id, personality2.id]
       .filter(id => highEnergy.includes(id)).length;
     
@@ -193,8 +186,8 @@ export class PersonalityService {
     }
 
     // Balanced combinations
-    const calm = ['zen', 'analytical', 'default'];
-    const energetic = ['dramatic', 'comedian', 'sarcastic'];
+    const calm = ['zen', 'prof_sage', 'default'];
+    const energetic = ['brody', 'george'];
     
     const hasCalmAndEnergetic = 
       (calm.includes(personality1.id) && energetic.includes(personality2.id)) ||
@@ -217,18 +210,18 @@ export class PersonalityService {
   }> {
     // Mock data - in real implementation, this would come from analytics
     return {
-      default: { usage: 45, rating: 3.5, category: 'popular' },
-      debater: { usage: 25, rating: 4.2, category: 'popular' },
-      comedian: { usage: 20, rating: 4.0, category: 'popular' },
-      analytical: { usage: 18, rating: 3.8, category: 'balanced' },
-      philosopher: { usage: 15, rating: 4.1, category: 'balanced' },
-      sarcastic: { usage: 12, rating: 3.9, category: 'balanced' },
-      dramatic: { usage: 10, rating: 3.7, category: 'balanced' },
-      zen: { usage: 8, rating: 4.3, category: 'unique' },
-      nerdy: { usage: 7, rating: 4.0, category: 'unique' },
-      contrarian: { usage: 6, rating: 3.6, category: 'unique' },
-      optimist: { usage: 5, rating: 3.8, category: 'unique' },
-      skeptic: { usage: 4, rating: 3.9, category: 'unique' },
+      default: { usage: 45, rating: 3.6, category: 'popular' },
+      prof_sage: { usage: 28, rating: 4.4, category: 'popular' },
+      brody: { usage: 20, rating: 4.1, category: 'popular' },
+      bestie: { usage: 18, rating: 4.2, category: 'balanced' },
+      skeptic: { usage: 16, rating: 4.3, category: 'balanced' },
+      zen: { usage: 12, rating: 4.4, category: 'unique' },
+      scout: { usage: 10, rating: 4.0, category: 'unique' },
+      devlin: { usage: 9, rating: 4.1, category: 'unique' },
+      george: { usage: 8, rating: 4.0, category: 'unique' },
+      pragmatist: { usage: 8, rating: 4.2, category: 'unique' },
+      enforcer: { usage: 5, rating: 3.9, category: 'unique' },
+      traditionalist: { usage: 5, rating: 4.0, category: 'unique' },
     };
   }
 
@@ -255,24 +248,24 @@ export class PersonalityService {
     // Extract traits based on personality characteristics
     const traitMap: Record<string, { formality: number; humor: number; technicality: number; empathy: number }> = {
       default: { formality: 0.6, humor: 0.3, technicality: 0.5, empathy: 0.6 },
-      comedian: { formality: 0.2, humor: 0.9, technicality: 0.3, empathy: 0.7 },
-      philosopher: { formality: 0.8, humor: 0.2, technicality: 0.6, empathy: 0.5 },
-      debater: { formality: 0.7, humor: 0.3, technicality: 0.7, empathy: 0.4 },
-      analytical: { formality: 0.8, humor: 0.2, technicality: 0.9, empathy: 0.3 },
-      sarcastic: { formality: 0.4, humor: 0.8, technicality: 0.5, empathy: 0.4 },
-      dramatic: { formality: 0.5, humor: 0.4, technicality: 0.3, empathy: 0.8 },
-      nerdy: { formality: 0.5, humor: 0.6, technicality: 0.9, empathy: 0.5 },
+      prof_sage: { formality: 0.8, humor: 0.2, technicality: 0.7, empathy: 0.6 },
+      brody: { formality: 0.3, humor: 0.4, technicality: 0.4, empathy: 0.5 },
+      bestie: { formality: 0.4, humor: 0.4, technicality: 0.4, empathy: 0.9 },
+      skeptic: { formality: 0.7, humor: 0.2, technicality: 0.8, empathy: 0.5 },
       zen: { formality: 0.6, humor: 0.3, technicality: 0.4, empathy: 0.9 },
-      contrarian: { formality: 0.6, humor: 0.4, technicality: 0.6, empathy: 0.3 },
-      optimist: { formality: 0.5, humor: 0.6, technicality: 0.4, empathy: 0.8 },
-      skeptic: { formality: 0.7, humor: 0.3, technicality: 0.8, empathy: 0.4 },
+      scout: { formality: 0.5, humor: 0.4, technicality: 0.5, empathy: 0.7 },
+      devlin: { formality: 0.6, humor: 0.3, technicality: 0.7, empathy: 0.4 },
+      george: { formality: 0.5, humor: 0.8, technicality: 0.5, empathy: 0.4 },
+      pragmatist: { formality: 0.6, humor: 0.3, technicality: 0.6, empathy: 0.7 },
+      enforcer: { formality: 0.7, humor: 0.2, technicality: 0.7, empathy: 0.4 },
+      traditionalist: { formality: 0.7, humor: 0.3, technicality: 0.6, empathy: 0.5 },
     };
 
     return traitMap[personalityOption.id] || traitMap.default;
   }
 
   private static isPremiumPersonality(personalityId: string): boolean {
-    const freePersonalities = ['default', 'debater', 'analytical'];
+    const freePersonalities = ['default', 'prof_sage'];
     return !freePersonalities.includes(personalityId);
   }
 
@@ -284,17 +277,17 @@ export class PersonalityService {
       aggression: number;
     }> = {
       default: { argumentStyle: 'balanced', interruption: 0.3, concession: 0.5, aggression: 0.4 },
-      comedian: { argumentStyle: 'emotional', interruption: 0.6, concession: 0.4, aggression: 0.3 },
-      philosopher: { argumentStyle: 'logical', interruption: 0.2, concession: 0.6, aggression: 0.3 },
-      debater: { argumentStyle: 'logical', interruption: 0.5, concession: 0.3, aggression: 0.7 },
-      analytical: { argumentStyle: 'logical', interruption: 0.3, concession: 0.4, aggression: 0.5 },
-      sarcastic: { argumentStyle: 'emotional', interruption: 0.7, concession: 0.2, aggression: 0.6 },
-      dramatic: { argumentStyle: 'emotional', interruption: 0.8, concession: 0.3, aggression: 0.8 },
-      nerdy: { argumentStyle: 'balanced', interruption: 0.4, concession: 0.5, aggression: 0.4 },
+      prof_sage: { argumentStyle: 'logical', interruption: 0.2, concession: 0.6, aggression: 0.3 },
+      brody: { argumentStyle: 'emotional', interruption: 0.5, concession: 0.3, aggression: 0.6 },
+      bestie: { argumentStyle: 'emotional', interruption: 0.2, concession: 0.7, aggression: 0.2 },
+      skeptic: { argumentStyle: 'logical', interruption: 0.4, concession: 0.3, aggression: 0.5 },
       zen: { argumentStyle: 'balanced', interruption: 0.1, concession: 0.8, aggression: 0.1 },
-      contrarian: { argumentStyle: 'logical', interruption: 0.6, concession: 0.1, aggression: 0.7 },
-      optimist: { argumentStyle: 'emotional', interruption: 0.3, concession: 0.6, aggression: 0.2 },
-      skeptic: { argumentStyle: 'logical', interruption: 0.5, concession: 0.2, aggression: 0.6 },
+      scout: { argumentStyle: 'balanced', interruption: 0.3, concession: 0.5, aggression: 0.4 },
+      devlin: { argumentStyle: 'logical', interruption: 0.6, concession: 0.2, aggression: 0.6 },
+      george: { argumentStyle: 'emotional', interruption: 0.6, concession: 0.3, aggression: 0.4 },
+      pragmatist: { argumentStyle: 'balanced', interruption: 0.3, concession: 0.5, aggression: 0.4 },
+      enforcer: { argumentStyle: 'logical', interruption: 0.6, concession: 0.2, aggression: 0.6 },
+      traditionalist: { argumentStyle: 'logical', interruption: 0.3, concession: 0.5, aggression: 0.4 },
     };
 
     return modifierMap[personalityOption.id] || modifierMap.default;

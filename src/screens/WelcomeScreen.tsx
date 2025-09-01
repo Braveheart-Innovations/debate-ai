@@ -459,7 +459,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
               <View style={styles.bulletRow}>
                 <MaterialIcons name="check-circle" size={16} color={theme.colors.success[500]} style={{ marginRight: 8 }} />
                 <Typography variant="caption" color="secondary" style={{ flex: 1 }}>
-                  All 12 personality styles unlocked
+                  All Signature Styles unlocked
                 </Typography>
               </View>
               <View style={styles.bulletRow}>

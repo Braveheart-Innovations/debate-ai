@@ -63,7 +63,7 @@ export const FreeTierCTA: React.FC<FreeTierCTAProps> = ({
           <View style={styles.featureRow}>
             <Ionicons name="checkmark-circle" size={16} color="#fff" />
             <Typography variant="caption" color="inverse" style={styles.featureText}>
-              12 Unique AI Personalities
+              Signature Styles + Seasonal Packs
             </Typography>
           </View>
           <View style={styles.featureRow}>

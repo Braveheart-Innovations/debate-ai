@@ -1,5 +1,6 @@
 import APIKeyService from '../APIKeyService';
 import * as FileSystem from 'expo-file-system';
+import { getRealtimeRelayUrl, getRealtimeModel } from '../../config/realtime';
 
 type EventHandler = (data: unknown) => void;
 
@@ -14,7 +15,7 @@ export class OpenAIRealtimeService {
   private model: string;
 
   constructor(opts?: RealtimeOptions) {
-    this.model = opts?.model || 'gpt-4o-realtime-preview-2024-10-01';
+    this.model = opts?.model || getRealtimeModel();
   }
 
   on(event: string, handler: EventHandler) {
@@ -29,8 +30,17 @@ export class OpenAIRealtimeService {
   async connect(): Promise<void> {
     const apiKey = await APIKeyService.getKey('openai');
     if (!apiKey) throw new Error('OpenAI API key not configured');
-    const url = `wss://api.openai.com/v1/realtime?model=${encodeURIComponent(this.model)}`;
-    this.ws = new WebSocket(url);
+    const relay = getRealtimeRelayUrl();
+    if (!relay) {
+      throw new Error('Realtime relay not configured. Set OPENAI_REALTIME_RELAY_URL to a deployed proxy that forwards to OpenAI Realtime with proper headers.');
+    }
+    // Connect to our relay; relay must inject Authorization and beta headers to OpenAI
+    const url = `${relay.replace(/\/$/, '')}/ws?model=${encodeURIComponent(this.model)}`;
+    // Pass user's API key as subprotocol so the relay can forward Authorization without storing app keys
+    this.ws = new WebSocket(url, [
+      'bearer',
+      apiKey,
+    ]);
     const ws = this.ws;
     if (!ws) return;
     
