@@ -9,6 +9,7 @@ import { SheetHeader } from '../../molecules/SheetHeader';
 import * as DocumentPicker from 'expo-document-picker';
 import TranscriptionService from '../../../services/voice/TranscriptionService';
 import OpenAIRealtimeService from '../../../services/voice/OpenAIRealtimeService';
+import OpenAIWebRTCService from '../../../services/voice/OpenAIWebRTCService';
 import * as ReactRef from 'react';
 import { isRealtimeConfigured } from '../../../config/realtime';
 import { useSelector } from 'react-redux';
@@ -32,6 +33,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ visible, onClose, onStar
   const configuredRelay = useSelector((state: RootState) => state.settings.realtimeRelayUrl);
   const realtimeAvailable = hasOpenAIKey || isRealtimeConfigured();
   const realtimeRef = ReactRef.useRef<OpenAIRealtimeService | null>(null);
+  const webrtcRef = ReactRef.useRef<OpenAIWebRTCService | null>(null);
 
   const handleStart = async () => {
     setRecording(true);
@@ -46,9 +48,21 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ visible, onClose, onStar
       await recordingObj.startAsync();
       recordingRef.current = recordingObj;
       if (advanced) {
-        const svc = new OpenAIRealtimeService({ relayUrl: configuredRelay });
-        realtimeRef.current = svc;
-        await svc.connect();
+        try {
+          // Prefer WebRTC path using BYOK ephemeral session
+          const rtc = new OpenAIWebRTCService();
+          webrtcRef.current = rtc;
+          await rtc.startWebRTC();
+        } catch (e) {
+          // Fallback to WS relay if configured
+          if (configuredRelay) {
+            const svc = new OpenAIRealtimeService({ relayUrl: configuredRelay });
+            realtimeRef.current = svc;
+            await svc.connect();
+          } else {
+            throw e;
+          }
+        }
       }
     } catch {
       Alert.alert('Recording Not Available', 'expo-av not available or recording failed to start. You can still choose an existing audio file.');
@@ -65,20 +79,25 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ visible, onClose, onStar
         await rec.stopAndUnloadAsync();
         const uri = rec.getURI();
         if (uri) {
-          if (advanced && realtimeRef.current) {
+          if (advanced && (webrtcRef.current || realtimeRef.current)) {
             try {
-              await realtimeRef.current.sendRecordedAudioFile(uri, 'audio/m4a');
-              // Wait briefly and fetch output audio
-              setTimeout(async () => {
-                const out = await realtimeRef.current?.saveOutputAudioToFile();
-                if (out) {
-                  const { Audio } = await import('expo-av');
-                  const sound = new Audio.Sound();
-                  await sound.loadAsync({ uri: out });
-                  await sound.playAsync();
-                }
-                await realtimeRef.current?.disconnect();
-              }, 500);
+              if (realtimeRef.current) {
+                await realtimeRef.current.sendRecordedAudioFile(uri, 'audio/m4a');
+                // Wait briefly and fetch output audio
+                setTimeout(async () => {
+                  const out = await realtimeRef.current?.saveOutputAudioToFile();
+                  if (out) {
+                    const { Audio } = await import('expo-av');
+                    const sound = new Audio.Sound();
+                    await sound.loadAsync({ uri: out });
+                    await sound.playAsync();
+                  }
+                  await realtimeRef.current?.disconnect();
+                }, 500);
+              } else if (webrtcRef.current) {
+                // For WebRTC path, audio plays via remote track; nothing to send.
+                // Optionally, we could also record and send via data channel, but not required.
+              }
             } catch (e) {
               Alert.alert('Realtime Error', e instanceof Error ? e.message : 'Realtime session failed');
             }

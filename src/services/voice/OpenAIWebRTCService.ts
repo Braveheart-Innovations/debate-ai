@@ -7,6 +7,7 @@
 // 5) Set remote description from response; start duplex audio
 
 import APIKeyService from '../APIKeyService';
+import { RTCPeerConnection, RTCSessionDescription, mediaDevices } from 'expo-webrtc';
 
 export interface EphemeralSession {
   client_secret?: { value: string; expires_at?: string };
@@ -23,7 +24,9 @@ export interface WebRTCStartOptions {
 
 export class OpenAIWebRTCService {
   private ephemeral?: EphemeralSession;
-  // private pc?: RTCPeerConnection; // Uncomment once react-native-webrtc is integrated
+  private pc?: unknown;
+  private remoteStream?: unknown;
+  private localStream?: unknown;
 
   async mintEphemeralSession(opts?: WebRTCStartOptions): Promise<EphemeralSession> {
     const apiKey = await APIKeyService.getKey('openai');
@@ -60,12 +63,76 @@ export class OpenAIWebRTCService {
     if (!this.getEphemeralToken()) {
       await this.mintEphemeralSession(opts);
     }
-    // TODO: create RTCPeerConnection, mic track, data channel
-    // Create SDP offer and POST to:
-    //   POST https://api.openai.com/v1/realtime?model=... (Content-Type: application/sdp)
-    // with Authorization: Bearer <ephemeral>
-    // Then setRemoteDescription with SDP answer and begin audio playback.
-    throw new Error('WebRTC not integrated. Add react-native-webrtc to enable realtime voice.');
+    const token = this.getEphemeralToken();
+    if (!token) throw new Error('Failed to mint ephemeral session');
+
+    // Create PC
+    const PC = RTCPeerConnection as unknown as new (config?: unknown) => unknown & {
+      ontrack: ((ev: { streams: unknown[] }) => void) | null;
+      createDataChannel: (label: string) => unknown;
+      addTrack: (track: unknown, stream: unknown) => unknown;
+      createOffer: (opts?: unknown) => Promise<{ sdp?: string } & unknown>;
+      setLocalDescription: (desc: unknown) => Promise<void>;
+      localDescription?: { sdp?: string };
+      setRemoteDescription: (desc: unknown) => Promise<void>;
+      close: () => void;
+    };
+    const pc = new PC({
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+    });
+    this.pc = pc;
+
+    // Handle remote tracks
+    pc.ontrack = (event: { streams: unknown[] }) => {
+      this.remoteStream = (event.streams && event.streams[0]) || undefined;
+    };
+
+    // Create data channel for events/tools (optional)
+    try { pc.createDataChannel('oai-events'); } catch { /* ignore */ }
+
+    // Get mic
+    const local = await mediaDevices.getUserMedia({ audio: true });
+    this.localStream = local as unknown;
+    const ls = this.localStream as unknown as { getTracks?: () => unknown[] };
+    try { ls.getTracks?.()?.forEach((t: unknown) => pc.addTrack(t, this.localStream as unknown)); } catch { /* ignore */ }
+
+    // Create offer
+    const offer = await pc.createOffer({ offerToReceiveAudio: true });
+    await pc.setLocalDescription(offer);
+
+    // Post SDP to OpenAI
+    const model = opts?.model || this.ephemeral?.model || 'gpt-4o-realtime-preview-2024-10-01';
+    const res = await fetch(`https://api.openai.com/v1/realtime?model=${encodeURIComponent(model)}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/sdp',
+        'OpenAI-Beta': 'realtime=v1',
+      },
+      body: (pc.localDescription?.sdp) || offer.sdp || '',
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`Realtime SDP exchange failed ${res.status}: ${text}`);
+    }
+    const answerSdp = await res.text();
+    const SDesc = RTCSessionDescription as unknown as new (init: { type: string; sdp: string }) => unknown;
+    await pc.setRemoteDescription(new SDesc({ type: 'answer', sdp: answerSdp }));
+  }
+
+  getRemoteStream(): unknown { return this.remoteStream; }
+  getLocalStream(): unknown { return this.localStream; }
+  getPeerConnection(): unknown { return this.pc; }
+
+  async stop(): Promise<void> {
+    try { (this.pc as { close?: () => void } | undefined)?.close?.(); } catch { /* ignore */ }
+    try {
+      const ls = this.localStream as unknown as { getTracks?: () => Array<{ stop?: () => void }> };
+      ls.getTracks?.()?.forEach((t) => t.stop?.());
+    } catch { /* ignore */ }
+    this.pc = undefined;
+    this.localStream = undefined;
+    this.remoteStream = undefined;
   }
 }
 
