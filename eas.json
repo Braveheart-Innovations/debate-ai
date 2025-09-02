@@ -1,11 +1,15 @@
 {
   "cli": {
+    "appVersionSource": "remote",
     "version": ">= 5.0.0"
   },
   "build": {
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_RELEASE_CHANNEL": "development"
+      },
       "ios": {
         "resourceClass": "m-medium"
       },
@@ -14,7 +18,11 @@
       }
     },
     "preview": {
+      "developmentClient": false,
       "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_RELEASE_CHANNEL": "preview"
+      },
       "ios": {
         "resourceClass": "m-medium"
       },
@@ -23,6 +31,11 @@
       }
     },
     "production": {
+      "developmentClient": false,
+      "distribution": "store",
+      "env": {
+        "EXPO_PUBLIC_RELEASE_CHANNEL": "production"
+      },
       "ios": {
         "resourceClass": "m-medium"
       },
@@ -32,6 +45,27 @@
     }
   },
   "submit": {
-    "production": {}
+    "preview": {
+      "ios": {
+        "ascAppId": "<APP_STORE_CONNECT_APP_ID>",
+        "companyName": "Braveheart Innovations",
+        "sku": "com.braveheartinnovations.debateai"
+      },
+      "android": {
+        "track": "internal",
+        "packageName": "com.braveheartinnovations.debateai"
+      }
+    },
+    "production": {
+      "ios": {
+        "ascAppId": "<APP_STORE_CONNECT_APP_ID>",
+        "companyName": "Braveheart Innovations",
+        "sku": "com.braveheartinnovations.debateai"
+      },
+      "android": {
+        "track": "production",
+        "packageName": "com.braveheartinnovations.debateai"
+      }
+    }
   }
 }
