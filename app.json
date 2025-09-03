@@ -49,12 +49,16 @@
         "expo-build-properties",
         {
           "android": {
-            "newArchEnabled": true,
             "ndkVersion": "26.1.10909125"
           }
         }
       ],
       "expo-dev-client"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "f607938e-5c51-4cac-9901-a0419c7a79fd"
+      }
+    }
   }
 }

@@ -29,6 +29,7 @@ export { TabBarIcon } from './TabBarIcon';
 export { ModalHeader } from './ModalHeader';
 export { SharePreviewCard } from './SharePreviewCard';
 export { ShareActionButtons } from './ShareActionButtons';
+export { SegmentedControl } from './SegmentedControl';
 
 // Debate Setup Molecules
 export { DebateTopicCard } from './DebateTopicCard';

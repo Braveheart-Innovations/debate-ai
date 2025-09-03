@@ -6,7 +6,7 @@ import { RootState, setAIPersonality, setAIModel, preserveTopic, clearPreservedT
 import { setProviderStreamingPreference } from '../store/streamingSlice';
 
 import { Box } from '../components/atoms';
-import { Button } from '../components/molecules';
+import { Button, Typography, SectionHeader } from '../components/molecules';
 import { Header, HeaderActions } from '../components/organisms';
 import { hasFeatureAccess, getPremiumUpsellMessage } from '../services/PremiumService';
 import {
@@ -19,9 +19,11 @@ import {
 import { useTheme } from '../theme';
 import { AIConfig } from '../types';
 import { AI_PROVIDERS } from '../config/aiProviders';
+import { FormatModal } from '../components/organisms/debate/FormatModal';
+import { ALL_PRESET_TOPICS } from '../constants/debateTopicCategories';
 import { AI_MODELS } from '../config/modelConfigs';
 import { getAIProviderIcon } from '../utils/aiProviderAssets';
-import { DEBATE_TOPICS } from '../constants/debateTopics';
+// import { DEBATE_TOPICS } from '../constants/debateTopics';
 import { usePreDebateValidation } from '../hooks/debate';
 
 interface DebateSetupScreenProps {
@@ -80,6 +82,13 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
   );
   const [topicMode, setTopicMode] = useState<'preset' | 'custom' | 'surprise'>(preservedTopicMode || 'preset');
   const [selectedModels, setSelectedModels] = useState<Record<string, string>>(selectedModelsFromStore || {});
+  // New configuration toggles
+  const [formatId, setFormatId] = useState<'oxford' | 'lincoln_douglas' | 'policy' | 'socratic'>('oxford');
+  const [rounds, setRounds] = useState<number>(3);
+  // Removed: category/preset inline picker (using DebateTopicSelector instead)
+  const [civility, setCivility] = useState<1|2|3|4|5>(1);
+  const [formatModalVisible, setFormatModalVisible] = useState(false);
+  // Removed category UI for now to prioritize proven UX
   
   // Debate mode always requires exactly 2 AIs
   const maxAIs = 2;
@@ -156,20 +165,13 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
       selectedAIs: aiConfigsWithModels,
       topic: finalTopic,
       personalities: aiPersonalities,
+      formatId,
+      rounds,
+      civility,
     });
   };
   
-  const selectRandomTopic = () => {
-    const randomIndex = Math.floor(Math.random() * DEBATE_TOPICS.length);
-    const randomTopic = DEBATE_TOPICS[randomIndex];
-    setSelectedTopic(randomTopic);
-    setCustomTopic('');
-    setTopicMode('surprise');
-    // Auto-scroll to show the selected topic
-    setTimeout(() => {
-      scrollViewRef.current?.scrollTo({ y: 300, animated: true });
-    }, 100);
-  };
+  // Deprecated: selectRandomTopic (superseded by inline Surprise Me handler)
   
   const handleTopicModeChange = (mode: 'preset' | 'custom' | 'surprise') => {
     // Check if user can use custom topics
@@ -265,18 +267,53 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
           isPremium={isPremium}
         />
 
-        {/* Step 1: Topic Selection */}
+        {/* Step 1: Format, Rounds, Topic (clean and minimal) */}
         {currentStep === 'topic' && (
-          <DebateTopicSelector
-            selectedTopic={selectedTopic}
-            customTopic={customTopic}
-            topicMode={topicMode}
-            onTopicSelect={setSelectedTopic}
-            onCustomTopicChange={setCustomTopic}
-            onTopicModeChange={handleTopicModeChange}
-            onNext={handleTopicNext}
-            onSurpriseMe={selectRandomTopic}
-          />
+          <>
+            {/* Format section */}
+            <SectionHeader title="Format" />
+            <Box style={{ gap: theme.spacing.sm, marginBottom: theme.spacing.lg }}>
+              {/* Style selector stacked to align with Rounds button start */}
+              <Typography variant="body" weight="semibold">Style</Typography>
+              <Button
+                title={formatId === 'oxford' ? 'Oxford' : formatId === 'lincoln_douglas' ? 'Lincoln–Douglas' : formatId === 'policy' ? 'Policy' : 'Socratic'}
+                onPress={() => setFormatModalVisible(true)}
+                variant="secondary"
+                size="small"
+                textAlign="left"
+              />
+
+              {/* Rounds label + number-only selector, aligned with Style button */}
+              <Typography variant="body" weight="semibold" style={{ marginTop: theme.spacing.sm }}>Rounds</Typography>
+              <Button
+                title={`${rounds}`}
+                onPress={() => setRounds(rounds >= 7 ? 3 : Math.max(3, rounds + 1))}
+                variant="secondary"
+                size="small"
+                textAlign="left"
+              />
+            </Box>
+
+            {/* Topic section */}
+            <SectionHeader title="Topic" />
+            <DebateTopicSelector
+              selectedTopic={selectedTopic}
+              customTopic={customTopic}
+              topicMode={topicMode}
+              onTopicSelect={setSelectedTopic}
+              onCustomTopicChange={setCustomTopic}
+              onTopicModeChange={handleTopicModeChange}
+              onNext={handleTopicNext}
+              onSurpriseMe={() => {
+                const pool = ALL_PRESET_TOPICS;
+                const idx = Math.floor(Math.random() * pool.length);
+                const t = pool[idx];
+                setSelectedTopic(t);
+                setTopicMode('surprise');
+              }}
+              showHeading={false}
+            />
+          </>
         )}
         
         {/* Step 2: AI Selection */}
@@ -299,6 +336,11 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
             onBack={() => setCurrentStep('topic')}
           />
         )}
+
+        {/* Civility UI moved into DebatePersonalitySelector */}
+
+        {/* Format modal */}
+        <FormatModal visible={formatModalVisible} selected={formatId} onSelect={(id) => setFormatId(id)} onClose={() => setFormatModalVisible(false)} />
         
         {/* Streaming Settings (per-provider) */}
         {currentStep === 'ai' && selectedAIs.length > 0 && (
@@ -386,6 +428,8 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
             onPersonalityChange={handlePersonalityChange}
             onStartDebate={handleStartDebate}
             onBack={() => setCurrentStep('ai')}
+            civility={civility}
+            onChangeCivility={(v)=>setCivility(v)}
           />
         )}
       </ScrollView>

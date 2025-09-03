@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { View, TouchableOpacity } from 'react-native';
+import { TouchableOpacity } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useTheme } from '../../../theme';
 import { Typography, GradientButton, Button } from '../../molecules';
@@ -30,9 +30,7 @@ interface DebateAISelectorProps {
 }
 
 export const DebateAISelector: React.FC<DebateAISelectorProps> = ({
-  selectedTopic,
-  customTopic,
-  topicMode,
+  // selectedTopic, customTopic, topicMode, // no longer used in this step
   configuredAIs,
   selectedAIs,
   maxAIs,
@@ -48,7 +46,6 @@ export const DebateAISelector: React.FC<DebateAISelectorProps> = ({
 }) => {
   const { theme } = useTheme();
 
-  const displayTopic = topicMode === 'custom' ? customTopic : selectedTopic;
   const nextButtonTitle = isPremium ? "Next: Set the Tone →" : "Start Debate ⚔️";
   const isNextEnabled = selectedAIs.length === 2;
 
@@ -67,23 +64,8 @@ export const DebateAISelector: React.FC<DebateAISelectorProps> = ({
         <Typography variant="body" color="secondary">Back to Topic</Typography>
       </TouchableOpacity>
       
-      {/* Selected Topic Display */}
-      <View style={{
-        backgroundColor: theme.colors.primary[50],
-        borderRadius: theme.borderRadius.md,
-        padding: theme.spacing.md,
-        marginBottom: theme.spacing.lg,
-        borderWidth: 1,
-        borderColor: theme.colors.primary[200],
-      }}>
-        <Typography variant="caption" color="secondary" style={{ marginBottom: 4 }}>
-          Selected Topic:
-        </Typography>
-        <Typography variant="body" weight="semibold">
-          {displayTopic}
-        </Typography>
-      </View>
-      
+      {/* Removed Selected Topic display per request */}
+
       <DynamicAISelector
         configuredAIs={configuredAIs}
         selectedAIs={selectedAIs}

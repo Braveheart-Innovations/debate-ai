@@ -40,31 +40,30 @@
         "resourceClass": "m-medium"
       },
       "android": {
-        "buildType": "app-bundle"
+        "buildType": "app-bundle",
+        "gradleCommand": ":app:bundleRelease"
       }
     }
   },
   "submit": {
     "preview": {
       "ios": {
-        "ascAppId": "<APP_STORE_CONNECT_APP_ID>",
+        "ascAppId": "6751146458",
         "companyName": "Braveheart Innovations",
         "sku": "com.braveheartinnovations.debateai"
       },
       "android": {
-        "track": "internal",
-        "packageName": "com.braveheartinnovations.debateai"
+        "track": "internal"
       }
     },
     "production": {
       "ios": {
-        "ascAppId": "<APP_STORE_CONNECT_APP_ID>",
+        "ascAppId": "6751146458",
         "companyName": "Braveheart Innovations",
         "sku": "com.braveheartinnovations.debateai"
       },
       "android": {
-        "track": "production",
-        "packageName": "com.braveheartinnovations.debateai"
+        "track": "production"
       }
     }
   }

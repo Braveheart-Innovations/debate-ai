@@ -147,6 +147,7 @@ export const DebateMessageList: React.FC<DebateMessageListProps> = ({
       data={messages}
       renderItem={renderItem}
       keyExtractor={keyExtractor}
+      extraData={messages}
       showsVerticalScrollIndicator={showsVerticalScrollIndicator}
       contentContainerStyle={[
         { paddingTop: 8, paddingBottom: 16 },
@@ -159,11 +160,8 @@ export const DebateMessageList: React.FC<DebateMessageListProps> = ({
       updateCellsBatchingPeriod={50}
       initialNumToRender={15}
       windowSize={15}
-      getItemLayout={(_, index) => ({
-        length: 100, // Estimated average item height
-        offset: 100 * index,
-        index,
-      })}
+      // Let FlatList handle dynamic heights; static getItemLayout caused disappearing content with streaming
+      getItemLayout={undefined as unknown as never}
     />
   );
 };

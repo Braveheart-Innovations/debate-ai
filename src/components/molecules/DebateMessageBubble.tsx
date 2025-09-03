@@ -193,9 +193,15 @@ export const DebateMessageBubble: React.FC<DebateMessageBubbleProps> = React.mem
           }}
         >
           {(() => {
-            // If streaming error, still prefer showing whatever content exists
+            // If streaming, show live content
             if (isStreaming) return streamingContent || '';
-            // When not streaming, show the saved message content
+            // After streaming completes, there can be a short window where
+            // message.content hasn't been updated yet. Fall back to the last
+            // streamed content to avoid an empty bubble.
+            if (!isStreaming && (!message.content || message.content.trim() === '')) {
+              return streamingContent || '';
+            }
+            // Otherwise, show finalized message content
             return message.content;
           })()}
         </Markdown>
@@ -227,7 +233,15 @@ export const DebateMessageBubble: React.FC<DebateMessageBubbleProps> = React.mem
       </Box>
     </Animated.View>
   );
-}, (prevProps, nextProps) => prevProps.message.id === nextProps.message.id);
+}, (prevProps, nextProps) => {
+  // Re-render when message identity or displayed content changes
+  return (
+    prevProps.message.id === nextProps.message.id &&
+    prevProps.message.content === nextProps.message.content &&
+    prevProps.message.sender === nextProps.message.sender &&
+    prevProps.message.timestamp === nextProps.message.timestamp
+  );
+});
 
 const styles = StyleSheet.create({
   messageContainer: {

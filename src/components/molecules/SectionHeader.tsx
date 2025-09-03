@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, ViewStyle, TouchableOpacity } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Typography } from './Typography';
 import { useTheme } from '../../theme';
 
@@ -24,10 +25,17 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
   
   return (
     <View style={[{ marginBottom: theme.spacing.md }, style]}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+          <LinearGradient
+            colors={[theme.colors.primary[400], theme.colors.primary[600]]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ width: 6, height: 24, borderRadius: 3, marginRight: 10 }}
+          />
+        
           {icon && (
-            <Typography style={{ fontSize: 20, marginRight: 8 }}>
+            <Typography style={{ fontSize: 18, marginRight: 6 }}>
               {icon}
             </Typography>
           )}
@@ -37,18 +45,14 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
         </View>
         {onAction && actionLabel && (
           <TouchableOpacity onPress={onAction}>
-            <Typography 
-              variant="body" 
-              color="primary"
-              style={{ paddingHorizontal: theme.spacing.sm }}
-            >
+            <Typography variant="body" color="primary" style={{ paddingHorizontal: theme.spacing.sm }}>
               {actionLabel}
             </Typography>
           </TouchableOpacity>
         )}
       </View>
       {subtitle && (
-        <Typography variant="body" color="secondary">
+        <Typography variant="body" color="secondary" style={{ marginTop: 4 }}>
           {subtitle}
         </Typography>
       )}

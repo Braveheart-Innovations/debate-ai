@@ -16,7 +16,12 @@ export interface UseDebateSessionReturn {
   status: DebateStatus;
   isInitialized: boolean;
   orchestrator: DebateOrchestrator | null;
-  initializeSession: (topic: string, participants: AI[], personalities?: { [aiId: string]: string }) => Promise<void>;
+  initializeSession: (
+    topic: string,
+    participants: AI[],
+    personalities?: { [aiId: string]: string },
+    options?: { formatId?: 'oxford' | 'lincoln_douglas' | 'policy' | 'socratic'; rounds?: number; civility?: 1|2|3|4|5; stances?: { [aiId: string]: 'pro' | 'con' } }
+  ) => Promise<void>;
   resetSession: () => void;
   error: string | null;
 }
@@ -43,9 +48,10 @@ export const useDebateSession = (_selectedAIs: AI[]): UseDebateSessionReturn => 
   
   // Initialize session
   const initializeSession = useCallback(async (
-    topic: string, 
-    participants: AI[], 
-    personalities: { [aiId: string]: string } = {}
+    topic: string,
+    participants: AI[],
+    personalities: { [aiId: string]: string } = {},
+    options?: { formatId?: 'oxford' | 'lincoln_douglas' | 'policy' | 'socratic'; rounds?: number; civility?: 1|2|3|4|5; stances?: { [aiId: string]: 'pro' | 'con' } }
   ): Promise<void> => {
     if (!orchestrator) {
       setError('Orchestrator not initialized. Please wait a moment and try again.');
@@ -60,7 +66,7 @@ export const useDebateSession = (_selectedAIs: AI[]): UseDebateSessionReturn => 
       dispatch(startSession({ selectedAIs: participants, sessionType: 'debate' }));
       
       // Initialize debate session
-      const debateSession = await orchestrator.initializeDebate(topic, participants, personalities);
+      const debateSession = await orchestrator.initializeDebate(topic, participants, personalities, options);
       
       // Initialize debate stats in Redux
       dispatch(startDebate({ 

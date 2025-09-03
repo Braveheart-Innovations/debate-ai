@@ -23,11 +23,22 @@ export const useDebateMessages = (debateStartTime?: number): UseDebateMessagesRe
   const typingAIs = useSelector((state: RootState) => state.chat.typingAIs);
   
   const messages = useMemo(() => currentSession?.messages || [], [currentSession?.messages]);
-  const startTime = debateStartTime || currentSession?.startTime || 0;
+  // Be defensive: some environments reported messages disappearing due to overly strict time filtering.
+  // We still allow optional filtering when a valid debateStartTime is provided, but with safeguards.
+  const startTime = debateStartTime && Number.isFinite(debateStartTime) ? debateStartTime : 0;
   
   // Get only messages from the current debate session
   const getDebateMessages = useCallback((): Message[] => {
-    return messages.filter(msg => msg.timestamp >= startTime);
+    // If no valid startTime, return all current session messages
+    if (!startTime) return messages;
+
+    // Filter by start time, but tolerate small clock skews or ordering issues
+    const filtered = messages.filter(msg => msg.timestamp >= startTime - 250);
+
+    // Safety net: if filtering yields nothing but we have messages, return all to avoid UI "disappearing" bug
+    if (filtered.length === 0 && messages.length > 0) return messages;
+
+    return filtered;
   }, [messages, startTime]);
   
   // Add host message

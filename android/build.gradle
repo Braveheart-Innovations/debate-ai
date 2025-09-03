@@ -1,5 +1,8 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
+// Force a consistent NDK for all subprojects (Expo SDK 53 / RN 0.79 recommended)
+ext.ndkVersion = "26.1.10909125"
+
 buildscript {
   repositories {
     google()
@@ -23,14 +26,29 @@ def reactNativeAndroidDir = new File(
 
 allprojects {
   repositories {
-    maven {
-      // All of React Native (JS, Obj-C sources, Android binaries) is installed from npm
-      url(reactNativeAndroidDir)
-    }
-
+    // Prefer published React Native artifacts with prefab (react-android) from Maven Central
     google()
     mavenCentral()
     maven { url 'https://www.jitpack.io' }
+  }
+}
+
+// Ensure expo-av has access to the React Android prefab package
+subprojects { proj ->
+  if (proj.name == 'expo-av') {
+    proj.afterEvaluate {
+      try {
+        proj.dependencies.add('implementation', "com.facebook.react:react-android")
+        println "[Gradle] Injected react-android dependency into :expo-av for prefab linkage"
+        def androidExt = proj.extensions.findByName('android')
+        if (androidExt != null && androidExt.hasProperty('buildFeatures')) {
+          androidExt.buildFeatures.prefab = true
+          println "[Gradle] Enabled prefab buildFeatures for :expo-av"
+        }
+      } catch (Exception ignored) {
+        // Keep build resilient if Gradle configuration differs
+      }
+    }
   }
 }
 

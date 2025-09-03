@@ -24,23 +24,27 @@ interface DebatePersonalitySelectorProps {
   onPersonalityChange: (aiId: string, personalityId: string) => void;
   onStartDebate: () => void;
   onBack: () => void;
+  civility: 1|2|3|4|5;
+  onChangeCivility: (v: 1|2|3|4|5) => void;
 }
 
 export const DebatePersonalitySelector: React.FC<DebatePersonalitySelectorProps> = ({
-  selectedTopic,
-  customTopic,
-  topicMode,
+  // selectedTopic,
+  // customTopic,
+  // topicMode,
   selectedAIs,
   aiPersonalities,
   onPersonalityChange,
   onStartDebate,
   onBack,
+  civility,
+  onChangeCivility,
 }) => {
   const { theme } = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
   const [activeAI, setActiveAI] = useState<AIConfig | null>(null);
 
-  const displayTopic = topicMode === 'custom' ? customTopic : selectedTopic;
+  // Topic not displayed in this step per latest requirements
 
   return (
     <Animated.View entering={FadeIn}>
@@ -57,46 +61,19 @@ export const DebatePersonalitySelector: React.FC<DebatePersonalitySelectorProps>
         <Typography variant="body" color="secondary">Back to AI Selection</Typography>
       </TouchableOpacity>
       
-      <SectionHeader
-        title="Step 3: Set the Tone"
-        subtitle="Choose personality styles for the debate"
-        icon="🎭"
-      />
+      <SectionHeader title="Set the Tone" subtitle="Choose personality styles for the debate" icon="🎭" />
       
-      {/* Removed top suggested pairings to focus on clear personality info */}
-      
-      {/* Topic & AIs Summary */}
-      <View style={{
-        backgroundColor: theme.colors.surface,
-        borderRadius: theme.borderRadius.md,
-        padding: theme.spacing.md,
-        marginBottom: theme.spacing.lg,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
-      }}>
-        <Typography variant="caption" color="secondary" style={{ marginBottom: 8 }}>
-          Debate Preview:
-        </Typography>
-        <Typography variant="body" weight="semibold" style={{ marginBottom: 4 }}>
-          "{displayTopic}"
-        </Typography>
-        <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-          {selectedAIs.map((ai) => (
-            <View 
-              key={ai.id}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                backgroundColor: theme.colors.primary[50],
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 16,
-              }}
-            >
-              <Typography variant="caption" weight="semibold">{ai.name}</Typography>
-            </View>
-          ))}
+      {/* Civility selector under headline */}
+      <View style={{ marginBottom: theme.spacing.lg, padding: theme.spacing.md, backgroundColor: theme.colors.card, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border }}>
+        <Typography variant="subtitle" weight="semibold">Civility</Typography>
+        <View style={{ flexDirection: 'row', gap: 8, marginTop: theme.spacing.sm }}>
+          <Button title="Friendly" onPress={() => onChangeCivility(1)} variant={civility === 1 ? 'primary' : 'secondary'} size="small" />
+          <Button title="Neutral" onPress={() => onChangeCivility(3)} variant={civility === 3 ? 'primary' : 'secondary'} size="small" />
+          <Button title="Spicy" onPress={() => onChangeCivility(5)} variant={civility === 5 ? 'primary' : 'secondary'} size="small" />
         </View>
+        <Typography variant="caption" color="secondary" style={{ marginTop: 8 }}>
+          Sets overall tone guidance; still respectful.
+        </Typography>
       </View>
       
       {/* Personality Selection for Each AI (launch modal) */}

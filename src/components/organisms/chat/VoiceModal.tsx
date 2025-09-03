@@ -38,15 +38,19 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ visible, onClose, onStar
   const handleStart = async () => {
     setRecording(true);
     onStart?.();
-    // Use expo-av if available
+    // iOS: use expo-av for inline recording; Android: prompt to pick file for now
     try {
-      const { Audio } = await import('expo-av');
-      await Audio.requestPermissionsAsync();
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
-      const recordingObj = new Audio.Recording();
-      await recordingObj.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
-      await recordingObj.startAsync();
-      recordingRef.current = recordingObj;
+      if (Platform.OS === 'ios') {
+        const { Audio } = await import('expo-av');
+        await Audio.requestPermissionsAsync();
+        await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+        const recordingObj = new Audio.Recording();
+        await recordingObj.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+        await recordingObj.startAsync();
+        recordingRef.current = recordingObj;
+      } else {
+        Alert.alert('Recording', 'On Android, please choose an existing audio file for now.');
+      }
       if (advanced) {
         try {
           // Prefer WebRTC path using BYOK ephemeral session
@@ -65,7 +69,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ visible, onClose, onStar
         }
       }
     } catch {
-      Alert.alert('Recording Not Available', 'expo-av not available or recording failed to start. You can still choose an existing audio file.');
+      Alert.alert('Recording Not Available', 'Recording failed to start. You can still choose an existing audio file.');
     }
   };
 
@@ -73,7 +77,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ visible, onClose, onStar
     setRecording(false);
     onStop?.();
     try {
-      if (recordingRef.current) {
+      if (Platform.OS === 'ios' && recordingRef.current) {
         setBusy(true);
         const rec = recordingRef.current as { stopAndUnloadAsync: () => Promise<void>; getURI: () => string | null };
         await rec.stopAndUnloadAsync();
@@ -85,13 +89,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ visible, onClose, onStar
                 await realtimeRef.current.sendRecordedAudioFile(uri, 'audio/m4a');
                 // Wait briefly and fetch output audio
                 setTimeout(async () => {
-                  const out = await realtimeRef.current?.saveOutputAudioToFile();
-                  if (out) {
-                    const { Audio } = await import('expo-av');
-                    const sound = new Audio.Sound();
-                    await sound.loadAsync({ uri: out });
-                    await sound.playAsync();
-                  }
+                  // Optional playback skipped cross-platform to avoid build issues
                   await realtimeRef.current?.disconnect();
                 }, 500);
               } else if (webrtcRef.current) {
@@ -108,6 +106,9 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ visible, onClose, onStar
             onClose();
           }
         }
+      } else if (Platform.OS === 'android') {
+        // No inline recording; user should use file picker flow
+        setBusy(false);
       }
     } catch (e) {
       Alert.alert('Transcription Error', e instanceof Error ? e.message : 'Unknown error');

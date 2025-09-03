@@ -15,6 +15,7 @@ interface ButtonProps {
   style?: ViewStyle;
   accessibilityLabel?: string;
   accessibilityHint?: string;
+  textAlign?: 'left' | 'center';
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -28,6 +29,7 @@ export const Button: React.FC<ButtonProps> = ({
   style,
   accessibilityLabel,
   accessibilityHint,
+  textAlign = 'center',
 }) => {
   const { theme } = useTheme();
 
@@ -104,6 +106,7 @@ export const Button: React.FC<ButtonProps> = ({
         getVariantStyles(),
         fullWidth && styles.fullWidth,
         (disabled || loading) && styles.disabled,
+        textAlign === 'left' && styles.alignStart,
         style,
       ]}
       accessibilityLabel={accessibilityLabel || title}
@@ -111,7 +114,7 @@ export const Button: React.FC<ButtonProps> = ({
       accessibilityRole="button"
       accessibilityState={{ disabled: disabled || loading }}
     >
-      <Box style={styles.content}>
+      <Box style={[styles.content, textAlign === 'left' && styles.contentLeft]}>
         {loading ? (
           <ActivityIndicator 
             size="small" 
@@ -122,7 +125,7 @@ export const Button: React.FC<ButtonProps> = ({
             variant={textVariant}
             color={textColor}
             weight="semibold"
-            align="center"
+            align={textAlign}
           >
             {title}
           </Typography>
@@ -141,6 +144,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  contentLeft: {
+    justifyContent: 'flex-start',
+  },
+  alignStart: {
+    alignItems: 'stretch',
   },
   fullWidth: {
     width: '100%',

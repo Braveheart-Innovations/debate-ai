@@ -13,6 +13,9 @@ export { RichTopicInput } from './RichTopicInput';
 export { VictoryCelebration } from './VictoryCelebration';
 export { DebateTopic } from './DebateTopic';
 export { default as ShareModal } from './ShareModal';
+export { FormatModal } from './FormatModal';
+export { PresetTopicsModal } from './PresetTopicsModal';
+export { RoundsModal } from './RoundsModal';
 
 // Debate Setup Components
 export { DebateTopicSelector } from './DebateTopicSelector';

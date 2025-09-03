@@ -15,6 +15,7 @@ import { StorageService } from '../chat/StorageService';
 import { store } from '../../store';
 import { getStreamingService } from '../streaming/StreamingService';
 import { setProviderVerificationError } from '../../store/streamingSlice';
+import { getFormat, type DebateFormatId, type FormatSpec } from '../../config/debate/formats';
 
 export interface DebateSession {
   id: string;
@@ -26,6 +27,10 @@ export interface DebateSession {
   currentRound: number;
   messageCount: number;
   currentAIIndex: number;
+  totalRounds: number;
+  civility: 1 | 2 | 3 | 4 | 5;
+  format: FormatSpec;
+  stances: { [aiId: string]: 'pro' | 'con' };
 }
 
 export enum DebateStatus {
@@ -88,7 +93,13 @@ export class DebateOrchestrator {
   async initializeDebate(
     topic: string,
     participants: AI[],
-    personalities: { [aiId: string]: string } = {}
+    personalities: { [aiId: string]: string } = {},
+    options?: {
+      formatId?: DebateFormatId;
+      rounds?: number; // 1–5
+      civility?: 1 | 2 | 3 | 4 | 5;
+      stances?: { [aiId: string]: 'pro' | 'con' };
+    }
   ): Promise<DebateSession> {
     // Validate debate setup
     const validation = this.rulesEngine.validateDebateSetup(participants, topic);
@@ -96,6 +107,16 @@ export class DebateOrchestrator {
       throw new Error(`Invalid debate setup: ${validation.errors.join(', ')}`);
     }
     
+    // Resolve configuration
+    const format = getFormat(options?.formatId || 'oxford');
+    // Allow 3–7 rounds only; default to provided format default (usually 3)
+    const desired = options?.rounds ?? format.defaultRounds;
+    const totalRounds = Math.max(3, Math.min(desired, 7));
+    const civility = (options?.civility as 1|2|3|4|5) || 1;
+    const stances: { [aiId: string]: 'pro' | 'con' } = {};
+    if (participants[0]) stances[participants[0].id] = options?.stances?.[participants[0].id] || 'pro';
+    if (participants[1]) stances[participants[1].id] = options?.stances?.[participants[1].id] || 'con';
+
     // Create new session
     const session: DebateSession = {
       id: `debate_${Date.now()}`,
@@ -107,12 +128,18 @@ export class DebateOrchestrator {
       currentRound: 1,
       messageCount: 0,
       currentAIIndex: 0,
+      totalRounds,
+      civility,
+      format,
+      stances,
     };
     
     this.session = session;
     
     // Initialize services
     this.votingService = new VotingService(participants);
+    // Apply custom round rules
+    this.rulesEngine = new DebateRulesEngine({ maxRounds: totalRounds });
     
     // Update status
     this.updateSessionStatus(DebateStatus.ACTIVE);
@@ -149,20 +176,22 @@ export class DebateOrchestrator {
     // Store the initial messages
     this.currentMessages = [...existingMessages];
     
-    const { topic, participants, personalities } = this.session;
+    const { topic, participants, personalities, format, totalRounds, civility, stances } = this.session;
     const firstAI = participants[0];
     const personalityId = personalities[firstAI.id] || 'default';
-    
-    // Build opening prompt
-    const openingPrompt = this.promptBuilder.buildOpeningPrompt({
+    // Build opening prompt with one‑time Role Brief
+    const roleBrief = this.promptBuilder.buildRoleBrief({
       topic,
       ai: firstAI,
       personalityId,
-      isFirstMessage: true,
-      isLastRound: false,
-      roundNumber: 1,
-      messageCount: 1,
+      opponentName: participants[1]?.name || 'Opponent',
+      opponentPersonalityId: personalities[participants[1]?.id || ''] || 'default',
+      stance: stances[firstAI.id] || 'pro',
+      rounds: totalRounds,
+      civility,
+      format,
     });
+    const openingPrompt = `${roleBrief}\n\n${this.promptBuilder.buildTurnPrompt({ topic, phase: 'opening', guidance: format.guidance.opening })}`;
     
     // Start the debate round
     await this.executeDebateRound(openingPrompt, 0, 1, this.currentMessages);
@@ -181,7 +210,7 @@ export class DebateOrchestrator {
       throw new Error('No active debate session');
     }
     
-    const { participants, personalities, topic } = this.session;
+    const { participants, personalities, topic, format, totalRounds, civility, stances } = this.session;
     const currentAI = participants[aiIndex];
     const maxMessages = this.rulesEngine.calculateMaxMessages(participants.length);
     
@@ -202,7 +231,7 @@ export class DebateOrchestrator {
     // Check if we need to show voting
     if (roundInfo.shouldShowVoting && !this.votingService.hasVotedForRound(this.session.currentRound)) {
       // We're voting for the round that just ended (currentRound), not the new round
-      const isFinalRoundVote = this.session.currentRound === DEBATE_CONSTANTS.MAX_ROUNDS;
+      const isFinalRoundVote = this.session.currentRound === this.session.totalRounds;
       this.showVotingForRound(this.session.currentRound, isFinalRoundVote);
       return;
     }
@@ -223,17 +252,36 @@ export class DebateOrchestrator {
     this.session.messageCount = messageCount;
     
     try {
-      // Build contextual prompt
+      // Build per‑turn prompt; include Role Brief only the first time this AI speaks
       const personalityId = personalities[currentAI.id] || 'default';
-      const contextualPrompt = this.promptBuilder.buildContextualPrompt(
+      const hasSpokenBefore = existingMessages.some(m => m.senderType === 'ai' && m.sender.startsWith(currentAI.name));
+      const previousMessage = this.promptBuilder.extractPreviousMessage(existingMessages, currentAI);
+      const turnIndex = Math.min(messageCount - 1, format.baseTurns.length - 1);
+      const phase = format.baseTurns[turnIndex]?.phase || 'rebuttal';
+      const minimal = this.promptBuilder.buildTurnPrompt({
         topic,
-        currentAI,
+        phase,
+        previousMessage,
+        isFinalRound: phase === 'closing' || roundInfo.currentRound >= totalRounds,
+        guidance: format.guidance[phase] as string,
+        civilityLevel: civility,
+      });
+      let contextualPrompt = minimal;
+      if (!hasSpokenBefore && aiIndex === 1 && messageCount === 2) {
+        // First turn for AI2: provide its Role Brief once
+      const brief = this.promptBuilder.buildRoleBrief({
+        topic,
+        ai: currentAI,
         personalityId,
-        existingMessages,
-        roundInfo.currentRound,
-        messageCount,
-        maxMessages
-      );
+        opponentName: participants[0]?.name || 'Opponent',
+        opponentPersonalityId: personalities[participants[0]?.id || ''] || 'default',
+        stance: stances[currentAI.id] || 'con',
+        rounds: totalRounds,
+        civility,
+        format,
+      });
+        contextualPrompt = `${brief}\n\n${minimal}`;
+      }
 
       // Get debate-only conversation slice
       const debateMessages = existingMessages.filter(msg => msg.timestamp >= (this.session?.startTime || 0));
@@ -369,7 +417,9 @@ export class DebateOrchestrator {
         const nextMessageCount = messageCount + 1;
         if (nextMessageCount <= maxMessages && this.session.status === DebateStatus.ACTIVE) {
           const nextAIIndex = this.rulesEngine.getNextAIIndex(aiIndex, participants.length);
-          const delay = DEBATE_CONSTANTS.DELAYS.AI_RESPONSE;
+          // When streaming was used, we've already consumed user reading time during the stream.
+          // Use a shorter post-message pause to keep the debate flowing naturally.
+          const delay = DEBATE_CONSTANTS.DELAYS.POST_STREAM_PAUSE;
           this.scheduleNextRound(nextAIIndex, nextMessageCount, this.currentMessages, delay);
         } else {
           this.endDebate();
@@ -405,6 +455,7 @@ export class DebateOrchestrator {
         const nextMessageCount = messageCount + 1;
         if (nextMessageCount <= maxMessages && this.session.status === DebateStatus.ACTIVE) {
           const nextAIIndex = this.rulesEngine.getNextAIIndex(aiIndex, participants.length);
+          // Non-streaming path: keep the longer delay to allow reading time.
           const delay = DEBATE_CONSTANTS.DELAYS.AI_RESPONSE;
           this.scheduleNextRound(nextAIIndex, nextMessageCount, this.currentMessages, delay);
         } else {
@@ -516,33 +567,37 @@ export class DebateOrchestrator {
   private buildContinuationPrompt(aiIndex: number, messages: Message[]): string {
     if (!this.session) return '';
     
-    const { participants, personalities, topic } = this.session;
+    const { participants, personalities, topic, format, totalRounds, civility, stances } = this.session;
     const currentAI = participants[aiIndex];
     const personalityId = personalities[currentAI.id] || 'default';
     const previousMessage = this.promptBuilder.extractPreviousMessage(messages, currentAI);
-    
-    if (previousMessage) {
-      return this.promptBuilder.buildResponsePrompt({
+    const turnIndex = Math.min(this.session.messageCount - 1, format.baseTurns.length - 1);
+    const phase = format.baseTurns[turnIndex]?.phase || 'rebuttal';
+    const minimal = this.promptBuilder.buildTurnPrompt({
+      topic,
+      phase,
+      previousMessage,
+      isFinalRound: phase === 'closing' || this.session.currentRound >= totalRounds,
+      guidance: format.guidance[phase] as string,
+    });
+    // Role brief injection only if this AI has not spoken yet
+    const hasSpokenBefore = messages.some(m => m.senderType === 'ai' && m.sender.startsWith(currentAI.name));
+    if (!hasSpokenBefore) {
+      const opponent = participants[(aiIndex + 1) % participants.length];
+      const brief = this.promptBuilder.buildRoleBrief({
         topic,
         ai: currentAI,
         personalityId,
-        isFirstMessage: false,
-        isLastRound: this.session.messageCount >= this.rulesEngine.calculateMaxMessages(participants.length),
-        previousMessage,
-        roundNumber: this.session.currentRound,
-        messageCount: this.session.messageCount,
+        opponentName: opponent?.name || 'Opponent',
+        opponentPersonalityId: personalities[opponent?.id || ''] || 'default',
+        stance: stances[currentAI.id] || (aiIndex === 0 ? 'pro' : 'con'),
+        rounds: totalRounds,
+        civility,
+        format,
       });
-    } else {
-      return this.promptBuilder.buildContinuationPrompt({
-        topic,
-        ai: currentAI,
-        personalityId,
-        isFirstMessage: false,
-        isLastRound: false,
-        roundNumber: this.session.currentRound,
-        messageCount: this.session.messageCount,
-      });
+      return `${brief}\n\n${minimal}`;
     }
+    return minimal;
   }
   
   /**
@@ -664,7 +719,7 @@ export class DebateOrchestrator {
         id: `msg_${Date.now()}_overall_winner`,
         sender: 'Debate Host',
         senderType: 'user',
-        content: `\n🏆 **OVERALL WINNER: ${winnerScore.name}!**\n\n${winnerScore.name} won ${winnerScore.roundWins} out of ${DEBATE_CONSTANTS.MAX_ROUNDS} rounds!`,
+        content: `\n🏆 **OVERALL WINNER: ${winnerScore.name}!**\n\n${winnerScore.name} won ${winnerScore.roundWins} out of ${this.session.totalRounds} rounds!`,
         timestamp: Date.now(),
       };
     }
@@ -707,6 +762,13 @@ export class DebateOrchestrator {
         isActive: false,
         createdAt: this.session.startTime,
         lastMessageAt: Date.now(),
+        debateConfig: {
+          formatId: this.session.format.id,
+          rounds: this.session.totalRounds,
+          tempo: 'streaming',
+          postStreamPauseMs: DEBATE_CONSTANTS.DELAYS.POST_STREAM_PAUSE,
+          civility: this.session.civility,
+        }
       };
       
       // Save to storage
@@ -744,7 +806,7 @@ export class DebateOrchestrator {
     });
     
     // Show voting for final round
-    this.showVotingForRound(DEBATE_CONSTANTS.MAX_ROUNDS, true);
+    this.showVotingForRound(this.session.totalRounds, true);
   }
   
   /**

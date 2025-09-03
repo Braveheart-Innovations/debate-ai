@@ -96,6 +96,14 @@ export interface ChatSession {
   lastMessageAt?: number;
   sessionType?: 'chat' | 'comparison' | 'debate'; // New field for history organization
   topic?: string; // For debate sessions to store the debate topic
+  // Debate-specific optional configuration snapshot for history/analytics
+  debateConfig?: {
+    formatId?: 'oxford' | 'lincoln_douglas' | 'policy' | 'socratic';
+    rounds?: number;
+    tempo?: 'streaming' | 'fixed';
+    postStreamPauseMs?: number;
+    civility?: 1 | 2 | 3 | 4 | 5; // 1=friendly banter, 5=hostile
+  };
 }
 
 export interface PersonalityConfig {

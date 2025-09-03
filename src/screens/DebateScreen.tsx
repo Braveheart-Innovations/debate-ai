@@ -41,13 +41,16 @@ interface DebateScreenProps {
       selectedAIs: AI[];
       topic?: string;
       personalities?: { [key: string]: string };
+      formatId?: 'oxford' | 'lincoln_douglas' | 'policy' | 'socratic';
+      rounds?: number;
+      civility?: 1|2|3|4|5;
     };
   };
 }
 
 const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
   const { theme } = useTheme();
-  const { selectedAIs, topic: initialTopic, personalities: initialPersonalities } = route.params;
+  const { selectedAIs, topic: initialTopic, personalities: initialPersonalities, formatId, rounds, civility } = route.params;
   const [showTranscript, setShowTranscript] = useState(false);
   
   // Initialize all hooks
@@ -70,7 +73,8 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
       await session.initializeSession(
         topicToUse,
         selectedAIs,
-        initialPersonalities || {}
+        initialPersonalities || {},
+        { formatId: formatId || 'oxford', rounds: rounds || 3, civility: (civility as 1|2|3|4|5) || 1 }
       );
       
       // Add initial host message

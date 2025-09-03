@@ -178,24 +178,7 @@ export const DebateStepIndicator: React.FC<DebateStepIndicatorProps> = ({
         })}
       </View>
 
-      {/* Current Step Details */}
-      {currentStepIndex >= 0 && (
-        <View style={{
-          backgroundColor: theme.colors.primary[50],
-          borderRadius: theme.borderRadius.md,
-          padding: theme.spacing.sm,
-          marginTop: theme.spacing.md,
-          borderWidth: 1,
-          borderColor: theme.colors.primary[100],
-        }}>
-          <Typography variant="caption" color="secondary" style={{ marginBottom: 2 }}>
-            Step {currentStepIndex + 1} of {steps.length}:
-          </Typography>
-          <Typography variant="body" weight="semibold" style={{ color: theme.colors.primary[700] }}>
-            {steps[currentStepIndex].icon} {steps[currentStepIndex].label}
-          </Typography>
-        </View>
-      )}
+      {/* Removed redundant current-step callout */}
     </View>
   );
 };

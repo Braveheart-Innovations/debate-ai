@@ -3,13 +3,14 @@
  * Handles topic selection including preset topics, custom input, and surprise mode
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { View, TouchableOpacity, Alert } from 'react-native';
-import Animated, { FadeInDown, FadeIn, FadeOut, Layout } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut, Layout } from 'react-native-reanimated';
 import { useTheme } from '../../../theme';
-import { Typography, GradientButton, DebateTopicCard } from '../../molecules';
+import { Typography, GradientButton } from '../../molecules';
 import { RichTopicInput } from './RichTopicInput';
-import { DEBATE_TOPICS } from '../../../constants/debateTopics';
+// import { DEBATE_TOPICS } from '../../../constants/debateTopics';
+import { PresetTopicsModal } from './PresetTopicsModal';
 
 interface DebateTopicSelectorProps {
   selectedTopic: string;
@@ -20,6 +21,7 @@ interface DebateTopicSelectorProps {
   onTopicModeChange: (mode: 'preset' | 'custom' | 'surprise') => void;
   onNext: () => void;
   onSurpriseMe: () => void;
+  showHeading?: boolean; // optional UI heading above controls
 }
 
 export const DebateTopicSelector: React.FC<DebateTopicSelectorProps> = ({
@@ -31,8 +33,10 @@ export const DebateTopicSelector: React.FC<DebateTopicSelectorProps> = ({
   onTopicModeChange,
   onNext,
   onSurpriseMe,
+  showHeading = true,
 }) => {
   const { theme } = useTheme();
+  const [presetVisible, setPresetVisible] = useState(false);
 
   const handleNext = () => {
     const finalTopic = topicMode === 'custom' ? customTopic : selectedTopic;
@@ -51,20 +55,21 @@ export const DebateTopicSelector: React.FC<DebateTopicSelectorProps> = ({
 
   return (
     <Animated.View entering={FadeIn}>
-      {/* Topic Selection Question */}
-      <View style={{ marginBottom: theme.spacing.lg }}>
-        <Typography 
-          variant="subtitle" 
-          weight="semibold" 
-          align="center"
-          style={{ 
-            color: theme.colors.text.primary,
-            marginBottom: theme.spacing.sm,
-          }}
-        >
-          💭 What should the AIs debate?
-        </Typography>
-      </View>
+      {showHeading && (
+        <View style={{ marginBottom: theme.spacing.lg }}>
+          <Typography 
+            variant="subtitle" 
+            weight="semibold" 
+            align="center"
+            style={{ 
+              color: theme.colors.text.primary,
+              marginBottom: theme.spacing.sm,
+            }}
+          >
+            💭 What should the AIs debate?
+          </Typography>
+        </View>
+      )}
       
       {/* Three Main Action Buttons */}
       <View style={{ marginBottom: theme.spacing.lg }}>
@@ -75,24 +80,23 @@ export const DebateTopicSelector: React.FC<DebateTopicSelectorProps> = ({
         }}>
           <TouchableOpacity
             onPress={() => {
-              onTopicModeChange('preset');
-              onCustomTopicChange('');
+              setPresetVisible(true);
             }}
             style={{
               flex: 1,
               paddingVertical: theme.spacing.md,
               paddingHorizontal: theme.spacing.lg,
               borderRadius: theme.borderRadius.md,
-              backgroundColor: topicMode === 'preset' ? theme.colors.primary[500] : theme.colors.surface,
+              backgroundColor: theme.colors.surface,
               borderWidth: 1,
-              borderColor: topicMode === 'preset' ? theme.colors.primary[500] : theme.colors.border,
+              borderColor: theme.colors.border,
             }}
           >
             <Typography 
               variant="body" 
               weight="semibold" 
               align="center"
-              style={{ color: topicMode === 'preset' ? '#fff' : theme.colors.text.primary }}
+              style={{ color: theme.colors.text.primary }}
             >
               Preset Topics
             </Typography>
@@ -134,25 +138,32 @@ export const DebateTopicSelector: React.FC<DebateTopicSelectorProps> = ({
       
       {/* Content Area - Changes based on selection */}
       <Animated.View layout={Layout.duration(300)} style={{ minHeight: 200 }}>
-        {/* Preset Topics List - Unfurls when selected */}
-        {topicMode === 'preset' && (
+        {/* Preset topics now live in a modal; inline list removed */}
+
+        {/* Unified selected topic display (for preset or surprise) */}
+        {selectedTopic && topicMode !== 'custom' && (
           <Animated.View 
-            entering={FadeInDown.duration(300)}
+            entering={FadeIn.duration(300)}
             exiting={FadeOut.duration(200)}
             style={{ marginBottom: theme.spacing.xl }}
           >
-            {DEBATE_TOPICS.slice(0, 6).map((topic, index) => (
-              <DebateTopicCard
-                key={topic}
-                topic={topic}
-                isSelected={selectedTopic === topic}
-                onPress={() => onTopicSelect(topic)}
-                index={index}
-              />
-            ))}
+            <View style={{
+              backgroundColor: theme.colors.surface,
+              borderRadius: theme.borderRadius.lg,
+              padding: theme.spacing.lg,
+              borderWidth: 1,
+              borderColor: theme.colors.border,
+            }}>
+              <Typography variant="caption" color="secondary" style={{ marginBottom: 8 }}>
+                Selected Topic:
+              </Typography>
+              <Typography variant="body" weight="semibold">
+                {selectedTopic}
+              </Typography>
+            </View>
           </Animated.View>
         )}
-        
+
         {/* Custom Topic Input - Fades in when selected */}
         {topicMode === 'custom' && (
           <Animated.View 
@@ -168,33 +179,6 @@ export const DebateTopicSelector: React.FC<DebateTopicSelectorProps> = ({
             />
           </Animated.View>
         )}
-        
-        {/* Surprise Topic Display - Shows selected random topic */}
-        {topicMode === 'surprise' && selectedTopic && (
-          <Animated.View 
-            entering={FadeIn.duration(300)}
-            exiting={FadeOut.duration(200)}
-            style={{ marginBottom: theme.spacing.xl }}
-          >
-            <View style={{
-              backgroundColor: theme.colors.primary[50],
-              borderRadius: theme.borderRadius.lg,
-              padding: theme.spacing.lg,
-              borderWidth: 2,
-              borderColor: theme.colors.primary[300],
-            }}>
-              <Typography variant="caption" color="secondary" style={{ marginBottom: 8 }}>
-                🎲 Random Topic Selected:
-              </Typography>
-              <Typography variant="body" weight="semibold">
-                {selectedTopic}
-              </Typography>
-              <Typography variant="caption" color="secondary" style={{ marginTop: 12, fontStyle: 'italic' }}>
-                Press "Surprise Me!" again for a different topic
-              </Typography>
-            </View>
-          </Animated.View>
-        )}
       </Animated.View>
       
       {/* Next Button */}
@@ -204,6 +188,18 @@ export const DebateTopicSelector: React.FC<DebateTopicSelectorProps> = ({
         disabled={!isNextEnabled}
         gradient={theme.colors.gradients.primary}
         fullWidth
+      />
+
+      {/* Preset Topics Modal */}
+      <PresetTopicsModal
+        visible={presetVisible}
+        onClose={() => setPresetVisible(false)}
+        onSelectTopic={(topic) => {
+          onTopicModeChange('preset');
+          onCustomTopicChange('');
+          onTopicSelect(topic);
+          setPresetVisible(false);
+        }}
       />
     </Animated.View>
   );
