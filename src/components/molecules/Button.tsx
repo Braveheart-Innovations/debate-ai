@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, ViewStyle, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { StyleSheet, ViewStyle, ActivityIndicator, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Box } from '../atoms';
 import { Typography } from './Typography';
 import { useTheme } from '../../theme';
@@ -7,7 +8,7 @@ import { useTheme } from '../../theme';
 interface ButtonProps {
   title: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'tonal';
   size?: 'small' | 'medium' | 'large';
   disabled?: boolean;
   loading?: boolean;
@@ -16,6 +17,7 @@ interface ButtonProps {
   accessibilityLabel?: string;
   accessibilityHint?: string;
   textAlign?: 'left' | 'center';
+  rightIcon?: 'chevron-down' | 'none' | string; // minimal adornment support
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -30,8 +32,9 @@ export const Button: React.FC<ButtonProps> = ({
   accessibilityLabel,
   accessibilityHint,
   textAlign = 'center',
+  rightIcon = 'none',
 }) => {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
 
   const getSizeStyles = () => {
     switch (size) {
@@ -72,6 +75,12 @@ export const Button: React.FC<ButtonProps> = ({
           borderWidth: 1,
           borderColor: theme.colors.border,
         };
+      case 'tonal':
+        return {
+          backgroundColor: isDark ? theme.colors.overlays.medium : theme.colors.primary[50],
+          borderWidth: 1,
+          borderColor: isDark ? theme.colors.primary[400] : theme.colors.primary[200],
+        };
       case 'ghost':
         return {
           backgroundColor: 'transparent',
@@ -93,7 +102,7 @@ export const Button: React.FC<ButtonProps> = ({
     }
   };
 
-  const textColor = variant === 'ghost' || variant === 'secondary' ? 'primary' : 'inverse';
+  const textColor = (variant === 'ghost' || variant === 'secondary' || variant === 'tonal') ? 'primary' : 'inverse';
   const textVariant = size === 'small' ? 'caption' : size === 'large' ? 'subtitle' : 'button';
 
   return (
@@ -114,21 +123,32 @@ export const Button: React.FC<ButtonProps> = ({
       accessibilityRole="button"
       accessibilityState={{ disabled: disabled || loading }}
     >
-      <Box style={[styles.content, textAlign === 'left' && styles.contentLeft]}>
+      <Box style={[styles.content, textAlign === 'left' ? styles.contentBetween : styles.contentCenter]}>
         {loading ? (
           <ActivityIndicator 
             size="small" 
             color={variant === 'ghost' ? theme.colors.text.primary : theme.colors.text.inverse}
           />
         ) : (
-          <Typography
-            variant={textVariant}
-            color={textColor}
-            weight="semibold"
-            align={textAlign}
-          >
-            {title}
-          </Typography>
+          <>
+            <Typography
+              variant={textVariant}
+              color={textColor}
+              weight="semibold"
+              align={textAlign}
+            >
+              {title}
+            </Typography>
+            {textAlign === 'left' && rightIcon !== 'none' && (
+              <View style={{ marginLeft: 8 }}>
+                {rightIcon === 'chevron-down' ? (
+                  <Ionicons name="chevron-down" size={16} color={variant === 'primary' ? theme.colors.text.inverse : theme.colors.primary[500]} />
+                ) : (
+                  <Typography variant="caption" color={textColor}>{rightIcon}</Typography>
+                )}
+              </View>
+            )}
+          </>
         )}
       </Box>
     </TouchableOpacity>
@@ -143,18 +163,21 @@ const styles = StyleSheet.create({
   content: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  contentCenter: {
     justifyContent: 'center',
   },
-  contentLeft: {
-    justifyContent: 'flex-start',
-  },
-  alignStart: {
-    alignItems: 'stretch',
+  contentBetween: {
+    justifyContent: 'space-between',
+    width: '100%',
   },
   fullWidth: {
     width: '100%',
   },
   disabled: {
     opacity: 0.5,
+  },
+  alignStart: {
+    alignItems: 'stretch',
   },
 });

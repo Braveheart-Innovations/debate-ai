@@ -368,15 +368,12 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
           variant="gradient"
           title="Comparing"
           subtitle={`${leftAI.name} vs ${rightAI.name}`}
-          showTime={true}
-          showDate={true}
+          showTime={false}
+          showDate={false}
           animated={true}
           rightElement={<HeaderActions variant="gradient" />}
-          actionButton={{
-            label: 'Start Over',
-            onPress: handleStartOver,
-            variant: 'danger'
-          }}
+          showBackButton={true}
+          onBack={handleStartOver}
         />
         
         <ScrollView 

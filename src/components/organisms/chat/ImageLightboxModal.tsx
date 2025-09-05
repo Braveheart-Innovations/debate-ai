@@ -2,6 +2,7 @@ import React from 'react';
 import { Modal, StyleSheet, TouchableOpacity, ScrollView, View } from 'react-native';
 import { Image } from 'react-native';
 import { useTheme } from '../../../theme';
+import { Ionicons } from '@expo/vector-icons';
 import { Box } from '../../atoms';
 import { Typography } from '../../molecules';
 import * as Sharing from 'expo-sharing';
@@ -42,8 +43,13 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({ visible,
           <TouchableOpacity style={styles.content} activeOpacity={1} onPress={() => {}}>
             <Box style={styles.headerRow}>
               <Typography variant="title" color="inverse">Preview</Typography>
-              <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, left: 10, bottom: 10, right: 10 }}>
-                <Typography variant="title" color="inverse">×</Typography>
+              <TouchableOpacity 
+                onPress={onClose} 
+                hitSlop={{ top: 10, left: 10, bottom: 10, right: 10 }}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+              >
+                <Ionicons name="close" size={28} color="#FFFFFF" />
               </TouchableOpacity>
             </Box>
             <ScrollView

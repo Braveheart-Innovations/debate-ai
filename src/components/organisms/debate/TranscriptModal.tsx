@@ -21,7 +21,7 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Typography } from '../../molecules';
 import { GradientButton } from '../../molecules';
-import { ModalHeader } from '../../molecules/ModalHeader';
+import { SheetHeader } from '../../molecules/SheetHeader';
 import { useTheme } from '../../../theme';
 import { Message } from '../../../types';
 import { AI_BRAND_COLORS } from '../../../constants/aiColors';
@@ -418,7 +418,7 @@ export const TranscriptModal: React.FC<TranscriptModalProps> = ({
     >
       <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
         {/* Header */}
-        <ModalHeader title="Debate Transcript" onClose={onClose} variant="gradient" />
+        <SheetHeader title="Debate Transcript" onClose={onClose} showHandle />
 
         {/* Metadata */}
         <View style={styles.metadata}>

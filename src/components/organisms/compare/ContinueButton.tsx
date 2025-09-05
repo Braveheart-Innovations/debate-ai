@@ -14,7 +14,7 @@ export const ContinueButton: React.FC<ContinueButtonProps> = ({
   isDisabled = false,
   side 
 }) => {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   
   const buttonColors = {
     backgroundColor: isDisabled 
@@ -32,15 +32,22 @@ export const ContinueButton: React.FC<ContinueButtonProps> = ({
         : theme.colors.info[700],
   };
 
+  const containerStyle = {
+    borderTopColor: theme.colors.border,
+    backgroundColor: isDark ? theme.colors.card : theme.colors.background,
+    shadowOpacity: isDark ? 0 : 0.15,
+    elevation: isDark ? 0 : 4,
+  } as const;
+
   return (
-    <View style={[styles.container, { borderTopColor: theme.colors.border }]}>
+    <View style={[styles.container, containerStyle]}>
       <TouchableOpacity 
         onPress={onPress}
         disabled={isDisabled}
         style={[
           styles.button,
           {
-            backgroundColor: buttonColors.backgroundColor,
+            backgroundColor: 'transparent',
             borderColor: buttonColors.borderColor,
             opacity: isDisabled ? 0.5 : 1,
           }
@@ -63,12 +70,9 @@ const styles = StyleSheet.create({
   container: {
     paddingVertical: 12,
     paddingHorizontal: 8,
-    borderTopWidth: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    elevation: 4,
+    borderTopWidth: StyleSheet.hairlineWidth,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.15,
     shadowRadius: 4,
   },
   button: {
@@ -78,10 +82,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    elevation: 0,
   },
 });

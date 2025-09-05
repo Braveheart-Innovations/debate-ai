@@ -57,12 +57,17 @@ export class ChatService {
       senderType: 'ai',
       content,
       timestamp: Date.now(),
-      metadata: metadata ? {
-        modelUsed: metadata.modelUsed,
-        responseTime: metadata.responseTime,
-        citations: metadata.citations,
-        providerMetadata: metadata.providerMetadata,
-      } : undefined,
+      metadata: {
+        // Always include providerId so adapters can remap roles in debate mode
+        providerId: ai.provider,
+        // Optional extras
+        ...(metadata ? {
+          modelUsed: metadata.modelUsed,
+          responseTime: metadata.responseTime,
+          citations: metadata.citations,
+          providerMetadata: metadata.providerMetadata,
+        } : {}),
+      },
     };
   }
 

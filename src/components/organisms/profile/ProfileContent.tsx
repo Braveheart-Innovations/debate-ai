@@ -31,7 +31,7 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
   onSettingsPress,
   onSubscriptionPress,
 }) => {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const dispatch = useDispatch();
   const { userProfile, isPremium, isAuthenticated, isAnonymous } = useSelector((state: RootState) => state.auth);
   
@@ -288,26 +288,35 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
         
         {/* Premium Feature Bubbles */}
         <View style={styles.premiumFeatures}>
-          <View style={[styles.featureBubble, { backgroundColor: theme.colors.primary[50] }]}>
-            <Typography variant="caption" weight="medium" color="primary">
-              Customized Debates
-            </Typography>
-          </View>
-          <View style={[styles.featureBubble, { backgroundColor: theme.colors.primary[50] }]}>
-            <Typography variant="caption" weight="medium" color="primary">
-              Chat with 3+ AIs
-            </Typography>
-          </View>
-          <View style={[styles.featureBubble, { backgroundColor: theme.colors.primary[50] }]}>
-            <Typography variant="caption" weight="medium" color="primary">
-              Personality Types
-            </Typography>
-          </View>
-          <View style={[styles.featureBubble, { backgroundColor: theme.colors.primary[50] }]}>
-            <Typography variant="caption" weight="medium" color="primary">
-              Comparison Mode
-            </Typography>
-          </View>
+          {(() => {
+            const bubbleStyle = isDark
+              ? { backgroundColor: theme.colors.overlays.medium, borderWidth: 1, borderColor: theme.colors.primary[500] }
+              : { backgroundColor: theme.colors.primary[50], borderWidth: 1, borderColor: theme.colors.primary[200] };
+            return (
+              <>
+                <View style={[styles.featureBubble, bubbleStyle]}>
+                  <Typography variant="caption" weight="medium" color="brand">
+                  Customized Debates
+                  </Typography>
+                </View>
+                <View style={[styles.featureBubble, bubbleStyle]}>
+                  <Typography variant="caption" weight="medium" color="brand">
+                  Chat with 3+ AIs
+                  </Typography>
+                </View>
+                <View style={[styles.featureBubble, bubbleStyle]}>
+                  <Typography variant="caption" weight="medium" color="brand">
+                  Personality Types
+                  </Typography>
+                </View>
+                <View style={[styles.featureBubble, bubbleStyle]}>
+                  <Typography variant="caption" weight="medium" color="brand">
+                  Comparison Mode
+                  </Typography>
+                </View>
+              </>
+            );
+          })()}
         </View>
 
         {/* Auth Card */}

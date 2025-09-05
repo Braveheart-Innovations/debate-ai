@@ -137,7 +137,7 @@ export class DebateOrchestrator {
     this.session = session;
     
     // Initialize services
-    this.votingService = new VotingService(participants);
+    this.votingService = new VotingService(participants, format, totalRounds);
     // Apply custom round rules
     this.rulesEngine = new DebateRulesEngine({ maxRounds: totalRounds });
     
@@ -191,7 +191,7 @@ export class DebateOrchestrator {
       civility,
       format,
     });
-    const openingPrompt = `${roleBrief}\n\n${this.promptBuilder.buildTurnPrompt({ topic, phase: 'opening', guidance: format.guidance.opening })}`;
+    const openingPrompt = `${roleBrief}\n\n${this.promptBuilder.buildTurnPrompt({ topic, phase: 'opening', guidance: format.guidance.opening, format })}`;
     
     // Start the debate round
     await this.executeDebateRound(openingPrompt, 0, 1, this.currentMessages);
@@ -264,6 +264,7 @@ export class DebateOrchestrator {
         previousMessage,
         isFinalRound: phase === 'closing' || roundInfo.currentRound >= totalRounds,
         guidance: format.guidance[phase] as string,
+        format,
         civilityLevel: civility,
       });
       let contextualPrompt = minimal;
@@ -629,7 +630,7 @@ export class DebateOrchestrator {
       id: `msg_${Date.now()}_round_${round}`,
       sender: 'Debate Host',
       senderType: 'user',
-      content: this.votingService.getWinnerMessage(round, winnerId, round === DEBATE_CONSTANTS.MAX_ROUNDS),
+      content: this.votingService.getWinnerMessage(round, winnerId, round === this.session.totalRounds),
       timestamp: Date.now(),
     };
     

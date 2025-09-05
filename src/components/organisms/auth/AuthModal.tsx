@@ -271,10 +271,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
                 onPress={handleClose}
                 style={[styles.closeButton, { backgroundColor: theme.colors.surface }]}
                 activeOpacity={0.7}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
               >
-                <Typography variant="title" weight="bold" style={styles.closeIcon}>
-                  ×
-                </Typography>
+                <Ionicons name="close" size={22} color={theme.colors.text.primary} />
               </TouchableOpacity>
             </View>
             

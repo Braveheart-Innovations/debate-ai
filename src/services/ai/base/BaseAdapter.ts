@@ -67,32 +67,59 @@ export abstract class BaseAdapter {
     history: Message[], 
     resumptionContext?: ResumptionContext
   ): FormattedMessage[] {
-    let formattedMessages: FormattedMessage[] = [];
-    
+    const formattedMessages: FormattedMessage[] = [];
+
+    // Include a concise resumption hint as a user note to keep alternation valid
     if (resumptionContext?.isResuming && resumptionContext.originalPrompt) {
       const originalContent = resumptionContext.originalPrompt.content || '';
       formattedMessages.push({
-        role: 'assistant',
-        content: `[Note: You're continuing a conversation that started with: "${originalContent.substring(0, 100)}${originalContent.length > 100 ? '...' : ''}"]`
+        role: 'user',
+        content: `[Continuation note] Previously started with: "${originalContent.substring(0, 100)}${originalContent.length > 100 ? '...' : ''}"`
       });
-      
-      const recentHistory = history.slice(-10);
-      if (!recentHistory.some(msg => msg.id === resumptionContext.originalPrompt.id)) {
-        formattedMessages.push({
-          role: 'user',
-          content: originalContent
-        });
+    }
+
+    const recent = history.slice(-10);
+
+    // In debate mode, remap roles so the target adapter sees a single assistant (itself)
+    // and everything else as user content, then enforce alternation by merging same-role runs.
+    const debateMode = !!this.config.isDebateMode;
+    const providerId = this.config.provider;
+
+    const mapped: FormattedMessage[] = recent
+      .map((msg) => {
+        if (msg.senderType === 'user') {
+          return { role: 'user' as const, content: msg.content || '' };
+        }
+        // senderType === 'ai'
+        if (debateMode) {
+          const msgProvider = msg.metadata?.providerId;
+          if (msgProvider && msgProvider === providerId) {
+            // This adapter's own prior outputs remain assistant
+            return { role: 'assistant' as const, content: msg.content || '' };
+          }
+          // Other AI outputs become user content with attribution
+          const speaker = msg.sender || 'Other AI';
+          return { role: 'user' as const, content: `[${speaker}] ${msg.content || ''}` };
+        }
+        // Non-debate: default mapping
+        return { role: 'assistant' as const, content: msg.content || '' };
+      })
+      .filter((m) => !!m.content);
+
+    // Merge consecutive messages with the same role to satisfy strict alternation rules.
+    const merged: FormattedMessage[] = [];
+    for (const m of [...formattedMessages, ...mapped]) {
+      const last = merged[merged.length - 1];
+      if (last && last.role === m.role) {
+        const lastContent = typeof last.content === 'string' ? last.content : '';
+        const nextContent = typeof m.content === 'string' ? m.content : '';
+        last.content = [lastContent, nextContent].filter(Boolean).join('\n\n');
+      } else {
+        merged.push({ role: m.role, content: m.content });
       }
     }
-    
-    const recentMessages = history.slice(-10).map(msg => ({
-      role: (msg.senderType === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
-      content: msg.content || ''
-    })).filter(msg => msg.content);
-    
-    formattedMessages = [...formattedMessages, ...recentMessages];
-    
-    return formattedMessages;
+
+    return merged;
   }
   
   protected async handleApiError(response: Response, provider: string): Promise<never> {

@@ -71,7 +71,7 @@ const AnimatedGradientBackground: React.FC = () => {
 
 const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
   const dispatch = useDispatch();
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const scale = useSharedValue(0);
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(50);
@@ -304,14 +304,15 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
           
           <View style={styles.comparisonContainer}>
             {/* Subscription Model */}
-            <View style={[styles.comparisonCard, { 
-              backgroundColor: theme.colors.error[50], 
-              borderColor: theme.colors.error[300],
-              borderWidth: 2,
-            }]}>
+            <View style={[
+              styles.comparisonCard,
+              isDark
+                ? { backgroundColor: theme.colors.card, borderColor: theme.colors.error[600], borderWidth: 2 }
+                : { backgroundColor: theme.colors.error[50], borderColor: theme.colors.error[300], borderWidth: 2 }
+            ]}>
               <View style={styles.comparisonHeader}>
-                <MaterialIcons name="money-off" size={18} color={theme.colors.error[600]} />
-                <Typography variant="caption" weight="bold" style={{ color: theme.colors.error[700], marginLeft: 6 }}>
+                <MaterialIcons name="money-off" size={18} color={isDark ? theme.colors.error[400] : theme.colors.error[600]} />
+                <Typography variant="caption" weight="bold" style={{ color: isDark ? theme.colors.error[400] : theme.colors.error[700], marginLeft: 6 }}>
                   Subscription Model
                 </Typography>
               </View>
@@ -334,16 +335,16 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
                 </Typography>
               </View>
               
-              <View style={styles.totalRow}>
-                <Typography variant="title" weight="bold" style={{ color: theme.colors.error[600] }}>
+              <View style={[styles.totalRow, { borderTopColor: theme.colors.border }]}>
+                <Typography variant="title" weight="bold" style={{ color: isDark ? theme.colors.error[400] : theme.colors.error[600] }}>
                   ~$80*
                 </Typography>
-                <Typography variant="caption" style={{ color: theme.colors.error[600], fontSize: 12 }}>
+                <Typography variant="caption" style={{ color: isDark ? theme.colors.error[400] : theme.colors.error[600], fontSize: 12 }}>
                   /month
                 </Typography>
               </View>
               
-              <Typography variant="caption" align="center" style={{ color: theme.colors.error[700], marginTop: 8, fontWeight: 'bold' }}>
+              <Typography variant="caption" align="center" style={{ color: isDark ? theme.colors.error[400] : theme.colors.error[700], marginTop: 8, fontWeight: 'bold' }}>
                 Fixed cost, use it or lose it
               </Typography>
               
@@ -353,14 +354,15 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
             </View>
             
             {/* Pay As You Go Model */}
-            <View style={[styles.comparisonCard, { 
-              backgroundColor: theme.colors.success[50], 
-              borderColor: theme.colors.success[400],
-              borderWidth: 2,
-            }]}>
+            <View style={[
+              styles.comparisonCard,
+              isDark
+                ? { backgroundColor: theme.colors.card, borderColor: theme.colors.success[600], borderWidth: 2 }
+                : { backgroundColor: theme.colors.success[50], borderColor: theme.colors.success[400], borderWidth: 2 }
+            ]}>
               <View style={styles.comparisonHeader}>
-                <MaterialCommunityIcons name="cash-multiple" size={18} color={theme.colors.success[600]} />
-                <Typography variant="caption" weight="bold" style={{ color: theme.colors.success[700], marginLeft: 6 }}>
+                <MaterialCommunityIcons name="cash-multiple" size={18} color={isDark ? theme.colors.success[400] : theme.colors.success[600]} />
+                <Typography variant="caption" weight="bold" style={{ color: isDark ? theme.colors.success[400] : theme.colors.success[700], marginLeft: 6 }}>
                   Pay As You Go Model
                 </Typography>
               </View>
@@ -383,16 +385,16 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
                 </Typography>
               </View>
               
-              <View style={styles.totalRow}>
-                <Typography variant="title" weight="bold" style={{ color: theme.colors.success[700] }}>
+              <View style={[styles.totalRow, { borderTopColor: theme.colors.border }]}>
+                <Typography variant="title" weight="bold" style={{ color: isDark ? theme.colors.success[400] : theme.colors.success[700] }}>
                   ~$20*
                 </Typography>
-                <Typography variant="caption" style={{ color: theme.colors.success[700], fontSize: 12 }}>
+                <Typography variant="caption" style={{ color: isDark ? theme.colors.success[400] : theme.colors.success[700], fontSize: 12 }}>
                   /month
                 </Typography>
               </View>
               
-              <Typography variant="caption" align="center" style={{ color: theme.colors.success[700], marginTop: 8, fontWeight: 'bold' }}>
+              <Typography variant="caption" align="center" style={{ color: isDark ? theme.colors.success[400] : theme.colors.success[700], marginTop: 8, fontWeight: 'bold' }}>
                 Pay only for what you use
               </Typography>
               

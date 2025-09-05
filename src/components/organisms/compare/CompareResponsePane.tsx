@@ -31,17 +31,19 @@ export const CompareResponsePane: React.FC<CompareResponsePaneProps> = ({
   isDisabled = false,
   onExpand,
 }) => {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   
-  const paneStyle = {
-    backgroundColor: side === 'left' 
-      ? theme.colors.warning[50] 
-      : theme.colors.info[50],
-    borderColor: side === 'left'
-      ? theme.colors.warning[200]
-      : theme.colors.info[200],
-    opacity: isDisabled ? 0.5 : 1,
-  };
+  const paneStyle = isDark
+    ? {
+        backgroundColor: theme.colors.card,
+        borderColor: theme.colors.border,
+        opacity: isDisabled ? 0.5 : 1,
+      }
+    : {
+        backgroundColor: side === 'left' ? theme.colors.warning[50] : theme.colors.info[50],
+        borderColor: side === 'left' ? theme.colors.warning[200] : theme.colors.info[200],
+        opacity: isDisabled ? 0.5 : 1,
+      };
 
   return (
     <View style={[styles.pane, paneStyle]}>
@@ -55,7 +57,7 @@ export const CompareResponsePane: React.FC<CompareResponsePaneProps> = ({
           <Ionicons 
             name={isExpanded ? 'contract-outline' : 'expand-outline'} 
             size={20} 
-            color={isDisabled ? theme.colors.text.disabled : theme.colors.text.primary} 
+            color={isDisabled ? theme.colors.text.disabled : theme.colors.text.primary}
           />
         </TouchableOpacity>
       )}

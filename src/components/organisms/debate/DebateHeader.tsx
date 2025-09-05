@@ -57,7 +57,7 @@ export const DebateHeader: React.FC<DebateHeaderProps> = ({
         </Typography>
       </Box>
       
-      {/* Round Counter */}
+      {/* Exchange Counter */}
       {isActive && currentRound && (
         <Box style={{
           paddingHorizontal: 12,
@@ -74,7 +74,7 @@ export const DebateHeader: React.FC<DebateHeaderProps> = ({
               color: theme.colors.secondary[700],
             }}
           >
-            Round {currentRound} of {maxRounds}
+            Exchange {currentRound} of {maxRounds}
           </Typography>
         </Box>
       )}

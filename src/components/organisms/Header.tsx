@@ -702,10 +702,7 @@ export const Header: React.FC<HeaderProps> = ({
           
           {/* Top right container for HeaderActions - positioned absolutely OUTSIDE main content */}
           {rightElement && (
-            <View style={[styles.headerTopRightContainer, { 
-              top: 0,
-              right: 0 
-            }]}>
+            <View style={[styles.headerTopRightContainer, { top: 0, right: 0 }]}>
               {rightElement}
             </View>
           )}

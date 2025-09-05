@@ -16,22 +16,25 @@ export interface DebateMessageListProps {
   typingAIs: string[];
   contentContainerStyle?: object;
   showsVerticalScrollIndicator?: boolean;
+  headerComponent?: React.ReactElement | null;
 }
 
 // Helper functions moved outside component for performance
-const detectType = (msg: Message): 'topic' | 'round-winner' | 'debate-complete' | 'overall-winner' | 'debate-start' | null => {
+const detectType = (msg: Message): 'topic' | 'exchange-winner' | 'debate-complete' | 'overall-winner' | 'debate-start' | null => {
   if (msg.sender !== 'Debate Host' && msg.sender !== 'System') return null;
   
   const content = msg.content.toLowerCase();
   
-  // Check for round winner format: "Round X: Name" 
-  if (/round\s+\d+:\s*\w+/i.test(msg.content)) return 'round-winner';
+  // Check for legacy round winner format: "Round X: Name" and map to exchange-winner
+  if (/round\s+\d+:\s*\w+/i.test(msg.content)) return 'exchange-winner';
   
   // Check for debate start
   if (content.includes('opens the debate')) return 'debate-start';
   
   // Check for other patterns
-  if (content.includes('wins round') || content.includes('round winner')) return 'round-winner';
+  if (content.includes('wins round') || content.includes('round winner')) return 'exchange-winner';
+  // New exchange winner formats: "Opening: Name", "Rebuttal: Name", "Closing: Name", "Cross-examination: Name"
+  if (/^(opening|rebuttal|closing|cross[- ]?examination|counter|crossfire|question)\s*:\s*\S+/i.test(msg.content)) return 'exchange-winner';
   if (content.includes('debate complete') || content.includes('debate has ended')) return 'debate-complete';
   if (content.includes('overall winner') || content.includes('winner is')) return 'overall-winner';
   if (msg.content.startsWith('"') && msg.content.includes('"')) return 'topic';
@@ -43,7 +46,7 @@ const getLabel = (type: string): string => {
   switch (type) {
     case 'topic': return 'DEBATE TOPIC';
     case 'debate-start': return 'DEBATE BEGINS';
-    case 'round-winner': return 'ROUND RESULT';
+    case 'exchange-winner': return 'EXCHANGE RESULT';
     case 'debate-complete': return 'DEBATE ENDED';
     case 'overall-winner': return 'CHAMPION';
     default: return 'ANNOUNCEMENT';
@@ -54,7 +57,7 @@ const getIcon = (type: string): string => {
   switch (type) {
     case 'topic': return ''; // No icon for cleaner look
     case 'debate-start': return '🥊';
-    case 'round-winner': return '🎯';
+    case 'exchange-winner': return '🎯';
     case 'debate-complete': return '🏁';
     case 'overall-winner': return '🏆';
     default: return '📢';
@@ -67,7 +70,7 @@ const MessageItem = memo<{ message: Message; index: number }>(({ message, index 
   
   if (systemType) {
     return (
-      <SystemAnnouncement
+    <SystemAnnouncement
         type={systemType}
         label={getLabel(systemType)}
         content={message.content}
@@ -100,6 +103,7 @@ export const DebateMessageList: React.FC<DebateMessageListProps> = ({
   typingAIs,
   contentContainerStyle,
   showsVerticalScrollIndicator = false,
+  headerComponent,
 }) => {
   const flatListRef = useRef<FlatList>(null);
 
@@ -149,6 +153,7 @@ export const DebateMessageList: React.FC<DebateMessageListProps> = ({
       keyExtractor={keyExtractor}
       extraData={messages}
       showsVerticalScrollIndicator={showsVerticalScrollIndicator}
+      ListHeaderComponent={headerComponent || null}
       contentContainerStyle={[
         { paddingTop: 8, paddingBottom: 16 },
         contentContainerStyle,

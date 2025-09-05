@@ -3,6 +3,7 @@ import { View, TouchableOpacity, ScrollView, Modal, Dimensions } from 'react-nat
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, showSheet } from '../../store';
 import { Typography, Badge } from '../molecules';
+import { SheetHeader } from '../molecules/SheetHeader';
 import { useTheme } from '../../theme';
 import { getProviderModels } from '../../config/modelConfigs';
 import { MODEL_PRICING } from '../../config/modelPricing';
@@ -130,25 +131,11 @@ export const ModelSelectorEnhanced: React.FC<ModelSelectorEnhancedProps> = ({
               }}
             >
               {/* Header */}
-              <View style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: theme.spacing.lg,
-                borderBottomWidth: 1,
-                borderBottomColor: theme.colors.border,
-              }}>
-                <View>
-                  <Typography variant="heading" weight="bold">
-                    Select Model
-                  </Typography>
-                  <Typography variant="caption" color="secondary">
-                    {aiName} • {models.length} models available
-                  </Typography>
-                </View>
-                <TouchableOpacity onPress={() => setIsModalVisible(false)}>
-                  <Typography variant="heading" color="secondary">✕</Typography>
-                </TouchableOpacity>
+              <SheetHeader title="Select Model" onClose={() => setIsModalVisible(false)} showHandle />
+              <View style={{ paddingHorizontal: theme.spacing.lg, paddingTop: 8 }}>
+                <Typography variant="caption" color="secondary">
+                  {aiName} • {models.length} models available
+                </Typography>
               </View>
               
               {/* Model List */}

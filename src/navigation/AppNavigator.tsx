@@ -1,20 +1,16 @@
 import React, { useMemo } from 'react';
-import { View, Text, Platform, TouchableOpacity } from 'react-native';
-import { NavigationContainer, DefaultTheme, DarkTheme, NavigationProp } from '@react-navigation/native';
+import { View, Text, Platform } from 'react-native';
+import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useSelector, useDispatch } from 'react-redux';
-import { RootState, showSheet, clearSheet } from '../store';
+import { useSelector } from 'react-redux';
+import { RootState } from '../store';
 import { RootStackParamList } from '../types';
 import { useTheme } from '../theme';
 import { SheetProvider } from '../contexts/SheetContext';
-import { 
-  ProfileSheet, 
-  SettingsContent,
-  SupportScreen
-} from '../components/organisms';
+import { GlobalSheets } from './GlobalSheets';
 
 // Import screens
 import WelcomeScreen from '../screens/WelcomeScreen';
@@ -29,6 +25,8 @@ import StatsScreen from '../screens/StatsScreen';
 import CompareSetupScreen from '../screens/CompareSetupScreen';
 import CompareScreen from '../screens/CompareScreen';
 import UpgradeScreen from '../screens/UpgradeScreen';
+import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
+import TermsOfServiceScreen from '../screens/TermsOfServiceScreen';
 // import SubscriptionScreen from '../screens/SubscriptionScreen';
 // import ExpertModeScreen from '../screens/ExpertModeScreen';
 
@@ -139,112 +137,8 @@ const MainTabs = () => {
 };
 
 // Wrapper to include sheets and modals
-const MainTabsWithSheets = ({ navigation }: { navigation?: NavigationProp<RootStackParamList> }) => {
-  const { theme } = useTheme();
-  const dispatch = useDispatch();
-  const { activeSheet, sheetVisible } = useSelector((state: RootState) => state.navigation);
-  
-  const handleSheetClose = () => {
-    dispatch(clearSheet());
-  };
-  
-  return (
-    <>
-      <MainTabs />
-      
-      {/* Profile Sheet */}
-      {activeSheet === 'profile' && sheetVisible && (
-        <TouchableOpacity 
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            zIndex: 1000,
-          }}
-          activeOpacity={1}
-          onPress={handleSheetClose}
-        >
-          <TouchableOpacity 
-            activeOpacity={1}
-            style={{
-            flex: 1,
-            backgroundColor: theme.colors.background,
-            marginTop: 100,
-          }}>
-            <ProfileSheet
-              onClose={handleSheetClose}
-              onSettingsPress={() => {
-                dispatch(showSheet({ sheet: 'settings' }));
-              }}
-            />
-          </TouchableOpacity>
-        </TouchableOpacity>
-      )}
-      
-      {/* Settings Sheet */}
-      {activeSheet === 'settings' && sheetVisible && (
-        <TouchableOpacity 
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            zIndex: 1000,
-          }}
-          activeOpacity={1}
-          onPress={handleSheetClose}
-        >
-          <TouchableOpacity 
-            activeOpacity={1}
-            style={{
-            flex: 1,
-            backgroundColor: theme.colors.background,
-            marginTop: 100,
-          }}>
-            <SettingsContent
-              onClose={handleSheetClose}
-              onNavigateToAPIConfig={() => {
-                handleSheetClose();
-                navigation?.navigate('APIConfig');
-              }}
-            />
-          </TouchableOpacity>
-        </TouchableOpacity>
-      )}
-      
-      {/* Support Sheet */}
-      {activeSheet === 'support' && sheetVisible && (
-        <TouchableOpacity 
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            zIndex: 1000,
-          }}
-          activeOpacity={1}
-          onPress={handleSheetClose}
-        >
-          <TouchableOpacity 
-            activeOpacity={1}
-            style={{
-            flex: 1,
-            backgroundColor: theme.colors.background,
-            marginTop: 100,
-          }}>
-            <SupportScreen onClose={handleSheetClose} />
-          </TouchableOpacity>
-        </TouchableOpacity>
-      )}
-    </>
-  );
+const MainTabsWithSheets = () => {
+  return <MainTabs />;
 };
 
 
@@ -364,6 +258,16 @@ export default function AppNavigator() {
               options={{ headerShown: false }}
             />
             <Stack.Screen
+              name="PrivacyPolicy"
+              component={PrivacyPolicyScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="TermsOfService"
+              component={TermsOfServiceScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
               name="Subscription"
               component={UpgradeScreen}
               options={{ headerShown: false }}
@@ -378,6 +282,8 @@ export default function AppNavigator() {
           </>
         )}
         </Stack.Navigator>
+        {/* Global sheets: available on every screen */}
+        <GlobalSheets />
       </NavigationContainer>
     </SheetProvider>
   );

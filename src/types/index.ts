@@ -60,6 +60,8 @@ export interface MessageMetadata {
   responseTime?: number;
   wordCount?: number;
   modelUsed?: string; // Track which AI model actually responded
+  // Which provider generated this AI message (used for debate role mapping)
+  providerId?: string;
   
   // Rich content support
   citations?: Citation[];  // For Perplexity and other providers with sources
@@ -170,4 +172,6 @@ export type RootStackParamList = {
   Compare?: undefined;
   CompareSession: { leftAI: AIConfig; rightAI: AIConfig; sessionId?: string; resuming?: boolean };
   Stats: undefined;
+  PrivacyPolicy: undefined;
+  TermsOfService: undefined;
 };

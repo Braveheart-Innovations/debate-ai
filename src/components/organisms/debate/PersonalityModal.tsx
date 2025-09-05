@@ -7,7 +7,7 @@ import React, { useMemo, useState } from 'react';
 import { Modal, View, TouchableOpacity, FlatList, StyleSheet, Platform } from 'react-native';
 import { useTheme } from '../../../theme';
 import { Typography } from '../../molecules';
-import { ModalHeader } from '../../molecules/ModalHeader';
+import { SheetHeader } from '../../molecules/SheetHeader';
 import { GradientButton, Button } from '../../molecules';
 import { PersonalityOption } from '../../../config/personalities';
 import { PersonalityService } from '../../../services/debate/PersonalityService';
@@ -166,7 +166,12 @@ export const PersonalityModal: React.FC<PersonalityModalProps> = ({
         style={[styles.backdrop, { backgroundColor: 'rgba(0,0,0,0.5)' }]}
       />
       <View style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
-        <ModalHeader title="Choose a Personality" onClose={onClose} subtitle={aiName ? `for ${aiName}` : undefined} variant="gradient" />
+        <SheetHeader title="Choose a Personality" onClose={onClose} showHandle />
+        {aiName ? (
+          <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 }}>
+            <Typography variant="caption" color="secondary">for {aiName}</Typography>
+          </View>
+        ) : null}
         {/* Suggested pairings removed to simplify mobile layout */}
 
         <View style={{ flex: 1, paddingHorizontal: 16 }}>

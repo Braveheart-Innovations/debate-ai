@@ -2,6 +2,7 @@ import React from 'react';
 import { Modal, StyleSheet, TouchableOpacity, View, Alert } from 'react-native';
 import { Video, ResizeMode } from 'expo-av';
 import { useTheme } from '../../../theme';
+import { Ionicons } from '@expo/vector-icons';
 import { Box } from '../../atoms';
 import { Typography } from '../../molecules';
 import * as Sharing from 'expo-sharing';
@@ -39,8 +40,13 @@ export const VideoLightboxModal: React.FC<VideoLightboxModalProps> = ({ visible,
           <TouchableOpacity style={styles.content} activeOpacity={1} onPress={() => {}}>
             <Box style={styles.headerRow}>
               <Typography variant="title" color="inverse">Video</Typography>
-              <TouchableOpacity onPress={onClose}>
-                <Typography variant="title" color="inverse">×</Typography>
+              <TouchableOpacity 
+                onPress={onClose}
+                hitSlop={{ top: 10, left: 10, bottom: 10, right: 10 }}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+              >
+                <Ionicons name="close" size={28} color="#FFFFFF" />
               </TouchableOpacity>
             </Box>
             <Video

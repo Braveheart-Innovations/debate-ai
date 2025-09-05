@@ -13,7 +13,7 @@ import { Typography } from '../../molecules';
 import { useTheme } from '../../../theme';
 
 export interface SystemAnnouncementProps {
-  type: 'topic' | 'round-winner' | 'debate-complete' | 'overall-winner' | 'debate-start';
+  type: 'topic' | 'exchange-winner' | 'debate-complete' | 'overall-winner' | 'debate-start';
   label?: string;
   content: string;
   icon?: string | ImageSourcePropType;
@@ -60,7 +60,7 @@ export const SystemAnnouncement: React.FC<SystemAnnouncementProps> = ({
         return [theme.colors.semantic.primary, theme.colors.semantic.secondary];
       case 'debate-start':
         return [theme.colors.semantic.info, theme.colors.semantic.primary];
-      case 'round-winner':
+      case 'exchange-winner':
         return [theme.colors.semantic.success, theme.colors.semantic.info];
       case 'debate-complete':
         return [theme.colors.semantic.warning, theme.colors.semantic.error];
@@ -77,7 +77,7 @@ export const SystemAnnouncement: React.FC<SystemAnnouncementProps> = ({
         return ''; // No icon for topic - looks cleaner
       case 'debate-start':
         return '🥊';
-      case 'round-winner':
+      case 'exchange-winner':
         return '🎯';
       case 'debate-complete':
         return '🏁';

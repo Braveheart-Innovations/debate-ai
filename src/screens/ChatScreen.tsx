@@ -1,7 +1,7 @@
 import React, { useEffect, useCallback } from 'react';
 import { KeyboardAvoidingView, Platform, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AIServiceLoading, Header } from '../components/organisms';
+import { AIServiceLoading, Header, HeaderActions } from '../components/organisms';
 import { useAIService } from '../providers/AIServiceProvider';
 import { MessageAttachment } from '../types';
 import { getAttachmentSupport } from '../utils/attachmentUtils';
@@ -287,6 +287,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
           showBackButton={true}
           showTime={true}
           animated={true}
+          rightElement={<HeaderActions variant="gradient" />}
           actionButton={activeStreams > 0 ? {
             label: 'Stop',
             onPress: () => dispatch(cancelAllStreams()),

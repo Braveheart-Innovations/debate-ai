@@ -29,12 +29,44 @@ export abstract class OpenAICompatibleAdapter extends BaseAdapter {
                          resolveModelAlias(this.config.model || getDefaultModel(this.config.provider));
     
     const userContent = await Promise.resolve(this.formatUserMessage(message, attachments));
-    
+
+    // Build history with alternation safeguards
+    const history = this.formatHistory(conversationHistory, resumptionContext);
+
+    // Ensure first after system is user: if leading assistant, convert to user with attribution
+    if (history.length > 0 && history[0].role === 'assistant') {
+      const first = history[0];
+      if (typeof first.content === 'string') {
+        history[0] = { role: 'user', content: `[Previous assistant] ${first.content}` };
+      } else {
+        history[0] = { role: 'user', content: first.content };
+      }
+    }
+
+    // Compose messages, merging consecutive user with the new user content
     const messages: FormattedMessage[] = [
       { role: 'system', content: this.getSystemPrompt() },
-      ...this.formatHistory(conversationHistory, resumptionContext),
-      { role: 'user', content: userContent }
+      ...history,
     ];
+
+    const last = messages[messages.length - 1];
+    if (last && last.role === 'user') {
+      // Merge userContent into last user message
+      if (typeof last.content === 'string' && typeof userContent === 'string') {
+        last.content = `${last.content}\n\n${userContent}`;
+      } else if (Array.isArray(userContent)) {
+        // Convert string content to array parts if needed
+        if (typeof last.content === 'string') {
+          last.content = [{ type: 'text', text: last.content }, ...userContent];
+        } else if (Array.isArray(last.content)) {
+          last.content = [...last.content, ...userContent];
+        }
+      } else if (typeof userContent === 'string' && Array.isArray(last.content)) {
+        last.content = [...last.content, { type: 'text', text: userContent }];
+      }
+    } else {
+      messages.push({ role: 'user', content: userContent });
+    }
     
     try {
       const requestBody: Record<string, unknown> = {
@@ -127,12 +159,43 @@ export abstract class OpenAICompatibleAdapter extends BaseAdapter {
                          resolveModelAlias(this.config.model || getDefaultModel(this.config.provider));
     
     const userContent = await Promise.resolve(this.formatUserMessage(message, attachments));
-    
+
+    // Build history with alternation safeguards
+    const history = this.formatHistory(conversationHistory, resumptionContext);
+
+    // Ensure first after system is user: if leading assistant, convert to user with attribution
+    if (history.length > 0 && history[0].role === 'assistant') {
+      const first = history[0];
+      if (typeof first.content === 'string') {
+        history[0] = { role: 'user', content: `[Previous assistant] ${first.content}` };
+      } else {
+        history[0] = { role: 'user', content: first.content };
+      }
+    }
+
+    // Compose messages, merging consecutive user with the new user content
     const messages: FormattedMessage[] = [
       { role: 'system', content: this.getSystemPrompt() },
-      ...this.formatHistory(conversationHistory, resumptionContext),
-      { role: 'user', content: userContent }
+      ...history,
     ];
+
+    const last = messages[messages.length - 1];
+    if (last && last.role === 'user') {
+      // Merge userContent into last user message
+      if (typeof last.content === 'string' && typeof userContent === 'string') {
+        last.content = `${last.content}\n\n${userContent}`;
+      } else if (Array.isArray(userContent)) {
+        if (typeof last.content === 'string') {
+          last.content = [{ type: 'text', text: last.content }, ...userContent];
+        } else if (Array.isArray(last.content)) {
+          last.content = [...last.content, ...userContent];
+        }
+      } else if (typeof userContent === 'string' && Array.isArray(last.content)) {
+        last.content = [...last.content, { type: 'text', text: userContent }];
+      }
+    } else {
+      messages.push({ role: 'user', content: userContent });
+    }
     
     // Build request body with proper token parameter handling
     const requestBodyObj: Record<string, unknown> = {

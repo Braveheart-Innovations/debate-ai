@@ -42,7 +42,7 @@ export class DebatePromptBuilder {
 
     return [
       `${DEBATE_CONSTANTS.PROMPT_MARKERS.DEBATE_MODE} ${DEBATE_CONSTANTS.PROMPT_MARKERS.TOPIC_PREFIX}"${topic}"`,
-      `Fictional debate in the ${format.name} style with ${rounds} rounds.`,
+      `Fictional debate in the ${format.name} format with ${rounds} exchanges.`,
       `Your role: ${ai.name}, arguing ${stance === 'pro' ? 'FOR' : 'AGAINST'} the motion.`,
       `Your persona (style cues): ${style}`,
       `Your opponent is ${opponentName}. Opponent persona (summary): ${oppStyle}`,
@@ -58,14 +58,42 @@ export class DebatePromptBuilder {
     isFinalRound?: boolean;
     guidance?: string; // from FormatSpec
     civilityLevel?: 1 | 2 | 3 | 4 | 5;
+    format?: FormatSpec;
   }): string {
-    const { topic, phase, previousMessage, isFinalRound, guidance, civilityLevel } = params;
+    const { topic, phase, previousMessage, isFinalRound, guidance, civilityLevel, format } = params;
     const base = guidance || '';
     const finalCue = isFinalRound && phase === 'closing' ? 'Closing: reinforce your strongest point; no new claims; concise.' : '';
     const prev = previousMessage ? `${DEBATE_CONSTANTS.PROMPT_MARKERS.PREVIOUS_SPEAKER}"${previousMessage}"` : '';
     const wordBand = 'Aim for 120–180 words (shorter if Socratic).';
     const tone = civilityLevel ? `Tone: ${civilityLevel <= 2 ? 'warm, friendly banter' : civilityLevel >= 5 ? 'spicy and confrontational but respectful' : 'neutral and professional'}. Avoid insults.` : '';
+    // Human-friendly phase labels (format-aware for Socratic)
+    const defaultLabelMap: Record<typeof phase, string> = {
+      opening: format?.id === 'socratic' ? 'Opening Questions' : 'Opening Statement',
+      rebuttal: format?.id === 'socratic' ? 'Focused Follow-up' : 'Rebuttal',
+      closing: format?.id === 'socratic' ? 'Synthesis' : 'Closing Argument',
+      crossfire: 'Cross-examination',
+      question: 'Question',
+    } as const;
+    const phaseLabel = defaultLabelMap[phase] || 'Turn';
+    // One-line hints per phase (format-aware)
+    const hintMap: Record<typeof phase, string> = {
+      opening: format?.id === 'socratic'
+        ? 'Pose 1–3 clarifying questions to frame terms.'
+        : 'State your position succinctly and frame the motion.',
+      rebuttal: format?.id === 'socratic'
+        ? 'Probe assumptions with concise, pointed follow-ups.'
+        : 'Directly refute key claims with focused evidence.',
+      closing: format?.id === 'socratic'
+        ? 'Offer a crisp synthesis; no new claims.'
+        : 'Synthesize and leave one clear takeaway; no new claims.',
+      crossfire: 'Ask or answer pointed questions; keep it tight.',
+      question: 'Pose one focused question that moves the argument.',
+    } as const;
+    const phaseHint = hintMap[phase];
+
     return [
+      `Turn: ${phaseLabel}`,
+      phaseHint,
       prev,
       base,
       `Respond directly about "${topic}". Maintain your stance. ${wordBand}`,

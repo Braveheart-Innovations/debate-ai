@@ -2,7 +2,8 @@ import React from 'react';
 import { Modal, View, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../../../theme';
-import { Typography, ModalHeader } from '../../molecules';
+import { Typography } from '../../molecules';
+import { SheetHeader } from '../../molecules/SheetHeader';
 
 interface RoundsModalProps {
   visible: boolean;
@@ -12,7 +13,7 @@ interface RoundsModalProps {
 }
 
 export const RoundsModal: React.FC<RoundsModalProps> = ({ visible, value, onSelect, onClose }) => {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const options = [1, 2, 3, 4, 5];
 
   return (
@@ -27,7 +28,7 @@ export const RoundsModal: React.FC<RoundsModalProps> = ({ visible, value, onSele
           overflow: 'hidden',
           ...Platform.select({ ios: { shadowColor: '#000', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.25, shadowRadius: 10 }, android: { elevation: 10 } })
         }}>
-          <ModalHeader title="Select Rounds" onClose={onClose} variant="gradient" />
+          <SheetHeader title="Select Rounds" onClose={onClose} showHandle />
           <ScrollView contentContainerStyle={{ padding: theme.spacing.lg }}>
             {options.map(n => (
               <TouchableOpacity
@@ -37,7 +38,9 @@ export const RoundsModal: React.FC<RoundsModalProps> = ({ visible, value, onSele
                   padding: theme.spacing.md,
                   marginBottom: theme.spacing.md,
                   borderRadius: 12,
-                  backgroundColor: n === value ? theme.colors.primary[50] : theme.colors.card,
+                  backgroundColor: n === value
+                    ? (isDark ? theme.colors.overlays.medium : theme.colors.primary[50])
+                    : theme.colors.card,
                   borderWidth: 1,
                   borderColor: n === value ? theme.colors.primary[400] : theme.colors.border,
                 }}
@@ -58,4 +61,3 @@ export const RoundsModal: React.FC<RoundsModalProps> = ({ visible, value, onSele
 };
 
 export default RoundsModal;
-

@@ -182,7 +182,7 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
               activeOpacity={0.8}
               style={[styles.attachButton, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}
             >
-              <RNText style={styles.attachButtonText}>{showModalityRow ? '×' : '+'}</RNText>
+              <RNText style={[styles.attachButtonText, { color: theme.colors.text.primary }]}>{showModalityRow ? '×' : '+'}</RNText>
             </TouchableOpacity>
         )}
         

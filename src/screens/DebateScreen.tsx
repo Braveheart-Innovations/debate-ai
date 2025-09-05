@@ -29,7 +29,8 @@ import {
 } from '../components/organisms';
 import { VictoryCelebration } from '../components/organisms/debate/VictoryCelebration';
 import { TranscriptModal } from '../components/organisms/debate/TranscriptModal';
-import { DebateTopic } from '../components/organisms/debate/DebateTopic';
+// Topic block is now rendered inside header
+// Controls modal removed – using Start Over action directly
 
 interface DebateScreenProps {
   navigation: {
@@ -43,6 +44,7 @@ interface DebateScreenProps {
       personalities?: { [key: string]: string };
       formatId?: 'oxford' | 'lincoln_douglas' | 'policy' | 'socratic';
       rounds?: number;
+      exchanges?: number;
       civility?: 1|2|3|4|5;
     };
   };
@@ -50,8 +52,9 @@ interface DebateScreenProps {
 
 const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
   const { theme } = useTheme();
-  const { selectedAIs, topic: initialTopic, personalities: initialPersonalities, formatId, rounds, civility } = route.params;
+  const { selectedAIs, topic: initialTopic, personalities: initialPersonalities, formatId, rounds, exchanges, civility } = route.params;
   const [showTranscript, setShowTranscript] = useState(false);
+  // No custom controls modal
   
   // Initialize all hooks
   const session = useDebateSession(selectedAIs);
@@ -74,7 +77,7 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
         topicToUse,
         selectedAIs,
         initialPersonalities || {},
-        { formatId: formatId || 'oxford', rounds: rounds || 3, civility: (civility as 1|2|3|4|5) || 1 }
+        { formatId: formatId || 'oxford', rounds: (exchanges || rounds || 3), civility: (civility as 1|2|3|4|5) || 1 }
       );
       
       // Add initial host message
@@ -304,30 +307,31 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
       flex: 1,
       backgroundColor: theme.colors.background,
     }}>
-      <Header
-        variant="gradient"
-        title="Debate Arena"
-        subtitle={selectedAIs.length >= 2 ? `${displayName(selectedAIs[0])} vs ${displayName(selectedAIs[1])}` : 'Choose Your Combatants'}
-        showTime={true}
-        showDate={true}
-        animated={true}
-        rightElement={<HeaderActions variant="gradient" />}
-        actionButton={
-          (flow.isDebateActive || flow.isDebateEnded)
-            ? { label: 'Start Over', onPress: handleStartOver, variant: 'danger' }
-            : undefined
-        }
-      />
+      {(() => {
+        const displayedTopic = session.session?.topic || topicSelection.finalTopic || initialTopic || 'Debate Topic';
+        const vsLine = selectedAIs.length >= 2 ? `${displayName(selectedAIs[0])} vs ${displayName(selectedAIs[1])}` : '';
+        const subtitle = [vsLine].filter(Boolean).join('\n');
+        return (
+          <Header
+            variant="gradient"
+            title={`Topic: ${displayedTopic}`}
+            subtitle={subtitle}
+            showBackButton={true}
+            onBack={handleStartOver}
+            showTime={false}
+            showDate={false}
+            animated={true}
+            rightElement={<HeaderActions variant="gradient" />}
+            height={110}
+          />
+        );
+      })()}
       
-      {/* Show the topic persistently when debate is active or ended */}
-      {(flow.isDebateActive || flow.isDebateEnded) && topicSelection.finalTopic && !isShowingVictory && (
-        <DebateTopic 
-          topic={topicSelection.finalTopic}
-          roundInfo={{ current: flow.currentRound, total: flow.maxRounds }}
-        />
-      )}
+      {/* Topic moved into header */}
       
       {renderContent()}
+
+      {/* No custom Exit modal */}
       
       {/* Transcript Modal */}
       <TranscriptModal

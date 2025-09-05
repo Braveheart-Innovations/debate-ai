@@ -21,13 +21,14 @@ export const DEBATE_CONSTANTS = {
   
   // Message content configuration - professional, engaging style
   MESSAGES: {
-    ROUND_START: (round: number) => `Round ${round}`,
-    FINAL_ROUND: 'Final Round',
+    ROUND_START: (round: number) => `Exchange ${round}`,
+    FINAL_ROUND: 'Final Exchange',
     DEBATE_START: (topic: string, firstAI: string) => 
       `"${topic}"\n\n${firstAI} opens the debate.`,
-    DEBATE_COMPLETE: 'Debate complete.\n\nVote for the final round winner.',
-    ROUND_WINNER: (round: number, winner: string) => `Round ${round}: ${winner}`,
-    FINAL_ROUND_WINNER: (winner: string) => `Final Round: ${winner}`,
+    DEBATE_COMPLETE: 'Debate complete.\n\nVote for the final winner.',
+    // Winner messages are now generated per exchange label in VotingService
+    ROUND_WINNER: (_round: number, winner: string) => `Exchange: ${winner}`,
+    FINAL_ROUND_WINNER: (winner: string) => `Final Exchange: ${winner}`,
     OVERALL_WINNER: (winner: string) => `OVERALL WINNER: ${winner}!\n\n${winner} won the debate.`,
     RATE_LIMIT: (aiName: string) => `${aiName} is taking a moment...`,
     ERROR: (aiName: string) => `${aiName} had an error. Continuing...`,
@@ -35,8 +36,8 @@ export const DEBATE_CONSTANTS = {
   
   // Voting configuration
   VOTING: {
-    ROUND_PROMPT: (round: number) => `🏅 Who won Round ${round}?`,
-    FINAL_ROUND_PROMPT: '🏅 Who won the Final Round?',
+    ROUND_PROMPT: (_round: number) => `🏅 Who won this exchange?`,
+    FINAL_ROUND_PROMPT: '🏅 Who won the final exchange?',
     OVERALL_PROMPT: '🏆 Vote for Overall Winner!',
     SCORE_OVERRIDE_TEXT: 'Despite the scores, you can crown any AI as the overall winner!',
   },

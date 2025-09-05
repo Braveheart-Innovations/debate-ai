@@ -34,7 +34,7 @@ export const useDebateFlow = (orchestrator: DebateOrchestrator | null): UseDebat
   const [isDebateEnded, setIsDebateEnded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentRound, setCurrentRound] = useState(1);
-  const maxRounds = 3;
+  const [maxRounds, setMaxRounds] = useState(3);
   
   // Use ref to track if we've started the debate to prevent multiple starts
   const hasStartedRef = useRef(false);
@@ -47,7 +47,17 @@ export const useDebateFlow = (orchestrator: DebateOrchestrator | null): UseDebat
           dispatch(addMessage(event.data.message as Message));
         }
         break;
-        
+      
+      case 'debate_started': {
+        // Initialize rounds from the session payload if present
+        const session = (event.data?.session || null) as { totalRounds?: number; currentRound?: number } | null;
+        if (session?.totalRounds) setMaxRounds(session.totalRounds);
+        if (session?.currentRound) setCurrentRound(session.currentRound);
+        setIsDebateActive(true);
+        setIsDebateEnded(false);
+        break;
+      }
+      
       case 'typing_started':
         if (event.data.aiName) {
           dispatch(setTypingAI({ ai: event.data.aiName as string, isTyping: true }));
@@ -63,6 +73,9 @@ export const useDebateFlow = (orchestrator: DebateOrchestrator | null): UseDebat
       case 'round_changed':
         if (typeof event.data.round === 'number') {
           setCurrentRound(event.data.round as number);
+          // Keep maxRounds in sync (in case user picked 5 or 7 exchanges)
+          const session = orchestrator?.getSession();
+          if (session?.totalRounds) setMaxRounds(session.totalRounds);
         }
         break;
         
@@ -112,7 +125,7 @@ export const useDebateFlow = (orchestrator: DebateOrchestrator | null): UseDebat
       default:
         break;
     }
-  }, [dispatch]);
+  }, [dispatch, orchestrator]);
   
   // Register event handler with orchestrator
   useEffect(() => {
@@ -134,6 +147,7 @@ export const useDebateFlow = (orchestrator: DebateOrchestrator | null): UseDebat
         setIsDebateActive(session.status === DebateStatus.ACTIVE);
         setIsDebateEnded(session.status === DebateStatus.COMPLETED);
         setCurrentRound(session.currentRound);
+        setMaxRounds(session.totalRounds);
       }
     }
   }, [orchestrator]);

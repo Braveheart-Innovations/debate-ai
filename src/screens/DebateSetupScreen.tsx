@@ -6,7 +6,7 @@ import { RootState, setAIPersonality, setAIModel, preserveTopic, clearPreservedT
 import { setProviderStreamingPreference } from '../store/streamingSlice';
 
 import { Box } from '../components/atoms';
-import { Button, Typography, SectionHeader } from '../components/molecules';
+import { Button, Typography, GradientButton } from '../components/molecules';
 import { Header, HeaderActions } from '../components/organisms';
 import { hasFeatureAccess, getPremiumUpsellMessage } from '../services/PremiumService';
 import {
@@ -25,6 +25,8 @@ import { AI_MODELS } from '../config/modelConfigs';
 import { getAIProviderIcon } from '../utils/aiProviderAssets';
 // import { DEBATE_TOPICS } from '../constants/debateTopics';
 import { usePreDebateValidation } from '../hooks/debate';
+import { Card } from '../components/molecules/Card';
+import { FORMATS } from '../config/debate/formats';
 
 interface DebateSetupScreenProps {
   navigation: {
@@ -84,7 +86,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
   const [selectedModels, setSelectedModels] = useState<Record<string, string>>(selectedModelsFromStore || {});
   // New configuration toggles
   const [formatId, setFormatId] = useState<'oxford' | 'lincoln_douglas' | 'policy' | 'socratic'>('oxford');
-  const [rounds, setRounds] = useState<number>(3);
+  const [exchanges, setExchanges] = useState<number>(3);
   // Removed: category/preset inline picker (using DebateTopicSelector instead)
   const [civility, setCivility] = useState<1|2|3|4|5>(1);
   const [formatModalVisible, setFormatModalVisible] = useState(false);
@@ -166,7 +168,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
       topic: finalTopic,
       personalities: aiPersonalities,
       formatId,
-      rounds,
+      rounds: exchanges,
       civility,
     });
   };
@@ -270,49 +272,102 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
         {/* Step 1: Format, Rounds, Topic (clean and minimal) */}
         {currentStep === 'topic' && (
           <>
-            {/* Format section */}
-            <SectionHeader title="Format" />
-            <Box style={{ gap: theme.spacing.sm, marginBottom: theme.spacing.lg }}>
-              {/* Style selector stacked to align with Rounds button start */}
-              <Typography variant="body" weight="semibold">Style</Typography>
-              <Button
-                title={formatId === 'oxford' ? 'Oxford' : formatId === 'lincoln_douglas' ? 'Lincoln–Douglas' : formatId === 'policy' ? 'Policy' : 'Socratic'}
-                onPress={() => setFormatModalVisible(true)}
-                variant="secondary"
-                size="small"
-                textAlign="left"
+            {/* Topic card first */}
+            <Card shadow style={{ marginTop: theme.spacing.sm, marginBottom: theme.spacing.xl }}>
+              <Box style={{ marginBottom: theme.spacing.md }}>
+                <Typography variant="subtitle" weight="semibold" style={{ marginBottom: 4 }}>
+                  💭 Choose Your Topic
+                </Typography>
+                <Typography variant="caption" color="secondary">
+                  Presets, custom input, or let fate decide
+                </Typography>
+              </Box>
+              <DebateTopicSelector
+                selectedTopic={selectedTopic}
+                customTopic={customTopic}
+                topicMode={topicMode}
+                onTopicSelect={setSelectedTopic}
+                onCustomTopicChange={setCustomTopic}
+                onTopicModeChange={handleTopicModeChange}
+                onSurpriseMe={() => {
+                  const pool = ALL_PRESET_TOPICS;
+                  const idx = Math.floor(Math.random() * pool.length);
+                  const t = pool[idx];
+                  setSelectedTopic(t);
+                  setTopicMode('surprise');
+                }}
+                showHeading={false}
+                compact
               />
+            </Card>
 
-              {/* Rounds label + number-only selector, aligned with Style button */}
-              <Typography variant="body" weight="semibold" style={{ marginTop: theme.spacing.sm }}>Rounds</Typography>
-              <Button
-                title={`${rounds}`}
-                onPress={() => setRounds(rounds >= 7 ? 3 : Math.max(3, rounds + 1))}
-                variant="secondary"
-                size="small"
-                textAlign="left"
+            {/* Debate Configuration card second */}
+            <Card shadow style={{ marginBottom: theme.spacing.xl }}>
+              {/* Header */}
+              <Box style={{ marginBottom: theme.spacing.md }}>
+                <Typography variant="subtitle" weight="semibold" style={{ marginBottom: 4 }}>
+                  ⚙️ Debate Configuration
+                </Typography>
+                <Typography variant="caption" color="secondary">
+                  Choose format and rounds
+                </Typography>
+              </Box>
+
+              {/* Format row */}
+              <Box style={{ marginBottom: theme.spacing.md }}>
+                <Box style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: theme.spacing.xs }}>
+                  <Typography variant="body" weight="semibold">Format</Typography>
+                </Box>
+                <Box style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
+                  <Button
+                    title={`${formatId === 'oxford' ? 'Oxford' : formatId === 'lincoln_douglas' ? 'Lincoln–Douglas' : formatId === 'policy' ? 'Policy' : 'Socratic'}`}
+                    onPress={() => setFormatModalVisible(true)}
+                    variant="tonal"
+                    size="medium"
+                    textAlign="left"
+                    style={{ flex: 1 }}
+                    rightIcon="chevron-down"
+                  />
+                </Box>
+                <Typography variant="caption" color="secondary" style={{ marginTop: 6 }}>
+                  {FORMATS[formatId].description}
+                </Typography>
+              </Box>
+
+              {/* Exchanges selector (3, 5, 7) */}
+              <Box>
+                <Typography variant="body" weight="semibold" style={{ marginBottom: theme.spacing.xs }}>Exchanges</Typography>
+                <Box style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  {[3,5,7].map((n) => (
+                    <Button
+                      key={n}
+                      title={`${n}`}
+                      onPress={() => setExchanges(n)}
+                      variant={n === exchanges ? 'primary' : 'tonal'}
+                      size="small"
+                      style={{ minWidth: 56 }}
+                    />
+                  ))}
+                </Box>
+                {/* Help text showing debate phases for exchanges */}
+                <Typography variant="caption" color="secondary" style={{ marginTop: 6 }}>
+                  {exchanges === 3 && 'Opening statements → Direct rebuttals → Closing arguments'}
+                  {exchanges === 5 && 'Opening → Rebuttal → Cross-examination → Counter → Closing'}
+                  {exchanges === 7 && 'Opening → Rebuttals → Deep analysis → Counters → Synthesis → Closing'}
+                </Typography>
+              </Box>
+            </Card>
+
+            {/* Bottom CTA: Next */}
+            <Box style={{ marginTop: theme.spacing.md }}>
+              <GradientButton
+                title="Next: Choose Debaters →"
+                onPress={handleTopicNext}
+                disabled={!((topicMode === 'preset' && !!selectedTopic) || (topicMode === 'custom' && !!customTopic) || (topicMode === 'surprise' && !!selectedTopic))}
+                gradient={theme.colors.gradients.primary}
+                fullWidth
               />
             </Box>
-
-            {/* Topic section */}
-            <SectionHeader title="Topic" />
-            <DebateTopicSelector
-              selectedTopic={selectedTopic}
-              customTopic={customTopic}
-              topicMode={topicMode}
-              onTopicSelect={setSelectedTopic}
-              onCustomTopicChange={setCustomTopic}
-              onTopicModeChange={handleTopicModeChange}
-              onNext={handleTopicNext}
-              onSurpriseMe={() => {
-                const pool = ALL_PRESET_TOPICS;
-                const idx = Math.floor(Math.random() * pool.length);
-                const t = pool[idx];
-                setSelectedTopic(t);
-                setTopicMode('surprise');
-              }}
-              showHeading={false}
-            />
           </>
         )}
         

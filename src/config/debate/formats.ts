@@ -38,18 +38,30 @@ const closing = 'Closing: reinforce strongest point; no new claims; concise.';
 export const OXFORD_FORMAT: FormatSpec = {
   id: 'oxford',
   name: 'Oxford',
-  description: 'Opening → Rebuttal → Closing; clear Pro/Con; concise and persuasive.',
+  description: 'Classic formal debate with structured arguments and clear positions',
   defaultRounds: 3,
   phases: [
     { id: 'opening', description: 'Opening argument' },
     { id: 'rebuttal', description: 'Rebuttal to opponent' },
     { id: 'closing', description: 'Closing statement' },
   ],
+  // Support up to 7 exchanges (14 turns). Extended rebuttal cycles before closing.
   baseTurns: [
+    // Exchange 1: Opening
     { phase: 'opening', speakerIndex: 0 },
     { phase: 'opening', speakerIndex: 1 },
+    // Exchanges 2–6: Rebuttal cycles
     { phase: 'rebuttal', speakerIndex: 0 },
     { phase: 'rebuttal', speakerIndex: 1 },
+    { phase: 'rebuttal', speakerIndex: 0 },
+    { phase: 'rebuttal', speakerIndex: 1 },
+    { phase: 'rebuttal', speakerIndex: 0 },
+    { phase: 'rebuttal', speakerIndex: 1 },
+    { phase: 'rebuttal', speakerIndex: 0 },
+    { phase: 'rebuttal', speakerIndex: 1 },
+    { phase: 'rebuttal', speakerIndex: 0 },
+    { phase: 'rebuttal', speakerIndex: 1 },
+    // Exchange 7: Closing
     { phase: 'closing', speakerIndex: 0 },
     { phase: 'closing', speakerIndex: 1 },
   ],
@@ -59,7 +71,7 @@ export const OXFORD_FORMAT: FormatSpec = {
 export const LINCOLN_DOUGLAS_FORMAT: FormatSpec = {
   id: 'lincoln_douglas',
   name: 'Lincoln–Douglas',
-  description: 'Value‑centric; moral principle framing; longer opening, shorter counters.',
+  description: 'Philosophical debate focusing on ethics, values, and moral principles',
   defaultRounds: 3,
   phases: [
     { id: 'opening', description: 'Value‑framed opening' },
@@ -67,10 +79,21 @@ export const LINCOLN_DOUGLAS_FORMAT: FormatSpec = {
     { id: 'closing', description: 'Principled closing' },
   ],
   baseTurns: [
+    // Exchange 1: Extended opening emphasis
     { phase: 'opening', speakerIndex: 0 },
     { phase: 'opening', speakerIndex: 1 },
+    // Exchanges 2–6: Value-weighing rebuttals
     { phase: 'rebuttal', speakerIndex: 0 },
     { phase: 'rebuttal', speakerIndex: 1 },
+    { phase: 'rebuttal', speakerIndex: 0 },
+    { phase: 'rebuttal', speakerIndex: 1 },
+    { phase: 'rebuttal', speakerIndex: 0 },
+    { phase: 'rebuttal', speakerIndex: 1 },
+    { phase: 'rebuttal', speakerIndex: 0 },
+    { phase: 'rebuttal', speakerIndex: 1 },
+    { phase: 'rebuttal', speakerIndex: 0 },
+    { phase: 'rebuttal', speakerIndex: 1 },
+    // Exchange 7: Closing
     { phase: 'closing', speakerIndex: 0 },
     { phase: 'closing', speakerIndex: 1 },
   ],
@@ -84,7 +107,7 @@ export const LINCOLN_DOUGLAS_FORMAT: FormatSpec = {
 export const POLICY_FORMAT: FormatSpec = {
   id: 'policy',
   name: 'Policy',
-  description: 'Evidence‑heavy; plan/counterplan; line‑by‑line refutation.',
+  description: 'Data-driven debate with evidence, research, and practical solutions',
   defaultRounds: 3,
   phases: [
     { id: 'opening', description: 'Plan/counterplan' },
@@ -92,10 +115,21 @@ export const POLICY_FORMAT: FormatSpec = {
     { id: 'closing', description: 'Impact calculus and decision rule' },
   ],
   baseTurns: [
+    // Exchange 1: Plans
     { phase: 'opening', speakerIndex: 0 },
     { phase: 'opening', speakerIndex: 1 },
+    // Exchanges 2–6: Line-by-line rebuttal depth
     { phase: 'rebuttal', speakerIndex: 0 },
     { phase: 'rebuttal', speakerIndex: 1 },
+    { phase: 'rebuttal', speakerIndex: 0 },
+    { phase: 'rebuttal', speakerIndex: 1 },
+    { phase: 'rebuttal', speakerIndex: 0 },
+    { phase: 'rebuttal', speakerIndex: 1 },
+    { phase: 'rebuttal', speakerIndex: 0 },
+    { phase: 'rebuttal', speakerIndex: 1 },
+    { phase: 'rebuttal', speakerIndex: 0 },
+    { phase: 'rebuttal', speakerIndex: 1 },
+    // Exchange 7: Closing with impact calc
     { phase: 'closing', speakerIndex: 0 },
     { phase: 'closing', speakerIndex: 1 },
   ],
@@ -109,7 +143,7 @@ export const POLICY_FORMAT: FormatSpec = {
 export const SOCRATIC_FORMAT: FormatSpec = {
   id: 'socratic',
   name: 'Socratic',
-  description: 'Question‑driven; short turns; force definitions and assumptions.',
+  description: 'Inquiry-based dialogue that explores ideas through thoughtful questions',
   defaultRounds: 4,
   phases: [
     { id: 'opening', description: 'Initial framing as questions' },
@@ -117,12 +151,21 @@ export const SOCRATIC_FORMAT: FormatSpec = {
     { id: 'closing', description: 'Concise synthesis' },
   ],
   baseTurns: [
+    // Exchange 1: Opening questions
     { phase: 'opening', speakerIndex: 0 },
     { phase: 'opening', speakerIndex: 1 },
+    // Exchanges 2–6: Short probing Q/A
     { phase: 'rebuttal', speakerIndex: 0 },
     { phase: 'rebuttal', speakerIndex: 1 },
     { phase: 'rebuttal', speakerIndex: 0 },
     { phase: 'rebuttal', speakerIndex: 1 },
+    { phase: 'rebuttal', speakerIndex: 0 },
+    { phase: 'rebuttal', speakerIndex: 1 },
+    { phase: 'rebuttal', speakerIndex: 0 },
+    { phase: 'rebuttal', speakerIndex: 1 },
+    { phase: 'rebuttal', speakerIndex: 0 },
+    { phase: 'rebuttal', speakerIndex: 1 },
+    // Exchange 7: Closing synthesis
     { phase: 'closing', speakerIndex: 0 },
     { phase: 'closing', speakerIndex: 1 },
   ],
@@ -143,4 +186,3 @@ export const FORMATS: Record<DebateFormatId, FormatSpec> = {
 export function getFormat(id: DebateFormatId): FormatSpec {
   return FORMATS[id] || OXFORD_FORMAT;
 }
-

@@ -3,7 +3,6 @@ import { View, StyleSheet } from 'react-native';
 import { Typography } from '../../molecules/Typography';
 import { Box } from '../../atoms/Box';
 import { useTheme, Theme } from '../../../theme';
-import Ionicons from '@expo/vector-icons/Ionicons';
 
 interface DebateTopicProps {
   topic: string;
@@ -11,42 +10,44 @@ interface DebateTopicProps {
     current: number;
     total: number;
   };
+  formatName?: string;
+  phaseLabel?: string;
 }
 
-export const DebateTopic: React.FC<DebateTopicProps> = ({ topic, roundInfo }) => {
+export const DebateTopic: React.FC<DebateTopicProps> = ({ topic, formatName, roundInfo, phaseLabel }) => {
   const { theme } = useTheme();
   const styles = createStyles(theme);
 
   return (
     <Box style={styles.container}>
-      <View style={styles.content}>
-        <View style={styles.iconContainer}>
-          <Ionicons 
-            name="chatbubbles" 
-            size={20} 
-            color={theme.colors.primary[500]} 
-          />
-        </View>
-        <View style={styles.textContainer}>
+      <View style={styles.textContainer}>
+        <Typography 
+          variant="subtitle" 
+          weight="semibold" 
+          style={styles.topicText}
+          numberOfLines={2}
+          ellipsizeMode="tail"
+        >
+          {topic}
+        </Typography>
+        {!!formatName && (
           <Typography 
-            variant="subtitle" 
-            weight="semibold" 
-            style={styles.topicText}
-            numberOfLines={2}
-            ellipsizeMode="tail"
+            variant="caption" 
+            color="secondary"
+            style={styles.formatText}
           >
-            {topic}
+            Format: {formatName}
           </Typography>
-          {roundInfo && (
-            <Typography 
-              variant="caption" 
-              color="secondary"
-              style={styles.roundText}
-            >
-              Round {roundInfo.current} of {roundInfo.total}
-            </Typography>
-          )}
-        </View>
+        )}
+        {(roundInfo || phaseLabel) && (
+          <Typography 
+            variant="caption" 
+            color="secondary"
+            style={styles.roundText}
+          >
+            {`Exchange ${roundInfo?.current ?? ''} of ${roundInfo?.total ?? ''}${phaseLabel ? `: ${phaseLabel}` : ''}`}
+          </Typography>
+        )}
       </View>
     </Box>
   );
@@ -57,8 +58,11 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     backgroundColor: theme.colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: theme.colors.border,
-    paddingHorizontal: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
+    position: 'relative',
+    zIndex: 10,
+    borderRadius: 8,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -68,23 +72,19 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
   },
-  content: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  iconContainer: {
-    marginRight: theme.spacing.md,
-    padding: theme.spacing.xs,
-    backgroundColor: theme.colors.primary[100],
-    borderRadius: theme.borderRadius.lg,
-  },
   textContainer: {
     flex: 1,
   },
   topicText: {
     lineHeight: 20,
   },
+  formatText: {
+    marginTop: 2,
+  },
   roundText: {
+    marginTop: 2,
+  },
+  phaseText: {
     marginTop: 2,
   },
 });

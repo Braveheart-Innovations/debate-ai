@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Modal, View, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../../../theme';
-import { Typography, ModalHeader, Button } from '../../molecules';
+import { Typography, Button } from '../../molecules';
+import { SheetHeader } from '../../molecules/SheetHeader';
 import { DEBATE_TOPIC_CATEGORIES, DebateTopicCategory } from '../../../constants/debateTopicCategories';
 
 export interface PresetTopicsModalProps {
@@ -30,7 +31,7 @@ export const PresetTopicsModal: React.FC<PresetTopicsModalProps> = ({ visible, o
           overflow: 'hidden',
           ...Platform.select({ ios: { shadowColor: '#000', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.25, shadowRadius: 10 }, android: { elevation: 10 } })
         }}>
-          <ModalHeader title="Choose a Preset Topic" onClose={onClose} variant="gradient" />
+          <SheetHeader title="Choose a Preset Topic" onClose={onClose} showHandle />
 
           {/* Category chips */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ padding: theme.spacing.lg, paddingBottom: 0 }}>
@@ -72,4 +73,3 @@ export const PresetTopicsModal: React.FC<PresetTopicsModalProps> = ({ visible, o
 };
 
 export default PresetTopicsModal;
-

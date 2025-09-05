@@ -6,7 +6,8 @@ import React from 'react';
 import { Modal, ScrollView, View, TouchableOpacity, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../../../theme';
-import { Typography, ModalHeader } from '../../molecules';
+import { Typography } from '../../molecules';
+import { SheetHeader } from '../../molecules/SheetHeader';
 import { FORMATS, type DebateFormatId, type FormatSpec } from '../../../config/debate/formats';
 
 export interface FormatModalProps {
@@ -17,8 +18,31 @@ export interface FormatModalProps {
 }
 
 export const FormatModal: React.FC<FormatModalProps> = ({ visible, selected, onSelect, onClose }) => {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const entries = Object.entries(FORMATS) as [DebateFormatId, FormatSpec][];
+
+  const HIGHLIGHTS: Record<DebateFormatId, string[]> = {
+    oxford: [
+      '⚖️ Best for traditional topics and formal arguments',
+      '⏱️ Equal speaking time with balanced structure',
+      '🎯 Clear pro/con positions make it easy to follow',
+    ],
+    lincoln_douglas: [
+      '🤔 Great for ethical dilemmas and moral questions',
+      '💭 Explores underlying values and principles',
+      '📚 Inspired by the historic Lincoln-Douglas debates',
+    ],
+    policy: [
+      '📊 Perfect for policy proposals and real-world issues',
+      '🔬 Emphasizes facts, data, and research',
+      '💡 Solution-oriented with practical outcomes',
+    ],
+    socratic: [
+      '❓ Ideal for exploring complex concepts',
+      '🤝 Collaborative discovery through dialogue',
+      '🧠 Deepens understanding by questioning assumptions',
+    ],
+  };
 
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
@@ -34,7 +58,7 @@ export const FormatModal: React.FC<FormatModalProps> = ({ visible, selected, onS
           overflow: 'hidden',
           ...Platform.select({ ios: { shadowColor: '#000', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.25, shadowRadius: 10 }, android: { elevation: 10 } })
         }}>
-          <ModalHeader title="Choose Debate Format" onClose={onClose} variant="gradient" />
+          <SheetHeader title="Choose Debate Format" onClose={onClose} showHandle />
           <ScrollView contentContainerStyle={{ padding: theme.spacing.lg }} showsVerticalScrollIndicator={false}>
             {entries.map(([id, spec]) => (
               <TouchableOpacity
@@ -44,7 +68,9 @@ export const FormatModal: React.FC<FormatModalProps> = ({ visible, selected, onS
                   padding: theme.spacing.md,
                   marginBottom: theme.spacing.md,
                   borderRadius: 12,
-                  backgroundColor: id === selected ? theme.colors.primary[50] : theme.colors.card,
+                  backgroundColor: id === selected
+                    ? (isDark ? theme.colors.overlays.medium : theme.colors.primary[50])
+                    : theme.colors.card,
                   borderWidth: 1,
                   borderColor: id === selected ? theme.colors.primary[400] : theme.colors.border,
                 }}
@@ -55,9 +81,11 @@ export const FormatModal: React.FC<FormatModalProps> = ({ visible, selected, onS
                 <Typography variant="body" color="secondary" style={{ marginBottom: 6 }}>
                   {spec.description}
                 </Typography>
-                <Typography variant="caption" color="secondary">
-                  Phases: {spec.phases.map(p => p.id).join(' → ')}
-                </Typography>
+                {HIGHLIGHTS[id].map((h, idx) => (
+                  <Typography key={idx} variant="caption" color="secondary" style={{ marginTop: idx === 0 ? 0 : 2 }}>
+                    • {h}
+                  </Typography>
+                ))}
               </TouchableOpacity>
             ))}
           </ScrollView>
