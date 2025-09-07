@@ -34,6 +34,7 @@ import {
 } from '../components/organisms/chat';
 import { AIConfig, Message } from '../types';
 import { cancelAllStreams, selectActiveStreamCount } from '../store';
+import { getStreamingService } from '../services/streaming/StreamingService';
 
 
 interface ChatScreenProps {
@@ -288,11 +289,6 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
           showTime={true}
           animated={true}
           rightElement={<HeaderActions variant="gradient" />}
-          actionButton={activeStreams > 0 ? {
-            label: 'Stop',
-            onPress: () => dispatch(cancelAllStreams()),
-            variant: 'danger',
-          } : undefined}
         />
 
         {/* Warnings (e.g., GPT-5 latency) */}
@@ -324,6 +320,12 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
           inputText={input.inputText}
           onInputChange={handleInputChange}
           onSend={handleSendMessage}
+          isProcessing={aiResponses.isProcessing || activeStreams > 0}
+          onStop={() => {
+            // Abort active network streams and update UI state
+            try { getStreamingService().cancelAllStreams(); } catch { /* no-op */ }
+            dispatch(cancelAllStreams());
+          }}
           onOpenImageModal={() => {
             setImageModalPrompt(input.inputText.trim());
             setImageModalVisible(true);

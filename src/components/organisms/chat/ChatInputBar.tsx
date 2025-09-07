@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, Text as RNText, ScrollView, Image } from 'react-native';
+import { StyleSheet, TextInput, TouchableOpacity, Text as RNText, ScrollView, Image, Animated, View } from 'react-native';
 // We now render the options row above the input instead of expanding inline
 import MultimodalOptionsRow from '../../molecules/MultimodalOptionsRow';
 import { ImageUploadModal } from './ImageUploadModal';
 import { DocumentUploadModal } from './DocumentUploadModal';
 import { VoiceModal } from './VoiceModal';
 import { Box } from '../../atoms';
+import IconStopOctagon from '../../atoms/icons/IconStopOctagon';
+import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../../theme';
 import { MessageAttachment } from '../../../types';
 import { getReadableFileSize } from '../../../utils/imageProcessing';
@@ -19,6 +21,8 @@ export interface ChatInputBarProps {
   onOpenVideoModal?: () => void;
   placeholder?: string;
   disabled?: boolean;
+  isProcessing?: boolean;
+  onStop?: () => void;
   multiline?: boolean;
   attachmentSupport?: { images: boolean; documents: boolean };
   maxAttachments?: number;
@@ -35,6 +39,8 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
   onOpenVideoModal,
   placeholder = "Type a message...",
   disabled = false,
+  isProcessing = false,
+  onStop,
   multiline = true,
   attachmentSupport = { images: false, documents: false },
   maxAttachments = 20, // Claude's limit
@@ -42,12 +48,13 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
   modalityAvailability,
   modalityReasons,
 }) => {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const [attachments, setAttachments] = useState<MessageAttachment[]>([]);
   const [showImageUpload, setShowImageUpload] = useState(false);
   const [showDocUpload, setShowDocUpload] = useState(false);
   const [showVoice, setShowVoice] = useState(false);
   const [showModalityRow, setShowModalityRow] = useState(false);
+  const pulse = React.useRef(new Animated.Value(0)).current;
   // keep prompt prefill only in parent modal
   // Image modal state handled inside ImageGenerationModal; keep only prompt prefill here
   const canSend = (inputText.trim().length > 0 || attachments.length > 0) && !disabled;
@@ -58,6 +65,25 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
       setAttachments([]); // Clear attachments after sending
     }
   };
+
+  // Start/stop pulse ripple while processing
+  React.useEffect(() => {
+    let loop: Animated.CompositeAnimation | undefined;
+    if (isProcessing) {
+      pulse.setValue(0);
+      loop = Animated.loop(
+        Animated.timing(pulse, {
+          toValue: 1,
+          duration: 1400,
+          useNativeDriver: true,
+        })
+      );
+      loop.start();
+    }
+    return () => {
+      if (loop) loop.stop();
+    };
+  }, [isProcessing, pulse]);
   
   // (legacy attachment sheet removed; now handled via MultimodalButton)
   
@@ -204,19 +230,78 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
           editable={!disabled}
         />
         
-        <TouchableOpacity
-          style={[
-            styles.sendButton,
-            {
-              backgroundColor: canSend ? theme.colors.primary[500] : theme.colors.gray[400],
-            }
-          ]}
-          onPress={handleSend}
-          disabled={!canSend}
-          activeOpacity={0.7}
-        >
-          <RNText style={styles.sendButtonText}>↑</RNText>
-        </TouchableOpacity>
+        {isProcessing ? (
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Stop streaming"
+            accessibilityHint="Stops all active AI responses"
+            style={[
+              styles.stopButton,
+              {
+                // danger/tonal appearance
+                backgroundColor: isDark ? theme.colors.semantic.error : theme.colors.error[50],
+                borderColor: isDark ? theme.colors.error[600] : theme.colors.error[300],
+              }
+            ]}
+            onPress={() => {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+              onStop?.();
+            }}
+            activeOpacity={0.8}
+            hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+          >
+            {/* Pulse ripples */}
+            <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+              <Animated.View
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  borderRadius: 22,
+                  backgroundColor: theme.colors.semantic.error,
+                  transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.4] }) }],
+                  opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.35, 0] }),
+                }}
+              />
+              <Animated.View
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  borderRadius: 22,
+                  backgroundColor: theme.colors.semantic.error,
+                  transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [1.15, 1.55] }) }],
+                  opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.25, 0] }),
+                }}
+              />
+            </View>
+
+            <Box style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <IconStopOctagon size={24} color={theme.colors.error[600]} border={theme.colors.text.white} borderWidth={2} />
+              <RNText style={{ marginLeft: 8, color: isDark ? theme.colors.error[200] : theme.colors.error[700], fontWeight: '700', fontSize: 16 }}>
+                Stop
+              </RNText>
+            </Box>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={[
+              styles.sendButton,
+              {
+                backgroundColor: canSend ? theme.colors.primary[500] : theme.colors.gray[400],
+              }
+            ]}
+            onPress={handleSend}
+            disabled={!canSend}
+            activeOpacity={0.7}
+          >
+            <RNText style={styles.sendButtonText}>↑</RNText>
+          </TouchableOpacity>
+        )}
       </Box>
 
       {/* Multimodal modals */}
@@ -267,9 +352,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 18,
   },
+  stopButton: {
+    minWidth: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 22,
+    marginLeft: 4,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 14,
+  },
   sendButtonText: {
     color: '#FFFFFF',
     fontSize: 20,
+    fontWeight: 'bold',
+  },
+  stopButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
     fontWeight: 'bold',
   },
   attachButton: {

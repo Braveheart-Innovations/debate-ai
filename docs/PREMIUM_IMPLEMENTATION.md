@@ -1,35 +1,80 @@
 # Premium Implementation Guide
-## MyAIFriends React Native App
+## Symposium AI React Native App
 
-*Last Updated: August 2025*  
-*Version: 2.0*
+*Last Updated: January 2025*  
+*Version: 3.0*
 
 ---
 
 ## Executive Summary
 
-This document provides a comprehensive, pragmatic implementation guide for adding Firebase Authentication and in-app purchases to MyAIFriends. The approach leverages Firebase's built-in security features and react-native-iap's battle-tested payment handling.
+This document provides a comprehensive implementation guide for the Demo/Trial/Premium subscription model in Symposium AI. The app uses a three-tier system with Firebase Authentication, react-native-iap for payments, and platform-native subscription management through App Store and Google Play.
+
+**Subscription Model:**
+- **Demo Mode**: Free, anonymous access to pre-recorded content only
+- **Trial**: 7-day free trial with full access (payment method required)
+- **Premium**: $7.99/month or $59.99/year (save $36)
 
 **Key Principles:**
-- Use Firebase's built-in features (rate limiting, security, session management)
-- Single subscription tier: $9.99/month
-- Minimal custom code, maximum reliability
-- Full App Store and Google Play compliance
+- BYOK (Bring Your Own Keys) for all live AI interactions
+- Platform-native IAP for all payments (App Store/Google Play)
+- Anonymous authentication for Demo Mode access
+- Full feature access for Trial and Premium users
+- No artificial gates on AI models or personalities
 
 ---
 
-## 1. Technology Stack
+## 1. Subscription Tiers
 
-### Core Dependencies (August 2025 versions)
+### Demo Mode (Free)
+- **Access Level**: Pre-recorded content only
+- **Authentication**: Anonymous Firebase auth or signed in without subscription
+- **Features**:
+  - Browse pre-recorded debates
+  - View sample chat conversations
+  - Explore comparison examples
+  - Navigate all app menus (read-only)
+  - View feature descriptions
+- **Restrictions**:
+  - Cannot configure API keys
+  - Cannot create custom topics
+  - Cannot initiate live AI interactions
+  - Cannot save or export content
+
+### Trial (7 Days Free)
+- **Access Level**: Full app access for 7 days
+- **Authentication**: Required (Email/Apple/Google sign-in)
+- **Payment**: Payment method required upfront via IAP
+- **Features**:
+  - All Premium features for 7 days
+  - Configure unlimited API keys (BYOK)
+  - Create custom debate topics
+  - Use all AI models and personalities
+  - Full chat, debate, and comparison features
+  - Export and save capabilities
+- **Auto-Renewal**: Converts to Premium after 7 days unless cancelled
+
+### Premium (Paid)
+- **Pricing**: 
+  - Monthly: $7.99/month
+  - Annual: $59.99/year (save $36/year)
+- **Access Level**: Full app access
+- **Features**: Same as Trial, continued indefinitely
+- **Cancellation**: Can cancel anytime, access until period ends
+
+---
+
+## 2. Technology Stack
+
+### Core Dependencies
 ```json
 {
   "dependencies": {
     "@react-native-firebase/app": "^21.0.0",
     "@react-native-firebase/auth": "^21.0.0",
     "@react-native-firebase/firestore": "^21.0.0",
-    "@react-native-firebase/remote-config": "^21.0.0",
+    "@react-native-firebase/functions": "^21.0.0",
     "@react-native-firebase/analytics": "^21.0.0",
-    "@react-native-firebase/crashlytics": "^21.0.0",
     "react-native-iap": "^13.0.0",
     "@invertase/react-native-apple-authentication": "^3.0.0",
     "@react-native-google-signin/google-signin": "^13.0.0"
@@ -37,194 +82,243 @@ This document provides a comprehensive, pragmatic implementation guide for addin
 }
 ```
 
-### Why These Choices?
-- **Firebase Auth**: Handles rate limiting, token refresh, session management automatically
-- **Firebase Firestore**: Real-time subscription status sync
-- **react-native-iap**: Most mature IAP library, handles edge cases
-- **Firebase Functions**: Secure server-side receipt validation
+---
+
+## 3. Firebase User Schema
+
+```typescript
+// Firestore user document structure
+interface UserDocument {
+  // Basic info
+  uid: string;
+  email?: string;
+  displayName?: string;
+  photoURL?: string;
+  
+  // Authentication
+  authProvider: 'email' | 'apple' | 'google' | 'anonymous';
+  isAnonymous: boolean;
+  createdAt: Timestamp;
+  lastActive: Timestamp;
+  
+  // Subscription
+  membershipStatus: 'demo' | 'trial' | 'premium';
+  subscriptionId?: string; // Platform subscription ID
+  productId?: string; // 'monthly' | 'annual'
+  
+  // Trial tracking
+  trialStartDate?: Timestamp;
+  trialEndDate?: Timestamp;
+  hasUsedTrial: boolean;
+  
+  // Payment
+  paymentPlatform?: 'ios' | 'android';
+  lastReceiptData?: string; // Encrypted receipt
+  subscriptionExpiryDate?: Timestamp;
+  autoRenewing: boolean;
+  
+  // Preferences
+  preferences: {
+    theme: 'light' | 'dark' | 'auto';
+    notifications: boolean;
+  };
+  
+  // API Keys (encrypted)
+  apiKeys?: {
+    [provider: string]: string; // Encrypted with user-specific key
+  };
+}
+```
 
 ---
 
-## 2. Authentication Implementation
+## 4. Authentication Implementation
 
-### 2.1 Firebase Setup
-
-```typescript
-// src/services/firebase/config.ts
-import auth from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore';
-import { Platform } from 'react-native';
-
-// Firebase automatically uses google-services.json (Android) 
-// and GoogleService-Info.plist (iOS)
-export const initializeFirebase = async () => {
-  // Enable persistence for offline support
-  await firestore().settings({
-    persistence: true,
-    cacheSizeBytes: firestore.CACHE_SIZE_UNLIMITED,
-  });
-  
-  // Enable Analytics debug mode in development
-  if (__DEV__) {
-    await analytics().setAnalyticsCollectionEnabled(true);
-  }
-};
-```
-
-### 2.2 Authentication Service
+### 4.1 Anonymous Authentication for Demo Mode
 
 ```typescript
 // src/services/firebase/auth.ts
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import { appleAuth } from '@invertase/react-native-apple-authentication';
-import { Platform } from 'react-native';
 
 export class AuthService {
-  // Firebase handles rate limiting automatically
-  static async signUpWithEmail(email: string, password: string) {
+  static async signInAnonymously() {
     try {
-      const userCredential = await auth().createUserWithEmailAndPassword(email, password);
-      await this.createUserDocument(userCredential.user);
-      return { success: true, user: userCredential.user };
-    } catch (error: any) {
-      return { success: false, error: this.getErrorMessage(error.code) };
-    }
-  }
-
-  static async signInWithEmail(email: string, password: string) {
-    try {
-      const userCredential = await auth().signInWithEmailAndPassword(email, password);
-      return { success: true, user: userCredential.user };
-    } catch (error: any) {
-      return { success: false, error: this.getErrorMessage(error.code) };
-    }
-  }
-
-  static async signInWithGoogle() {
-    try {
-      await GoogleSignin.hasPlayServices();
-      const { idToken } = await GoogleSignin.signIn();
-      const googleCredential = auth.GoogleAuthProvider.credential(idToken);
-      const userCredential = await auth().signInWithCredential(googleCredential);
-      await this.createUserDocument(userCredential.user);
-      return { success: true, user: userCredential.user };
-    } catch (error: any) {
-      return { success: false, error: 'Google sign-in failed' };
-    }
-  }
-
-  static async signInWithApple() {
-    if (Platform.OS !== 'ios') {
-      return { success: false, error: 'Apple Sign-In is only available on iOS' };
-    }
-
-    try {
-      const appleAuthRequestResponse = await appleAuth.performRequest({
-        requestedOperation: appleAuth.Operation.LOGIN,
-        requestedScopes: [appleAuth.Scope.EMAIL, appleAuth.Scope.FULL_NAME],
-      });
-
-      const { identityToken, nonce } = appleAuthRequestResponse;
-      const appleCredential = auth.AppleAuthProvider.credential(identityToken, nonce);
-      const userCredential = await auth().signInWithCredential(appleCredential);
-      await this.createUserDocument(userCredential.user);
-      return { success: true, user: userCredential.user };
-    } catch (error: any) {
-      return { success: false, error: 'Apple sign-in failed' };
-    }
-  }
-
-  static async resetPassword(email: string) {
-    try {
-      await auth().sendPasswordResetEmail(email);
-      return { success: true };
-    } catch (error: any) {
-      return { success: false, error: this.getErrorMessage(error.code) };
-    }
-  }
-
-  static async signOut() {
-    try {
-      await auth().signOut();
-      await GoogleSignin.revokeAccess();
-      await GoogleSignin.signOut();
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: 'Sign out failed' };
-    }
-  }
-
-  private static async createUserDocument(user: any) {
-    const userDoc = await firestore().collection('users').doc(user.uid).get();
-    
-    if (!userDoc.exists) {
-      await firestore().collection('users').doc(user.uid).set({
-        email: user.email,
-        displayName: user.displayName,
-        photoURL: user.photoURL,
-        subscription: 'free',
+      const userCredential = await auth().signInAnonymously();
+      
+      // Create minimal user document for anonymous users
+      await firestore().collection('users').doc(userCredential.user.uid).set({
+        uid: userCredential.user.uid,
+        authProvider: 'anonymous',
+        isAnonymous: true,
+        membershipStatus: 'demo',
+        hasUsedTrial: false,
         createdAt: firestore.FieldValue.serverTimestamp(),
         lastActive: firestore.FieldValue.serverTimestamp(),
-      });
+        preferences: {
+          theme: 'auto',
+          notifications: false,
+        },
+      }, { merge: true });
+      
+      return { success: true, user: userCredential.user };
+    } catch (error) {
+      console.error('Anonymous sign-in failed:', error);
+      return { success: false, error };
     }
   }
+  
+  static async convertAnonymousToFull(email: string, password: string) {
+    try {
+      const credential = auth.EmailAuthProvider.credential(email, password);
+      const user = auth().currentUser;
+      
+      if (!user?.isAnonymous) {
+        throw new Error('Current user is not anonymous');
+      }
+      
+      // Link anonymous account with email/password
+      await user.linkWithCredential(credential);
+      
+      // Update user document
+      await firestore().collection('users').doc(user.uid).update({
+        email,
+        authProvider: 'email',
+        isAnonymous: false,
+      });
+      
+      return { success: true, user };
+    } catch (error) {
+      console.error('Account conversion failed:', error);
+      return { success: false, error };
+    }
+  }
+}
+```
 
-  private static getErrorMessage(code: string): string {
-    const errorMessages: Record<string, string> = {
-      'auth/email-already-in-use': 'This email is already registered',
-      'auth/invalid-email': 'Invalid email address',
-      'auth/weak-password': 'Password should be at least 6 characters',
-      'auth/user-not-found': 'No account found with this email',
-      'auth/wrong-password': 'Incorrect password',
-      'auth/too-many-requests': 'Too many attempts. Please try again later',
-      'auth/network-request-failed': 'Network error. Please check your connection',
-    };
-    return errorMessages[code] || 'An error occurred. Please try again';
+### 4.2 Subscription Status Management
+
+```typescript
+// src/services/subscription/SubscriptionManager.ts
+import firestore from '@react-native-firebase/firestore';
+import auth from '@react-native-firebase/auth';
+
+export class SubscriptionManager {
+  static async checkSubscriptionStatus(): Promise<MembershipStatus> {
+    const user = auth().currentUser;
+    if (!user) return 'demo';
+    
+    const userDoc = await firestore()
+      .collection('users')
+      .doc(user.uid)
+      .get();
+    
+    const data = userDoc.data();
+    if (!data) return 'demo';
+    
+    // Check trial status
+    if (data.membershipStatus === 'trial') {
+      const now = Date.now();
+      const trialEnd = data.trialEndDate?.toMillis();
+      
+      if (trialEnd && now > trialEnd) {
+        // Trial expired, update to demo
+        await firestore()
+          .collection('users')
+          .doc(user.uid)
+          .update({ membershipStatus: 'demo' });
+        return 'demo';
+      }
+      return 'trial';
+    }
+    
+    // Check premium subscription
+    if (data.membershipStatus === 'premium') {
+      const now = Date.now();
+      const expiryDate = data.subscriptionExpiryDate?.toMillis();
+      
+      if (expiryDate && now > expiryDate && !data.autoRenewing) {
+        // Subscription expired
+        await firestore()
+          .collection('users')
+          .doc(user.uid)
+          .update({ membershipStatus: 'demo' });
+        return 'demo';
+      }
+      return 'premium';
+    }
+    
+    return data.membershipStatus || 'demo';
+  }
+  
+  static async getTrialDaysRemaining(): Promise<number | null> {
+    const user = auth().currentUser;
+    if (!user) return null;
+    
+    const userDoc = await firestore()
+      .collection('users')
+      .doc(user.uid)
+      .get();
+    
+    const data = userDoc.data();
+    if (data?.membershipStatus !== 'trial') return null;
+    
+    const now = Date.now();
+    const trialEnd = data.trialEndDate?.toMillis();
+    
+    if (!trialEnd) return null;
+    
+    const daysRemaining = Math.ceil((trialEnd - now) / (1000 * 60 * 60 * 24));
+    return Math.max(0, daysRemaining);
   }
 }
 ```
 
 ---
 
-## 3. Payment Integration
+## 5. IAP Integration
 
-### 3.1 Product Configuration
+### 5.1 Product Configuration
 
 ```typescript
-// src/services/payments/products.ts
+// src/services/iap/products.ts
 import { Platform } from 'react-native';
 
 export const SUBSCRIPTION_PRODUCTS = {
   monthly: Platform.select({
-    ios: 'com.braveheart.myaifriends.premium.monthly',
+    ios: 'com.braveheartinnovations.symposium.premium.monthly',
     android: 'premium_monthly',
+  })!,
+  annual: Platform.select({
+    ios: 'com.braveheartinnovations.symposium.premium.annual',
+    android: 'premium_annual',
   })!,
 };
 
 export const PRODUCT_DETAILS = {
   monthly: {
-    price: '$9.99',
+    id: SUBSCRIPTION_PRODUCTS.monthly,
+    price: '$7.99',
     period: 'month',
-    title: 'MyAIFriends Premium',
-    description: 'Unlock all AI personalities, unlimited group chats, and expert mode',
-    features: [
-      'Unlimited AIs in group chats',
-      'All 12 personalities unlocked',
-      'Create debates on ANY topic',
-      'Expert mode with full API control',
-      'Unlimited conversation history',
-      'Priority support',
-    ],
+    title: 'Symposium AI Premium',
+    description: 'Full access to all AI features',
+  },
+  annual: {
+    id: SUBSCRIPTION_PRODUCTS.annual,
+    price: '$59.99',
+    period: 'year',
+    title: 'Symposium AI Premium (Annual)',
+    description: 'Full access - Save $36/year',
+    savings: '$36',
+    percentSaved: '37%',
   },
 };
 ```
 
-### 3.2 In-App Purchase Service
+### 5.2 Purchase Service
 
 ```typescript
-// src/services/payments/store.ts
+// src/services/iap/PurchaseService.ts
 import {
   initConnection,
   purchaseUpdatedListener,
@@ -233,71 +327,75 @@ import {
   requestSubscription,
   finishTransaction,
   getAvailablePurchases,
-  clearTransactionIOS,
   type Purchase,
-  type Subscription,
 } from 'react-native-iap';
 import { Platform } from 'react-native';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { SUBSCRIPTION_PRODUCTS } from './products';
 
-export class PaymentService {
+export class PurchaseService {
   private static purchaseUpdateSubscription: any;
   private static purchaseErrorSubscription: any;
-
+  
   static async initialize() {
     try {
       await initConnection();
-      
-      // Set up purchase listeners
-      this.purchaseUpdateSubscription = purchaseUpdatedListener(
-        async (purchase: Purchase) => {
-          await this.handlePurchaseUpdate(purchase);
-        }
-      );
-      
-      this.purchaseErrorSubscription = purchaseErrorListener(
-        (error: any) => {
-          console.warn('Purchase error:', error);
-        }
-      );
-      
+      this.setupListeners();
       return { success: true };
     } catch (error) {
-      console.error('Failed to initialize IAP:', error);
+      console.error('IAP initialization failed:', error);
       return { success: false, error };
     }
   }
-
-  static async loadProducts() {
-    try {
-      const products = await getSubscriptions({
-        skus: [SUBSCRIPTION_PRODUCTS.monthly],
-      });
-      return { success: true, products };
-    } catch (error) {
-      console.error('Failed to load products:', error);
-      return { success: false, error };
-    }
+  
+  private static setupListeners() {
+    this.purchaseUpdateSubscription = purchaseUpdatedListener(
+      async (purchase: Purchase) => {
+        await this.handlePurchaseUpdate(purchase);
+      }
+    );
+    
+    this.purchaseErrorSubscription = purchaseErrorListener(
+      (error: any) => {
+        console.warn('Purchase error:', error);
+      }
+    );
   }
-
-  static async purchaseSubscription() {
+  
+  static async purchaseSubscription(productType: 'monthly' | 'annual') {
     try {
-      const sku = SUBSCRIPTION_PRODUCTS.monthly;
+      const user = auth().currentUser;
+      if (!user) throw new Error('User must be authenticated');
+      
+      const sku = SUBSCRIPTION_PRODUCTS[productType];
+      
+      // Check if user has already used trial
+      const userDoc = await firestore()
+        .collection('users')
+        .doc(user.uid)
+        .get();
+      
+      const hasUsedTrial = userDoc.data()?.hasUsedTrial || false;
       
       if (Platform.OS === 'ios') {
-        // iOS requires offer token for subscriptions in 2025
         await requestSubscription({
           sku,
           andDangerouslyFinishTransactionAutomaticallyIOS: false,
         });
       } else {
-        // Android subscription
         await requestSubscription({
           sku,
-          subscriptionOffers: [{ sku, offerToken: '' }],
+          subscriptionOffers: [{
+            sku,
+            offerToken: '', // Google Play will populate this
+          }],
         });
+      }
+      
+      // If this is their first subscription and they haven't used trial
+      if (!hasUsedTrial) {
+        await this.startTrial(productType);
       }
       
       return { success: true };
@@ -308,28 +406,25 @@ export class PaymentService {
       return { success: false, error };
     }
   }
-
-  static async restorePurchases() {
-    try {
-      const purchases = await getAvailablePurchases();
-      
-      if (purchases.length > 0) {
-        // Validate the most recent purchase
-        const latestPurchase = purchases.sort(
-          (a, b) => b.transactionDate - a.transactionDate
-        )[0];
-        
-        await this.validateAndSavePurchase(latestPurchase);
-        return { success: true, restored: true };
-      }
-      
-      return { success: true, restored: false };
-    } catch (error) {
-      console.error('Failed to restore purchases:', error);
-      return { success: false, error };
-    }
+  
+  private static async startTrial(productType: 'monthly' | 'annual') {
+    const user = auth().currentUser;
+    if (!user) return;
+    
+    const now = firestore.Timestamp.now();
+    const trialEndDate = new Date();
+    trialEndDate.setDate(trialEndDate.getDate() + 7);
+    
+    await firestore().collection('users').doc(user.uid).update({
+      membershipStatus: 'trial',
+      trialStartDate: now,
+      trialEndDate: firestore.Timestamp.fromDate(trialEndDate),
+      hasUsedTrial: true,
+      productId: productType,
+      paymentPlatform: Platform.OS,
+    });
   }
-
+  
   private static async handlePurchaseUpdate(purchase: Purchase) {
     const receipt = purchase.transactionReceipt;
     
@@ -340,46 +435,61 @@ export class PaymentService {
         
         // Acknowledge the purchase
         await finishTransaction({ purchase, isConsumable: false });
-        
-        if (Platform.OS === 'ios') {
-          await clearTransactionIOS();
-        }
       } catch (error) {
         console.error('Failed to process purchase:', error);
       }
     }
   }
-
+  
   private static async validateAndSavePurchase(purchase: Purchase) {
     const user = auth().currentUser;
     if (!user) throw new Error('User not authenticated');
-
+    
     // Call Firebase Function to validate receipt
-    const response = await fetch('https://us-central1-myaifriends.cloudfunctions.net/validatePurchase', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${await user.getIdToken()}`,
-      },
-      body: JSON.stringify({
-        receipt: purchase.transactionReceipt,
-        platform: Platform.OS,
-        productId: purchase.productId,
-      }),
+    const functions = (await import('@react-native-firebase/functions')).default();
+    const validatePurchase = functions.httpsCallable('validatePurchase');
+    
+    const result = await validatePurchase({
+      receipt: purchase.transactionReceipt,
+      platform: Platform.OS,
+      productId: purchase.productId,
     });
-
-    if (!response.ok) {
-      throw new Error('Receipt validation failed');
+    
+    if (result.data.valid) {
+      // Update user subscription status
+      await firestore().collection('users').doc(user.uid).update({
+        membershipStatus: 'premium',
+        subscriptionId: purchase.transactionId,
+        subscriptionExpiryDate: result.data.expiryDate,
+        autoRenewing: result.data.autoRenewing,
+        lastReceiptData: purchase.transactionReceipt,
+      });
     }
-
-    // Update user subscription status in Firestore
-    await firestore().collection('users').doc(user.uid).update({
-      subscription: 'pro',
-      subscriptionExpiry: new Date(purchase.transactionDate + 30 * 24 * 60 * 60 * 1000),
-      lastPurchase: firestore.FieldValue.serverTimestamp(),
-    });
   }
-
+  
+  static async restorePurchases() {
+    try {
+      const purchases = await getAvailablePurchases();
+      
+      if (purchases.length > 0) {
+        // Find active subscription
+        const activeSubscription = purchases.find(p => 
+          Object.values(SUBSCRIPTION_PRODUCTS).includes(p.productId)
+        );
+        
+        if (activeSubscription) {
+          await this.validateAndSavePurchase(activeSubscription);
+          return { success: true, restored: true };
+        }
+      }
+      
+      return { success: true, restored: false };
+    } catch (error) {
+      console.error('Restore failed:', error);
+      return { success: false, error };
+    }
+  }
+  
   static cleanup() {
     if (this.purchaseUpdateSubscription) {
       this.purchaseUpdateSubscription.remove();
@@ -393,67 +503,146 @@ export class PaymentService {
 
 ---
 
-## 4. UI Components
+## 6. Access Control
 
-### 4.1 Premium Gate Component
+### 6.1 Feature Gating
 
 ```typescript
-// src/components/premium/PremiumGate.tsx
+// src/hooks/useFeatureAccess.ts
+import { useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
+import { RootState } from '../store';
+import { SubscriptionManager } from '../services/subscription/SubscriptionManager';
+
+export const useFeatureAccess = () => {
+  const [membershipStatus, setMembershipStatus] = useState<MembershipStatus>('demo');
+  const [trialDaysRemaining, setTrialDaysRemaining] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    checkAccess();
+  }, []);
+  
+  const checkAccess = async () => {
+    setLoading(true);
+    try {
+      const status = await SubscriptionManager.checkSubscriptionStatus();
+      setMembershipStatus(status);
+      
+      if (status === 'trial') {
+        const days = await SubscriptionManager.getTrialDaysRemaining();
+        setTrialDaysRemaining(days);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const canAccessLiveAI = membershipStatus === 'trial' || membershipStatus === 'premium';
+  const canConfigureAPIKeys = canAccessLiveAI;
+  const canCreateCustomTopics = canAccessLiveAI;
+  const canExportContent = canAccessLiveAI;
+  const isInTrial = membershipStatus === 'trial';
+  const isPremium = membershipStatus === 'premium';
+  const isDemo = membershipStatus === 'demo';
+  
+  return {
+    membershipStatus,
+    trialDaysRemaining,
+    loading,
+    canAccessLiveAI,
+    canConfigureAPIKeys,
+    canCreateCustomTopics,
+    canExportContent,
+    isInTrial,
+    isPremium,
+    isDemo,
+    refresh: checkAccess,
+  };
+};
+```
+
+### 6.2 Demo Mode Restrictions
+
+```typescript
+// src/components/gates/FeatureGate.tsx
 import React from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Typography } from '../molecules';
-import { useAuth } from '../../hooks/useAuth';
+import { useFeatureAccess } from '../../hooks/useFeatureAccess';
 import { useTheme } from '../../theme';
 
-interface PremiumGateProps {
+interface FeatureGateProps {
   children: React.ReactNode;
-  feature: string;
-  showLock?: boolean;
+  feature: 'api_keys' | 'custom_topics' | 'live_ai' | 'export';
+  fallback?: React.ReactNode;
+  showUpgradePrompt?: boolean;
 }
 
-export const PremiumGate: React.FC<PremiumGateProps> = ({ 
+export const FeatureGate: React.FC<FeatureGateProps> = ({ 
   children, 
-  feature, 
-  showLock = true 
+  feature,
+  fallback,
+  showUpgradePrompt = true,
 }) => {
-  const { isPremium } = useAuth();
   const navigation = useNavigation();
   const { theme } = useTheme();
-
-  if (isPremium) {
+  const { 
+    canAccessLiveAI,
+    canConfigureAPIKeys,
+    canCreateCustomTopics,
+    canExportContent,
+    isDemo,
+  } = useFeatureAccess();
+  
+  const hasAccess = {
+    'api_keys': canConfigureAPIKeys,
+    'custom_topics': canCreateCustomTopics,
+    'live_ai': canAccessLiveAI,
+    'export': canExportContent,
+  }[feature];
+  
+  if (hasAccess) {
     return <>{children}</>;
   }
-
+  
+  if (fallback) {
+    return <>{fallback}</>;
+  }
+  
+  if (!showUpgradePrompt) {
+    return null;
+  }
+  
   const handleUpgrade = () => {
-    navigation.navigate('Upgrade' as never);
+    navigation.navigate('AccountSettings' as never);
   };
-
+  
   return (
     <TouchableOpacity 
       style={styles.container} 
       onPress={handleUpgrade}
       activeOpacity={0.8}
     >
-      <View style={[styles.overlay, { backgroundColor: theme.colors.overlay }]} />
-      {showLock && (
-        <View style={styles.lockContainer}>
-          <MaterialCommunityIcons 
-            name="lock" 
-            size={24} 
-            color={theme.colors.primary[500]} 
-          />
-          <Typography variant="caption" weight="semibold" style={{ marginTop: 8 }}>
-            Premium Feature
-          </Typography>
-          <Typography variant="caption" color="secondary" style={{ marginTop: 4 }}>
-            Tap to upgrade
+      <View style={[styles.card, { backgroundColor: theme.colors.surface }]}>
+        <MaterialCommunityIcons 
+          name="lock-outline" 
+          size={32} 
+          color={theme.colors.primary[500]} 
+        />
+        <Typography variant="body" weight="semibold" style={styles.title}>
+          Premium Feature
+        </Typography>
+        <Typography variant="caption" color="secondary" style={styles.description}>
+          Start your 7-day free trial to access this feature
+        </Typography>
+        <View style={[styles.button, { backgroundColor: theme.colors.primary[500] }]}>
+          <Typography variant="caption" style={{ color: 'white' }}>
+            Start Free Trial
           </Typography>
         </View>
-      )}
-      <View style={styles.blurredContent}>
-        {children}
       </View>
     </TouchableOpacity>
   );
@@ -461,247 +650,383 @@ export const PremiumGate: React.FC<PremiumGateProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    position: 'relative',
+    padding: 16,
   },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    opacity: 0.95,
-    zIndex: 1,
-  },
-  lockContainer: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
+  card: {
+    padding: 24,
+    borderRadius: 12,
     alignItems: 'center',
-    zIndex: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  blurredContent: {
-    opacity: 0.3,
+  title: {
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  description: {
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  button: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
   },
 });
 ```
 
-### 4.2 useSubscription Hook
+---
+
+## 7. UI Components
+
+### 7.1 Trial Banner
 
 ```typescript
-// src/hooks/useSubscription.ts
-import { useState, useEffect } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import auth from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore';
-import { RootState, updateSubscription } from '../store';
-import { PaymentService } from '../services/payments/store';
+// src/components/subscription/TrialBanner.tsx
+import React from 'react';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { Typography } from '../molecules';
+import { useFeatureAccess } from '../../hooks/useFeatureAccess';
+import { useTheme } from '../../theme';
 
-export const useSubscription = () => {
-  const dispatch = useDispatch();
-  const user = useSelector((state: RootState) => state.user.currentUser);
-  const [loading, setLoading] = useState(false);
-  const [products, setProducts] = useState<any[]>([]);
-
-  useEffect(() => {
-    // Listen to subscription changes in real-time
-    const currentUser = auth().currentUser;
-    if (!currentUser) return;
-
-    const unsubscribe = firestore()
-      .collection('users')
-      .doc(currentUser.uid)
-      .onSnapshot((doc) => {
-        const data = doc.data();
-        if (data?.subscription) {
-          dispatch(updateSubscription(data.subscription));
-        }
-      });
-
-    return () => unsubscribe();
-  }, [dispatch]);
-
-  useEffect(() => {
-    // Load available products
-    loadProducts();
-  }, []);
-
-  const loadProducts = async () => {
-    const result = await PaymentService.loadProducts();
-    if (result.success && result.products) {
-      setProducts(result.products);
-    }
+export const TrialBanner: React.FC = () => {
+  const navigation = useNavigation();
+  const { theme } = useTheme();
+  const { isInTrial, trialDaysRemaining } = useFeatureAccess();
+  
+  if (!isInTrial || trialDaysRemaining === null) {
+    return null;
+  }
+  
+  const handleManage = () => {
+    navigation.navigate('AccountSettings' as never);
   };
-
-  const purchase = async () => {
-    setLoading(true);
-    try {
-      const result = await PaymentService.purchaseSubscription();
-      return result;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const restore = async () => {
-    setLoading(true);
-    try {
-      const result = await PaymentService.restorePurchases();
-      return result;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return {
-    isPremium: user?.subscription === 'pro',
-    subscription: user?.subscription || 'free',
-    products,
-    purchase,
-    restore,
-    loading,
-  };
+  
+  const bannerColor = trialDaysRemaining <= 2 
+    ? theme.colors.warning[500] 
+    : theme.colors.info[500];
+  
+  return (
+    <TouchableOpacity 
+      style={[styles.banner, { backgroundColor: bannerColor }]}
+      onPress={handleManage}
+      activeOpacity={0.9}
+    >
+      <Typography variant="caption" style={styles.text}>
+        {trialDaysRemaining === 1 
+          ? 'Trial ends tomorrow' 
+          : `${trialDaysRemaining} days left in trial`}
+      </Typography>
+      <Typography variant="caption" weight="semibold" style={styles.text}>
+        Manage →
+      </Typography>
+    </TouchableOpacity>
+  );
 };
+
+const styles = StyleSheet.create({
+  banner: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  text: {
+    color: 'white',
+  },
+});
+```
+
+### 7.2 Subscription Card
+
+```typescript
+// src/components/subscription/SubscriptionCard.tsx
+import React from 'react';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Typography } from '../molecules';
+import { useTheme } from '../../theme';
+import { PRODUCT_DETAILS } from '../../services/iap/products';
+
+interface SubscriptionCardProps {
+  type: 'monthly' | 'annual';
+  isSelected: boolean;
+  onSelect: () => void;
+}
+
+export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
+  type,
+  isSelected,
+  onSelect,
+}) => {
+  const { theme } = useTheme();
+  const product = PRODUCT_DETAILS[type];
+  
+  return (
+    <TouchableOpacity
+      style={[
+        styles.card,
+        { 
+          backgroundColor: theme.colors.surface,
+          borderColor: isSelected ? theme.colors.primary[500] : theme.colors.border,
+          borderWidth: isSelected ? 2 : 1,
+        }
+      ]}
+      onPress={onSelect}
+      activeOpacity={0.8}
+    >
+      {type === 'annual' && (
+        <View style={[styles.badge, { backgroundColor: theme.colors.success[500] }]}>
+          <Typography variant="caption" style={{ color: 'white', fontSize: 10 }}>
+            SAVE {product.percentSaved}
+          </Typography>
+        </View>
+      )}
+      
+      <View style={styles.header}>
+        <Typography variant="h3" weight="bold">
+          {product.price}
+        </Typography>
+        <Typography variant="caption" color="secondary">
+          /{product.period}
+        </Typography>
+      </View>
+      
+      <Typography variant="body" style={styles.title}>
+        {product.title}
+      </Typography>
+      
+      {type === 'annual' && (
+        <Typography variant="caption" color="success" style={styles.savings}>
+          Save {product.savings} per year
+        </Typography>
+      )}
+      
+      <View style={styles.features}>
+        <FeatureItem text="7-day free trial" />
+        <FeatureItem text="Full AI access" />
+        <FeatureItem text="Unlimited API keys" />
+        <FeatureItem text="Custom topics" />
+        <FeatureItem text="Export capabilities" />
+      </View>
+      
+      {isSelected && (
+        <View style={[styles.checkmark, { backgroundColor: theme.colors.primary[500] }]}>
+          <MaterialCommunityIcons name="check" size={16} color="white" />
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+};
+
+const FeatureItem: React.FC<{ text: string }> = ({ text }) => {
+  const { theme } = useTheme();
+  return (
+    <View style={styles.featureItem}>
+      <MaterialCommunityIcons 
+        name="check-circle" 
+        size={16} 
+        color={theme.colors.success[500]} 
+      />
+      <Typography variant="caption" style={{ marginLeft: 8 }}>
+        {text}
+      </Typography>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  card: {
+    padding: 20,
+    borderRadius: 12,
+    marginBottom: 16,
+    position: 'relative',
+  },
+  badge: {
+    position: 'absolute',
+    top: -8,
+    right: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginBottom: 8,
+  },
+  title: {
+    marginBottom: 4,
+  },
+  savings: {
+    marginBottom: 16,
+  },
+  features: {
+    marginTop: 12,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  checkmark: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});
 ```
 
 ---
 
-## 5. Firebase Functions
+## 8. Firebase Functions
 
-### 5.1 Receipt Validation Function
+### 8.1 Receipt Validation
 
 ```typescript
 // functions/src/validatePurchase.ts
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
-import { verifyPurchase } from 'in-app-purchase';
+import { verifyPurchase } from './utils/receiptValidation';
 
-// Initialize IAP verification
-verifyPurchase.setup({
-  googlePublicKeyPath: './google-public-key.pem',
-  googleServiceAccount: require('./google-service-account.json'),
-  applePassword: functions.config().apple.password,
-});
-
-export const validatePurchase = functions.https.onRequest(async (req, res) => {
+export const validatePurchase = functions.https.onCall(async (data, context) => {
   // Verify user authentication
-  const token = req.headers.authorization?.split('Bearer ')[1];
-  if (!token) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
   }
-
+  
+  const { receipt, platform, productId } = data;
+  const userId = context.auth.uid;
+  
   try {
-    const decodedToken = await admin.auth().verifyIdToken(token);
-    const userId = decodedToken.uid;
-
-    const { receipt, platform, productId } = req.body;
-
     // Validate receipt with appropriate service
-    const validationResult = await verifyPurchase.validate({
+    const validationResult = await verifyPurchase({
       receipt,
       platform,
       productId,
     });
-
-    if (!validationResult.isValid) {
-      return res.status(400).json({ error: 'Invalid receipt' });
+    
+    if (!validationResult.valid) {
+      throw new functions.https.HttpsError('invalid-argument', 'Invalid receipt');
     }
-
+    
+    // Determine if this is monthly or annual
+    const isAnnual = productId.includes('annual');
+    
+    // Calculate expiry date
+    const now = admin.firestore.Timestamp.now();
+    const expiryDate = new Date();
+    if (isAnnual) {
+      expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+    } else {
+      expiryDate.setMonth(expiryDate.getMonth() + 1);
+    }
+    
     // Update user subscription in Firestore
     await admin.firestore().collection('users').doc(userId).update({
-      subscription: 'pro',
-      subscriptionExpiry: validationResult.expiryDate,
-      lastValidated: admin.firestore.FieldValue.serverTimestamp(),
+      membershipStatus: 'premium',
+      subscriptionExpiryDate: admin.firestore.Timestamp.fromDate(expiryDate),
+      productId: isAnnual ? 'annual' : 'monthly',
+      autoRenewing: validationResult.autoRenewing,
+      lastValidated: now,
     });
-
+    
     // Log for analytics
-    await admin.analytics().logEvent('purchase_validated', {
+    await admin.analytics().logEvent('subscription_activated', {
       userId,
       platform,
       productId,
+      type: isAnnual ? 'annual' : 'monthly',
     });
-
-    return res.status(200).json({ 
-      success: true, 
-      subscription: 'pro',
-      expiry: validationResult.expiryDate,
-    });
-
+    
+    return { 
+      valid: true,
+      expiryDate: expiryDate.toISOString(),
+      autoRenewing: validationResult.autoRenewing,
+    };
+    
   } catch (error) {
     console.error('Validation error:', error);
-    return res.status(500).json({ error: 'Validation failed' });
+    throw new functions.https.HttpsError('internal', 'Validation failed');
   }
 });
 ```
 
----
-
-## 6. App Store & Google Play Compliance
-
-### 6.1 Required Elements
-
-#### App Store (iOS)
-✅ **Privacy Policy URL** - Required in App Store Connect  
-✅ **Terms of Service URL** - Required for subscriptions  
-✅ **Restore Purchases** - Must be accessible  
-✅ **Subscription Management** - Link to iOS Settings  
-✅ **Price Display** - Clear pricing with currency  
-✅ **Auto-renewal Disclosure** - Required text  
-
-#### Google Play (Android)
-✅ **Privacy Policy URL** - Required in Play Console  
-✅ **In-app Products** - Configure in Play Console  
-✅ **Base64 Public Key** - For receipt verification  
-✅ **Subscription Cancellation** - Clear instructions  
-
-### 6.2 Compliance Implementation
+### 8.2 Trial Conversion Handler
 
 ```typescript
-// src/utils/compliance.ts
-import { Linking, Platform } from 'react-native';
+// functions/src/handleTrialConversion.ts
+import * as functions from 'firebase-functions';
+import * as admin from 'firebase-admin';
 
-export const ComplianceLinks = {
-  privacyPolicy: 'https://myaifriends.app/privacy',
-  termsOfService: 'https://myaifriends.app/terms',
-  
-  openSubscriptionManagement: () => {
-    if (Platform.OS === 'ios') {
-      // Opens iOS subscription settings
-      Linking.openURL('https://apps.apple.com/account/subscriptions');
-    } else {
-      // Opens Google Play subscriptions
-      Linking.openURL('https://play.google.com/store/account/subscriptions');
-    }
-  },
-  
-  getSubscriptionDisclosure: () => {
-    return Platform.OS === 'ios' 
-      ? 'Payment will be charged to your Apple ID account at confirmation of purchase. Subscription automatically renews unless it is canceled at least 24 hours before the end of the current period. Your account will be charged for renewal within 24 hours prior to the end of the current period. You can manage and cancel your subscriptions by going to your account settings on the App Store after purchase.'
-      : 'Payment will be charged to your Google Play account at confirmation of purchase. Subscription automatically renews unless it is canceled at least 24 hours before the end of the current period. You can manage and cancel your subscriptions in your Google Play account settings.';
-  },
-};
+export const handleTrialConversion = functions.pubsub
+  .schedule('every 1 hours')
+  .onRun(async (context) => {
+    const now = admin.firestore.Timestamp.now();
+    
+    // Find users whose trials have expired
+    const expiredTrials = await admin.firestore()
+      .collection('users')
+      .where('membershipStatus', '==', 'trial')
+      .where('trialEndDate', '<=', now)
+      .get();
+    
+    const batch = admin.firestore().batch();
+    
+    expiredTrials.forEach((doc) => {
+      const userData = doc.data();
+      
+      // If they have a valid subscription, convert to premium
+      if (userData.subscriptionId && userData.autoRenewing) {
+        batch.update(doc.ref, {
+          membershipStatus: 'premium',
+        });
+      } else {
+        // Otherwise, convert to demo
+        batch.update(doc.ref, {
+          membershipStatus: 'demo',
+        });
+      }
+    });
+    
+    await batch.commit();
+    
+    console.log(`Processed ${expiredTrials.size} trial conversions`);
+  });
 ```
 
 ---
 
-## 7. Security Considerations
+## 9. Security Considerations
 
-### 7.1 What Firebase Handles For Us
-✅ **Rate Limiting** - Automatic protection against brute force  
-✅ **Token Management** - Secure token refresh and storage  
-✅ **Session Management** - Automatic session handling  
-✅ **Password Security** - Hashing and salt handled  
-✅ **Email Verification** - Built-in email verification  
-✅ **Security Rules** - Firestore security rules  
+### 9.1 Firestore Security Rules
 
-### 7.2 Additional Security Measures
-
-```typescript
-// Firestore Security Rules
+```javascript
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users can only read/write their own document
+    // Allow anonymous users to read their own document
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && 
+        request.auth.uid == userId &&
+        // Prevent users from directly modifying subscription fields
+        !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['membershipStatus', 'subscriptionId', 'trialEndDate', 'subscriptionExpiryDate']);
     }
     
-    // Purchases are write-only from Cloud Functions
-    match /purchases/{purchaseId} {
+    // Subscription updates only from Cloud Functions
+    match /subscriptions/{subId} {
       allow read: if request.auth != null && 
         request.auth.uid == resource.data.userId;
       allow write: if false; // Only Cloud Functions can write
@@ -710,11 +1035,69 @@ service cloud.firestore {
 }
 ```
 
+### 9.2 API Key Encryption
+
+```typescript
+// src/services/security/encryption.ts
+import CryptoJS from 'crypto-js';
+import auth from '@react-native-firebase/auth';
+
+export class EncryptionService {
+  private static getUserKey(): string {
+    const user = auth().currentUser;
+    if (!user) throw new Error('User not authenticated');
+    
+    // Use user UID as part of encryption key
+    return `${user.uid}-${process.env.ENCRYPTION_SALT}`;
+  }
+  
+  static encryptAPIKey(apiKey: string): string {
+    const key = this.getUserKey();
+    return CryptoJS.AES.encrypt(apiKey, key).toString();
+  }
+  
+  static decryptAPIKey(encryptedKey: string): string {
+    const key = this.getUserKey();
+    const bytes = CryptoJS.AES.decrypt(encryptedKey, key);
+    return bytes.toString(CryptoJS.enc.Utf8);
+  }
+}
+```
+
 ---
 
-## 8. Testing Strategy
+## 10. Testing Strategy
 
-### 8.1 Development Testing
+### 10.1 Test Scenarios
+
+#### Demo Mode Testing
+- [ ] Anonymous user can access demo content
+- [ ] Anonymous user cannot configure API keys
+- [ ] Anonymous user sees upgrade prompts
+- [ ] Demo content is clearly labeled
+
+#### Trial Testing
+- [ ] New user can start 7-day trial
+- [ ] Trial countdown displays correctly
+- [ ] Trial converts to premium after purchase
+- [ ] Trial expires to demo after 7 days
+- [ ] User cannot start multiple trials
+
+#### Premium Testing
+- [ ] Monthly subscription works
+- [ ] Annual subscription works
+- [ ] Subscription renews automatically
+- [ ] User can cancel subscription
+- [ ] Restore purchases works
+
+#### Platform Testing
+- [ ] iOS sandbox testing works
+- [ ] Android test purchases work
+- [ ] Receipt validation succeeds
+- [ ] Cross-platform restore works
+
+### 10.2 Sandbox Configuration
+
 ```bash
 # iOS Sandbox Testing
 1. Create sandbox tester in App Store Connect
@@ -723,116 +1106,97 @@ service cloud.firestore {
 
 # Android Testing
 1. Add tester email to Google Play Console
-2. Use test card numbers for purchases
-3. Verify receipt validation in Firebase Functions logs
+2. Join internal testing track
+3. Use test card for purchases
 ```
 
-### 8.2 Test Scenarios
-- [ ] New user registration
-- [ ] Email/password sign in
-- [ ] Social sign in (Google, Apple)
-- [ ] Password reset flow
-- [ ] Purchase subscription
-- [ ] Restore purchases
-- [ ] Subscription expiry handling
-- [ ] Offline mode behavior
-- [ ] Receipt validation failures
-
 ---
 
-## 9. Implementation Timeline
+## 11. Analytics & Monitoring
 
-### Week 1: Authentication
-- Day 1-2: Firebase setup and configuration
-- Day 3-4: Auth service and screens
-- Day 5: Testing and debugging
+### 11.1 Key Metrics
 
-### Week 2: Payments
-- Day 1-2: Store configuration
-- Day 3-4: Payment service and UI
-- Day 5: Receipt validation
-
-### Week 3: Polish & Testing
-- Day 1-2: Compliance features
-- Day 3-4: End-to-end testing
-- Day 5: Store submission prep
-
----
-
-## 10. Monitoring & Analytics
-
-### Key Metrics to Track
 ```typescript
 // Track with Firebase Analytics
-analytics().logEvent('subscription_started', {
-  product_id: 'premium_monthly',
-  price: 9.99,
-  currency: 'USD',
+analytics().logEvent('trial_started', {
+  product_type: 'monthly' | 'annual',
+});
+
+analytics().logEvent('trial_converted', {
+  days_used: 5,
+  product_type: 'monthly',
 });
 
 analytics().logEvent('subscription_cancelled', {
   reason: 'user_action',
-  days_subscribed: 15,
+  days_subscribed: 45,
 });
 
-analytics().logEvent('authentication_method', {
-  method: 'google', // or 'email', 'apple'
+analytics().logEvent('demo_to_trial_conversion', {
+  trigger_feature: 'api_keys',
 });
 ```
 
-### Firebase Console Dashboards
-- Authentication: Monitor sign-ups, providers used
-- Firestore: Track active subscriptions
-- Analytics: Conversion funnel, retention
-- Crashlytics: Monitor app stability
+### 11.2 Conversion Funnel
+
+1. **Demo → Trial**: Track which features trigger upgrades
+2. **Trial → Premium**: Monitor trial conversion rate
+3. **Monthly → Annual**: Track upgrade to annual plans
+4. **Churn**: Monitor cancellation reasons and timing
 
 ---
 
-## 11. Troubleshooting Guide
+## 12. Implementation Checklist
 
-### Common Issues
+### Phase 1: Foundation
+- [ ] Set up Firebase anonymous auth
+- [ ] Update user document schema
+- [ ] Implement membership status tracking
+- [ ] Create demo mode restrictions
 
-**Issue**: "Too many requests" error  
-**Solution**: Firebase handles rate limiting automatically. This means the user is genuinely making too many attempts. Show a friendly error message.
+### Phase 2: IAP Setup
+- [ ] Configure products in App Store Connect
+- [ ] Configure products in Google Play Console
+- [ ] Implement react-native-iap
+- [ ] Set up receipt validation
 
-**Issue**: Purchase not reflecting  
-**Solution**: Check Firebase Functions logs for receipt validation errors. Ensure the user is online for Firestore sync.
+### Phase 3: Trial System
+- [ ] Implement 7-day trial logic
+- [ ] Create trial countdown UI
+- [ ] Handle trial expiration
+- [ ] Prevent multiple trials
 
-**Issue**: Apple Sign-In not working  
-**Solution**: Verify capability is enabled in Xcode and App Store Connect.
+### Phase 4: UI Components
+- [ ] Build Account Settings screen
+- [ ] Create subscription cards
+- [ ] Implement trial banner
+- [ ] Add feature gates
 
-**Issue**: Subscription not auto-renewing  
-**Solution**: This is handled by the stores. Ensure receipt validation handles renewal receipts.
+### Phase 5: Testing
+- [ ] Test all three tiers
+- [ ] Verify platform payments
+- [ ] Test edge cases
+- [ ] Monitor analytics
 
----
-
-## 12. Cost Estimation
-
-### Firebase Costs (Monthly)
-- Authentication: Free up to 10K verifications/month
-- Firestore: ~$0.50 for 10K users
-- Functions: ~$2 for receipt validations
-- Total: **< $5/month for 10K users**
-
-### Store Fees
-- App Store: 15% (Small Business Program) or 30%
-- Google Play: 15% for first $1M/year
-- Processing: Handled by stores
+### Phase 6: Launch
+- [ ] Submit to App Store
+- [ ] Submit to Google Play
+- [ ] Monitor first purchases
+- [ ] Track conversion metrics
 
 ---
 
 ## Conclusion
 
-This implementation provides a robust, secure, and compliant premium subscription system using Firebase's built-in features and react-native-iap. The approach minimizes custom code while maximizing reliability and user experience.
+This implementation provides a robust three-tier subscription system with Demo Mode for free users, a 7-day trial for new subscribers, and premium tiers at $7.99/month or $59.99/year. The system leverages platform-native IAP for payments, Firebase for authentication and data storage, and provides a seamless upgrade path from demo to premium.
 
-**Next Steps:**
-1. Set up Firebase project
-2. Configure store products
-3. Implement authentication
-4. Add payment flow
-5. Test thoroughly
-6. Submit to stores
+**Key Benefits:**
+- Low friction demo access with anonymous auth
+- Trial with payment method captures high-intent users
+- Platform-native payments ensure compliance
+- BYOK model reduces operational costs
+- Full feature access for paying users
 
 ---
 
-*For questions or updates, contact: team@braveheart-innovations.com*
+*For implementation support: team@braveheart-innovations.com*

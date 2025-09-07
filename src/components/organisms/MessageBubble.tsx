@@ -9,6 +9,7 @@ import Markdown from 'react-native-markdown-display';
 import { Image, View } from 'react-native';
 import { ImageBubble } from './chat/ImageBubble';
 import { Box } from '../atoms';
+import IconStopOctagon from '../atoms/icons/IconStopOctagon';
 import { Typography } from '../molecules';
 import { StreamingIndicator } from './StreamingIndicator';
 import { useTheme } from '../../theme';
@@ -108,13 +109,16 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, s
   let displayContent = message.content;
   let hasError = false;
   let errorMessage = '';
+  const isCancelled = !!streamingError && streamingError.toLowerCase().includes('cancel');
   
   if (streamingError) {
     // If there's a streaming error, show error message
     hasError = true;
     
     // Provide user-friendly error messages
-    if (streamingError.includes('overload') || streamingError.includes('Overloaded')) {
+    if (isCancelled) {
+      errorMessage = 'Stream cancelled by you';
+    } else if (streamingError.includes('overload') || streamingError.includes('Overloaded')) {
       errorMessage = '⚠️ Service temporarily busy. Please try again in a moment.';
     } else if (streamingError.includes('verification')) {
       errorMessage = '⚠️ Organization verification required for streaming.';
@@ -124,11 +128,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, s
       errorMessage = `⚠️ ${streamingError}`;
     }
     
-    // If we have partial content, show it with error indicator
+    // If we have partial content, keep it; for cancel, avoid noisy suffix
     if (streamingContent) {
-      displayContent = streamingContent + '\n\n[Message incomplete due to error]';
+      displayContent = isCancelled
+        ? streamingContent
+        : streamingContent + '\n\n[Message incomplete due to error]';
     } else {
-      displayContent = errorMessage;
+      displayContent = isCancelled ? '' : errorMessage;
     }
   } else if (isStreaming) {
     // Use streaming content while streaming
@@ -195,9 +201,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, s
           <Typography 
             variant="caption" 
             weight="semibold"
-            style={{ color: hasError ? theme.colors.error[500] : (aiColor?.border || theme.colors.text.secondary) }}
+            style={{ color: hasError ? (isDark ? theme.colors.error[400] : theme.colors.error[600]) : (aiColor?.border || theme.colors.text.secondary) }}
           >
-            {message.sender}{hasError ? ' ⚠️' : ''}
+            {message.sender}{(hasError && !isCancelled) ? ' ⚠️' : ''}
           </Typography>
         </Box>
       )}
@@ -208,13 +214,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, s
             backgroundColor: theme.colors.primary[500],
             borderBottomRightRadius: 4,
           } : {
-            backgroundColor: hasError 
-              ? theme.colors.error[50] 
+            backgroundColor: (hasError && !isCancelled)
+              ? (isDark ? theme.colors.semantic.error : theme.colors.error[50]) 
               : (aiColor ? (isDark ? aiColor.dark : aiColor.light) : theme.colors.card),
             borderBottomLeftRadius: 4,
             borderWidth: 1,
-            borderColor: hasError 
-              ? theme.colors.error[500] 
+            borderColor: (hasError && !isCancelled)
+              ? (isDark ? theme.colors.error[600] : theme.colors.error[500]) 
               : (aiColor?.border || theme.colors.border),
           },
         ]}
@@ -348,6 +354,30 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, s
           </>
         )}
       </Box>
+
+      {/* Status pill for cancelled streams */}
+      {!isUser && isCancelled && (
+        <Box
+          style={{
+            marginTop: 6,
+            alignSelf: 'flex-start',
+            paddingVertical: 4,
+            paddingHorizontal: 8,
+            borderRadius: 999,
+            backgroundColor: isDark ? theme.colors.semantic.error : theme.colors.error[50],
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: isDark ? theme.colors.error[600] : theme.colors.error[300],
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+          }}
+        >
+          <IconStopOctagon size={12} color={isDark ? theme.colors.error[300] : theme.colors.error[600]} />
+          <Typography variant="caption" style={{ color: isDark ? theme.colors.error[300] : theme.colors.error[700], marginLeft: 6 }}>
+            Cancelled by you
+          </Typography>
+        </Box>
+      )}
       
       {/* Citations section for messages with sources */}
       {!isUser && message.metadata?.citations && message.metadata.citations.length > 0 && (

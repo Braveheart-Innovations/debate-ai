@@ -136,12 +136,18 @@ after purchase.
 
 #### Configure In-App Products
 1. Navigate to Monetize → In-app products → Subscriptions
-2. Create subscription:
+2. Create Monthly subscription:
    - Product ID: `premium_monthly`
    - Name: Symposium AI Premium
-   - Description: Full premium access
+   - Description: Full premium access with 7-day trial
    - Billing period: 1 month
    - Default price: $7.99 USD
+3. Create Annual subscription:
+   - Product ID: `premium_annual`
+   - Name: Symposium AI Premium (Annual)
+   - Description: Full premium access - Save $36/year
+   - Billing period: 1 year
+   - Default price: $59.99 USD
 
 #### Base Plans and Offers (2025 requirement)
 1. Create Base Plan:
