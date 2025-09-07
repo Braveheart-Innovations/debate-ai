@@ -123,10 +123,6 @@ export interface StatCardProps {
 // Organism Component Props
 export interface HistoryHeaderProps {
   title: string;
-  sessionCount: number;
-  maxSessions: number;
-  isPremium: boolean;
-  onInfoPress?: () => void;
 }
 
 export interface HistorySearchBarProps {

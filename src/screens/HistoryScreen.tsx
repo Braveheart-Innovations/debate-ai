@@ -2,9 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScrollView, View, Alert } from 'react-native';
 import { Box } from '../components/atoms';
-import { Button, StorageIndicator } from '../components/molecules';
-import { useSelector } from 'react-redux';
-import { RootState } from '../store';
+import { Button } from '../components/molecules';
 import { useTheme } from '../theme';
 import { useFocusEffect } from '@react-navigation/native';
 import { StorageService } from '../services/chat';
@@ -21,7 +19,6 @@ import {
   useSessionSearch, 
   useSessionActions, 
   useSessionStats, 
-  useSubscriptionLimits,
   useSessionPagination 
 } from '../hooks/history';
 import { HistoryScreenNavigationProps } from '../types/history';
@@ -34,16 +31,11 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
   const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState<'all' | 'chat' | 'comparison' | 'debate'>('all');
   
-  // Check if user is premium
-  const currentUser = useSelector((state: RootState) => state.user.currentUser);
-  const isPremium = currentUser?.subscription === 'pro' || currentUser?.subscription === 'business';
-  
   // Compose hooks for different concerns
   const { sessions, isLoading, error, refresh } = useSessionHistory();
   const { searchQuery, setSearchQuery, filteredSessions, clearSearch } = useSessionSearch(sessions);
   const { deleteSession, resumeSession } = useSessionActions(navigation, refresh);
   useSessionStats(sessions); // For future analytics features
-  useSubscriptionLimits(sessions.length);
   
   // Filter sessions by type
   const typeFilteredSessions = useMemo(() => {
@@ -216,33 +208,6 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
               variant: 'danger'
             }}
           />
-
-          {/* Storage indicator for free tier */}
-          {!isPremium && (
-            <StorageIndicator
-              segments={[
-                { 
-                  count: sessionCounts.chat, 
-                  limit: 3, 
-                  color: theme.colors.primary[500], 
-                  label: 'Chats' 
-                },
-                { 
-                  count: sessionCounts.comparison || 0, 
-                  limit: 3, 
-                  color: theme.colors.success[500], 
-                  label: 'Compare' 
-                },
-                { 
-                  count: sessionCounts.debate, 
-                  limit: 3, 
-                  color: theme.colors.warning[500], 
-                  label: 'Debates' 
-                },
-              ]}
-              onUpgrade={() => navigation.navigate('Premium')}
-            />
-          )}
 
           {/* Search bar */}
           <HistorySearchBar
