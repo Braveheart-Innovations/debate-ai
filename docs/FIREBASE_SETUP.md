@@ -34,14 +34,14 @@ This document provides comprehensive setup instructions for Firebase services in
 
 #### iOS App
 1. Click iOS icon to add iOS app
-2. Bundle ID: `com.braveheartinnovations.symposium`
+2. Bundle ID: `com.braveheartinnovations.debateai`
 3. App nickname: `Symposium AI iOS`
 4. Download `GoogleService-Info.plist`
 5. Place in `ios/SymposiumAI/` directory
 
 #### Android App
 1. Click Android icon to add Android app
-2. Package name: `com.braveheartinnovations.symposium`
+2. Package name: `com.braveheartinnovations.debateai`
 3. App nickname: `Symposium AI Android`
 4. Download `google-services.json`
 5. Place in `android/app/` directory
@@ -244,45 +244,38 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // Helper functions
-    function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
-    }
-    
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-    
+    function isOwner(userId) { return request.auth != null && request.auth.uid == userId; }
+    function isAuthenticated() { return request.auth != null; }
     function isNotAnonymous() {
-      return request.auth != null && !request.auth.token.firebase.sign_in_provider == 'anonymous';
+      return request.auth != null && request.auth.token.firebase.sign_in_provider != 'anonymous';
     }
-    
+
     // Users collection
     match /users/{userId} {
       // Anyone authenticated (including anonymous) can read their own document
       allow read: if isOwner(userId);
-      
-      // Users can update their own document with restrictions
-      allow write: if isOwner(userId) && 
-        // Prevent direct modification of subscription fields
-        !request.resource.data.diff(resource.data).affectedKeys()
-          .hasAny(['membershipStatus', 'subscriptionId', 'trialEndDate', 
-                   'subscriptionExpiryDate', 'hasUsedTrial']);
-      
+
       // Allow creation for new users (including anonymous)
       allow create: if isOwner(userId);
+
+      // Users can update their own document with restrictions
+      allow update: if isOwner(userId)
+        && request.resource.data.membershipStatus == resource.data.membershipStatus
+        && request.resource.data.subscriptionId == resource.data.subscriptionId
+        && request.resource.data.trialEndDate == resource.data.trialEndDate
+        && request.resource.data.subscriptionExpiryDate == resource.data.subscriptionExpiryDate
+        && request.resource.data.hasUsedTrial == resource.data.hasUsedTrial;
     }
-    
+
     // Subscriptions collection (read-only for users)
     match /subscriptions/{subscriptionId} {
-      allow read: if isAuthenticated() && 
-        resource.data.userId == request.auth.uid;
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
       allow write: if false; // Only Cloud Functions can write
     }
-    
+
     // Receipts collection (read-only for users)
     match /receipts/{receiptId} {
-      allow read: if isAuthenticated() && 
-        resource.data.userId == request.auth.uid;
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
       allow write: if false; // Only Cloud Functions can write
     }
   }
@@ -404,7 +397,8 @@ export const onUserCreate = functions.auth.user().onCreate(async (user) => {
     displayName: user.displayName || null,
     photoURL: user.photoURL || null,
     authProvider: user.providerData[0]?.providerId || 'anonymous',
-    isAnonymous: user.customClaims?.anonymous || false,
+    // If providerData is empty, this is an anonymous account
+    isAnonymous: (user.providerData || []).length === 0,
     membershipStatus: 'demo',
     hasUsedTrial: false,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -420,12 +414,7 @@ export const onUserCreate = functions.auth.user().onCreate(async (user) => {
     .doc(user.uid)
     .set(userDoc, { merge: true });
   
-  // Log analytics event
-  await admin.analytics().logEvent('user_signup', {
-    uid: user.uid,
-    method: userDoc.authProvider,
-    is_anonymous: userDoc.isAnonymous,
-  });
+  // Optionally log via client Analytics after sign-in; Admin SDK does not support Analytics events directly
   
   return null;
 });

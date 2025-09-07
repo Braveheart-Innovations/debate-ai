@@ -1,6 +1,6 @@
 // Organisms - complex components with business logic
 export { Header } from './Header';
-export { GradientHeader } from './GradientHeader';
+// Standardize on Header; GradientHeader deprecated and no longer exported
 export { AISelector } from './AISelector';
 export { DynamicAISelector } from './DynamicAISelector';
 export { PromptWizard } from './PromptWizard';

@@ -140,8 +140,8 @@ Define the three-tier subscription model: Demo Mode (free), Trial (7 days), and 
 ## IAP Implementation
 
 ### Product Configuration
-- **iOS Monthly**: `com.braveheartinnovations.symposium.premium.monthly`
-- **iOS Annual**: `com.braveheartinnovations.symposium.premium.annual`
+- **iOS Monthly**: `com.braveheartinnovations.debateai.premium.monthly`
+- **iOS Annual**: `com.braveheartinnovations.debateai.premium.annual`
 - **Android Monthly**: `premium_monthly`
 - **Android Annual**: `premium_annual`
 

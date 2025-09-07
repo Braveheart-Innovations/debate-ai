@@ -284,13 +284,14 @@ export class SubscriptionManager {
 // src/services/iap/products.ts
 import { Platform } from 'react-native';
 
+// Customer-facing name is "Symposium AI". Bundle/package IDs remain DebateAI.
 export const SUBSCRIPTION_PRODUCTS = {
   monthly: Platform.select({
-    ios: 'com.braveheartinnovations.symposium.premium.monthly',
+    ios: 'com.braveheartinnovations.debateai.premium.monthly',
     android: 'premium_monthly',
   })!,
   annual: Platform.select({
-    ios: 'com.braveheartinnovations.symposium.premium.annual',
+    ios: 'com.braveheartinnovations.debateai.premium.annual',
     android: 'premium_annual',
   })!,
 };
@@ -369,33 +370,26 @@ export class PurchaseService {
       if (!user) throw new Error('User must be authenticated');
       
       const sku = SUBSCRIPTION_PRODUCTS[productType];
-      
-      // Check if user has already used trial
-      const userDoc = await firestore()
-        .collection('users')
-        .doc(user.uid)
-        .get();
-      
-      const hasUsedTrial = userDoc.data()?.hasUsedTrial || false;
-      
+
       if (Platform.OS === 'ios') {
+        // iOS free trial is configured in App Store Connect and reflected in receipts.
         await requestSubscription({
           sku,
           andDangerouslyFinishTransactionAutomaticallyIOS: false,
         });
       } else {
+        // On Android, you must pass the selected offerToken for trials/intro offers.
+        const subs = await getSubscriptions({ skus: [SUBSCRIPTION_PRODUCTS[productType]] });
+        const product = subs?.[0];
+        const offerToken = product?.subscriptionOfferDetails?.find((o) =>
+          // Prefer an offer with a free trial
+          o.pricingPhases.pricingPhaseList.some((p) => p.priceAmountMicros === '0')
+        )?.offerToken || product?.subscriptionOfferDetails?.[0]?.offerToken;
+
         await requestSubscription({
           sku,
-          subscriptionOffers: [{
-            sku,
-            offerToken: '', // Google Play will populate this
-          }],
+          subscriptionOffers: offerToken ? [{ sku, offerToken }] : undefined,
         });
-      }
-      
-      // If this is their first subscription and they haven't used trial
-      if (!hasUsedTrial) {
-        await this.startTrial(productType);
       }
       
       return { success: true };
@@ -406,24 +400,8 @@ export class PurchaseService {
       return { success: false, error };
     }
   }
-  
-  private static async startTrial(productType: 'monthly' | 'annual') {
-    const user = auth().currentUser;
-    if (!user) return;
-    
-    const now = firestore.Timestamp.now();
-    const trialEndDate = new Date();
-    trialEndDate.setDate(trialEndDate.getDate() + 7);
-    
-    await firestore().collection('users').doc(user.uid).update({
-      membershipStatus: 'trial',
-      trialStartDate: now,
-      trialEndDate: firestore.Timestamp.fromDate(trialEndDate),
-      hasUsedTrial: true,
-      productId: productType,
-      paymentPlatform: Platform.OS,
-    });
-  }
+  // Note: Trial start/end is determined by the store (App Store/Play) and set server-side
+  // during receipt validation. Do not set trial fields on the client.
   
   private static async handlePurchaseUpdate(purchase: Purchase) {
     const receipt = purchase.transactionReceipt;
@@ -456,13 +434,18 @@ export class PurchaseService {
     });
     
     if (result.data.valid) {
-      // Update user subscription status
+      // Server returns authoritative fields including trial/premium status and expiry
       await firestore().collection('users').doc(user.uid).update({
-        membershipStatus: 'premium',
+        membershipStatus: result.data.membershipStatus, // 'trial' | 'premium'
         subscriptionId: purchase.transactionId,
         subscriptionExpiryDate: result.data.expiryDate,
+        trialStartDate: result.data.trialStartDate ?? null,
+        trialEndDate: result.data.trialEndDate ?? null,
         autoRenewing: result.data.autoRenewing,
+        productId: result.data.productId,
+        paymentPlatform: Platform.OS,
         lastReceiptData: purchase.transactionReceipt,
+        hasUsedTrial: result.data.hasUsedTrial ?? true,
       });
     }
   }
@@ -920,39 +903,34 @@ export const validatePurchase = functions.https.onCall(async (data, context) => 
       throw new functions.https.HttpsError('invalid-argument', 'Invalid receipt');
     }
     
-    // Determine if this is monthly or annual
-    const isAnnual = productId.includes('annual');
-    
-    // Calculate expiry date
+    // Use server validation result for authoritative fields
     const now = admin.firestore.Timestamp.now();
-    const expiryDate = new Date();
-    if (isAnnual) {
-      expiryDate.setFullYear(expiryDate.getFullYear() + 1);
-    } else {
-      expiryDate.setMonth(expiryDate.getMonth() + 1);
-    }
-    
-    // Update user subscription in Firestore
+    const isAnnual = productId.includes('annual');
+    const expiresAt: Date = validationResult.expiresAt;
+    const inTrial: boolean = !!validationResult.inTrial;
+    const trialStart: Date | null = validationResult.trialStart || null;
+    const trialEnd: Date | null = validationResult.trialEnd || null;
+
     await admin.firestore().collection('users').doc(userId).update({
-      membershipStatus: 'premium',
-      subscriptionExpiryDate: admin.firestore.Timestamp.fromDate(expiryDate),
+      membershipStatus: inTrial ? 'trial' : 'premium',
+      subscriptionExpiryDate: admin.firestore.Timestamp.fromDate(expiresAt),
+      trialStartDate: trialStart ? admin.firestore.Timestamp.fromDate(trialStart) : null,
+      trialEndDate: trialEnd ? admin.firestore.Timestamp.fromDate(trialEnd) : null,
+      hasUsedTrial: inTrial ? true : admin.firestore.FieldValue.increment(0),
       productId: isAnnual ? 'annual' : 'monthly',
-      autoRenewing: validationResult.autoRenewing,
+      autoRenewing: !!validationResult.autoRenewing,
       lastValidated: now,
     });
-    
-    // Log for analytics
-    await admin.analytics().logEvent('subscription_activated', {
-      userId,
-      platform,
-      productId,
-      type: isAnnual ? 'annual' : 'monthly',
-    });
-    
-    return { 
+
+    return {
       valid: true,
-      expiryDate: expiryDate.toISOString(),
-      autoRenewing: validationResult.autoRenewing,
+      membershipStatus: inTrial ? 'trial' : 'premium',
+      expiryDate: admin.firestore.Timestamp.fromDate(expiresAt),
+      trialStartDate: trialStart ? admin.firestore.Timestamp.fromDate(trialStart) : null,
+      trialEndDate: trialEnd ? admin.firestore.Timestamp.fromDate(trialEnd) : null,
+      autoRenewing: !!validationResult.autoRenewing,
+      productId: isAnnual ? 'annual' : 'monthly',
+      hasUsedTrial: inTrial,
     };
     
   } catch (error) {
@@ -1018,11 +996,13 @@ service cloud.firestore {
     // Allow anonymous users to read their own document
     match /users/{userId} {
       allow read: if request.auth != null && request.auth.uid == userId;
-      allow write: if request.auth != null && 
-        request.auth.uid == userId &&
-        // Prevent users from directly modifying subscription fields
-        !request.resource.data.diff(resource.data).affectedKeys()
-          .hasAny(['membershipStatus', 'subscriptionId', 'trialEndDate', 'subscriptionExpiryDate']);
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && request.auth.uid == userId &&
+        // Prevent users from directly modifying subscription fields by enforcing equality
+        request.resource.data.membershipStatus == resource.data.membershipStatus &&
+        request.resource.data.subscriptionId == resource.data.subscriptionId &&
+        request.resource.data.trialEndDate == resource.data.trialEndDate &&
+        request.resource.data.subscriptionExpiryDate == resource.data.subscriptionExpiryDate;
     }
     
     // Subscription updates only from Cloud Functions

@@ -491,8 +491,8 @@ const handleManageSubscription = () => {
     // iOS: Open App Store subscription management
     Linking.openURL('https://apps.apple.com/account/subscriptions');
   } else {
-    // Android: Open Google Play subscription management  
-    Linking.openURL('https://play.google.com/store/account/subscriptions');
+    // Android: Include package for direct deep link to this app's subscriptions
+    Linking.openURL('https://play.google.com/store/account/subscriptions?package=com.braveheartinnovations.debateai');
   }
   
   // Track analytics
@@ -711,20 +711,7 @@ export const useAccountSettings = () => {
 ## 6. Platform-Specific Considerations
 
 ### 6.1 iOS Implementation
-```typescript
-// ios/SymposiumAI/AppDelegate.mm
-#import "RNIap.h"
-
-- (BOOL)application:(UIApplication *)application 
-    didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
-{
-  // Initialize IAP
-  [RNIap configureIAP];
-  
-  // ... rest of initialization
-  return YES;
-}
-```
+react-native-iap supports autolinking. No manual AppDelegate changes are required on iOS.
 
 ### 6.2 Android Implementation
 ```xml

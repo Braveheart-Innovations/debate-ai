@@ -13,9 +13,9 @@ This document provides a comprehensive implementation guide for adding in-app pu
 
 ### Revenue Model
 
-- **Single Tier**: Symposium AI Premium
-- **Price**: $7.99/month (auto-renewable subscription)
-- **Platforms**: iOS (App Store) and Android (Google Play)
+- Three tiers: Demo (free), Trial (7‑day, requires payment method), Premium (paid)
+- Premium plans: $7.99/month or $59.99/year (37% savings)
+- Platforms: iOS (App Store) and Android (Google Play)
 
 ### Timeline
 
@@ -120,16 +120,25 @@ src/
 #### 1. App Store Connect Configuration
 
 ```javascript
-// Product Configuration
-{
-  productId: "com.braveheartinnovations.debateai.premium.monthly",
-  type: "Auto-Renewable Subscription",
-  referenceNam: "Symposium AI Premium Monthly",
-  price: "$5.99",
-  duration: "1 Month",
-  familyShareable: true,
-  subscriptionGroup: "Premium Access"
-}
+// Product Configurations (in one Subscription Group)
+[
+  {
+    productId: "com.braveheartinnovations.debateai.premium.monthly",
+    type: "Auto-Renewable Subscription",
+    referenceName: "Symposium AI Premium (Monthly)",
+    price: "$7.99",
+    duration: "1 Month",
+    introductoryOffer: "7-day free trial"
+  },
+  {
+    productId: "com.braveheartinnovations.debateai.premium.annual",
+    type: "Auto-Renewable Subscription",
+    referenceName: "Symposium AI Premium (Annual)",
+    price: "$59.99",
+    duration: "1 Year",
+    introductoryOffer: "7-day free trial"
+  }
+]
 ```
 
 #### 2. Native iOS Setup
@@ -163,16 +172,27 @@ func application(_ application: UIApplication,
 #### 1. Google Play Console Configuration
 
 ```javascript
-// Product Configuration
-{
-  productId: "premium_monthly",
-  basePlanId: "monthly",
-  type: "Subscription",
-  billingPeriod: "P1M", // 1 month
-  price: "$5.99",
-  gracePeriod: 3, // days
-  trialPeriod: null // no free trial
-}
+// Product Configurations
+[
+  {
+    productId: "premium_monthly",
+    basePlanId: "monthly",
+    type: "Subscription",
+    billingPeriod: "P1M", // 1 month
+    price: "$7.99",
+    gracePeriod: 7, // days
+    offers: [ { trial: "P7D" } ] // 7-day free trial
+  },
+  {
+    productId: "premium_annual",
+    basePlanId: "annual",
+    type: "Subscription",
+    billingPeriod: "P1Y", // 1 year
+    price: "$59.99",
+    gracePeriod: 7, // days
+    offers: [ { trial: "P7D" } ]
+  }
+]
 ```
 
 #### 2. Native Android Setup
@@ -218,13 +238,17 @@ import {
   PurchaseError,
 } from "react-native-iap";
 import { Platform } from "react-native";
+import functions from '@react-native-firebase/functions';
 import { store } from "../../store";
 import { updateSubscriptionStatus } from "../../store/subscriptionSlice";
 import { validateReceipt } from "./ReceiptValidator";
 
 const PRODUCT_IDS = Platform.select({
-  ios: ["com.braveheartinnovations.debateai.premium.monthly"],
-  android: ["premium_monthly"],
+  ios: [
+    "com.braveheartinnovations.debateai.premium.monthly",
+    "com.braveheartinnovations.debateai.premium.annual",
+  ],
+  android: ["premium_monthly", "premium_annual"],
 }) as string[];
 
 class IAPService {
@@ -286,8 +310,14 @@ class IAPService {
         console.log("Purchase updated:", purchase.productId);
 
         try {
-          // Validate receipt on server
-          const isValid = await validateReceipt(purchase);
+          // Validate receipt via Firebase Function (server-side)
+          const validate = functions().httpsCallable('validatePurchase');
+          const res = await validate({
+            receipt: purchase.transactionReceipt,
+            platform: Platform.OS,
+            productId: purchase.productId,
+          });
+          const isValid = !!res.data?.valid;
 
           if (isValid) {
             // Update local state
@@ -354,9 +384,14 @@ class IAPService {
   /**
    * Purchase subscription
    */
-  async purchaseSubscription(): Promise<boolean> {
+  async purchaseSubscription(plan: 'monthly' | 'annual' = 'monthly'): Promise<boolean> {
     try {
-      const productId = PRODUCT_IDS[0];
+      const productId = Platform.select({
+        ios: plan === 'annual'
+          ? 'com.braveheartinnovations.debateai.premium.annual'
+          : 'com.braveheartinnovations.debateai.premium.monthly',
+        android: plan === 'annual' ? 'premium_annual' : 'premium_monthly',
+      }) as string;
 
       if (Platform.OS === "ios") {
         await requestSubscription({
@@ -364,16 +399,13 @@ class IAPService {
           andDangerouslyFinishTransactionAutomaticallyIOS: false,
         });
       } else {
-        // Android with offers
-        await requestSubscription({
-          sku: productId,
-          subscriptionOffers: [
-            {
-              sku: productId,
-              offerToken: "", // Will be populated by Play Store
-            },
-          ],
-        });
+        // Android with base plans/offers: pass offerToken for free trial
+        const subs = await getSubscriptions({ skus: [productId] });
+        const product = subs?.[0];
+        const offerToken = product?.subscriptionOfferDetails?.find((o) =>
+          o.pricingPhases.pricingPhaseList.some((p) => p.priceAmountMicros === '0')
+        )?.offerToken || product?.subscriptionOfferDetails?.[0]?.offerToken;
+        await requestSubscription({ sku: productId, subscriptionOffers: offerToken ? [{ sku: productId, offerToken }] : undefined });
       }
 
       return true;
@@ -887,12 +919,7 @@ export const validatePurchase = functions.https.onCall(
           lastValidated: admin.firestore.FieldValue.serverTimestamp(),
         });
 
-        // Log for analytics
-        await admin.analytics().logEvent("subscription_validated", {
-          user_id: userId,
-          platform,
-          product_id: productId,
-        });
+        // Optional: log analytics from the client. Admin SDK does not support Analytics events directly.
 
         return {
           valid: true,

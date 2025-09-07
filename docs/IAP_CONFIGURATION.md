@@ -1,7 +1,7 @@
 # In-App Purchase Configuration Guide
 ## Symposium AI — React Native App
 
-*Last Updated: August 2025*
+*Last Updated: September 2025*
 
 ---
 
@@ -15,7 +15,9 @@ This guide covers the complete setup of in-app purchases for both iOS (App Store
 > - Free Trial: 7 days
 > - BYOK‑only generation; Demo Mode at install
 
-**Subscription Product**: Symposium AI Premium — $7.99/month (7‑day free trial)
+**Subscription Products**:
+- Monthly: $7.99/month (7‑day free trial)
+- Annual: $59.99/year (7‑day free trial; 37% savings)
 
 ---
 
@@ -30,7 +32,7 @@ This guide covers the complete setup of in-app purchases for both iOS (App Store
    - Platform: iOS
    - Name: Symposium AI
    - Primary Language: English (U.S.)
-   - Bundle ID: `com.braveheartinnovations.symposiumai` (example)
+   - Bundle ID: `com.braveheartinnovations.debateai`
    - SKU: `SYMPOSIUM_IOS`
 
 #### Configure In-App Purchases
@@ -39,19 +41,15 @@ This guide covers the complete setup of in-app purchases for both iOS (App Store
 3. Select "Auto-Renewable Subscription"
 4. Fill in details:
    - Reference Name: `Premium Monthly`
-   - Product ID: `com.braveheartinnovations.symposium.premium.monthly`
+   - Product ID: `com.braveheartinnovations.debateai.premium.monthly`
    - Subscription Group: `Premium Access`
 
 #### Subscription Group Setup
 1. Create Subscription Group: `Premium Access`
-2. Set up subscription details:
-   - Duration: 1 Month
-   - Price: $7.99 USD (store tier closest to $7.99)
-   - Intro offer: 7‑day free trial
-   - Localizations: Add for all target markets
-3. Set up levels (for future expansion):
-   - Level 1: Monthly ($9.99)
-   - Level 2: Annual ($89.99) - future
+2. Add two products in the group:
+   - Product A (Monthly): Duration 1 Month, Price $7.99 USD, Intro offer: 7‑day free trial
+   - Product B (Annual): Duration 1 Year, Price $59.99 USD, Intro offer: 7‑day free trial
+3. Localizations: Add for all target markets
 
 #### Localization
 For each language, provide:
@@ -61,8 +59,8 @@ For each language, provide:
 
 #### App Store Server Notifications
 1. App Information → App Store Server Notifications
-2. Production URL: `https://us-central1-myaifriends.cloudfunctions.net/handleAppStoreNotification`
-3. Sandbox URL: `https://us-central1-myaifriends-dev.cloudfunctions.net/handleAppStoreNotification`
+2. Production URL: `https://us-central1-symposium-ai-prod.cloudfunctions.net/handleAppStoreNotification`
+3. Sandbox URL: `https://us-central1-symposium-ai-dev.cloudfunctions.net/handleAppStoreNotification`
 4. Version: 2
 
 ### 1.2 Agreements, Tax, and Banking
@@ -129,7 +127,7 @@ after purchase.
 1. Log in to [Google Play Console](https://play.google.com/console)
 2. All apps → Create app
 3. Fill in details:
-   - App name: MyAIFriends
+   - App name: Symposium AI
    - Default language: English (United States)
    - App or game: App
    - Free or paid: Free
@@ -138,7 +136,7 @@ after purchase.
 1. Navigate to Monetize → In-app products → Subscriptions
 2. Create Monthly subscription:
    - Product ID: `premium_monthly`
-   - Name: Symposium AI Premium
+   - Name: Symposium AI Premium (Monthly)
    - Description: Full premium access with 7-day trial
    - Billing period: 1 month
    - Default price: $7.99 USD
@@ -150,15 +148,12 @@ after purchase.
    - Default price: $59.99 USD
 
 #### Base Plans and Offers (2025 requirement)
-1. Create Base Plan:
-   - Base plan ID: `monthly`
-   - Renewal type: Auto-renewing
-   - Billing period: Monthly
-   - Grace period: 7 days
+1. Create Base Plans:
+   - Base plan ID: `monthly` (Billing period: Monthly, Auto-renewing, Grace period: 7 days)
+   - Base plan ID: `annual` (Billing period: Yearly, Auto-renewing, Grace period: 7 days)
 
-2. Add Offers:
-   - Free trial: 7 days
-   - Introductory pricing: $4.99 for first month (optional)
+2. Add Offers (per base plan):
+   - Free trial: 7 days (for new subscribers)
 
 #### Pricing
 1. Set prices for all countries
@@ -170,7 +165,7 @@ after purchase.
 #### Create Service Account
 1. Google Cloud Console → IAM & Admin → Service Accounts
 2. Create service account:
-   - Name: `myaifriends-iap`
+   - Name: `symposium-ai-iap`
    - Role: `Pub/Sub Admin`
 3. Create key (JSON format)
 4. Save securely for server-side validation
@@ -191,7 +186,7 @@ after purchase.
 
 #### Set in Play Console
 1. Monetization setup → Real-time developer notifications
-2. Topic name: `projects/myaifriends/topics/play-store-notifications`
+2. Topic name: `projects/symposium-ai-prod/topics/play-store-notifications`
 
 #### Cloud Function Handler
 ```typescript
@@ -251,23 +246,12 @@ implementation 'com.android.billingclient:billing:7.0.0'
 
 ### 3.2 iOS Native Setup
 
-```objc
-// ios/MyAIFriends/AppDelegate.mm
-#import "RNIap.h"
-
-- (BOOL)application:(UIApplication *)application 
-    didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
-{
-  // ... other code
-  [RNIap configureIAP]; // Add this line
-  return YES;
-}
-```
+react-native-iap supports autolinking. No manual AppDelegate changes are required for iOS.
 
 ### 3.3 Android Native Setup
 
 ```java
-// android/app/src/main/java/com/braveheart/myaifriends/MainApplication.java
+// android/app/src/main/java/com/braveheartinnovations/debateai/MainApplication.java
 import com.dooboolab.rniap.RNIapPackage;
 
 // Package should be auto-linked, verify it's in the list
@@ -292,6 +276,7 @@ import {
   type ProductPurchase,
 } from 'react-native-iap';
 import { Platform } from 'react-native';
+import functions from '@react-native-firebase/functions';
 
 class IAPManager {
   private purchaseUpdateSubscription: any = null;
@@ -359,8 +344,11 @@ class IAPManager {
   async loadProducts() {
     try {
       const productIds = Platform.select({
-        ios: ['com.braveheart.myaifriends.premium.monthly'],
-        android: ['premium_monthly'],
+        ios: [
+          'com.braveheartinnovations.debateai.premium.monthly',
+          'com.braveheartinnovations.debateai.premium.annual',
+        ],
+        android: ['premium_monthly', 'premium_annual'],
       })!;
       
       this.products = await getSubscriptions({ skus: productIds });
@@ -371,11 +359,13 @@ class IAPManager {
     }
   }
   
-  async purchase() {
+  async purchase(plan: 'monthly' | 'annual' = 'monthly') {
     try {
       const productId = Platform.select({
-        ios: 'com.braveheart.myaifriends.premium.monthly',
-        android: 'premium_monthly',
+        ios: plan === 'annual'
+          ? 'com.braveheartinnovations.debateai.premium.annual'
+          : 'com.braveheartinnovations.debateai.premium.monthly',
+        android: plan === 'annual' ? 'premium_annual' : 'premium_monthly',
       })!;
       
       if (Platform.OS === 'ios') {
@@ -384,13 +374,15 @@ class IAPManager {
           andDangerouslyFinishTransactionAutomaticallyIOS: false,
         });
       } else {
-        // Android with base plans (2025 requirement)
+        // Android with base plans/offers: pass the correct offerToken for trials
+        const subs = await getSubscriptions({ skus: [productId] });
+        const product = subs?.[0];
+        const offerToken = product?.subscriptionOfferDetails?.find((o) =>
+          o.pricingPhases.pricingPhaseList.some((p) => p.priceAmountMicros === '0')
+        )?.offerToken || product?.subscriptionOfferDetails?.[0]?.offerToken;
         await requestSubscription({
           sku: productId,
-          subscriptionOffers: [{
-            sku: productId,
-            offerToken: '', // Will be populated by Google Play
-          }],
+          subscriptionOffers: offerToken ? [{ sku: productId, offerToken }] : undefined,
         });
       }
     } catch (error: any) {
@@ -406,11 +398,14 @@ class IAPManager {
       
       if (purchases.length > 0) {
         // Find active subscription
-        const activeSub = purchases.find(p => 
-          p.productId === (Platform.OS === 'ios' 
-            ? 'com.braveheart.myaifriends.premium.monthly'
-            : 'premium_monthly')
-        );
+        const ids = Platform.select({
+          ios: [
+            'com.braveheartinnovations.debateai.premium.monthly',
+            'com.braveheartinnovations.debateai.premium.annual',
+          ],
+          android: ['premium_monthly', 'premium_annual'],
+        })!;
+        const activeSub = purchases.find(p => ids.includes(p.productId));
         
         if (activeSub) {
           await this.validateReceipt(activeSub);
@@ -426,18 +421,13 @@ class IAPManager {
   }
   
   private async validateReceipt(purchase: Purchase) {
-    // Call your server to validate
-    const response = await fetch('https://your-server.com/validate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        receipt: purchase.transactionReceipt,
-        platform: Platform.OS,
-        productId: purchase.productId,
-      }),
+    const validate = functions().httpsCallable('validatePurchase');
+    const result = await validate({
+      receipt: purchase.transactionReceipt,
+      platform: Platform.OS,
+      productId: purchase.productId,
     });
-    
-    return response.ok;
+    return !!result.data?.valid;
   }
   
   cleanup() {
@@ -521,7 +511,7 @@ async function validateAndroidReceipt(
   
   try {
     const response = await androidpublisher.purchases.subscriptions.get({
-      packageName: 'com.braveheart.myaifriends',
+      packageName: 'com.braveheartinnovations.debateai',
       subscriptionId: productId,
       token: purchaseToken,
     });

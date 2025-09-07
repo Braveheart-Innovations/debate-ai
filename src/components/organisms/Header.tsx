@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, TouchableOpacity, StyleSheet, Platform, Dimensions } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Platform, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { 
   FadeInDown, 
@@ -7,10 +7,10 @@ import Animated, {
   useSharedValue, 
   withTiming,
   withRepeat,
-  interpolate,
+  useAnimatedProps,
   Easing,
 } from 'react-native-reanimated';
-import Svg, { Path, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
+import Svg, { Path, Defs, LinearGradient as SvgGradient, Stop, Rect, G, Circle } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 
 import { Box } from '../atoms/Box';
@@ -19,7 +19,7 @@ import { Button } from '../molecules/Button';
 import { Badge } from '../molecules/Badge';
 import { useTheme, Theme } from '../../theme';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+// Use responsive width via useWindowDimensions inside the component
 
 // Custom ChevronLeft Icon Component
 interface ChevronLeftIconProps {
@@ -165,6 +165,9 @@ export interface HeaderProps {
 export const HEADER_HEIGHT = 65;
 const COMPACT_HEIGHT = 50;
 
+// Animated SVG elements
+const AnimatedG = Animated.createAnimatedComponent(G);
+
 export const Header: React.FC<HeaderProps> = ({
   variant = 'default',
   height,
@@ -187,6 +190,9 @@ export const Header: React.FC<HeaderProps> = ({
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const [currentTime, setCurrentTime] = useState(new Date());
+  const { width } = useWindowDimensions();
+  // Subtle, battery-friendly accents inside the SVG (no edges move)
+  const enableAccents = true;
   
   // Animation values
   const titleOpacity = useSharedValue(animated ? 0 : 1);
@@ -196,8 +202,7 @@ export const Header: React.FC<HeaderProps> = ({
   const gradientAnimation = useSharedValue(0);
   const subtitleOpacity = useSharedValue(animated ? 0 : 1);
   const subtitleTranslateY = useSharedValue(animated ? 15 : 0);
-  const geometryAnimation = useSharedValue(0);
-  const floatingAnimation = useSharedValue(0);
+  // Deprecated accent animations removed
   
   // Get time-based greeting (for gradient variant)
   const getGreeting = () => {
@@ -240,40 +245,16 @@ export const Header: React.FC<HeaderProps> = ({
     }
   }, [animated, variant, titleOpacity, titleTranslateY, subtitleOpacity, subtitleTranslateY]);
   
-  // Gradient variant continuous animations
+  // Subtle pulse for inner highlight opacity
   useEffect(() => {
-    if (variant === 'gradient') {
-      // Subtle gradient breathing animation
+    if (variant === 'gradient' && enableAccents) {
       gradientAnimation.value = withRepeat(
-        withTiming(1, {
-          duration: 10000,
-          easing: Easing.inOut(Easing.sin),
-        }),
-        -1,
-        true
-      );
-      
-      // Geometric shape animation
-      geometryAnimation.value = withRepeat(
-        withTiming(1, {
-          duration: 15000,
-          easing: Easing.inOut(Easing.sin),
-        }),
-        -1,
-        true
-      );
-      
-      // Floating elements animation
-      floatingAnimation.value = withRepeat(
-        withTiming(1, {
-          duration: 4000,
-          easing: Easing.inOut(Easing.sin),
-        }),
+        withTiming(1, { duration: 12000, easing: Easing.inOut(Easing.sin) }),
         -1,
         true
       );
     }
-  }, [variant, gradientAnimation, geometryAnimation, floatingAnimation]);
+  }, [variant, enableAccents, gradientAnimation]);
   
   const titleAnimatedStyle = useAnimatedStyle(() => ({
     opacity: titleOpacity.value,
@@ -285,17 +266,7 @@ export const Header: React.FC<HeaderProps> = ({
     transform: [{ translateY: subtitleTranslateY.value }],
   }));
   
-  const geometryAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ 
-      translateY: interpolate(geometryAnimation.value, [0, 1], [-10, 10])
-    }]
-  }));
-  
-  const floatingAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ 
-      translateY: interpolate(floatingAnimation.value, [0, 1], [-5, 5])
-    }]
-  }));
+  // Accents disabled
   
   // Calculate header height
   const headerHeight = height || (variant === 'compact' ? COMPACT_HEIGHT : HEADER_HEIGHT);
@@ -338,119 +309,56 @@ export const Header: React.FC<HeaderProps> = ({
   const variantStyles = getVariantStyles();
   const styles = createStyles(theme, totalHeight, headerHeight, variant === 'centered');
   
+  // Animated props for subtle accent opacity
+  const pulseProps = useAnimatedProps(() => ({
+    opacity: 0.03 + 0.03 * gradientAnimation.value, // 3% -> 6%
+  }));
+  const pulseProps2 = useAnimatedProps(() => ({
+    opacity: 0.02 + 0.02 * (1 - gradientAnimation.value), // 2% -> 4%
+  }));
+  
   // Render gradient background if needed
   const renderBackground = () => {
-    if (variantStyles.needsGradient) {
-      
-      // Get theme-appropriate gradients using AI provider colors
-      // Match the app logo colors: Claude orange, OpenAI green, Gemini blue
-      const primaryGradient = isDark 
-        ? ['#C15F3C', '#10A37F', '#4888F8'] // Claude orange -> OpenAI green -> Gemini blue
-        : ['#D97757', '#10A37F', '#4888F8']; // More blue presence in light mode
-        
-      // Complementary AI provider colors for accents
-      const accentGradient = isDark
-        ? ['#20808D', '#FA520F'] // Perplexity teal -> Mistral orange
-        : ['#FF7759', '#4D6BFE']; // Cohere coral -> DeepSeek blue
+    if (!variantStyles.needsGradient) return null;
+    // Rectangular gradient with optional subtle inner accents
+    const primaryGradient = isDark
+      ? ['#C15F3C', '#10A37F', '#4888F8']
+      : ['#D97757', '#10A37F', '#4888F8'];
 
-      return (
-        <>
-          {/* Wave-shaped mask for the entire header */}
-          <Svg 
-            width={SCREEN_WIDTH} 
-            height={totalHeight} 
-            style={StyleSheet.absoluteFillObject}
-          >
-            <Defs>
-              <SvgGradient id="headerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                {primaryGradient.map((color, index) => (
-                  <Stop 
-                    key={index} 
-                    offset={`${index * 50}%`} 
-                    stopColor={color} 
-                  />
-                ))}
-              </SvgGradient>
-            </Defs>
-            
-            {/* Header shape with wave bottom */}
-            <Path
-              d={`M0,0 
-                  L${SCREEN_WIDTH},0
-                  L${SCREEN_WIDTH},${totalHeight - 10}
-                  Q${SCREEN_WIDTH * 0.75},${totalHeight - 5} ${SCREEN_WIDTH * 0.5},${totalHeight - 8}
-                  Q${SCREEN_WIDTH * 0.25},${totalHeight - 3} 0,${totalHeight - 12}
-                  Z`}
-              fill="url(#headerGradient)"
-            />
-          </Svg>
-          
-          {/* Geometric SVG Shapes with modern curved design */}
-          <Box style={styles.geometryContainer}>
-            <Animated.View style={[styles.geometryLayer, geometryAnimatedStyle]}>
-              <Svg width={SCREEN_WIDTH} height={totalHeight} style={StyleSheet.absoluteFillObject}>
-                <Defs>
-                  <SvgGradient id="accent1" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <Stop offset="0%" stopColor={accentGradient[0]} stopOpacity="0.3" />
-                    <Stop offset="100%" stopColor={accentGradient[1]} stopOpacity="0.15" />
-                  </SvgGradient>
-                  <SvgGradient id="accent2" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <Stop offset="0%" stopColor={theme.colors.text.inverse} stopOpacity="0.1" />
-                    <Stop offset="100%" stopColor={theme.colors.text.inverse} stopOpacity="0.05" />
-                  </SvgGradient>
-                </Defs>
-                
-                {/* Dramatic diagonal cut with curved corner */}
-                <Path
-                  d={`M0,0 
-                      L${SCREEN_WIDTH * 0.6},0
-                      Q${SCREEN_WIDTH * 0.75},0 ${SCREEN_WIDTH * 0.85},${totalHeight * 0.25}
-                      Q${SCREEN_WIDTH * 0.95},${totalHeight * 0.45} ${SCREEN_WIDTH},${totalHeight * 0.65}
-                      L${SCREEN_WIDTH},${totalHeight}
-                      L0,${totalHeight}
-                      Z`}
-                  fill={theme.colors.background}
-                  opacity={isDark ? 0.15 : 0.1}
-                />
-                
-                {/* Wave-like accent shape */}
-                <Path
-                  d={`M0,${totalHeight * 0.3}
-                      C${SCREEN_WIDTH * 0.15},${totalHeight * 0.2}
-                      ${SCREEN_WIDTH * 0.35},${totalHeight * 0.6}
-                      ${SCREEN_WIDTH * 0.6},${totalHeight * 0.4}
-                      C${SCREEN_WIDTH * 0.8},${totalHeight * 0.25}
-                      ${SCREEN_WIDTH * 0.9},${totalHeight * 0.6}
-                      ${SCREEN_WIDTH},${totalHeight * 0.5}
-                      L${SCREEN_WIDTH},${totalHeight}
-                      Q${SCREEN_WIDTH * 0.7},${totalHeight * 0.92} ${SCREEN_WIDTH * 0.3},${totalHeight * 0.96}
-                      Q0,${totalHeight} 0,${totalHeight * 0.9}
-                      Z`}
-                  fill="url(#accent2)"
-                />
-              </Svg>
-            </Animated.View>
-          </Box>
-          
-          {/* Floating accent elements */}
-          <Animated.View style={[styles.floatingElements, floatingAnimatedStyle]}>
-            <Box style={[styles.floatingCircle, styles.circle1, { 
-              backgroundColor: theme.colors.text.inverse,
-              opacity: isDark ? 0.06 : 0.08
-            }]} />
-            <Box style={[styles.floatingCircle, styles.circle2, { 
-              backgroundColor: theme.colors.text.inverse,
-              opacity: isDark ? 0.04 : 0.06
-            }]} />
-            <Box style={[styles.floatingCircle, styles.circle3, { 
-              backgroundColor: theme.colors.text.inverse,
-              opacity: isDark ? 0.08 : 0.1
-            }]} />
-          </Animated.View>
-        </>
-      );
-    }
-    return null;
+    const bottomMargin = 6; // keep all accents above this to avoid seams
+    const r1 = Math.min(totalHeight * 0.45, totalHeight - bottomMargin - totalHeight * 0.55);
+    const r2 = Math.min(totalHeight * 0.3, totalHeight - bottomMargin - totalHeight * 0.65);
+    const r3 = Math.min(totalHeight * 0.22, totalHeight - bottomMargin - totalHeight * 0.75);
+
+    const cy1 = totalHeight * 0.5;
+    const cy2 = totalHeight * 0.6;
+    const cy3 = totalHeight * 0.4;
+
+    return (
+      <Svg width={width} height={totalHeight} style={StyleSheet.absoluteFillObject}>
+        <Defs>
+          <SvgGradient id="headerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            {primaryGradient.map((color, index) => (
+              <Stop key={index} offset={`${index * 50}%`} stopColor={color} />
+            ))}
+          </SvgGradient>
+        </Defs>
+        {/* Background gradient */}
+        <Rect x={0} y={-1} width={width} height={totalHeight + 2} fill="url(#headerGradient)" />
+        {enableAccents && (
+          <>
+            <AnimatedG animatedProps={pulseProps}>
+              {/* Soft inner light blobs; avoid bottom edge */}
+              <Circle cx={width * 0.82} cy={cy1} r={Math.max(0, r1)} fill={theme.colors.text.inverse} />
+              <Circle cx={width * 0.22} cy={cy2} r={Math.max(0, r2)} fill={theme.colors.text.inverse} />
+            </AnimatedG>
+            <AnimatedG animatedProps={pulseProps2}>
+              <Circle cx={width * 0.55} cy={cy3} r={Math.max(0, r3)} fill={theme.colors.text.inverse} />
+            </AnimatedG>
+          </>
+        )}
+      </Svg>
+    );
   };
   
   
@@ -684,7 +592,17 @@ export const Header: React.FC<HeaderProps> = ({
       style={[
         styles.container, 
         { backgroundColor: variantStyles.backgroundColor },
-        variant === 'gradient' && { height: totalHeight, overflow: 'hidden' }
+        variant === 'gradient' && { 
+          height: totalHeight, 
+          overflow: 'hidden', 
+          borderBottomWidth: 0,
+          // Remove drop shadow/elevation to avoid a subtle line under the gradient
+          elevation: 0,
+          shadowColor: 'transparent',
+          shadowOpacity: 0,
+          shadowRadius: 0,
+          shadowOffset: { width: 0, height: 0 },
+        }
       ]}
       testID={testID}
     >
@@ -749,7 +667,7 @@ const createStyles = (
   container: {
     position: 'relative',
     height: totalHeight,
-    width: SCREEN_WIDTH,
+    width: '100%',
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: theme.colors.border,
     ...Platform.select({
