@@ -23,7 +23,6 @@ export interface APIProviderListProps {
   onToggleExpand: (providerId: string) => void;
   expandedProvider: string | null;
   expertModeConfigs: Record<string, { enabled: boolean; selectedModel?: string; parameters?: Record<string, number>; }>;
-  isPremium: boolean;
   onExpertModeToggle: (providerId: string, enabled: boolean) => void;
   onModelChange: (providerId: string, modelId: string) => void;
   onParameterChange: (providerId: string, param: string, value: number) => void;
@@ -40,7 +39,6 @@ export const APIProviderList: React.FC<APIProviderListProps> = ({
   onToggleExpand,
   expandedProvider,
   expertModeConfigs,
-  isPremium,
   onExpertModeToggle,
   onModelChange,
   onParameterChange,
@@ -102,7 +100,6 @@ export const APIProviderList: React.FC<APIProviderListProps> = ({
                 <ProviderExpertSettings
                   providerId={provider.id}
                   isEnabled={expertConfig.enabled}
-                  isPremium={isPremium}
                   onToggle={(enabled) => onExpertModeToggle(provider.id, enabled)}
                   selectedModel={expertConfig.enabled ? expertConfig.selectedModel : undefined}
                   onModelChange={(modelId) => onModelChange(provider.id, modelId)}

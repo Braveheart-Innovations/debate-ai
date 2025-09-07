@@ -1,18 +1,15 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
-import { Typography, Badge } from '../molecules';
+import { Typography } from '../molecules';
 import { ActualPricing } from './ActualPricing';
 import { useTheme } from '../../theme';
 import { ModelConfig } from '../../config/modelConfigs';
 import { MODEL_PRICING, getFreeMessageInfo } from '../../config/modelPricing';
-import { useSelector, useDispatch } from 'react-redux';
-import { RootState, showSheet } from '../../store';
-import { FreeTierCTA } from '../molecules/profile/FreeTierCTA';
 
 interface ModelSelectorProps {
   models: ModelConfig[];
   selectedModel?: string;
-  onSelectModel: (modelId: string) => void;
+  onSelectModel: (modelId: string) => void; // Pass empty string ('') to clear selection
   providerId: string;
 }
 
@@ -23,14 +20,11 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
   providerId,
 }) => {
   const { theme } = useTheme();
-  const dispatch = useDispatch();
-  const isPremiumUser = useSelector((state: RootState) => state.auth.isPremium);
-  const hasPremiumModels = useMemo(() => models.some(m => m.isPremium), [models]);
   
   return (
     <View>
       <Typography variant="subtitle" weight="semibold" style={{ marginBottom: theme.spacing.sm }}>
-        Model Selection
+        Default Model Selection (optional)
       </Typography>
       
       <ScrollView 
@@ -40,13 +34,11 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
       >
         {models.map((model) => {
           const isSelected = selectedModel === model.id;
-          const isLocked = !isPremiumUser && model.isPremium;
           
           return (
             <TouchableOpacity
               key={model.id}
-              onPress={() => !isLocked && onSelectModel(model.id)}
-              disabled={isLocked}
+              onPress={() => onSelectModel(isSelected ? '' : model.id)}
               style={{
                 backgroundColor: isSelected 
                   ? theme.colors.primary[500] 
@@ -60,7 +52,6 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                   ? theme.colors.primary[500]
                   : theme.colors.border,
                 minWidth: 120,
-                opacity: isLocked ? 0.5 : 1,
               }}
             >
               <View style={{ alignItems: 'center' }}>
@@ -76,14 +67,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                 >
                   {model.name}
                 </Typography>
-                
-                {model.isPremium && (
-                  <Badge label="Premium" type="premium" />
-                )}
-                
-                {model.isDefault && !model.isPremium && (
-                  <Badge label="Default" type="default" />
-                )}
+                {/* No default badge in Expert Mode selector */}
               </View>
             </TouchableOpacity>
           );
@@ -119,14 +103,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
         </View>
       )}
 
-      {!isPremiumUser && hasPremiumModels && (
-        <View style={{ marginTop: theme.spacing.md }}>
-          <FreeTierCTA
-            variant="compact"
-            onPress={() => dispatch(showSheet({ sheet: 'settings' }))}
-          />
-        </View>
-      )}
+      {/* No upsell — all models selectable; demo mode handled elsewhere */}
     </View>
   );
 };

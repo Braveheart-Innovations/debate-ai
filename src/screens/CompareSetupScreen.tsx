@@ -31,6 +31,7 @@ const CompareSetupScreen: React.FC<CompareSetupScreenProps> = ({ navigation, rou
   const dispatch = useDispatch();
   const apiKeys = useSelector((state: RootState) => state.settings.apiKeys || {});
   const isPremium = useSelector((state: RootState) => state.auth.isPremium);
+  const expertMode = useSelector((state: RootState) => state.settings.expertMode || {});
   
   // Calculate half screen width for each selector
   const screenWidth = Dimensions.get('window').width;
@@ -42,7 +43,9 @@ const CompareSetupScreen: React.FC<CompareSetupScreenProps> = ({ navigation, rou
       .filter(provider => provider.enabled && apiKeys[provider.id as keyof typeof apiKeys])
       .map(provider => {
         const iconData = getAIProviderIcon(provider.id);
-        const defaultModel = AI_MODELS[provider.id]?.find(m => m.isDefault)?.id || AI_MODELS[provider.id]?.[0]?.id || '';
+        const providerDefault = AI_MODELS[provider.id]?.find(m => m.isDefault)?.id || AI_MODELS[provider.id]?.[0]?.id || '';
+        const expertCfg = (expertMode as Record<string, { enabled?: boolean; selectedModel?: string }>)[provider.id];
+        const defaultModel = expertCfg?.enabled && expertCfg.selectedModel ? expertCfg.selectedModel : providerDefault;
         return {
           id: provider.id,
           provider: provider.id,
@@ -54,7 +57,7 @@ const CompareSetupScreen: React.FC<CompareSetupScreenProps> = ({ navigation, rou
           color: provider.color,
         } as AIConfig;
       });
-  }, [apiKeys]);
+  }, [apiKeys, expertMode]);
   
   // Separate states for left and right AI selection - initialize from route params if available
   const [leftAI, setLeftAI] = useState<AIConfig[]>(

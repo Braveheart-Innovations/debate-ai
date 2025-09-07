@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Switch } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Button, Typography, Badge } from '../molecules';
+import { Button, Typography } from '../molecules';
 import { ModelSelector } from './ModelSelector';
 import { ParameterSlider } from './ParameterSlider';
 import { useTheme } from '../../theme';
@@ -16,7 +16,6 @@ import {
 interface ProviderExpertSettingsProps {
   providerId: string;
   isEnabled: boolean;
-  isPremium: boolean;
   onToggle: (enabled: boolean) => void;
   selectedModel?: string;
   onModelChange: (modelId: string) => void;
@@ -27,7 +26,6 @@ interface ProviderExpertSettingsProps {
 export const ProviderExpertSettings: React.FC<ProviderExpertSettingsProps> = ({
   providerId,
   isEnabled,
-  isPremium,
   onToggle,
   selectedModel,
   onModelChange,
@@ -82,28 +80,20 @@ export const ProviderExpertSettings: React.FC<ProviderExpertSettingsProps> = ({
         borderRadius: theme.borderRadius.lg,
         padding: theme.spacing.lg,
         marginBottom: theme.spacing.md,
-        borderWidth: isPremium ? 0 : 1,
-        borderColor: theme.colors.warning[500],
+        borderWidth: 0,
+        borderColor: theme.colors.border,
       }}>
         <View style={{ flex: 1 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Typography variant="subtitle" weight="bold">
-              Expert Mode
-            </Typography>
-            {!isPremium && (
-              <Badge label="Premium" type="premium" />
-            )}
-          </View>
+          <Typography variant="subtitle" weight="bold">
+            Expert Mode
+          </Typography>
           <Typography variant="caption" color="secondary" style={{ marginTop: 4 }}>
-            {isPremium 
-              ? 'Fine-tune model behavior and parameters'
-              : 'Upgrade to unlock advanced controls'}
+            Fine-tune model behavior and parameters
           </Typography>
         </View>
         <Switch
-          value={isEnabled && isPremium}
-          onValueChange={isPremium ? onToggle : undefined}
-          disabled={!isPremium}
+          value={isEnabled}
+          onValueChange={onToggle}
           trackColor={{ 
             false: theme.colors.gray[300], 
             true: theme.colors.primary[500] 
@@ -112,7 +102,7 @@ export const ProviderExpertSettings: React.FC<ProviderExpertSettingsProps> = ({
       </View>
       
       {/* Expert Settings Content */}
-      {isEnabled && isPremium && (
+      {isEnabled && (
         <Animated.View entering={FadeInDown.springify()}>
           {/* Model Selection */}
           <View style={{ marginBottom: theme.spacing.xl }}>

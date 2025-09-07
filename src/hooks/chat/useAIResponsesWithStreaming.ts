@@ -17,6 +17,7 @@ import { ChatService, PromptBuilder } from '../../services/chat';
 import { getPersonality } from '../../config/personalities';
 import { getStreamingService } from '../../services/streaming/StreamingService';
 import type { ResumptionContext } from '../../services/aiAdapter';
+import { getExpertOverrides } from '../../utils/expertMode';
 
 export interface AIResponsesHook {
   typingAIs: string[];
@@ -44,6 +45,7 @@ export const useAIResponsesWithStreaming = (isResuming?: boolean): AIResponsesHo
   
   // Get API keys for dynamic adapter creation
   const apiKeys = useSelector((state: RootState) => state.settings.apiKeys);
+  const expertModeConfigs = useSelector((state: RootState) => state.settings.expertMode || {});
   
   // Get streaming settings from state
   const streamingSpeed = useSelector(selectStreamingSpeed);
@@ -144,6 +146,13 @@ export const useAIResponsesWithStreaming = (isResuming?: boolean): AIResponsesHo
         // Only pass attachments to first AI
         const aiAttachments = isFirstAI ? attachments : undefined;
         
+        // Resolve expert parameters for this provider (treat expert model as default only; ai.model is authoritative)
+        const expert = getExpertOverrides(expertModeConfigs as Record<string, unknown>, ai.provider) as {
+          enabled: boolean;
+          model?: string;
+          parameters?: import('../../types').ModelParameters;
+        };
+
         if (shouldStream) {
           // Create placeholder message for streaming
           const aiMessage = ChatService.createAIMessage(ai, '', {
@@ -174,15 +183,16 @@ export const useAIResponsesWithStreaming = (isResuming?: boolean): AIResponsesHo
               adapterConfig: {
                 provider: ai.provider,
                 apiKey,
-                model: ai.model,  // Pass the actual model for correct routing
+                model: ai.model,
                 personality: personality as PersonalityConfig | undefined,
+                parameters: expert.enabled ? expert.parameters : undefined,
                 isDebateMode: conversationContext.isDebateMode,
               },
               message: promptForAI,
               conversationHistory: conversationContext.messages.slice(0, -1),
               resumptionContext,
               attachments: aiAttachments,
-              modelOverride: ai.model,  // Keep for backward compatibility
+              modelOverride: ai.model,
               speed: streamingSpeed,
             },
             // On chunk received
@@ -241,6 +251,14 @@ export const useAIResponsesWithStreaming = (isResuming?: boolean): AIResponsesHo
                 
                 // Fallback to non-streaming request
                 try {
+                  // Ensure adapter gets expert parameters for fallback
+                  try {
+                    const fallbackAdapter = aiService.getAdapter(ai.id);
+                    if (fallbackAdapter && expert.enabled && expert.parameters) {
+                      fallbackAdapter.config.parameters = expert.parameters;
+                      // Do not force model; ai.model remains the session authority
+                    }
+                  } catch { /* ignore */ }
                   const result = await aiService.sendMessage(
                     ai.id,
                     promptForAI,
@@ -324,6 +342,16 @@ export const useAIResponsesWithStreaming = (isResuming?: boolean): AIResponsesHo
         } else {
           // Fallback to non-streaming behavior
           const responseStart = Date.now();
+          // Ensure adapter picks up expert parameters if enabled
+          try {
+            if (expert.enabled && expert.parameters) {
+              const nonStreamAdapter = aiService.getAdapter(ai.id);
+              if (nonStreamAdapter) {
+                nonStreamAdapter.config.parameters = expert.parameters;
+                // Do not force model; ai.model remains the session authority
+              }
+            }
+          } catch { /* ignore */ }
           const result = await aiService.sendMessage(
             ai.id,
             promptForAI,
@@ -349,7 +377,7 @@ export const useAIResponsesWithStreaming = (isResuming?: boolean): AIResponsesHo
 
           // Create AI message with metadata
           const aiMessage = ChatService.createAIMessage(ai, response, {
-            modelUsed,
+            modelUsed: modelUsed || ai.model,
             responseTime,
             citations
           });

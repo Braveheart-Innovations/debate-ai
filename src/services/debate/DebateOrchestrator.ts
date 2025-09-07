@@ -16,6 +16,7 @@ import { store } from '../../store';
 import { getStreamingService } from '../streaming/StreamingService';
 import { setProviderVerificationError } from '../../store/streamingSlice';
 import { getFormat, type DebateFormatId, type FormatSpec } from '../../config/debate/formats';
+import { getExpertOverrides } from '../../utils/expertMode';
 
 export interface DebateSession {
   id: string;
@@ -299,7 +300,20 @@ export class DebateOrchestrator {
       const streamingAllowed = globalEnabled && providerEnabled && !providerHasVerificationError;
       const streamSpeed = (streamingState?.streamingSpeed as 'instant' | 'natural' | 'slow') || 'natural';
 
+      // Resolve expert parameters (expert model acts as default elsewhere; currentAI.model is authoritative here)
+      const expert = getExpertOverrides((store.getState().settings?.expertMode || {}) as Record<string, unknown>, currentAI.provider) as {
+        enabled: boolean;
+        model?: string;
+        parameters?: import('../../types').ModelParameters;
+      };
+
       if (adapter && supportsStreaming && streamingAllowed) {
+        // Apply expert parameters to adapter if present
+        try {
+          if (expert.enabled && expert.parameters) {
+            adapter.config.parameters = expert.parameters;
+          }
+        } catch { /* ignore */ }
         // Create placeholder message and emit immediately
         const personalityName = UNIVERSAL_PERSONALITIES.find(p => p.id === personalityId)?.name || 'Default';
         const placeholderMessage: Message = {
@@ -373,6 +387,12 @@ export class DebateOrchestrator {
 
           if (isVerificationError || isOverloadError) {
             try {
+              // Ensure adapter carries expert overrides on fallback
+              try {
+                if (expert.enabled && expert.parameters) {
+                  adapter.config.parameters = expert.parameters;
+                }
+              } catch { /* ignore */ }
               const fallback = await this.aiService.sendMessage(
                 currentAI.id,
                 contextualPrompt,
@@ -429,6 +449,12 @@ export class DebateOrchestrator {
         // Non-streaming fallback (retain existing typing behavior)
         this.emitEvent({ type: 'typing_started', data: { aiName: currentAI.name }, timestamp: Date.now() });
 
+        // Apply expert parameters for non-streaming path
+        try {
+          if (expert.enabled && expert.parameters && adapter) {
+            adapter.config.parameters = expert.parameters;
+          }
+        } catch { /* ignore */ }
         const response = await this.aiService.sendMessage(
           currentAI.id,
           contextualPrompt,

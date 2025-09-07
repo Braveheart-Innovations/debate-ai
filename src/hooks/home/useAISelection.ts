@@ -11,6 +11,7 @@ import { AIConfig } from '../../types';
 export const useAISelection = (maxAIs: number) => {
   const dispatch = useDispatch();
   const apiKeys = useSelector((state: RootState) => state.settings.apiKeys || {});
+  const expertMode = useSelector((state: RootState) => state.settings.expertMode || {});
   const aiPersonalities = useSelector((state: RootState) => state.chat.aiPersonalities);
   const selectedModels = useSelector((state: RootState) => state.chat.selectedModels);
   
@@ -18,8 +19,16 @@ export const useAISelection = (maxAIs: number) => {
 
   // Get configured AIs based on API keys
   const configuredAIs = useMemo(() => {
-    return AIConfigurationService.getConfiguredAIs(apiKeys);
-  }, [apiKeys]);
+    const base = AIConfigurationService.getConfiguredAIs(apiKeys);
+    // Apply expert default models (if enabled and set) as the default for each provider
+    return base.map(ai => {
+      const cfg = (expertMode as Record<string, { enabled?: boolean; selectedModel?: string }>)[ai.id];
+      if (cfg?.enabled && cfg.selectedModel) {
+        return { ...ai, model: cfg.selectedModel } as AIConfig;
+      }
+      return ai;
+    });
+  }, [apiKeys, expertMode]);
 
   /**
    * Toggles AI selection (add/remove from selected list).

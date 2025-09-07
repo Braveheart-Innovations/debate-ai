@@ -17,6 +17,7 @@ import { useTheme } from '../theme';
 import { useAIService } from '../providers/AIServiceProvider';
 import { AIConfig, Message, ChatSession } from '../types';
 import { StorageService } from '../services/chat/StorageService';
+import { getExpertOverrides } from '../utils/expertMode';
 
 interface CompareScreenProps {
   navigation: {
@@ -41,6 +42,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
   
   // Get models and user status from Redux
   const selectedModels = useSelector((state: RootState) => state.chat.selectedModels);
+  const expertModeConfigs = useSelector((state: RootState) => state.settings.expertMode || {});
   const currentUser = useSelector((state: RootState) => state.user.currentUser);
   
   // Check if we're resuming a session
@@ -194,8 +196,22 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
       setRightTyping(true);
     }
     
+    // Compute effective models and expert params at send time
+    const leftEffModel = selectedModels[leftAI.id] || leftAI.model;
+    const rightEffModel = selectedModels[rightAI.id] || rightAI.model;
+    const leftExp = getExpertOverrides(expertModeConfigs as Record<string, unknown>, leftAI.provider);
+    const rightExp = getExpertOverrides(expertModeConfigs as Record<string, unknown>, rightAI.provider);
+
     // Send to left AI if active
     if ((viewMode === 'split' && !continuedSide) || continuedSide === 'left' || viewMode === 'left-only' || viewMode === 'left-full') {
+      // Apply expert parameters to adapter if enabled
+      try {
+        const adapter = aiService.getAdapter(leftAI.id);
+        const leftParams = leftExp && leftExp.parameters;
+        if (adapter && leftExp.enabled && leftParams) {
+          adapter.config.parameters = leftParams as never;
+        }
+      } catch { /* ignore */ }
       aiService.sendMessage(
       leftAI.id,
       messageText,
@@ -203,7 +219,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
       false,
       undefined,
       undefined,
-      selectedModels[leftAI.id] || leftAI.model
+      leftEffModel
     ).then(response => {
       const leftMessage: Message = {
         id: `msg_left_${Date.now()}`,
@@ -212,7 +228,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
         content: typeof response === 'string' ? response : response.response,
         timestamp: Date.now(),
         metadata: {
-          modelUsed: selectedModels[leftAI.id] || leftAI.model,
+          modelUsed: leftEffModel,
         },
       };
       setLeftMessages(prev => [...prev, leftMessage]);
@@ -228,6 +244,14 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
     
     // Send to right AI if active
     if ((viewMode === 'split' && !continuedSide) || continuedSide === 'right' || viewMode === 'right-only' || viewMode === 'right-full') {
+      // Apply expert parameters to adapter if enabled
+      try {
+        const adapter = aiService.getAdapter(rightAI.id);
+        const rightParams = rightExp && rightExp.parameters;
+        if (adapter && rightExp.enabled && rightParams) {
+          adapter.config.parameters = rightParams as never;
+        }
+      } catch { /* ignore */ }
       aiService.sendMessage(
       rightAI.id,
       messageText,
@@ -235,7 +259,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
       false,
       undefined,
       undefined,
-      selectedModels[rightAI.id] || rightAI.model
+      rightEffModel
     ).then(response => {
       const rightMessage: Message = {
         id: `msg_right_${Date.now()}`,
@@ -244,7 +268,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
         content: typeof response === 'string' ? response : response.response,
         timestamp: Date.now(),
         metadata: {
-          modelUsed: selectedModels[rightAI.id] || rightAI.model,
+          modelUsed: rightEffModel,
         },
       };
       setRightMessages(prev => [...prev, rightMessage]);
@@ -267,7 +291,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
       saveComparisonSession();
     }, 1000);
     
-  }, [inputText, aiService, isInitialized, leftAI, rightAI, selectedModels, viewMode, continuedSide, hasBeenSaved, saveComparisonSession]);
+  }, [inputText, aiService, isInitialized, leftAI, rightAI, viewMode, continuedSide, hasBeenSaved, saveComparisonSession, expertModeConfigs, selectedModels]);
   
   const handleContinueWithLeft = useCallback(() => {
     if (!leftAI) return;
@@ -336,13 +360,16 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
   }, [saveComparisonSession, navigation]);
   
   const isProcessing = leftTyping || rightTyping;
+  const leftEffectiveModel = leftAI ? (selectedModels[leftAI.id] || leftAI.model) : '';
+  const rightEffectiveModel = rightAI ? (selectedModels[rightAI.id] || rightAI.model) : '';
+
   const selectedList: Array<{ provider: string; model: string }> = (() => {
     if (!leftAI || !rightAI) return [];
-    if (viewMode === 'left-only' || continuedSide === 'left') return [{ provider: leftAI.provider, model: (selectedModels[leftAI.id] || leftAI.model) }];
-    if (viewMode === 'right-only' || continuedSide === 'right') return [{ provider: rightAI.provider, model: (selectedModels[rightAI.id] || rightAI.model) }];
+    if (viewMode === 'left-only' || continuedSide === 'left') return [{ provider: leftAI.provider, model: leftEffectiveModel }];
+    if (viewMode === 'right-only' || continuedSide === 'right') return [{ provider: rightAI.provider, model: rightEffectiveModel }];
     return [
-      { provider: leftAI.provider, model: selectedModels[leftAI.id] || leftAI.model },
-      { provider: rightAI.provider, model: selectedModels[rightAI.id] || rightAI.model },
+      { provider: leftAI.provider, model: leftEffectiveModel },
+      { provider: rightAI.provider, model: rightEffectiveModel },
     ];
   })();
   const availability = useMergedModalityAvailability(selectedList);

@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { View, TouchableOpacity, ScrollView, Modal, Dimensions } from 'react-native';
-import { useSelector, useDispatch } from 'react-redux';
-import { RootState, showSheet } from '../../store';
+// Upsell removed; no dispatch required
 import { Typography, Badge } from '../molecules';
 import { SheetHeader } from '../molecules/SheetHeader';
 import { useTheme } from '../../theme';
@@ -30,8 +29,6 @@ export const ModelSelectorEnhanced: React.FC<ModelSelectorEnhancedProps> = ({
   aiName = '',
 }) => {
   const { theme } = useTheme();
-  const dispatch = useDispatch();
-  const isPremium = useSelector((state: RootState) => state.auth.isPremium);
   
   const [isModalVisible, setIsModalVisible] = useState(false);
   
@@ -43,9 +40,7 @@ export const ModelSelectorEnhanced: React.FC<ModelSelectorEnhancedProps> = ({
     return models.find(m => m.id === selectedModel);
   }, [models, selectedModel]);
   
-  const canSelectModel = (model: typeof models[0]) => {
-    return isPremium || !model.isPremium;
-  };
+  const canSelectModel = (_model: typeof models[0]) => true;
   
   const handleModelSelect = (modelId: string) => {
     const model = models.find(m => m.id === modelId);
@@ -183,9 +178,6 @@ export const ModelSelectorEnhanced: React.FC<ModelSelectorEnhancedProps> = ({
                             {model.isDefault && (
                               <Badge label="Default" type="default" />
                             )}
-                            {model.isPremium && (
-                              <Badge label="Premium" type="premium" />
-                            )}
                           </View>
                           
                           <Typography 
@@ -241,27 +233,7 @@ export const ModelSelectorEnhanced: React.FC<ModelSelectorEnhancedProps> = ({
               </ScrollView>
 
               {/* Upsell CTA for free users when premium models exist */}
-              {!isPremium && models.some(m => m.isPremium) && (
-                <View style={{ paddingHorizontal: theme.spacing.md, paddingBottom: theme.spacing.md }}>
-                  <Typography variant="caption" color="secondary" style={{ marginBottom: 8 }}>
-                    Premium models offer better quality and features.
-                  </Typography>
-                  <TouchableOpacity
-                    onPress={() => dispatch(showSheet({ sheet: 'settings' }))}
-                    style={{
-                      alignSelf: 'flex-start',
-                      backgroundColor: theme.colors.primary[500],
-                      paddingHorizontal: 12,
-                      paddingVertical: 8,
-                      borderRadius: 8,
-                    }}
-                  >
-                    <Typography variant="body" weight="semibold" style={{ color: '#fff' }}>
-                      Upgrade to unlock
-                    </Typography>
-                  </TouchableOpacity>
-                </View>
-              )}
+              {/* No upsell — all models selectable; demo mode handled elsewhere */}
             </Animated.View>
           </View>
         </Modal>
@@ -317,14 +289,7 @@ export const ModelSelectorEnhanced: React.FC<ModelSelectorEnhancedProps> = ({
                 {model.name}
               </Typography>
               
-              {model.isPremium && (
-                <Badge 
-                  label="Premium" 
-                  type="premium" 
-                />
-              )}
-              
-              {model.isDefault && !model.isPremium && (
+              {model.isDefault && (
                 <Badge label="Default" type="default" />
               )}
               

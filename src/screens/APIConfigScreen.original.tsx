@@ -43,10 +43,7 @@ const APIConfigScreen: React.FC<APIConfigScreenProps> = ({ navigation }) => {
   const verifiedProviders = useSelector((state: RootState) => state.settings.verifiedProviders || []);
   const verificationTimestamps = useSelector((state: RootState) => state.settings.verificationTimestamps || {});
   const expertModeConfigs = useSelector((state: RootState) => state.settings.expertMode || {});
-  const currentUser = useSelector((state: RootState) => state.user.currentUser);
-  // TODO: Remove true || for production - defaulting to premium for development
-  // eslint-disable-next-line no-constant-binary-expression
-  const isPremium = true || currentUser?.subscription === 'pro' || currentUser?.subscription === 'business';
+  // currentUser no longer used in original screen
   
   // State for all API keys - initialized from Redux
   const [apiKeys, setApiKeys] = useState<{ [key: string]: string }>(() => {
@@ -366,7 +363,6 @@ const APIConfigScreen: React.FC<APIConfigScreenProps> = ({ navigation }) => {
                         <ProviderExpertSettings
                           providerId={provider.id}
                           isEnabled={expertConfig.enabled}
-                          isPremium={isPremium}
                           onToggle={(enabled) => {
                             dispatch(updateExpertMode({
                               provider: providerKey,

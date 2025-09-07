@@ -45,6 +45,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
   const dispatch = useDispatch();
   const scrollViewRef = useRef<ScrollView>(null);
   const apiKeys = useSelector((state: RootState) => state.settings.apiKeys || {});
+  const expertMode = useSelector((state: RootState) => state.settings.expertMode || {});
   const aiPersonalities = useSelector((state: RootState) => state.chat.aiPersonalities);
   const selectedModelsFromStore = useSelector((state: RootState) => state.chat.selectedModels);
   const preservedTopic = useSelector((state: RootState) => state.debateStats.preservedTopic);
@@ -61,7 +62,9 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
       .filter(provider => provider.enabled && apiKeys[provider.id as keyof typeof apiKeys])
       .map(provider => {
         const iconData = getAIProviderIcon(provider.id);
-        const defaultModel = AI_MODELS[provider.id]?.find(m => m.isDefault)?.id || AI_MODELS[provider.id]?.[0]?.id || '';
+        const providerDefault = AI_MODELS[provider.id]?.find(m => m.isDefault)?.id || AI_MODELS[provider.id]?.[0]?.id || '';
+        const expertCfg = (expertMode as Record<string, { enabled?: boolean; selectedModel?: string }>)[provider.id];
+        const defaultModel = expertCfg?.enabled && expertCfg.selectedModel ? expertCfg.selectedModel : providerDefault;
         return {
           id: provider.id,
           provider: provider.id,
@@ -74,7 +77,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
           color: provider.color,
         } as AIConfig;
       });
-  }, [apiKeys]);
+  }, [apiKeys, expertMode]);
   
   const [currentStep, setCurrentStep] = useState<'topic' | 'ai' | 'personality'>('topic');
   const [selectedAIs, setSelectedAIs] = useState<AIConfig[]>(route?.params?.preselectedAIs || []);

@@ -4,8 +4,18 @@
 
 import { getEnabledProviders } from '../config/aiProviders';
 
-// Supported API key provider IDs (subset of all providers that have API keys)
-export const API_KEY_PROVIDER_IDS = ['claude', 'openai', 'google'] as const;
+// Supported API key provider IDs (all providers in this app require API keys)
+export const API_KEY_PROVIDER_IDS = [
+  'claude',
+  'openai',
+  'google',
+  'perplexity',
+  'mistral',
+  'cohere',
+  'together',
+  'deepseek',
+  'grok',
+] as const;
 export type APIKeyProviderId = typeof API_KEY_PROVIDER_IDS[number];
 
 /**

@@ -192,9 +192,7 @@ interface SettingsState {
     [key: string]: string; // Model name/ID that was verified for each provider
   };
   expertMode: {
-    claude?: ExpertModeConfig;
-    openai?: ExpertModeConfig;
-    google?: ExpertModeConfig;
+    [providerId: string]: ExpertModeConfig | undefined;
   };
   hasCompletedOnboarding: boolean;
 }
@@ -283,10 +281,7 @@ const settingsSlice = createSlice({
     completeOnboarding: (state) => {
       state.hasCompletedOnboarding = true;
     },
-    updateExpertMode: (state, action: PayloadAction<{ 
-      provider: 'claude' | 'openai' | 'google'; 
-      config: ExpertModeConfig 
-    }>) => {
+    updateExpertMode: (state, action: PayloadAction<{ provider: string; config: ExpertModeConfig }>) => {
       state.expertMode[action.payload.provider] = action.payload.config;
     },
   },

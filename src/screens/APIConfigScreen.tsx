@@ -11,7 +11,6 @@ import {
 } from '../components/organisms';
 import { useAPIKeys } from '../hooks/useAPIKeys';
 import { useProviderVerification } from '../hooks/useProviderVerification';
-import { useSubscriptionStatus } from '../hooks/useSubscriptionStatus';
 import { useAPIConfigHandlers } from '../hooks/useAPIConfigHandlers';
 import { useAPIConfigData } from '../hooks/useAPIConfigData';
 
@@ -25,7 +24,6 @@ const APIConfigScreen: React.FC<APIConfigScreenProps> = ({ navigation }) => {
   // Custom hooks
   const { apiKeys, clearAll } = useAPIKeys();
   const { clearAllVerifications } = useProviderVerification();
-  const { isPremium } = useSubscriptionStatus();
   const {
     enabledProviders,
     disabledProviders,
@@ -91,7 +89,6 @@ const APIConfigScreen: React.FC<APIConfigScreenProps> = ({ navigation }) => {
               onToggleExpand={onToggleExpand}
               expandedProvider={expandedProvider}
               expertModeConfigs={expertModeConfigs}
-              isPremium={isPremium}
               onExpertModeToggle={handleExpertModeToggle}
               onModelChange={handleModelChange}
               onParameterChange={handleParameterChange}

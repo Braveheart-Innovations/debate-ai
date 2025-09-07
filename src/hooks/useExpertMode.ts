@@ -3,6 +3,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../store';
 import { updateExpertMode } from '../store';
 import { DEFAULT_PARAMETERS } from '../config/modelConfigs';
+import type { AIProvider } from '../types';
+import { getEnabledProviders as getEnabledProviderDefs } from '../config/aiProviders';
 
 export interface ExpertModeConfig {
   enabled: boolean;
@@ -17,10 +19,10 @@ export interface ExpertModeConfig {
   };
 }
 
-export type ProviderType = 'claude' | 'openai' | 'google';
+export type ProviderType = AIProvider;
 
 export interface UseExpertModeReturn {
-  expertModeConfigs: Record<string, ExpertModeConfig>;
+  expertModeConfigs: Record<string, ExpertModeConfig | undefined>;
   getConfig: (provider: ProviderType) => ExpertModeConfig;
   isEnabled: (provider: ProviderType) => boolean;
   enableExpertMode: (provider: ProviderType) => void;
@@ -40,7 +42,7 @@ export interface UseExpertModeReturn {
 
 export const useExpertMode = (): UseExpertModeReturn => {
   const dispatch = useDispatch();
-  const expertModeConfigs = useSelector((state: RootState) => state.settings.expertMode || {});
+  const expertModeConfigs = useSelector((state: RootState) => state.settings.expertMode || {}) as Record<string, ExpertModeConfig | undefined>;
 
   /**
    * Get configuration for a specific provider
@@ -111,7 +113,7 @@ export const useExpertMode = (): UseExpertModeReturn => {
     const currentConfig = getConfig(provider);
     const updatedConfig: ExpertModeConfig = {
       ...currentConfig,
-      selectedModel: modelId
+      selectedModel: modelId && modelId.length > 0 ? modelId : undefined
     };
     
     dispatch(updateExpertMode({
@@ -233,7 +235,7 @@ export const useExpertMode = (): UseExpertModeReturn => {
    * Get list of providers with expert mode enabled
    */
   const getEnabledProviders = useCallback((): ProviderType[] => {
-    const providers: ProviderType[] = ['claude', 'openai', 'google'];
+    const providers = getEnabledProviderDefs().map(p => p.id as ProviderType);
     return providers.filter(provider => isEnabled(provider));
   }, [isEnabled]);
 
@@ -241,7 +243,7 @@ export const useExpertMode = (): UseExpertModeReturn => {
    * Get list of providers with any expert mode configuration
    */
   const getConfiguredProviders = useCallback((): ProviderType[] => {
-    const providers: ProviderType[] = ['claude', 'openai', 'google'];
+    const providers = getEnabledProviderDefs().map(p => p.id as ProviderType);
     return providers.filter(provider => {
       const config = getConfig(provider);
       return config.enabled || hasCustomParameters(provider) || hasCustomModel(provider);
