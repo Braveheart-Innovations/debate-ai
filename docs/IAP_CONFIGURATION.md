@@ -1,5 +1,5 @@
 # In-App Purchase Configuration Guide
-## MyAIFriends React Native App
+## Symposium AI — React Native App
 
 *Last Updated: August 2025*
 
@@ -9,7 +9,13 @@
 
 This guide covers the complete setup of in-app purchases for both iOS (App Store) and Android (Google Play) using react-native-iap v13.0.0.
 
-**Subscription Product**: MyAIFriends Premium - $9.99/month
+> Update Note (Sept 2025)
+> - App name: Symposium AI
+> - Subscription: $7.99/month (auto‑renewable)
+> - Free Trial: 7 days
+> - BYOK‑only generation; Demo Mode at install
+
+**Subscription Product**: Symposium AI Premium — $7.99/month (7‑day free trial)
 
 ---
 
@@ -22,10 +28,10 @@ This guide covers the complete setup of in-app purchases for both iOS (App Store
 2. My Apps → "+" → New App
 3. Fill in details:
    - Platform: iOS
-   - Name: MyAIFriends
+   - Name: Symposium AI
    - Primary Language: English (U.S.)
-   - Bundle ID: `com.braveheart.myaifriends`
-   - SKU: `MYAIFRIENDS_IOS`
+   - Bundle ID: `com.braveheartinnovations.symposiumai` (example)
+   - SKU: `SYMPOSIUM_IOS`
 
 #### Configure In-App Purchases
 1. Navigate to your app → Features → In-App Purchases
@@ -33,14 +39,15 @@ This guide covers the complete setup of in-app purchases for both iOS (App Store
 3. Select "Auto-Renewable Subscription"
 4. Fill in details:
    - Reference Name: `Premium Monthly`
-   - Product ID: `com.braveheart.myaifriends.premium.monthly`
+   - Product ID: `com.braveheartinnovations.symposium.premium.monthly`
    - Subscription Group: `Premium Access`
 
 #### Subscription Group Setup
 1. Create Subscription Group: `Premium Access`
 2. Set up subscription details:
    - Duration: 1 Month
-   - Price: $9.99 USD (Tier 10)
+   - Price: $7.99 USD (store tier closest to $7.99)
+   - Intro offer: 7‑day free trial
    - Localizations: Add for all target markets
 3. Set up levels (for future expansion):
    - Level 1: Monthly ($9.99)
@@ -48,7 +55,7 @@ This guide covers the complete setup of in-app purchases for both iOS (App Store
 
 #### Localization
 For each language, provide:
-- Display Name: "MyAIFriends Premium"
+- Display Name: "Symposium AI Premium"
 - Description: "Unlock all AI personalities, unlimited group chats, expert mode, and premium features"
 - Promotional Image: 1024x1024px
 
@@ -131,10 +138,10 @@ after purchase.
 1. Navigate to Monetize → In-app products → Subscriptions
 2. Create subscription:
    - Product ID: `premium_monthly`
-   - Name: MyAIFriends Premium
+   - Name: Symposium AI Premium
    - Description: Full premium access
    - Billing period: 1 month
-   - Default price: $9.99 USD
+   - Default price: $7.99 USD
 
 #### Base Plans and Offers (2025 requirement)
 1. Create Base Plan:
@@ -143,8 +150,8 @@ after purchase.
    - Billing period: Monthly
    - Grace period: 7 days
 
-2. Add Offers (optional):
-   - Free trial: 7 days (optional)
+2. Add Offers:
+   - Free trial: 7 days
    - Introductory pricing: $4.99 for first month (optional)
 
 #### Pricing

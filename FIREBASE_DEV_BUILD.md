@@ -198,6 +198,27 @@ cd ios && pod install && cd ..
 npx expo run:ios
 ```
 
+## Firebase Emulator (optional)
+
+The app can connect to the local Firebase Emulators during development. This is now opt-in to avoid iOS HTTP/ATS pitfalls.
+
+- To enable emulators, set in your env file:
+
+  ```
+  EXPO_PUBLIC_USE_FIREBASE_EMULATOR=true
+  ```
+
+- Start emulators locally:
+
+  ```bash
+  firebase emulators:start
+  ```
+
+Notes:
+
+- On iOS Simulator, the app connects to `127.0.0.1` ports (Auth: 9099, Firestore: 8080). The iOS project includes ATS exceptions for `localhost` and `127.0.0.1`.
+- If the emulators are not running, the app will fall back to production Firebase.
+
 ## Next Steps
 
 After the development build is working:

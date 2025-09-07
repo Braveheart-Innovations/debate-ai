@@ -1,8 +1,9 @@
 # In-App Purchase Implementation Plan
+
 ## Symposium AI - React Native
 
-*Last Updated: January 2025*  
-*Version: 1.0*
+_Last Updated: January 2025_  
+_Version: 1.0_
 
 ---
 
@@ -11,11 +12,13 @@
 This document provides a comprehensive implementation guide for adding in-app purchases to Symposium AI using React Native community standards and atomic design principles. The implementation uses `react-native-iap` v13.0.0, the most mature and widely-adopted IAP library in the React Native ecosystem.
 
 ### Revenue Model
+
 - **Single Tier**: Symposium AI Premium
-- **Price**: $5.99/month (auto-renewable subscription)
+- **Price**: $7.99/month (auto-renewable subscription)
 - **Platforms**: iOS (App Store) and Android (Google Play)
 
 ### Timeline
+
 - **Total Duration**: 12 days
 - **Phase 1**: IAP Setup & Configuration (Days 1-3)
 - **Phase 2**: Platform Configuration (Days 4-6)
@@ -27,16 +30,16 @@ This document provides a comprehensive implementation guide for adding in-app pu
 
 ## Premium vs Free Feature Comparison
 
-| Feature | Free Tier | Premium Tier |
-|---------|-----------|--------------|
-| **AI Personalities** | Default only | All 12 personalities per AI |
-| **Compare Mode** | ❌ Not available | ✅ Full access |
-| **Debate Topics** | Pre-defined only | Custom topics |
-| **Chat Storage** | 3 conversations max | Unlimited |
-| **Compare Storage** | 3 comparisons max | Unlimited |
-| **Debate Storage** | 3 debates max | Unlimited |
-| **Share Transcripts** | ❌ Not available | ✅ Available |
-| **Priority Support** | Standard | Priority |
+| Feature               | Free Tier           | Premium Tier                |
+| --------------------- | ------------------- | --------------------------- |
+| **AI Personalities**  | Default only        | All 12 personalities per AI |
+| **Compare Mode**      | ❌ Not available    | ✅ Full access              |
+| **Debate Topics**     | Pre-defined only    | Custom topics               |
+| **Chat Storage**      | 3 conversations max | Unlimited                   |
+| **Compare Storage**   | 3 comparisons max   | Unlimited                   |
+| **Debate Storage**    | 3 debates max       | Unlimited                   |
+| **Share Transcripts** | ❌ Not available    | ✅ Available                |
+| **Priority Support**  | Standard            | Priority                    |
 
 ---
 
@@ -45,6 +48,7 @@ This document provides a comprehensive implementation guide for adding in-app pu
 ### React Native Standards
 
 #### Core Dependencies
+
 ```json
 {
   "dependencies": {
@@ -56,6 +60,7 @@ This document provides a comprehensive implementation guide for adding in-app pu
 ```
 
 #### Key Principles
+
 1. **Async-First**: All IAP operations are asynchronous
 2. **Error Boundaries**: Wrap purchase flows in error boundaries
 3. **Platform Abstraction**: Single API for both iOS and Android
@@ -133,7 +138,7 @@ src/
 // ios/SymposiumAI/AppDelegate.swift
 import StoreKit
 
-func application(_ application: UIApplication, 
+func application(_ application: UIApplication,
                 didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
   // Initialize IAP
   SKPaymentQueue.default().add(TransactionObserver.shared)
@@ -211,22 +216,22 @@ import {
   Purchase,
   Subscription,
   PurchaseError,
-} from 'react-native-iap';
-import { Platform } from 'react-native';
-import { store } from '../../store';
-import { updateSubscriptionStatus } from '../../store/subscriptionSlice';
-import { validateReceipt } from './ReceiptValidator';
+} from "react-native-iap";
+import { Platform } from "react-native";
+import { store } from "../../store";
+import { updateSubscriptionStatus } from "../../store/subscriptionSlice";
+import { validateReceipt } from "./ReceiptValidator";
 
 const PRODUCT_IDS = Platform.select({
-  ios: ['com.braveheartinnovations.debateai.premium.monthly'],
-  android: ['premium_monthly'],
+  ios: ["com.braveheartinnovations.debateai.premium.monthly"],
+  android: ["premium_monthly"],
 }) as string[];
 
 class IAPService {
   private purchaseUpdateSubscription: any = null;
   private purchaseErrorSubscription: any = null;
   private products: Subscription[] = [];
-  
+
   /**
    * Initialize IAP connection and listeners
    * Call this on app startup
@@ -236,41 +241,41 @@ class IAPService {
       // Connect to store
       const result = await initConnection();
       if (!result) {
-        throw new Error('Failed to connect to store');
+        throw new Error("Failed to connect to store");
       }
-      
+
       // Set up listeners
       this.setupPurchaseListeners();
-      
+
       // Load products
       await this.loadProducts();
-      
+
       // Check for pending purchases
       await this.processPendingPurchases();
-      
-      console.log('IAP Service initialized successfully');
+
+      console.log("IAP Service initialized successfully");
     } catch (error) {
-      console.error('IAP initialization failed:', error);
+      console.error("IAP initialization failed:", error);
       throw error;
     }
   }
-  
+
   /**
    * Load available products from the store
    */
   private async loadProducts(): Promise<void> {
     try {
       this.products = await getSubscriptions({ skus: PRODUCT_IDS });
-      
+
       if (this.products.length === 0) {
-        console.warn('No products loaded from store');
+        console.warn("No products loaded from store");
       }
     } catch (error) {
-      console.error('Failed to load products:', error);
+      console.error("Failed to load products:", error);
       throw error;
     }
   }
-  
+
   /**
    * Set up purchase event listeners
    */
@@ -278,59 +283,61 @@ class IAPService {
     // Listen for successful purchases
     this.purchaseUpdateSubscription = purchaseUpdatedListener(
       async (purchase: Purchase) => {
-        console.log('Purchase updated:', purchase.productId);
-        
+        console.log("Purchase updated:", purchase.productId);
+
         try {
           // Validate receipt on server
           const isValid = await validateReceipt(purchase);
-          
+
           if (isValid) {
             // Update local state
-            store.dispatch(updateSubscriptionStatus({
-              isPremium: true,
-              expiresAt: purchase.transactionDate + 30 * 24 * 60 * 60 * 1000,
-              productId: purchase.productId,
-            }));
-            
+            store.dispatch(
+              updateSubscriptionStatus({
+                isPremium: true,
+                expiresAt: purchase.transactionDate + 30 * 24 * 60 * 60 * 1000,
+                productId: purchase.productId,
+              })
+            );
+
             // Acknowledge purchase
-            await finishTransaction({ 
+            await finishTransaction({
               purchase,
               isConsumable: false,
             });
           } else {
-            throw new Error('Invalid receipt');
+            throw new Error("Invalid receipt");
           }
         } catch (error) {
-          console.error('Failed to process purchase:', error);
+          console.error("Failed to process purchase:", error);
           // Don't finish transaction if validation fails
         }
       }
     );
-    
+
     // Listen for purchase errors
     this.purchaseErrorSubscription = purchaseErrorListener(
       (error: PurchaseError) => {
-        if (error.code === 'E_USER_CANCELLED') {
-          console.log('User cancelled purchase');
+        if (error.code === "E_USER_CANCELLED") {
+          console.log("User cancelled purchase");
         } else {
-          console.error('Purchase error:', error);
+          console.error("Purchase error:", error);
         }
       }
     );
   }
-  
+
   /**
    * Process any pending purchases from previous sessions
    */
   private async processPendingPurchases(): Promise<void> {
-    if (Platform.OS === 'android') {
+    if (Platform.OS === "android") {
       try {
         const purchases = await getAvailablePurchases();
-        
+
         for (const purchase of purchases) {
           // Validate and finish pending transactions
           const isValid = await validateReceipt(purchase);
-          
+
           if (isValid) {
             await finishTransaction({
               purchase,
@@ -339,19 +346,19 @@ class IAPService {
           }
         }
       } catch (error) {
-        console.error('Failed to process pending purchases:', error);
+        console.error("Failed to process pending purchases:", error);
       }
     }
   }
-  
+
   /**
    * Purchase subscription
    */
   async purchaseSubscription(): Promise<boolean> {
     try {
       const productId = PRODUCT_IDS[0];
-      
-      if (Platform.OS === 'ios') {
+
+      if (Platform.OS === "ios") {
         await requestSubscription({
           sku: productId,
           andDangerouslyFinishTransactionAutomaticallyIOS: false,
@@ -360,65 +367,69 @@ class IAPService {
         // Android with offers
         await requestSubscription({
           sku: productId,
-          subscriptionOffers: [{
-            sku: productId,
-            offerToken: '', // Will be populated by Play Store
-          }],
+          subscriptionOffers: [
+            {
+              sku: productId,
+              offerToken: "", // Will be populated by Play Store
+            },
+          ],
         });
       }
-      
+
       return true;
     } catch (error: any) {
-      if (error.code === 'E_USER_CANCELLED') {
+      if (error.code === "E_USER_CANCELLED") {
         return false;
       }
       throw error;
     }
   }
-  
+
   /**
    * Restore previous purchases
    */
   async restorePurchases(): Promise<boolean> {
     try {
       const purchases = await getAvailablePurchases();
-      
+
       if (purchases.length === 0) {
         return false;
       }
-      
+
       // Find active subscription
-      const activeSubscription = purchases.find(p => 
+      const activeSubscription = purchases.find((p) =>
         PRODUCT_IDS.includes(p.productId)
       );
-      
+
       if (activeSubscription) {
         // Validate and update status
         const isValid = await validateReceipt(activeSubscription);
-        
+
         if (isValid) {
-          store.dispatch(updateSubscriptionStatus({
-            isPremium: true,
-            productId: activeSubscription.productId,
-          }));
+          store.dispatch(
+            updateSubscriptionStatus({
+              isPremium: true,
+              productId: activeSubscription.productId,
+            })
+          );
           return true;
         }
       }
-      
+
       return false;
     } catch (error) {
-      console.error('Failed to restore purchases:', error);
+      console.error("Failed to restore purchases:", error);
       throw error;
     }
   }
-  
+
   /**
    * Get product details
    */
   getProduct(): Subscription | null {
     return this.products[0] || null;
   }
-  
+
   /**
    * Clean up IAP connection
    */
@@ -429,7 +440,7 @@ class IAPService {
     if (this.purchaseErrorSubscription) {
       this.purchaseErrorSubscription.remove();
     }
-    
+
     await endConnection();
   }
 }
@@ -446,8 +457,8 @@ export default iapService;
 
 ```typescript
 // src/services/storage/StorageLimitService.ts
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { store } from '../../store';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { store } from "../../store";
 
 interface StorageMetrics {
   chats: number;
@@ -462,116 +473,120 @@ interface StorageLimits {
 }
 
 class StorageLimitService {
-  private readonly STORAGE_KEY = '@storage_metrics';
-  
+  private readonly STORAGE_KEY = "@storage_metrics";
+
   private readonly FREE_LIMITS: StorageLimits = {
     chats: 3,
     comparisons: 3,
     debates: 3,
   };
-  
+
   private readonly PREMIUM_LIMITS: StorageLimits = {
     chats: -1, // Unlimited
     comparisons: -1,
     debates: -1,
   };
-  
+
   /**
    * Get current storage metrics
    */
   async getMetrics(): Promise<StorageMetrics> {
     try {
       const metricsJson = await AsyncStorage.getItem(this.STORAGE_KEY);
-      
+
       if (metricsJson) {
         return JSON.parse(metricsJson);
       }
-      
+
       return { chats: 0, comparisons: 0, debates: 0 };
     } catch (error) {
-      console.error('Failed to get storage metrics:', error);
+      console.error("Failed to get storage metrics:", error);
       return { chats: 0, comparisons: 0, debates: 0 };
     }
   }
-  
+
   /**
    * Check if user can create new item of type
    */
-  async canCreate(type: 'chats' | 'comparisons' | 'debates'): Promise<boolean> {
+  async canCreate(type: "chats" | "comparisons" | "debates"): Promise<boolean> {
     const metrics = await this.getMetrics();
     const limits = this.getCurrentLimits();
-    
+
     // Premium users have unlimited storage
     if (limits[type] === -1) {
       return true;
     }
-    
+
     return metrics[type] < limits[type];
   }
-  
+
   /**
    * Increment storage count for type
    */
-  async increment(type: 'chats' | 'comparisons' | 'debates'): Promise<void> {
+  async increment(type: "chats" | "comparisons" | "debates"): Promise<void> {
     const metrics = await this.getMetrics();
     metrics[type]++;
-    
+
     await AsyncStorage.setItem(this.STORAGE_KEY, JSON.stringify(metrics));
   }
-  
+
   /**
    * Decrement storage count for type
    */
-  async decrement(type: 'chats' | 'comparisons' | 'debates'): Promise<void> {
+  async decrement(type: "chats" | "comparisons" | "debates"): Promise<void> {
     const metrics = await this.getMetrics();
     metrics[type] = Math.max(0, metrics[type] - 1);
-    
+
     await AsyncStorage.setItem(this.STORAGE_KEY, JSON.stringify(metrics));
   }
-  
+
   /**
    * Get current limits based on subscription
    */
   getCurrentLimits(): StorageLimits {
     const state = store.getState();
     const isPremium = state.subscription?.isPremium || false;
-    
+
     return isPremium ? this.PREMIUM_LIMITS : this.FREE_LIMITS;
   }
-  
+
   /**
    * Get usage percentage for UI display
    */
-  async getUsagePercentage(type: 'chats' | 'comparisons' | 'debates'): Promise<number> {
+  async getUsagePercentage(
+    type: "chats" | "comparisons" | "debates"
+  ): Promise<number> {
     const metrics = await this.getMetrics();
     const limits = this.getCurrentLimits();
-    
+
     if (limits[type] === -1) {
       return 0; // Unlimited
     }
-    
+
     return (metrics[type] / limits[type]) * 100;
   }
-  
+
   /**
    * Get formatted usage string (e.g., "2/3 Debates")
    */
-  async getUsageString(type: 'chats' | 'comparisons' | 'debates'): Promise<string> {
+  async getUsageString(
+    type: "chats" | "comparisons" | "debates"
+  ): Promise<string> {
     const metrics = await this.getMetrics();
     const limits = this.getCurrentLimits();
-    
+
     if (limits[type] === -1) {
       return `${metrics[type]} ${this.getTypeLabel(type)}`;
     }
-    
+
     return `${metrics[type]}/${limits[type]} ${this.getTypeLabel(type)}`;
   }
-  
-  private getTypeLabel(type: 'chats' | 'comparisons' | 'debates'): string {
+
+  private getTypeLabel(type: "chats" | "comparisons" | "debates"): string {
     const labels = {
-      chats: 'Chats',
-      comparisons: 'Comparisons',
-      debates: 'Debates',
+      chats: "Chats",
+      comparisons: "Comparisons",
+      debates: "Debates",
     };
     return labels[type];
   }
@@ -589,16 +604,16 @@ export default storageLimitService;
 
 ```typescript
 // src/components/molecules/FeatureGate.tsx
-import React from 'react';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { Typography } from './Typography';
-import { Box } from '../atoms/Box';
-import { useSubscription } from '../../hooks/useSubscription';
-import { useTheme } from '../../theme';
+import React from "react";
+import { View, TouchableOpacity, StyleSheet } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { Typography } from "./Typography";
+import { Box } from "../atoms/Box";
+import { useSubscription } from "../../hooks/useSubscription";
+import { useTheme } from "../../theme";
 
 interface FeatureGateProps {
-  feature: 'personalities' | 'compare' | 'customTopics';
+  feature: "personalities" | "compare" | "customTopics";
   children: React.ReactNode;
   message?: string;
 }
@@ -611,31 +626,33 @@ export const FeatureGate: React.FC<FeatureGateProps> = ({
   const { isPremium } = useSubscription();
   const navigation = useNavigation();
   const { theme } = useTheme();
-  
+
   if (isPremium) {
     return <>{children}</>;
   }
-  
+
   const defaultMessages = {
-    personalities: 'Unlock all AI personalities with Premium',
-    compare: 'Compare mode is a Premium feature',
-    customTopics: 'Create custom topics with Premium',
+    personalities: "Unlock all AI personalities with Premium",
+    compare: "Compare mode is a Premium feature",
+    customTopics: "Create custom topics with Premium",
   };
-  
+
   const displayMessage = message || defaultMessages[feature];
-  
+
   const handleUpgrade = () => {
-    navigation.navigate('PremiumUpgrade' as never);
+    navigation.navigate("PremiumUpgrade" as never);
   };
-  
+
   return (
     <TouchableOpacity
       style={styles.container}
       onPress={handleUpgrade}
       activeOpacity={0.8}
     >
-      <View style={[styles.overlay, { backgroundColor: theme.colors.overlay }]} />
-      
+      <View
+        style={[styles.overlay, { backgroundColor: theme.colors.overlay }]}
+      />
+
       <Box style={styles.lockContainer}>
         <Typography variant="h6" weight="semibold" color="primary">
           🔒
@@ -643,29 +660,23 @@ export const FeatureGate: React.FC<FeatureGateProps> = ({
         <Typography
           variant="body2"
           weight="semibold"
-          style={{ marginTop: 8, textAlign: 'center' }}
+          style={{ marginTop: 8, textAlign: "center" }}
         >
           {displayMessage}
         </Typography>
-        <Typography
-          variant="caption"
-          color="primary"
-          style={{ marginTop: 4 }}
-        >
+        <Typography variant="caption" color="primary" style={{ marginTop: 4 }}>
           Tap to upgrade
         </Typography>
       </Box>
-      
-      <View style={styles.blurredContent}>
-        {children}
-      </View>
+
+      <View style={styles.blurredContent}>{children}</View>
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    position: 'relative',
+    position: "relative",
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
@@ -674,8 +685,8 @@ const styles = StyleSheet.create({
   },
   lockContainer: {
     ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     zIndex: 2,
     padding: 20,
   },
@@ -689,18 +700,18 @@ const styles = StyleSheet.create({
 
 ```typescript
 // src/components/organisms/StorageLimitModal.tsx
-import React from 'react';
-import { View, Modal, TouchableOpacity, StyleSheet } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { Typography } from '../molecules/Typography';
-import { Button } from '../molecules/Button';
-import { Card } from '../molecules/Card';
-import { useTheme } from '../../theme';
+import React from "react";
+import { View, Modal, TouchableOpacity, StyleSheet } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { Typography } from "../molecules/Typography";
+import { Button } from "../molecules/Button";
+import { Card } from "../molecules/Card";
+import { useTheme } from "../../theme";
 
 interface StorageLimitModalProps {
   visible: boolean;
   onClose: () => void;
-  type: 'chats' | 'comparisons' | 'debates';
+  type: "chats" | "comparisons" | "debates";
   onDelete: () => void;
 }
 
@@ -712,18 +723,18 @@ export const StorageLimitModal: React.FC<StorageLimitModalProps> = ({
 }) => {
   const navigation = useNavigation();
   const { theme } = useTheme();
-  
+
   const typeLabels = {
-    chats: 'chat conversations',
-    comparisons: 'comparisons',
-    debates: 'debates',
+    chats: "chat conversations",
+    comparisons: "comparisons",
+    debates: "debates",
   };
-  
+
   const handleUpgrade = () => {
     onClose();
-    navigation.navigate('PremiumUpgrade' as never);
+    navigation.navigate("PremiumUpgrade" as never);
   };
-  
+
   return (
     <Modal
       visible={visible}
@@ -736,41 +747,56 @@ export const StorageLimitModal: React.FC<StorageLimitModalProps> = ({
           <Typography variant="h5" weight="bold" style={{ marginBottom: 16 }}>
             Storage Limit Reached
           </Typography>
-          
-          <Typography variant="body1" color="secondary" style={{ marginBottom: 24 }}>
-            You've reached your limit of 3 {typeLabels[type]}. 
-            Free users can store up to 3 items in each category.
+
+          <Typography
+            variant="body1"
+            color="secondary"
+            style={{ marginBottom: 24 }}
+          >
+            You've reached your limit of 3 {typeLabels[type]}. Free users can
+            store up to 3 items in each category.
           </Typography>
-          
+
           <View style={styles.options}>
-            <Typography variant="h6" weight="semibold" style={{ marginBottom: 12 }}>
+            <Typography
+              variant="h6"
+              weight="semibold"
+              style={{ marginBottom: 12 }}
+            >
               Your Options:
             </Typography>
-            
+
             <TouchableOpacity
-              style={[styles.option, { backgroundColor: theme.colors.surface.secondary }]}
+              style={[
+                styles.option,
+                { backgroundColor: theme.colors.surface.secondary },
+              ]}
               onPress={onDelete}
             >
               <Typography variant="body2" weight="medium">
                 🗑️ Delete an existing {typeLabels[type].slice(0, -1)}
               </Typography>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
-              style={[styles.option, styles.premiumOption, { backgroundColor: theme.colors.primary[500] }]}
+              style={[
+                styles.option,
+                styles.premiumOption,
+                { backgroundColor: theme.colors.primary[500] },
+              ]}
               onPress={handleUpgrade}
             >
-              <Typography variant="body2" weight="bold" style={{ color: 'white' }}>
+              <Typography
+                variant="body2"
+                weight="bold"
+                style={{ color: "white" }}
+              >
                 ⭐ Upgrade to Premium for unlimited storage
               </Typography>
             </TouchableOpacity>
           </View>
-          
-          <Button
-            variant="text"
-            onPress={onClose}
-            style={{ marginTop: 16 }}
-          >
+
+          <Button variant="text" onPress={onClose} style={{ marginTop: 16 }}>
             Cancel
           </Button>
         </Card>
@@ -782,13 +808,13 @@ export const StorageLimitModal: React.FC<StorageLimitModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   modal: {
-    width: '100%',
+    width: "100%",
     maxWidth: 400,
     padding: 24,
   },
@@ -814,100 +840,101 @@ const styles = StyleSheet.create({
 
 ```typescript
 // functions/src/validatePurchase.ts
-import * as functions from 'firebase-functions';
-import * as admin from 'firebase-admin';
-import axios from 'axios';
+import * as functions from "firebase-functions";
+import * as admin from "firebase-admin";
+import axios from "axios";
 
-const APPLE_PRODUCTION_URL = 'https://buy.itunes.apple.com/verifyReceipt';
-const APPLE_SANDBOX_URL = 'https://sandbox.itunes.apple.com/verifyReceipt';
+const APPLE_PRODUCTION_URL = "https://buy.itunes.apple.com/verifyReceipt";
+const APPLE_SANDBOX_URL = "https://sandbox.itunes.apple.com/verifyReceipt";
 const APPLE_SHARED_SECRET = functions.config().apple.shared_secret;
 
-export const validatePurchase = functions.https.onCall(async (data, context) => {
-  // Verify user is authenticated
-  if (!context.auth) {
-    throw new functions.https.HttpsError(
-      'unauthenticated',
-      'User must be authenticated'
-    );
-  }
-  
-  const { receipt, platform, productId } = data;
-  const userId = context.auth.uid;
-  
-  try {
-    let isValid = false;
-    let expiryDate: Date | null = null;
-    
-    if (platform === 'ios') {
-      // Validate with Apple
-      const validation = await validateAppleReceipt(receipt);
-      isValid = validation.isValid;
-      expiryDate = validation.expiryDate;
-    } else if (platform === 'android') {
-      // Validate with Google Play
-      const validation = await validateGoogleReceipt(receipt, productId);
-      isValid = validation.isValid;
-      expiryDate = validation.expiryDate;
+export const validatePurchase = functions.https.onCall(
+  async (data, context) => {
+    // Verify user is authenticated
+    if (!context.auth) {
+      throw new functions.https.HttpsError(
+        "unauthenticated",
+        "User must be authenticated"
+      );
     }
-    
-    if (isValid && expiryDate) {
-      // Update user subscription in Firestore
-      await admin.firestore().collection('users').doc(userId).update({
-        subscription: 'premium',
-        subscriptionExpiry: expiryDate,
-        subscriptionPlatform: platform,
-        subscriptionProductId: productId,
-        lastValidated: admin.firestore.FieldValue.serverTimestamp(),
-      });
-      
-      // Log for analytics
-      await admin.analytics().logEvent('subscription_validated', {
-        user_id: userId,
-        platform,
-        product_id: productId,
-      });
-      
+
+    const { receipt, platform, productId } = data;
+    const userId = context.auth.uid;
+
+    try {
+      let isValid = false;
+      let expiryDate: Date | null = null;
+
+      if (platform === "ios") {
+        // Validate with Apple
+        const validation = await validateAppleReceipt(receipt);
+        isValid = validation.isValid;
+        expiryDate = validation.expiryDate;
+      } else if (platform === "android") {
+        // Validate with Google Play
+        const validation = await validateGoogleReceipt(receipt, productId);
+        isValid = validation.isValid;
+        expiryDate = validation.expiryDate;
+      }
+
+      if (isValid && expiryDate) {
+        // Update user subscription in Firestore
+        await admin.firestore().collection("users").doc(userId).update({
+          subscription: "premium",
+          subscriptionExpiry: expiryDate,
+          subscriptionPlatform: platform,
+          subscriptionProductId: productId,
+          lastValidated: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        // Log for analytics
+        await admin.analytics().logEvent("subscription_validated", {
+          user_id: userId,
+          platform,
+          product_id: productId,
+        });
+
+        return {
+          valid: true,
+          expiryDate,
+        };
+      }
+
       return {
-        valid: true,
-        expiryDate,
+        valid: false,
+        error: "Invalid receipt",
       };
+    } catch (error) {
+      console.error("Receipt validation error:", error);
+      throw new functions.https.HttpsError(
+        "internal",
+        "Failed to validate receipt"
+      );
     }
-    
-    return {
-      valid: false,
-      error: 'Invalid receipt',
-    };
-    
-  } catch (error) {
-    console.error('Receipt validation error:', error);
-    throw new functions.https.HttpsError(
-      'internal',
-      'Failed to validate receipt'
-    );
   }
-});
+);
 
 async function validateAppleReceipt(receiptData: string) {
   try {
     // Try production first
     let response = await axios.post(APPLE_PRODUCTION_URL, {
-      'receipt-data': receiptData,
+      "receipt-data": receiptData,
       password: APPLE_SHARED_SECRET,
-      'exclude-old-transactions': true,
+      "exclude-old-transactions": true,
     });
-    
+
     // If sandbox receipt, retry with sandbox URL
     if (response.data.status === 21007) {
       response = await axios.post(APPLE_SANDBOX_URL, {
-        'receipt-data': receiptData,
+        "receipt-data": receiptData,
         password: APPLE_SHARED_SECRET,
-        'exclude-old-transactions': true,
+        "exclude-old-transactions": true,
       });
     }
-    
+
     if (response.data.status === 0) {
       const latestReceipt = response.data.latest_receipt_info?.[0];
-      
+
       if (latestReceipt) {
         return {
           isValid: true,
@@ -915,11 +942,10 @@ async function validateAppleReceipt(receiptData: string) {
         };
       }
     }
-    
+
     return { isValid: false, expiryDate: null };
-    
   } catch (error) {
-    console.error('Apple receipt validation error:', error);
+    console.error("Apple receipt validation error:", error);
     return { isValid: false, expiryDate: null };
   }
 }
@@ -939,10 +965,12 @@ async function validateGoogleReceipt(purchaseToken: string, productId: string) {
 ### iOS Sandbox Testing
 
 1. **Create Sandbox Testers**
+
    - App Store Connect → Users and Access → Sandbox Testers
    - Create test accounts with unique emails
 
 2. **Testing Flow**
+
    ```bash
    # Device Setup
    1. Settings → App Store → Sign Out
@@ -961,10 +989,12 @@ async function validateGoogleReceipt(purchaseToken: string, productId: string) {
 ### Android License Testing
 
 1. **Setup Test Accounts**
+
    - Google Play Console → Setup → License testing
    - Add tester Gmail accounts
 
 2. **Test Cards**
+
    ```
    Always Approves: 4111 1111 1111 1111
    Always Declines: 4000 0000 0000 0002
@@ -980,21 +1010,21 @@ async function validateGoogleReceipt(purchaseToken: string, productId: string) {
 
 ```typescript
 // Test scenarios to verify
-describe('Storage Limits', () => {
-  it('should block creation at limit for free users', async () => {
+describe("Storage Limits", () => {
+  it("should block creation at limit for free users", async () => {
     // Set user as free
     // Create 3 debates
     // Attempt to create 4th
     // Verify modal appears
   });
-  
-  it('should allow unlimited for premium users', async () => {
+
+  it("should allow unlimited for premium users", async () => {
     // Set user as premium
     // Create > 3 items
     // Verify no blocking
   });
-  
-  it('should update counts on deletion', async () => {
+
+  it("should update counts on deletion", async () => {
     // Create 3 items
     // Delete 1
     // Verify can create new item
@@ -1009,6 +1039,7 @@ describe('Storage Limits', () => {
 ### App Store Requirements
 
 #### Required Elements
+
 - ✅ Restore Purchases button (visible and functional)
 - ✅ Privacy Policy URL in app and App Store Connect
 - ✅ Terms of Service URL in app
@@ -1016,6 +1047,7 @@ describe('Storage Limits', () => {
 - ✅ Auto-renewal disclosure text
 
 #### Auto-Renewal Disclosure
+
 ```
 Symposium AI Premium - $5.99/month
 
@@ -1032,12 +1064,14 @@ Terms of Service: https://symposium-ai.com/terms
 ### Google Play Requirements
 
 #### Required Elements
+
 - ✅ Privacy Policy URL in Play Console and app
 - ✅ In-app products configured correctly
 - ✅ Clear pricing and billing period
 - ✅ Cancellation instructions
 
 #### Subscription Description
+
 ```
 Symposium AI Premium unlocks:
 • All AI personalities (12 per AI)
@@ -1061,17 +1095,17 @@ Cancel anytime in Google Play Store → Payments & subscriptions.
 // src/utils/iapErrors.ts
 export const handleIAPError = (error: any): string => {
   const errorMessages: Record<string, string> = {
-    'E_USER_CANCELLED': 'Purchase cancelled',
-    'E_ITEM_UNAVAILABLE': 'Product not available',
-    'E_NETWORK_ERROR': 'Network error. Please try again.',
-    'E_SERVICE_ERROR': 'Store service error. Please try later.',
-    'E_RECEIPT_FAILED': 'Purchase validation failed',
-    'E_ALREADY_OWNED': 'You already own this subscription',
-    'E_DEFERRED': 'Purchase requires approval',
-    'E_UNKNOWN': 'An unexpected error occurred',
+    E_USER_CANCELLED: "Purchase cancelled",
+    E_ITEM_UNAVAILABLE: "Product not available",
+    E_NETWORK_ERROR: "Network error. Please try again.",
+    E_SERVICE_ERROR: "Store service error. Please try later.",
+    E_RECEIPT_FAILED: "Purchase validation failed",
+    E_ALREADY_OWNED: "You already own this subscription",
+    E_DEFERRED: "Purchase requires approval",
+    E_UNKNOWN: "An unexpected error occurred",
   };
-  
-  return errorMessages[error.code] || errorMessages['E_UNKNOWN'];
+
+  return errorMessages[error.code] || errorMessages["E_UNKNOWN"];
 };
 ```
 
@@ -1083,13 +1117,13 @@ export const handleIAPError = (error: any): string => {
 
 ```typescript
 // src/store/subscriptionSlice.ts
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 interface SubscriptionState {
   isPremium: boolean;
   productId: string | null;
   expiresAt: number | null;
-  platform: 'ios' | 'android' | null;
+  platform: "ios" | "android" | null;
   isLoading: boolean;
   error: string | null;
 }
@@ -1104,13 +1138,16 @@ const initialState: SubscriptionState = {
 };
 
 const subscriptionSlice = createSlice({
-  name: 'subscription',
+  name: "subscription",
   initialState,
   reducers: {
     setSubscriptionLoading: (state, action: PayloadAction<boolean>) => {
       state.isLoading = action.payload;
     },
-    updateSubscriptionStatus: (state, action: PayloadAction<Partial<SubscriptionState>>) => {
+    updateSubscriptionStatus: (
+      state,
+      action: PayloadAction<Partial<SubscriptionState>>
+    ) => {
       return { ...state, ...action.payload };
     },
     clearSubscription: (state) => {
@@ -1137,6 +1174,7 @@ export default subscriptionSlice.reducer;
 ## Implementation Checklist
 
 ### Phase 1: Setup (Days 1-3)
+
 - [ ] Install react-native-iap v13.0.0
 - [ ] Configure iOS native setup
 - [ ] Configure Android native setup
@@ -1146,6 +1184,7 @@ export default subscriptionSlice.reducer;
 - [ ] Initialize IAP on app startup
 
 ### Phase 2: Platform Config (Days 4-6)
+
 - [ ] Create App Store Connect product ($5.99/month)
 - [ ] Create Google Play Console product
 - [ ] Configure sandbox testing (iOS)
@@ -1154,6 +1193,7 @@ export default subscriptionSlice.reducer;
 - [ ] Deploy receipt validation function
 
 ### Phase 3: Validation (Days 7-8)
+
 - [ ] Implement Apple receipt validation
 - [ ] Implement Google receipt validation
 - [ ] Store subscription status in Firestore
@@ -1161,6 +1201,7 @@ export default subscriptionSlice.reducer;
 - [ ] Test validation endpoints
 
 ### Phase 4: UI (Days 9-10)
+
 - [ ] Create PremiumUpgradeScreen
 - [ ] Create FeatureGate component
 - [ ] Create StorageLimitModal
@@ -1169,6 +1210,7 @@ export default subscriptionSlice.reducer;
 - [ ] Add restore purchases button
 
 ### Phase 5: Storage & Testing (Days 11-12)
+
 - [ ] Implement StorageLimitService
 - [ ] Add storage indicators to UI
 - [ ] Test purchase flow (iOS sandbox)
@@ -1185,17 +1227,18 @@ export default subscriptionSlice.reducer;
 
 ```typescript
 // Analytics events to implement
-analytics.logEvent('premium_screen_viewed');
-analytics.logEvent('purchase_initiated', { product_id: 'premium_monthly' });
-analytics.logEvent('purchase_completed', { revenue: 5.99, currency: 'USD' });
-analytics.logEvent('purchase_cancelled');
-analytics.logEvent('purchase_failed', { error_code: 'E_NETWORK' });
-analytics.logEvent('subscription_restored');
-analytics.logEvent('storage_limit_reached', { type: 'debates' });
-analytics.logEvent('feature_blocked', { feature: 'compare_mode' });
+analytics.logEvent("premium_screen_viewed");
+analytics.logEvent("purchase_initiated", { product_id: "premium_monthly" });
+analytics.logEvent("purchase_completed", { revenue: 5.99, currency: "USD" });
+analytics.logEvent("purchase_cancelled");
+analytics.logEvent("purchase_failed", { error_code: "E_NETWORK" });
+analytics.logEvent("subscription_restored");
+analytics.logEvent("storage_limit_reached", { type: "debates" });
+analytics.logEvent("feature_blocked", { feature: "compare_mode" });
 ```
 
 ### Conversion Funnel
+
 1. App Launch → Premium Screen View
 2. Premium Screen → Purchase Initiated
 3. Purchase Initiated → Purchase Completed
@@ -1206,16 +1249,19 @@ analytics.logEvent('feature_blocked', { feature: 'compare_mode' });
 ## Support Resources
 
 ### Documentation
+
 - [react-native-iap Documentation](https://react-native-iap.dooboolab.com/)
 - [App Store Review Guidelines](https://developer.apple.com/app-store/review/guidelines/#in-app-purchase)
 - [Google Play Billing Documentation](https://developer.android.com/google/play/billing)
 - [Firebase Functions Documentation](https://firebase.google.com/docs/functions)
 
 ### Testing Tools
+
 - [App Store Sandbox Testing](https://developer.apple.com/documentation/storekit/in-app_purchase/testing_in-app_purchases_in_xcode)
 - [Google Play Testing](https://developer.android.com/google/play/billing/test)
 
 ### Community
+
 - [React Native IAP GitHub Issues](https://github.com/dooboolab/react-native-iap/issues)
 - [React Native Community Discord](https://discord.gg/reactnative)
 
@@ -1229,4 +1275,4 @@ The single-tier pricing model at $5.99/month simplifies the user experience whil
 
 ---
 
-*For questions or clarifications, contact: team@symposium-ai.com*
+_For questions or clarifications, contact: team@symposium-ai.com_

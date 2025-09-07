@@ -7,7 +7,8 @@ import { useTheme } from '../../../theme';
 import { useDispatch } from 'react-redux';
 import { 
   signInWithApple, 
-  signInWithGoogle 
+  signInWithGoogle, 
+  toAuthUser
 } from '../../../services/firebase/auth';
 import { setAuthUser, setUserProfile } from '../../../store/authSlice';
 
@@ -24,11 +25,30 @@ export const SocialAuthProviders: React.FC<SocialAuthProvidersProps> = ({
   const dispatch = useDispatch();
   const [loadingProvider, setLoadingProvider] = useState<'apple' | 'google' | null>(null);
   const [appleAuthAvailable, setAppleAuthAvailable] = useState(false);
+  const [isSimulator, setIsSimulator] = useState(false);
 
-  // Check if Apple Authentication is available
+  // Check if Apple Authentication is available and if we're in simulator
   React.useEffect(() => {
     if (Platform.OS === 'ios') {
-      AppleAuthentication.isAvailableAsync().then(setAppleAuthAvailable);
+      // Check if running in simulator - Apple Sign In doesn't work in simulator
+      const checkSimulator = async () => {
+        try {
+          // In simulator, isAvailableAsync returns false
+          const isAvailable = await AppleAuthentication.isAvailableAsync();
+          setAppleAuthAvailable(isAvailable);
+          
+          // Additional check: if we're in dev mode and Apple Auth is not available,
+          // we're likely in simulator
+          if (__DEV__ && !isAvailable) {
+            setIsSimulator(true);
+            console.warn('Running in iOS Simulator - Apple Sign-In unavailable');
+          }
+        } catch (error) {
+          console.error('Error checking Apple Authentication availability:', error);
+          setAppleAuthAvailable(false);
+        }
+      };
+      checkSimulator();
     }
   }, []);
 
@@ -38,12 +58,12 @@ export const SocialAuthProviders: React.FC<SocialAuthProvidersProps> = ({
     setLoadingProvider('apple');
     try {
       const { user, profile } = await signInWithApple();
-      dispatch(setAuthUser(user));
+      dispatch(setAuthUser(toAuthUser(user)));
       dispatch(setUserProfile({
         email: profile.email,
         displayName: profile.displayName,
         photoURL: profile.photoURL,
-        createdAt: profile.createdAt,
+        createdAt: profile.createdAt || Date.now(),
         membershipStatus: profile.membershipStatus,
         preferences: profile.preferences,
         authProvider: 'apple'
@@ -64,12 +84,12 @@ export const SocialAuthProviders: React.FC<SocialAuthProvidersProps> = ({
     setLoadingProvider('google');
     try {
       const { user, profile } = await signInWithGoogle();
-      dispatch(setAuthUser(user));
+      dispatch(setAuthUser(toAuthUser(user)));
       dispatch(setUserProfile({
         email: profile.email,
         displayName: profile.displayName,
         photoURL: profile.photoURL,
-        createdAt: profile.createdAt,
+        createdAt: profile.createdAt || Date.now(),
         membershipStatus: profile.membershipStatus,
         preferences: profile.preferences,
         authProvider: 'google'
@@ -77,9 +97,9 @@ export const SocialAuthProviders: React.FC<SocialAuthProvidersProps> = ({
       onSuccess?.();
     } catch (error) {
       console.error('Google Sign In error:', error);
-      if (error instanceof Error && !error.message.includes('cancelled')) {
+      if (error instanceof Error && !error.message.toLowerCase().includes('cancel')) {
         onError?.(error);
-        Alert.alert('Sign In Failed', 'Unable to sign in with Google. Please try again.');
+        Alert.alert('Sign In', error.message || 'Unable to sign in with Google.');
       }
     } finally {
       setLoadingProvider(null);
@@ -88,8 +108,18 @@ export const SocialAuthProviders: React.FC<SocialAuthProvidersProps> = ({
 
   return (
     <View style={styles.container}>
+      {/* Show simulator notice in development */}
+      {__DEV__ && isSimulator && Platform.OS === 'ios' && (
+        <View style={[styles.devNotice, { backgroundColor: theme.colors.warning + '20' }]}>
+          <Typography variant="caption" color="secondary" style={{ textAlign: 'center' }}>
+            📱 iOS Simulator Detected: Apple Sign-In unavailable in simulator.{'\n'}
+            Use email sign-in or test on a real device.
+          </Typography>
+        </View>
+      )}
+      
       {/* Platform-specific ordering - Apple first on iOS */}
-      {Platform.OS === 'ios' && appleAuthAvailable && (
+      {Platform.OS === 'ios' && appleAuthAvailable && !isSimulator && (
         <AppleAuthentication.AppleAuthenticationButton
           buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
           buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
@@ -146,5 +176,10 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     marginHorizontal: 16,
+  },
+  devNotice: {
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
   },
 });

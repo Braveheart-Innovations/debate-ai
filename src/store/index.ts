@@ -328,7 +328,7 @@ export const {
 
 // Export auth actions
 export { 
-  setUser as setAuthUser,
+  setAuthUser,
   setUserProfile,
   setPremiumStatus,
   setAuthLoading,

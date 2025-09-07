@@ -16,9 +16,10 @@ import {
   signOut, 
   signInWithEmail, 
   signUpWithEmail, 
-  signInAnonymously
+  signInAnonymously,
+  toAuthUser
 } from '../../../services/firebase/auth';
-import { getFirestore, doc, setDoc, getDoc } from '@react-native-firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from '@react-native-firebase/firestore';
 
 interface ProfileContentProps {
   onClose: () => void;
@@ -53,7 +54,7 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
         await setDoc(userDocRef, {
           email: user.email,
           displayName: user.displayName || email.split('@')[0],
-          createdAt: new Date(),
+          createdAt: serverTimestamp(),
           membershipStatus: 'free',
           preferences: {},
         });
@@ -68,12 +69,16 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
       
       const profileData = profileDoc.data();
       
-      dispatch(setAuthUser(user));
+      dispatch(setAuthUser(toAuthUser(user)));
       dispatch(setUserProfile({
         email: user.email,
         displayName: profileData?.displayName || user.displayName,
         photoURL: user.photoURL,
-        createdAt: profileData?.createdAt?.toDate() || new Date(),
+        createdAt: profileData?.createdAt?.toDate
+          ? profileData.createdAt.toDate().getTime()
+          : typeof profileData?.createdAt === 'number'
+          ? profileData.createdAt
+          : Date.now(),
         membershipStatus: profileData?.membershipStatus || 'free',
         preferences: profileData?.preferences || {},
       }));
@@ -93,12 +98,12 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
     setLoading(true);
     try {
       const user = await signInAnonymously();
-      dispatch(setAuthUser(user));
+      dispatch(setAuthUser(toAuthUser(user)));
       dispatch(setUserProfile({
         email: null,
         displayName: 'Guest User',
         photoURL: null,
-        createdAt: new Date(),
+        createdAt: Date.now(),
         membershipStatus: 'free',
         preferences: {},
         authProvider: 'anonymous',
@@ -135,8 +140,7 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
     if (onSettingsPress) {
       onSettingsPress();
     } else {
-      // Default behavior - navigate to settings
-      // TODO: Navigate to settings
+      Alert.alert('Settings', 'Account settings are coming soon.');
     }
     onClose();
   };
@@ -440,35 +444,7 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
             </View>
           </View>
           
-          {/* User Stats */}
-          <View style={styles.userStats}>
-            <View style={styles.statItem}>
-              <Typography variant="title" weight="bold" color="primary">
-                {Math.floor(Math.random() * 50) + 10}
-              </Typography>
-              <Typography variant="caption" color="secondary">
-                Debates
-              </Typography>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Typography variant="title" weight="bold" color="primary">
-                {Math.floor(Math.random() * 200) + 50}
-              </Typography>
-              <Typography variant="caption" color="secondary">
-                Messages
-              </Typography>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Typography variant="title" weight="bold" color="primary">
-                {isPremium ? '12' : '3'}
-              </Typography>
-              <Typography variant="caption" color="secondary">
-                AI Models
-              </Typography>
-            </View>
-          </View>
+          {/* Stats removed until tracked in app data */}
         </LinearGradient>
       </View>
 
@@ -499,18 +475,7 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
             testID="profile-settings-button"
           />
           
-          <View style={[styles.settingDivider, { backgroundColor: theme.colors.border }]} />
           
-          <SettingRow
-            title="Help & Support"
-            subtitle="Get help and contact support"
-            icon="help-circle-outline"
-            onPress={() => {
-              // TODO: Navigate to help
-              onClose();
-            }}
-            testID="profile-help-button"
-          />
         </View>
       </View>
 

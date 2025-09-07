@@ -35,21 +35,48 @@ export const initializeFirebase = async () => {
     cacheSizeBytes: firestore.CACHE_SIZE_UNLIMITED,
   });
   
-  // Use emulators in development
-  if (__DEV__) {
+  // Use emulators in development (opt-in via env var)
+  const wantEmulators =
+    __DEV__ &&
+    (process.env.EXPO_PUBLIC_USE_FIREBASE_EMULATOR === '1' ||
+      process.env.EXPO_PUBLIC_USE_FIREBASE_EMULATOR === 'true');
+  if (wantEmulators) {
     // Only connect to emulators if not already connected
     if (!global.__FIREBASE_EMULATORS_CONNECTED__) {
-      console.warn('Connecting to Firebase emulators...');
-      // Auth emulator
-      const auth = getAuth();
-      connectAuthEmulator(auth, 'http://localhost:9099');
-      
-      // Firestore emulator
-      await terminate(db);
-      await clearIndexedDbPersistence(db);
-      connectFirestoreEmulator(db, 'localhost', 8080);
-      
-      global.__FIREBASE_EMULATORS_CONNECTED__ = true;
+      try {
+        console.warn('Checking Firebase emulator availability...');
+        
+        // Prefer 127.0.0.1 which works reliably in iOS Simulator
+        const emulatorHost = '127.0.0.1';
+        
+        // Test if emulators are running by attempting a fetch
+        const emulatorAvailable = await Promise.race([
+          fetch(`http://${emulatorHost}:9099`).then(() => true).catch(() => false),
+          new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 1500)),
+        ]);
+        
+        if (emulatorAvailable) {
+          console.warn('Firebase emulators detected, connecting...');
+          
+          // Auth emulator
+          const auth = getAuth();
+          connectAuthEmulator(auth, `http://${emulatorHost}:9099`);
+          
+          // Firestore emulator
+          await terminate(db);
+          await clearIndexedDbPersistence(db);
+          connectFirestoreEmulator(db, emulatorHost, 8080);
+          
+          global.__FIREBASE_EMULATORS_CONNECTED__ = true;
+          console.warn('Successfully connected to Firebase emulators');
+        } else {
+          console.warn('Firebase emulators not available, using production Firebase');
+          console.warn('To use emulators, run: firebase emulators:start');
+        }
+      } catch (error) {
+        console.error('Error connecting to Firebase emulators:', error);
+        console.warn('Falling back to production Firebase');
+      }
     }
   }
   console.warn('Firebase initialized successfully (Auth & Firestore only)');

@@ -1566,6 +1566,12 @@ PODS:
   - Firebase/Firestore (12.1.0):
     - Firebase/CoreOnly
     - FirebaseFirestore (~> 12.1.0)
+  - FirebaseAppCheck (12.1.0):
+    - AppCheckCore (~> 11.0)
+    - FirebaseAppCheckInterop (~> 12.1.0)
+    - FirebaseCore (~> 12.1.0)
+    - GoogleUtilities/Environment (~> 8.1)
+    - GoogleUtilities/UserDefaults (~> 8.1)
   - FirebaseAppCheckInterop (12.1.0)
   - FirebaseAuth (12.1.0):
     - FirebaseAppCheckInterop (~> 12.1.0)
@@ -3814,7 +3820,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - SDWebImage/Core (5.21.1)
+  - SDWebImage/Core (5.21.2)
   - SDWebImageWebPCoder (0.14.6):
     - libwebp (~> 1.0)
     - SDWebImage/Core (~> 5.17)
@@ -3860,6 +3866,7 @@ DEPENDENCIES:
   - EXUpdatesInterface (from `../node_modules/expo-updates-interface/ios`)
   - fast_float (from `../node_modules/react-native/third-party-podspecs/fast_float.podspec`)
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
+  - FirebaseAppCheck
   - fmt (from `../node_modules/react-native/third-party-podspecs/fmt.podspec`)
   - glog (from `../node_modules/react-native/third-party-podspecs/glog.podspec`)
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
@@ -3948,6 +3955,7 @@ SPEC REPOS:
     - AppCheckCore
     - BoringSSL-GRPC
     - Firebase
+    - FirebaseAppCheck
     - FirebaseAppCheckInterop
     - FirebaseAuth
     - FirebaseAuthInterop
@@ -4252,6 +4260,7 @@ SPEC CHECKSUMS:
   fast_float: 06eeec4fe712a76acc9376682e4808b05ce978b6
   FBLazyVector: 07309209b7b914451b8f822544a18e2a0a85afff
   Firebase: 9edc9acf71313eb20e209c42e5469a42564fe1aa
+  FirebaseAppCheck: e20cc3aeea26e7d774923c192ae099ef0270090f
   FirebaseAppCheckInterop: de890554a81967f16a0eb8d3def541c2bb42dece
   FirebaseAuth: 6d0f2d449195c401e6d6ef1a891fff22bc60356d
   FirebaseAuthInterop: ede927b03baf02453e6e9de2df513cc28d3eb742
@@ -4350,11 +4359,11 @@ SPEC CHECKSUMS:
   RNReanimated: 7b926938d4190114e5848b5b022d83dbc2c0fe2c
   RNScreens: d9d5d8a2a484bb4446968bfa00db991f1117db44
   RNSVG: 257f59c952e296c9c36035a8f49b61fda48e398a
-  SDWebImage: f29024626962457f3470184232766516dee8dfea
+  SDWebImage: 9f177d83116802728e122410fb25ad88f5c7608a
   SDWebImageWebPCoder: e38c0a70396191361d60c092933e22c20d5b1380
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   Yoga: b37eeaa6148984cac70ecaf8022bb209e03296cb
 
-PODFILE CHECKSUM: 99af7a2174de23f89077d24c2e6500015b7f44ba
+PODFILE CHECKSUM: c1d2e4c87856f0417e1f6ecc9aed725e87c4608a
 
 COCOAPODS: 1.16.2

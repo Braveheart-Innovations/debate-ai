@@ -1,8 +1,8 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import type { User } from '../services/firebase/auth';
+import type { AuthUser } from '../services/firebase/auth';
 
 interface AuthState {
-  user: User | null;
+  user: AuthUser | null;
   isAuthenticated: boolean;
   isPremium: boolean;
   authLoading: boolean;
@@ -11,7 +11,7 @@ interface AuthState {
     email: string | null;
     displayName: string | null;
     photoURL: string | null;
-    createdAt: Date | null;
+    createdAt: number | null;
     membershipStatus: 'free' | 'premium';
     preferences?: Record<string, unknown>;
     authProvider?: 'email' | 'apple' | 'google' | 'anonymous';
@@ -41,7 +41,7 @@ const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    setUser: (state, action: PayloadAction<User | null>) => {
+    setUser: (state, action: PayloadAction<AuthUser | null>) => {
       state.user = action.payload;
       state.isAuthenticated = !!action.payload;
     },
@@ -88,7 +88,7 @@ const authSlice = createSlice({
         state.lastAuthMethod = 'anonymous';
       }
     },
-    setAuthUser: (state, action: PayloadAction<User | null>) => {
+    setAuthUser: (state, action: PayloadAction<AuthUser | null>) => {
       state.user = action.payload;
       state.isAuthenticated = !!action.payload;
       state.isAnonymous = action.payload?.isAnonymous || false;

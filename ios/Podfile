@@ -15,7 +15,6 @@ prepare_react_native_project!
 
 target 'SymposiumAI' do
   use_expo_modules!
-  use_frameworks! :linkage => :static
 
   if ENV['EXPO_USE_COMMUNITY_AUTOLINKING'] == '1'
     config_command = ['node', '-e', "process.argv=['', '', 'config'];require('@react-native-community/cli').run()"];
@@ -42,6 +41,10 @@ target 'SymposiumAI' do
     :app_path => "#{Pod::Config.instance.installation_root}/..",
     :privacy_file_aggregation_enabled => podfile_properties['apple.privacyManifestAggregationEnabled'] != 'false',
   )
+
+  # Firebase App Check (Debug provider active in Debug builds via AppDelegate)
+  pod 'FirebaseAppCheck'
+
 
   post_install do |installer|
     react_native_post_install(

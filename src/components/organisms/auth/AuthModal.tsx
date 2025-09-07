@@ -24,9 +24,10 @@ import {
   signInWithEmail, 
   signUpWithEmail, 
   signInAnonymously,
-  signOut
+  signOut,
+  toAuthUser
 } from '../../../services/firebase/auth';
-import { getFirestore, doc, setDoc, getDoc } from '@react-native-firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from '@react-native-firebase/firestore';
 
 interface AuthModalProps {
   onClose?: () => void;
@@ -69,7 +70,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
         await setDoc(userDocRef, {
           email: user.email,
           displayName: user.displayName || email.split('@')[0],
-          createdAt: new Date(),
+          createdAt: serverTimestamp(),
           membershipStatus: 'free',
           preferences: {},
         });
@@ -84,12 +85,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
       
       const profileData = profileDoc.data();
       
-      dispatch(setAuthUser(user));
+      dispatch(setAuthUser(toAuthUser(user)));
       dispatch(setUserProfile({
         email: user.email,
         displayName: profileData?.displayName || user.displayName,
         photoURL: user.photoURL,
-        createdAt: profileData?.createdAt?.toDate() || new Date(),
+        createdAt: profileData?.createdAt?.toDate
+          ? profileData.createdAt.toDate().getTime()
+          : typeof profileData?.createdAt === 'number'
+          ? profileData.createdAt
+          : Date.now(),
         membershipStatus: profileData?.membershipStatus || 'free',
         preferences: profileData?.preferences || {},
       }));
@@ -109,12 +114,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
     setLoading(true);
     try {
       const user = await signInAnonymously();
-      dispatch(setAuthUser(user));
+      dispatch(setAuthUser(toAuthUser(user)));
       dispatch(setUserProfile({
         email: null,
         displayName: 'Anonymous User',
         photoURL: null,
-        createdAt: new Date(),
+        createdAt: Date.now(),
         membershipStatus: 'free',
         preferences: {},
       }));
