@@ -16,11 +16,13 @@ import { setRealtimeRelayUrl } from '../../../store';
 interface SettingsContentProps {
   onClose?: () => void;
   onNavigateToAPIConfig?: () => void;
+  onNavigateToExpertMode?: () => void;
 }
 
 export const SettingsContent: React.FC<SettingsContentProps> = ({
   onClose,
   onNavigateToAPIConfig,
+  onNavigateToExpertMode,
 }) => {
   const { theme } = useTheme();
   const dispatch = useDispatch();
@@ -28,6 +30,8 @@ export const SettingsContent: React.FC<SettingsContentProps> = ({
   const streamingSpeed = useSelector((state: RootState) => state.streaming?.streamingSpeed ?? 'natural');
   const isPremium = useSelector((state: RootState) => state.auth.isPremium);
   const relayUrl = useSelector((state: RootState) => state.settings.realtimeRelayUrl || '');
+  const apiKeys = useSelector((state: RootState) => state.settings.apiKeys || {});
+  const hasAnyApiKey = Object.values(apiKeys).some(Boolean);
   
   const themeSettings = useThemeSettings();
 
@@ -74,6 +78,13 @@ export const SettingsContent: React.FC<SettingsContentProps> = ({
             onNavigateToAPIConfig?.();
             onClose?.();
           }}
+        />
+        <SettingRow
+          title="Expert Mode"
+          subtitle={hasAnyApiKey ? 'Set defaults and advanced parameters' : 'Add an API key to enable'}
+          icon="options"
+          onPress={hasAnyApiKey ? () => { onNavigateToExpertMode?.(); onClose?.(); } : undefined}
+          disabled={!hasAnyApiKey}
         />
         <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
           <Typography variant="caption" color="secondary" style={{ marginBottom: 6 }}>

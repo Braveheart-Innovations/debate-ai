@@ -3,7 +3,6 @@ import { StyleSheet } from 'react-native';
 import { Box } from '../atoms';
 import { Typography } from '../molecules';
 import { ProviderCard } from './ProviderCard';
-import { ProviderExpertSettings } from './ProviderExpertSettings';
 import { AIProvider } from '../../config/aiProviders';
 import { DEFAULT_PARAMETERS } from '../../config/modelConfigs';
 import { useTheme } from '../../theme';
@@ -23,9 +22,6 @@ export interface APIProviderListProps {
   onToggleExpand: (providerId: string) => void;
   expandedProvider: string | null;
   expertModeConfigs: Record<string, { enabled: boolean; selectedModel?: string; parameters?: Record<string, number>; }>;
-  onExpertModeToggle: (providerId: string, enabled: boolean) => void;
-  onModelChange: (providerId: string, modelId: string) => void;
-  onParameterChange: (providerId: string, param: string, value: number) => void;
   testID?: string;
 }
 
@@ -39,9 +35,6 @@ export const APIProviderList: React.FC<APIProviderListProps> = ({
   onToggleExpand,
   expandedProvider,
   expertModeConfigs,
-  onExpertModeToggle,
-  onModelChange,
-  onParameterChange,
   testID,
 }) => {
   const { theme } = useTheme();
@@ -69,7 +62,7 @@ export const APIProviderList: React.FC<APIProviderListProps> = ({
           parameters: DEFAULT_PARAMETERS 
         };
         const isExpanded = expandedProvider === provider.id;
-        const hasApiKey = !!(apiKeys[provider.id] && apiKeys[provider.id].trim().length > 0);
+        // const hasApiKey = !!(apiKeys[provider.id] && apiKeys[provider.id].trim().length > 0);
         
         return (
           <Box key={provider.id} style={[
@@ -90,27 +83,6 @@ export const APIProviderList: React.FC<APIProviderListProps> = ({
               selectedModel={expertConfig.enabled ? expertConfig.selectedModel : undefined}
               expertModeEnabled={expertConfig.enabled === true}
             />
-            
-            {/* Expert Mode Settings */}
-            {isExpanded && hasApiKey && (
-              <Box style={[
-                styles.expertModeContainer,
-                { marginTop: theme.spacing.md }
-              ]}>
-                <ProviderExpertSettings
-                  providerId={provider.id}
-                  isEnabled={expertConfig.enabled}
-                  onToggle={(enabled) => onExpertModeToggle(provider.id, enabled)}
-                  selectedModel={expertConfig.enabled ? expertConfig.selectedModel : undefined}
-                  onModelChange={(modelId) => onModelChange(provider.id, modelId)}
-                  parameters={{
-                    ...DEFAULT_PARAMETERS,
-                    ...expertConfig.parameters
-                  }}
-                  onParameterChange={(param, value) => onParameterChange(provider.id, param, Number(value))}
-                />
-              </Box>
-            )}
           </Box>
         );
       })}

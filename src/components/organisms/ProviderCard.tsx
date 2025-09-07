@@ -156,7 +156,25 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
                 </Typography>
                 {/* Connection status icon */}
                 {(testStatus === 'success' || testStatusMessage) && apiKey && (
-                  <Text style={{ fontSize: 16 }}>✅</Text>
+                  <>
+                    <Text style={{ fontSize: 16 }}>✅</Text>
+                    {expertModeEnabled && (
+                      <View style={{
+                        backgroundColor: theme.colors.primary[100],
+                        paddingHorizontal: 6,
+                        paddingVertical: 1,
+                        borderRadius: 8,
+                      }}>
+                        <Text style={{ 
+                          color: theme.colors.primary[600], 
+                          fontSize: 10, 
+                          fontWeight: 'bold' 
+                        }}>
+                          EXPERT
+                        </Text>
+                      </View>
+                    )}
+                  </>
                 )}
               </View>
               
@@ -191,22 +209,7 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
                             <Typography variant="caption" color="secondary">
                               {currentModel.name}
                             </Typography>
-                            {expertModeEnabled && (
-                              <View style={{
-                                backgroundColor: theme.colors.primary[100],
-                                paddingHorizontal: 6,
-                                paddingVertical: 1,
-                                borderRadius: 8,
-                              }}>
-                                <Text style={{ 
-                                  color: theme.colors.primary[600], 
-                                  fontSize: 10, 
-                                  fontWeight: 'bold' 
-                                }}>
-                                  EXPERT
-                                </Text>
-                              </View>
-                            )}
+                            {/* Expert badge moved to header next to checkmark */}
                           </View>
                           {(pricing || freeInfo) ? (
                             <View style={{ marginTop: 2 }}>

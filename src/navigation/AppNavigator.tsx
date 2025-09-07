@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -25,6 +25,7 @@ import StatsScreen from '../screens/StatsScreen';
 import CompareSetupScreen from '../screens/CompareSetupScreen';
 import CompareScreen from '../screens/CompareScreen';
 import UpgradeScreen from '../screens/UpgradeScreen';
+import ExpertModeScreen from '../screens/ExpertModeScreen';
 import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
 import TermsOfServiceScreen from '../screens/TermsOfServiceScreen';
 // import SubscriptionScreen from '../screens/SubscriptionScreen';
@@ -142,37 +143,11 @@ const MainTabsWithSheets = () => {
 };
 
 
-// Placeholder screen for testing
-interface PlaceholderScreenProps {
-  route: {
-    name: string;
-  };
-}
-
-const PlaceholderScreen: React.FC<PlaceholderScreenProps> = ({ route }) => {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.text}>{route.name} Screen</Text>
-    </View>
-  );
-};
-
-const styles = {
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-  },
-  text: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-} as const;
+// Placeholder removed — using real screens
 
 export default function AppNavigator() {
   const { theme, isDark } = useTheme();
-  const uiMode = useSelector((state: RootState) => state.user.uiMode);
+  // const uiMode = useSelector((state: RootState) => state.user.uiMode);
   const hasCompletedOnboarding = useSelector(
     (state: RootState) => state.settings.hasCompletedOnboarding
   );
@@ -272,13 +247,11 @@ export default function AppNavigator() {
               component={UpgradeScreen}
               options={{ headerShown: false }}
             />
-            {uiMode === 'expert' && (
-              <Stack.Screen
-                name="ExpertMode"
-                component={PlaceholderScreen}
-                options={{ title: 'Expert Settings' }}
-              />
-            )}
+            <Stack.Screen
+              name="ExpertMode"
+              component={ExpertModeScreen}
+              options={{ headerShown: false }}
+            />
           </>
         )}
         </Stack.Navigator>

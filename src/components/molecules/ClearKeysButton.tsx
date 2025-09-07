@@ -30,7 +30,7 @@ export const ClearKeysButton: React.FC<ClearKeysButtonProps> = ({
   style,
   testID,
 }) => {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
 
   const handlePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -77,10 +77,15 @@ export const ClearKeysButton: React.FC<ClearKeysButtonProps> = ({
       disabled={disabled}
       style={[
         styles.container,
-        {
-          backgroundColor: theme.colors.error[50],
-          borderColor: theme.colors.error[500],
-        },
+        isDark
+          ? {
+              backgroundColor: theme.colors.card,
+              borderColor: theme.colors.error[600],
+            }
+          : {
+              backgroundColor: theme.colors.error[50],
+              borderColor: theme.colors.error[500],
+            },
         disabled && styles.disabled,
         style,
       ]}
@@ -96,8 +101,8 @@ export const ClearKeysButton: React.FC<ClearKeysButtonProps> = ({
         <Box style={styles.textContainer}>
           <Typography 
             variant="body" 
-            color="secondary" 
             weight="semibold"
+            style={{ color: isDark ? theme.colors.error[200] : theme.colors.text.primary }}
           >
             {title}
           </Typography>
@@ -105,8 +110,10 @@ export const ClearKeysButton: React.FC<ClearKeysButtonProps> = ({
           {subtitle && (
             <Typography 
               variant="caption" 
-              color="secondary"
-              style={styles.subtitle}
+              style={[
+                styles.subtitle,
+                { color: isDark ? theme.colors.text.secondary : theme.colors.text.secondary },
+              ]}
             >
               {subtitle}
             </Typography>

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useDispatch } from 'react-redux';
+import { showSheet } from '../store';
 import { Box } from '../components/atoms';
 import { 
   Header,
@@ -21,6 +23,7 @@ interface APIConfigScreenProps {
 }
 
 const APIConfigScreen: React.FC<APIConfigScreenProps> = ({ navigation }) => {
+  const dispatch = useDispatch();
   // Custom hooks
   const { apiKeys, clearAll } = useAPIKeys();
   const { clearAllVerifications } = useProviderVerification();
@@ -36,9 +39,6 @@ const APIConfigScreen: React.FC<APIConfigScreenProps> = ({ navigation }) => {
     handleTestConnection,
     handleSaveKey,
     handleToggleExpand,
-    handleExpertModeToggle,
-    handleModelChange,
-    handleParameterChange
   } = useAPIConfigHandlers();
   
   // UI state
@@ -56,7 +56,10 @@ const APIConfigScreen: React.FC<APIConfigScreenProps> = ({ navigation }) => {
           variant="gradient"
           title="API Configuration"
           subtitle="Add or Modify Your AIs"
-          onBack={navigation.goBack}
+          onBack={() => {
+            navigation.goBack();
+            dispatch(showSheet({ sheet: 'settings' }));
+          }}
           showBackButton={true}
           showTime={true}
           animated={true}
@@ -89,9 +92,6 @@ const APIConfigScreen: React.FC<APIConfigScreenProps> = ({ navigation }) => {
               onToggleExpand={onToggleExpand}
               expandedProvider={expandedProvider}
               expertModeConfigs={expertModeConfigs}
-              onExpertModeToggle={handleExpertModeToggle}
-              onModelChange={handleModelChange}
-              onParameterChange={handleParameterChange}
             />
             
             <APIComingSoon providers={disabledProviders} />

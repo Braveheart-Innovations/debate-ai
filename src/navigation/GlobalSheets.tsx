@@ -93,6 +93,10 @@ export const GlobalSheets: React.FC = () => {
                 handleSheetClose();
                 navigation.navigate('APIConfig');
               }}
+              onNavigateToExpertMode={() => {
+                handleSheetClose();
+                navigation.navigate('ExpertMode');
+              }}
             />
           </TouchableOpacity>
         </TouchableOpacity>

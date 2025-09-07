@@ -42,8 +42,7 @@ export const APIConfigProgress: React.FC<APIConfigProgressProps> = ({
     >
       <Typography 
         variant="body" 
-        color="secondary" 
-        style={styles.subtitle}
+        style={[styles.subtitle, { color: theme.colors.text.primary }]}
       >
         {subtitle}
       </Typography>
@@ -59,8 +58,7 @@ export const APIConfigProgress: React.FC<APIConfigProgressProps> = ({
         
         <Typography
           variant="caption"
-          color="secondary"
-          style={styles.statusMessage}
+          style={[styles.statusMessage, { color: theme.colors.text.primary }]}
         >
           {getStatusMessage()}
         </Typography>

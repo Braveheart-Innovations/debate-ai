@@ -27,7 +27,7 @@ interface SupportScreenProps {
 export const SupportScreen: React.FC<SupportScreenProps> = ({ onClose }) => {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
-  const [view, setView] = useState<'root' | 'privacy' | 'terms'>('root');
+  const [view, setView] = useState<'root' | 'privacy' | 'terms' | 'faq'>('root');
   // Navigation retained for potential future external screens; currently unused after in-sheet navigation.
 
   const getDeviceInfo = () => {
@@ -66,19 +66,7 @@ export const SupportScreen: React.FC<SupportScreenProps> = ({ onClose }) => {
     }
   };
 
-  const handleOpenFAQs = async () => {
-    const url = 'https://symposiumai.com/faqs';
-    try {
-      const canOpen = await Linking.canOpenURL(url);
-      if (canOpen) {
-        await Linking.openURL(url);
-      } else {
-        Alert.alert('Error', 'Could not open FAQs page', [{ text: 'OK' }]);
-      }
-    } catch {
-      Alert.alert('Error', 'Could not open FAQs page', [{ text: 'OK' }]);
-    }
-  };
+  const handleOpenFAQs = () => setView('faq');
 
   const handleOpenPrivacyPolicy = () => setView('privacy');
   const handleOpenTermsOfService = () => setView('terms');
@@ -111,7 +99,7 @@ export const SupportScreen: React.FC<SupportScreenProps> = ({ onClose }) => {
               <Ionicons name="chevron-back" size={22} color={theme.colors.text.secondary} />
             </TouchableOpacity>
             <Typography variant="subtitle" weight="semibold" style={{ marginLeft: 4 }}>
-              {view === 'privacy' ? 'Privacy Policy' : 'Terms of Service'}
+              {view === 'privacy' ? 'Privacy Policy' : view === 'terms' ? 'Terms of Service' : 'FAQs'}
             </Typography>
           </View>
         )}
@@ -246,6 +234,96 @@ export const SupportScreen: React.FC<SupportScreenProps> = ({ onClose }) => {
           </View>
         </Box>
         </>
+        )}
+
+        {view === 'faq' && (
+          <View style={{ paddingBottom: 20 }}>
+            <Typography variant="heading" weight="bold" style={{ marginBottom: 8 }}>
+              Expert Mode — Frequently Asked Questions
+            </Typography>
+            <Typography variant="body" color="secondary" style={{ marginBottom: 16 }}>
+              Learn how Expert Mode helps you set provider defaults and fine‑tune AI behavior across the app.
+            </Typography>
+
+            {/* What is Expert Mode? */}
+            <Typography variant="subtitle" weight="semibold" style={{ marginBottom: 6 }}>What is Expert Mode?</Typography>
+            <Typography variant="body" color="secondary" style={{ marginBottom: 12 }}>
+              Expert Mode lets you configure a Default Model and advanced parameters (like temperature and max tokens) for each AI provider. These settings act as provider‑level defaults that prepopulate model choices in Chat, Debate, and Compare. You can still override the model per session from the tiles when you start a conversation.
+            </Typography>
+
+            {/* Where is Expert Mode? */}
+            <Typography variant="subtitle" weight="semibold" style={{ marginBottom: 6 }}>Where do I configure Expert Mode?</Typography>
+            <Typography variant="body" color="secondary" style={{ marginBottom: 12 }}>
+              Go to Settings → Expert Mode. You will see a section for each provider that has an API key configured. Tap a provider to expand its settings.
+            </Typography>
+
+            {/* Default Model behavior */}
+            <Typography variant="subtitle" weight="semibold" style={{ marginBottom: 6 }}>How does the Default Model work?</Typography>
+            <Typography variant="body" color="secondary" style={{ marginBottom: 12 }}>
+              Selecting a Default Model sets the provider’s preselected model everywhere in the app. If you deselect the model (tap it again), the app reverts to the provider’s generic default. Session tiles can still override this on a per‑session basis.
+            </Typography>
+
+            {/* Parameters behavior */}
+            <Typography variant="subtitle" weight="semibold" style={{ marginBottom: 6 }}>What do the parameters do?</Typography>
+            <Typography variant="body" color="secondary" style={{ marginBottom: 12 }}>
+              Parameters control generation behavior. For example: temperature adjusts creativity, max tokens sets response length, and top‑p/top‑k influence sampling.
+              When Expert Mode is enabled for a provider, these parameters are applied to that provider’s requests (both streaming and non‑streaming) across Chat, Debate, and Compare.
+            </Typography>
+
+            {/* Scope of Expert Mode */}
+            <Typography variant="subtitle" weight="semibold" style={{ marginBottom: 6 }}>Which providers does Expert Mode affect?</Typography>
+            <Typography variant="body" color="secondary" style={{ marginBottom: 12 }}>
+              All providers supported by the app: Claude, OpenAI, Google, Perplexity, Mistral, Cohere, Together, DeepSeek, and Grok. You will only see providers that have API keys configured.
+            </Typography>
+
+            {/* Session overrides */}
+            <Typography variant="subtitle" weight="semibold" style={{ marginBottom: 6 }}>Can I override Expert Mode per session?</Typography>
+            <Typography variant="body" color="secondary" style={{ marginBottom: 12 }}>
+              Yes. The provider Default Model acts as a starting point. When you pick AIs in Chat, Debate, or Compare, you can choose a different model on the tile and that session will use your selection.
+            </Typography>
+
+            {/* Clearing defaults */}
+            <Typography variant="subtitle" weight="semibold" style={{ marginBottom: 6 }}>How do I remove a Default Model?</Typography>
+            <Typography variant="body" color="secondary" style={{ marginBottom: 12 }}>
+              In Expert Mode, tap the selected model again to clear it. The provider will fall back to its generic default model.
+            </Typography>
+
+            {/* Dark Mode & UI parity */}
+            <Typography variant="subtitle" weight="semibold" style={{ marginBottom: 6 }}>Does Expert Mode match the API Configuration look and feel?</Typography>
+            <Typography variant="body" color="secondary" style={{ marginBottom: 12 }}>
+              Yes. The Expert Mode screen mirrors provider branding and layout, including gradient tiles and white‑tinted logos in Dark Mode, so it feels consistent with the API Configuration experience.
+            </Typography>
+
+            {/* Demo Mode */}
+            <Typography variant="subtitle" weight="semibold" style={{ marginBottom: 6 }}>What happens in Demo Mode?</Typography>
+            <Typography variant="body" color="secondary" style={{ marginBottom: 12 }}>
+              Demo Mode showcases the app’s capabilities using pre‑baked content. Expert Mode is visible for learning, but actual model calls require real API keys.
+            </Typography>
+
+            {/* Troubleshooting */}
+            <Typography variant="subtitle" weight="semibold" style={{ marginBottom: 6 }}>Troubleshooting tips</Typography>
+            <Typography variant="body" color="secondary" style={{ marginLeft: 16, marginBottom: 4 }}>
+              • If a provider doesn’t appear in Expert Mode, make sure its API key is configured in Settings → API Configuration.
+            </Typography>
+            <Typography variant="body" color="secondary" style={{ marginLeft: 16, marginBottom: 4 }}>
+              • If responses seem too long or too short, adjust Max Tokens in that provider’s Expert Mode panel.
+            </Typography>
+            <Typography variant="body" color="secondary" style={{ marginLeft: 16, marginBottom: 12 }}>
+              • For creativity vs. precision, experiment with Temperature (lower = more precise, higher = more creative).
+            </Typography>
+
+            {/* Placeholders for future sections */}
+            <Typography variant="subtitle" weight="semibold" style={{ marginBottom: 6 }}>Other FAQs (Coming Soon)</Typography>
+            <Typography variant="body" color="secondary" style={{ marginLeft: 16, marginBottom: 4 }}>
+              • Accounts & Subscriptions — How trials and subscriptions work
+            </Typography>
+            <Typography variant="body" color="secondary" style={{ marginLeft: 16, marginBottom: 4 }}>
+              • Privacy & Security — Where your data and keys are stored
+            </Typography>
+            <Typography variant="body" color="secondary" style={{ marginLeft: 16 }}>
+              • Cost & Usage — How we estimate usage and display pricing
+            </Typography>
+          </View>
         )}
 
         {view === 'privacy' && (
