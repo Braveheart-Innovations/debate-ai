@@ -1,6 +1,5 @@
 import Expo
 import FirebaseCore
-import FirebaseAppCheck
 import React
 import ReactAppDependencyProvider
 
@@ -23,30 +22,11 @@ public class AppDelegate: ExpoAppDelegate {
     reactNativeFactory = factory
     bindReactNativeFactory(factory)
 
-    // Enable App Check debug provider only on Simulator (never on physical device)
-    #if DEBUG && targetEnvironment(simulator)
-      AppCheck.setAppCheckProviderFactory(AppCheckDebugProviderFactory())
-    #endif
-
 #if os(iOS) || os(tvOS)
     window = UIWindow(frame: UIScreen.main.bounds)
 // @generated begin @react-native-firebase/app-didFinishLaunchingWithOptions - expo prebuild (DO NOT MODIFY) sync-10e8520570672fd76b2403b7e1e27f5198a6349a
 FirebaseApp.configure()
 // @generated end @react-native-firebase/app-didFinishLaunchingWithOptions
-
-    // Debug: verify App Check env var & token issuance
-    #if DEBUG
-      let envToken = ProcessInfo.processInfo.environment["FIRAppCheckDebugToken"] ?? "nil"
-      print("AppCheck Debug: FIRAppCheckDebugToken env = \(envToken)")
-      AppCheck.appCheck().token(forcingRefresh: true) { token, error in
-        if let tok = token?.token {
-          print("AppCheck Debug: issued AppCheck token length=\(tok.count)")
-        } else {
-          print("AppCheck Debug: failed to issue token: \(String(describing: error))")
-        }
-      }
-    #endif
-
     factory.startReactNative(
       withModuleName: "main",
       in: window,

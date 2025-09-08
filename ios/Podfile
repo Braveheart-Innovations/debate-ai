@@ -42,10 +42,6 @@ target 'SymposiumAI' do
     :privacy_file_aggregation_enabled => podfile_properties['apple.privacyManifestAggregationEnabled'] != 'false',
   )
 
-  # Firebase App Check (Debug provider active in Debug builds via AppDelegate)
-  pod 'FirebaseAppCheck'
-
-
   post_install do |installer|
     react_native_post_install(
       installer,
