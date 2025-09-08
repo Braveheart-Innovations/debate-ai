@@ -1,8 +1,5 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
-// Force a consistent NDK for all subprojects (Expo SDK 53 / RN 0.79 recommended)
-ext.ndkVersion = "26.1.10909125"
-
 buildscript {
   repositories {
     google()
@@ -26,14 +23,16 @@ def reactNativeAndroidDir = new File(
 
 allprojects {
   repositories {
-    // Prefer published React Native artifacts with prefab (react-android) from Maven Central
+    maven {
+      // All of React Native (JS, Obj-C sources, Android binaries) is installed from npm
+      url(reactNativeAndroidDir)
+    }
+
     google()
     mavenCentral()
     maven { url 'https://www.jitpack.io' }
   }
 }
-
-// Cleaned: expo-av specific prefab linkage no longer needed
 
 apply plugin: "expo-root-project"
 apply plugin: "com.facebook.react.rootproject"
