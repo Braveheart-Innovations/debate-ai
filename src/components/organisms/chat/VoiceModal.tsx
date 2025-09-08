@@ -99,7 +99,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ visible, onClose, onStar
         }
       }
     } catch {
-      Alert.alert('Recording Not Available', 'Recording failed to start. You can still choose an existing audio file.');
+      Alert.alert('Recording Not Available', 'Recording failed to start. Please check microphone permissions in Settings.');
     }
   };
 

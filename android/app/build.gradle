@@ -94,6 +94,8 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0.0"
+        // Resolve variant ambiguity for react-native-iap v13+ (amazon/play flavors)
+        missingDimensionStrategy 'store', 'play'
     }
     signingConfigs {
         debug {
