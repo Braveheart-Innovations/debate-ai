@@ -9,7 +9,6 @@ import {
   terminate,
   clearIndexedDbPersistence
 } from '@react-native-firebase/firestore';
-import firestore from '@react-native-firebase/firestore';
 
 // Declare global type for emulator flag
 declare global {
@@ -26,14 +25,9 @@ export const initializeFirebase = async () => {
   
   const db = getFirestore();
   
-  // Configure Firestore settings for offline persistence and unlimited cache
-  // NOTE: This uses the deprecated namespace API because React Native Firebase v23
-  // doesn't have a modular replacement yet. This will trigger a warning but works correctly.
-  // We NEED this for offline support and performance.
-  await firestore().settings({
-    persistence: true,
-    cacheSizeBytes: firestore.CACHE_SIZE_UNLIMITED,
-  });
+  // Firestore persistence is enabled by default on React Native.
+  // If custom cache settings are required, wire them up via modular APIs
+  // in a future PR once RNFirebase exposes them without namespaced calls.
   
   // Use emulators in development (opt-in via env var)
   const wantEmulators =

@@ -1566,6 +1566,9 @@ PODS:
   - Firebase/Firestore (12.1.0):
     - Firebase/CoreOnly
     - FirebaseFirestore (~> 12.1.0)
+  - Firebase/Functions (12.1.0):
+    - Firebase/CoreOnly
+    - FirebaseFunctions (~> 12.1.0)
   - FirebaseAppCheck (12.1.0):
     - AppCheckCore (~> 11.0)
     - FirebaseAppCheckInterop (~> 12.1.0)
@@ -1611,6 +1614,15 @@ PODS:
     - gRPC-Core (~> 1.69.0)
     - leveldb-library (~> 1.22)
     - nanopb (~> 3.30910.0)
+  - FirebaseFunctions (12.1.0):
+    - FirebaseAppCheckInterop (~> 12.1.0)
+    - FirebaseAuthInterop (~> 12.1.0)
+    - FirebaseCore (~> 12.1.0)
+    - FirebaseCoreExtension (~> 12.1.0)
+    - FirebaseMessagingInterop (~> 12.1.0)
+    - FirebaseSharedSwift (~> 12.1.0)
+    - GTMSessionFetcher/Core (< 6.0, >= 3.4)
+  - FirebaseMessagingInterop (12.1.0)
   - FirebaseSharedSwift (12.1.0)
   - fmt (11.0.2)
   - glog (0.3.5)
@@ -3546,6 +3558,10 @@ PODS:
     - Firebase/Firestore (= 12.1.0)
     - React-Core
     - RNFBApp
+  - RNFBFunctions (23.1.1):
+    - Firebase/Functions (= 12.1.0)
+    - React-Core
+    - RNFBApp
   - RNGestureHandler (2.24.0):
     - DoubleConversion
     - glog
@@ -3596,6 +3612,12 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
+  - RNIap (13.0.4):
+    - RCT-Folly
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - ReactCommon/turbomodule/core
   - RNReanimated (3.17.5):
     - DoubleConversion
     - glog
@@ -3941,8 +3963,10 @@ DEPENDENCIES:
   - "RNFBApp (from `../node_modules/@react-native-firebase/app`)"
   - "RNFBAuth (from `../node_modules/@react-native-firebase/auth`)"
   - "RNFBFirestore (from `../node_modules/@react-native-firebase/firestore`)"
+  - "RNFBFunctions (from `../node_modules/@react-native-firebase/functions`)"
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
   - "RNGoogleSignin (from `../node_modules/@react-native-google-signin/google-signin`)"
+  - RNIap (from `../node_modules/react-native-iap`)
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../node_modules/react-native-screens`)
   - RNSVG (from `../node_modules/react-native-svg`)
@@ -3964,6 +3988,8 @@ SPEC REPOS:
     - FirebaseCoreInternal
     - FirebaseFirestore
     - FirebaseFirestoreInternal
+    - FirebaseFunctions
+    - FirebaseMessagingInterop
     - FirebaseSharedSwift
     - GoogleSignIn
     - GoogleUtilities
@@ -4203,10 +4229,14 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@react-native-firebase/auth"
   RNFBFirestore:
     :path: "../node_modules/@react-native-firebase/firestore"
+  RNFBFunctions:
+    :path: "../node_modules/@react-native-firebase/functions"
   RNGestureHandler:
     :path: "../node_modules/react-native-gesture-handler"
   RNGoogleSignin:
     :path: "../node_modules/@react-native-google-signin/google-signin"
+  RNIap:
+    :path: "../node_modules/react-native-iap"
   RNReanimated:
     :path: "../node_modules/react-native-reanimated"
   RNScreens:
@@ -4269,6 +4299,8 @@ SPEC CHECKSUMS:
   FirebaseCoreInternal: ff526c22671bb564d1b34a47615e29ba99389dee
   FirebaseFirestore: 7f06732c905092d12a6e060aace72a28ad528190
   FirebaseFirestoreInternal: 1e6d681414d7fe2b8b99315784e242e7f301cf44
+  FirebaseFunctions: a3da4b0c69f1240ef51bbe39a78a1393b6c12323
+  FirebaseMessagingInterop: 1e9db269130b57cf791776b6c32dad1645fabca3
   FirebaseSharedSwift: ee4344de8a4d5b5290de3600667307a44f85fd40
   fmt: a40bb5bd0294ea969aaaba240a927bd33d878cdd
   glog: 5683914934d5b6e4240e497e0f4a3b42d1854183
@@ -4354,8 +4386,10 @@ SPEC CHECKSUMS:
   RNFBApp: 88e0ffca27b3de42c333860b6c5fc7cf6949d63d
   RNFBAuth: f2fc901cd379451d0b07dbba65e11584b5152fe9
   RNFBFirestore: 4cf09ba09c72f1332b97e374a4ddbc1f7d5c1510
+  RNFBFunctions: 53cab852bea6a9e5e7e62532cfcb203eb5378da6
   RNGestureHandler: 85b0463dbfed54eaba4360e31c0aa1a0fe83a6a6
   RNGoogleSignin: be1fbe1c9e0d438e87ae3d79329cc3f1407ba98c
+  RNIap: 7ad9d42eb59f4dc1226d58987472e7653902d82c
   RNReanimated: 7b926938d4190114e5848b5b022d83dbc2c0fe2c
   RNScreens: d9d5d8a2a484bb4446968bfa00db991f1117db44
   RNSVG: 257f59c952e296c9c36035a8f49b61fda48e398a
@@ -4364,6 +4398,6 @@ SPEC CHECKSUMS:
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   Yoga: b37eeaa6148984cac70ecaf8022bb209e03296cb
 
-PODFILE CHECKSUM: c1d2e4c87856f0417e1f6ecc9aed725e87c4608a
+PODFILE CHECKSUM: 1cb894517bfca9bb7e3ca728097b17b167206bb2
 
 COCOAPODS: 1.16.2

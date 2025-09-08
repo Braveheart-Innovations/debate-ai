@@ -14,6 +14,7 @@ import { initializeFirebase } from './src/services/firebase/config';
 import { getFirestore, doc, getDoc, setDoc } from '@react-native-firebase/firestore';
 import { onAuthStateChanged, toAuthUser } from './src/services/firebase/auth';
 import { setAuthUser, setUserProfile } from './src/store';
+import PurchaseService from './src/services/iap/PurchaseService';
 
 function AppContent() {
   const dispatch = useDispatch();
@@ -28,6 +29,14 @@ function AppContent() {
         await initializeFirebase();
         console.log('Firebase initialized');
         
+        // Initialize IAP connection
+        try {
+          await PurchaseService.initialize();
+          console.log('IAP initialized');
+        } catch (e) {
+          console.warn('IAP init failed, continuing without IAP:', e);
+        }
+
         // Set up auth state listener
         authUnsubscribe = onAuthStateChanged(async (user) => {
           if (user) {
@@ -159,6 +168,9 @@ function AppContent() {
       if (authUnsubscribe) {
         authUnsubscribe();
       }
+      try {
+        PurchaseService.cleanup();
+      } catch {}
     };
   }, [dispatch]);
 

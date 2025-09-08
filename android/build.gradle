@@ -33,24 +33,7 @@ allprojects {
   }
 }
 
-// Ensure expo-av has access to the React Android prefab package
-subprojects { proj ->
-  if (proj.name == 'expo-av') {
-    proj.afterEvaluate {
-      try {
-        proj.dependencies.add('implementation', "com.facebook.react:react-android")
-        println "[Gradle] Injected react-android dependency into :expo-av for prefab linkage"
-        def androidExt = proj.extensions.findByName('android')
-        if (androidExt != null && androidExt.hasProperty('buildFeatures')) {
-          androidExt.buildFeatures.prefab = true
-          println "[Gradle] Enabled prefab buildFeatures for :expo-av"
-        }
-      } catch (Exception ignored) {
-        // Keep build resilient if Gradle configuration differs
-      }
-    }
-  }
-}
+// Cleaned: expo-av specific prefab linkage no longer needed
 
 apply plugin: "expo-root-project"
 apply plugin: "com.facebook.react.rootproject"

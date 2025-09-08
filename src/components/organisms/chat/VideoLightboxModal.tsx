@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal, StyleSheet, TouchableOpacity, View, Alert } from 'react-native';
-import { Video, ResizeMode } from 'expo-av';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { useTheme } from '../../../theme';
 import { Ionicons } from '@expo/vector-icons';
 import { Box } from '../../atoms';
@@ -16,6 +16,7 @@ interface VideoLightboxModalProps {
 
 export const VideoLightboxModal: React.FC<VideoLightboxModalProps> = ({ visible, uri, onClose }) => {
   const { theme } = useTheme();
+  const player = useVideoPlayer(uri);
 
   const onShare = async () => {
     try {
@@ -49,11 +50,11 @@ export const VideoLightboxModal: React.FC<VideoLightboxModalProps> = ({ visible,
                 <Ionicons name="close" size={28} color="#FFFFFF" />
               </TouchableOpacity>
             </Box>
-            <Video
-              source={{ uri }}
+            <VideoView
+              player={player}
               style={styles.video}
-              useNativeControls
-              resizeMode={ResizeMode.CONTAIN}
+              nativeControls
+              contentFit="contain"
             />
             <Box style={styles.actionsRow}>
               <TouchableOpacity onPress={onShare} style={styles.actionBtn}>

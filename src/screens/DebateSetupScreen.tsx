@@ -8,7 +8,8 @@ import { setProviderStreamingPreference } from '../store/streamingSlice';
 import { Box } from '../components/atoms';
 import { Button, Typography, GradientButton } from '../components/molecules';
 import { Header, HeaderActions } from '../components/organisms';
-import { hasFeatureAccess, getPremiumUpsellMessage } from '../services/PremiumService';
+// Legacy premium gating replaced by useFeatureAccess
+import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import {
   DebateTopicSelector,
   DebateAISelector,
@@ -27,6 +28,7 @@ import { getAIProviderIcon } from '../utils/aiProviderAssets';
 import { usePreDebateValidation } from '../hooks/debate';
 import { Card } from '../components/molecules/Card';
 import { FORMATS } from '../config/debate/formats';
+import { TrialBanner } from '@/components/subscription/TrialBanner';
 
 interface DebateSetupScreenProps {
   navigation: {
@@ -50,7 +52,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
   const selectedModelsFromStore = useSelector((state: RootState) => state.chat.selectedModels);
   const preservedTopic = useSelector((state: RootState) => state.debateStats.preservedTopic);
   const preservedTopicMode = useSelector((state: RootState) => state.debateStats.preservedTopicMode);
-  const isPremium = useSelector((state: RootState) => state.auth.isPremium);
+  const access = useFeatureAccess();
   const streamingState = useSelector((state: RootState) => state.streaming);
   
   // Pre-debate validation
@@ -179,17 +181,14 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
   // Deprecated: selectRandomTopic (superseded by inline Surprise Me handler)
   
   const handleTopicModeChange = (mode: 'preset' | 'custom' | 'surprise') => {
-    // Check if user can use custom topics
-    if (mode === 'custom' && !hasFeatureAccess('customDebateTopics')) {
+    // Require paid tier for custom topics
+    if (mode === 'custom' && !(access.isPremium || access.isInTrial)) {
       Alert.alert(
         'Premium Feature',
-        getPremiumUpsellMessage('customDebateTopics'),
+        'Custom topics are available during Trial or with Premium.',
         [
           { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Upgrade', 
-            onPress: () => dispatch(setAuthModalVisible(true))
-          }
+          { text: 'Upgrade', onPress: () => dispatch(setAuthModalVisible(true)) },
         ]
       );
       return;
@@ -216,7 +215,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
       Alert.alert('Select 2 AIs', 'Please select exactly 2 AIs for the debate!');
       return;
     }
-    if (isPremium) {
+    if (access.isPremium || access.isInTrial) {
       setCurrentStep('personality');
     } else {
       handleStartDebate();
@@ -225,6 +224,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
   
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }} edges={['top', 'left', 'right']}>
+      <TrialBanner />
       <Header
         variant="gradient"
         title="Debate Arena"
@@ -269,7 +269,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
         <DebateStepIndicator
           currentStep={currentStep}
           completedSteps={currentStep === 'ai' ? ['topic'] : currentStep === 'personality' ? ['topic', 'ai'] : []}
-          isPremium={isPremium}
+          isPremium={access.isPremium || access.isInTrial}
         />
 
         {/* Step 1: Format, Rounds, Topic (clean and minimal) */}
@@ -383,7 +383,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
             configuredAIs={configuredAIs}
             selectedAIs={selectedAIs}
             maxAIs={maxAIs}
-            isPremium={isPremium}
+            isPremium={access.isPremium || access.isInTrial}
             aiPersonalities={aiPersonalities}
             selectedModels={selectedModels}
             onToggleAI={handleToggleAI}
@@ -475,8 +475,8 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
           </Box>
         )}
         
-        {/* Step 3: Personality Selection (Premium Only) */}
-        {currentStep === 'personality' && isPremium && (
+        {/* Step 3: Personality Selection (Premium/Trial Only) */}
+        {currentStep === 'personality' && (access.isPremium || access.isInTrial) && (
           <DebatePersonalitySelector
             selectedTopic={selectedTopic}
             customTopic={customTopic}

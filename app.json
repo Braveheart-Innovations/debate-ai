@@ -54,7 +54,9 @@
           }
         }
       ],
-      "expo-dev-client"
+      "expo-dev-client",
+      "expo-video",
+      "expo-audio"
     ],
     "extra": {
       "eas": {

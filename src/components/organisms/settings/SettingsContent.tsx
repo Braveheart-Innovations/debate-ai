@@ -10,6 +10,9 @@ import { useTheme } from '../../../theme';
 import { 
   useThemeSettings
 } from '../../../hooks/settings';
+import { useFeatureAccess } from '@/hooks/useFeatureAccess';
+import PurchaseService from '@/services/iap/PurchaseService';
+import { Linking, Platform, Alert } from 'react-native';
 import { InputField } from '../../molecules';
 import { setRealtimeRelayUrl } from '../../../store';
 
@@ -28,12 +31,13 @@ export const SettingsContent: React.FC<SettingsContentProps> = ({
   const dispatch = useDispatch();
   const streamingEnabled = useSelector((state: RootState) => state.streaming?.globalStreamingEnabled ?? true);
   const streamingSpeed = useSelector((state: RootState) => state.streaming?.streamingSpeed ?? 'natural');
-  const isPremium = useSelector((state: RootState) => state.auth.isPremium);
   const relayUrl = useSelector((state: RootState) => state.settings.realtimeRelayUrl || '');
   const apiKeys = useSelector((state: RootState) => state.settings.apiKeys || {});
   const hasAnyApiKey = Object.values(apiKeys).some(Boolean);
   
   const themeSettings = useThemeSettings();
+  const { membershipStatus, trialDaysRemaining, isDemo, isInTrial, isPremium: hasPremiumAccess, refresh } = useFeatureAccess();
+  const [iapLoading, setIapLoading] = React.useState(false);
 
   const handleStreamingSpeedPress = () => {
     if (!streamingEnabled) return;
@@ -62,6 +66,86 @@ export const SettingsContent: React.FC<SettingsContentProps> = ({
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
+      {/* Account Settings / Subscription */}
+      <View style={styles.sectionHeader}>
+        <Typography variant="title" weight="semibold" color="primary">
+          Account Settings
+        </Typography>
+      </View>
+      <View style={[styles.section, { backgroundColor: theme.colors.surface, paddingVertical: 8 }]}>
+        <SettingRow
+          title="Membership"
+          subtitle={
+            membershipStatus === 'trial' && trialDaysRemaining != null
+              ? `Trial — ${trialDaysRemaining} day${trialDaysRemaining === 1 ? '' : 's'} left`
+              : membershipStatus === 'premium'
+              ? 'Premium — Full access'
+              : 'Demo — Limited access'
+          }
+          icon="card-outline"
+        />
+        {isDemo && (
+          <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+            <Button
+              title={iapLoading ? 'Starting Trial…' : 'Start 7‑Day Free Trial'}
+              onPress={async () => {
+                try {
+                  setIapLoading(true);
+                  const res = await PurchaseService.purchaseSubscription('monthly');
+                  if (res.success) {
+                    Alert.alert('Trial Started', 'Your trial is starting (pending store confirmation).');
+                    await refresh();
+                  } else if (!res.cancelled) {
+                    Alert.alert('Purchase Failed', 'Unable to start trial.');
+                  }
+                } catch (_e) {
+                  void _e;
+                  Alert.alert('Error', 'Failed to initiate purchase.');
+                } finally {
+                  setIapLoading(false);
+                }
+              }}
+              variant="primary"
+            />
+          </View>
+        )}
+        {(isInTrial || hasPremiumAccess) && (
+          <SettingRow
+            title="Manage Subscription"
+            subtitle={Platform.OS === 'ios' ? 'Open App Store subscriptions' : 'Open Play Store subscriptions'}
+            icon="open-outline"
+            onPress={() => {
+              if (Platform.OS === 'ios') {
+                Linking.openURL('https://apps.apple.com/account/subscriptions');
+              } else {
+                Linking.openURL('https://play.google.com/store/account/subscriptions?package=com.braveheartinnovations.debateai');
+              }
+            }}
+          />
+        )}
+        <SettingRow
+          title="Restore Purchases"
+          subtitle="Re-sync your subscription"
+          icon="refresh-outline"
+          onPress={async () => {
+            try {
+              setIapLoading(true);
+              const res = await PurchaseService.restorePurchases();
+              if (res.success && res.restored) {
+                Alert.alert('Restored', 'Your subscription was restored.');
+                await refresh();
+              } else {
+                Alert.alert('No Purchases', 'No active subscriptions found.');
+              }
+            } catch (_e) {
+              void _e;
+              Alert.alert('Restore Failed', 'Unable to restore purchases.');
+            } finally {
+              setIapLoading(false);
+            }
+          }}
+        />
+      </View>
       {/* API Configuration Section */}
       <View style={styles.sectionHeader}>
         <Typography variant="title" weight="semibold" color="primary">
@@ -113,13 +197,13 @@ export const SettingsContent: React.FC<SettingsContentProps> = ({
       <View style={[styles.section, { backgroundColor: theme.colors.surface }]}>
         <SettingRow
           title="Premium Mode"
-          subtitle={isPremium ? 'Premium features unlocked' : 'Simulate premium to test UI'}
+          subtitle={hasPremiumAccess ? 'Premium features unlocked' : 'Simulate premium to test UI'}
           icon="star"
           rightElement={
             <Button
-              title={isPremium ? 'On' : 'Off'}
-              onPress={() => dispatch(setPremiumStatus(!isPremium))}
-              variant={isPremium ? 'primary' : 'secondary'}
+              title={hasPremiumAccess ? 'On' : 'Off'}
+              onPress={() => dispatch(setPremiumStatus(!hasPremiumAccess))}
+              variant={hasPremiumAccess ? 'primary' : 'secondary'}
               size="small"
             />
           }

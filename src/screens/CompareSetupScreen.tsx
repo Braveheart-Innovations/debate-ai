@@ -13,6 +13,8 @@ import { AIConfig } from '../types';
 import { AI_PROVIDERS } from '../config/aiProviders';
 import { AI_MODELS } from '../config/modelConfigs';
 import { getAIProviderIcon } from '../utils/aiProviderAssets';
+import { TrialBanner } from '@/components/subscription/TrialBanner';
+import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 
 interface CompareSetupScreenProps {
   navigation: {
@@ -30,7 +32,7 @@ const CompareSetupScreen: React.FC<CompareSetupScreenProps> = ({ navigation, rou
   const { theme } = useTheme();
   const dispatch = useDispatch();
   const apiKeys = useSelector((state: RootState) => state.settings.apiKeys || {});
-  const isPremium = useSelector((state: RootState) => state.auth.isPremium);
+  const access = useFeatureAccess();
   const expertMode = useSelector((state: RootState) => state.settings.expertMode || {});
   
   // Calculate half screen width for each selector
@@ -119,6 +121,7 @@ const CompareSetupScreen: React.FC<CompareSetupScreenProps> = ({ navigation, rou
       style={{ flex: 1, backgroundColor: theme.colors.background }}
       edges={['top', 'left', 'right']}
     >
+      <TrialBanner />
       <Header
         variant="gradient"
         title="Compare AIs"
@@ -164,7 +167,7 @@ const CompareSetupScreen: React.FC<CompareSetupScreenProps> = ({ navigation, rou
               columnCount={1}
               containerWidth={selectorWidth}
               onAddAI={() => navigation.navigate('APIConfig')}
-              isPremium={isPremium}
+              isPremium={access.isPremium || access.isInTrial}
               aiPersonalities={leftPersonalities}
               selectedModels={leftModels}
               onPersonalityChange={(aiId, personalityId) => 
@@ -203,7 +206,7 @@ const CompareSetupScreen: React.FC<CompareSetupScreenProps> = ({ navigation, rou
               columnCount={1}
               containerWidth={selectorWidth}
               onAddAI={() => navigation.navigate('APIConfig')}
-              isPremium={isPremium}
+              isPremium={access.isPremium || access.isInTrial}
               aiPersonalities={rightPersonalities}
               selectedModels={rightModels}
               onPersonalityChange={(aiId, personalityId) => 

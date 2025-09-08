@@ -20,6 +20,8 @@ import {
   toAuthUser
 } from '../../../services/firebase/auth';
 import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from '@react-native-firebase/firestore';
+import { TrialBanner } from '@/components/subscription/TrialBanner';
+import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 
 interface ProfileContentProps {
   onClose: () => void;
@@ -34,7 +36,8 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
 }) => {
   const { theme, isDark } = useTheme();
   const dispatch = useDispatch();
-  const { userProfile, isPremium, isAuthenticated, isAnonymous } = useSelector((state: RootState) => state.auth);
+  const { userProfile, isAuthenticated, isAnonymous } = useSelector((state: RootState) => state.auth);
+  const access = useFeatureAccess();
   
   // Auth state
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
@@ -377,7 +380,7 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
       {/* Enhanced Profile Info */}
       <View style={[styles.profileCard, { backgroundColor: theme.colors.surface }]}>
         <LinearGradient
-          colors={isPremium 
+          colors={(access.isPremium || access.isInTrial)
             ? ['rgba(255, 215, 0, 0.1)', 'rgba(255, 165, 0, 0.05)']
             : ['rgba(99, 102, 241, 0.1)', 'rgba(139, 92, 246, 0.05)']
           }
@@ -389,10 +392,10 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
                 displayName={userProfile?.displayName}
                 email={userProfile?.email}
                 photoURL={userProfile?.photoURL}
-                isPremium={isPremium}
+                isPremium={access.isPremium || access.isInTrial}
                 size={72}
               />
-              {isPremium && (
+              {(access.isPremium || access.isInTrial) && (
                 <View style={[styles.premiumIndicator, { backgroundColor: theme.colors.warning[500] }]}>
                   <Typography variant="caption" weight="bold" color="inverse">
                     ✨
@@ -419,25 +422,19 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
               </Typography>
               
               <View style={styles.membershipStatus}>
-                {isPremium ? (
+                {access.isPremium ? (
                   <View style={[styles.membershipBadge, styles.premiumBadge, { backgroundColor: theme.colors.warning[500] }]}>
-                    <Typography 
-                      variant="caption" 
-                      weight="bold" 
-                      color="inverse"
-                    >
-                      Premium Member ✨
+                    <Typography variant="caption" weight="bold" color="inverse">Premium Member ✨</Typography>
+                  </View>
+                ) : access.isInTrial ? (
+                  <View style={[styles.membershipBadge, styles.premiumBadge, { backgroundColor: theme.colors.info[500] }]}>
+                    <Typography variant="caption" weight="bold" color="inverse">
+                      Trial — {access.trialDaysRemaining ?? 0} day{access.trialDaysRemaining === 1 ? '' : 's'} left
                     </Typography>
                   </View>
                 ) : (
                   <View style={[styles.membershipBadge, styles.freeBadge, { backgroundColor: theme.colors.primary[100] as string }]}>
-                    <Typography 
-                      variant="caption" 
-                      weight="semibold" 
-                      color="brand"
-                    >
-                      Free Member
-                    </Typography>
+                    <Typography variant="caption" weight="semibold" color="brand">Demo Member</Typography>
                   </View>
                 )}
               </View>
@@ -449,11 +446,14 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
       </View>
 
       {/* Premium CTA for free users */}
-      {!isPremium && (
+      {!(access.isPremium || access.isInTrial) && (
         <View style={styles.ctaSection}>
           <FreeTierCTA onPress={handleSubscriptionPress} />
         </View>
       )}
+
+      {/* Trial banner */}
+      {access.isInTrial && <TrialBanner />}
 
       {/* Enhanced Settings Section */}
       <View style={styles.settingsContainer}>

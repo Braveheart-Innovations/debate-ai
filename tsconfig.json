@@ -18,15 +18,16 @@
     }
   },
   "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    "**/*.js",
-    "**/*.jsx"
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "index.ts",
+    "App.tsx"
   ],
   "exclude": [
     "node_modules",
     "babel.config.js",
     "metro.config.js",
-    "jest.config.js"
+    "jest.config.js",
+    "functions/**"
   ]
 }

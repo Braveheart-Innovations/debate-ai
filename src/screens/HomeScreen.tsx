@@ -9,6 +9,7 @@ import { PromptWizard } from '../components/organisms/PromptWizard';
 
 import { useTheme } from '../theme';
 import { HOME_CONSTANTS } from '../config/homeConstants';
+import { TrialBanner } from '@/components/subscription/TrialBanner';
 
 // Custom hooks
 import { useGreeting } from '../hooks/home/useGreeting';
@@ -89,6 +90,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         }}
         showsVerticalScrollIndicator={false}
       >
+        <TrialBanner />
         {/* Primary: AI Selection & Chat */}
         <View style={{ marginBottom: theme.spacing.xl }}>
           <DynamicAISelector

@@ -1,12 +1,17 @@
-import React, { useState } from 'react';
-import { StyleSheet, TouchableOpacity, Modal, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, TouchableOpacity, Modal, KeyboardAvoidingView, Platform, ScrollView, Alert, ToastAndroid } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { Box } from '../../atoms';
 import { useTheme } from '../../../theme';
 import { Typography } from '../../molecules/Typography';
 import { SheetHeader } from '../../molecules/SheetHeader';
-import * as DocumentPicker from 'expo-document-picker';
+import {
+  useAudioRecorder,
+  requestRecordingPermissionsAsync,
+  setAudioModeAsync,
+  RecordingPresets,
+} from 'expo-audio';
 import TranscriptionService from '../../../services/voice/TranscriptionService';
 import OpenAIRealtimeService from '../../../services/voice/OpenAIRealtimeService';
 import OpenAIWebRTCService from '../../../services/voice/OpenAIWebRTCService';
@@ -26,31 +31,56 @@ interface VoiceModalProps {
 export const VoiceModal: React.FC<VoiceModalProps> = ({ visible, onClose, onStart, onStop, onTranscribed }) => {
   const { theme } = useTheme();
   const [recording, setRecording] = useState(false);
-  const recordingRef = ReactRef.useRef<unknown>(null);
+  const recordingRef = ReactRef.useRef<{ stop: () => Promise<void>; uri: string | null } | null>(null);
   const [busy, setBusy] = useState(false);
   const [advanced, setAdvanced] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const hasOpenAIKey = useSelector((state: RootState) => Boolean(state.settings.apiKeys?.openai));
   const configuredRelay = useSelector((state: RootState) => state.settings.realtimeRelayUrl);
   const realtimeAvailable = hasOpenAIKey || isRealtimeConfigured();
   const realtimeRef = ReactRef.useRef<OpenAIRealtimeService | null>(null);
   const webrtcRef = ReactRef.useRef<OpenAIWebRTCService | null>(null);
 
+  // Audio recorder (iOS inline recording)
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+
+  // Auto-hide iOS toast after a short delay
+  useEffect(() => {
+    if (!toastMessage) return;
+    const t = setTimeout(() => setToastMessage(null), 2500);
+    return () => clearTimeout(t);
+  }, [toastMessage]);
+
+  const showToast = (message: string) => {
+    if (Platform.OS === 'android') {
+      ToastAndroid.show(message, ToastAndroid.SHORT);
+    } else {
+      setToastMessage(message);
+    }
+  };
+
   const handleStart = async () => {
     setRecording(true);
     onStart?.();
-    // iOS: use expo-av for inline recording; Android: prompt to pick file for now
+    // Use expo-audio recorder for inline recording on both platforms
     try {
-      if (Platform.OS === 'ios') {
-        const { Audio } = await import('expo-av');
-        await Audio.requestPermissionsAsync();
-        await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
-        const recordingObj = new Audio.Recording();
-        await recordingObj.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
-        await recordingObj.startAsync();
-        recordingRef.current = recordingObj;
-      } else {
-        Alert.alert('Recording', 'On Android, please choose an existing audio file for now.');
+      const perm = await requestRecordingPermissionsAsync();
+      if (perm.status !== 'granted') {
+        showToast('Mic permission required. Enable in Settings.');
+        setRecording(false);
+        return;
       }
+      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+      recorder.record();
+      // Minimal interface for stop + uri retrieval
+      recordingRef.current = {
+        stop: async () => {
+          await recorder.stop();
+        },
+        get uri() {
+          return recorder.uri;
+        },
+      } as unknown as { stop: () => Promise<void>; uri: string | null };
       if (advanced) {
         try {
           // Prefer WebRTC path using BYOK ephemeral session
@@ -77,11 +107,11 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ visible, onClose, onStar
     setRecording(false);
     onStop?.();
     try {
-      if (Platform.OS === 'ios' && recordingRef.current) {
+      if (recordingRef.current) {
         setBusy(true);
-        const rec = recordingRef.current as { stopAndUnloadAsync: () => Promise<void>; getURI: () => string | null };
-        await rec.stopAndUnloadAsync();
-        const uri = rec.getURI();
+        const rec = recordingRef.current;
+        await rec.stop();
+        const uri = rec.uri;
         if (uri) {
           if (advanced && (webrtcRef.current || realtimeRef.current)) {
             try {
@@ -106,9 +136,6 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ visible, onClose, onStar
             onClose();
           }
         }
-      } else if (Platform.OS === 'android') {
-        // No inline recording; user should use file picker flow
-        setBusy(false);
       }
     } catch (e) {
       Alert.alert('Transcription Error', e instanceof Error ? e.message : 'Unknown error');
@@ -118,19 +145,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ visible, onClose, onStar
     }
   };
 
-  const pickAudioAndTranscribe = async () => {
-    try {
-      const res = await DocumentPicker.getDocumentAsync({ type: 'audio/*', copyToCacheDirectory: true });
-      if (res.canceled || !res.assets?.length) return;
-      const asset = res.assets[0];
-      const text = await TranscriptionService.transcribeWithOpenAI(asset.uri);
-      onTranscribed?.(text);
-      Alert.alert('Transcription Complete', text.slice(0, 200));
-      onClose();
-    } catch (e) {
-      Alert.alert('Transcription Error', e instanceof Error ? e.message : 'Unknown error');
-    }
-  };
+  // Removed pick-file fallback: inline recording is supported on both platforms
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="overFullScreen" transparent onRequestClose={onClose}>
@@ -160,11 +175,6 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ visible, onClose, onStar
                       </Typography>
                     )}
                   </Box>
-                    <TouchableOpacity onPress={pickAudioAndTranscribe} style={{ marginTop: 12 }}>
-                      <Typography variant="body" weight="semibold" color="primary">
-                        Or choose an existing audio file →
-                      </Typography>
-                    </TouchableOpacity>
                   </Box>
                 </ScrollView>
                 <Box style={styles.actionsRow}>
@@ -179,6 +189,27 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ visible, onClose, onStar
                     </Typography>
                   </TouchableOpacity>
                 </Box>
+                {toastMessage && (
+                  <Box
+                    style={{
+                      position: 'absolute',
+                      bottom: 12,
+                      left: 16,
+                      right: 16,
+                      alignSelf: 'center',
+                      paddingHorizontal: 12,
+                      paddingVertical: 10,
+                      borderRadius: 10,
+                      backgroundColor: theme.colors.semantic.error,
+                      borderWidth: StyleSheet.hairlineWidth,
+                      borderColor: theme.colors.error[600],
+                    }}
+                  >
+                    <Typography variant="caption" style={{ color: theme.colors.text.inverse }}>
+                      {toastMessage}
+                    </Typography>
+                  </Box>
+                )}
               </KeyboardAvoidingView>
             </SafeAreaView>
           </TouchableOpacity>

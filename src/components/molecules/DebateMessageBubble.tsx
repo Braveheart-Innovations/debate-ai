@@ -13,6 +13,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { StyleSheet, Linking } from 'react-native';
 import Markdown from 'react-native-markdown-display';
+import { sanitizeMarkdown } from '@/utils/markdown';
 import { Box } from '../atoms';
 import { Typography } from './Typography';
 import { StreamingIndicator } from '../organisms/StreamingIndicator';
@@ -119,7 +120,7 @@ export const DebateMessageBubble: React.FC<DebateMessageBubbleProps> = React.mem
               em: { fontStyle: 'italic', color: theme.colors.text.secondary },
             }}
           >
-            {message.content}
+            {sanitizeMarkdown(message.content)}
           </Markdown>
           
           <Box style={{
@@ -194,15 +195,15 @@ export const DebateMessageBubble: React.FC<DebateMessageBubbleProps> = React.mem
         >
           {(() => {
             // If streaming, show live content
-            if (isStreaming) return streamingContent || '';
+            if (isStreaming) return sanitizeMarkdown(streamingContent || '');
             // After streaming completes, there can be a short window where
             // message.content hasn't been updated yet. Fall back to the last
             // streamed content to avoid an empty bubble.
             if (!isStreaming && (!message.content || message.content.trim() === '')) {
-              return streamingContent || '';
+              return sanitizeMarkdown(streamingContent || '');
             }
             // Otherwise, show finalized message content
-            return message.content;
+            return sanitizeMarkdown(message.content);
           })()}
         </Markdown>
         {isStreaming && (

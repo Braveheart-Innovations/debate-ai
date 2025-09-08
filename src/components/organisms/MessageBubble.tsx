@@ -6,6 +6,7 @@ import Animated, {
   useSharedValue,
 } from 'react-native-reanimated';
 import Markdown from 'react-native-markdown-display';
+import { sanitizeMarkdown } from '@/utils/markdown';
 import { Image, View } from 'react-native';
 import { ImageBubble } from './chat/ImageBubble';
 import { Box } from '../atoms';
@@ -336,7 +337,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, s
               },
             }}
           >
-            {displayContent ? processMessageContent({ ...message, content: displayContent }) : ''}
+            {displayContent 
+              ? sanitizeMarkdown(processMessageContent({ ...message, content: displayContent })) 
+              : ''}
           </Markdown>
           {/* Render image attachments if present */}
           {!isUser && message.attachments && message.attachments.length > 0 && (

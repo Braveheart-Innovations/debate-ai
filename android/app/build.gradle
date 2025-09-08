@@ -102,6 +102,9 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0.0"
+        // React Native IAP defines a 'store' flavor dimension (play/amazon)
+        // Choose the Play Store variant by default to avoid variant ambiguity.
+        missingDimensionStrategy 'store', 'play'
     }
     signingConfigs {
         debug {
