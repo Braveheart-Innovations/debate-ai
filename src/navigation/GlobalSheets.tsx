@@ -26,21 +26,23 @@ export const GlobalSheets: React.FC = () => {
   return (
     <>
       {activeSheet === 'profile' && (
-        <TouchableOpacity 
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            zIndex: 1000,
-          }}
-          activeOpacity={1}
-          onPress={handleSheetClose}
-        >
+        <>
+          {/* Backdrop */}
           <TouchableOpacity 
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              zIndex: 1000,
+            }}
             activeOpacity={1}
+            onPress={handleSheetClose}
+          />
+          {/* Foreground as sibling to avoid gesture conflicts */}
+          <View 
             style={{
               position: 'absolute',
               top: 100,
@@ -48,8 +50,8 @@ export const GlobalSheets: React.FC = () => {
               right: 0,
               bottom: 0,
               backgroundColor: theme.colors.background,
+              zIndex: 1001,
             }}
-            onPress={(e) => e.stopPropagation()}
           >
             <ProfileSheet
               onClose={handleSheetClose}
@@ -57,26 +59,28 @@ export const GlobalSheets: React.FC = () => {
                 dispatch(showSheet({ sheet: 'settings' }));
               }}
             />
-          </TouchableOpacity>
-        </TouchableOpacity>
+          </View>
+        </>
       )}
 
       {activeSheet === 'settings' && (
-        <TouchableOpacity 
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            zIndex: 1000,
-          }}
-          activeOpacity={1}
-          onPress={handleSheetClose}
-        >
+        <>
+          {/* Backdrop */}
           <TouchableOpacity 
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              zIndex: 1000,
+            }}
             activeOpacity={1}
+            onPress={handleSheetClose}
+          />
+          {/* Foreground as sibling to avoid gesture conflicts */}
+          <View 
             style={{
               position: 'absolute',
               top: 100,
@@ -84,8 +88,8 @@ export const GlobalSheets: React.FC = () => {
               right: 0,
               bottom: 0,
               backgroundColor: theme.colors.background,
+              zIndex: 1001,
             }}
-            onPress={(e) => e.stopPropagation()}
           >
             <SettingsContent
               onClose={handleSheetClose}
@@ -98,8 +102,8 @@ export const GlobalSheets: React.FC = () => {
                 navigation.navigate('ExpertMode');
               }}
             />
-          </TouchableOpacity>
-        </TouchableOpacity>
+          </View>
+        </>
       )}
 
       {activeSheet === 'support' && (

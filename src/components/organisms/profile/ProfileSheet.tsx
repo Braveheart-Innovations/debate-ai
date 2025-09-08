@@ -7,13 +7,11 @@ import { useTheme } from '../../../theme';
 interface ProfileSheetProps {
   onClose: () => void;
   onSettingsPress?: () => void;
-  onSubscriptionPress?: () => void;
 }
 
 export const ProfileSheet: React.FC<ProfileSheetProps> = ({
   onClose,
   onSettingsPress,
-  onSubscriptionPress,
 }) => {
   const { theme } = useTheme();
 
@@ -31,7 +29,6 @@ export const ProfileSheet: React.FC<ProfileSheetProps> = ({
       <ProfileContent
         onClose={onClose}
         onSettingsPress={onSettingsPress}
-        onSubscriptionPress={onSubscriptionPress}
       />
     </View>
   );

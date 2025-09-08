@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, Linking, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../../store';
@@ -22,17 +22,16 @@ import {
 import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from '@react-native-firebase/firestore';
 import { TrialBanner } from '@/components/subscription/TrialBanner';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
+import PurchaseService from '@/services/iap/PurchaseService';
 
 interface ProfileContentProps {
   onClose: () => void;
   onSettingsPress?: () => void;
-  onSubscriptionPress?: () => void;
 }
 
 export const ProfileContent: React.FC<ProfileContentProps> = ({
   onClose,
   onSettingsPress,
-  onSubscriptionPress,
 }) => {
   const { theme, isDark } = useTheme();
   const dispatch = useDispatch();
@@ -43,6 +42,7 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [showAuthForm, setShowAuthForm] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [iapLoading, setIapLoading] = useState(false);
 
   const handleEmailAuth = async (email: string, password: string) => {
     setLoading(true);
@@ -129,15 +129,7 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
     }
   };
 
-  const handleSubscriptionPress = () => {
-    if (onSubscriptionPress) {
-      onSubscriptionPress();
-    } else {
-      // Default behavior - navigate to subscription screen
-      // TODO: Navigate to subscription screen
-    }
-    onClose();
-  };
+  // Subscription navigation handled by Account Settings actions; no sheet close side-effects
 
   const handleSettingsPress = () => {
     if (onSettingsPress) {
@@ -214,6 +206,42 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
             variant="secondary"
             fullWidth
           />
+        </View>
+
+        {/* Account Settings (guest view) */}
+        <View style={styles.settingsContainer}>
+          <Typography 
+            variant="heading" 
+            weight="semibold" 
+            color="primary"
+            style={styles.sectionTitle}
+          >
+            Account Settings
+          </Typography>
+          <View style={[styles.settingsCard, { backgroundColor: theme.colors.surface }]}>
+            <SettingRow
+              title="Membership"
+              subtitle={'Demo — Limited access'}
+              icon="card-outline"
+            />
+            <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+              <Button
+                title="Sign in to start trial"
+                onPress={() => {
+                  setAuthMode('signup');
+                  setShowAuthForm(true);
+                }}
+                variant="primary"
+              />
+            </View>
+            <SettingRow
+              title="App Settings"
+              subtitle="Manage app preferences"
+              icon="settings-outline"
+              onPress={handleSettingsPress}
+              testID="guest-settings-button"
+            />
+          </View>
         </View>
 
         {/* Settings Access */}
@@ -365,6 +393,42 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
         >
           By continuing, you agree to our Terms of Service and Privacy Policy
         </Typography>
+
+        {/* Account Settings (signed-out view) */}
+        <View style={styles.settingsContainer}>
+          <Typography 
+            variant="heading" 
+            weight="semibold" 
+            color="primary"
+            style={styles.sectionTitle}
+          >
+            Account Settings
+          </Typography>
+          <View style={[styles.settingsCard, { backgroundColor: theme.colors.surface }]}>
+            <SettingRow
+              title="Membership"
+              subtitle={'Demo — Limited access'}
+              icon="card-outline"
+            />
+            <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+              <Button
+                title="Sign in to start trial"
+                onPress={() => {
+                  setAuthMode('signup');
+                  setShowAuthForm(true);
+                }}
+                variant="primary"
+              />
+            </View>
+            <SettingRow
+              title="App Settings"
+              subtitle="Manage app preferences"
+              icon="settings-outline"
+              onPress={handleSettingsPress}
+              testID="profile-settings-button"
+            />
+          </View>
+        </View>
       </ScrollView>
     );
   }
@@ -448,14 +512,14 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
       {/* Premium CTA for free users */}
       {!(access.isPremium || access.isInTrial) && (
         <View style={styles.ctaSection}>
-          <FreeTierCTA onPress={handleSubscriptionPress} />
+          <FreeTierCTA />
         </View>
       )}
 
       {/* Trial banner */}
       {access.isInTrial && <TrialBanner />}
 
-      {/* Enhanced Settings Section */}
+      {/* Account Settings Section */}
       <View style={styles.settingsContainer}>
         <Typography 
           variant="heading" 
@@ -463,19 +527,94 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
           color="primary"
           style={styles.sectionTitle}
         >
-          Account & Settings
+          Account Settings
         </Typography>
-        
+
         <View style={[styles.settingsCard, { backgroundColor: theme.colors.surface }]}>
           <SettingRow
-            title="Account Settings"
-            subtitle="Manage your account and preferences"
-            icon="person-circle-outline"
+            title="Membership"
+            subtitle={
+              access.isInTrial && access.trialDaysRemaining != null
+                ? `Trial — ${access.trialDaysRemaining} day${access.trialDaysRemaining === 1 ? '' : 's'} left`
+                : access.isPremium
+                ? 'Premium — Full access'
+                : 'Demo — Limited access'
+            }
+            icon="card-outline"
+          />
+
+          {!(access.isPremium || access.isInTrial) && (
+            <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+              <Button
+                title={iapLoading ? 'Starting Trial…' : 'Start 7‑Day Free Trial'}
+                onPress={async () => {
+                  try {
+                    setIapLoading(true);
+                    const res = await PurchaseService.purchaseSubscription('monthly');
+                    if (res.success) {
+                      Alert.alert('Trial Started', 'Your trial is starting (pending store confirmation).');
+                      await access.refresh();
+                    } else if (!('cancelled' in res) || !res.cancelled) {
+                      Alert.alert('Purchase Failed', 'Unable to start trial.');
+                    }
+                  } catch (_e) {
+                    void _e;
+                    Alert.alert('Error', 'Failed to initiate purchase.');
+                  } finally {
+                    setIapLoading(false);
+                  }
+                }}
+                variant="primary"
+              />
+            </View>
+          )}
+
+          {(access.isInTrial || access.isPremium) && (
+            <SettingRow
+              title="Manage Subscription"
+              subtitle={Platform.OS === 'ios' ? 'Open App Store subscriptions' : 'Open Play Store subscriptions'}
+              icon="open-outline"
+              onPress={() => {
+                if (Platform.OS === 'ios') {
+                  Linking.openURL('https://apps.apple.com/account/subscriptions');
+                } else {
+                  Linking.openURL('https://play.google.com/store/account/subscriptions?package=com.braveheartinnovations.debateai');
+                }
+              }}
+            />
+          )}
+
+          <SettingRow
+            title="Restore Purchases"
+            subtitle="Re-sync your subscription"
+            icon="refresh-outline"
+            onPress={async () => {
+              try {
+                setIapLoading(true);
+                const res = await PurchaseService.restorePurchases();
+                if (res.success && res.restored) {
+                  Alert.alert('Restored', 'Your subscription was restored.');
+                  await access.refresh();
+                } else {
+                  Alert.alert('No Purchases', 'No active subscriptions found.');
+                }
+              } catch (_e) {
+                void _e;
+                Alert.alert('Restore Failed', 'Unable to restore purchases.');
+              } finally {
+                setIapLoading(false);
+              }
+            }}
+          />
+
+          {/* Link to App Settings (non-account) */}
+          <SettingRow
+            title="App Settings"
+            subtitle="Manage app preferences"
+            icon="settings-outline"
             onPress={handleSettingsPress}
             testID="profile-settings-button"
           />
-          
-          
         </View>
       </View>
 

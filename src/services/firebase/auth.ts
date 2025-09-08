@@ -9,7 +9,9 @@ import {
   signInWithCredential,
   GoogleAuthProvider,
   linkWithCredential,
-  AppleAuthProvider
+  AppleAuthProvider,
+  updateProfile as fbUpdateProfile,
+  getIdToken as firebaseGetIdToken
 } from '@react-native-firebase/auth';
 import { 
   getFirestore,
@@ -176,7 +178,7 @@ export const getIdToken = async (): Promise<string | null> => {
   if (!user) return null;
   
   try {
-    return await user.getIdToken();
+    return await firebaseGetIdToken(user);
   } catch (error) {
     console.error('Error getting ID token:', error);
     return null;
@@ -302,7 +304,7 @@ export const signInWithApple = async (): Promise<{ user: User; profile: UserProf
     if (appleFullName) {
       try {
         if (userCredential.user.displayName !== appleFullName) {
-          await userCredential.user.updateProfile({ displayName: appleFullName });
+          await fbUpdateProfile(userCredential.user, { displayName: appleFullName });
         }
       } catch (e) {
         console.warn('Apple Sign-In: failed to set displayName on Firebase user', e);

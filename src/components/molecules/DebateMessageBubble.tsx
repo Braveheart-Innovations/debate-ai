@@ -4,14 +4,14 @@
  * Extends the base MessageBubble functionality for debate-specific features
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Animated, {
   useAnimatedStyle,
   withTiming,
   useSharedValue,
   Easing,
 } from 'react-native-reanimated';
-import { StyleSheet, Linking } from 'react-native';
+import { StyleSheet, Linking, TouchableOpacity } from 'react-native';
 import Markdown from 'react-native-markdown-display';
 import { sanitizeMarkdown } from '@/utils/markdown';
 import { Box } from '../atoms';
@@ -21,6 +21,9 @@ import { useTheme } from '../../theme';
 import { Message } from '../../types';
 import { AI_BRAND_COLORS } from '../../constants/aiColors';
 import { useStreamingMessage } from '../../hooks/streaming/useStreamingMessage';
+import { selectableMarkdownRules } from '@/utils/markdownSelectable';
+import * as Clipboard from 'expo-clipboard';
+import { Ionicons } from '@expo/vector-icons';
 
 export interface DebateMessageBubbleProps {
   message: Message;
@@ -37,6 +40,7 @@ export const DebateMessageBubble: React.FC<DebateMessageBubbleProps> = React.mem
   const { theme, isDark } = useTheme();
   const isHost = message.sender === 'Debate Host';
   const { content: streamingContent, isStreaming, cursorVisible, error: streamingError, chunksReceived } = useStreamingMessage(message.id);
+  const [copied, setCopied] = useState(false);
   
   
   // Get AI-specific color from the message sender using theme brand colors
@@ -119,6 +123,7 @@ export const DebateMessageBubble: React.FC<DebateMessageBubbleProps> = React.mem
               strong: { fontWeight: 'bold', color: theme.colors.text.secondary },
               em: { fontStyle: 'italic', color: theme.colors.text.secondary },
             }}
+            rules={selectableMarkdownRules}
           >
             {sanitizeMarkdown(message.content)}
           </Markdown>
@@ -186,6 +191,7 @@ export const DebateMessageBubble: React.FC<DebateMessageBubbleProps> = React.mem
             bullet_list: { marginVertical: 4 },
             ordered_list: { marginVertical: 4 },
           }}
+          rules={selectableMarkdownRules}
           onLinkPress={(url: string) => {
             Linking.openURL(url).catch(err => 
               console.error('Failed to open URL:', err)
@@ -231,6 +237,35 @@ export const DebateMessageBubble: React.FC<DebateMessageBubbleProps> = React.mem
             </Typography>
           </Box>
         )}
+        {/* Copy button */}
+        <TouchableOpacity
+          onPress={async () => {
+            const displayContent = isStreaming
+              ? (streamingContent || '')
+              : (!message.content || message.content.trim() === '')
+                ? (streamingContent || '')
+                : message.content;
+            try {
+              await Clipboard.setStringAsync(displayContent || '');
+              setCopied(true);
+              setTimeout(() => setCopied(false), 1500);
+            } catch {
+              void 0;
+            }
+          }}
+          accessibilityLabel="Copy message"
+          hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+          style={[
+            styles.copyButton,
+            { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' },
+          ]}
+        >
+          <Ionicons
+            name={copied ? 'checkmark-outline' : 'copy-outline'}
+            size={16}
+            color={theme.colors.text.primary}
+          />
+        </TouchableOpacity>
       </Box>
     </Animated.View>
   );
@@ -260,9 +295,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.03,
     shadowRadius: 4,
     elevation: 1,
+    position: 'relative',
   },
   messageText: {
     fontSize: 15,
     lineHeight: 22,
+  },
+  copyButton: {
+    position: 'absolute',
+    right: 8,
+    bottom: 8,
+    borderRadius: 12,
+    padding: 6,
   },
 });

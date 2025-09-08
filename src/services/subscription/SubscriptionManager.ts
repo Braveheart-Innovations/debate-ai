@@ -1,5 +1,13 @@
 import { getAuth } from '@react-native-firebase/auth';
-import { getFirestore, FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
+import {
+  getFirestore,
+  FirebaseFirestoreTypes,
+  collection,
+  doc,
+  getDoc,
+  setDoc,
+  onSnapshot,
+} from '@react-native-firebase/firestore';
 import type { MembershipStatus, UserSubscriptionDoc } from '@/types/subscription';
 
 export class SubscriptionManager {
@@ -7,7 +15,8 @@ export class SubscriptionManager {
     const user = getAuth().currentUser;
     if (!user) return 'demo';
 
-    const snap = await getFirestore().collection('users').doc(user.uid).get();
+    const db = getFirestore();
+    const snap = await getDoc(doc(collection(db, 'users'), user.uid));
     const data = snap.data() as Partial<UserSubscriptionDoc> | undefined;
     if (!data) return 'demo';
 
@@ -16,7 +25,7 @@ export class SubscriptionManager {
     if (data.membershipStatus === 'trial') {
       const trialEndMs = this.toMillis(data.trialEndDate);
       if (trialEndMs && now > trialEndMs) {
-        await getFirestore().collection('users').doc(user.uid).set({ membershipStatus: 'demo' }, { merge: true });
+        await setDoc(doc(collection(db, 'users'), user.uid), { membershipStatus: 'demo' }, { merge: true });
         return 'demo';
       }
       return 'trial';
@@ -25,7 +34,7 @@ export class SubscriptionManager {
     if (data.membershipStatus === 'premium') {
       const expiryMs = this.toMillis(data.subscriptionExpiryDate);
       if (expiryMs && now > expiryMs && !data.autoRenewing) {
-        await getFirestore().collection('users').doc(user.uid).set({ membershipStatus: 'demo' }, { merge: true });
+        await setDoc(doc(collection(db, 'users'), user.uid), { membershipStatus: 'demo' }, { merge: true });
         return 'demo';
       }
       return 'premium';
@@ -38,7 +47,8 @@ export class SubscriptionManager {
     const user = getAuth().currentUser;
     if (!user) return null;
 
-    const snap = await getFirestore().collection('users').doc(user.uid).get();
+    const db = getFirestore();
+    const snap = await getDoc(doc(collection(db, 'users'), user.uid));
     const data = snap.data() as Partial<UserSubscriptionDoc> | undefined;
     if (!data || data.membershipStatus !== 'trial') return null;
 
@@ -54,9 +64,10 @@ export class SubscriptionManager {
       callback('demo');
       return () => {};
     }
-    const ref = getFirestore().collection('users').doc(user.uid);
-    const unsub = ref.onSnapshot(async (doc) => {
-      const data = doc.data() as Partial<UserSubscriptionDoc> | undefined;
+    const db = getFirestore();
+    const ref = doc(collection(db, 'users'), user.uid);
+    const unsub = onSnapshot(ref, async (snap) => {
+      const data = snap.data() as Partial<UserSubscriptionDoc> | undefined;
       if (!data) return callback('demo');
       const status = await this.checkSubscriptionStatus();
       callback(status);

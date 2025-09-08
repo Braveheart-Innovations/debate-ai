@@ -6,14 +6,11 @@ import { useTheme } from '../../../theme';
 import { Ionicons } from '@expo/vector-icons';
 
 interface FreeTierCTAProps {
-  onPress: () => void;
+  onPress?: () => void;
   variant?: 'compact' | 'full';
 }
 
-export const FreeTierCTA: React.FC<FreeTierCTAProps> = ({
-  onPress,
-  variant = 'full',
-}) => {
+export const FreeTierCTA: React.FC<FreeTierCTAProps> = ({ onPress, variant = 'full' }) => {
   const { theme, isDark } = useTheme();
 
   const gradientColors: readonly [string, string, ...string[]] = isDark
@@ -21,8 +18,9 @@ export const FreeTierCTA: React.FC<FreeTierCTAProps> = ({
     : [theme.colors.gradients.premium[0], theme.colors.gradients.premium[1], theme.colors.gradients.sunrise[0] as string];
 
   if (variant === 'compact') {
+    const Container = onPress ? TouchableOpacity : View;
     return (
-      <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
+      <Container {...(onPress ? { onPress, activeOpacity: 0.8 } : {})}>
         <LinearGradient
           colors={gradientColors}
           start={{ x: 0, y: 0 }}
@@ -34,12 +32,12 @@ export const FreeTierCTA: React.FC<FreeTierCTAProps> = ({
             Upgrade to Premium
           </Typography>
         </LinearGradient>
-      </TouchableOpacity>
+      </Container>
     );
   }
 
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={styles.fullContainer}>
+    <View style={styles.fullContainer}>
       <LinearGradient
         colors={gradientColors}
         start={{ x: 0, y: 0 }}
@@ -73,15 +71,9 @@ export const FreeTierCTA: React.FC<FreeTierCTAProps> = ({
             </Typography>
           </View>
         </View>
-        
-        <View style={styles.ctaContainer}>
-          <Typography variant="body" weight="bold" color="inverse">
-            Upgrade Now - Save vs Multiple AI Subscriptions
-          </Typography>
-          <Ionicons name="arrow-forward" size={20} color="#fff" />
-        </View>
+        {/* Removed secondary link; primary action handled by parent Start Trial button */}
       </LinearGradient>
-    </TouchableOpacity>
+    </View>
   );
 };
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { getAuth } from '@react-native-firebase/auth';
-import { getFirestore } from '@react-native-firebase/firestore';
+import { getFirestore, collection, doc, onSnapshot } from '@react-native-firebase/firestore';
+import { onAuthStateChanged } from '@/services/firebase/auth';
 import type { MembershipStatus } from '@/types/subscription';
 import { SubscriptionManager } from '@/services/subscription/SubscriptionManager';
 
@@ -11,6 +11,7 @@ export const useFeatureAccess = () => {
 
   useEffect(() => {
     let unsub: undefined | (() => void);
+    let authUnsub: undefined | (() => void);
     const init = async () => {
       try {
         setLoading(true);
@@ -19,21 +20,42 @@ export const useFeatureAccess = () => {
         const days = await SubscriptionManager.getTrialDaysRemaining();
         setTrialDaysRemaining(days);
 
-        // Subscribe to user doc changes for real-time updates
-        const user = getAuth().currentUser;
-        if (user) {
-          unsub = getFirestore()
-            .collection('users')
-            .doc(user.uid)
-            .onSnapshot(async () => {
-              const s = await SubscriptionManager.checkSubscriptionStatus();
-              setMembershipStatus(s);
-              const d = await SubscriptionManager.getTrialDaysRemaining();
-              setTrialDaysRemaining(d);
-            }, (err) => {
-              console.error('FeatureAccess onSnapshot error', err);
-            });
-        }
+        // Subscribe to auth changes and wire Firestore listener per-user
+        authUnsub = onAuthStateChanged((user) => {
+          // Tear down previous Firestore listener when auth changes
+          if (unsub) {
+            try { unsub(); } catch (_e) { void _e; }
+            unsub = undefined;
+          }
+
+          if (user) {
+            const db = getFirestore();
+            const userDocRef = doc(collection(db, 'users'), user.uid);
+            unsub = onSnapshot(
+              userDocRef,
+              async () => {
+                const s = await SubscriptionManager.checkSubscriptionStatus();
+                setMembershipStatus(s);
+                const d = await SubscriptionManager.getTrialDaysRemaining();
+                setTrialDaysRemaining(d);
+              },
+              (err: unknown) => {
+                const code = (err as { code?: string } | undefined)?.code;
+                if (code === 'firestore/permission-denied') {
+                  // Likely signed out or no access; downgrade view state quietly
+                  setMembershipStatus('demo');
+                  setTrialDaysRemaining(null);
+                  return; // swallow warning
+                }
+                console.error('FeatureAccess onSnapshot error', err);
+              }
+            );
+          } else {
+            // Signed out: reset state
+            setMembershipStatus('demo');
+            setTrialDaysRemaining(null);
+          }
+        });
       } finally {
         setLoading(false);
       }
@@ -41,6 +63,7 @@ export const useFeatureAccess = () => {
     init();
     return () => {
       if (unsub) unsub();
+      if (authUnsub) authUnsub();
     };
   }, []);
 

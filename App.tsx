@@ -13,6 +13,7 @@ import VerificationPersistenceService from './src/services/VerificationPersisten
 import { initializeFirebase } from './src/services/firebase/config';
 import { getFirestore, doc, getDoc, setDoc } from '@react-native-firebase/firestore';
 import { onAuthStateChanged, toAuthUser } from './src/services/firebase/auth';
+import { reload } from '@react-native-firebase/auth';
 import { setAuthUser, setUserProfile } from './src/store';
 import PurchaseService from './src/services/iap/PurchaseService';
 
@@ -41,9 +42,7 @@ function AppContent() {
         authUnsubscribe = onAuthStateChanged(async (user) => {
           if (user) {
             try {
-              if (typeof (user as any).reload === 'function') {
-                await (user as any).reload();
-              }
+              await reload(user);
             } catch (e) {
               console.warn('Auth user reload failed, continuing:', e);
             }

@@ -108,6 +108,7 @@ export const SystemAnnouncement: React.FC<SystemAnnouncementProps> = ({
                   ...styles.label,
                   color: brandColor || theme.colors.text.secondary
                 }}
+                selectable
               >
                 {label}
               </Typography>
@@ -127,6 +128,7 @@ export const SystemAnnouncement: React.FC<SystemAnnouncementProps> = ({
                 weight="bold"
                 align="center"
                 style={styles.content}
+                selectable
               >
                 {content}
               </Typography>

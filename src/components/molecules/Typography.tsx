@@ -11,6 +11,7 @@ interface TypographyProps {
   style?: StyleProp<TextStyle>;
   numberOfLines?: number;
   ellipsizeMode?: 'head' | 'middle' | 'tail' | 'clip';
+  selectable?: boolean;
 }
 
 export const Typography: React.FC<TypographyProps> = ({
@@ -20,6 +21,7 @@ export const Typography: React.FC<TypographyProps> = ({
   align = 'left',
   children,
   style,
+  selectable,
   ...props
 }) => {
   const { theme } = useTheme();
@@ -65,6 +67,7 @@ export const Typography: React.FC<TypographyProps> = ({
         },
         style
       ]}
+      selectable={selectable}
       {...props}
     >
       {children}

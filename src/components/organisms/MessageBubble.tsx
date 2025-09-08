@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Text, StyleSheet, Linking, TouchableOpacity } from 'react-native';
 import Animated, { 
   useAnimatedStyle,
@@ -17,6 +17,9 @@ import { useTheme } from '../../theme';
 import { Message } from '../../types';
 import { AI_BRAND_COLORS } from '../../constants/aiColors';
 import { useStreamingMessage } from '../../hooks/streaming';
+import * as Clipboard from 'expo-clipboard';
+import { Ionicons } from '@expo/vector-icons';
+import { selectableMarkdownRules } from '@/utils/markdownSelectable';
 
 interface MessageBubbleProps {
   message: Message;
@@ -97,6 +100,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, s
   const isUser = message.senderType === 'user';
   const scale = useSharedValue(isLast ? 0 : 1);
   const { theme, isDark } = useTheme();
+  const [copied, setCopied] = useState(false);
   
   // Hook for streaming messages
   const { 
@@ -232,7 +236,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, s
             fontSize: 16, 
             lineHeight: 22,
             color: theme.colors.text.inverse
-          }}>
+          }} selectable>
             {searchTerm ? <HighlightedText text={displayContent} searchTerm={searchTerm} /> : highlightMentions(displayContent)}
           </Typography>
         ) : (
@@ -318,6 +322,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, s
               return false;
             }}
             rules={{
+              ...selectableMarkdownRules,
               // Custom image renderer to avoid spreading key in props (RN warning) and to control sizing
               image: (node: { key?: string; attributes?: { src?: string; href?: string; alt?: string } }) => {
                 const src: string | undefined = node?.attributes?.src || node?.attributes?.href;
@@ -356,6 +361,30 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, s
           )}
           </>
         )}
+        {/* Copy button */}
+        <TouchableOpacity
+          onPress={async () => {
+            try {
+              await Clipboard.setStringAsync(displayContent || '');
+              setCopied(true);
+              setTimeout(() => setCopied(false), 1500);
+            } catch {
+              void 0; // noop
+            }
+          }}
+          accessibilityLabel="Copy message"
+          hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+          style={[
+            styles.copyButton,
+            { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' },
+          ]}
+        >
+          <Ionicons
+            name={copied ? 'checkmark-outline' : 'copy-outline'}
+            size={16}
+            color={isUser ? theme.colors.text.inverse : theme.colors.text.primary}
+          />
+        </TouchableOpacity>
       </Box>
 
       {/* Status pill for cancelled streams */}
@@ -440,6 +469,7 @@ const styles = StyleSheet.create({
   messageBubble: {
     padding: 12,
     borderRadius: 16,
+    position: 'relative',
   },
   timestamp: {
     fontSize: 11,
@@ -472,5 +502,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 4,
+  },
+  copyButton: {
+    position: 'absolute',
+    right: 8,
+    bottom: 8,
+    borderRadius: 12,
+    padding: 6,
   },
 });

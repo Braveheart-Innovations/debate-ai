@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 import { getAuth } from '@react-native-firebase/auth';
-import { getFirestore } from '@react-native-firebase/firestore';
+import { getFirestore, collection, doc, getDoc, setDoc } from '@react-native-firebase/firestore';
 import {
   initConnection,
   endConnection,
@@ -94,12 +94,13 @@ export class PurchaseService {
   }
 
   private static async getOrCreateAppAccountToken(uid: string): Promise<string> {
-    const ref = getFirestore().collection('users').doc(uid);
-    const snap = await ref.get();
+    const db = getFirestore();
+    const ref = doc(collection(db, 'users'), uid);
+    const snap = await getDoc(ref);
     const existing = (snap.data() as { appAccountToken?: string } | undefined)?.appAccountToken;
     if (existing && typeof existing === 'string') return existing;
     const token = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, uid);
-    await ref.set({ appAccountToken: token }, { merge: true });
+    await setDoc(ref, { appAccountToken: token }, { merge: true });
     return token;
   }
 
@@ -159,7 +160,8 @@ export class PurchaseService {
           const androidToken = (purchase as Purchase & { purchaseToken?: string }).purchaseToken || data.androidPurchaseToken || null;
           (update as { androidPurchaseToken?: string | null }).androidPurchaseToken = androidToken;
         }
-        await getFirestore().collection('users').doc(user.uid).set(update, { merge: true });
+        const db = getFirestore();
+        await setDoc(doc(collection(db, 'users'), user.uid), update, { merge: true });
       } else {
         throw new Error('Invalid receipt');
       }
