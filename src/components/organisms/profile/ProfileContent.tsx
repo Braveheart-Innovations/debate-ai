@@ -26,12 +26,10 @@ import PurchaseService from '@/services/iap/PurchaseService';
 
 interface ProfileContentProps {
   onClose: () => void;
-  onSettingsPress?: () => void;
 }
 
 export const ProfileContent: React.FC<ProfileContentProps> = ({
   onClose,
-  onSettingsPress,
 }) => {
   const { theme, isDark } = useTheme();
   const dispatch = useDispatch();
@@ -131,14 +129,7 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
 
   // Subscription navigation handled by Account Settings actions; no sheet close side-effects
 
-  const handleSettingsPress = () => {
-    if (onSettingsPress) {
-      onSettingsPress();
-    } else {
-      Alert.alert('Settings', 'Account settings are coming soon.');
-    }
-    onClose();
-  };
+  // App Settings link removed
 
   // Handle anonymous users - show upgrade options
   if (isAnonymous) {
@@ -234,26 +225,11 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
                 variant="primary"
               />
             </View>
-            <SettingRow
-              title="App Settings"
-              subtitle="Manage app preferences"
-              icon="settings-outline"
-              onPress={handleSettingsPress}
-              testID="guest-settings-button"
-            />
+            {/* App Settings link removed */}
           </View>
         </View>
 
-        {/* Settings Access */}
-        <View style={[styles.guestSettingsSection, { backgroundColor: theme.colors.surface }]}>
-          <SettingRow
-            title="App Settings"
-            subtitle="Manage app preferences"
-            icon="settings-outline"
-            onPress={handleSettingsPress}
-            testID="guest-settings-button"
-          />
-        </View>
+        {/* App Settings quick access removed */}
       </ScrollView>
     );
   }
@@ -420,13 +396,7 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
                 variant="primary"
               />
             </View>
-            <SettingRow
-              title="App Settings"
-              subtitle="Manage app preferences"
-              icon="settings-outline"
-              onPress={handleSettingsPress}
-              testID="profile-settings-button"
-            />
+            {/* App Settings link removed */}
           </View>
         </View>
       </ScrollView>
@@ -607,14 +577,7 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
             }}
           />
 
-          {/* Link to App Settings (non-account) */}
-          <SettingRow
-            title="App Settings"
-            subtitle="Manage app preferences"
-            icon="settings-outline"
-            onPress={handleSettingsPress}
-            testID="profile-settings-button"
-          />
+          {/* App Settings link removed */}
         </View>
       </View>
 

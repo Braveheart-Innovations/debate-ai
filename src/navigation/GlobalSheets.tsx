@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { TouchableOpacity, View } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
-import { RootState, showSheet, clearSheet } from '../store';
+import { RootState, clearSheet } from '../store';
 import { RootStackParamList } from '../types';
 import { useTheme } from '../theme';
 import { 
@@ -53,12 +53,7 @@ export const GlobalSheets: React.FC = () => {
               zIndex: 1001,
             }}
           >
-            <ProfileSheet
-              onClose={handleSheetClose}
-              onSettingsPress={() => {
-                dispatch(showSheet({ sheet: 'settings' }));
-              }}
-            />
+            <ProfileSheet onClose={handleSheetClose} />
           </View>
         </>
       )}
