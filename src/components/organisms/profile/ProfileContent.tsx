@@ -10,7 +10,7 @@ import { Button } from '../../molecules/Button';
 import { SettingRow } from '../../molecules/SettingRow';
 import { EmailAuthForm } from '../../molecules/auth/EmailAuthForm';
 import { SocialAuthProviders } from '../auth/SocialAuthProviders';
-import { FreeTierCTA } from '../../molecules/profile/FreeTierCTA';
+import { UnlockEverythingBanner } from '@/components/organisms';
 import { useTheme } from '../../../theme';
 import { 
   signOut, 
@@ -481,9 +481,37 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
 
       {/* Premium CTA for free users */}
       {!(access.isPremium || access.isInTrial) && (
-        <View style={styles.ctaSection}>
-          <FreeTierCTA />
-        </View>
+        <>
+          {/* Start Trial button first */}
+          <View style={styles.ctaSection}>
+            <Button
+              title={iapLoading ? 'Starting Trial…' : 'Start 7‑Day Free Trial'}
+              onPress={async () => {
+                try {
+                  setIapLoading(true);
+                  const res = await PurchaseService.purchaseSubscription('monthly');
+                  if (res.success) {
+                    Alert.alert('Trial Started', 'Your trial is starting (pending store confirmation).');
+                    await access.refresh();
+                  } else if (!('cancelled' in res) || !res.cancelled) {
+                    Alert.alert('Purchase Failed', 'Unable to start trial.');
+                  }
+                } catch (_e) {
+                  void _e;
+                  Alert.alert('Error', 'Failed to initiate purchase.');
+                } finally {
+                  setIapLoading(false);
+                }
+              }}
+              variant="primary"
+            />
+          </View>
+
+          {/* Then Unlock Everything banner */}
+          <View style={styles.ctaSection}>
+            <UnlockEverythingBanner />
+          </View>
+        </>
       )}
 
       {/* Trial banner */}
@@ -513,31 +541,7 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
             icon="card-outline"
           />
 
-          {!(access.isPremium || access.isInTrial) && (
-            <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
-              <Button
-                title={iapLoading ? 'Starting Trial…' : 'Start 7‑Day Free Trial'}
-                onPress={async () => {
-                  try {
-                    setIapLoading(true);
-                    const res = await PurchaseService.purchaseSubscription('monthly');
-                    if (res.success) {
-                      Alert.alert('Trial Started', 'Your trial is starting (pending store confirmation).');
-                      await access.refresh();
-                    } else if (!('cancelled' in res) || !res.cancelled) {
-                      Alert.alert('Purchase Failed', 'Unable to start trial.');
-                    }
-                  } catch (_e) {
-                    void _e;
-                    Alert.alert('Error', 'Failed to initiate purchase.');
-                  } finally {
-                    setIapLoading(false);
-                  }
-                }}
-                variant="primary"
-              />
-            </View>
-          )}
+          {/* Start Trial moved above Unlock Everything */}
 
           {(access.isInTrial || access.isPremium) && (
             <SettingRow

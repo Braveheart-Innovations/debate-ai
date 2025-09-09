@@ -36,6 +36,7 @@ export { SettingsContent } from './settings/SettingsContent';
 
 // Support Organisms
 export { SupportScreen } from './support/SupportScreen';
+export { UnlockEverythingBanner } from './UnlockEverythingBanner';
 
 // API Configuration Organisms
 export { APIConfigHeader } from './APIConfigHeader';
