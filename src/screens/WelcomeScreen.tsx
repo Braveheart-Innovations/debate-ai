@@ -71,7 +71,7 @@ const AnimatedGradientBackground: React.FC = () => {
 
 const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
   const dispatch = useDispatch();
-  const { theme, isDark } = useTheme();
+  const { theme } = useTheme();
   const scale = useSharedValue(0);
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(50);
@@ -112,27 +112,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
   };
 
   const features = [
-    {
-      icon: { type: 'material-community', name: 'sword-cross' },
-      gradient: theme.colors.gradients.sunset,
-      title: 'AI Debate Arena',
-      description: 'Watch AIs debate topics in real-time. **Premium**: Create debates on ANY topic you choose.',
-      premiumType: 'partial' as const,
-    },
-    {
-      icon: { type: 'material', name: 'theater-comedy' },
-      gradient: theme.colors.gradients.forest,
-      title: '12 Personalities',
-      description: 'From Comedian to Philosopher. Each AI adapts to your chosen personality style.',
-      premiumType: 'full' as const,
-    },
-    {
-      icon: { type: 'material-community', name: 'key-variant' },
-      gradient: theme.colors.gradients.ocean,
-      title: 'BYOK',
-      description: 'Bring Your Own Keys. Use your existing API keys to save vs multiple AI subscriptions.',
-      premiumType: 'none' as const,
-    },
+    // Row 1
     {
       icon: { type: 'material-community', name: 'account-group' },
       gradient: theme.colors.gradients.primary,
@@ -141,18 +121,41 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
       premiumType: 'partial' as const,
     },
     {
-      icon: { type: 'material', name: 'verified-user' },
-      gradient: theme.colors.gradients.forest,
-      title: 'Hallucination Shield',
-      description: 'Multiple AIs fact-check each other in real-time for maximum accuracy.',
-      premiumType: 'none' as const,
+      icon: { type: 'material-community', name: 'sword-cross' },
+      gradient: theme.colors.gradients.sunset,
+      title: 'AI Debate Arena',
+      description: 'Watch AIs debate topics in real-time. **Premium**: Create debates on ANY topic you choose.',
+      premiumType: 'partial' as const,
     },
+    // Row 2
     {
       icon: { type: 'material', name: 'compare-arrows' },
       gradient: theme.colors.gradients.sunrise,
       title: 'Compare Mode',
       description: 'See side-by-side AI responses to the same prompt. Compare different perspectives instantly.',
       premiumType: 'full' as const,
+    },
+    {
+      icon: { type: 'material', name: 'theater-comedy' },
+      gradient: theme.colors.gradients.forest,
+      title: 'Custom Personalities',
+      description: 'Design and tune personalities to guide tone, expertise, and behavior.',
+      premiumType: 'none' as const,
+    },
+    // Row 3
+    {
+      icon: { type: 'material-community', name: 'key-variant' },
+      gradient: theme.colors.gradients.ocean,
+      title: 'BYOK',
+      description: 'Bring Your Own Keys. Use your existing API keys to save vs multiple AI subscriptions.',
+      premiumType: 'none' as const,
+    },
+    {
+      icon: { type: 'material', name: 'tune' },
+      gradient: theme.colors.gradients.forest,
+      title: 'Expert Mode',
+      description: 'Advanced model and parameter controls for power users.',
+      premiumType: 'none' as const,
     },
   ];
 
@@ -190,7 +193,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
             align="center"
             style={{ marginBottom: 20 }}
           >
-            Where Ideas Converge and Understanding Emerges.
+            Where Ideas Converge. Where Understanding Emerges.
           </Typography>
         </Animated.View>
 
@@ -212,24 +215,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
                   }
                 ]}
               >
-              {/* Premium Badge - only for full premium features */}
-              {feature.premiumType === 'full' && (
-                <View style={styles.premiumBadge}>
-                  <LinearGradient
-                    colors={theme.colors.gradients.premium}
-                    style={StyleSheet.absoluteFillObject}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                  />
-                  <Typography 
-                    variant="caption" 
-                    weight="bold" 
-                    style={{ color: '#fff', fontSize: 10, letterSpacing: 0.5 }}
-                  >
-                    PREMIUM
-                  </Typography>
-                </View>
-              )}
+              {/* Premium badges removed */}
               
               <LinearGradient
                 colors={feature.gradient}
@@ -277,133 +263,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
           ))}
         </View>
 
-        {/* Cost Comparison Section */}
-        <Animated.View 
-          entering={FadeInUp.delay(700).springify()}
-          style={styles.comparisonSection}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-            <MaterialIcons name="savings" size={24} color={theme.colors.warning[500]} style={{ marginRight: 8 }} />
-            <Typography 
-              variant="title" 
-              weight="bold" 
-              align="center"
-            >
-              Why Pay More?
-            </Typography>
-          </View>
-          
-          <Typography 
-            variant="caption" 
-            color="secondary"
-            align="center"
-            style={{ marginBottom: 16 }}
-          >
-            Pay for what you actually use, not fixed subscriptions
-          </Typography>
-          
-          <View style={styles.comparisonContainer}>
-            {/* Subscription Model */}
-            <View style={[
-              styles.comparisonCard,
-              isDark
-                ? { backgroundColor: theme.colors.card, borderColor: theme.colors.error[600], borderWidth: 2 }
-                : { backgroundColor: theme.colors.error[50], borderColor: theme.colors.error[300], borderWidth: 2 }
-            ]}>
-              <View style={styles.comparisonHeader}>
-                <MaterialIcons name="money-off" size={18} color={isDark ? theme.colors.error[400] : theme.colors.error[600]} />
-                <Typography variant="caption" weight="bold" style={{ color: isDark ? theme.colors.error[400] : theme.colors.error[700], marginLeft: 6 }}>
-                  Subscription Model
-                </Typography>
-              </View>
-              
-              <View style={styles.subscriptionList}>
-                <Typography variant="caption" weight="bold" style={{ color: theme.colors.text.primary, lineHeight: 18, fontSize: 12 }}>
-                  Pay each provider:
-                </Typography>
-                <Typography variant="caption" style={{ color: theme.colors.text.secondary, lineHeight: 18, fontSize: 12 }}>
-                  • ChatGPT Plus: $20
-                </Typography>
-                <Typography variant="caption" style={{ color: theme.colors.text.secondary, lineHeight: 18, fontSize: 12 }}>
-                  • Claude Pro: $20
-                </Typography>
-                <Typography variant="caption" style={{ color: theme.colors.text.secondary, lineHeight: 18, fontSize: 12 }}>
-                  • Gemini Adv: $20
-                </Typography>
-                <Typography variant="caption" style={{ color: theme.colors.text.secondary, lineHeight: 18, fontSize: 12 }}>
-                  • Perplexity: $20
-                </Typography>
-              </View>
-              
-              <View style={[styles.totalRow, { borderTopColor: theme.colors.border }]}>
-                <Typography variant="title" weight="bold" style={{ color: isDark ? theme.colors.error[400] : theme.colors.error[600] }}>
-                  ~$80*
-                </Typography>
-                <Typography variant="caption" style={{ color: isDark ? theme.colors.error[400] : theme.colors.error[600], fontSize: 12 }}>
-                  /month
-                </Typography>
-              </View>
-              
-              <Typography variant="caption" align="center" style={{ color: isDark ? theme.colors.error[400] : theme.colors.error[700], marginTop: 8, fontWeight: 'bold' }}>
-                Fixed cost, use it or lose it
-              </Typography>
-              
-              <Typography variant="caption" style={{ color: theme.colors.text.secondary, fontSize: 10, fontStyle: 'italic', marginTop: 8 }}>
-                *Varies by # of subscriptions & provider rates
-              </Typography>
-            </View>
-            
-            {/* Pay As You Go Model */}
-            <View style={[
-              styles.comparisonCard,
-              isDark
-                ? { backgroundColor: theme.colors.card, borderColor: theme.colors.success[600], borderWidth: 2 }
-                : { backgroundColor: theme.colors.success[50], borderColor: theme.colors.success[400], borderWidth: 2 }
-            ]}>
-              <View style={styles.comparisonHeader}>
-                <MaterialCommunityIcons name="cash-multiple" size={18} color={isDark ? theme.colors.success[400] : theme.colors.success[600]} />
-                <Typography variant="caption" weight="bold" style={{ color: isDark ? theme.colors.success[400] : theme.colors.success[700], marginLeft: 6 }}>
-                  Pay As You Go Model
-                </Typography>
-              </View>
-              
-              <View style={styles.subscriptionList}>
-                <Typography variant="caption" weight="bold" style={{ color: theme.colors.text.primary, lineHeight: 18, fontSize: 12 }}>
-                  Premium: $5.99/mo
-                </Typography>
-                <Typography variant="caption" style={{ color: theme.colors.text.secondary, lineHeight: 18, fontSize: 11, marginTop: 4 }}>
-                  Plus API usage*:
-                </Typography>
-                <Typography variant="caption" style={{ color: theme.colors.text.secondary, lineHeight: 16, fontSize: 11 }}>
-                  • Light: ~$5/mo
-                </Typography>
-                <Typography variant="caption" style={{ color: theme.colors.text.secondary, lineHeight: 16, fontSize: 11 }}>
-                  • Standard: ~$15/mo
-                </Typography>
-                <Typography variant="caption" style={{ color: theme.colors.text.secondary, lineHeight: 16, fontSize: 11 }}>
-                  • Power: ~$30/mo
-                </Typography>
-              </View>
-              
-              <View style={[styles.totalRow, { borderTopColor: theme.colors.border }]}>
-                <Typography variant="title" weight="bold" style={{ color: isDark ? theme.colors.success[400] : theme.colors.success[700] }}>
-                  ~$20*
-                </Typography>
-                <Typography variant="caption" style={{ color: isDark ? theme.colors.success[400] : theme.colors.success[700], fontSize: 12 }}>
-                  /month
-                </Typography>
-              </View>
-              
-              <Typography variant="caption" align="center" style={{ color: isDark ? theme.colors.success[400] : theme.colors.success[700], marginTop: 8, fontWeight: 'bold' }}>
-                Pay only for what you use
-              </Typography>
-              
-              <Typography variant="caption" style={{ color: theme.colors.text.secondary, fontSize: 10, fontStyle: 'italic', marginTop: 8 }}>
-                *Varies by usage & provider rates
-              </Typography>
-            </View>
-          </View>
-        </Animated.View>
+        {/* Price comparison section removed per request */}
 
         {/* Premium Banner */}
         <Animated.View 
@@ -438,7 +298,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
                   weight="bold"
                   style={{ color: theme.colors.primary[500] }}
                 >
-                  $5.99/month
+                  $7.99/month
                 </Typography>
               </View>
             </View>
@@ -455,43 +315,37 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
               <View style={styles.bulletRow}>
                 <MaterialIcons name="check-circle" size={16} color={theme.colors.success[500]} style={{ marginRight: 8 }} />
                 <Typography variant="caption" color="secondary" style={{ flex: 1 }}>
-                  Unlimited AIs in group chats (Free: 2 AIs)
+                  Collaborate on ideas with multiple AIs at once
                 </Typography>
               </View>
               <View style={styles.bulletRow}>
                 <MaterialIcons name="check-circle" size={16} color={theme.colors.success[500]} style={{ marginRight: 8 }} />
                 <Typography variant="caption" color="secondary" style={{ flex: 1 }}>
-                  All Signature Styles unlocked
+                  Enjoy all features each provider enables over their API, including document attachments, image generation, and live voice mode
                 </Typography>
               </View>
               <View style={styles.bulletRow}>
                 <MaterialIcons name="check-circle" size={16} color={theme.colors.success[500]} style={{ marginRight: 8 }} />
                 <Typography variant="caption" color="secondary" style={{ flex: 1 }}>
-                  Create debates on ANY topic
+                  Create custom Debates or choose from numerous preset topics
                 </Typography>
               </View>
               <View style={styles.bulletRow}>
                 <MaterialIcons name="check-circle" size={16} color={theme.colors.success[500]} style={{ marginRight: 8 }} />
                 <Typography variant="caption" color="secondary" style={{ flex: 1 }}>
-                  Compare Mode: Side-by-side AI responses
+                  Utilize the custom personality system to enhance AI responses 
                 </Typography>
               </View>
               <View style={styles.bulletRow}>
                 <MaterialIcons name="check-circle" size={16} color={theme.colors.success[500]} style={{ marginRight: 8 }} />
                 <Typography variant="caption" color="secondary" style={{ flex: 1 }}>
-                  Unlimited conversation history
+                  Compare AI providers, different models from the same provider, or different custom personality types
                 </Typography>
               </View>
               <View style={styles.bulletRow}>
                 <MaterialIcons name="check-circle" size={16} color={theme.colors.success[500]} style={{ marginRight: 8 }} />
                 <Typography variant="caption" color="secondary" style={{ flex: 1 }}>
-                  Advanced debate moderation controls
-                </Typography>
-              </View>
-              <View style={styles.bulletRow}>
-                <MaterialIcons name="check-circle" size={16} color={theme.colors.success[500]} style={{ marginRight: 8 }} />
-                <Typography variant="caption" color="secondary" style={{ flex: 1 }}>
-                  Priority support & early feature access
+                  Seemlessly resume prior conversations and export memorable debate moments
                 </Typography>
               </View>
             </View>
@@ -533,8 +387,8 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
             align="center"
             style={{ fontStyle: 'italic' }}
           >
-            "The future isn't about replacing human connection.{'\n'}
-            It's about enhancing it."
+            "We are a way for the cosmos to know itself."{'\n'}
+            -Carl Sagan, Cosmos
           </Typography>
           <View style={{ marginTop: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
             <Typography 
