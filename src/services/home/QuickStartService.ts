@@ -1,4 +1,4 @@
-import { QuickStartTopic } from '../../components/organisms/QuickStartsSection';
+import type { QuickStartTopic } from '@/components/organisms';
 import { QUICK_START_TOPICS, TOPIC_PROMPTS } from '../../config/quickStartTopics';
 import { HOME_CONSTANTS } from '../../config/homeConstants';
 

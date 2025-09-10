@@ -13,7 +13,7 @@ import { AIConfig } from '../types';
 import { AI_PROVIDERS } from '../config/aiProviders';
 import { AI_MODELS } from '../config/modelConfigs';
 import { getAIProviderIcon } from '../utils/aiProviderAssets';
-import { TrialBanner } from '@/components/subscription/TrialBanner';
+import { TrialBanner } from '@/components/molecules/subscription/TrialBanner';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 
 interface CompareSetupScreenProps {

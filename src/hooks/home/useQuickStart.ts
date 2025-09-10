@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { QuickStartTopic } from '../../components/organisms/QuickStartsSection';
+import type { QuickStartTopic } from '@/components/organisms';
 import { QuickStartService } from '../../services/home/QuickStartService';
 
 /**

@@ -3,13 +3,11 @@ import { ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Header, HeaderActions } from '../components/organisms';
-import { DynamicAISelector } from '../components/organisms/DynamicAISelector';
-import { QuickStartsSection } from '../components/organisms/QuickStartsSection';
-import { PromptWizard } from '../components/organisms/PromptWizard';
+import { DynamicAISelector, QuickStartsSection, PromptWizard } from '../components/organisms';
 
 import { useTheme } from '../theme';
 import { HOME_CONSTANTS } from '../config/homeConstants';
-import { TrialBanner } from '@/components/subscription/TrialBanner';
+import { TrialBanner } from '@/components/molecules/subscription/TrialBanner';
 
 // Custom hooks
 import { useGreeting } from '../hooks/home/useGreeting';

@@ -7,7 +7,7 @@ import { Header } from '../components/organisms';
 import { Typography } from '../components/molecules';
 import { AI_PROVIDERS } from '../config/aiProviders';
 import { useTheme } from '../theme';
-import { ProviderExpertSettings } from '../components/organisms/ProviderExpertSettings';
+import { ProviderExpertSettings } from '../components/organisms';
 import { DEFAULT_PARAMETERS } from '../config/modelConfigs';
 import { RootState, updateExpertMode, showSheet } from '../store';
 import { useDispatch } from 'react-redux';

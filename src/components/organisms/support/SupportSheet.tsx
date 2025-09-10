@@ -20,11 +20,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // import { useNavigation, NavigationProp } from '@react-navigation/native';
 // import { RootStackParamList } from '../../../types';
 
-interface SupportScreenProps {
+interface SupportSheetProps {
   onClose: () => void;
 }
 
-export const SupportScreen: React.FC<SupportScreenProps> = ({ onClose }) => {
+export const SupportSheet: React.FC<SupportSheetProps> = ({ onClose }) => {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const [view, setView] = useState<'root' | 'privacy' | 'terms' | 'faq'>('root');

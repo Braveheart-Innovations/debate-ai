@@ -8,7 +8,7 @@ import { useTheme } from '../theme';
 import { 
   ProfileSheet, 
   SettingsContent,
-  SupportScreen
+  SupportSheet
 } from '../components/organisms';
 
 export const GlobalSheets: React.FC = () => {
@@ -129,7 +129,7 @@ export const GlobalSheets: React.FC = () => {
               zIndex: 1001,
             }}
           >
-            <SupportScreen onClose={handleSheetClose} />
+            <SupportSheet onClose={handleSheetClose} />
           </View>
         </>
       )}

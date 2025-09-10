@@ -28,7 +28,7 @@ import { getAIProviderIcon } from '../utils/aiProviderAssets';
 import { usePreDebateValidation } from '../hooks/debate';
 import { Card } from '../components/molecules/Card';
 import { FORMATS } from '../config/debate/formats';
-import { TrialBanner } from '@/components/subscription/TrialBanner';
+import { TrialBanner } from '@/components/molecules/subscription/TrialBanner';
 
 interface DebateSetupScreenProps {
   navigation: {

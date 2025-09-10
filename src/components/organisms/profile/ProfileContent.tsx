@@ -20,7 +20,7 @@ import {
   toAuthUser
 } from '../../../services/firebase/auth';
 import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from '@react-native-firebase/firestore';
-import { TrialBanner } from '@/components/subscription/TrialBanner';
+import { TrialBanner } from '@/components/molecules/subscription/TrialBanner';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import PurchaseService from '@/services/iap/PurchaseService';
 

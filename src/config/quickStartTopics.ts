@@ -1,4 +1,4 @@
-import { QuickStartTopic } from '../components/organisms/QuickStartsSection';
+import type { QuickStartTopic } from '@/components/organisms';
 
 /**
  * Quick Start conversation topics that guide users into structured AI conversations.

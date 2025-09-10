@@ -6,6 +6,7 @@ export { DynamicAISelector } from './DynamicAISelector';
 export { PromptWizard } from './PromptWizard';
 export { ProviderExpertSettings } from './ProviderExpertSettings';
 export { QuickStartsSection } from './QuickStartsSection';
+export type { QuickStartTopic } from './QuickStartsSection';
 export { ActualPricing } from './ActualPricing';
 export { AIAvatar } from './AIAvatar';
 export { AICard } from './AICard';
@@ -35,7 +36,7 @@ export { ProfileContent } from './profile/ProfileContent';
 export { SettingsContent } from './settings/SettingsContent';
 
 // Support Organisms
-export { SupportScreen } from './support/SupportScreen';
+export { SupportSheet } from './support/SupportSheet';
 export { UnlockEverythingBanner } from './UnlockEverythingBanner';
 
 // API Configuration Organisms
