@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, TextInput } from 'react-native';
-import { Typography, ParameterLabel, IconButton } from '../molecules';
-import { useTheme } from '../../theme';
+import { Typography, ParameterLabel, IconButton } from '@/components/molecules';
+import { useTheme } from '@/theme';
 
 interface ParameterSliderProps {
   name: string;

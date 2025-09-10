@@ -4,11 +4,11 @@ import {
   DebateHistoryItem,
   DebateHistoryHeader,
   Typography,
-} from '../molecules';
-import { useTheme } from '../../theme';
-import { useDebateStats, useAIProviderInfo, useStatsAnimations } from '../../hooks/stats';
-import { getRecentDebates, transformDebateHistory } from '../../services/stats';
-import { BrandColor } from '../../constants/aiColors';
+} from '@/components/molecules';
+import { useTheme } from '@/theme';
+import { useDebateStats, useAIProviderInfo, useStatsAnimations } from '@/hooks/stats';
+import { getRecentDebates, transformDebateHistory } from '@/services/stats';
+import { BrandColor } from '@/constants/aiColors';
 
 export interface RecentDebatesSectionProps {
   /** Maximum number of debates to show */

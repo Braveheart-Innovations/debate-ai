@@ -11,13 +11,13 @@ export { ActualPricing } from './subscription/ActualPricing';
 export { AIAvatar } from './common/AIAvatar';
 export { AICard } from './home/AICard';
 export { ModelSelector } from './home/ModelSelector';
-export { ParameterSlider } from './ParameterSlider';
+export { ParameterSlider } from './api-config/ParameterSlider';
 export { PersonalityBadge } from './home/PersonalityBadge';
 export { PersonalityPicker } from './home/PersonalityPicker';
 export { QuickStartTile } from './home/QuickStartTile';
 export { SelectionSummary } from './home/SelectionSummary';
 export { DebateModeCard } from './home/DebateModeCard';
-export { AIServiceLoading } from './AIServiceLoading';
+export { AIServiceLoading } from './common/AIServiceLoading';
 export { AppLogo } from './common/AppLogo';
 export { ExpertModeSettings } from './api-config/ExpertModeSettings';
 export { ProviderCard } from './api-config/ProviderCard';
@@ -65,7 +65,7 @@ export {
   CompactRecentDebates, 
   DebateHistoryStats, 
   DebateTimeline 
-} from './RecentDebatesSection';
+} from './stats/RecentDebatesSection';
 export { 
   StatsEmptyState, 
   StatsLoadingState, 
