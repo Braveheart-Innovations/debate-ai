@@ -8,7 +8,7 @@ import { TouchableOpacity } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useTheme } from '../../../theme';
 import { Typography, GradientButton, Button } from '../../molecules';
-import { DynamicAISelector } from '../DynamicAISelector';
+import { DynamicAISelector } from '@/components/organisms';
 import { AIConfig } from '../../../types';
 
 interface DebateAISelectorProps {

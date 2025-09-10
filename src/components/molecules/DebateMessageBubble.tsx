@@ -16,7 +16,7 @@ import Markdown from 'react-native-markdown-display';
 import { sanitizeMarkdown } from '@/utils/markdown';
 import { Box } from '../atoms';
 import { Typography } from './Typography';
-import { StreamingIndicator } from '../organisms/StreamingIndicator';
+import { StreamingIndicator } from '@/components/organisms';
 import { useTheme } from '../../theme';
 import { Message } from '../../types';
 import { AI_BRAND_COLORS } from '../../constants/aiColors';

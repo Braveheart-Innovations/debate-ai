@@ -1,11 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { View, TouchableOpacity, ScrollView, Modal, Dimensions } from 'react-native';
 // Upsell removed; no dispatch required
-import { Typography, Badge } from '../molecules';
-import { SheetHeader } from '../molecules/SheetHeader';
-import { useTheme } from '../../theme';
-import { getProviderModels } from '../../config/modelConfigs';
-import { MODEL_PRICING } from '../../config/modelPricing';
+import { Typography, Badge, SheetHeader } from '@/components/molecules';
+import { useTheme } from '@/theme';
+import { getProviderModels } from '@/config/modelConfigs';
+import { MODEL_PRICING } from '@/config/modelPricing';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeIn } from 'react-native-reanimated';
 

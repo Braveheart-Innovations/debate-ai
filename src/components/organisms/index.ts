@@ -1,28 +1,29 @@
 // Organisms - complex components with business logic
-export { Header } from './Header';
+export { Header } from './common/Header';
 // Standardize on Header; GradientHeader deprecated and no longer exported
-export { AISelector } from './AISelector';
-export { DynamicAISelector } from './DynamicAISelector';
-export { PromptWizard } from './PromptWizard';
+export { AISelector } from './home/AISelector';
+export { DynamicAISelector } from './home/DynamicAISelector';
+export { PromptWizard } from './home/PromptWizard';
 export { ProviderExpertSettings } from './ProviderExpertSettings';
-export { QuickStartsSection } from './QuickStartsSection';
-export type { QuickStartTopic } from './QuickStartsSection';
+export { QuickStartsSection } from './home/QuickStartsSection';
+export type { QuickStartTopic } from './home/QuickStartsSection';
 export { ActualPricing } from './subscription/ActualPricing';
-export { AIAvatar } from './AIAvatar';
-export { AICard } from './AICard';
-export { ModelSelector } from './ModelSelector';
+export { AIAvatar } from './common/AIAvatar';
+export { AICard } from './home/AICard';
+export { ModelSelector } from './home/ModelSelector';
 export { ParameterSlider } from './ParameterSlider';
-export { PersonalityBadge } from './PersonalityBadge';
-export { PersonalityPicker } from './PersonalityPicker';
-export { QuickStartTile } from './QuickStartTile';
-export { SelectionSummary } from './SelectionSummary';
-export { DebateModeCard } from './DebateModeCard';
+export { PersonalityBadge } from './home/PersonalityBadge';
+export { PersonalityPicker } from './home/PersonalityPicker';
+export { QuickStartTile } from './home/QuickStartTile';
+export { SelectionSummary } from './home/SelectionSummary';
+export { DebateModeCard } from './home/DebateModeCard';
 export { AIServiceLoading } from './AIServiceLoading';
-export { AppLogo } from './AppLogo';
+export { AppLogo } from './common/AppLogo';
 export { ExpertModeSettings } from './ExpertModeSettings';
 export { ProviderCard } from './ProviderCard';
-export { ErrorBoundary } from './ErrorBoundary';
-export { StreamingIndicator } from './StreamingIndicator';
+export { ErrorBoundary } from './common/ErrorBoundary';
+export { StreamingIndicator } from './common/StreamingIndicator';
+export { MessageBubble } from './common/MessageBubble';
 
 // Header Organisms
 export { HeaderActions } from './header/HeaderActions';

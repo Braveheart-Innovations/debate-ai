@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { MessageBubble } from '../MessageBubble';
+import { MessageBubble } from '@/components/organisms';
 import { Message } from '../../../types';
 
 interface CompareUserMessageProps {

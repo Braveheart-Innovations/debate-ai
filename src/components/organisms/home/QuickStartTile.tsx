@@ -6,9 +6,9 @@ import Animated, {
   withSpring,
   useSharedValue,
 } from 'react-native-reanimated';
-import { Box } from '../atoms';
-import { Typography } from '../molecules';
-import { useTheme } from '../../theme';
+import { Box } from '@/components/atoms';
+import { Typography } from '@/components/molecules';
+import { useTheme } from '@/theme';
 import * as Haptics from 'expo-haptics';
 
 interface QuickStartTileProps {

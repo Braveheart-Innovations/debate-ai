@@ -10,7 +10,7 @@ import Animated, {
   interpolate,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useTheme } from '../../theme';
+import { useTheme } from '@/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 interface AppLogoProps {

@@ -1,10 +1,10 @@
 import React from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
-import { Typography } from '../molecules';
-import { ActualPricing } from './subscription/ActualPricing';
-import { useTheme } from '../../theme';
-import { ModelConfig } from '../../config/modelConfigs';
-import { MODEL_PRICING, getFreeMessageInfo } from '../../config/modelPricing';
+import { Typography } from '@/components/molecules';
+import { ActualPricing } from '@/components/organisms';
+import { useTheme } from '@/theme';
+import { ModelConfig } from '@/config/modelConfigs';
+import { MODEL_PRICING, getFreeMessageInfo } from '@/config/modelPricing';
 
 interface ModelSelectorProps {
   models: ModelConfig[];

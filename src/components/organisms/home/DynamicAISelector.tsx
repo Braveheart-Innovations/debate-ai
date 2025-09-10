@@ -1,11 +1,10 @@
 import React from 'react';
 import { View, Dimensions } from 'react-native';
-import { Box } from '../atoms';
-import { GradientButton } from '../molecules';
-import { SectionHeader } from '../molecules';
+import { Box } from '@/components/atoms';
+import { GradientButton, SectionHeader } from '@/components/molecules';
 import { AICard } from './AICard';
-import { AIConfig } from '../../types';
-import { useTheme } from '../../theme';
+import { AIConfig } from '@/types';
+import { useTheme } from '@/theme';
 import * as Haptics from 'expo-haptics';
 
 const { width: screenWidth } = Dimensions.get('window');

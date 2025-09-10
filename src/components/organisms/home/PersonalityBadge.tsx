@@ -5,8 +5,8 @@ import Animated, {
   useSharedValue, 
   withSpring,
 } from 'react-native-reanimated';
-import { useTheme } from '../../theme';
-import { Typography } from '../molecules';
+import { useTheme } from '@/theme';
+import { Typography } from '@/components/molecules';
 import * as Haptics from 'expo-haptics';
 
 interface PersonalityBadgeProps {

@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Typography } from '../molecules';
-import { UNIVERSAL_PERSONALITIES } from '../../config/personalities';
+import { Typography } from '@/components/molecules';
+import { UNIVERSAL_PERSONALITIES } from '@/config/personalities';
 import { PersonalityBadge } from './PersonalityBadge';
 import * as Haptics from 'expo-haptics';
-import { PersonalityModal } from './debate/PersonalityModal';
+import { PersonalityModal } from '../debate/PersonalityModal';
 import { useNavigation } from '@react-navigation/native';
 
 interface PersonalityPickerProps {

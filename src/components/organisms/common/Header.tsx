@@ -13,11 +13,11 @@ import Animated, {
 import Svg, { Path, Defs, LinearGradient as SvgGradient, Stop, Rect, G, Circle } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 
-import { Box } from '../atoms/Box';
-import { Typography } from '../molecules/Typography';
-import { Button } from '../molecules/Button';
-import { Badge } from '../molecules/Badge';
-import { useTheme, Theme } from '../../theme';
+import { Box } from '@/components/atoms/Box';
+import { Typography } from '@/components/molecules/Typography';
+import { Button } from '@/components/molecules/Button';
+import { Badge } from '@/components/molecules/Badge';
+import { useTheme, Theme } from '@/theme';
 
 // Use responsive width via useWindowDimensions inside the component
 

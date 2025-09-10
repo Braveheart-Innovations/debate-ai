@@ -7,12 +7,12 @@ import Animated, {
   withSequence,
   withSpring
 } from 'react-native-reanimated';
-import { Box } from '../atoms';
-import { SelectionIndicator, GlassCard } from '../molecules';
+import { Box } from '@/components/atoms';
+import { SelectionIndicator, GlassCard } from '@/components/molecules';
 import { PersonalityPicker } from './PersonalityPicker';
 import { ModelSelectorEnhanced } from './ModelSelectorEnhanced';
-import { AIAvatar } from './AIAvatar';
-import { AIConfig } from '../../types';
+import { AIAvatar } from '@/components/organisms';
+import { AIConfig } from '@/types';
 import * as Haptics from 'expo-haptics';
 
 interface AICardProps {

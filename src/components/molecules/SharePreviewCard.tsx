@@ -7,7 +7,7 @@ import React from 'react';
 import { View, StyleSheet, Dimensions, Image, Text } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AIProviderTile } from './AIProviderTile';
-import { AppLogo } from '../organisms/AppLogo';
+import { AppLogo } from '@/components/organisms';
 import { AI } from '../../types';
 import { Ionicons } from '@expo/vector-icons';
 

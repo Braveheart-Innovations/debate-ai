@@ -9,14 +9,13 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import { Box } from '../atoms';
-import { Button } from '../molecules';
-import { GradientButton, Typography } from '../molecules';
+import { Box } from '@/components/atoms';
+import { Button, GradientButton, Typography } from '@/components/molecules';
 import { QuickStartTopic } from './QuickStartsSection';
-import { useTheme } from '../../theme';
+import { useTheme } from '@/theme';
 import { useSelector } from 'react-redux';
-import { RootState } from '../../store';
-import { getPersonality } from '../../config/personalities';
+import { RootState } from '@/store';
+import { getPersonality } from '@/config/personalities';
 import * as Haptics from 'expo-haptics';
 
 interface PromptWizardProps {

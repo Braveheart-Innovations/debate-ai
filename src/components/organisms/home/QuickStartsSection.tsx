@@ -1,9 +1,9 @@
 import React from 'react';
 import { View } from 'react-native';
-import { Box } from '../atoms';
-import { SectionHeader } from '../molecules';
+import { Box } from '@/components/atoms';
+import { SectionHeader } from '@/components/molecules';
 import { QuickStartTile } from './QuickStartTile';
-import { useTheme } from '../../theme';
+import { useTheme } from '@/theme';
 
 export interface QuickStartTopic {
   id: string;

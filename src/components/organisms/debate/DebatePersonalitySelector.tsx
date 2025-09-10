@@ -8,7 +8,7 @@ import { View, TouchableOpacity } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useTheme } from '../../../theme';
 import { Typography, GradientButton, Button, SectionHeader } from '../../molecules';
-import { AIAvatar } from '../AIAvatar';
+import { AIAvatar } from '@/components/organisms';
 import { AIConfig } from '../../../types';
 import { UNIVERSAL_PERSONALITIES } from '../../../config/personalities';
 // PersonalityService removed from this view to simplify UI

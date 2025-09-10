@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Switch } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Button, Typography } from '../molecules';
-import { ModelSelector } from './ModelSelector';
+import { ModelSelector } from '@/components/organisms';
 import { ParameterSlider } from './ParameterSlider';
 import { useTheme } from '../../theme';
 import { 

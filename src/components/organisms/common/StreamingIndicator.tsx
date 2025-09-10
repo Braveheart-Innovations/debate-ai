@@ -8,7 +8,7 @@ import Animated, {
   withTiming,
   interpolate,
 } from 'react-native-reanimated';
-import { useTheme } from '../../theme';
+import { useTheme } from '@/theme';
 
 interface StreamingIndicatorProps {
   visible: boolean;

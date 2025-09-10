@@ -6,7 +6,7 @@ import Animated, {
   useSharedValue,
   withSequence,
 } from 'react-native-reanimated';
-import { useTheme } from '../../theme';
+import { useTheme } from '@/theme';
 
 interface AIAvatarProps {
   icon?: string | number; // Letter(s) or image source (require returns number)

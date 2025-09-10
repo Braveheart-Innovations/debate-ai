@@ -8,7 +8,7 @@ import { View, TouchableOpacity } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useTheme } from '../../theme';
 import { Typography } from './Typography';
-import { AIAvatar } from '../organisms/AIAvatar';
+import { AIAvatar } from '@/components/organisms';
 import { PersonalityChip } from './PersonalityChip';
 import { AIDebater, Personality } from '../../types/debate';
 

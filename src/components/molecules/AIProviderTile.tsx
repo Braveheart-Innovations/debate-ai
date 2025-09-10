@@ -11,7 +11,7 @@ import {
   StyleProp,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { AIAvatar } from '../organisms/AIAvatar';
+import { AIAvatar } from '@/components/organisms';
 import { Typography } from './Typography';
 import { useTheme } from '../../theme';
 import { AI } from '../../types';

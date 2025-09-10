@@ -1,8 +1,8 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
-import { Box } from '../atoms';
-import { Typography, Button } from '../molecules';
-import { useTheme } from '../../theme';
+import { Box } from '@/components/atoms';
+import { Typography, Button } from '@/components/molecules';
+import { useTheme } from '@/theme';
 
 interface ErrorBoundaryState {
   hasError: boolean;
