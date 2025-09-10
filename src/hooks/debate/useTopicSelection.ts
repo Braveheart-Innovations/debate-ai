@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { getRandomTopic, validateTopic } from '../../config/debateTopics';
+import { TopicService } from '../../services/debate/TopicService';
 
 export interface UseTopicSelectionReturn {
   selectedTopic: string;
@@ -34,7 +34,7 @@ export const useTopicSelection = (initialTopic?: string): UseTopicSelectionRetur
   
   // Select random topic
   const selectRandomTopic = useCallback(() => {
-    const randomTopic = getRandomTopic();
+    const randomTopic = TopicService.generateRandomTopicString();
     setSelectedTopic(randomTopic);
     setShowTopicDropdown(false);
   }, []);
@@ -45,7 +45,8 @@ export const useTopicSelection = (initialTopic?: string): UseTopicSelectionRetur
       return { valid: false, error: 'Please select or enter a topic' };
     }
     
-    if (!validateTopic(finalTopic)) {
+    // Simple length validation only; motion normalization handled elsewhere
+    if (finalTopic.length === 0 || finalTopic.length > 200) {
       return { valid: false, error: 'Topic must be between 1 and 200 characters' };
     }
     

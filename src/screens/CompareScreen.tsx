@@ -202,6 +202,20 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
     const leftExp = getExpertOverrides(expertModeConfigs as Record<string, unknown>, leftAI.provider);
     const rightExp = getExpertOverrides(expertModeConfigs as Record<string, unknown>, rightAI.provider);
 
+    // Apply personalities (unless default) before sending
+    try {
+      if (leftAI?.personality && leftAI.personality !== 'default') {
+        const { getPersonality } = await import('../config/personalities');
+        const p = getPersonality(leftAI.personality);
+        if (p) aiService.setPersonality(leftAI.id, p);
+      }
+      if (rightAI?.personality && rightAI.personality !== 'default') {
+        const { getPersonality } = await import('../config/personalities');
+        const p = getPersonality(rightAI.personality);
+        if (p) aiService.setPersonality(rightAI.id, p);
+      }
+    } catch { /* ignore */ }
+
     // Send to left AI if active
     if ((viewMode === 'split' && !continuedSide) || continuedSide === 'left' || viewMode === 'left-only' || viewMode === 'left-full') {
       // Apply expert parameters to adapter if enabled

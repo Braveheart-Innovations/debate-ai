@@ -4,7 +4,7 @@ import { BlurView } from 'expo-blur';
 import { useTheme } from '../../../theme';
 import { Typography, Button } from '../../molecules';
 import { SheetHeader } from '../../molecules/SheetHeader';
-import { DEBATE_TOPIC_CATEGORIES, DebateTopicCategory } from '../../../constants/debateTopicCategories';
+import { TopicService } from '../../../services/debate/TopicService';
 
 export interface PresetTopicsModalProps {
   visible: boolean;
@@ -14,10 +14,9 @@ export interface PresetTopicsModalProps {
 
 export const PresetTopicsModal: React.FC<PresetTopicsModalProps> = ({ visible, onClose, onSelectTopic }) => {
   const { theme } = useTheme();
-  const [category, setCategory] = useState<DebateTopicCategory>('Fun & Quirky');
-
-  const categories = Object.keys(DEBATE_TOPIC_CATEGORIES) as DebateTopicCategory[];
-  const topics = DEBATE_TOPIC_CATEGORIES[category] || [];
+  const categories = TopicService.getCategories();
+  const [categoryId, setCategoryId] = useState<string>(categories[0]?.id || 'fun');
+  const topics = TopicService.getTopicsByCategory(categories.find(c => c.id === categoryId)?.name || 'Fun & Quirky');
 
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
@@ -37,10 +36,10 @@ export const PresetTopicsModal: React.FC<PresetTopicsModalProps> = ({ visible, o
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ padding: theme.spacing.lg, paddingBottom: 0 }}>
             {categories.map(cat => (
               <Button
-                key={cat}
-                title={cat}
-                onPress={() => setCategory(cat)}
-                variant={category === cat ? 'primary' : 'secondary'}
+                key={cat.id}
+                title={cat.name}
+                onPress={() => setCategoryId(cat.id)}
+                variant={categoryId === cat.id ? 'primary' : 'secondary'}
                 size="small"
                 style={{ marginRight: 8 }}
               />

@@ -1,57 +1,70 @@
 /**
  * Service for managing debate topics
- * Handles topic validation, suggestion, and categorization
+ * Single source of truth backed by the topic catalog
  */
 
-import { 
-  SuggestedTopic, 
-  TopicCategory, 
-  SUGGESTED_TOPICS, 
-  TopicUtils 
-} from '../../config/debate/suggestedTopics';
+import { catalog } from '../../config/debate/topics';
+import type { TopicCategoryId } from '../../config/debate/topics';
+import type { SuggestedTopic, TopicCategory } from '../../config/debate/suggestedTopics';
 import { DEBATE_SETUP_CONFIG } from '../../config/debate/debateSetupConfig';
-import { DEBATE_TOPICS } from '../../constants/debateTopics';
 import { TopicValidationResult } from '../../types/debate';
 
 export class TopicService {
-  /**
-   * Get suggested topics with optional limit
-   */
+  // Catalog helpers
+  static getCategories(): { id: TopicCategoryId; name: TopicCategory }[] {
+    return catalog.categories.map(c => ({ id: c.id, name: TopicService.categoryIdToName(c.id) }));
+  }
+
+  static getTopicsByCategory(category: TopicCategory): string[] {
+    // Match by display name prefix to tolerate minor label differences
+    const cat = catalog.categories.find(c => c.name.startsWith(category.split(' ')[0]));
+    const id = cat?.id;
+    return id ? catalog.topics.filter(t => t.categoryId === id).map(t => t.text) : [];
+  }
+
   static getSuggestedTopics(limit?: number): SuggestedTopic[] {
-    const topics = TopicUtils.getPopularTopics(limit || DEBATE_SETUP_CONFIG.SUGGESTED_TOPICS_COUNT);
-    return topics.length > 0 ? topics : TopicService.getFallbackTopics(limit);
+    const take = limit || DEBATE_SETUP_CONFIG.SUGGESTED_TOPICS_COUNT;
+    const byPopularity = [...catalog.topics].sort((a,b) => (b.popularity || 0) - (a.popularity || 0));
+    return byPopularity.slice(0, take).map(TopicService.toSuggested);
   }
 
-  /**
-   * Generate a random topic from suggestions
-   */
   static generateRandomTopic(): SuggestedTopic {
-    const randomTopic = TopicUtils.getRandomTopic();
-    if (randomTopic) {
-      return randomTopic;
-    }
-
-    // Fallback to legacy topics if no structured topics available
-    const fallbackTopicText = DEBATE_TOPICS[Math.floor(Math.random() * DEBATE_TOPICS.length)];
-    return TopicService.createFallbackTopic(fallbackTopicText);
+    const n = Math.floor(Math.random() * catalog.topics.length);
+    return TopicService.toSuggested(catalog.topics[n]);
   }
 
-  /**
-   * Generate a random topic string (for backward compatibility)
-   */
   static generateRandomTopicString(): string {
     return TopicService.generateRandomTopic().topic;
   }
 
-  /**
-   * Validate a custom topic
-   */
+  // Custom-topic normalization: suggest only
+  static normalizeMotion(topic: string): string {
+    if (!topic) return topic;
+    const t = topic.trim();
+    if (/^[A-Z].*\.$/.test(t)) return t;
+    const stripQ = (s: string) => s.replace(/\?+$/, '').trim();
+    const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+    const mShouldWe = /^should\s+we\s+(.+?)\?$/i.exec(t);
+    if (mShouldWe) return `We should ${stripQ(mShouldWe[1])}.`;
+    const mShouldBe = /^should\s+(.+?)\s+be\s+(.+?)\?$/i.exec(t);
+    if (mShouldBe) return `${cap(stripQ(mShouldBe[1]))} should be ${stripQ(mShouldBe[2])}.`;
+    const mShould = /^should\s+(.+?)\?$/i.exec(t);
+    if (mShould) return `${cap(stripQ(mShould[1]))} should.`;
+    const mIsDet = /^is\s+(.+?)\s+(a|an|the)\s+(.+?)\?$/i.exec(t);
+    if (mIsDet) return `${cap(stripQ(mIsDet[1]))} is ${mIsDet[2].toLowerCase()} ${stripQ(mIsDet[3])}.`;
+    const mIs = /^is\s+(.+?)\s+(.+?)\?$/i.exec(t);
+    if (mIs) return `${cap(stripQ(mIs[1]))} is ${stripQ(mIs[2])}.`;
+    const mAre = /^are\s+(.+?)\s+(.+?)\?$/i.exec(t);
+    if (mAre) return `${cap(stripQ(mAre[1]))} are ${stripQ(mAre[2])}.`;
+    const mCan = /^can\s+(.+?)\s+(.+?)\?$/i.exec(t);
+    if (mCan) return `${cap(stripQ(mCan[1]))} can ${stripQ(mCan[2])}.`;
+    return t;
+  }
+
   static validateCustomTopic(topic: string): TopicValidationResult {
     const errors: string[] = [];
     const warnings: string[] = [];
     const suggestions: string[] = [];
-
-    // Basic validation
     if (!topic || topic.trim().length === 0) {
       errors.push('Topic cannot be empty');
     } else if (topic.trim().length < DEBATE_SETUP_CONFIG.TOPIC_MIN_LENGTH) {
@@ -59,203 +72,92 @@ export class TopicService {
     } else if (topic.length > DEBATE_SETUP_CONFIG.TOPIC_MAX_LENGTH) {
       errors.push(DEBATE_SETUP_CONFIG.VALIDATION_MESSAGES.TOPIC_TOO_LONG);
     }
-
-    // Content validation
-    const trimmedTopic = topic.trim();
-    
-    // Check for inappropriate content (basic check)
+    const trimmed = topic.trim();
     const inappropriateWords = ['hate', 'kill', 'murder', 'violent'];
-    const hasInappropriateContent = inappropriateWords.some(word => 
-      trimmedTopic.toLowerCase().includes(word.toLowerCase())
-    );
-    
-    if (hasInappropriateContent) {
+    if (inappropriateWords.some(w => trimmed.toLowerCase().includes(w))) {
       errors.push('Topic contains inappropriate content');
     }
-
-    // Check if it's a question (optional suggestion)
-    if (!trimmedTopic.includes('?') && !trimmedTopic.toLowerCase().startsWith('should') && 
-        !trimmedTopic.toLowerCase().startsWith('is') && !trimmedTopic.toLowerCase().startsWith('are')) {
-      suggestions.push('Consider phrasing as a question or debate statement (e.g., "Should...", "Is...")');
+    if (/\?$/.test(trimmed)) {
+      const suggested = TopicService.normalizeMotion(trimmed);
+      if (suggested && suggested !== trimmed) {
+        suggestions.push(`Suggested motion: ${suggested}`);
+      }
     }
-
-    // Check length warnings
-    if (trimmedTopic.length > 150) {
-      warnings.push('Long topics may be harder to debate effectively');
-    } else if (trimmedTopic.length < 20) {
-      warnings.push('Short topics might benefit from more context');
+    if (trimmed.length > 150) warnings.push('Long topics may be harder to debate effectively');
+    else if (trimmed.length < 20) warnings.push('Short topics might benefit from more context');
+    const similar = TopicService.findSimilarTopics(trimmed);
+    if (similar.length > 0) {
+      suggestions.push(`Similar topics exist: ${similar.slice(0,2).map(t => `"${t.topic}"`).join(', ')}`);
     }
-
-    // Check for similar existing topics
-    const similarTopics = TopicService.findSimilarTopics(trimmedTopic);
-    if (similarTopics.length > 0) {
-      suggestions.push(`Similar topics exist: ${similarTopics.slice(0, 2).map(t => `"${t.topic}"`).join(', ')}`);
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors,
-      warnings,
-      suggestions,
-    };
+    return { isValid: errors.length === 0, errors, warnings, suggestions };
   }
 
-  /**
-   * Get topic category based on content analysis
-   */
   static getTopicCategory(topic: string): TopicCategory | null {
-    const topicLower = topic.toLowerCase();
-
-    // Technology keywords
-    if (topicLower.includes('ai') || topicLower.includes('robot') || 
-        topicLower.includes('technology') || topicLower.includes('internet') ||
-        topicLower.includes('social media') || topicLower.includes('digital')) {
-      return 'Technology';
-    }
-
-    // Philosophy keywords
-    if (topicLower.includes('free will') || topicLower.includes('consciousness') ||
-        topicLower.includes('meaning') || topicLower.includes('existence') ||
-        topicLower.includes('truth') || topicLower.includes('reality')) {
-      return 'Philosophy';
-    }
-
-    // Science keywords
-    if (topicLower.includes('climate') || topicLower.includes('space') ||
-        topicLower.includes('evolution') || topicLower.includes('genetic') ||
-        topicLower.includes('physics') || topicLower.includes('mars')) {
-      return 'Science';
-    }
-
-    // Society keywords
-    if (topicLower.includes('government') || topicLower.includes('society') ||
-        topicLower.includes('political') || topicLower.includes('voting') ||
-        topicLower.includes('economy') || topicLower.includes('work')) {
-      return 'Society';
-    }
-
-    // Health keywords
-    if (topicLower.includes('health') || topicLower.includes('diet') ||
-        topicLower.includes('exercise') || topicLower.includes('medical') ||
-        topicLower.includes('vegan') || topicLower.includes('food')) {
-      return 'Health';
-    }
-
-    // Relationships keywords
-    if (topicLower.includes('love') || topicLower.includes('dating') ||
-        topicLower.includes('marriage') || topicLower.includes('relationship') ||
-        topicLower.includes('friendship')) {
-      return 'Relationships';
-    }
-
-    // Entertainment keywords
-    if (topicLower.includes('movie') || topicLower.includes('game') ||
-        topicLower.includes('music') || topicLower.includes('art') ||
-        topicLower.includes('entertainment')) {
-      return 'Entertainment';
-    }
-
-    // Fun & Quirky (specific patterns)
-    if (topicLower.includes('hot dog') || topicLower.includes('pineapple pizza') ||
-        topicLower.includes('toilet paper') || topicLower.includes('sandwich') ||
-        topicLower.includes('cereal')) {
-      return 'Fun & Quirky';
-    }
-
-    return null;
+    const t = catalog.topics.find(x => x.text.toLowerCase() === topic.toLowerCase());
+    return t ? TopicService.categoryIdToName(t.categoryId) : null;
   }
 
-  /**
-   * Get related topics based on category and tags
-   */
   static getRelatedTopics(topic: string, limit = 3): SuggestedTopic[] {
-    const category = TopicService.getTopicCategory(topic);
-    if (!category) {
-      return TopicUtils.getPopularTopics(limit);
-    }
-
-    return TopicUtils.getTopicsByCategory(category).slice(0, limit);
+    const t = catalog.topics.find(x => x.text.toLowerCase() === topic.toLowerCase());
+    const pool = t ? catalog.topics.filter(x => x.categoryId === t.categoryId && x.id !== t.id) : catalog.topics;
+    return pool.slice(0, limit).map(TopicService.toSuggested);
   }
 
-  /**
-   * Search topics by query
-   */
   static searchTopics(query: string): SuggestedTopic[] {
-    if (!query || query.trim().length < 2) {
-      return [];
-    }
-
-    return TopicUtils.searchTopics(query);
+    if (!query || query.trim().length < 2) return [];
+    const q = query.toLowerCase();
+    return catalog.topics
+      .filter(t => t.text.toLowerCase().includes(q) || (t.tags || []).some(tag => tag.toLowerCase().includes(q)))
+      .map(TopicService.toSuggested);
   }
 
-  /**
-   * Get estimated duration for a topic
-   */
   static getEstimatedDuration(topic: string): number {
-    const topicLength = topic.length;
-    const category = TopicService.getTopicCategory(topic);
-
-    // Base duration on topic complexity
-    if (topicLength < 30) {
-      return DEBATE_SETUP_CONFIG.ESTIMATED_DURATION.SHORT_TOPIC;
-    } else if (topicLength < 60) {
-      return DEBATE_SETUP_CONFIG.ESTIMATED_DURATION.MEDIUM_TOPIC;
-    } else if (topicLength < 100) {
-      return DEBATE_SETUP_CONFIG.ESTIMATED_DURATION.LONG_TOPIC;
-    }
-
-    // Adjust based on category complexity
-    if (category === 'Philosophy' || category === 'Science') {
-      return DEBATE_SETUP_CONFIG.ESTIMATED_DURATION.COMPLEX_TOPIC;
-    } else if (category === 'Fun & Quirky') {
-      return DEBATE_SETUP_CONFIG.ESTIMATED_DURATION.SHORT_TOPIC;
-    }
-
+    const len = topic.length;
+    const cat = TopicService.getTopicCategory(topic);
+    if (len < 30) return DEBATE_SETUP_CONFIG.ESTIMATED_DURATION.SHORT_TOPIC;
+    if (len < 60) return DEBATE_SETUP_CONFIG.ESTIMATED_DURATION.MEDIUM_TOPIC;
+    if (len < 100) return DEBATE_SETUP_CONFIG.ESTIMATED_DURATION.LONG_TOPIC;
+    if (cat === 'Philosophy' || cat === 'Science') return DEBATE_SETUP_CONFIG.ESTIMATED_DURATION.COMPLEX_TOPIC;
+    if (cat === 'Fun & Quirky') return DEBATE_SETUP_CONFIG.ESTIMATED_DURATION.SHORT_TOPIC;
     return DEBATE_SETUP_CONFIG.ESTIMATED_DURATION.MEDIUM_TOPIC;
   }
 
-  /**
-   * Check if topic is appropriate for debate
-   */
   static isTopicDebatable(topic: string): boolean {
-    const validation = TopicService.validateCustomTopic(topic);
-    return validation.isValid;
+    return TopicService.validateCustomTopic(topic).isValid;
   }
 
-  // Private helper methods
-
-  private static getFallbackTopics(limit?: number): SuggestedTopic[] {
-    const fallbackCount = limit || 6;
-    const fallbackTopics = DEBATE_TOPICS
-      .slice(0, fallbackCount)
-      .map(topic => TopicService.createFallbackTopic(topic));
-    
-    return fallbackTopics;
-  }
-
-  private static createFallbackTopic(topicText: string): SuggestedTopic {
+  // Private
+  private static toSuggested(t: (typeof catalog.topics)[number]): SuggestedTopic {
     return {
-      id: `fallback-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      topic: topicText,
-      category: TopicService.getTopicCategory(topicText) || 'Fun & Quirky',
-      difficulty: 'medium',
-      estimatedDuration: TopicService.getEstimatedDuration(topicText),
-      tags: [],
-      popularity: 3,
+      id: t.id,
+      topic: t.text,
+      category: TopicService.categoryIdToName(t.categoryId),
+      difficulty: t.difficulty || 'medium',
+      estimatedDuration: TopicService.getEstimatedDuration(t.text),
+      tags: t.tags || [],
+      popularity: t.popularity || 3,
     };
   }
 
   private static findSimilarTopics(topic: string): SuggestedTopic[] {
-    const words = topic.toLowerCase().split(' ').filter(word => word.length > 3);
+    const words = topic.toLowerCase().split(' ').filter(w => w.length > 3);
     if (words.length === 0) return [];
+    const hits = catalog.topics.filter(t => words.some(w => t.text.toLowerCase().includes(w)));
+    return hits.slice(0, 3).map(TopicService.toSuggested);
+  }
 
-    return SUGGESTED_TOPICS.filter(suggestedTopic => {
-      const suggestedWords = suggestedTopic.topic.toLowerCase().split(' ');
-      return words.some(word => 
-        suggestedWords.some(suggestedWord => 
-          suggestedWord.includes(word) || word.includes(suggestedWord)
-        )
-      );
-    }).slice(0, 3);
+  private static categoryIdToName(id: TopicCategoryId): TopicCategory {
+    const m: Record<TopicCategoryId, TopicCategory> = {
+      fun: 'Fun & Quirky',
+      tech: 'Technology',
+      philosophy: 'Philosophy',
+      society: 'Society',
+      science: 'Science',
+      entertainment: 'Entertainment',
+      health: 'Health',
+      relationships: 'Relationships',
+    };
+    return m[id];
   }
 }
+

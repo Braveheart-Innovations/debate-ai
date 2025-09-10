@@ -36,7 +36,7 @@ const MODE_OPTIONS: ModeOption[] = [
     mode: 'custom',
     label: 'Custom Topic',
     description: 'Enter your own debate topic',
-    isPremiumFeature: true,
+    isPremiumFeature: false, // No longer gated
   },
 ];
 

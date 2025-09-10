@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSelector, useDispatch } from 'react-redux';
-import { RootState, setAIPersonality, setAIModel, preserveTopic, clearPreservedTopic, setAuthModalVisible, setGlobalStreaming, setStreamingSpeed } from '../store';
+import { RootState, setAIPersonality, setAIModel, preserveTopic, clearPreservedTopic, setGlobalStreaming, setStreamingSpeed } from '../store';
 import { setProviderStreamingPreference } from '../store/streamingSlice';
 
 import { Box } from '../components/atoms';
@@ -21,7 +21,7 @@ import { useTheme } from '../theme';
 import { AIConfig } from '../types';
 import { AI_PROVIDERS } from '../config/aiProviders';
 import { FormatModal } from '../components/organisms/debate/FormatModal';
-import { ALL_PRESET_TOPICS } from '../constants/debateTopicCategories';
+import { TopicService } from '../services/debate/TopicService';
 import { AI_MODELS } from '../config/modelConfigs';
 import { getAIProviderIcon } from '../utils/aiProviderAssets';
 // import { DEBATE_TOPICS } from '../constants/debateTopics';
@@ -181,19 +181,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
   // Deprecated: selectRandomTopic (superseded by inline Surprise Me handler)
   
   const handleTopicModeChange = (mode: 'preset' | 'custom' | 'surprise') => {
-    // Require paid tier for custom topics
-    if (mode === 'custom' && !(access.isPremium || access.isInTrial)) {
-      Alert.alert(
-        'Premium Feature',
-        'Custom topics are available during Trial or with Premium.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Upgrade', onPress: () => dispatch(setAuthModalVisible(true)) },
-        ]
-      );
-      return;
-    }
-    
+    // No gating: allow custom topics for all users
     setTopicMode(mode);
     // Auto-scroll to show the content when mode changes
     setTimeout(() => {
@@ -293,9 +281,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
                 onCustomTopicChange={setCustomTopic}
                 onTopicModeChange={handleTopicModeChange}
                 onSurpriseMe={() => {
-                  const pool = ALL_PRESET_TOPICS;
-                  const idx = Math.floor(Math.random() * pool.length);
-                  const t = pool[idx];
+                  const t = TopicService.generateRandomTopicString();
                   setSelectedTopic(t);
                   setTopicMode('surprise');
                 }}

@@ -3,7 +3,7 @@
  * Handles topic selection including preset topics, custom input, and surprise mode
  */
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import Animated, { FadeIn, FadeOut, Layout } from 'react-native-reanimated';
 import { useTheme } from '../../../theme';
@@ -14,6 +14,7 @@ import { Card } from '../../molecules/Card';
 import { RichTopicInput } from './RichTopicInput';
 // import { DEBATE_TOPICS } from '../../../constants/debateTopics';
 import { PresetTopicsModal } from './PresetTopicsModal';
+import { TopicService } from '../../../services/debate/TopicService';
 
 interface DebateTopicSelectorProps {
   selectedTopic: string;
@@ -40,6 +41,19 @@ export const DebateTopicSelector: React.FC<DebateTopicSelectorProps> = ({
 }) => {
   const { theme, isDark } = useTheme();
   const [presetVisible, setPresetVisible] = useState(false);
+  const [suggestionDismissed, setSuggestionDismissed] = useState(false);
+
+  const motionSuggestion = useMemo(() => {
+    if (topicMode !== 'custom') return null;
+    const t = (customTopic || '').trim();
+    if (!t) return null;
+    if (!t.endsWith('?')) return null;
+    const normalized = TopicService.normalizeMotion(t);
+    if (normalized && normalized !== t && !suggestionDismissed) {
+      return normalized;
+    }
+    return null;
+  }, [customTopic, topicMode, suggestionDismissed]);
 
 
   return (
@@ -131,6 +145,50 @@ export const DebateTopicSelector: React.FC<DebateTopicSelectorProps> = ({
               maxLength={200}
               placeholder="Enter your custom debate topic..."
             />
+
+            {/* Motion suggestion for question-style custom topics */}
+            {motionSuggestion && (
+              <Card shadow padding="large" margin="none" style={{
+                marginTop: theme.spacing.md,
+                backgroundColor: isDark ? theme.colors.overlays.medium : theme.colors.warning[50],
+                borderColor: isDark ? theme.colors.warning[400] : theme.colors.warning[300],
+                borderWidth: 1,
+                borderRadius: theme.borderRadius.lg,
+              }}>
+                <Typography variant="subtitle" weight="semibold" style={{ marginBottom: 6 }}>
+                  Consider using a motion
+                </Typography>
+                <Typography variant="body" color="secondary" style={{ marginBottom: theme.spacing.sm }}>
+                  Debates work best with a clear motion (a statement to argue for/against). Your topic looks like a question. We can rephrase it:
+                </Typography>
+                <Typography variant="body" weight="semibold" style={{ marginBottom: theme.spacing.md }}>
+                  {motionSuggestion}
+                </Typography>
+                <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
+                  <Button
+                    title="Use Suggested"
+                    variant="primary"
+                    size="small"
+                    onPress={() => {
+                      onCustomTopicChange(motionSuggestion);
+                      setSuggestionDismissed(true);
+                    }}
+                  />
+                  <Button
+                    title="Edit"
+                    variant="secondary"
+                    size="small"
+                    onPress={() => setSuggestionDismissed(true)}
+                  />
+                  <Button
+                    title="Use As-Is"
+                    variant="tonal"
+                    size="small"
+                    onPress={() => setSuggestionDismissed(true)}
+                  />
+                </View>
+              </Card>
+            )}
           </Animated.View>
         )}
       </Animated.View>

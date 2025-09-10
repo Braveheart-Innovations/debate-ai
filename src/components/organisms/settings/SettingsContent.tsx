@@ -10,7 +10,6 @@ import { useTheme } from '../../../theme';
 import { 
   useThemeSettings
 } from '../../../hooks/settings';
-import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { InputField } from '../../molecules';
 import { setRealtimeRelayUrl } from '../../../store';
 
@@ -34,7 +33,7 @@ export const SettingsContent: React.FC<SettingsContentProps> = ({
   const hasAnyApiKey = Object.values(apiKeys).some(Boolean);
   
   const themeSettings = useThemeSettings();
-  const { isPremium: hasPremiumAccess } = useFeatureAccess();
+  const hasPremiumAccess = useSelector((state: RootState) => state.auth.isPremium);
 
   const handleStreamingSpeedPress = () => {
     if (!streamingEnabled) return;

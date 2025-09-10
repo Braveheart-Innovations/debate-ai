@@ -10,7 +10,7 @@ import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { Box } from '../../atoms';
 import { Button, GradientButton, Typography } from '../../molecules';
 import { useTheme } from '../../../theme';
-import { DEBATE_TOPICS } from '../../../config/debateTopics';
+import { catalog } from '../../../config/debate/topics';
 import { UseTopicSelectionReturn } from '../../../hooks/debate';
 
 export interface TopicSelectorProps extends UseTopicSelectionReturn {
@@ -135,21 +135,21 @@ export const TopicSelector: React.FC<TopicSelectorProps> = ({
               }}
             >
               <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled={true}>
-                {DEBATE_TOPICS.map((topic, index) => (
+                {catalog.topics.map((t, index) => (
                   <TouchableOpacity
-                    key={index}
+                    key={t.id}
                     style={{
                       paddingVertical: 12,
                       paddingHorizontal: 16,
-                      borderBottomWidth: index < DEBATE_TOPICS.length - 1 ? 1 : 0,
+                      borderBottomWidth: index < catalog.topics.length - 1 ? 1 : 0,
                       borderBottomColor: theme.colors.border,
                     }}
                     onPress={() => {
-                      setSelectedTopic(topic);
+                      setSelectedTopic(t.text);
                       setShowTopicDropdown(false);
                     }}
                   >
-                    <Typography style={{ fontSize: 14 }}>{topic}</Typography>
+                    <Typography style={{ fontSize: 14 }}>{t.text}</Typography>
                   </TouchableOpacity>
                 ))}
               </ScrollView>

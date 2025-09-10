@@ -26,14 +26,23 @@ export abstract class BaseAdapter {
   abstract getCapabilities(): AdapterCapabilities;
   
   protected getSystemPrompt(): string {
+    const debateBase = 'You are participating in a formal debate. Take a clear position, directly address and challenge the previous speaker\'s arguments, avoid headings/lists, and keep responses concise and engaging with concrete reasoning.';
+
+    // If both debate mode and personality are present, compose them so debates preserve persona style
+    if (this.config.isDebateMode && this.config.personality && 'systemPrompt' in this.config.personality) {
+      const persona = this.config.personality.systemPrompt || '';
+      // If a personality is set, prefer its dedicated debatePrompt via systemPrompt content (already composed upstream)
+      return [debateBase, persona].filter(Boolean).join('\n');
+    }
+    // Debate mode without explicit persona
     if (this.config.isDebateMode) {
-      return 'You are participating in a lively debate. Take strong positions, directly address and challenge the previous speaker\'s arguments, and make compelling points. Be respectful but assertive. Build on or refute what was just said. Provide substantive arguments with examples, reasoning, or evidence. Aim for responses that are engaging and thought-provoking (3-5 sentences).';
+      return debateBase;
     }
-    if (this.config.personality) {
-      if (typeof this.config.personality === 'object' && 'systemPrompt' in this.config.personality) {
-        return this.config.personality.systemPrompt;
-      }
+    // Personality outside of debate
+    if (this.config.personality && 'systemPrompt' in this.config.personality) {
+      return this.config.personality.systemPrompt || 'You are a helpful AI assistant.';
     }
+    // Default
     return 'You are a helpful AI assistant.';
   }
   

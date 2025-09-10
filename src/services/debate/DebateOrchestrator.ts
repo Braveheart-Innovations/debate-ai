@@ -10,7 +10,7 @@ import { DebateRulesEngine } from './DebateRulesEngine';
 import { VotingService } from './VotingService';
 import { DebatePromptBuilder } from './DebatePromptBuilder';
 import { DEBATE_CONSTANTS } from '../../config/debateConstants';
-import { UNIVERSAL_PERSONALITIES } from '../../config/personalities';
+import { UNIVERSAL_PERSONALITIES, getPersonality } from '../../config/personalities';
 import { StorageService } from '../chat/StorageService';
 import { store } from '../../store';
 import { getStreamingService } from '../streaming/StreamingService';
@@ -307,6 +307,37 @@ export class DebateOrchestrator {
         parameters?: import('../../types').ModelParameters;
       };
 
+      // Compose a stance-aware, persona-inflected system prompt for this AI
+      try {
+        if (adapter) {
+          const stance = stances[currentAI.id] || (aiIndex === 0 ? 'pro' : 'con');
+          // Prefer debatePrompt; fall back to systemPrompt
+          const personalityId = personalities[currentAI.id] || 'default';
+          const persona = getPersonality(personalityId);
+          const personaStyle = persona?.debatePrompt || persona?.systemPrompt || 'You are a thoughtful debater.';
+          const motion = topic;
+          const sideText = stance === 'pro' ? 'Affirmative (FOR)' : 'Negative (AGAINST)';
+          const stancePrompt = [
+            '[DEBATE MODE]',
+            'Debate instructions: Be direct, rebut specific claims, avoid headings/lists, concise (120–180 words).',
+            `Persona cues: ${personaStyle}`,
+            `Your assigned role: ${sideText} the motion: "${motion}".`,
+            'Maintain your assigned stance; do not switch sides. Concede only tactically and minimally.',
+          ].join('\n');
+          // Apply composed system prompt via temporary personality
+          adapter.setTemporaryPersonality({
+            id: `debate_${currentAI.id}`,
+            name: 'Debater',
+            description: 'Composed debate persona with stance',
+            systemPrompt: stancePrompt,
+            traits: { formality: 0.6, humor: 0.2, technicality: 0.5, empathy: 0.3 },
+            isPremium: false,
+          } as unknown as import('../../types').PersonalityConfig);
+          // Ensure debate mode is active for turn mapping
+          adapter.config.isDebateMode = true;
+        }
+      } catch { /* ignore persona application errors */ }
+
       if (adapter && supportsStreaming && streamingAllowed) {
         // Apply expert parameters to adapter if present
         try {
@@ -322,7 +353,7 @@ export class DebateOrchestrator {
           senderType: 'ai',
           content: '',
           timestamp: Date.now(),
-          metadata: { modelUsed: currentAI.model },
+          metadata: { modelUsed: currentAI.model, providerId: currentAI.id },
         };
 
         const messageId = placeholderMessage.id;
@@ -455,14 +486,39 @@ export class DebateOrchestrator {
             adapter.config.parameters = expert.parameters;
           }
         } catch { /* ignore */ }
+        // For non-streaming, pass the composed personality and keep debate mode enabled
+        const composedPersonality = (() => {
+          const personalityId = personalities[currentAI.id] || 'default';
+          const persona = getPersonality(personalityId);
+          const personaStyle = persona?.debatePrompt || persona?.systemPrompt || 'You are a thoughtful debater.';
+          const motion = topic;
+          const stance = stances[currentAI.id] || (aiIndex === 0 ? 'pro' : 'con');
+          const sideText = stance === 'pro' ? 'Affirmative (FOR)' : 'Negative (AGAINST)';
+          const stancePrompt = [
+            '[DEBATE MODE]',
+            'Debate instructions: Be direct, rebut specific claims, avoid headings/lists, concise (120–180 words).',
+            `Persona cues: ${personaStyle}`,
+            `Your assigned role: ${sideText} the motion: "${motion}".`,
+            'Maintain your assigned stance; do not switch sides. Concede only tactically and minimally.',
+          ].join('\n');
+          return {
+            id: `debate_${currentAI.id}`,
+            name: 'Debater',
+            description: 'Composed debate persona with stance',
+            systemPrompt: stancePrompt,
+            traits: { formality: 0.6, humor: 0.2, technicality: 0.5, empathy: 0.3 },
+            isPremium: false,
+          } as unknown as import('../../types').PersonalityConfig;
+        })();
+
         const response = await this.aiService.sendMessage(
           currentAI.id,
           contextualPrompt,
           debateMessages,
-          true,
+          composedPersonality,
           undefined,
           undefined,
-          currentAI.model
+          true // ensure debate mode enabled in adapter
         );
 
         const personalityName = UNIVERSAL_PERSONALITIES.find(p => p.id === personalityId)?.name || 'Default';
@@ -473,7 +529,7 @@ export class DebateOrchestrator {
           senderType: 'ai',
           content: responseText,
           timestamp: Date.now(),
-          metadata: modelUsed ? { modelUsed } : undefined,
+          metadata: { ...(modelUsed ? { modelUsed } : {}), providerId: currentAI.id },
         };
         this.currentMessages = [...existingMessages, aiMessage];
         this.emitEvent({ type: 'message_added', data: { message: aiMessage }, timestamp: Date.now() });

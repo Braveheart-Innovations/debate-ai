@@ -96,7 +96,7 @@ export class DebatePromptBuilder {
       phaseHint,
       prev,
       base,
-      `Respond directly about "${topic}". Maintain your stance. ${wordBand}`,
+      `Respond directly about "${topic}". Maintain your assigned stance strictly; do not switch sides. ${wordBand}`,
       tone,
       finalCue,
     ].filter(Boolean).join('\n');
