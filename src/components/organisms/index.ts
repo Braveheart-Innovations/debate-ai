@@ -59,7 +59,7 @@ export {
   StatsLeaderboardItem, 
   LeaderboardHeader, 
   CompactLeaderboard 
-} from './StatsLeaderboard';
+} from './stats/StatsLeaderboard';
 export { 
   RecentDebatesSection, 
   CompactRecentDebates, 
@@ -71,4 +71,4 @@ export {
   StatsLoadingState, 
   StatsErrorState, 
   WelcomeToStats 
-} from './StatsEmptyState';
+} from './stats/StatsEmptyState';
