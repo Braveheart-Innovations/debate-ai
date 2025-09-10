@@ -16,7 +16,7 @@ import { GradientButton, Typography } from '../molecules';
 import { AIProvider } from '../../config/aiProviders';
 import { AI_MODELS } from '../../config/modelConfigs';
 import { MODEL_PRICING, getFreeMessageInfo } from '../../config/modelPricing';
-import { ActualPricing } from './ActualPricing';
+import { ActualPricing } from './subscription/ActualPricing';
 import { getAIProviderIcon } from '../../utils/aiProviderAssets';
 import * as Haptics from 'expo-haptics';
 

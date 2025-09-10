@@ -1,10 +1,10 @@
 import React from 'react';
 import { StyleSheet, Text as RNText, ViewStyle } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Box } from '../atoms';
-import { Typography } from '../molecules';
-import { AIProvider } from '../../config/aiProviders';
-import { useTheme } from '../../theme';
+import { Box } from '@/components/atoms';
+import { Typography } from '@/components/molecules';
+import { AIProvider } from '@/config/aiProviders';
+import { useTheme } from '@/theme';
 
 export interface APIComingSoonProps {
   providers: AIProvider[];

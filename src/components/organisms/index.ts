@@ -7,7 +7,7 @@ export { PromptWizard } from './PromptWizard';
 export { ProviderExpertSettings } from './ProviderExpertSettings';
 export { QuickStartsSection } from './QuickStartsSection';
 export type { QuickStartTopic } from './QuickStartsSection';
-export { ActualPricing } from './ActualPricing';
+export { ActualPricing } from './subscription/ActualPricing';
 export { AIAvatar } from './AIAvatar';
 export { AICard } from './AICard';
 export { ModelSelector } from './ModelSelector';
@@ -37,14 +37,14 @@ export { SettingsContent } from './settings/SettingsContent';
 
 // Support Organisms
 export { SupportSheet } from './support/SupportSheet';
-export { UnlockEverythingBanner } from './UnlockEverythingBanner';
+export { UnlockEverythingBanner } from './subscription/UnlockEverythingBanner';
 
 // API Configuration Organisms
 export { APIConfigHeader } from './APIConfigHeader';
 export { APIConfigProgress } from './APIConfigProgress';
 export { APIProviderList } from './APIProviderList';
-export { APISecurityNote } from './APISecurityNote';
-export { APIComingSoon } from './APIComingSoon';
+export { APISecurityNote } from './api-config/APISecurityNote';
+export { APIComingSoon } from './api-config/APIComingSoon';
 
 // Debate organisms
 export * from './debate';

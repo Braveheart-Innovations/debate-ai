@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text } from 'react-native';
-import { Typography } from '../molecules';
-import { useTheme } from '../../theme';
+import { Typography } from '@/components/molecules';
+import { useTheme } from '@/theme';
 
 interface ActualPricingProps {
   inputPricePerM?: number;

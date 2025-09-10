@@ -1,7 +1,7 @@
 import React from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
 import { Typography } from '../molecules';
-import { ActualPricing } from './ActualPricing';
+import { ActualPricing } from './subscription/ActualPricing';
 import { useTheme } from '../../theme';
 import { ModelConfig } from '../../config/modelConfigs';
 import { MODEL_PRICING, getFreeMessageInfo } from '../../config/modelPricing';

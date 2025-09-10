@@ -1,9 +1,9 @@
 import React from 'react';
 import { StyleSheet, ViewStyle } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Box } from '../atoms';
-import { Typography } from '../molecules';
-import { useTheme } from '../../theme';
+import { Box } from '@/components/atoms';
+import { Typography } from '@/components/molecules';
+import { useTheme } from '@/theme';
 
 export interface APISecurityNoteProps {
   title?: string;
