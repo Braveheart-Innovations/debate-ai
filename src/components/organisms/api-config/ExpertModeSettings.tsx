@@ -8,15 +8,15 @@ import {
   TextInput,
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { useTheme } from '../../theme';
-import { Button, Typography } from '../molecules';
+import { useTheme } from '@/theme';
+import { Button, Typography } from '@/components/molecules';
 import { 
   AI_MODELS, 
   ModelParameters,
   DEFAULT_PARAMETERS,
   PARAMETER_RANGES,
   PROVIDER_SUPPORTED_PARAMS 
-} from '../../config/modelConfigs';
+} from '@/config/modelConfigs';
 
 interface ExpertModeSettingsProps {
   providerId: string;

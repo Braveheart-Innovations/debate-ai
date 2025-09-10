@@ -11,13 +11,13 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { useTheme } from '../../theme';
-import { GradientButton, Typography } from '../molecules';
-import { AIProvider } from '../../config/aiProviders';
-import { AI_MODELS } from '../../config/modelConfigs';
-import { MODEL_PRICING, getFreeMessageInfo } from '../../config/modelPricing';
-import { ActualPricing } from './subscription/ActualPricing';
-import { getAIProviderIcon } from '../../utils/aiProviderAssets';
+import { useTheme } from '@/theme';
+import { GradientButton, Typography } from '@/components/molecules';
+import { AIProvider } from '@/config/aiProviders';
+import { AI_MODELS } from '@/config/modelConfigs';
+import { MODEL_PRICING, getFreeMessageInfo } from '@/config/modelPricing';
+import { ActualPricing } from '@/components/organisms';
+import { getAIProviderIcon } from '@/utils/aiProviderAssets';
 import * as Haptics from 'expo-haptics';
 
 interface ProviderCardProps {

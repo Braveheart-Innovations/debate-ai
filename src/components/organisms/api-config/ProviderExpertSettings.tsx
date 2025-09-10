@@ -1,17 +1,16 @@
 import React from 'react';
 import { View, Switch } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Button, Typography } from '../molecules';
-import { ModelSelector } from '@/components/organisms';
-import { ParameterSlider } from './ParameterSlider';
-import { useTheme } from '../../theme';
+import { Button, Typography } from '@/components/molecules';
+import { ModelSelector, ParameterSlider } from '@/components/organisms';
+import { useTheme } from '@/theme';
 import { 
   getProviderModels,
   ModelParameters,
   DEFAULT_PARAMETERS,
   PARAMETER_RANGES,
   PROVIDER_SUPPORTED_PARAMS 
-} from '../../config/modelConfigs';
+} from '@/config/modelConfigs';
 
 interface ProviderExpertSettingsProps {
   providerId: string;

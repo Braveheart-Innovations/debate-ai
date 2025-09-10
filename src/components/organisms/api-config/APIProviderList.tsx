@@ -1,12 +1,12 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
-import { Box } from '../atoms';
-import { Typography } from '../molecules';
+import { Box } from '@/components/atoms';
+import { Typography } from '@/components/molecules';
 import { ProviderCard } from './ProviderCard';
-import { AIProvider } from '../../config/aiProviders';
-import { DEFAULT_PARAMETERS } from '../../config/modelConfigs';
-import { useTheme } from '../../theme';
-import { getAPIKeyProviderId } from '../../utils/typeGuards';
+import { AIProvider } from '@/config/aiProviders';
+import { DEFAULT_PARAMETERS } from '@/config/modelConfigs';
+import { useTheme } from '@/theme';
+import { getAPIKeyProviderId } from '@/utils/typeGuards';
 
 export interface APIProviderListProps {
   providers: AIProvider[];

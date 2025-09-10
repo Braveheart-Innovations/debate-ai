@@ -1,9 +1,9 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Box } from '../atoms';
-import { Typography, ProgressBar, ClearKeysButton } from '../molecules';
-import { useTheme } from '../../theme';
+import { Box } from '@/components/atoms';
+import { Typography, ProgressBar, ClearKeysButton } from '@/components/molecules';
+import { useTheme } from '@/theme';
 
 export interface APIConfigProgressProps {
   configuredCount: number;

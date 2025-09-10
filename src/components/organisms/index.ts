@@ -4,7 +4,7 @@ export { Header } from './common/Header';
 export { AISelector } from './home/AISelector';
 export { DynamicAISelector } from './home/DynamicAISelector';
 export { PromptWizard } from './home/PromptWizard';
-export { ProviderExpertSettings } from './ProviderExpertSettings';
+export { ProviderExpertSettings } from './api-config/ProviderExpertSettings';
 export { QuickStartsSection } from './home/QuickStartsSection';
 export type { QuickStartTopic } from './home/QuickStartsSection';
 export { ActualPricing } from './subscription/ActualPricing';
@@ -19,8 +19,8 @@ export { SelectionSummary } from './home/SelectionSummary';
 export { DebateModeCard } from './home/DebateModeCard';
 export { AIServiceLoading } from './AIServiceLoading';
 export { AppLogo } from './common/AppLogo';
-export { ExpertModeSettings } from './ExpertModeSettings';
-export { ProviderCard } from './ProviderCard';
+export { ExpertModeSettings } from './api-config/ExpertModeSettings';
+export { ProviderCard } from './api-config/ProviderCard';
 export { ErrorBoundary } from './common/ErrorBoundary';
 export { StreamingIndicator } from './common/StreamingIndicator';
 export { MessageBubble } from './common/MessageBubble';
@@ -41,9 +41,9 @@ export { SupportSheet } from './support/SupportSheet';
 export { UnlockEverythingBanner } from './subscription/UnlockEverythingBanner';
 
 // API Configuration Organisms
-export { APIConfigHeader } from './APIConfigHeader';
-export { APIConfigProgress } from './APIConfigProgress';
-export { APIProviderList } from './APIProviderList';
+export { APIConfigHeader } from './api-config/APIConfigHeader';
+export { APIConfigProgress } from './api-config/APIConfigProgress';
+export { APIProviderList } from './api-config/APIProviderList';
 export { APISecurityNote } from './api-config/APISecurityNote';
 export { APIComingSoon } from './api-config/APIComingSoon';
 
