@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Delete Account — Symposium AI</title>
+  <meta name="description" content="How to request deletion of your Symposium AI account and data." />
+  <style>
+    :root { --bg:#0f0f10; --card:#141416; --muted:#9aa0a6; --brand:#0E9594; --text:#e7e7ea; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Ubuntu,Inter,system-ui,sans-serif; }
+    .container { max-width:920px; margin:0 auto; padding:24px; }
+    header { display:flex; align-items:center; justify-content:space-between; padding:16px 0; }
+    .brand { display:flex; gap:10px; align-items:center; font-weight:700; font-size:18px; }
+    nav a { color:var(--muted); text-decoration:none; margin-left:18px; }
+    nav a:hover { color:var(--text); }
+    h1 { font-size:32px; margin:10px 0 4px; }
+    .sub { color:var(--muted); margin:0 0 16px; }
+    .card { background:var(--card); border:1px solid #202328; border-radius:16px; padding:18px; margin:16px 0; }
+    .muted { color:var(--muted); }
+    ul { margin:8px 0 0 18px; }
+    li { margin:4px 0; }
+    footer { margin:36px 0 12px; border-top:1px solid #202328; padding-top:18px; color:var(--muted); font-size:14px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+    footer a { color:var(--muted); text-decoration:none; }
+    footer a:hover { color:var(--text); }
+    @media (max-width:720px){ .container{padding:16px;} h1{font-size:28px;} }
+  </style>
+  <meta name="robots" content="noindex" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <a href="/" style="display:flex;gap:10px;align-items:center;color:inherit;text-decoration:none;">
+          <img src="/assets/symposium-logo.svg" alt="Symposium AI" style="height:28px;width:28px;border-radius:6px;" />
+          <span>Symposium AI</span>
+        </a>
+      </div>
+      <nav>
+        <a href="/">Home</a>
+        <a href="/support/index.html">Support</a>
+      </nav>
+    </header>
+
+    <h1>Delete Your Account</h1>
+    <p class="sub">This page explains how to request deletion of your Symposium AI account and the data we store.</p>
+
+    <section class="card">
+      <h3 style="margin:0 0 8px;">How to request deletion</h3>
+      <p class="muted" style="margin:0 0 8px;">Please use one of the following options:</p>
+      <ul>
+        <li>Email us at <a href="mailto:support@braveheartinnovations.com?subject=Delete%20my%20Symposium%20AI%20account">support@braveheartinnovations.com</a> from the email address associated with your account.</li>
+        <li>Or in the app: open Support → Contact Support, and include “Delete my account” in the subject.</li>
+      </ul>
+      <p class="muted" style="margin:8px 0 0;">We will verify ownership via your account email before proceeding.</p>
+    </section>
+
+    <section class="card">
+      <h3 style="margin:0 0 8px;">What we delete</h3>
+      <ul>
+        <li>Your Firebase Authentication account (sign‑in identity).</li>
+        <li>Your profile document and preferences stored in Firestore.</li>
+        <li>Any synced app data associated with your account (e.g., saved sessions/history if you opted to sync).</li>
+      </ul>
+      <p class="muted" style="margin:8px 0 0;">BYOK API keys are stored on your device only and are not sent to our servers; there is nothing to delete server‑side. Remove keys from your device if desired.</p>
+    </section>
+
+    <section class="card">
+      <h3 style="margin:0 0 8px;">What may be retained</h3>
+      <ul>
+        <li>App Store / Google Play purchase records and invoices (managed by Apple/Google) — these are not controlled by us.</li>
+        <li>Legally required records (e.g., tax/transactional metadata) retained as required by law.</li>
+        <li>System backups and logs may persist for up to 30 days and are then purged as part of routine retention.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h3 style="margin:0 0 8px;">Timeline</h3>
+      <p class="muted" style="margin:0;">We aim to complete verified deletion requests within 30 days. You will receive confirmation when the deletion is complete.</p>
+    </section>
+
+    <section class="card">
+      <h3 style="margin:0 0 8px;">Developer</h3>
+      <p class="muted" style="margin:0;">Braveheart Innovations LLC — publisher of Symposium AI.</p>
+    </section>
+
+    <footer>
+      <div>
+        <a href="/privacy">Privacy</a>
+        <span style="margin:0 10px;opacity:.35;">•</span>
+        <a href="/terms">Terms</a>
+        <span style="margin:0 10px;opacity:.35;">•</span>
+        <a href="mailto:support@braveheartinnovations.com">support@braveheartinnovations.com</a>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span>Made with</span>
+        <a href="https://www.braveheartinnovations.com" target="_blank" rel="noopener">
+          <img src="/assets/BraveheartInnovationsLogoNoText.png" alt="Braveheart Innovations" style="height:16px;width:auto;opacity:.95;vertical-align:middle;" />
+        </a>
+        <span>by Braveheart Innovations LLC</span>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>
+

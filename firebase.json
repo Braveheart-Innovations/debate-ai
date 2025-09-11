@@ -34,7 +34,9 @@
       { "source": "/privacy", "destination": "/privacy-policy.html", "type": 301 },
       { "source": "/terms", "destination": "/terms-of-service.html", "type": 301 },
       { "source": "/faq", "destination": "/faqs.html", "type": 301 },
-      { "source": "/support", "destination": "/support/", "type": 301 }
+      { "source": "/support", "destination": "/support/index.html", "type": 301 },
+      { "source": "/delete-account", "destination": "/account-deletion.html", "type": 301 },
+      { "source": "/account-deletion", "destination": "/account-deletion.html", "type": 301 }
     ],
     "ignore": [
       "firebase.json",
