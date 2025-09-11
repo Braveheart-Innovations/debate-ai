@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { FlatList, StyleSheet } from 'react-native';
 import { Box } from '../../atoms';
 import { Typography } from '../../molecules';
-import { MessageBubble } from '@/components/organisms';
+import { MessageBubble } from '@/components/organisms/common/MessageBubble';
 import { ImageMessageRow } from './ImageMessageRow';
 import { VideoMessageRow } from './VideoMessageRow';
 import { ImageGeneratingRow } from './ImageGeneratingRow';

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { View, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../../theme';
-import { Typography } from '../Typography';
-import { Button } from '../Button';
+import { useTheme } from '@/theme';
+import { Typography } from '../common/Typography';
+import { Button } from '../common/Button';
 
 interface EmailAuthFormProps {
   mode: 'signin' | 'signup';

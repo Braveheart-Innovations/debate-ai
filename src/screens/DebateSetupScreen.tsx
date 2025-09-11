@@ -26,7 +26,7 @@ import { AI_MODELS } from '../config/modelConfigs';
 import { getAIProviderIcon } from '../utils/aiProviderAssets';
 // import { DEBATE_TOPICS } from '../constants/debateTopics';
 import { usePreDebateValidation } from '../hooks/debate';
-import { Card } from '../components/molecules/Card';
+import { Card } from '@/components/molecules';
 import { FORMATS } from '../config/debate/formats';
 import { TrialBanner } from '@/components/molecules/subscription/TrialBanner';
 

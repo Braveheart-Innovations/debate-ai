@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, Platform, Alert } from 'react-native';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { GoogleSigninButton } from '@react-native-google-signin/google-signin';
-import { Typography } from '../../molecules/Typography';
+import { Typography } from '@/components/molecules';
 import { useTheme } from '../../../theme';
 import { useDispatch } from 'react-redux';
 import { 

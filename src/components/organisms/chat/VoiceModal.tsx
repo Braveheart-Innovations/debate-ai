@@ -4,8 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { Box } from '../../atoms';
 import { useTheme } from '../../../theme';
-import { Typography } from '../../molecules/Typography';
-import { SheetHeader } from '../../molecules/SheetHeader';
+import { Typography, SheetHeader } from '@/components/molecules';
 import {
   useAudioRecorder,
   requestRecordingPermissionsAsync,

@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import { Box } from '../../atoms';
-import { Button } from '../Button';
+import { Button } from '../common/Button';
 import { useTheme } from '../../../theme';
 import { SwipeableActionsProps } from '../../../types/history';
 

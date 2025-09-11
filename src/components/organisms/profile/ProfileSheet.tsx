@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { SheetHeader } from '../../molecules/SheetHeader';
+import { SheetHeader } from '@/components/molecules';
 import { ProfileContent } from './ProfileContent';
 import { useTheme } from '../../../theme';
 

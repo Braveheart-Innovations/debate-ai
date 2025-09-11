@@ -21,7 +21,7 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Typography } from '../../molecules';
 import { GradientButton } from '../../molecules';
-import { SheetHeader } from '../../molecules/SheetHeader';
+import { SheetHeader } from '@/components/molecules';
 import { useTheme } from '../../../theme';
 import { Message } from '../../../types';
 import { AI_BRAND_COLORS } from '../../../constants/aiColors';

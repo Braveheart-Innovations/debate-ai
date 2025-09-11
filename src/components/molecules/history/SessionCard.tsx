@@ -2,7 +2,7 @@ import React from 'react';
 import { TouchableOpacity, StyleSheet } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Box } from '../../atoms';
-import { Typography } from '../Typography';
+import { Typography } from '../common/Typography';
 import { useTheme } from '../../../theme';
 import { dateFormatterService } from '../../../services/history';
 import { SessionCardProps } from '../../../types/history';

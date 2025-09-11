@@ -5,8 +5,7 @@ import { BlurView } from 'expo-blur';
 import * as DocumentPicker from 'expo-document-picker';
 import { Box } from '../../atoms';
 import { useTheme } from '../../../theme';
-import { Typography } from '../../molecules/Typography';
-import { SheetHeader } from '../../molecules/SheetHeader';
+import { Typography, SheetHeader } from '@/components/molecules';
 import { MessageAttachment } from '../../../types';
 import { 
   processDocumentForClaude,
@@ -108,4 +107,3 @@ const styles = StyleSheet.create({
 });
 
 export default DocumentUploadModal;
-

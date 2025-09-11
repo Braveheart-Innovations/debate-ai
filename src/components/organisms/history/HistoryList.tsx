@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { FlatList, StyleSheet } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
-import { SessionCard, SwipeableActions, LoadMoreIndicator } from '../../molecules/history';
+import { SessionCard, SwipeableActions, LoadMoreIndicator } from '@/components/molecules/history';
 import { ChatSession } from '../../../types';
 import { HistoryListProps } from '../../../types/history';
 

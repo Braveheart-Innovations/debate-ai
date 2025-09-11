@@ -11,7 +11,7 @@ import { Box } from '@/components/atoms';
 import { SelectionIndicator, GlassCard } from '@/components/molecules';
 import { PersonalityPicker } from './PersonalityPicker';
 import { ModelSelectorEnhanced } from './ModelSelectorEnhanced';
-import { AIAvatar } from '@/components/organisms';
+import { AIAvatar } from '@/components/organisms/common/AIAvatar';
 import { AIConfig } from '@/types';
 import * as Haptics from 'expo-haptics';
 

@@ -4,13 +4,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../../store';
 import { logout, setAuthUser, setUserProfile, setIsAnonymous } from '../../../store/authSlice';
-import { ProfileAvatar } from '../../molecules/ProfileAvatar';
-import { Typography } from '../../molecules/Typography';
-import { Button } from '../../molecules/Button';
-import { SettingRow } from '../../molecules/SettingRow';
-import { EmailAuthForm } from '../../molecules/auth/EmailAuthForm';
+import { ProfileAvatar, Typography, Button, SettingRow } from '@/components/molecules';
+import { EmailAuthForm } from '@/components/molecules/auth/EmailAuthForm';
 import { SocialAuthProviders } from '../auth/SocialAuthProviders';
-import { UnlockEverythingBanner } from '@/components/organisms';
+import { UnlockEverythingBanner } from '@/components/organisms/subscription/UnlockEverythingBanner';
 import { useTheme } from '../../../theme';
 import { 
   signOut, 

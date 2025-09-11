@@ -1,5 +1,5 @@
 import React from 'react';
-import { HeaderIcon } from '../../molecules/HeaderIcon';
+import { HeaderIcon } from '@/components/molecules';
 
 interface NotificationBellProps {
   onPress: () => void;

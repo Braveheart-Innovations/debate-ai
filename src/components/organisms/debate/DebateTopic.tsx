@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Typography } from '../../molecules/Typography';
+import { Typography } from '@/components/molecules';
 import { Box } from '../../atoms/Box';
 import { useTheme, Theme } from '../../../theme';
 

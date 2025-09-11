@@ -1,5 +1,5 @@
 import React from 'react';
-import { Typography } from '../Typography';
+import { Typography } from '../common/Typography';
 import { useTheme } from '../../../theme';
 import { SessionPreviewProps } from '../../../types/history';
 

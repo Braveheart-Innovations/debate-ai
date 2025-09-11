@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, TextInput, TouchableOpacity, Text as RNText, ScrollView, Image, Animated, View } from 'react-native';
 // We now render the options row above the input instead of expanding inline
-import MultimodalOptionsRow from '../../molecules/MultimodalOptionsRow';
+import MultimodalOptionsRow from '@/components/molecules/chat/MultimodalOptionsRow';
 import { ImageUploadModal } from './ImageUploadModal';
 import { DocumentUploadModal } from './DocumentUploadModal';
 import { VoiceModal } from './VoiceModal';

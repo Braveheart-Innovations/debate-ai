@@ -7,7 +7,7 @@ import React, { useMemo, useState } from 'react';
 import { Modal, View, TouchableOpacity, FlatList, StyleSheet, Platform } from 'react-native';
 import { useTheme } from '../../../theme';
 import { Typography } from '../../molecules';
-import { SheetHeader } from '../../molecules/SheetHeader';
+import { SheetHeader } from '@/components/molecules';
 import { GradientButton, Button } from '../../molecules';
 import { PersonalityOption } from '../../../config/personalities';
 import { PersonalityService } from '../../../services/debate/PersonalityService';

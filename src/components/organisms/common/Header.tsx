@@ -14,9 +14,9 @@ import Svg, { Path, Defs, LinearGradient as SvgGradient, Stop, Rect, G, Circle }
 import * as Haptics from 'expo-haptics';
 
 import { Box } from '@/components/atoms/Box';
-import { Typography } from '@/components/molecules/Typography';
-import { Button } from '@/components/molecules/Button';
-import { Badge } from '@/components/molecules/Badge';
+import { Typography } from '@/components/molecules';
+import { Button } from '@/components/molecules';
+import { Badge } from '@/components/molecules';
 import { useTheme, Theme } from '@/theme';
 
 // Use responsive width via useWindowDimensions inside the component

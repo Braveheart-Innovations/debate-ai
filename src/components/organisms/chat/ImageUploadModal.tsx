@@ -5,8 +5,7 @@ import { BlurView } from 'expo-blur';
 import * as ImagePicker from 'expo-image-picker';
 import { Box } from '../../atoms';
 import { useTheme } from '../../../theme';
-import { Typography } from '../../molecules/Typography';
-import { SheetHeader } from '../../molecules/SheetHeader';
+import { Typography, SheetHeader } from '@/components/molecules';
 import { MessageAttachment } from '../../../types';
 import { processImageForClaude, getReadableFileSize } from '../../../utils/imageProcessing';
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, StyleSheet } from 'react-native';
-import { Typography } from '@/components/molecules/Typography';
+import { Typography } from '../common/Typography';
 import { useTheme } from '@/theme';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { useNavigation, NavigationProp } from '@react-navigation/native';

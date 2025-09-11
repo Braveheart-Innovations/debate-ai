@@ -5,8 +5,7 @@
 
 import React, { useState } from 'react';
 import { View, TextInput, StyleSheet, ViewStyle } from 'react-native';
-import { GlassCard } from '../../molecules/GlassCard';
-import { Typography } from '../../molecules/Typography';
+import { GlassCard, Typography } from '@/components/molecules';
 import { useTheme } from '../../../theme';
 
 export interface RichTopicInputProps {

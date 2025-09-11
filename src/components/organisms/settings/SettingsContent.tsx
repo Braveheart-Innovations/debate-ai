@@ -2,10 +2,7 @@ import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, setGlobalStreaming, setStreamingSpeed, setPremiumStatus } from '../../../store';
-import { Typography } from '../../molecules/Typography';
-import { SheetHeader } from '../../molecules/SheetHeader';
-import { SettingRow } from '../../molecules/SettingRow';
-import { Button } from '../../molecules/Button';
+import { Typography, SheetHeader, SettingRow, Button } from '@/components/molecules';
 import { useTheme } from '../../../theme';
 import { 
   useThemeSettings

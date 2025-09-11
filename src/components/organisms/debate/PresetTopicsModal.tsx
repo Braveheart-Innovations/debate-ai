@@ -3,7 +3,7 @@ import { Modal, View, ScrollView, TouchableOpacity, Platform } from 'react-nativ
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../../../theme';
 import { Typography, Button } from '../../molecules';
-import { SheetHeader } from '../../molecules/SheetHeader';
+import { SheetHeader } from '@/components/molecules';
 import { TopicService } from '../../../services/debate/TopicService';
 
 export interface PresetTopicsModalProps {

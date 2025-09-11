@@ -3,7 +3,7 @@ import { View, ViewStyle } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GradientButton, Typography } from '@/components/molecules';
-import { AIAvatar } from '@/components/organisms';
+import { AIAvatar } from '@/components/organisms/common/AIAvatar';
 import { AIConfig } from '@/types';
 import { useTheme } from '@/theme';
 import * as Haptics from 'expo-haptics';

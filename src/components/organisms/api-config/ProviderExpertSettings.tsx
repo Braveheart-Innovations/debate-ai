@@ -2,7 +2,8 @@ import React from 'react';
 import { View, Switch } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Button, Typography } from '@/components/molecules';
-import { ModelSelector, ParameterSlider } from '@/components/organisms';
+import { ModelSelector } from '@/components/organisms/home/ModelSelector';
+import { ParameterSlider } from '@/components/organisms/api-config/ParameterSlider';
 import { useTheme } from '@/theme';
 import { 
   getProviderModels,

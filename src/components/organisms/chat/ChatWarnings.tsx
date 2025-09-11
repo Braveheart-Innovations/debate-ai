@@ -1,6 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
-import { GPT5LatencyWarning } from '../../molecules/GPT5LatencyWarning';
+import { GPT5LatencyWarning } from '@/components/molecules/chat/GPT5LatencyWarning';
 import { AIConfig } from '../../../types';
 
 export interface ChatWarningsProps {

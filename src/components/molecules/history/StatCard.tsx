@@ -1,7 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, StyleSheet } from 'react-native';
 import { Box } from '../../atoms';
-import { Typography } from '../Typography';
+import { Typography } from '../common/Typography';
 import { useTheme } from '../../../theme';
 import { StatCardProps } from '../../../types/history';
 

@@ -20,10 +20,7 @@ import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
-import { SheetHeader } from '../../molecules/SheetHeader';
-import { SharePreviewCard } from '../../molecules/SharePreviewCard';
-import { ShareActionButtons } from '../../molecules/ShareActionButtons';
-import { Typography } from '../../molecules';
+import { SheetHeader, SharePreviewCard, ShareActionButtons, Typography } from '@/components/molecules';
 import { useTheme } from '../../../theme';
 import { Message, AI } from '../../../types';
 

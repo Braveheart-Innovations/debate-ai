@@ -7,7 +7,7 @@ import { Modal, ScrollView, View, TouchableOpacity, Platform } from 'react-nativ
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../../../theme';
 import { Typography } from '../../molecules';
-import { SheetHeader } from '../../molecules/SheetHeader';
+import { SheetHeader } from '@/components/molecules';
 import { FORMATS, type DebateFormatId, type FormatSpec } from '../../../config/debate/formats';
 
 export interface FormatModalProps {

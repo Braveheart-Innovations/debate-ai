@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useDispatch } from 'react-redux';
-import { HeaderIcon } from '../../molecules/HeaderIcon';
+import { HeaderIcon } from '@/components/molecules';
 import { showSheet } from '../../../store';
 import { useTheme } from '../../../theme';
 
