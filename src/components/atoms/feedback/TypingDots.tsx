@@ -14,7 +14,7 @@ import Animated, {
   withTiming,
   withDelay,
 } from 'react-native-reanimated';
-import { useTheme } from '../../theme';
+import { useTheme } from '@/theme';
 
 export const TypingDots: React.FC = () => {
   const { theme } = useTheme();

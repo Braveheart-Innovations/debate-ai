@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Typography } from '@/components/molecules';
-import { Box } from '../../atoms/Box';
+import { Box } from '../../atoms';
 import { useTheme, Theme } from '../../../theme';
 
 interface DebateTopicProps {

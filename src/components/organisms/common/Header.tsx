@@ -13,7 +13,7 @@ import Animated, {
 import Svg, { Path, Defs, LinearGradient as SvgGradient, Stop, Rect, G, Circle } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 
-import { Box } from '@/components/atoms/Box';
+import { Box } from '@/components/atoms';
 import { Typography } from '@/components/molecules';
 import { Button } from '@/components/molecules';
 import { Badge } from '@/components/molecules';
