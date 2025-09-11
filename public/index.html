@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Symposium AI — Where Ideas Converge</title>
+    <meta name="description" content="Symposium AI hosts intelligent debates between multiple AI models and powers rich multi-model chats. Bring your own API keys for maximum privacy and control." />
+    <link rel="icon" href="/assets/favicon.png" />
+    <link rel="canonical" href="https://www.symposiumai.app/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Symposium AI — Where Ideas Converge" />
+    <meta property="og:description" content="Host AI debates, run multi-AI chats, and BYOK for privacy. Available on iOS and Android." />
+    <meta property="og:url" content="https://www.symposiumai.app/" />
+    <meta property="og:image" content="/assets/feature-graphic.svg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Symposium AI — Where Ideas Converge" />
+    <meta name="twitter:description" content="Host AI debates, run multi-AI chats, and BYOK for privacy." />
+    <meta name="twitter:image" content="/assets/og-image.png" />
+    <style>
+      :root { --bg:#0f0f10; --card:#141416; --muted:#9aa0a6; --brand:#0E9594; --text:#e7e7ea; }
+      * { box-sizing: border-box; }
+      body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Ubuntu,Inter,system-ui,sans-serif; }
+      .container { max-width:1120px; margin:0 auto; padding:24px; }
+      header { display:flex; align-items:center; justify-content:space-between; padding:16px 0; }
+      .brand { display:flex; gap:10px; align-items:center; font-weight:700; font-size:18px; letter-spacing:.2px; }
+      .brand-badge { width:28px; height:28px; border-radius:8px; background:linear-gradient(135deg,#0E9594,#32B5B3); display:inline-block; }
+      nav a { color:var(--muted); text-decoration:none; margin-left:18px; }
+      nav a:hover { color:var(--text); }
+      .hero { display:grid; grid-template-columns:1.1fr .9fr; gap:32px; align-items:center; padding:40px 0 24px; }
+      .hero h1 { font-size:44px; line-height:1.1; margin:0 0 16px; }
+      .sub { color:var(--muted); font-size:18px; margin:0 0 24px; }
+      .cta { display:flex; gap:12px; flex-wrap:wrap; }
+      .badge { display:inline-flex; align-items:center; gap:10px; padding:12px 16px; border-radius:12px; background:#0f1115; border:1px solid #22252b; color:#cfd3d8; text-decoration:none; font-weight:600; }
+      .badge:hover { border-color:#2a2f36; }
+      .card { background:var(--card); border:1px solid #202328; border-radius:16px; padding:18px; }
+      .preview { aspect-ratio:16/10; background:radial-gradient(60% 80% at 50% 30%, rgba(14,149,148,.25), transparent), linear-gradient(180deg,#0d0f14, #11131a); border-radius:14px; border:1px solid #1f2330; display:flex; align-items:center; justify-content:center; }
+      .preview img { width:70%; height:auto; filter: drop-shadow(0 10px 32px rgba(14,149,148,.25)) drop-shadow(0 4px 12px rgba(0,0,0,.35)); }
+      .features { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; margin:28px 0 8px; }
+      .feature h3 { margin:0 0 6px; font-size:18px; }
+      .feature p { margin:0; color:var(--muted); font-size:15px; }
+      .muted { color:var(--muted); }
+      footer { margin:36px 0 12px; border-top:1px solid #202328; padding-top:18px; color:var(--muted); font-size:14px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+      footer a { color:var(--muted); text-decoration:none; margin-right:14px; }
+      footer a:hover { color:var(--text); }
+      /* Tablet */
+      @media (max-width: 920px) {
+        .container { padding:20px; }
+        .hero{ grid-template-columns:1fr; gap:20px; }
+        .features { grid-template-columns:repeat(2,1fr); }
+      }
+      /* Mobile */
+      @media (max-width: 720px) {
+        .container { padding:16px; }
+        .brand { font-size:16px; }
+        header { padding:12px 0; }
+        nav a { margin-left:12px; font-size:15px; }
+        .hero h1 { font-size:34px; }
+        .sub { font-size:16px; }
+        .preview img { width:64%; }
+        .features { grid-template-columns:1fr; gap:14px; }
+        .card { padding:16px; }
+      }
+      /* Small phones */
+      @media (max-width: 480px) {
+        .hero h1 { font-size:30px; }
+        .cta { gap:10px; }
+        .badge { width:100%; justify-content:center; padding:12px 14px; }
+        nav a { margin-left:10px; font-size:14px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <div class="brand">
+          <img src="/assets/symposium-logo.svg" alt="Symposium AI" style="height:28px; width:28px; border-radius:6px;" />
+          Symposium AI<sup style="font-size:.6em; opacity:.85; margin-left:2px;">TM</sup>
+        </div>
+        <nav>
+          <a href="#features">Features</a>
+          <a href="/faqs.html">FAQs</a>
+          <a href="/support/index.html">Support</a>
+        </nav>
+      </header>
+
+      <section class="hero">
+        <div>
+          <h1>Where Ideas Converge. Where Understanding Emerges.</h1>
+          <p class="sub">Host intelligent debates between multiple AI models, run rich multi‑AI chats, and Bring Your Own Keys (BYOK) for maximum privacy and control.</p>
+          <div class="cta">
+            <a class="badge" href="#app-store" aria-label="Download on the App Store">
+              <span> App Store</span>
+            </a>
+            <a class="badge" href="#play-store" aria-label="Get it on Google Play">
+              <span>Google Play</span>
+            </a>
+          </div>
+          <p class="muted" style="margin-top:10px">Coming soon to iOS and Android.</p>
+        </div>
+        <div class="card preview" aria-label="Symposium AI app preview">
+          <img src="/assets/app-logo.png" alt="Symposium AI App Logo" />
+        </div>
+      </section>
+
+      <section id="features" class="features">
+        <div class="card feature">
+          <h3>AI Debates</h3>
+          <p>Spin up structured debates between multiple top‑tier models to compare reasoning and uncover insight.</p>
+        </div>
+        <div class="card feature">
+          <h3>Multi‑AI Chat</h3>
+          <p>Bring several models into one conversation to iterate faster and stress‑test ideas.</p>
+        </div>
+        <div class="card feature">
+          <h3>Personality System</h3>
+          <p>Optional, pre‑built personalities — like Prof. Sage, Brody, and Quinn — that you can infuse into chats, debates, and comparisons to shape tone and style. Coming soon: build your own personalities to tailor interactions to your preferences.</p>
+        </div>
+        <div class="card feature">
+          <h3>Compare Mode</h3>
+          <p>See side‑by‑side answers from different models or providers with synchronized prompts and live streaming.</p>
+        </div>
+        <div class="card feature">
+          <h3>Continue Mode</h3>
+          <p>Resume any chat or comparison from History. We rehydrate context by re‑injecting recent messages so the conversation picks up naturally.</p>
+        </div>
+        <div class="card feature">
+          <h3>Expert Mode</h3>
+          <p>Set per‑provider defaults and advanced parameters (temperature, max tokens), then override per session when needed.</p>
+        </div>
+      </section>
+
+      <section class="card" style="margin:24px 0;">
+        <h3 style="margin:0 0 8px">Built for trust</h3>
+        <p class="muted" style="margin:0">BYOK privacy: use your own API keys — stored securely on‑device, never on our servers. Backed by Firebase for auth and encrypted data at rest. Read our <a href="/privacy-policy.html">Privacy Policy</a> and <a href="/terms-of-service.html">Terms of Service</a>.</p>
+      </section>
+
+      <footer>
+        <div>
+          <a href="/privacy">Privacy</a>
+          <a href="/terms">Terms</a>
+          <a href="/faqs.html">FAQs</a>
+          <a href="/support/index.html">Support</a>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span>Made with</span>
+          <a href="https://www.braveheartinnovations.com" target="_blank" rel="noopener" title="Braveheart Innovations">
+            <img src="/assets/BraveheartInnovationsLogoNoText.png" alt="Braveheart Innovations" style="height:18px; width:auto; opacity:0.95; vertical-align:middle;" />
+          </a>
+          <span>by Braveheart Innovations LLC</span>
+        </div>
+      </footer>
+    </div>
+    <script>document.getElementById('y').textContent = new Date().getFullYear();</script>
+  </body>
+  </html>

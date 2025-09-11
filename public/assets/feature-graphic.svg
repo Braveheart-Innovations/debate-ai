@@ -1,0 +1,133 @@
+<svg width="1024" height="500" viewBox="0 0 1024 500" xmlns="http://www.w3.org/2000/svg">
+  <!-- Gradient Background -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#764ba2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f093fb;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Glow effect -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <!-- Drop shadow -->
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+      <feOffset dx="0" dy="2" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.3"/>
+      </feComponentTransfer>
+      <feMerge> 
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/> 
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1024" height="500" fill="url(#bgGradient)"/>
+  
+  <!-- Subtle pattern overlay -->
+  <g opacity="0.1">
+    <circle cx="100" cy="100" r="50" fill="white"/>
+    <circle cx="924" cy="400" r="70" fill="white"/>
+    <circle cx="200" cy="400" r="40" fill="white"/>
+    <circle cx="800" cy="150" r="60" fill="white"/>
+  </g>
+  
+  <!-- Forum columns (representing the symposium concept) -->
+  <g transform="translate(100, 200)">
+    <rect x="0" y="0" width="15" height="150" fill="white" opacity="0.3" rx="2"/>
+    <rect x="25" y="0" width="15" height="150" fill="white" opacity="0.3" rx="2"/>
+    <rect x="50" y="0" width="15" height="150" fill="white" opacity="0.3" rx="2"/>
+    <circle cx="7.5" cy="-10" r="10" fill="white" opacity="0.3"/>
+    <circle cx="32.5" cy="-10" r="10" fill="white" opacity="0.3"/>
+    <circle cx="57.5" cy="-10" r="10" fill="white" opacity="0.3"/>
+  </g>
+  
+  <!-- AI Chat Bubbles -->
+  <g transform="translate(850, 180)">
+    <!-- AI 1 -->
+    <rect x="0" y="0" width="80" height="40" rx="20" fill="white" opacity="0.9" filter="url(#shadow)"/>
+    <circle cx="15" cy="20" r="3" fill="#667eea"/>
+    <circle cx="25" cy="20" r="3" fill="#667eea"/>
+    <circle cx="35" cy="20" r="3" fill="#667eea"/>
+    
+    <!-- AI 2 -->
+    <rect x="-30" y="50" width="80" height="40" rx="20" fill="white" opacity="0.9" filter="url(#shadow)"/>
+    <circle cx="-15" cy="70" r="3" fill="#764ba2"/>
+    <circle cx="-5" cy="70" r="3" fill="#764ba2"/>
+    <circle cx="5" cy="70" r="3" fill="#764ba2"/>
+    
+    <!-- AI 3 -->
+    <rect x="10" y="100" width="80" height="40" rx="20" fill="white" opacity="0.9" filter="url(#shadow)"/>
+    <circle cx="25" cy="120" r="3" fill="#f093fb"/>
+    <circle cx="35" cy="120" r="3" fill="#f093fb"/>
+    <circle cx="45" cy="120" r="3" fill="#f093fb"/>
+  </g>
+  
+  <!-- Main Logo/Icon -->
+  <g transform="translate(512, 160)">
+    <!-- Central forum circle -->
+    <circle cx="0" cy="0" r="50" fill="white" opacity="0.95" filter="url(#shadow)"/>
+    
+    <!-- Inner design - representing convergence -->
+    <path d="M -30,-30 L 0,0 L 30,-30" stroke="#667eea" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <path d="M -30,30 L 0,0 L 30,30" stroke="#764ba2" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <circle cx="0" cy="0" r="8" fill="#f093fb"/>
+  </g>
+  
+  <!-- App Name -->
+  <text x="512" y="280" font-family="Arial, sans-serif" font-size="72" font-weight="bold" fill="white" text-anchor="middle" filter="url(#shadow)">
+    Symposium AI
+  </text>
+  
+  <!-- Tagline -->
+  <text x="512" y="330" font-family="Arial, sans-serif" font-size="24" fill="white" opacity="0.95" text-anchor="middle">
+    Where Ideas Converge. Where Understanding Emerges.
+  </text>
+  
+  <!-- Key Features Icons -->
+  <g transform="translate(250, 380)">
+    <!-- Debate Icon -->
+    <g transform="translate(0, 0)">
+      <circle cx="20" cy="20" r="20" fill="white" opacity="0.2"/>
+      <text x="20" y="28" font-family="Arial" font-size="24" text-anchor="middle" fill="white">🎭</text>
+    </g>
+    
+    <!-- Multi-AI Icon -->
+    <g transform="translate(80, 0)">
+      <circle cx="20" cy="20" r="20" fill="white" opacity="0.2"/>
+      <text x="20" y="28" font-family="Arial" font-size="24" text-anchor="middle" fill="white">💬</text>
+    </g>
+    
+    <!-- Shield Icon -->
+    <g transform="translate(160, 0)">
+      <circle cx="20" cy="20" r="20" fill="white" opacity="0.2"/>
+      <text x="20" y="28" font-family="Arial" font-size="24" text-anchor="middle" fill="white">🛡️</text>
+    </g>
+    
+    <!-- Key Icon (BYOK) -->
+    <g transform="translate(240, 0)">
+      <circle cx="20" cy="20" r="20" fill="white" opacity="0.2"/>
+      <text x="20" y="28" font-family="Arial" font-size="24" text-anchor="middle" fill="white">🔑</text>
+    </g>
+    
+    <!-- Star Icon (Premium) -->
+    <g transform="translate(320, 0)">
+      <circle cx="20" cy="20" r="20" fill="white" opacity="0.2"/>
+      <text x="20" y="28" font-family="Arial" font-size="24" text-anchor="middle" fill="white">⭐</text>
+    </g>
+  </g>
+  
+  <!-- Feature text -->
+  <text x="512" y="460" font-family="Arial, sans-serif" font-size="16" fill="white" opacity="0.8" text-anchor="middle">
+    AI Debates • Multi-AI Chat • Hallucination Shield • BYOK • 12 Personalities
+  </text>
+</svg>

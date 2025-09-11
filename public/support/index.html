@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Support — Symposium AI</title>
+    <meta name="description" content="Get help with Symposium AI. Troubleshooting, contact, and subscription management." />
+    <style>
+      :root { --bg:#0f0f10; --card:#141416; --muted:#9aa0a6; --brand:#0E9594; --text:#e7e7ea; }
+      * { box-sizing: border-box; }
+      body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Ubuntu,Inter,system-ui,sans-serif; }
+      .container { max-width:920px; margin:0 auto; padding:24px; }
+      header { display:flex; align-items:center; justify-content:space-between; padding:16px 0; }
+      .brand { display:flex; gap:10px; align-items:center; font-weight:700; font-size:18px; }
+      nav a { color:var(--muted); text-decoration:none; margin-left:18px; }
+      nav a:hover { color:var(--text); }
+      h1 { margin:6px 0 8px; font-size:32px; }
+      .lead { color:var(--muted); margin-bottom:14px; }
+      .grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+      .card { background:var(--card); border:1px solid #202328; border-radius:16px; padding:18px; }
+      .muted { color:var(--muted); }
+      ul { margin-top:6px; padding-left:18px; }
+      input, select, textarea { width:100%; background:#0f1115; color:var(--text); border:1px solid #22252b; border-radius:10px; padding:10px 12px; }
+      label { display:block; margin:8px 0 6px; font-weight:600; }
+      .row { display:flex; gap:10px; }
+      .row > div { flex:1; }
+      .actions { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+      .btn { appearance:none; border:none; cursor:pointer; background:#0f1115; color:#cfd3d8; border:1px solid #22252b; padding:12px 16px; border-radius:12px; font-weight:600; }
+      .btn:hover { border-color:#2a2f36; }
+      footer { margin:28px 0 12px; border-top:1px solid #202328; padding-top:16px; color:var(--muted); font-size:14px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+      footer a { color:var(--muted); text-decoration:none; }
+      footer a:hover { color:var(--text); }
+      @media (max-width: 860px){ .grid{ grid-template-columns:1fr; } .container{ padding:16px; } h1{ font-size:28px; } }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <div class="brand">
+          <a href="/" style="display:flex;gap:10px;align-items:center;color:inherit;text-decoration:none;">
+            <img src="/assets/symposium-logo.svg" alt="Symposium AI" style="height:28px;width:28px;border-radius:6px;" />
+            <span>Symposium AI</span>
+          </a>
+        </div>
+        <nav>
+          <a href="/">Home</a>
+          <a href="/faqs.html">FAQs</a>
+        </nav>
+      </header>
+
+      <h1>Support</h1>
+      <p class="lead">We’re here to help. Use the form or email us directly.</p>
+
+      <div class="grid">
+        <div class="card">
+          <h2 style="margin:0 0 10px;">Contact us</h2>
+          <form id="supportForm">
+            <div class="row">
+              <div>
+                <label for="name">Name</label>
+                <input id="name" name="name" autocomplete="name" />
+              </div>
+              <div>
+                <label for="email">Email</label>
+                <input id="email" name="email" type="email" autocomplete="email" required />
+              </div>
+            </div>
+            <div class="row">
+              <div>
+                <label for="category">Category</label>
+                <select id="category" name="category">
+                  <option>General</option>
+                  <option>Billing</option>
+                  <option>Technical Issue</option>
+                  <option>Feature Request</option>
+                </select>
+              </div>
+              <div>
+                <label for="platform">Platform</label>
+                <select id="platform" name="platform">
+                  <option>iOS</option>
+                  <option>Android</option>
+                  <option>Both</option>
+                  <option>Web</option>
+                </select>
+              </div>
+            </div>
+            <label for="subject">Subject</label>
+            <input id="subject" name="subject" placeholder="How can we help?" required />
+            <label for="message">Message</label>
+            <textarea id="message" name="message" rows="6" placeholder="Please include steps to reproduce if reporting a bug." required></textarea>
+            <!-- Honeypot -->
+            <input type="text" id="hp" name="hp" style="display:none" tabindex="-1" autocomplete="off" />
+            <div class="actions" style="margin-top:12px;">
+              <button class="btn" type="submit">Send Message</button>
+              <a class="btn" href="mailto:support@braveheartinnovations.com">Email support</a>
+            </div>
+          </form>
+          <p class="muted" style="margin-top:10px;">Braveheart Innovations LLC (D‑U‑N‑S verified) is the publisher of Symposium AI.</p>
+        </div>
+
+        <div class="card">
+          <h2 style="margin:0 0 10px;">Quick troubleshooting</h2>
+          <ul>
+            <li>Update to the latest app version from the App Store or Play Store.</li>
+            <li>Force‑quit and reopen the app.</li>
+            <li>Sign out and sign back in.</li>
+            <li>Check provider API limits if you’re using BYOK.</li>
+          </ul>
+          <h3 style="margin:16px 0 8px;">Manage subscription</h3>
+          <ul>
+            <li>iOS: <a href="https://apps.apple.com/account/subscriptions">Manage on Apple</a></li>
+            <li>Android: <a href="https://play.google.com/store/account/subscriptions">Manage on Google Play</a></li>
+          </ul>
+          <p class="muted">For billing questions, include your App Store/Play Store receipt.</p>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <h2 style="margin:0 0 10px;">Resources</h2>
+        <ul>
+          <li><a href="/faqs.html">FAQs</a></li>
+          <li><a href="/privacy-policy.html">Privacy Policy</a></li>
+          <li><a href="/terms-of-service.html">Terms of Service</a></li>
+        </ul>
+      </div>
+
+      <footer>
+        <div>
+          <a href="/privacy">Privacy</a>
+          <span style="margin:0 10px;opacity:.35;">•</span>
+          <a href="/terms">Terms</a>
+          <span style="margin:0 10px;opacity:.35;">•</span>
+          <a href="mailto:support@braveheartinnovations.com">support@braveheartinnovations.com</a>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span>Made with</span>
+          <a href="https://www.braveheartinnovations.com" target="_blank" rel="noopener">
+            <img src="/assets/BraveheartInnovationsLogoNoText.png" alt="Braveheart Innovations" style="height:16px; width:auto; vertical-align:middle; opacity:0.95;" />
+          </a>
+          <span>by Braveheart Innovations LLC</span>
+        </div>
+      </footer>
+    </div>
+
+    <script>
+      // Simple mailto-based form submit to avoid backend dependency.
+      const form = document.getElementById('supportForm');
+      form?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const hp = (document.getElementById('hp') || {}).value || '';
+        if (hp) return; // honeypot
+        const name = encodeURIComponent(document.getElementById('name').value || '');
+        const email = encodeURIComponent(document.getElementById('email').value || '');
+        const category = encodeURIComponent(document.getElementById('category').value || 'General');
+        const platform = encodeURIComponent(document.getElementById('platform').value || '');
+        const subject = encodeURIComponent(document.getElementById('subject').value || 'Support request');
+        const message = encodeURIComponent(document.getElementById('message').value || '');
+        const body = `Name: ${name}%0D%0AEmail: ${email}%0D%0ACategory: ${category}%0D%0APlatform: ${platform}%0D%0A%0D%0A${message}`;
+        const mailto = `mailto:support@braveheartinnovations.com?subject=Symposium%20AI%20Support:%20${subject}&body=${body}`;
+        window.location.href = mailto;
+      });
+    </script>
+  </body>
+  </html>

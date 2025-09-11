@@ -1,306 +1,153 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Symposium AI - Frequently Asked Questions</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-        }
-        
-        header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 40px 30px;
-            text-align: center;
-        }
-        
-        h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            font-weight: 700;
-        }
-        
-        .subtitle {
-            font-size: 1.1em;
-            opacity: 0.95;
-        }
-        
-        .content {
-            padding: 40px 30px;
-        }
-        
-        .faq-section {
-            margin-bottom: 40px;
-        }
-        
-        .faq-section h2 {
-            color: #667eea;
-            font-size: 1.8em;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #f0f0f0;
-        }
-        
-        .faq-item {
-            margin-bottom: 25px;
-        }
-        
-        .question {
-            font-weight: 600;
-            color: #2c3e50;
-            font-size: 1.2em;
-            margin-bottom: 10px;
-        }
-        
-        .answer {
-            color: #555;
-            line-height: 1.8;
-            padding-left: 20px;
-        }
-        
-        .answer ul {
-            margin-top: 10px;
-            margin-left: 20px;
-        }
-        
-        .answer li {
-            margin-bottom: 5px;
-        }
-        
-        .highlight {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-weight: 600;
-        }
-        
-        footer {
-            background: #f8f9fa;
-            padding: 30px;
-            text-align: center;
-            color: #666;
-        }
-        
-        footer a {
-            color: #667eea;
-            text-decoration: none;
-        }
-        
-        @media (max-width: 600px) {
-            h1 {
-                font-size: 2em;
-            }
-            
-            .content {
-                padding: 30px 20px;
-            }
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FAQs — Symposium AI</title>
+  <meta name="description" content="Answers about pricing, Demo mode, BYOK privacy, personalities, Compare, and Expert Mode in Symposium AI." />
+  <style>
+    :root { --bg:#0f0f10; --card:#141416; --muted:#9aa0a6; --brand:#0E9594; --text:#e7e7ea; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Ubuntu,Inter,system-ui,sans-serif; }
+    .container { max-width:920px; margin:0 auto; padding:24px; }
+    header { display:flex; align-items:center; justify-content:space-between; padding:16px 0; }
+    .brand { display:flex; gap:10px; align-items:center; font-weight:700; font-size:18px; letter-spacing:.2px; }
+    nav a { color:var(--muted); text-decoration:none; margin-left:18px; }
+    nav a:hover { color:var(--text); }
+    h1 { font-size:36px; margin:10px 0 4px; }
+    .sub { color:var(--muted); margin:0 0 16px; }
+    .section { margin:20px 0; }
+    .card { background:var(--card); border:1px solid #202328; border-radius:16px; padding:18px; }
+    .faq { display:grid; grid-template-columns:1fr; gap:14px; }
+    .q { font-weight:700; margin:0 0 6px; }
+    .a { color:var(--muted); margin:0; }
+    .a ul { margin:8px 0 0 18px; }
+    .a li { margin:4px 0; }
+    footer { margin:36px 0 12px; border-top:1px solid #202328; padding-top:18px; color:var(--muted); font-size:14px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+    footer a { color:var(--muted); text-decoration:none; }
+    footer a:hover { color:var(--text); }
+    @media (max-width:720px){ .container{padding:16px;} h1{font-size:28px;} }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>Symposium AI</h1>
-            <p class="subtitle">Frequently Asked Questions</p>
-        </header>
-        
-        <div class="content">
-            <div class="faq-section">
-                <h2>Getting Started</h2>
-                
-                <div class="faq-item">
-                    <p class="question">What is Symposium AI?</p>
-                    <p class="answer">
-                        Symposium AI is a revolutionary mobile app that lets you watch AI models debate any topic in real-time, 
-                        chat with multiple AI providers simultaneously, and use your existing API keys to save money compared 
-                        to multiple AI subscriptions.
-                    </p>
-                </div>
-                
-                <div class="faq-item">
-                    <p class="question">How do I get started?</p>
-                    <p class="answer">
-                        Simply download the app, add your API keys from providers like OpenAI, Anthropic, or Google, 
-                        and you're ready to start chatting or watching AI debates! No subscription required if you 
-                        bring your own API keys.
-                    </p>
-                </div>
-                
-                <div class="faq-item">
-                    <p class="question">Do I need API keys to use the app?</p>
-                    <p class="answer">
-                        Yes, you'll need at least one API key from supported providers (OpenAI, Anthropic, Google, etc.) 
-                        to use the app. This "Bring Your Own Key" approach saves you money compared to paying for 
-                        multiple AI subscriptions.
-                    </p>
-                </div>
-            </div>
-            
-            <div class="faq-section">
-                <h2>Features</h2>
-                
-                <div class="faq-item">
-                    <p class="question">What is the AI Debate Arena?</p>
-                    <p class="answer">
-                        The AI Debate Arena is our signature feature where different AI models debate topics in real-time. 
-                        You can watch AIs present arguments, counter-arguments, and reach conclusions on any topic. 
-                        Premium users can create custom debate topics.
-                    </p>
-                </div>
-                
-                <div class="faq-item">
-                    <p class="question">What is the Compare feature?</p>
-                    <p class="answer">
-                        Compare lets you ask the same question to multiple AIs simultaneously and see their responses 
-                        side-by-side. It's perfect for getting diverse perspectives or fact-checking information.
-                    </p>
-                </div>
-                
-                <div class="faq-item">
-                    <p class="question">What is Hallucination Shield?</p>
-                    <p class="answer">
-                        Hallucination Shield is our accuracy feature where multiple AIs fact-check each other's responses 
-                        in real-time, helping reduce misinformation and AI "hallucinations."
-                    </p>
-                </div>
-                
-                <div class="faq-item">
-                    <p class="question">Can I use different AI personalities?</p>
-                    <p class="answer">
-                        Yes! Premium users can choose from 12 different personalities for each AI, including Professional, 
-                        Friendly, Socratic, Creative, and more. This adds variety and makes conversations more engaging.
-                    </p>
-                </div>
-            </div>
-            
-            <div class="faq-section">
-                <h2>API Keys & Security</h2>
-                
-                <div class="faq-item">
-                    <p class="question">How do I get API keys?</p>
-                    <p class="answer">
-                        You can get API keys directly from the AI providers:
-                        <ul>
-                            <li>OpenAI (ChatGPT): platform.openai.com</li>
-                            <li>Anthropic (Claude): console.anthropic.com</li>
-                            <li>Google (Gemini): makersuite.google.com</li>
-                        </ul>
-                        Each provider offers their own pricing, typically charging per token or message.
-                    </p>
-                </div>
-                
-                <div class="faq-item">
-                    <p class="question">Are my API keys safe?</p>
-                    <p class="answer">
-                        Yes! Your API keys are stored securely on your device only. They are never sent to our servers. 
-                        All API calls are made directly from your device to the AI providers.
-                    </p>
-                </div>
-                
-                <div class="faq-item">
-                    <p class="question">How much does it cost to use my API keys?</p>
-                    <p class="answer">
-                        Costs vary by provider and usage. Most providers charge fractions of a cent per message. 
-                        The app shows estimated costs for each model in Expert Mode (Premium feature).
-                    </p>
-                </div>
-            </div>
-            
-            <div class="faq-section">
-                <h2>Premium Features</h2>
-                
-                <div class="faq-item">
-                    <p class="question">What's included in Premium?</p>
-                    <p class="answer">
-                        Premium includes:
-                        <ul>
-                            <li>Custom debate topics in the AI Debate Arena</li>
-                            <li>12 AI personalities per provider</li>
-                            <li>Expert Mode with model selection and cost tracking</li>
-                            <li>Unlimited saved conversations</li>
-                            <li>Priority support</li>
-                        </ul>
-                    </p>
-                </div>
-                
-                <div class="faq-item">
-                    <p class="question">How much does Premium cost?</p>
-                    <p class="answer">
-                        Premium is $9.99/month or $99/year. This is in addition to any API costs from your providers. 
-                        Even with Premium, you're likely saving money compared to multiple AI subscriptions.
-                    </p>
-                </div>
-                
-                <div class="faq-item">
-                    <p class="question">Can I try Premium features first?</p>
-                    <p class="answer">
-                        Yes! We offer a 7-day free trial so you can explore all Premium features before subscribing.
-                    </p>
-                </div>
-            </div>
-            
-            <div class="faq-section">
-                <h2>Troubleshooting</h2>
-                
-                <div class="faq-item">
-                    <p class="question">Why am I getting API errors?</p>
-                    <p class="answer">
-                        Common causes include:
-                        <ul>
-                            <li>Invalid or expired API key</li>
-                            <li>Exceeded API rate limits or quota</li>
-                            <li>No credit balance with the provider</li>
-                            <li>Network connectivity issues</li>
-                        </ul>
-                        Try testing your API key in the Settings screen to diagnose the issue.
-                    </p>
-                </div>
-                
-                <div class="faq-item">
-                    <p class="question">Why are responses slow?</p>
-                    <p class="answer">
-                        Response speed depends on the AI model, your internet connection, and the provider's current load. 
-                        You can enable streaming in Settings to see responses as they're generated rather than waiting 
-                        for the complete response.
-                    </p>
-                </div>
-                
-                <div class="faq-item">
-                    <p class="question">How do I report a bug?</p>
-                    <p class="answer">
-                        Go to Help & Support in the app and tap "Contact Support" to send us an email with device 
-                        information automatically included. We typically respond within 24-48 hours.
-                    </p>
-                </div>
-            </div>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <a href="/" style="display:flex;gap:10px;align-items:center;color:inherit;text-decoration:none;">
+          <img src="/assets/symposium-logo.svg" alt="Symposium AI" style="height:28px;width:28px;border-radius:6px;" />
+          <span>Symposium AI</span>
+        </a>
+      </div>
+      <nav>
+        <a href="/">Home</a>
+        <a href="/support/index.html">Support</a>
+      </nav>
+    </header>
+
+    <h1>Frequently Asked Questions</h1>
+    <p class="sub">Answers about pricing, Demo mode, BYOK, and features.</p>
+
+    <section class="section card">
+      <div class="faq">
+        <div>
+          <p class="q">What is Symposium AI?</p>
+          <p class="a">An AI workbench for debates and multi‑model chats. Compare responses side‑by‑side, design reusable personalities, and bring your own API keys for maximum privacy.</p>
         </div>
-        
-        <footer>
-            <p>Still have questions? <a href="mailto:team@symposiumai.com">Contact our support team</a></p>
-            <p style="margin-top: 15px; font-size: 0.9em;">© 2024 Braveheart Innovations. All rights reserved.</p>
-        </footer>
-    </div>
+        <div>
+          <p class="q">Is there a free Demo?</p>
+          <p class="a">Yes. Demo mode lets you explore the full navigation and preferences and play sample recorded debates, chats, and comparisons — no account or keys required. Due to App Store policies, creating new chats/debates/comparisons and adding API keys requires starting a free 7‑day trial.</p>
+        </div>
+        <div>
+          <p class="q">How does the 7‑day trial work?</p>
+          <p class="a">Start the trial to unlock all features for 7 days. You can add your API keys, create new sessions, and access History. Cancel anytime during the trial. After 7 days, a subscription is required to continue.</p>
+        </div>
+        <div>
+          <p class="q">What’s the price?</p>
+          <p class="a">$7.99/month. API provider usage fees (from OpenAI, Anthropic, Google, etc.) are separate and billed by each provider.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section card">
+      <h3 style="margin:0 0 10px">Key features</h3>
+      <div class="faq">
+        <div>
+          <p class="q">AI Debates</p>
+          <p class="a">Spin up structured debates between multiple top‑tier models to compare reasoning and uncover insight.</p>
+        </div>
+        <div>
+          <p class="q">Multi‑AI Chat</p>
+          <p class="a">Bring several models into one conversation to iterate faster and stress‑test ideas.</p>
+        </div>
+        <div>
+          <p class="q">Personality System</p>
+          <p class="a">Choose from optional, pre‑built personalities — for example, Prof. Sage, Brody, and Quinn — and infuse them into chats, debates, and comparisons to shape tone and style. Coming soon: build your own personalities to further tailor interactions to your unique preferences.</p>
+        </div>
+        <div>
+          <p class="q">Compare Mode</p>
+          <p class="a">See side‑by‑side answers from different models or providers with synchronized prompts and live streaming.</p>
+        </div>
+        <div>
+          <p class="q">Continue from History</p>
+          <p class="a">Resume any chat or comparison. We rehydrate recent context by re‑injecting messages so the conversation continues naturally.</p>
+        </div>
+        <div>
+          <p class="q">Expert Mode</p>
+          <p class="a">Set per‑provider defaults and advanced parameters (temperature, max tokens), then override per session when needed.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section card">
+      <h3 style="margin:0 0 10px">BYOK and security</h3>
+      <div class="faq">
+        <div>
+          <p class="q">Do I need API keys?</p>
+          <p class="a">For Demo, no. To create new chats/debates/comparisons, yes — add keys from providers you choose (OpenAI, Anthropic, Google, etc.).</p>
+        </div>
+        <div>
+          <p class="q">Where are my keys stored?</p>
+          <p class="a">On your device only, encrypted via the OS keystore. Keys are never sent to our servers. Requests go directly from your device to each provider.</p>
+        </div>
+        <div>
+          <p class="q">How much will usage cost?</p>
+          <p class="a">Provider pricing varies by model and tokens. You’re billed by each provider for your usage. Expert Mode helps you choose models and understand trade‑offs.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section card">
+      <h3 style="margin:0 0 10px">Subscriptions</h3>
+      <div class="faq">
+        <div>
+          <p class="q">What’s included with the subscription?</p>
+          <p class="a">All premium features: collaborate with multiple AIs, custom debates, reusable personalities, Compare, continue from History, and more — mirroring the “Unlock Everything” banner in‑app.</p>
+        </div>
+        <div>
+          <p class="q">Can I cancel?</p>
+          <p class="a">Manage or cancel anytime through the App Store or Google Play. Refunds and billing follow store policies.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" style="margin-top:28px;">
+      <footer>
+        <div>
+          <a href="/privacy">Privacy</a>
+          <span style="margin:0 10px;opacity:.35;">•</span>
+          <a href="/terms">Terms</a>
+          <span style="margin:0 10px;opacity:.35;">•</span>
+          <a href="mailto:support@braveheartinnovations.com">support@braveheartinnovations.com</a>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; margin-top:12px;">
+          <span>Made with</span>
+          <a href="https://www.braveheartinnovations.com" target="_blank" rel="noopener">
+            <img src="/assets/BraveheartInnovationsLogoNoText.png" alt="Braveheart Innovations" style="height:16px;width:auto;opacity:.95;vertical-align:middle;" />
+          </a>
+          <span>by Braveheart Innovations LLC</span>
+        </div>
+      </footer>
+    </section>
+  </div>
 </body>
 </html>

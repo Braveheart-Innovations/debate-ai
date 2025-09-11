@@ -1,0 +1,15 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.braveheartinnovations.debateai",
+      "sha256_cert_fingerprints": [
+        "f9:e3:ed:f9:c5:3f:85:46:48:11:24:41:f2:4e:5f:05:65:dd:9b:0c:e0:43:80:54:47:d8:8a:8e:d4:b2:b6:85"
+      ]
+    }
+  }
+]
+

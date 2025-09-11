@@ -25,7 +25,11 @@
         "applinks:symposium-ai.firebaseapp.com",
         "webcredentials:symposium-ai.firebaseapp.com",
         "applinks:symposium-ai.web.app",
-        "webcredentials:symposium-ai.web.app"
+        "webcredentials:symposium-ai.web.app",
+        "applinks:www.symposiumai.app",
+        "applinks:symposiumai.app",
+        "webcredentials:www.symposiumai.app",
+        "webcredentials:symposiumai.app"
       ]
     },
     "android": {
