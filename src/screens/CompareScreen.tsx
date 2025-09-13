@@ -19,8 +19,12 @@ import { AIConfig, Message, ChatSession } from '../types';
 import { StorageService } from '../services/chat/StorageService';
 import { getExpertOverrides } from '../utils/expertMode';
 import useFeatureAccess from '@/hooks/useFeatureAccess';
-import { showTrialCTA } from '@/utils/demoGating';
 import { DemoBanner } from '@/components/molecules/subscription/DemoBanner';
+import { useDispatch } from 'react-redux';
+import { showSheet } from '@/store';
+import { DemoContentService } from '@/services/demo/DemoContentService';
+import { primeCompare } from '@/services/demo/DemoPlaybackRouter';
+import { DemoSamplesBar } from '@/components/organisms/demo/DemoSamplesBar';
 
 interface CompareScreenProps {
   navigation: {
@@ -42,6 +46,7 @@ type ViewMode = 'split' | 'left-full' | 'right-full' | 'left-only' | 'right-only
 const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
   const { theme } = useTheme();
   const { aiService, isInitialized } = useAIService();
+  const dispatch = useDispatch();
   const { isDemo } = useFeatureAccess();
   
   // Get models and user status from Redux
@@ -119,6 +124,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
   // Use a stable session ID - either from resumed session or create new one
   const sessionId = useRef(currentSession?.id || `compare_${Date.now()}`).current;
   const [hasBeenSaved, setHasBeenSaved] = useState(route.params?.resuming || false);
+  const [compareSamples, setCompareSamples] = useState<Array<{ id: string; title: string }>>([]);
   
   const saveComparisonSession = useCallback(async () => {
     if (userMessages.length === 0) return; // Don't save empty sessions
@@ -169,10 +175,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
   }, [userMessages, leftMessages, rightMessages, leftAI, rightAI, currentUser, continuedSide, sessionId, hasBeenSaved]);
   
   const handleSend = useCallback(async () => {
-    if (isDemo) {
-      showTrialCTA(navigation.navigate, { message: 'Live comparisons require a Free Trial.' });
-      return;
-    }
+    if (isDemo) { dispatch(showSheet({ sheet: 'demo' })); return; }
     if (!inputText.trim() || !aiService || !isInitialized || !leftAI || !rightAI) return;
     
     const messageText = inputText.trim();
@@ -313,7 +316,64 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
       saveComparisonSession();
     }, 1000);
     
-  }, [inputText, aiService, isInitialized, leftAI, rightAI, viewMode, continuedSide, hasBeenSaved, saveComparisonSession, expertModeConfigs, selectedModels, isDemo, navigation.navigate]);
+  }, [dispatch, inputText, aiService, isInitialized, leftAI, rightAI, viewMode, continuedSide, hasBeenSaved, saveComparisonSession, expertModeConfigs, selectedModels, isDemo]);
+
+  // Demo Mode: auto-start playback when both AIs are selected and no messages yet
+  React.useEffect(() => {
+    const run = async () => {
+      if (!isInitialized || !aiService) return;
+      if (!isDemo) return;
+      if (!leftAI || !rightAI) return;
+      if (userMessages.length > 0) return;
+      try {
+        const sample = await DemoContentService.getCompareSampleForProviders([leftAI.provider, rightAI.provider]);
+        if (!sample) return;
+        primeCompare(sample);
+        const messageText = `Demo prompt: ${sample.title}`;
+        const userMessage: Message = { id: `msg_${Date.now()}`, sender: 'You', senderType: 'user', content: messageText, timestamp: Date.now() };
+        setUserMessages(prev => [...prev, userMessage]);
+        leftHistoryRef.current.push(userMessage);
+        rightHistoryRef.current.push(userMessage);
+        setLeftTyping(true);
+        setRightTyping(true);
+
+        const leftEffModel = selectedModels[leftAI.id] || leftAI.model;
+        const rightEffModel = selectedModels[rightAI.id] || rightAI.model;
+
+        aiService.sendMessage(leftAI.id, messageText, leftHistoryRef.current, false, undefined, undefined, leftEffModel)
+          .then(response => {
+            const leftMessage: Message = { id: `msg_left_${Date.now()}`, sender: leftAI.name, senderType: 'ai', content: typeof response === 'string' ? response : response.response, timestamp: Date.now(), metadata: { modelUsed: leftEffModel } };
+            setLeftMessages(prev => [...prev, leftMessage]);
+            leftHistoryRef.current.push(leftMessage);
+            setLeftTyping(false);
+            setLeftStreamingContent('');
+          })
+          .catch(() => setLeftTyping(false));
+
+        aiService.sendMessage(rightAI.id, messageText, rightHistoryRef.current, false, undefined, undefined, rightEffModel)
+          .then(response => {
+            const rightMessage: Message = { id: `msg_right_${Date.now()}`, sender: rightAI.name, senderType: 'ai', content: typeof response === 'string' ? response : response.response, timestamp: Date.now(), metadata: { modelUsed: rightEffModel } };
+            setRightMessages(prev => [...prev, rightMessage]);
+            rightHistoryRef.current.push(rightMessage);
+            setRightTyping(false);
+            setRightStreamingContent('');
+          })
+          .catch(() => setRightTyping(false));
+      } catch { /* ignore */ }
+    };
+    run();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDemo, leftAI, rightAI, isInitialized, aiService, userMessages.length]);
+
+  // Demo Mode: fetch compare samples list for current pair
+  React.useEffect(() => {
+    const run = async () => {
+      if (!isDemo || !leftAI || !rightAI) { setCompareSamples([]); return; }
+      const list = await DemoContentService.listCompareSamples([leftAI.provider, rightAI.provider]);
+      setCompareSamples(list);
+    };
+    run();
+  }, [isDemo, leftAI, rightAI]);
   
   const handleContinueWithLeft = useCallback(() => {
     if (!leftAI) return;
@@ -415,7 +475,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
       >
         <DemoBanner
           subtitle="Sample comparisons only. Start a free trial for live runs."
-          onPress={() => showTrialCTA(navigation.navigate)}
+          onPress={() => dispatch(showSheet({ sheet: 'subscription' }))}
         />
         <Header
           variant="gradient"
@@ -427,7 +487,49 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
           rightElement={<HeaderActions variant="gradient" />}
           showBackButton={true}
           onBack={handleStartOver}
+          showDemoBadge={isDemo}
         />
+
+        {isDemo && compareSamples.length > 0 && (
+          <DemoSamplesBar
+            label="Demo Samples"
+            samples={compareSamples}
+            onSelect={async (sampleId) => {
+              try {
+                const sample = await DemoContentService.findCompareById(sampleId);
+                if (!sample || !leftAI || !rightAI || !aiService) return;
+                primeCompare(sample);
+                const messageText = `Demo prompt: ${sample.title}`;
+                const userMessage: Message = { id: `msg_${Date.now()}`, sender: 'You', senderType: 'user', content: messageText, timestamp: Date.now() };
+                setUserMessages(prev => [...prev, userMessage]);
+                leftHistoryRef.current.push(userMessage);
+                rightHistoryRef.current.push(userMessage);
+                setLeftTyping(true);
+                setRightTyping(true);
+                const leftEffModel = selectedModels[leftAI.id] || leftAI.model;
+                const rightEffModel = selectedModels[rightAI.id] || rightAI.model;
+                aiService.sendMessage(leftAI.id, messageText, leftHistoryRef.current, false, undefined, undefined, leftEffModel)
+                  .then(response => {
+                    const leftMessage: Message = { id: `msg_left_${Date.now()}`, sender: leftAI.name, senderType: 'ai', content: typeof response === 'string' ? response : response.response, timestamp: Date.now(), metadata: { modelUsed: leftEffModel } };
+                    setLeftMessages(prev => [...prev, leftMessage]);
+                    leftHistoryRef.current.push(leftMessage);
+                    setLeftTyping(false);
+                    setLeftStreamingContent('');
+                  })
+                  .catch(() => setLeftTyping(false));
+                aiService.sendMessage(rightAI.id, messageText, rightHistoryRef.current, false, undefined, undefined, rightEffModel)
+                  .then(response => {
+                    const rightMessage: Message = { id: `msg_right_${Date.now()}`, sender: rightAI.name, senderType: 'ai', content: typeof response === 'string' ? response : response.response, timestamp: Date.now(), metadata: { modelUsed: rightEffModel } };
+                    setRightMessages(prev => [...prev, rightMessage]);
+                    rightHistoryRef.current.push(rightMessage);
+                    setRightTyping(false);
+                    setRightStreamingContent('');
+                  })
+                  .catch(() => setRightTyping(false));
+              } catch { /* ignore */ }
+            }}
+          />
+        )}
         
         <ScrollView 
           style={styles.mainContent}

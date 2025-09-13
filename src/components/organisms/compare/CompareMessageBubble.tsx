@@ -5,6 +5,7 @@ import { Message } from '../../../types';
 import { useTheme } from '../../../theme';
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
+import useFeatureAccess from '@/hooks/useFeatureAccess';
 
 interface CompareMessageBubbleProps {
   message: Message;
@@ -17,6 +18,7 @@ export const CompareMessageBubble: React.FC<CompareMessageBubbleProps> = ({
 }) => {
   const { theme, isDark } = useTheme();
   const [copied, setCopied] = useState(false);
+  const { isDemo } = useFeatureAccess();
   
   const bubbleStyle = isDark
     ? {
@@ -34,6 +36,13 @@ export const CompareMessageBubble: React.FC<CompareMessageBubbleProps> = ({
 
   return (
     <View style={[styles.container, bubbleStyle]}>
+      {isDemo && (
+        <View style={{ position: 'absolute', top: 6, left: 6, transform: [{ rotate: '-18deg' }], pointerEvents: 'none' }}>
+          <Typography variant="caption" style={{ fontSize: 18, fontWeight: '800', letterSpacing: 1, color: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}>
+            DEMO
+          </Typography>
+        </View>
+      )}
       <View style={styles.header}>
         <Typography 
           variant="caption" 

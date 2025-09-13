@@ -6,6 +6,9 @@ export interface DemoMessageEvent {
   attachments?: Array<{ type: 'image' | 'document'; uri: string; alt?: string }>;
   tool?: { name: string; arguments?: unknown; result?: unknown };
   meta?: Record<string, unknown>;
+  // For assistant messages, which provider/persona is speaking
+  speakerProvider?: 'claude' | 'openai' | 'google';
+  speakerPersona?: string; // e.g., 'default' | 'George' | 'Prof. Sage'
 }
 
 export interface DemoChat {
@@ -53,5 +56,9 @@ export interface DemoPackV1 {
   historyRefs: DemoHistoryRef[];
   assets: Record<string, string>; // name -> uri
   meta: { build: string; createdAt: string };
+  routing?: {
+    chat?: Record<string, string[]>; // comboKey -> chat IDs
+    debate?: Record<string, string[]>; // e.g., 'claude+openai:George' -> debate IDs
+    compare?: Record<string, string[]>; // comboKey -> compare IDs
+  };
 }
-

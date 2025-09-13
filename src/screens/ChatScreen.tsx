@@ -35,6 +35,10 @@ import {
 import { AIConfig, Message } from '../types';
 import { cancelAllStreams, selectActiveStreamCount } from '../store';
 import { getStreamingService } from '../services/streaming/StreamingService';
+import { DemoContentService } from '@/services/demo/DemoContentService';
+import { primeChat } from '@/services/demo/DemoPlaybackRouter';
+import { DemoSamplesBar } from '@/components/organisms/demo/DemoSamplesBar';
+import { showSheet } from '@/store';
 import useFeatureAccess from '@/hooks/useFeatureAccess';
 import { showTrialCTA } from '@/utils/demoGating';
 import { DemoBanner } from '@/components/molecules/subscription/DemoBanner';
@@ -94,6 +98,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
   const [imageModalVisible, setImageModalVisible] = React.useState(false);
   const [imageModalPrompt, setImageModalPrompt] = React.useState('');
   const { isDemo } = useFeatureAccess();
+  const [chatSamples, setChatSamples] = React.useState<Array<{ id: string; title: string }>>([]);
   // Local nav function compatible with showTrialCTA typing
   const navTo = React.useMemo(() => (
     (screen: string, params?: Record<string, unknown>) => {
@@ -180,10 +185,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
 
   // Handle message sending
   const handleSendMessage = useCallback(async (messageText?: string, attachments?: MessageAttachment[]): Promise<void> => {
-    if (isDemo) {
-      showTrialCTA(navTo, { message: 'Chatting with live AIs requires a Free Trial.' });
-      return;
-    }
+    if (isDemo) { dispatch(showSheet({ sheet: 'demo' })); return; }
     const textToSend = messageText || input.inputText;
     
     if (!textToSend.trim() && (!attachments || attachments.length === 0)) {
@@ -217,7 +219,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
 
     // Trigger AI responses with attachments
     await aiResponses.sendAIResponses(userMessage, undefined, attachments);
-  }, [input, session.currentSession, mentions, messages, aiResponses, isDemo, navTo]);
+  }, [dispatch, input, session.currentSession, mentions, messages, aiResponses, isDemo]);
 
   // Auto-save session when it's created or messages change
   useEffect(() => {
@@ -249,6 +251,54 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
     aiService,
     quickStart.initialPromptSent,
   ]);
+
+  // Demo Mode: auto-start playback based on selected AIs using pack routing
+  useEffect(() => {
+    const run = async () => {
+      if (!isDemo) return;
+      if (!session.currentSession) return;
+      if (messages.messages.length > 0) return;
+      const providers = session.currentSession.selectedAIs.map(ai => ai.provider);
+      if (providers.length === 0) return;
+      try {
+        const sample = await DemoContentService.getChatSampleForProviders(providers);
+        if (!sample) return;
+        // Prime playback router for adapters
+        primeChat(sample);
+        // Find first user message content
+        const firstUser = sample.events.find(e => e.role === 'user' && e.type === 'message');
+        const content = firstUser?.content || 'Let’s chat.';
+        // Dispatch user message
+        const userMessage = {
+          id: `msg_${Date.now()}`,
+          sender: 'You',
+          senderType: 'user' as const,
+          content,
+          timestamp: Date.now(),
+          mentions: [],
+        };
+        // Use existing helpers to add and trigger AI responses without invoking gated handler
+        messages.sendMessage(content, []);
+        await aiResponses.sendAIResponses(userMessage);
+      } catch (e) {
+        void e;
+      }
+    };
+    run();
+    // Only when entering an empty chat in demo with selected AIs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDemo, session.currentSession?.id]);
+
+  // Demo Mode: fetch available samples for current selection
+  useEffect(() => {
+    const run = async () => {
+      if (!isDemo || !session.currentSession) { setChatSamples([]); return; }
+      const providers = session.currentSession.selectedAIs.map(ai => ai.provider);
+      const list = await DemoContentService.listChatSamples(providers);
+      setChatSamples(list);
+    };
+    run();
+  }, [isDemo, session.currentSession, messages.messages.length]);
 
   // Handle input changes with mention detection
   const handleInputChange = (text: string): void => {
@@ -307,15 +357,44 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
           showTime={true}
           animated={true}
           rightElement={<HeaderActions variant="gradient" />}
+          showDemoBadge={isDemo}
         />
 
         {/* Warnings (e.g., GPT-5 latency) */}
         <ChatWarnings selectedAIs={session.selectedAIs} />
 
+        {/* Demo Samples picker */}
+        {isDemo && chatSamples.length > 0 && (
+          <DemoSamplesBar
+            label="Demo Samples"
+            samples={chatSamples}
+            onSelect={async (sampleId) => {
+              try {
+                const sample = await DemoContentService.findChatById(sampleId);
+                if (!sample) return;
+                primeChat(sample);
+                const firstUser = sample.events.find(e => e.role === 'user' && e.type === 'message');
+                const content = firstUser?.content || 'Let’s chat.';
+                // Send user message and trigger responses
+                messages.sendMessage(content, []);
+                const userMessage = {
+                  id: `msg_${Date.now()}`,
+                  sender: 'You',
+                  senderType: 'user' as const,
+                  content,
+                  timestamp: Date.now(),
+                  mentions: [],
+                };
+                await aiResponses.sendAIResponses(userMessage);
+              } catch { /* ignore */ }
+            }}
+          />
+        )}
+
         {/* Demo Banner */}
         <DemoBanner
           subtitle="Simulated chat preview. Start a free trial to chat for real."
-          onPress={() => showTrialCTA(navTo)}
+          onPress={() => dispatch(showSheet({ sheet: 'subscription' }))}
         />
 
         {/* Message List */}

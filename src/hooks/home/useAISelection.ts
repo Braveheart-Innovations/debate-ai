@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, setAIPersonality, setAIModel } from '../../store';
 import { AIConfigurationService } from '../../services/home/AIConfigurationService';
+// import useFeatureAccess from '@/hooks/useFeatureAccess';
 import { AIConfig } from '../../types';
 
 /**
@@ -18,6 +19,8 @@ export const useAISelection = (maxAIs: number) => {
   const [selectedAIs, setSelectedAIs] = useState<AIConfig[]>([]);
 
   // Get configured AIs based on API keys
+  // Removed isDemo dependency to avoid unnecessary recompute and lint warnings
+
   const configuredAIs = useMemo(() => {
     const base = AIConfigurationService.getConfiguredAIs(apiKeys);
     // Apply expert default models (if enabled and set) as the default for each provider

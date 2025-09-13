@@ -8,6 +8,10 @@ import { DynamicAISelector, QuickStartsSection, PromptWizard } from '../componen
 import { useTheme } from '../theme';
 import { HOME_CONSTANTS } from '../config/homeConstants';
 import { TrialBanner } from '@/components/molecules/subscription/TrialBanner';
+import { DemoBanner } from '@/components/molecules/subscription/DemoBanner';
+import useFeatureAccess from '@/hooks/useFeatureAccess';
+import { useDispatch } from 'react-redux';
+import { showSheet } from '@/store';
 
 // Custom hooks
 import { useGreeting } from '../hooks/home/useGreeting';
@@ -33,6 +37,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const aiSelection = useAISelection(premium.maxAIs);
   const session = useSessionManagement();
   const quickStart = useQuickStart();
+  const { isDemo } = useFeatureAccess();
+  const dispatch = useDispatch();
   
   // Event handlers using hook methods
   const handleStartChat = () => {
@@ -78,6 +84,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         showDate={true}
         animated={true}
         rightElement={<HeaderActions variant="gradient" />}
+        showDemoBadge={isDemo}
       />
       
       <ScrollView 
@@ -88,6 +95,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         }}
         showsVerticalScrollIndicator={false}
       >
+        {isDemo && (
+          <DemoBanner
+            subtitle="You’re in Demo Mode. Simulated content — start a trial to go live."
+            onPress={() => dispatch(showSheet({ sheet: 'subscription' }))}
+          />
+        )}
         <TrialBanner />
         {/* Primary: AI Selection & Chat */}
         <View style={{ marginBottom: theme.spacing.xl }}>

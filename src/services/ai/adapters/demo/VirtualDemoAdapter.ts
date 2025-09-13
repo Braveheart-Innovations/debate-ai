@@ -1,6 +1,7 @@
 import { BaseAdapter } from '../../../ai/base/BaseAdapter';
 import { Message, MessageAttachment } from '@/types';
 import type { ResumptionContext, SendMessageResponse, AdapterCapabilities } from '../../types/adapter.types';
+import { nextProviderResponse } from '@/services/demo/DemoPlaybackRouter';
 
 // Very lightweight virtual adapter that simulates streaming via an async generator
 // and returns plausible content without performing any network calls.
@@ -25,7 +26,8 @@ export class VirtualDemoAdapter extends BaseAdapter {
     attachments?: MessageAttachment[],
     _modelOverride?: string
   ): Promise<SendMessageResponse> {
-    const final = this.composeDemoResponse(message, conversationHistory, attachments);
+    const routed = nextProviderResponse(String(this.config.provider));
+    const final = routed || this.composeDemoResponse(message, conversationHistory, attachments);
     return {
       response: final,
       modelUsed: this.config.model || 'demo-model',
@@ -46,7 +48,8 @@ export class VirtualDemoAdapter extends BaseAdapter {
     abortSignal?: AbortSignal,
     onEvent?: (event: unknown) => void
   ): AsyncGenerator<string, void, unknown> {
-    const full = this.composeDemoResponse(message, conversationHistory, attachments);
+    const routed = nextProviderResponse(String(this.config.provider));
+    const full = routed || this.composeDemoResponse(message, conversationHistory, attachments);
     const words = full.split(/(\s+)/); // keep spaces so buffering can flush at boundaries
     for (const w of words) {
       if (abortSignal?.aborted) {
@@ -93,4 +96,3 @@ export class VirtualDemoAdapter extends BaseAdapter {
     return `${header}\n\n${body}${sample}${attachNote}${footer}`;
   }
 }
-

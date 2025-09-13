@@ -29,6 +29,8 @@ import { usePreDebateValidation } from '../hooks/debate';
 import { Card } from '@/components/molecules';
 import { FORMATS } from '../config/debate/formats';
 import { TrialBanner } from '@/components/molecules/subscription/TrialBanner';
+import { DemoBanner } from '@/components/molecules/subscription/DemoBanner';
+import { showSheet } from '@/store';
 
 interface DebateSetupScreenProps {
   navigation: {
@@ -60,26 +62,32 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
   
   // Get configured AIs based on which ones have API keys
   const configuredAIs = useMemo(() => {
-    return AI_PROVIDERS
-      .filter(provider => provider.enabled && apiKeys[provider.id as keyof typeof apiKeys])
-      .map(provider => {
-        const iconData = getAIProviderIcon(provider.id);
-        const providerDefault = AI_MODELS[provider.id]?.find(m => m.isDefault)?.id || AI_MODELS[provider.id]?.[0]?.id || '';
-        const expertCfg = (expertMode as Record<string, { enabled?: boolean; selectedModel?: string }>)[provider.id];
-        const defaultModel = expertCfg?.enabled && expertCfg.selectedModel ? expertCfg.selectedModel : providerDefault;
-        return {
-          id: provider.id,
-          provider: provider.id,
-          name: provider.name,
-          model: defaultModel,
-          personality: 'balanced',
-          avatar: iconData.icon, // Keep for backwards compatibility
-          icon: iconData.icon,
-          iconType: iconData.iconType,
-          color: provider.color,
-        } as AIConfig;
-      });
-  }, [apiKeys, expertMode]);
+    const DEMO_ALLOWED = new Set(['claude', 'openai', 'google']);
+    const isDemo = access.isDemo;
+    const providers = isDemo
+      ? AI_PROVIDERS.filter(p => p.enabled && DEMO_ALLOWED.has(p.id))
+      : AI_PROVIDERS.filter(provider => provider.enabled && apiKeys[provider.id as keyof typeof apiKeys]);
+
+    return providers.map(provider => {
+      const iconData = getAIProviderIcon(provider.id);
+      const providerDefault = isDemo
+        ? ({ google: 'gemini-2.5-pro', openai: 'gpt-5', claude: 'opus-4.1' } as Record<string, string>)[provider.id] || ''
+        : (AI_MODELS[provider.id]?.find(m => m.isDefault)?.id || AI_MODELS[provider.id]?.[0]?.id || '');
+      const expertCfg = (expertMode as Record<string, { enabled?: boolean; selectedModel?: string }>)[provider.id];
+      const defaultModel = (!isDemo && expertCfg?.enabled && expertCfg.selectedModel) ? expertCfg.selectedModel : providerDefault;
+      return {
+        id: provider.id,
+        provider: provider.id,
+        name: provider.name,
+        model: defaultModel,
+        personality: 'balanced',
+        avatar: iconData.icon,
+        icon: iconData.icon,
+        iconType: iconData.iconType,
+        color: provider.color,
+      } as AIConfig;
+    });
+  }, [apiKeys, expertMode, access.isDemo]);
   
   const [currentStep, setCurrentStep] = useState<'topic' | 'ai' | 'personality'>('topic');
   const [selectedAIs, setSelectedAIs] = useState<AIConfig[]>(route?.params?.preselectedAIs || []);
@@ -218,28 +226,22 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
         showDate={true}
         animated={true}
         rightElement={<HeaderActions variant="gradient" />}
+        showDemoBadge={access.isDemo}
+        actionButton={{
+          label: '📊 Stats',
+          onPress: () => navigation.navigate('Stats'),
+          variant: 'ghost'
+        }}
       />
-      
-      {/* Stats Button - positioned in lower right of header */}
-      <Box style={{ 
-        position: 'absolute', 
-        top: 140,  // Position at bottom of gradient header
-        right: 16,
-        zIndex: 10,
-      }}>
-        <Button
-          title="📊 Stats"
-          onPress={() => navigation.navigate('Stats')}
-          variant="secondary"
-          size="small"
-          style={{
-            paddingHorizontal: 12,
-            paddingVertical: 8,
-            borderRadius: 20,
-            backgroundColor: theme.colors.surface,
-          }}
+
+      {access.isDemo && (
+        <DemoBanner
+          subtitle="Pre‑recorded debates only in Demo. Start a free trial to create custom debates."
+          onPress={() => dispatch(showSheet({ sheet: 'subscription' }))}
         />
-      </Box>
+      )}
+      
+      {/* Stats Button now provided via Header.actionButton to avoid overlay collisions */}
       
       <ScrollView 
         ref={scrollViewRef}

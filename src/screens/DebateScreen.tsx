@@ -4,7 +4,7 @@
  * Reduced from 1055 lines to ~200 lines following atomic design principles
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeOut, Layout } from 'react-native-reanimated';
@@ -31,7 +31,13 @@ import { VictoryCelebration } from '../components/organisms/debate/VictoryCelebr
 import { TranscriptModal } from '../components/organisms/debate/TranscriptModal';
 import { DemoBanner } from '@/components/molecules/subscription/DemoBanner';
 import { getStreamingService } from '../services/streaming/StreamingService';
-import { showTrialCTA } from '@/utils/demoGating';
+import useFeatureAccess from '@/hooks/useFeatureAccess';
+import { DemoContentService } from '@/services/demo/DemoContentService';
+import { primeDebate } from '@/services/demo/DemoPlaybackRouter';
+import { DemoSamplesBar } from '@/components/organisms/demo/DemoSamplesBar';
+import type { DemoDebate } from '@/types/demo';
+import { useDispatch } from 'react-redux';
+import { showSheet } from '@/store';
 // Topic block is now rendered inside header
 // Controls modal removed – using Start Over action directly
 
@@ -55,8 +61,11 @@ interface DebateScreenProps {
 
 const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
   const { theme } = useTheme();
+  const dispatch = useDispatch();
   const { selectedAIs, topic: initialTopic, personalities: initialPersonalities, formatId, rounds, exchanges, civility } = route.params;
   const [showTranscript, setShowTranscript] = useState(false);
+  const [debateSamples, setDebateSamples] = useState<Array<{ id: string; title: string; topic: string }>>([]);
+  const selectedSampleRef = React.useRef<DemoDebate | null>(null);
   // No custom controls modal
   
   // Initialize all hooks
@@ -65,9 +74,10 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
   const flow = useDebateFlow(session.orchestrator);
   const voting = useDebateVoting(session.orchestrator, selectedAIs);
   const messages = useDebateMessages(session.session?.startTime);
+  const { isDemo } = useFeatureAccess();
   
   // Handle topic selection and debate start
-  const handleStartDebate = async (topic?: string) => {
+  const handleStartDebate = useCallback(async (topic?: string) => {
     const topicToUse = topic || topicSelection.finalTopic;
     if (!topicToUse) {
       Alert.alert('Invalid Motion', 'Please select a valid motion');
@@ -83,6 +93,20 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
         return acc;
       }, {} as { [aiId: string]: string });
       const effectivePersonalities = { ...defaultsFromAIs, ...explicit };
+
+      // In Demo, prime playback queues for selected sample or persona
+      if (isDemo) {
+        if (selectedSampleRef.current) {
+          primeDebate(selectedSampleRef.current);
+        } else {
+          const joined = Object.values((initialPersonalities || {})).join(' ').toLowerCase();
+          const personaKey = joined.includes('george') ? 'George' : joined.includes('sage') ? 'Prof. Sage' : 'default';
+          try {
+            const sample = await DemoContentService.getDebateSampleForProviders(selectedAIs.map(a => a.provider), personaKey);
+            if (sample) primeDebate(sample);
+          } catch { /* ignore */ }
+        }
+      }
 
       await session.initializeSession(
         topicToUse,
@@ -106,15 +130,43 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
       const errorMessage = error instanceof Error ? error.message : 'Failed to start debate';
       Alert.alert('Error', errorMessage);
     }
-  };
+  }, [
+    topicSelection.finalTopic,
+    initialPersonalities,
+    selectedAIs,
+    formatId,
+    exchanges,
+    rounds,
+    civility,
+    session,
+    messages,
+    flow,
+    isDemo
+  ]);
   
   // Auto-start debate if topic is provided from DebateSetupScreen
+  const canAutoStart = Boolean(initialTopic && !session.isInitialized && selectedAIs.length >= 2 && session.orchestrator);
   useEffect(() => {
-    if (initialTopic && !session.isInitialized && selectedAIs.length >= 2 && session.orchestrator) {
+    if (canAutoStart) {
       handleStartDebate(initialTopic);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialTopic, session.isInitialized, session.orchestrator]);
+  }, [canAutoStart, initialTopic, handleStartDebate]);
+
+  const providersKey = React.useMemo(() => selectedAIs.map(a => a.provider).join('+'), [selectedAIs]);
+  const personaKey = React.useMemo(() => {
+    const joined = Object.values((initialPersonalities || {})).join(' ').toLowerCase();
+    return joined.includes('george') ? 'George' : joined.includes('sage') ? 'Prof. Sage' : 'default';
+  }, [initialPersonalities]);
+
+  // Demo: fetch debate samples list based on selection + persona
+  useEffect(() => {
+    const run = async () => {
+      if (!isDemo) { setDebateSamples([]); return; }
+      const list = await DemoContentService.listDebateSamples(providersKey.split('+').filter(Boolean), personaKey);
+      setDebateSamples(list);
+    };
+    run();
+  }, [isDemo, providersKey, personaKey]);
   
   // Handle voting
   const handleVote = async (aiId: string) => {
@@ -218,8 +270,23 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
         >
           <DemoBanner
             subtitle="Pre‑recorded debates only in Demo. Start a free trial to create custom debates."
-            onPress={() => showTrialCTA(navigation.navigate)}
+            onPress={() => dispatch(showSheet({ sheet: 'demo' }))}
           />
+          {isDemo && debateSamples.length > 0 && (
+            <DemoSamplesBar
+              label="Demo Debate Samples"
+              samples={debateSamples.map(s => ({ id: s.id, title: s.title }))}
+              onSelect={async (id) => {
+                try {
+                  const sample = await DemoContentService.findDebateById(id);
+                  if (!sample) return;
+                  selectedSampleRef.current = sample;
+                  // Start with sample's topic
+                  handleStartDebate(sample.topic);
+                } catch { /* ignore */ }
+              }}
+            />
+          )}
           <TopicSelector
             {...topicSelection}
             onStartDebate={handleStartDebate}
@@ -344,6 +411,7 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
             showDate={false}
             animated={true}
             rightElement={<HeaderActions variant="gradient" />}
+            showDemoBadge={isDemo}
             height={110}
           />
         );

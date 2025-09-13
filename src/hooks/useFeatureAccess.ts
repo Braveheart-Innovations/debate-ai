@@ -72,10 +72,10 @@ export const useFeatureAccess = () => {
   }, []);
 
   const effectivePremium = simulatedPremium || membershipStatus === 'premium';
-  const canAccessLiveAI = membershipStatus === 'trial' || effectivePremium;
   const isInTrial = membershipStatus === 'trial';
   const isPremium = effectivePremium;
-  const isDemo = membershipStatus === 'demo';
+  const canAccessLiveAI = isInTrial || isPremium;
+  const isDemo = !isInTrial && !isPremium;
 
   const refresh = async () => {
     setLoading(true);

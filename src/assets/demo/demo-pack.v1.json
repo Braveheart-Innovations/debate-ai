@@ -2,23 +2,198 @@
   "version": "1",
   "locale": "en-US",
   "chats": [
-    {
-      "id": "chat_kyoto_itinerary",
-      "title": "Plan a 3-day Kyoto itinerary",
-      "events": [
-        { "type": "message", "role": "user", "content": "Plan a 3-day itinerary for Kyoto with temples and coffee shops." },
-        { "type": "stream", "role": "assistant", "content": "Absolutely — here’s a focused, walkable plan:" },
-        { "type": "stream", "role": "assistant", "content": "\n\nDay 1: Fushimi Inari → Kiyomizu-dera → Gion" },
-        { "type": "stream", "role": "assistant", "content": "\nDay 2: Arashiyama Bamboo Grove → Tenryu-ji → Nishiki Market" },
-        { "type": "stream", "role": "assistant", "content": "\nDay 3: Philosopher’s Path → Ginkaku-ji → %AROMA% coffee" }
-      ],
-      "tags": ["travel", "sample"]
-    }
+    {"id": "chat_c_itinerary_v1", "title": "Kyoto itinerary (Claude)", "events": [
+      {"type":"message","role":"user","content":"Plan a 3-day itinerary for Kyoto focused on temples and coffee."},
+      {"type":"stream","role":"assistant","speakerProvider":"claude","content":"Happy to help — here’s a compact, walkable plan:"}
+    ], "tags":["single","claude","travel"]},
+    {"id": "chat_c_sql_v1", "title": "Explain SQL CTE (Claude)", "events": [
+      {"type":"message","role":"user","content":"Explain SQL CTEs with a simple example."},
+      {"type":"stream","role":"assistant","speakerProvider":"claude","content":"A CTE is a named subquery you can reference once or many times…"}
+    ], "tags":["single","claude","sql"]},
+
+    {"id": "chat_o_itinerary_v1", "title": "Kyoto itinerary (OpenAI)", "events": [
+      {"type":"message","role":"user","content":"Plan a 3-day itinerary for Kyoto with highlights and coffee."},
+      {"type":"stream","role":"assistant","speakerProvider":"openai","content":"Here’s a concise 3‑day plan with minimal transit:"}
+    ], "tags":["single","openai","travel"]},
+    {"id": "chat_o_sql_v1", "title": "Explain SQL CTE (OpenAI)", "events": [
+      {"type":"message","role":"user","content":"Explain SQL CTEs with a short example."},
+      {"type":"stream","role":"assistant","speakerProvider":"openai","content":"CTEs let you name a subquery. For example:"}
+    ], "tags":["single","openai","sql"]},
+
+    {"id": "chat_g_itinerary_v1", "title": "Kyoto itinerary (Gemini)", "events": [
+      {"type":"message","role":"user","content":"Plan a 3-day Kyoto itinerary with temples, nature, and cafes."},
+      {"type":"stream","role":"assistant","speakerProvider":"google","content":"Let’s keep it scenic and efficient:"}
+    ], "tags":["single","google","travel"]},
+    {"id": "chat_g_sql_v1", "title": "Explain SQL CTE (Gemini)", "events": [
+      {"type":"message","role":"user","content":"What is a SQL CTE? Give a brief example."},
+      {"type":"stream","role":"assistant","speakerProvider":"google","content":"CTEs are temporary result sets. A tiny example:"}
+    ], "tags":["single","google","sql"]},
+
+    {"id": "chat_co_itinerary_v1", "title": "Kyoto itinerary (Claude+OpenAI)", "events": [
+      {"type":"message","role":"user","content":"Kyoto 3 days: temples + coffee. Suggestions?"},
+      {"type":"stream","role":"assistant","speakerProvider":"claude","content":"Day 1: Fushimi Inari → Higashiyama → Gion"},
+      {"type":"stream","role":"assistant","speakerProvider":"openai","content":"Day 2: Arashiyama → Tenryu‑ji → Nishiki Market"}
+    ], "tags":["pair","claude","openai","travel"]},
+    {"id": "chat_co_sql_v1", "title": "Explain SQL CTE (Claude+OpenAI)", "events": [
+      {"type":"message","role":"user","content":"Explain SQL CTE with a tiny code sample; keep it clear."},
+      {"type":"stream","role":"assistant","speakerProvider":"claude","content":"A CTE is a named query used later in the statement…"},
+      {"type":"stream","role":"assistant","speakerProvider":"openai","content":"Here’s a brief example using WITH totals AS (…):"}
+    ], "tags":["pair","claude","openai","sql"]},
+
+    {"id": "chat_cg_itinerary_v1", "title": "Kyoto itinerary (Claude+Gemini)", "events": [
+      {"type":"message","role":"user","content":"Plan a Kyoto 3‑day plan: shrines, gardens, coffee."},
+      {"type":"stream","role":"assistant","speakerProvider":"claude","content":"Day 1 highlights near the east side…"},
+      {"type":"stream","role":"assistant","speakerProvider":"google","content":"Day 2 in Arashiyama and riverside cafes…"}
+    ], "tags":["pair","claude","google","travel"]},
+    {"id": "chat_cg_sql_v1", "title": "Explain SQL CTE (Claude+Gemini)", "events": [
+      {"type":"message","role":"user","content":"What’s a SQL CTE? Explain simply and show code."},
+      {"type":"stream","role":"assistant","speakerProvider":"claude","content":"CTEs improve readability when you need intermediate results…"},
+      {"type":"stream","role":"assistant","speakerProvider":"google","content":"Example: WITH totals AS (SELECT …) SELECT … FROM totals;"}
+    ], "tags":["pair","claude","google","sql"]},
+
+    {"id": "chat_og_itinerary_v1", "title": "Kyoto itinerary (OpenAI+Gemini)", "events": [
+      {"type":"message","role":"user","content":"3 days in Kyoto: temples + coffee route please."},
+      {"type":"stream","role":"assistant","speakerProvider":"openai","content":"Start early at Fushimi Inari, then Kiyomizu‑dera…"},
+      {"type":"stream","role":"assistant","speakerProvider":"google","content":"On day 2, Arashiyama bamboo grove plus %AROMA% roasters…"}
+    ], "tags":["pair","openai","google","travel"]},
+    {"id": "chat_og_sql_v1", "title": "Explain SQL CTE (OpenAI+Gemini)", "events": [
+      {"type":"message","role":"user","content":"Explain CTEs in SQL with a minimal example."},
+      {"type":"stream","role":"assistant","speakerProvider":"openai","content":"CTEs are declared with WITH and can be referenced later…"},
+      {"type":"stream","role":"assistant","speakerProvider":"google","content":"Example: WITH ordered AS (…) SELECT … FROM ordered;"}
+    ], "tags":["pair","openai","google","sql"]},
+
+    {"id": "chat_cog_itinerary_v1", "title": "Kyoto itinerary (Claude+OpenAI+Gemini)", "events": [
+      {"type":"message","role":"user","content":"Plan a concise 3‑day Kyoto trip with must‑see shrines and great coffee."},
+      {"type":"stream","role":"assistant","speakerProvider":"claude","content":"Let’s optimize walking and transit; Day 1 east side…"},
+      {"type":"stream","role":"assistant","speakerProvider":"openai","content":"Day 2 Arashiyama and riverside; reserve a cafe mid‑afternoon."},
+      {"type":"stream","role":"assistant","speakerProvider":"google","content":"Day 3 Philosopher’s Path, Ginkaku‑ji, and %AROMA% espresso bar."}
+    ], "tags":["trio","travel"]},
+    {"id": "chat_cog_sql_v1", "title": "Explain SQL CTE (Claude+OpenAI+Gemini)", "events": [
+      {"type":"message","role":"user","content":"Explain SQL CTEs and show a tiny example."},
+      {"type":"stream","role":"assistant","speakerProvider":"claude","content":"They’re named subqueries returned by WITH…"},
+      {"type":"stream","role":"assistant","speakerProvider":"openai","content":"Use WITH totals AS (…) and select from totals in the main query."},
+      {"type":"stream","role":"assistant","speakerProvider":"google","content":"Example: WITH totals AS (SELECT …) SELECT … FROM totals;"}
+    ], "tags":["trio","sql"]}
   ],
-  "debates": [],
-  "compares": [],
+  "debates": [
+    {"id":"debate_co_default_1","topic":"Should homework be abolished?","participants":["Claude","OpenAI"],"events":[
+      {"type":"message","role":"user","content":"Motion: Homework should be abolished."},
+      {"type":"stream","role":"assistant","speakerProvider":"claude","speakerPersona":"default","content":"Opening for the motion: Homework often adds little value…"},
+      {"type":"stream","role":"assistant","speakerProvider":"openai","speakerPersona":"default","content":"Opposing: Properly designed homework reinforces learning…"}
+    ]},
+    {"id":"debate_co_george_1","topic":"Should homework be abolished?","participants":["Claude","OpenAI"],"events":[
+      {"type":"message","role":"user","content":"Motion: Homework should be abolished."},
+      {"type":"stream","role":"assistant","speakerProvider":"claude","speakerPersona":"George","content":"George: Let me cut to the chase…"},
+      {"type":"stream","role":"assistant","speakerProvider":"openai","speakerPersona":"George","content":"George (opposition): I see it differently…"}
+    ]},
+    {"id":"debate_co_sage_1","topic":"Should homework be abolished?","participants":["Claude","OpenAI"],"events":[
+      {"type":"message","role":"user","content":"Motion: Homework should be abolished."},
+      {"type":"stream","role":"assistant","speakerProvider":"claude","speakerPersona":"Prof. Sage","content":"As a matter of pedagogy, one must consider…"},
+      {"type":"stream","role":"assistant","speakerProvider":"openai","speakerPersona":"Prof. Sage","content":"Conversely, empirical findings suggest…"}
+    ]},
+
+    {"id":"debate_cg_default_1","topic":"Colonize Mars: imperative or hubris?","participants":["Claude","Gemini"],"events":[
+      {"type":"message","role":"user","content":"Motion: Humanity has a moral imperative to colonize Mars."},
+      {"type":"stream","role":"assistant","speakerProvider":"claude","speakerPersona":"default","content":"In favor: redundancy of civilization is prudence…"},
+      {"type":"stream","role":"assistant","speakerProvider":"google","speakerPersona":"default","content":"Against: ethical and environmental concerns remain…"}
+    ]},
+    {"id":"debate_cg_george_1","topic":"Colonize Mars: imperative or hubris?","participants":["Claude","Gemini"],"events":[
+      {"type":"message","role":"user","content":"Motion: Humanity has a moral imperative to colonize Mars."},
+      {"type":"stream","role":"assistant","speakerProvider":"claude","speakerPersona":"George","content":"George (pro): The backup plan argument is strong…"},
+      {"type":"stream","role":"assistant","speakerProvider":"google","speakerPersona":"George","content":"George (con): But opportunity costs on Earth…"}
+    ]},
+    {"id":"debate_cg_sage_1","topic":"Colonize Mars: imperative or hubris?","participants":["Claude","Gemini"],"events":[
+      {"type":"message","role":"user","content":"Motion: Humanity has a moral imperative to colonize Mars."},
+      {"type":"stream","role":"assistant","speakerProvider":"claude","speakerPersona":"Prof. Sage","content":"Permit me to disentangle the prudential and moral claims…"},
+      {"type":"stream","role":"assistant","speakerProvider":"google","speakerPersona":"Prof. Sage","content":"Yet the deontic obligations to present populations…"}
+    ]},
+
+    {"id":"debate_og_default_1","topic":"Open weights vs closed weights","participants":["OpenAI","Gemini"],"events":[
+      {"type":"message","role":"user","content":"Motion: Open weights benefit society more than closed models."},
+      {"type":"stream","role":"assistant","speakerProvider":"openai","speakerPersona":"default","content":"For: openness fosters auditability and innovation…"},
+      {"type":"stream","role":"assistant","speakerProvider":"google","speakerPersona":"default","content":"Against: safety, abuse, and business incentives complicate…"}
+    ]},
+    {"id":"debate_og_george_1","topic":"Open weights vs closed weights","participants":["OpenAI","Gemini"],"events":[
+      {"type":"message","role":"user","content":"Motion: Open weights benefit society more than closed models."},
+      {"type":"stream","role":"assistant","speakerProvider":"openai","speakerPersona":"George","content":"George (pro): Sunlight is the best disinfectant…"},
+      {"type":"stream","role":"assistant","speakerProvider":"google","speakerPersona":"George","content":"George (con): But misuse scales too…"}
+    ]},
+    {"id":"debate_og_sage_1","topic":"Open weights vs closed weights","participants":["OpenAI","Gemini"],"events":[
+      {"type":"message","role":"user","content":"Motion: Open weights benefit society more than closed models."},
+      {"type":"stream","role":"assistant","speakerProvider":"openai","speakerPersona":"Prof. Sage","content":"Epistemically, openness enables error-correction…"},
+      {"type":"stream","role":"assistant","speakerProvider":"google","speakerPersona":"Prof. Sage","content":"Pragmatically, externalities alter the calculus…"}
+    ]}
+  ],
+  "compares": [
+    {"id":"compare_co_itinerary_v1","title":"Kyoto Itinerary (Claude vs OpenAI)","category":"provider","runs":[
+      {"id":"r1","label":"providers","columns":[
+        {"name":"Claude","events":[{"type":"message","role":"assistant","speakerProvider":"claude","content":"Day 1: Fushimi Inari; Day 2: Arashiyama…"}]},
+        {"name":"OpenAI","events":[{"type":"message","role":"assistant","speakerProvider":"openai","content":"Day 1: Kiyomizu-dera; Day 2: Nishiki Market…"}]}
+      ]}
+    ]},
+    {"id":"compare_co_sql_v1","title":"Explain SQL CTE (Claude vs OpenAI)","category":"provider","runs":[
+      {"id":"r1","label":"providers","columns":[
+        {"name":"Claude","events":[{"type":"message","role":"assistant","speakerProvider":"claude","content":"A CTE is a named subquery…"}]},
+        {"name":"OpenAI","events":[{"type":"message","role":"assistant","speakerProvider":"openai","content":"CTEs: declare with WITH; small example…"}]}
+      ]}
+    ]},
+
+    {"id":"compare_cg_itinerary_v1","title":"Kyoto Itinerary (Claude vs Gemini)","category":"provider","runs":[
+      {"id":"r1","label":"providers","columns":[
+        {"name":"Claude","events":[{"type":"message","role":"assistant","speakerProvider":"claude","content":"East side loop; tea houses en route…"}]},
+        {"name":"Gemini","events":[{"type":"message","role":"assistant","speakerProvider":"google","content":"Arashiyama morning; river walk; cafe recs…"}]}
+      ]}
+    ]},
+    {"id":"compare_cg_sql_v1","title":"Explain SQL CTE (Claude vs Gemini)","category":"provider","runs":[
+      {"id":"r1","label":"providers","columns":[
+        {"name":"Claude","events":[{"type":"message","role":"assistant","speakerProvider":"claude","content":"Name a subquery for clarity…"}]},
+        {"name":"Gemini","events":[{"type":"message","role":"assistant","speakerProvider":"google","content":"CTEs help break down complex queries…"}]}
+      ]}
+    ]},
+
+    {"id":"compare_og_itinerary_v1","title":"Kyoto Itinerary (OpenAI vs Gemini)","category":"provider","runs":[
+      {"id":"r1","label":"providers","columns":[
+        {"name":"OpenAI","events":[{"type":"message","role":"assistant","speakerProvider":"openai","content":"Start early; reserve coffee mid-afternoon…"}]},
+        {"name":"Gemini","events":[{"type":"message","role":"assistant","speakerProvider":"google","content":"Include Philosopher’s Path; %AROMA% roasters…"}]}
+      ]}
+    ]},
+    {"id":"compare_og_sql_v1","title":"Explain SQL CTE (OpenAI vs Gemini)","category":"provider","runs":[
+      {"id":"r1","label":"providers","columns":[
+        {"name":"OpenAI","events":[{"type":"message","role":"assistant","speakerProvider":"openai","content":"WITH totals AS (…) SELECT … FROM totals;"}]},
+        {"name":"Gemini","events":[{"type":"message","role":"assistant","speakerProvider":"google","content":"A compact example with WITH…"}]}
+      ]}
+    ]}
+  ],
   "historyRefs": [],
   "assets": {},
-  "meta": { "build": "demo-v1", "createdAt": "2025-09-11T00:00:00Z" }
-}
+  "meta": { "build": "demo-v1", "createdAt": "2025-09-11T00:00:00Z" },
+  "routing": {
+    "chat": {
+      "claude": ["chat_c_itinerary_v1","chat_c_sql_v1"],
+      "openai": ["chat_o_itinerary_v1","chat_o_sql_v1"],
+      "google": ["chat_g_itinerary_v1","chat_g_sql_v1"],
+      "claude+openai": ["chat_co_itinerary_v1","chat_co_sql_v1"],
+      "claude+google": ["chat_cg_itinerary_v1","chat_cg_sql_v1"],
+      "openai+google": ["chat_og_itinerary_v1","chat_og_sql_v1"],
+      "claude+openai+google": ["chat_cog_itinerary_v1","chat_cog_sql_v1"]
+    },
+    "debate": {
+      "claude+openai:default": ["debate_co_default_1"],
+      "claude+openai:George": ["debate_co_george_1"],
+      "claude+openai:Prof. Sage": ["debate_co_sage_1"],
 
+      "claude+google:default": ["debate_cg_default_1"],
+      "claude+google:George": ["debate_cg_george_1"],
+      "claude+google:Prof. Sage": ["debate_cg_sage_1"],
+
+      "openai+google:default": ["debate_og_default_1"],
+      "openai+google:George": ["debate_og_george_1"],
+      "openai+google:Prof. Sage": ["debate_og_sage_1"]
+    },
+    "compare": {
+      "claude+openai": ["compare_co_itinerary_v1","compare_co_sql_v1"],
+      "claude+google": ["compare_cg_itinerary_v1","compare_cg_sql_v1"],
+      "openai+google": ["compare_og_itinerary_v1","compare_og_sql_v1"]
+    }
+  }
+}

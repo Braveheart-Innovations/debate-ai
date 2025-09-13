@@ -23,7 +23,9 @@ import {
 } from '../hooks/history';
 import { HistoryScreenNavigationProps } from '../types/history';
 import { DemoBanner } from '@/components/molecules/subscription/DemoBanner';
-import { showTrialCTA } from '@/utils/demoGating';
+import { useDispatch } from 'react-redux';
+import { showSheet } from '@/store';
+import useFeatureAccess from '@/hooks/useFeatureAccess';
 
 interface HistoryScreenProps {
   navigation: HistoryScreenNavigationProps;
@@ -31,6 +33,8 @@ interface HistoryScreenProps {
 
 export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
   const { theme } = useTheme();
+  const dispatch = useDispatch();
+  const { isDemo } = useFeatureAccess();
   const [activeTab, setActiveTab] = useState<'all' | 'chat' | 'comparison' | 'debate'>('all');
   
   // Compose hooks for different concerns
@@ -204,6 +208,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
             showDate={true}
             animated={true}
             rightElement={<HeaderActions variant="gradient" />}
+            showDemoBadge={isDemo}
             actionButton={{
               label: 'Clear All',
               onPress: handleClearAllStorage,
@@ -213,7 +218,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
 
           <DemoBanner
             subtitle="Demo Mode: Replay samples only. Continue requires a Free Trial."
-            onPress={() => showTrialCTA(navigation.navigate)}
+            onPress={() => dispatch(showSheet({ sheet: 'subscription' }))}
           />
 
           {/* Search bar */}

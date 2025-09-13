@@ -17,8 +17,9 @@ export class AIConfigurationService {
    * @returns Array of configured AI configurations
    */
   static getConfiguredAIs(apiKeys: Record<string, unknown>): AIConfig[] {
+    const DEMO_ALLOWED = new Set(['claude', 'openai', 'google']);
     const providers = isDemoModeEnabled()
-      ? AI_PROVIDERS.filter(p => p.enabled)
+      ? AI_PROVIDERS.filter(p => p.enabled && DEMO_ALLOWED.has(p.id))
       : AI_PROVIDERS.filter(provider => this.isProviderAvailable(provider, apiKeys));
     return providers.map(provider => this.transformProviderToConfig(provider));
   }
@@ -49,7 +50,15 @@ export class AIConfigurationService {
     
     // Find the default model for this provider
     const providerModels = AI_MODELS[provider.id];
-    const defaultModel = providerModels?.find(m => m.isDefault)?.id || providerModels?.[0]?.id || '';
+    // Demo-specific default models
+    const DEMO_MODEL_OVERRIDES: Record<string, string> = {
+      google: 'gemini-2.5-pro',
+      openai: 'gpt-5',
+      claude: 'opus-4.1',
+    };
+    const defaultModel = isDemoModeEnabled() && DEMO_MODEL_OVERRIDES[provider.id]
+      ? DEMO_MODEL_OVERRIDES[provider.id]
+      : (providerModels?.find(m => m.isDefault)?.id || providerModels?.[0]?.id || '');
     
     return {
       id: provider.id,

@@ -10,6 +10,8 @@ import {
   SettingsContent,
   SupportSheet
 } from '../components/organisms';
+import { SubscriptionSheet } from '@/components/organisms/subscription/SubscriptionSheet';
+import { DemoExplainerSheet } from '@/components/organisms/demo/DemoExplainerSheet';
 
 export const GlobalSheets: React.FC = () => {
   const { theme } = useTheme();
@@ -130,6 +132,39 @@ export const GlobalSheets: React.FC = () => {
             }}
           >
             <SupportSheet onClose={handleSheetClose} />
+          </View>
+        </>
+      )}
+
+      {activeSheet === 'demo' && (
+        <>
+          <TouchableOpacity
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000 }}
+            activeOpacity={1}
+            onPress={handleSheetClose}
+          />
+          <View style={{ position: 'absolute', top: 100, left: 0, right: 0, bottom: 0, backgroundColor: theme.colors.background, zIndex: 1001 }}>
+            <DemoExplainerSheet
+              onClose={handleSheetClose}
+              onStartTrial={() => {
+                handleSheetClose();
+                // Navigate to Subscription screen
+                navigation.navigate('Subscription');
+              }}
+            />
+          </View>
+        </>
+      )}
+
+      {activeSheet === 'subscription' && (
+        <>
+          <TouchableOpacity
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000 }}
+            activeOpacity={1}
+            onPress={handleSheetClose}
+          />
+          <View style={{ position: 'absolute', top: 80, left: 0, right: 0, bottom: 0, backgroundColor: theme.colors.background, zIndex: 1001 }}>
+            <SubscriptionSheet onClose={handleSheetClose} />
           </View>
         </>
       )}

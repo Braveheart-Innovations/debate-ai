@@ -3,6 +3,8 @@ import { ScrollView, View, StyleSheet, Platform, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Typography } from '../components/molecules';
 import { GradientButton, Button } from '../components/molecules';
+import { Header, HeaderActions } from '@/components/organisms';
+import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../theme';
 
 const features = [
@@ -20,6 +22,7 @@ const plans = [
 
 export default function UpgradeScreen() {
   const { theme } = useTheme();
+  const navigation = useNavigation();
 
   const onSubscribe = (planId: string) => {
     // TODO: integrate IAP purchase flow
@@ -27,7 +30,19 @@ export default function UpgradeScreen() {
   };
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+    <>
+      <Header
+        variant="gradient"
+        title="Unlock Premium"
+        subtitle="Start your 7‑day free trial"
+        showBackButton
+        onBack={() => {
+          try { (navigation as unknown as { goBack: () => void }).goBack(); } catch { /* noop */ }
+        }}
+        animated
+        rightElement={<HeaderActions variant="gradient" />}
+      />
+      <ScrollView style={{ flex: 1, backgroundColor: theme.colors.background }}>
       {/* Hero */}
       <LinearGradient
         colors={(theme.colors.gradients.premium as unknown as [string, string])}
@@ -88,7 +103,8 @@ export default function UpgradeScreen() {
           fullWidth
         />
       </View>
-    </ScrollView>
+      </ScrollView>
+    </>
   );
 }
 

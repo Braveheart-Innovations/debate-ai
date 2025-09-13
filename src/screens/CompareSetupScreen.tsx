@@ -15,6 +15,8 @@ import { AI_MODELS } from '../config/modelConfigs';
 import { getAIProviderIcon } from '../utils/aiProviderAssets';
 import { TrialBanner } from '@/components/molecules/subscription/TrialBanner';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
+import { DemoBanner } from '@/components/molecules/subscription/DemoBanner';
+import { showSheet } from '@/store';
 
 interface CompareSetupScreenProps {
   navigation: {
@@ -41,25 +43,31 @@ const CompareSetupScreen: React.FC<CompareSetupScreenProps> = ({ navigation, rou
   
   // Get configured AIs based on which ones have API keys
   const configuredAIs = useMemo(() => {
-    return AI_PROVIDERS
-      .filter(provider => provider.enabled && apiKeys[provider.id as keyof typeof apiKeys])
-      .map(provider => {
-        const iconData = getAIProviderIcon(provider.id);
-        const providerDefault = AI_MODELS[provider.id]?.find(m => m.isDefault)?.id || AI_MODELS[provider.id]?.[0]?.id || '';
-        const expertCfg = (expertMode as Record<string, { enabled?: boolean; selectedModel?: string }>)[provider.id];
-        const defaultModel = expertCfg?.enabled && expertCfg.selectedModel ? expertCfg.selectedModel : providerDefault;
-        return {
-          id: provider.id,
-          provider: provider.id,
-          name: provider.name,
-          model: defaultModel,
-          personality: 'balanced',
-          icon: iconData.icon,
-          iconType: iconData.iconType,
-          color: provider.color,
-        } as AIConfig;
-      });
-  }, [apiKeys, expertMode]);
+    const DEMO_ALLOWED = new Set(['claude', 'openai', 'google']);
+    const isDemo = access.isDemo;
+    const providers = isDemo
+      ? AI_PROVIDERS.filter(p => p.enabled && DEMO_ALLOWED.has(p.id))
+      : AI_PROVIDERS.filter(provider => provider.enabled && apiKeys[provider.id as keyof typeof apiKeys]);
+
+    return providers.map(provider => {
+      const iconData = getAIProviderIcon(provider.id);
+      const providerDefault = isDemo
+        ? ({ google: 'gemini-2.5-pro', openai: 'gpt-5', claude: 'opus-4.1' } as Record<string, string>)[provider.id] || ''
+        : (AI_MODELS[provider.id]?.find(m => m.isDefault)?.id || AI_MODELS[provider.id]?.[0]?.id || '');
+      const expertCfg = (expertMode as Record<string, { enabled?: boolean; selectedModel?: string }>)[provider.id];
+      const defaultModel = (!isDemo && expertCfg?.enabled && expertCfg.selectedModel) ? expertCfg.selectedModel : providerDefault;
+      return {
+        id: provider.id,
+        provider: provider.id,
+        name: provider.name,
+        model: defaultModel,
+        personality: 'balanced',
+        icon: iconData.icon,
+        iconType: iconData.iconType,
+        color: provider.color,
+      } as AIConfig;
+    });
+  }, [apiKeys, expertMode, access.isDemo]);
   
   // Separate states for left and right AI selection - initialize from route params if available
   const [leftAI, setLeftAI] = useState<AIConfig[]>(
@@ -130,7 +138,14 @@ const CompareSetupScreen: React.FC<CompareSetupScreenProps> = ({ navigation, rou
         showDate={true}
         animated={true}
         rightElement={<HeaderActions variant="gradient" />}
+        showDemoBadge={access.isDemo}
       />
+      {access.isDemo && (
+        <DemoBanner
+          subtitle="Sample comparisons only in Demo. Start a free trial for live comparisons."
+          onPress={() => dispatch(showSheet({ sheet: 'demo' }))}
+        />
+      )}
       
       <ScrollView 
         style={{ flex: 1 }}

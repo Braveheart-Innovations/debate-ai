@@ -160,6 +160,8 @@ export interface HeaderProps {
   
   // Testing
   testID?: string;
+  // Demo badge in lower-right
+  showDemoBadge?: boolean;
 }
 
 export const HEADER_HEIGHT = 65;
@@ -186,6 +188,7 @@ export const Header: React.FC<HeaderProps> = ({
   participantsList,
   sessionCount,
   testID,
+  showDemoBadge = false,
 }) => {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
@@ -586,7 +589,9 @@ export const Header: React.FC<HeaderProps> = ({
   };
   
   const HeaderContent = animated && (variant as string) !== 'gradient' ? Animated.View : View;
-  
+  // Offset demo badge to avoid overlapping the optional action button
+  const demoBadgeBottom = actionButton ? 40 : 10;
+
   return (
     <Box 
       style={[
@@ -637,6 +642,13 @@ export const Header: React.FC<HeaderProps> = ({
                 variant={actionButton.variant || 'danger'}
                 size="small"
               />
+            </View>
+          )}
+
+          {/* Demo badge (lower-right) */}
+          {showDemoBadge && (
+            <View style={[styles.demoBadgeContainer, { bottom: demoBadgeBottom, right: 16 }]}> 
+              <Typography variant="caption" weight="bold" color="inverse">DEMO MODE</Typography>
             </View>
           )}
         </>
@@ -783,6 +795,14 @@ const createStyles = (
   headerActionButtonContainer: {
     position: 'absolute',
     zIndex: 1000,  // Higher z-index to ensure button is clickable
+  },
+  demoBadgeContainer: {
+    position: 'absolute',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(99,102,241,0.92)',
+    zIndex: 1002,
   },
   dateContainer: {
     alignItems: 'flex-start',

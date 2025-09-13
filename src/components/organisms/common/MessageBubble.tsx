@@ -20,6 +20,7 @@ import { useStreamingMessage } from '@/hooks/streaming';
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 import { selectableMarkdownRules } from '@/utils/markdownSelectable';
+import useFeatureAccess from '@/hooks/useFeatureAccess';
 
 interface MessageBubbleProps {
   message: Message;
@@ -101,6 +102,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, s
   const scale = useSharedValue(isLast ? 0 : 1);
   const { theme, isDark } = useTheme();
   const [copied, setCopied] = useState(false);
+  const { isDemo } = useFeatureAccess();
   
   // Hook for streaming messages
   const { 
@@ -230,6 +232,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, s
           },
         ]}
       >
+        {isDemo && (
+          <View style={{ position: 'absolute', top: 8, left: 8, transform: [{ rotate: '-18deg' }], pointerEvents: 'none' }}>
+            <Text style={{ fontSize: 28, fontWeight: '900', letterSpacing: 2, color: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
+              DEMO
+            </Text>
+          </View>
+        )}
         {isUser ? (
           // User messages - simple text with mentions
           <Typography style={{
