@@ -35,6 +35,9 @@ import {
 import { AIConfig, Message } from '../types';
 import { cancelAllStreams, selectActiveStreamCount } from '../store';
 import { getStreamingService } from '../services/streaming/StreamingService';
+import useFeatureAccess from '@/hooks/useFeatureAccess';
+import { showTrialCTA } from '@/utils/demoGating';
+import { DemoBanner } from '@/components/molecules/subscription/DemoBanner';
 
 
 interface ChatScreenProps {
@@ -90,9 +93,20 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
   const controllersRef = React.useRef<Record<string, AbortController>>({});
   const [imageModalVisible, setImageModalVisible] = React.useState(false);
   const [imageModalPrompt, setImageModalPrompt] = React.useState('');
+  const { isDemo } = useFeatureAccess();
+  // Local nav function compatible with showTrialCTA typing
+  const navTo = React.useMemo(() => (
+    (screen: string, params?: Record<string, unknown>) => {
+      try { (navigation as unknown as { navigate: (s: string, p?: Record<string, unknown>) => void }).navigate(screen, params); } catch { /* no-op */ }
+    }
+  ), [navigation]);
   // Video generation is out of scope for v1; remove UI
 
   const handleGenerateImage = async (opts: { prompt: string; size: 'auto' | 'square' | 'portrait' | 'landscape' }, reuseMessageId?: string) => {
+    if (isDemo) {
+      showTrialCTA(navTo, { message: 'Image generation requires a Free Trial.' });
+      return;
+    }
     try {
       const providerAI = session.selectedAIs.find(ai => ai.provider === 'openai') || session.selectedAIs[0];
       const apiKey = apiKeys.openai;
@@ -166,6 +180,10 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
 
   // Handle message sending
   const handleSendMessage = useCallback(async (messageText?: string, attachments?: MessageAttachment[]): Promise<void> => {
+    if (isDemo) {
+      showTrialCTA(navTo, { message: 'Chatting with live AIs requires a Free Trial.' });
+      return;
+    }
     const textToSend = messageText || input.inputText;
     
     if (!textToSend.trim() && (!attachments || attachments.length === 0)) {
@@ -199,7 +217,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
 
     // Trigger AI responses with attachments
     await aiResponses.sendAIResponses(userMessage, undefined, attachments);
-  }, [input, session.currentSession, mentions, messages, aiResponses]);
+  }, [input, session.currentSession, mentions, messages, aiResponses, isDemo, navTo]);
 
   // Auto-save session when it's created or messages change
   useEffect(() => {
@@ -293,6 +311,12 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
 
         {/* Warnings (e.g., GPT-5 latency) */}
         <ChatWarnings selectedAIs={session.selectedAIs} />
+
+        {/* Demo Banner */}
+        <DemoBanner
+          subtitle="Simulated chat preview. Start a free trial to chat for real."
+          onPress={() => showTrialCTA(navTo)}
+        />
 
         {/* Message List */}
         <ChatMessageList

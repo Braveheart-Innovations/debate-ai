@@ -52,9 +52,9 @@ export const SharePreviewCard: React.FC<SharePreviewCardProps> = ({
           </View>
         </View>
 
-        {/* Topic */}
+        {/* Motion */}
         <View style={styles.topicContainer}>
-          <Text style={styles.topicLabel}>DEBATE TOPIC</Text>
+          <Text style={styles.topicLabel}>DEBATE MOTION</Text>
           <Text style={styles.topicText} numberOfLines={2}>
             "{topic}"
           </Text>

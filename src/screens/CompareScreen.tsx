@@ -18,6 +18,9 @@ import { useAIService } from '../providers/AIServiceProvider';
 import { AIConfig, Message, ChatSession } from '../types';
 import { StorageService } from '../services/chat/StorageService';
 import { getExpertOverrides } from '../utils/expertMode';
+import useFeatureAccess from '@/hooks/useFeatureAccess';
+import { showTrialCTA } from '@/utils/demoGating';
+import { DemoBanner } from '@/components/molecules/subscription/DemoBanner';
 
 interface CompareScreenProps {
   navigation: {
@@ -39,6 +42,7 @@ type ViewMode = 'split' | 'left-full' | 'right-full' | 'left-only' | 'right-only
 const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
   const { theme } = useTheme();
   const { aiService, isInitialized } = useAIService();
+  const { isDemo } = useFeatureAccess();
   
   // Get models and user status from Redux
   const selectedModels = useSelector((state: RootState) => state.chat.selectedModels);
@@ -165,6 +169,10 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
   }, [userMessages, leftMessages, rightMessages, leftAI, rightAI, currentUser, continuedSide, sessionId, hasBeenSaved]);
   
   const handleSend = useCallback(async () => {
+    if (isDemo) {
+      showTrialCTA(navigation.navigate, { message: 'Live comparisons require a Free Trial.' });
+      return;
+    }
     if (!inputText.trim() || !aiService || !isInitialized || !leftAI || !rightAI) return;
     
     const messageText = inputText.trim();
@@ -305,7 +313,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
       saveComparisonSession();
     }, 1000);
     
-  }, [inputText, aiService, isInitialized, leftAI, rightAI, viewMode, continuedSide, hasBeenSaved, saveComparisonSession, expertModeConfigs, selectedModels]);
+  }, [inputText, aiService, isInitialized, leftAI, rightAI, viewMode, continuedSide, hasBeenSaved, saveComparisonSession, expertModeConfigs, selectedModels, isDemo, navigation.navigate]);
   
   const handleContinueWithLeft = useCallback(() => {
     if (!leftAI) return;
@@ -405,6 +413,10 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
         style={[styles.container, { backgroundColor: theme.colors.background }]}
         edges={['top', 'left', 'right', 'bottom']}
       >
+        <DemoBanner
+          subtitle="Sample comparisons only. Start a free trial for live runs."
+          onPress={() => showTrialCTA(navigation.navigate)}
+        />
         <Header
           variant="gradient"
           title="Comparing"

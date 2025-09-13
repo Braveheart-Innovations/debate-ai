@@ -265,7 +265,7 @@ export const TranscriptModal: React.FC<TranscriptModalProps> = ({
 <body>
   <div class="header">
     <h1>Symposium AI Transcript</h1>
-    <div class="meta"><strong>Topic:</strong> ${topic}</div>
+    <div class="meta"><strong>Motion:</strong> ${topic}</div>
     <div class="meta"><strong>Date:</strong> ${formattedDate}</div>
     <div class="participants">
       <strong>Participants:</strong> ${participants.map(p => p.name).join(' vs ')}

@@ -2,6 +2,10 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { useSelector } from 'react-redux';
 import { AIService } from '../services/aiAdapter';
 import { RootState } from '../store';
+import { setDemoModeEnabled } from '@/services/demo/demoMode';
+import { AI_PROVIDERS } from '@/config/aiProviders';
+import useFeatureAccess from '@/hooks/useFeatureAccess';
+import { AdapterFactory } from '@/services/ai';
 
 interface AIServiceContextType {
   aiService: AIService | null;
@@ -24,6 +28,7 @@ export const AIServiceProvider: React.FC<AIServiceProviderProps> = ({ children }
   const [error, setError] = useState<string | null>(null);
 
   const apiKeys = useSelector((state: RootState) => state.settings.apiKeys);
+  const { isDemo } = useFeatureAccess();
 
   const initializeService = useCallback(async () => {
     setIsLoading(true);
@@ -33,7 +38,24 @@ export const AIServiceProvider: React.FC<AIServiceProviderProps> = ({ children }
       // Small delay to ensure API keys are properly loaded
       await new Promise(resolve => setTimeout(resolve, 100));
       
+      // Toggle demo mode flag for downstream factory
+      setDemoModeEnabled(isDemo);
+
       const service = new AIService(apiKeys || {});
+      // In demo mode, seed adapters for all enabled providers so capability checks work
+      if (isDemo) {
+        const map = service.getAllAdapters();
+        AI_PROVIDERS.filter(p => p.enabled).forEach(p => {
+          try {
+            const adapter = AdapterFactory.create({
+              provider: p.id as never,
+              apiKey: 'demo',
+              model: 'demo-model',
+            });
+            map.set(p.id, adapter);
+          } catch { /* ignore */ }
+        });
+      }
       setAiService(service);
       setIsInitialized(true);
       
@@ -44,7 +66,7 @@ export const AIServiceProvider: React.FC<AIServiceProviderProps> = ({ children }
     } finally {
       setIsLoading(false);
     }
-  }, [apiKeys]);
+  }, [apiKeys, isDemo]);
 
   const reinitialize = useCallback(() => {
     setIsInitialized(false);

@@ -7,7 +7,7 @@ import { useTheme } from '../theme';
 
 const features = [
   'All Signature Styles + Seasonal Packs',
-  'Unlimited AI Debates & Custom Topics',
+  'Unlimited AI Debates & Custom Motions',
   'Expert Models & Cost Control',
   'Faster Streaming & Priority Access',
   'History, Transcript Export & Sharing',

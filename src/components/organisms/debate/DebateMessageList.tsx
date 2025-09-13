@@ -34,7 +34,8 @@ const detectType = (msg: Message): 'topic' | 'exchange-winner' | 'debate-complet
   // Check for other patterns
   if (content.includes('wins round') || content.includes('round winner')) return 'exchange-winner';
   // New exchange winner formats: "Opening: Name", "Rebuttal: Name", "Closing: Name", "Cross-examination: Name"
-  if (/^(opening|rebuttal|closing|cross[- ]?examination|counter|crossfire|question)\s*:\s*\S+/i.test(msg.content)) return 'exchange-winner';
+  // Backward-compat accepts "Opening Argument" and "Closing Argument"
+  if (/^(opening(?:\s+argument)?|rebuttal|closing(?:\s+argument)?|cross[- ]?examination|counter|crossfire|question)\s*:\s*\S+/i.test(msg.content)) return 'exchange-winner';
   if (content.includes('debate complete') || content.includes('debate has ended')) return 'debate-complete';
   if (content.includes('overall winner') || content.includes('winner is')) return 'overall-winner';
   if (msg.content.startsWith('"') && msg.content.includes('"')) return 'topic';

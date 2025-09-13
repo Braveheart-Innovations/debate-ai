@@ -42,12 +42,12 @@ export const useTopicSelection = (initialTopic?: string): UseTopicSelectionRetur
   // Validate current topic
   const validateCurrentTopic = useCallback((): { valid: boolean; error?: string } => {
     if (!finalTopic) {
-      return { valid: false, error: 'Please select or enter a topic' };
+      return { valid: false, error: 'Please select or enter a motion' };
     }
     
     // Simple length validation only; motion normalization handled elsewhere
     if (finalTopic.length === 0 || finalTopic.length > 200) {
-      return { valid: false, error: 'Topic must be between 1 and 200 characters' };
+      return { valid: false, error: 'Motion must be between 1 and 200 characters' };
     }
     
     return { valid: true };

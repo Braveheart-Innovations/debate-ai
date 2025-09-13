@@ -45,7 +45,7 @@ export const DEBATE_CONSTANTS = {
   // Prompt building
   PROMPT_MARKERS: {
     DEBATE_MODE: '[DEBATE MODE]',
-    TOPIC_PREFIX: 'Topic: ',
+    TOPIC_PREFIX: 'Motion: ',
     PREVIOUS_SPEAKER: 'The previous speaker said: ',
     FINAL_ARGUMENT: 'Make your final argument!',
     CONTINUE_DEBATE: 'Continue the debate!',

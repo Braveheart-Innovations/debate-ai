@@ -1,6 +1,8 @@
 import { AIAdapterConfig, AdapterCapabilities } from '../types/adapter.types';
 import { BaseAdapter } from '../base/BaseAdapter';
 import { AIProvider } from '../../../types';
+import { isDemoModeEnabled } from '@/services/demo/demoMode';
+import { VirtualDemoAdapter } from '../adapters/demo/VirtualDemoAdapter';
 
 // Import individual adapters
 import { ClaudeAdapter } from '../adapters/claude/ClaudeAdapter';
@@ -31,6 +33,12 @@ const ADAPTER_REGISTRY: Record<string, new (config: AIAdapterConfig) => BaseAdap
 
 export class AdapterFactory {
   static create(config: AIAdapterConfig): BaseAdapter {
+    // In Demo Mode, always return the virtual demo adapter (no network calls)
+    if (isDemoModeEnabled()) {
+      // Ensure model present for consistency
+      const model = config.model || 'demo-model';
+      return new VirtualDemoAdapter({ ...config, apiKey: config.apiKey || 'demo', model });
+    }
     const AdapterClass = ADAPTER_REGISTRY[config.provider];
     
     if (!AdapterClass) {
@@ -45,6 +53,9 @@ export class AdapterFactory {
    * This is the correct way to create adapters when the model is known
    */
   static createWithModel(config: AIAdapterConfig, model: string): BaseAdapter {
+    if (isDemoModeEnabled()) {
+      return new VirtualDemoAdapter({ ...config, apiKey: config.apiKey || 'demo', model });
+    }
     // All OpenAI models now use the same ChatGPTAdapter with Responses API
     if (config.provider === 'openai' || config.provider === 'chatgpt') {
       return new ChatGPTAdapter({ ...config, model });

@@ -29,6 +29,9 @@ import {
 } from '../components/organisms';
 import { VictoryCelebration } from '../components/organisms/debate/VictoryCelebration';
 import { TranscriptModal } from '../components/organisms/debate/TranscriptModal';
+import { DemoBanner } from '@/components/molecules/subscription/DemoBanner';
+import { getStreamingService } from '../services/streaming/StreamingService';
+import { showTrialCTA } from '@/utils/demoGating';
 // Topic block is now rendered inside header
 // Controls modal removed – using Start Over action directly
 
@@ -67,16 +70,24 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
   const handleStartDebate = async (topic?: string) => {
     const topicToUse = topic || topicSelection.finalTopic;
     if (!topicToUse) {
-      Alert.alert('Invalid Topic', 'Please select a valid topic');
+      Alert.alert('Invalid Motion', 'Please select a valid motion');
       return;
     }
     
     try {
       // Initialize debate session
+      // Merge any explicit personalities from setup with defaults on selected AIs
+      const explicit = initialPersonalities || {};
+      const defaultsFromAIs = selectedAIs.reduce((acc, ai) => {
+        if (ai.personality && !acc[ai.id]) acc[ai.id] = ai.personality;
+        return acc;
+      }, {} as { [aiId: string]: string });
+      const effectivePersonalities = { ...defaultsFromAIs, ...explicit };
+
       await session.initializeSession(
         topicToUse,
         selectedAIs,
-        initialPersonalities || {},
+        effectivePersonalities,
         { formatId: formatId || 'oxford', rounds: (exchanges || rounds || 3), civility: (civility as 1|2|3|4|5) || 1 }
       );
       
@@ -118,7 +129,15 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
   };
   
   // Handle Start Over with confirmation
+  const stopDebateNow = () => {
+    // Cancel any active streaming and scheduled turns immediately
+    try { getStreamingService().cancelAllStreams(); } catch { /* ignore cancel errors */ }
+    try { session.resetSession(); } catch { /* ignore reset errors */ }
+  };
+
   const handleStartOver = () => {
+    // Stop all activity immediately upon pressing Go Back/Start Over
+    stopDebateNow();
     Alert.alert(
       'Start Over?',
       'This will end the current debate and return to setup. Are you sure?',
@@ -126,13 +145,12 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
         {
           text: 'Cancel',
           style: 'cancel',
+          // No-op; debate remains stopped per requirement
         },
         {
           text: 'Start Over',
           style: 'destructive',
           onPress: () => {
-            // Reset session if needed
-            session.resetSession();
             // Navigate back to the Debate tab (DebateSetupScreen)
             navigation.navigate('MainTabs', { screen: 'DebateTab' });
           },
@@ -198,6 +216,10 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
           layout={Layout.springify()}
           style={{ flex: 1 }}
         >
+          <DemoBanner
+            subtitle="Pre‑recorded debates only in Demo. Start a free trial to create custom debates."
+            onPress={() => showTrialCTA(navigation.navigate)}
+          />
           <TopicSelector
             {...topicSelection}
             onStartDebate={handleStartDebate}
@@ -308,13 +330,13 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
       backgroundColor: theme.colors.background,
     }}>
       {(() => {
-        const displayedTopic = session.session?.topic || topicSelection.finalTopic || initialTopic || 'Debate Topic';
+        const displayedTopic = session.session?.topic || topicSelection.finalTopic || initialTopic || 'Debate Motion';
         const vsLine = selectedAIs.length >= 2 ? `${displayName(selectedAIs[0])} vs ${displayName(selectedAIs[1])}` : '';
         const subtitle = [vsLine].filter(Boolean).join('\n');
         return (
           <Header
             variant="gradient"
-            title={`Topic: ${displayedTopic}`}
+            title={`Motion: ${displayedTopic}`}
             subtitle={subtitle}
             showBackButton={true}
             onBack={handleStartOver}

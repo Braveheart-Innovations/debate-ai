@@ -113,17 +113,20 @@ export class GeminiAdapter extends BaseAdapter {
             'Content-Type': 'application/json',
             'x-goog-api-key': this.config.apiKey,
           },
-          body: JSON.stringify({
-            contents,
-            generationConfig: {
-              temperature: this.config.parameters?.temperature || 0.7,
-              maxOutputTokens: this.config.parameters?.maxTokens || 2048,
-              topP: this.config.parameters?.topP || 0.95,
-              topK: this.config.parameters?.topK || 40,
-            },
-          }),
+      body: JSON.stringify((() => {
+        const cfg: Record<string, unknown> = {
+          temperature: this.config.parameters?.temperature ?? 0.7,
+          topP: this.config.parameters?.topP ?? 0.95,
+          topK: this.config.parameters?.topK ?? 40,
+        };
+        // Do not enforce maxOutputTokens unless explicitly provided by Expert Mode
+        if (this.config.parameters?.maxTokens) {
+          cfg.maxOutputTokens = this.config.parameters.maxTokens;
         }
-      );
+        return { contents, generationConfig: cfg };
+      })()),
+      }
+    );
       
       if (!response.ok) {
         await this.handleApiError(response, 'Gemini');
@@ -169,15 +172,18 @@ export class GeminiAdapter extends BaseAdapter {
       }
     ];
     
-    const requestBody = JSON.stringify({
-      contents,
-      generationConfig: {
-        temperature: this.config.parameters?.temperature || 0.7,
-        maxOutputTokens: this.config.parameters?.maxTokens || 2048,
-        topP: this.config.parameters?.topP || 0.95,
-        topK: this.config.parameters?.topK || 40,
-      },
-    });
+    const requestBody = JSON.stringify((() => {
+      const cfg: Record<string, unknown> = {
+        temperature: this.config.parameters?.temperature ?? 0.7,
+        topP: this.config.parameters?.topP ?? 0.95,
+        topK: this.config.parameters?.topK ?? 40,
+      };
+      // Do not enforce maxOutputTokens unless explicitly provided by Expert Mode
+      if (this.config.parameters?.maxTokens) {
+        cfg.maxOutputTokens = this.config.parameters.maxTokens;
+      }
+      return { contents, generationConfig: cfg };
+    })());
     
     // Create EventSource for SSE streaming
     // Note: EventSource in React Native may not support custom headers properly,

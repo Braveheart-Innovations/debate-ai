@@ -37,7 +37,7 @@ export const TopicSelector: React.FC<TopicSelectorProps> = ({
   const handleStartDebate = () => {
     const validation = validateCurrentTopic();
     if (!validation.valid) {
-      Alert.alert('Invalid Topic', validation.error || 'Please select a valid topic');
+      Alert.alert('Invalid Motion', validation.error || 'Please select a valid motion');
       return;
     }
     onStartDebate();
@@ -56,7 +56,7 @@ export const TopicSelector: React.FC<TopicSelectorProps> = ({
     >
       <Typography variant="title" weight="semibold">Choose Your Battle!</Typography>
       
-      {/* Topic Mode Selector */}
+      {/* Motion Mode Selector */}
       <Box style={{
         flexDirection: 'row',
         gap: 8,
@@ -64,7 +64,7 @@ export const TopicSelector: React.FC<TopicSelectorProps> = ({
         marginTop: 16,
       }}>
         <Button
-          title="📋 Select Topic"
+          title="📋 Select Motion"
           onPress={() => {
             setTopicMode('preset');
             setSelectedTopic('');
@@ -76,7 +76,7 @@ export const TopicSelector: React.FC<TopicSelectorProps> = ({
         />
         
         <Button
-          title="✏️ Custom Topic"
+          title="✏️ Custom Motion"
           onPress={() => {
             setTopicMode('custom');
             setSelectedTopic('');
@@ -105,7 +105,7 @@ export const TopicSelector: React.FC<TopicSelectorProps> = ({
             onPress={() => setShowTopicDropdown(!showTopicDropdown)}
           >
             <Typography style={{ flex: 1, fontSize: 15 }}>
-              {selectedTopic || 'Select a debate topic...'}
+              {selectedTopic || 'Select a debate motion...'}
             </Typography>
             <Typography style={{ 
               fontSize: 14, 
@@ -156,7 +156,7 @@ export const TopicSelector: React.FC<TopicSelectorProps> = ({
             </Animated.View>
           )}
 
-          {/* Random Topic Button */}
+          {/* Random Motion Button */}
           <GradientButton
             title="🎲 Surprise Me!"
             onPress={() => {
@@ -170,7 +170,7 @@ export const TopicSelector: React.FC<TopicSelectorProps> = ({
         </>
       ) : (
         <>
-          {/* Custom Topic Input */}
+          {/* Custom Motion Input */}
           <TextInput
             style={{
               backgroundColor: theme.colors.surface,
@@ -184,7 +184,7 @@ export const TopicSelector: React.FC<TopicSelectorProps> = ({
               minHeight: 60,
               textAlignVertical: 'top',
             }}
-            placeholder="Enter your debate topic..."
+            placeholder="Enter your debate motion..."
             placeholderTextColor={theme.colors.text.disabled}
             value={customTopic}
             onChangeText={setCustomTopic}
@@ -192,7 +192,7 @@ export const TopicSelector: React.FC<TopicSelectorProps> = ({
             numberOfLines={2}
           />
           <GradientButton
-            title="Use This Topic"
+            title="Use This Motion"
             onPress={() => customTopic && setSelectedTopic(customTopic)}
             disabled={!customTopic}
             gradient={theme.colors.gradients.primary}
@@ -215,7 +215,7 @@ export const TopicSelector: React.FC<TopicSelectorProps> = ({
           shadowRadius: 8,
           elevation: 2,
         }}>
-          <Typography variant="caption" color="brand" weight="medium">Topic:</Typography>
+          <Typography variant="caption" color="brand" weight="medium">Motion:</Typography>
           <Typography variant="title" weight="semibold">
             "{finalTopic}"
           </Typography>

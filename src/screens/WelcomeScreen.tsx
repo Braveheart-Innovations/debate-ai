@@ -124,7 +124,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
       icon: { type: 'material-community', name: 'sword-cross' },
       gradient: theme.colors.gradients.sunset,
       title: 'AI Debate Arena',
-      description: 'Watch AIs debate topics in real-time. **Premium**: Create debates on ANY topic you choose.',
+      description: 'Watch AIs debate motions in real-time. **Premium**: Create debates on ANY motion you choose.',
       premiumType: 'partial' as const,
     },
     // Row 2
@@ -327,7 +327,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
               <View style={styles.bulletRow}>
                 <MaterialIcons name="check-circle" size={16} color={theme.colors.success[500]} style={{ marginRight: 8 }} />
                 <Typography variant="caption" color="secondary" style={{ flex: 1 }}>
-                  Create custom Debates or choose from numerous preset topics
+                  Create custom Debates or choose from numerous preset motions
                 </Typography>
               </View>
               <View style={styles.bulletRow}>

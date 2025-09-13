@@ -118,7 +118,7 @@ export const TopicBadgeList: React.FC<TopicBadgeListProps> = ({
   if (displayTopics.length === 0) {
     return (
       <Typography variant="caption" color="secondary" style={{ fontStyle: 'italic' }}>
-        No topics yet
+        No motions yet
       </Typography>
     );
   }
@@ -130,7 +130,7 @@ export const TopicBadgeList: React.FC<TopicBadgeListProps> = ({
         weight="semibold"
         style={{ color: theme.colors.primary[500], marginBottom: 8 }}
       >
-        Top Topics:
+        Top Motions:
       </Typography>
       <View style={styles.container}>
         {displayTopics.map(({ topic, wins, participations }, index) => (

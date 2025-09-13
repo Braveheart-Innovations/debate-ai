@@ -56,7 +56,7 @@ export const SurpriseTopicDisplay: React.FC<SurpriseTopicDisplayProps> = ({
             color="secondary" 
             weight="semibold"
           >
-            🎲 Random Topic Selected:
+            🎲 Random Motion Selected:
           </Typography>
           
           {!disabled && (
@@ -75,7 +75,7 @@ export const SurpriseTopicDisplay: React.FC<SurpriseTopicDisplayProps> = ({
                   textDecorationLine: 'underline',
                 }}
               >
-                {isGenerating ? 'Generating...' : 'New Topic'}
+                {isGenerating ? 'Generating...' : 'New Motion'}
               </Typography>
             </TouchableOpacity>
           )}
@@ -132,13 +132,13 @@ export const SurpriseTopicDisplay: React.FC<SurpriseTopicDisplayProps> = ({
                 flex: 1,
               }}
             >
-              Press "New Topic" for a different one
+              Press "New Motion" for a different one
             </Typography>
           )}
           
           {!disabled && (
             <Button
-              title={isGenerating ? 'Rolling...' : '🎲 New Topic'}
+              title={isGenerating ? 'Rolling...' : '🎲 New Motion'}
               onPress={onRegenerate}
               variant="ghost"
               size="small"

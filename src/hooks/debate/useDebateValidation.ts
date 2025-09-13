@@ -25,8 +25,8 @@ export const useDebateValidation = (
     if (!topicToValidate || topicToValidate.trim().length === 0) {
       return {
         isValid: false,
-        message: 'Topic is required',
-        errors: ['Please select or enter a debate topic'],
+        message: 'Motion is required',
+        errors: ['Please select or enter a debate motion'],
         warnings: [],
       };
     }
@@ -159,7 +159,7 @@ export const useDebateValidation = (
   // Get next required action
   const getNextAction = (): string | null => {
     if (!topicValidation.isValid) {
-      return 'Select or enter a valid debate topic';
+      return 'Select or enter a valid debate motion';
     }
     
     if (!aiValidation.isValid) {

@@ -1,0 +1,24 @@
+{
+  "version": "1",
+  "locale": "en-US",
+  "chats": [
+    {
+      "id": "chat_kyoto_itinerary",
+      "title": "Plan a 3-day Kyoto itinerary",
+      "events": [
+        { "type": "message", "role": "user", "content": "Plan a 3-day itinerary for Kyoto with temples and coffee shops." },
+        { "type": "stream", "role": "assistant", "content": "Absolutely — here’s a focused, walkable plan:" },
+        { "type": "stream", "role": "assistant", "content": "\n\nDay 1: Fushimi Inari → Kiyomizu-dera → Gion" },
+        { "type": "stream", "role": "assistant", "content": "\nDay 2: Arashiyama Bamboo Grove → Tenryu-ji → Nishiki Market" },
+        { "type": "stream", "role": "assistant", "content": "\nDay 3: Philosopher’s Path → Ginkaku-ji → %AROMA% coffee" }
+      ],
+      "tags": ["travel", "sample"]
+    }
+  ],
+  "debates": [],
+  "compares": [],
+  "historyRefs": [],
+  "assets": {},
+  "meta": { "build": "demo-v1", "createdAt": "2025-09-11T00:00:00Z" }
+}
+

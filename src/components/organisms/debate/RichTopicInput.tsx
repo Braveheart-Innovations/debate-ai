@@ -19,7 +19,7 @@ export const RichTopicInput: React.FC<RichTopicInputProps> = ({
   value,
   onChange,
   maxLength = 200,
-  placeholder = "Enter your custom debate topic...",
+  placeholder = "Enter your custom debate motion...",
 }) => {
   const { theme } = useTheme();
   const [isFocused, setIsFocused] = useState(false);

@@ -110,10 +110,10 @@ export interface WelcomeToStatsProps { isFirstVisit?: boolean; showTips?: boolea
 export const WelcomeToStats: React.FC<WelcomeToStatsProps> = ({ showTips = true, onStartDebate }) => {
   const { theme } = useTheme();
   const tips = [
-    '📊 Track AI performance across different debate topics',
+    '📊 Track AI performance across different debate motions',
     '🏆 See which AIs have the highest win rates',
     '📈 Monitor round-by-round statistics and trends',
-    "🎯 Discover each AI's strongest topics",
+    "🎯 Discover each AI's strongest motions",
     '📜 Review your complete debate history',
   ];
   return (
@@ -124,7 +124,7 @@ export const WelcomeToStats: React.FC<WelcomeToStatsProps> = ({ showTips = true,
         </View>
         <Typography variant="title" weight="bold" align="center" style={styles.title}>Welcome to AI Performance Stats!</Typography>
         <Typography variant="body" color="secondary" align="center" style={styles.subtitle}>
-          Start debating to see detailed analytics about AI performance, win rates, and topic expertise.
+          Start debating to see detailed analytics about AI performance, win rates, and motion expertise.
         </Typography>
         {showTips && (
           <View style={styles.tipsContainer}>
@@ -158,4 +158,3 @@ const styles = StyleSheet.create({
   tipsTitle: { marginBottom: 12, textAlign: 'center' },
   tipItem: { marginBottom: 8 },
 });
-

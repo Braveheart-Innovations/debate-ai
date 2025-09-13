@@ -41,7 +41,7 @@ export const DebateSetupSummary: React.FC<DebateSetupSummaryProps> = ({
         borderColor: theme.colors.primary[200],
       }}>
         <Typography variant="caption" color="secondary" style={{ marginBottom: 4 }}>
-          Selected Topic:
+          Selected Motion:
         </Typography>
         <Typography variant="body" weight="semibold">
           {displayTopic}
@@ -105,12 +105,12 @@ export const DebateSetupSummary: React.FC<DebateSetupSummaryProps> = ({
         </View>
       </View>
       
-      {/* Topic Mode Indicator */}
+      {/* Motion Mode Indicator */}
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <Typography variant="caption" color="secondary">
-          {topicMode === 'custom' && '✏️ Custom Topic'}
-          {topicMode === 'preset' && '📋 Preset Topic'}
-          {topicMode === 'surprise' && '🎲 Surprise Topic'}
+          {topicMode === 'custom' && '✏️ Custom Motion'}
+          {topicMode === 'preset' && '📋 Preset Motion'}
+          {topicMode === 'surprise' && '🎲 Surprise Motion'}
         </Typography>
       </View>
     </View>

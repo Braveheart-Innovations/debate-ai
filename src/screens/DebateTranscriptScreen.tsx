@@ -20,16 +20,16 @@ const DebateTranscriptScreen: React.FC<DebateTranscriptScreenProps> = ({ navigat
   const { session } = route.params;
   
   // Use stored topic first, fall back to extraction for older sessions
-  let topic = session.topic || 'Unknown Topic';
+  let topic = session.topic || 'Unknown Motion';
   
   if (!session.topic) {
     // For older sessions without stored topic, extract from host message
     const topicMessage = session.messages.find(m => m.sender === 'Debate Host');
     if (topicMessage) {
       const topicMatch = topicMessage.content.match(/^"([^"]+)"/);
-      topic = topicMatch ? topicMatch[1] : 'Unknown Topic';
+      topic = topicMatch ? topicMatch[1] : 'Unknown Motion';
     }
-    console.warn('No topic field in session, extracted:', topic);
+    console.warn('No motion (topic) field in session, extracted:', topic);
   }
   
   // Extract winner and scores from the final host message

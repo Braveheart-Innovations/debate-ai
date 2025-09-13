@@ -26,7 +26,7 @@ export const SessionCard: React.FC<SessionCardProps> = ({
     if (sessionType === 'debate') {
       // For debates, show the topic - first check if stored as attribute
       if (session.topic) {
-        return `Topic: ${session.topic}`;
+        return `Motion: ${session.topic}`;
       }
       // Fall back to extracting from host message for older sessions
       const topicMessage = session.messages.find(m => m.sender === 'Debate Host');
@@ -34,7 +34,7 @@ export const SessionCard: React.FC<SessionCardProps> = ({
         // Extract topic from the host message (topic is in quotes at the start)
         const topicMatch = topicMessage.content.match(/^"([^"]+)"/);
         const topic = topicMatch ? topicMatch[1] : 'Debate';
-        return `Topic: ${topic}`;
+        return `Motion: ${topic}`;
       }
       return 'Debate completed';
     } else if (sessionType === 'comparison') {

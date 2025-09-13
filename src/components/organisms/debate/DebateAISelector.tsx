@@ -61,7 +61,7 @@ export const DebateAISelector: React.FC<DebateAISelectorProps> = ({
         }}
       >
         <Typography variant="body" style={{ marginRight: 8 }}>←</Typography>
-        <Typography variant="body" color="secondary">Back to Topic</Typography>
+        <Typography variant="body" color="secondary">Back to Motion</Typography>
       </TouchableOpacity>
       
       {/* Removed Selected Topic display per request */}
@@ -93,7 +93,7 @@ export const DebateAISelector: React.FC<DebateAISelectorProps> = ({
       
       {/* Secondary Back Button */}
       <Button
-        title="← Back to Topic Selection"
+        title="← Back to Motion Selection"
         onPress={onBack}
         variant="ghost"
         fullWidth

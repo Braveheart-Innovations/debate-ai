@@ -30,7 +30,7 @@ export const PresetTopicsModal: React.FC<PresetTopicsModalProps> = ({ visible, o
           overflow: 'hidden',
           ...Platform.select({ ios: { shadowColor: '#000', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.25, shadowRadius: 10 }, android: { elevation: 10 } })
         }}>
-          <SheetHeader title="Choose a Preset Topic" onClose={onClose} showHandle />
+          <SheetHeader title="Choose a Preset Motion" onClose={onClose} showHandle />
 
           {/* Category chips */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ padding: theme.spacing.lg, paddingBottom: 0 }}>

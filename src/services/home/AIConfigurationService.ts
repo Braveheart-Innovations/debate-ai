@@ -2,6 +2,7 @@ import { AIConfig, AIProvider } from '../../types';
 import { AI_PROVIDERS } from '../../config/aiProviders';
 import { AI_MODELS } from '../../config/modelConfigs';
 import { getAIProviderIcon } from '../../utils/aiProviderAssets';
+import { isDemoModeEnabled } from '@/services/demo/demoMode';
 // Type guards available for future validation needs
 
 /**
@@ -16,9 +17,10 @@ export class AIConfigurationService {
    * @returns Array of configured AI configurations
    */
   static getConfiguredAIs(apiKeys: Record<string, unknown>): AIConfig[] {
-    return AI_PROVIDERS
-      .filter(provider => this.isProviderAvailable(provider, apiKeys))
-      .map(provider => this.transformProviderToConfig(provider));
+    const providers = isDemoModeEnabled()
+      ? AI_PROVIDERS.filter(p => p.enabled)
+      : AI_PROVIDERS.filter(provider => this.isProviderAvailable(provider, apiKeys));
+    return providers.map(provider => this.transformProviderToConfig(provider));
   }
 
   /**
@@ -32,6 +34,7 @@ export class AIConfigurationService {
     provider: typeof AI_PROVIDERS[0], 
     apiKeys: Record<string, unknown>
   ): boolean {
+    if (isDemoModeEnabled()) return provider.enabled;
     return provider.enabled && !!apiKeys[provider.id];
   }
 

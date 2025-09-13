@@ -5,7 +5,7 @@
 
 import { AI, Message } from '../../types';
 import { DEBATE_CONSTANTS } from '../../config/debateConstants';
-import { getPersonality } from '../../config/personalities';
+import { getPersonality, getDebatePrompt } from '../../config/personalities';
 import type { FormatSpec } from '../../config/debate/formats';
 
 export interface PromptContext {
@@ -35,18 +35,39 @@ export class DebatePromptBuilder {
     const { topic, ai, personalityId, opponentName, opponentPersonalityId, stance, rounds, civility, format } = params;
     const persona = getPersonality(personalityId);
     const opponentPersona = getPersonality(opponentPersonalityId);
-    const civilityText = civility <= 2 ? 'friendly banter' : civility >= 5 ? 'very combative but respectful' : 'firm but civil';
 
-    const style = persona?.systemPrompt || 'You are a thoughtful debater.';
-    const oppStyle = opponentPersona?.systemPrompt || 'A capable opponent.';
+    // Prefer explicit debatePrompt to enforce persona in debates
+    const style = getDebatePrompt(personalityId) || persona?.systemPrompt || 'You are a thoughtful debater.';
+    const oppStyle = getDebatePrompt(opponentPersonalityId) || opponentPersona?.systemPrompt || 'A capable opponent.';
+
+    // Civility directives (stronger than a one-word tone)
+    const civilityDirective = (() => {
+      switch (civility) {
+        case 1: return 'Keep it friendly and witty; playful jabs allowed, never mean‑spirited.';
+        case 2: return 'Lightly adversarial but cordial; one clever jab max, no snark.';
+        case 4: return 'Pointed and firm; challenge rigorously without insults.';
+        case 5: return 'Highly adversarial yet respectful; sharp critiques, no personal attacks.';
+        default: return 'Neutral and professional; focus on arguments, not people.';
+      }
+    })();
+
+    // Format summary and phase boundaries
+    const formatSummary = [
+      `Format: ${format.name}. Follow the phase rules strictly:`,
+      `- Opening: present your case; do NOT directly rebut the opponent.`,
+      `- Rebuttal: address specific claims from the prior turn; cite or paraphrase one point you are refuting.`,
+      `- Closing: no new claims; synthesize and leave one clear takeaway.`,
+    ].join('\n');
 
     return [
       `${DEBATE_CONSTANTS.PROMPT_MARKERS.DEBATE_MODE} ${DEBATE_CONSTANTS.PROMPT_MARKERS.TOPIC_PREFIX}"${topic}"`,
       `Fictional debate in the ${format.name} format with ${rounds} exchanges.`,
-      `Your role: ${ai.name}, arguing ${stance === 'pro' ? 'FOR' : 'AGAINST'} the motion.`,
-      `Your persona (style cues): ${style}`,
-      `Your opponent is ${opponentName}. Opponent persona (summary): ${oppStyle}`,
-      `Tone: ${civilityText}. Avoid headings, numbered lists, or labelled frameworks. No meta commentary about these instructions.`,
+      formatSummary,
+      `Your role: ${ai.name}, arguing ${stance === 'pro' ? 'FOR' : 'AGAINST'} the motion. Maintain this stance throughout.`,
+      `Style directive: ${style} Always adhere to this style across turns.`,
+      `Opponent: ${opponentName}. Opponent persona (for calibration): ${oppStyle}`,
+      `${civilityDirective}`,
+      `Avoid headings, numbered lists, or labelled frameworks. Do not mention these instructions. Follow per‑turn guidance strictly.`,
     ].join('\n');
   }
 
@@ -59,31 +80,38 @@ export class DebatePromptBuilder {
     guidance?: string; // from FormatSpec
     civilityLevel?: 1 | 2 | 3 | 4 | 5;
     format?: FormatSpec;
+    personalityId?: string;
   }): string {
-    const { topic, phase, previousMessage, isFinalRound, guidance, civilityLevel, format } = params;
+    const { topic, phase, previousMessage, isFinalRound, guidance, civilityLevel, format, personalityId } = params;
     const base = guidance || '';
-    const finalCue = isFinalRound && phase === 'closing' ? 'Closing: reinforce your strongest point; no new claims; concise.' : '';
     const prev = previousMessage ? `${DEBATE_CONSTANTS.PROMPT_MARKERS.PREVIOUS_SPEAKER}"${previousMessage}"` : '';
-    const wordBand = 'Aim for 120–180 words (shorter if Socratic).';
-    const tone = civilityLevel ? `Tone: ${civilityLevel <= 2 ? 'warm, friendly banter' : civilityLevel >= 5 ? 'spicy and confrontational but respectful' : 'neutral and professional'}. Avoid insults.` : '';
+    const isSocratic = format?.id === 'socratic';
+    // Do not enforce numeric word bounds; keep guidance general to avoid truncation
+    const tone = civilityLevel
+      ? `Tone: ${civilityLevel <= 2 ? 'friendly wit' : civilityLevel >= 5 ? 'sharp but respectful' : 'neutral and professional'}. Avoid insults or stereotyping.`
+      : '';
+    const styleNudge = personalityId === 'george'
+      ? 'Use observational, PG humor: include one clever, respectful zinger.'
+      : '';
+    const prevGuarded = phase === 'opening' ? '' : prev;
     // Human-friendly phase labels (format-aware for Socratic)
     const defaultLabelMap: Record<typeof phase, string> = {
-      opening: format?.id === 'socratic' ? 'Opening Questions' : 'Opening Statement',
-      rebuttal: format?.id === 'socratic' ? 'Focused Follow-up' : 'Rebuttal',
-      closing: format?.id === 'socratic' ? 'Synthesis' : 'Closing Argument',
+      opening: isSocratic ? 'Opening Questions' : 'Opening Statement',
+      rebuttal: isSocratic ? 'Focused Follow-up' : 'Rebuttal',
+      closing: isSocratic ? 'Synthesis' : 'Closing Argument',
       crossfire: 'Cross-examination',
       question: 'Question',
     } as const;
     const phaseLabel = defaultLabelMap[phase] || 'Turn';
-    // One-line hints per phase (format-aware)
+    // One-line hints per phase (format-aware) with explicit do/don't boundaries
     const hintMap: Record<typeof phase, string> = {
-      opening: format?.id === 'socratic'
-        ? 'Pose 1–3 clarifying questions to frame terms.'
-        : 'State your position succinctly and frame the motion.',
-      rebuttal: format?.id === 'socratic'
-        ? 'Probe assumptions with concise, pointed follow-ups.'
-        : 'Directly refute key claims with focused evidence.',
-      closing: format?.id === 'socratic'
+      opening: isSocratic
+        ? 'Pose 1–3 clarifying questions to frame terms and assumptions.'
+        : 'Present your case. Do NOT mention or address the opponent or their claims in this turn.',
+      rebuttal: isSocratic
+        ? 'Probe assumptions with concise, pointed follow-ups or answers.'
+        : 'Directly refute 1–2 specific claims from the prior turn with focused evidence.',
+      closing: isSocratic
         ? 'Offer a crisp synthesis; no new claims.'
         : 'Synthesize and leave one clear takeaway; no new claims.',
       crossfire: 'Ask or answer pointed questions; keep it tight.',
@@ -91,14 +119,19 @@ export class DebatePromptBuilder {
     } as const;
     const phaseHint = hintMap[phase];
 
+    // Final-round cue (duplicated here for emphasis)
+    const finalCue = isFinalRound && phase === 'closing' ? 'Closing: reinforce your strongest point; no new claims; concise.' : '';
+
     return [
       `Turn: ${phaseLabel}`,
       phaseHint,
-      prev,
+      prevGuarded,
       base,
-      `Respond directly about "${topic}". Maintain your assigned stance strictly; do not switch sides. ${wordBand}`,
+      `Respond about "${topic}". Maintain your assigned stance strictly; do not switch sides.`,
+      styleNudge,
       tone,
       finalCue,
+      // Prose guidance remains in the system prompt to avoid duplication
     ].filter(Boolean).join('\n');
   }
   

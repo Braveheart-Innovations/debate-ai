@@ -18,6 +18,7 @@ import { getPersonality } from '../../config/personalities';
 import { getStreamingService } from '../../services/streaming/StreamingService';
 import type { ResumptionContext } from '../../services/aiAdapter';
 import { getExpertOverrides } from '../../utils/expertMode';
+import useFeatureAccess from '@/hooks/useFeatureAccess';
 
 export interface AIResponsesHook {
   typingAIs: string[];
@@ -54,6 +55,7 @@ export const useAIResponsesWithStreaming = (isResuming?: boolean): AIResponsesHo
 
   const messages = currentSession?.messages || [];
   const selectedAIs = currentSession?.selectedAIs || [];
+  const { isDemo } = useFeatureAccess();
   
   // Track if this is the first message after resuming
   const [hasResumed, setHasResumed] = useState(false);
@@ -171,7 +173,7 @@ export const useAIResponsesWithStreaming = (isResuming?: boolean): AIResponsesHo
           let streamedContent = '';
 
           // Get API key for this provider
-          const apiKey = apiKeys[ai.provider];
+          const apiKey = apiKeys[ai.provider] || (isDemo ? 'demo' : undefined);
           if (!apiKey) {
             throw new Error(`No API key configured for ${ai.provider}`);
           }

@@ -205,6 +205,15 @@ export class VotingService {
    * Derive the human-friendly exchange label (e.g., Opening, Rebuttal, Closing)
    */
   private getExchangeLabel(round: number): string {
+    // Canonical labels for 3 exchanges
+    if (this.maxRounds === 3) {
+      const MAP_3: Record<number, string> = {
+        1: 'Opening',
+        2: 'Rebuttal',
+        3: 'Closing',
+      };
+      return MAP_3[round] || 'Exchange';
+    }
     // If the debate uses 5 exchanges, provide canonical labels
     if (this.maxRounds === 5) {
       const MAP_5: Record<number, string> = {

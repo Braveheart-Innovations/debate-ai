@@ -9,7 +9,7 @@ import {
 import EventSource, { CustomEvent } from 'react-native-sse';
 
 // Define Claude's custom SSE event types
-type ClaudeEventTypes = 'message_start' | 'content_block_start' | 'content_block_delta' | 'content_block_stop' | 'message_stop' | 'ping';
+type ClaudeEventTypes = 'message_start' | 'content_block_start' | 'content_block_delta' | 'content_block_stop' | 'message_stop' | 'ping' | 'message';
 
 export class ClaudeAdapter extends BaseAdapter {
   private lastModelUsed?: string;
@@ -167,7 +167,9 @@ export class ClaudeAdapter extends BaseAdapter {
     conversationHistory: Message[] = [],
     attachments?: MessageAttachment[],
     resumptionContext?: ResumptionContext,
-    modelOverride?: string
+    modelOverride?: string,
+    abortSignal?: AbortSignal,
+    onEvent?: (event: unknown) => void
   ): AsyncGenerator<string, void, unknown> {
     const modelId = modelOverride || 
                    resolveModelAlias(this.config.model || getDefaultModel('claude'));
@@ -204,6 +206,23 @@ export class ClaudeAdapter extends BaseAdapter {
     
     // Queue to handle SSE events
     const eventQueue: string[] = [];
+    // Keep a rolling tail of what we've already emitted to dedupe any accidental repeats
+    let outputTail = '';
+    const MAX_TAIL = 100;
+    const dedupeChunk = (text: string): string => {
+      if (!text) return text;
+      if (!outputTail) return text;
+      const maxOverlap = Math.min(outputTail.length, text.length, MAX_TAIL);
+      for (let k = maxOverlap; k > 0; k--) {
+        if (outputTail.slice(-k) === text.slice(0, k)) {
+          return text.slice(k);
+        }
+      }
+      return text;
+    };
+    // Track activity to prevent tail-hangs if a terminal event is dropped
+    let blockStoppedAt: number | null = null;
+    const IDLE_TIMEOUT_MS = 20000; // Be tolerant: end only if idle >20s (prevents truncation)
     let resolver: ((value: IteratorResult<string, void>) => void) | null = null;
     let isComplete = false;
     let errorOccurred: Error | null = null;
@@ -215,21 +234,38 @@ export class ClaudeAdapter extends BaseAdapter {
         const data = JSON.parse(event.data || '{}');
           
         if (data.delta?.text) {
-          if (resolver) {
-            resolver({ value: data.delta.text, done: false });
-            resolver = null;
+          const nextText = dedupeChunk(data.delta.text);
+          if (nextText) {
+            if (resolver) {
+              resolver({ value: nextText, done: false });
+              resolver = null;
+            } else {
+              eventQueue.push(nextText);
+            }
+            // Update rolling tail
+            outputTail = (outputTail + nextText).slice(-MAX_TAIL);
           } else {
-            eventQueue.push(data.delta.text);
+            // Pure duplicate; ignore
+            resolver = null;
           }
         }
+        if (onEvent) onEvent({ type: 'content_block_delta', ...data });
       } catch (error) {
         console.error('[ClaudeAdapter] Error parsing content_block_delta:', error);
       }
     });
     
+    // Mark content block completion (sometimes message_stop can be delayed)
+    es.addEventListener('content_block_stop', (event: CustomEvent<'content_block_stop'>) => {
+      blockStoppedAt = Date.now();
+      try { if (onEvent) onEvent({ type: 'content_block_stop', ...(event?.data ? JSON.parse(event.data) : {}) }); } catch { /* noop */ }
+    });
+    
     // Handle message_stop event for stream completion
     es.addEventListener('message_stop', () => {
       isComplete = true;
+      // Close the stream proactively
+      try { es.close(); } catch { /* noop */ }
       if (resolver) {
         resolver({ value: undefined, done: true });
         resolver = null;
@@ -237,12 +273,47 @@ export class ClaudeAdapter extends BaseAdapter {
     });
     
     // Handle other SSE events
-    es.addEventListener('message_start', () => {});
-    es.addEventListener('content_block_start', () => {});
-    es.addEventListener('content_block_stop', () => {});
+    es.addEventListener('message_start', (event: CustomEvent<'message_start'>) => {
+      blockStoppedAt = null;
+      if (onEvent) {
+        try { onEvent({ type: 'message_start', ...(event?.data ? JSON.parse(event.data) : {}) }); } catch { /* noop */ }
+      }
+    });
+    es.addEventListener('content_block_start', (event: CustomEvent<'content_block_start'>) => {
+      blockStoppedAt = null;
+      if (onEvent) {
+        try { onEvent({ type: 'content_block_start', ...(event?.data ? JSON.parse(event.data) : {}) }); } catch { /* noop */ }
+      }
+    });
+    // Non-typed events like message_delta aren't declared in ClaudeEventTypes, but react-native-sse can emit them
+    // We attach via 'message' and forward if present in payload.
+    es.addEventListener('message', (evt: CustomEvent<'message'>) => {
+      try {
+        const data = evt?.data ? JSON.parse(evt.data) : {};
+        const t = data?.type as string | undefined;
+        if (t && onEvent) onEvent(data);
+      } catch { /* ignore parse issues */ }
+    });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     es.addEventListener('ping' as any, () => {}); // Keep-alive signals
     
+    // Support external cancellation quickly
+    const abortHandler = () => {
+      try { es.close(); } catch { /* noop */ }
+      isComplete = true;
+      if (resolver) {
+        resolver({ value: undefined, done: true });
+        resolver = null;
+      }
+    };
+    if (abortSignal) {
+      if (abortSignal.aborted) {
+        abortHandler();
+      } else {
+        abortSignal.addEventListener('abort', abortHandler);
+      }
+    }
+
     // Handle errors
     es.addEventListener('error', (error) => {
       console.error('[ClaudeAdapter] SSE error event:', error);
@@ -337,17 +408,21 @@ export class ClaudeAdapter extends BaseAdapter {
             buffer = '';
           }
           
-          // Wait for next event
+          // Wait for next event, with idle timeout so we don't hang on missing message_stop
           const result = await new Promise<IteratorResult<string, void>>((resolve) => {
             resolver = resolve;
-            // Set a timeout to prevent hanging
-            setTimeout(() => {
+            // Idle timeout watchdog
+            const timeoutMs = IDLE_TIMEOUT_MS;
+            const timeout = setTimeout(() => {
               if (resolver === resolve) {
                 resolve({ value: undefined, done: true });
                 resolver = null;
                 isComplete = true;
               }
-            }, 30000); // 30 second timeout
+            }, timeoutMs);
+            // If we get resolved normally, clear the timer (best-effort next tick)
+            const r0 = resolver;
+            setTimeout(() => { if (resolver !== r0) clearTimeout(timeout); }, 0);
           });
           
           // Check for errors after waiting
@@ -377,6 +452,11 @@ export class ClaudeAdapter extends BaseAdapter {
         }
       }
       
+      // Idle-guard: if we saw content_block_stop and no deltas after a short grace, end
+      if (!isComplete && blockStoppedAt && Date.now() - blockStoppedAt > 500) {
+        isComplete = true;
+      }
+
       // Flush any remaining buffer
       if (buffer.length > 0) {
         yieldCount++;
@@ -389,7 +469,10 @@ export class ClaudeAdapter extends BaseAdapter {
       }
       
     } finally {
-      es.close();
+      try { es.close(); } catch { /* noop */ }
+      if (abortSignal) {
+        try { abortSignal.removeEventListener('abort', abortHandler); } catch { /* noop */ }
+      }
     }
   }
 }

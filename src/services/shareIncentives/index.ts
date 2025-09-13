@@ -39,7 +39,7 @@ const MILESTONES: ShareMilestone[] = [
     count: 5,
     reward: 'premium_topics_24h',
     title: 'Super Sharer',
-    message: 'You\'ve unlocked premium debate topics for 24 hours!',
+    message: 'You\'ve unlocked premium debate motions for 24 hours!',
     icon: '🏆',
   },
   {

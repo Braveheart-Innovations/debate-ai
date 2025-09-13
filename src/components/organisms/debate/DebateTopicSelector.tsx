@@ -72,18 +72,18 @@ export const DebateTopicSelector: React.FC<DebateTopicSelectorProps> = ({
         </View>
       )}
       
-      {/* Topic action buttons: Preset | Custom | Surprise */}
+      {/* Motion action buttons: Preset | Custom | Surprise */}
       <View style={{ marginBottom: compact ? theme.spacing.lg : theme.spacing.xl }}>
         <View style={{ flexDirection: 'row', marginBottom: theme.spacing.sm, gap: theme.spacing.sm }}>
           <Button
-            title="Preset Topics"
+            title="Preset Motions"
             onPress={() => setPresetVisible(true)}
             variant="tonal"
             size="medium"
             style={{ flex: 1 }}
           />
           <Button
-            title="Custom Topic"
+            title="Custom Motion"
             onPress={() => { onTopicModeChange('custom'); onTopicSelect(''); }}
             variant={topicMode === 'custom' ? 'primary' : 'tonal'}
             size="medium"
@@ -104,7 +104,7 @@ export const DebateTopicSelector: React.FC<DebateTopicSelectorProps> = ({
       <Animated.View layout={Layout.duration(300)} style={{ minHeight: compact ? 120 : 200 }}>
         {/* Preset topics now live in a modal; inline list removed */}
 
-        {/* Unified selected topic display (for preset or surprise) */}
+        {/* Unified selected motion display (for preset or surprise) */}
         {selectedTopic && topicMode !== 'custom' && (
           <Animated.View 
             entering={FadeIn.duration(300)}
@@ -121,7 +121,7 @@ export const DebateTopicSelector: React.FC<DebateTopicSelectorProps> = ({
             }}>
               <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, backgroundColor: theme.colors.primary[400] }} />
               <Typography variant="caption" color="secondary" style={{ marginBottom: 6 }}>
-                Selected Topic
+                Selected Motion
               </Typography>
               <Typography variant="body" weight="semibold" style={{ color: theme.colors.text.primary }}>
                 {selectedTopic}
@@ -130,7 +130,7 @@ export const DebateTopicSelector: React.FC<DebateTopicSelectorProps> = ({
           </Animated.View>
         )}
 
-        {/* Custom Topic Input - Fades in when selected */}
+        {/* Custom Motion Input - Fades in when selected */}
         {topicMode === 'custom' && (
           <Animated.View 
             entering={FadeIn.duration(300)}
@@ -141,7 +141,7 @@ export const DebateTopicSelector: React.FC<DebateTopicSelectorProps> = ({
               value={customTopic}
               onChange={onCustomTopicChange}
               maxLength={200}
-              placeholder="Enter your custom debate topic..."
+              placeholder="Enter your custom debate motion..."
             />
 
             {/* Motion suggestion for question-style custom topics */}

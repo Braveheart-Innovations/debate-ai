@@ -22,6 +22,8 @@ import {
   useSessionPagination 
 } from '../hooks/history';
 import { HistoryScreenNavigationProps } from '../types/history';
+import { DemoBanner } from '@/components/molecules/subscription/DemoBanner';
+import { showTrialCTA } from '@/utils/demoGating';
 
 interface HistoryScreenProps {
   navigation: HistoryScreenNavigationProps;
@@ -207,6 +209,11 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
               onPress: handleClearAllStorage,
               variant: 'danger'
             }}
+          />
+
+          <DemoBanner
+            subtitle="Demo Mode: Replay samples only. Continue requires a Free Trial."
+            onPress={() => showTrialCTA(navigation.navigate)}
           />
 
           {/* Search bar */}

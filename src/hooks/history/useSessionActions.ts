@@ -5,6 +5,8 @@ import { StorageService } from '../../services/chat';
 import { loadSession } from '../../store';
 import { ChatSession } from '../../types';
 import { UseSessionActionsReturn, HistoryScreenNavigationProps } from '../../types/history';
+import useFeatureAccess from '@/hooks/useFeatureAccess';
+import { showTrialCTA } from '@/utils/demoGating';
 
 export const useSessionActions = (
   navigation: HistoryScreenNavigationProps,
@@ -12,6 +14,7 @@ export const useSessionActions = (
 ): UseSessionActionsReturn => {
   const dispatch = useDispatch();
   const [isProcessing, setIsProcessing] = useState(false);
+  const { isDemo } = useFeatureAccess();
 
   /**
    * Delete a session with confirmation
@@ -60,6 +63,11 @@ export const useSessionActions = (
    * Resume a session based on its type
    */
   const resumeSession = useCallback((session: ChatSession) => {
+    // Gate resuming in Demo Mode with CTA
+    if (isDemo) {
+      showTrialCTA(navigation.navigate, { message: 'Continuing conversations requires a Free Trial.' });
+      return;
+    }
     try {
       const sessionType = session.sessionType || 'chat'; // Keep backward compat here for resuming old sessions
       
@@ -98,7 +106,7 @@ export const useSessionActions = (
           
           Alert.alert(
             'Debate Results',
-            `Topic: ${topic}\nParticipants: ${session.selectedAIs.map(ai => ai.name).join(' vs ')}${winner}\n\nDebates cannot be resumed once completed.`,
+            `Motion: ${topic}\nParticipants: ${session.selectedAIs.map(ai => ai.name).join(' vs ')}${winner}\n\nDebates cannot be resumed once completed.`,
             [
               { text: 'View Transcript', onPress: () => {
                 // Navigate to the transcript screen with the session data
@@ -225,7 +233,7 @@ export const useSessionActions = (
         [{ text: 'OK' }]
       );
     }
-  }, [dispatch, navigation]);
+  }, [dispatch, navigation, isDemo]);
 
   /**
    * Share a session (export conversation)

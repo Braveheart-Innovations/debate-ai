@@ -26,7 +26,7 @@ export abstract class BaseAdapter {
   abstract getCapabilities(): AdapterCapabilities;
   
   protected getSystemPrompt(): string {
-    const debateBase = 'You are participating in a formal debate. Take a clear position, directly address and challenge the previous speaker\'s arguments, avoid headings/lists, and keep responses concise and engaging with concrete reasoning.';
+    const debateBase = 'You are participating in a structured debate. Take a clear position, follow the phase-specific instructions provided in user messages (Opening/Rebuttal/Closing), avoid headings/lists, and use concrete reasoning.';
 
     // If both debate mode and personality are present, compose them so debates preserve persona style
     if (this.config.isDebateMode && this.config.personality && 'systemPrompt' in this.config.personality) {
@@ -44,6 +44,11 @@ export abstract class BaseAdapter {
     }
     // Default
     return 'You are a helpful AI assistant.';
+  }
+  
+  // Debug helper: expose the final system prompt (dev only)
+  public debugGetSystemPrompt(): string {
+    return this.getSystemPrompt();
   }
   
   setTemporaryPersonality(personality: PersonalityConfig | PersonalityOption | undefined | boolean): void {

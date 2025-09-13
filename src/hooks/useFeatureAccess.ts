@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
+import type { RootState } from '@/store';
 import { getFirestore, collection, doc, onSnapshot } from '@react-native-firebase/firestore';
 import { onAuthStateChanged } from '@/services/firebase/auth';
 import type { MembershipStatus } from '@/types/subscription';
@@ -8,6 +10,8 @@ export const useFeatureAccess = () => {
   const [membershipStatus, setMembershipStatus] = useState<MembershipStatus>('demo');
   const [trialDaysRemaining, setTrialDaysRemaining] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  // Local premium override from Settings (simulated premium mode)
+  const simulatedPremium = useSelector((state: RootState) => state.auth?.isPremium) || false;
 
   useEffect(() => {
     let unsub: undefined | (() => void);
@@ -67,9 +71,10 @@ export const useFeatureAccess = () => {
     };
   }, []);
 
-  const canAccessLiveAI = membershipStatus === 'trial' || membershipStatus === 'premium';
+  const effectivePremium = simulatedPremium || membershipStatus === 'premium';
+  const canAccessLiveAI = membershipStatus === 'trial' || effectivePremium;
   const isInTrial = membershipStatus === 'trial';
-  const isPremium = membershipStatus === 'premium';
+  const isPremium = effectivePremium;
   const isDemo = membershipStatus === 'demo';
 
   const refresh = async () => {

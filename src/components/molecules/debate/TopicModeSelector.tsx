@@ -28,14 +28,14 @@ interface ModeOption {
 const MODE_OPTIONS: ModeOption[] = [
   {
     mode: 'preset',
-    label: 'Preset Topics',
-    description: 'Choose from curated debate topics',
+    label: 'Preset Motions',
+    description: 'Choose from curated debate motions',
     isPremiumFeature: false,
   },
   {
     mode: 'custom',
-    label: 'Custom Topic',
-    description: 'Enter your own debate topic',
+    label: 'Custom Motion',
+    description: 'Enter your own debate motion',
     isPremiumFeature: false, // No longer gated
   },
 ];

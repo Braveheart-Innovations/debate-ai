@@ -192,7 +192,7 @@ export class DebateOrchestrator {
       civility,
       format,
     });
-    const openingPrompt = `${roleBrief}\n\n${this.promptBuilder.buildTurnPrompt({ topic, phase: 'opening', guidance: format.guidance.opening, format })}`;
+    const openingPrompt = `${roleBrief}\n\n${this.promptBuilder.buildTurnPrompt({ topic, phase: 'opening', guidance: format.guidance.opening, format, civilityLevel: civility, personalityId })}`;
     
     // Start the debate round
     await this.executeDebateRound(openingPrompt, 0, 1, this.currentMessages);
@@ -267,6 +267,7 @@ export class DebateOrchestrator {
         guidance: format.guidance[phase] as string,
         format,
         civilityLevel: civility,
+        personalityId,
       });
       let contextualPrompt = minimal;
       if (!hasSpokenBefore && aiIndex === 1 && messageCount === 2) {
@@ -307,7 +308,7 @@ export class DebateOrchestrator {
         parameters?: import('../../types').ModelParameters;
       };
 
-      // Compose a stance-aware, persona-inflected system prompt for this AI
+      // Compose a stance-aware, persona- and format-inflected system prompt for this AI
       try {
         if (adapter) {
           const stance = stances[currentAI.id] || (aiIndex === 0 ? 'pro' : 'con');
@@ -317,12 +318,22 @@ export class DebateOrchestrator {
           const personaStyle = persona?.debatePrompt || persona?.systemPrompt || 'You are a thoughtful debater.';
           const motion = topic;
           const sideText = stance === 'pro' ? 'Affirmative (FOR)' : 'Negative (AGAINST)';
+          const civilityDirective = (() => {
+            switch (civility) {
+              case 1: return 'Civility: friendly and witty; playful jabs allowed, never mean.';
+              case 2: return 'Civility: lightly adversarial but cordial; one clever jab max.';
+              case 4: return 'Civility: pointed and firm; rigorous challenges without insults.';
+              case 5: return 'Civility: highly adversarial yet respectful; sharp critiques only.';
+              default: return 'Civility: neutral and professional.';
+            }
+          })();
           const stancePrompt = [
             '[DEBATE MODE]',
-            'Debate instructions: Be direct, rebut specific claims, avoid headings/lists, concise (120–180 words).',
-            `Persona cues: ${personaStyle}`,
-            `Your assigned role: ${sideText} the motion: "${motion}".`,
-            'Maintain your assigned stance; do not switch sides. Concede only tactically and minimally.',
+            `Format: ${format.name}. Follow per-turn instructions (Opening/Rebuttal/Closing) that will be provided in the user message.`,
+            'Write in natural prose (no headings or lists).',
+            `Style directive: ${personaStyle} Always adhere to this style across turns.`,
+            `Your assigned role: ${sideText} the motion: "${motion}". Maintain this stance; do not switch sides.`,
+            civilityDirective,
           ].join('\n');
           // Apply composed system prompt via temporary personality
           adapter.setTemporaryPersonality({
@@ -335,6 +346,30 @@ export class DebateOrchestrator {
           } as unknown as import('../../types').PersonalityConfig);
           // Ensure debate mode is active for turn mapping
           adapter.config.isDebateMode = true;
+
+          // Debug logging
+          try {
+            const { PromptDebugLogger } = await import('../debug/PromptDebugLogger');
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const pName = (persona as any)?.name as string | undefined;
+            const sysCombined = adapter.debugGetSystemPrompt();
+            PromptDebugLogger.logTurn('streaming-turn', {
+              aiId: currentAI.id,
+              aiName: currentAI.name,
+              model: currentAI.model,
+              personalityId,
+              personalityName: pName,
+              stance,
+              civility,
+              format: { id: format.id, name: format.name },
+              phase,
+              round: this.session.currentRound,
+              messageCount,
+              systemPromptApplied: stancePrompt,
+              systemPromptAdapter: sysCombined,
+              userPrompt: contextualPrompt,
+            });
+          } catch { /* ignore debug log errors */ }
         }
       } catch { /* ignore persona application errors */ }
 
@@ -494,12 +529,22 @@ export class DebateOrchestrator {
           const motion = topic;
           const stance = stances[currentAI.id] || (aiIndex === 0 ? 'pro' : 'con');
           const sideText = stance === 'pro' ? 'Affirmative (FOR)' : 'Negative (AGAINST)';
+          const civilityDirective = (() => {
+            switch (civility) {
+              case 1: return 'Civility: friendly and witty; playful jabs allowed, never mean.';
+              case 2: return 'Civility: lightly adversarial but cordial; one clever jab max.';
+              case 4: return 'Civility: pointed and firm; rigorous challenges without insults.';
+              case 5: return 'Civility: highly adversarial yet respectful; sharp critiques only.';
+              default: return 'Civility: neutral and professional.';
+            }
+          })();
           const stancePrompt = [
             '[DEBATE MODE]',
-            'Debate instructions: Be direct, rebut specific claims, avoid headings/lists, concise (120–180 words).',
-            `Persona cues: ${personaStyle}`,
-            `Your assigned role: ${sideText} the motion: "${motion}".`,
-            'Maintain your assigned stance; do not switch sides. Concede only tactically and minimally.',
+            `Format: ${format.name}. Follow per-turn instructions (Opening/Rebuttal/Closing) that will be provided in the user message.`,
+            'Write in natural prose (no headings or lists).',
+            `Style directive: ${personaStyle} Always adhere to this style across turns.`,
+            `Your assigned role: ${sideText} the motion: "${motion}". Maintain this stance; do not switch sides.`,
+            civilityDirective,
           ].join('\n');
           return {
             id: `debate_${currentAI.id}`,
@@ -520,6 +565,36 @@ export class DebateOrchestrator {
           undefined,
           true // ensure debate mode enabled in adapter
         );
+
+        // Best-effort debug: log the prompts for non-streaming path too
+        try {
+          const adapter = this.aiService.getAdapter(currentAI.id);
+          if (adapter) {
+            // Ensure adapter reflects the composed personality for logging
+            try {
+              adapter.setTemporaryPersonality(composedPersonality as unknown as import('../../types').PersonalityConfig);
+              adapter.config.isDebateMode = true;
+            } catch { /* noop: debug logging helper */ }
+            const sysCombined = adapter.debugGetSystemPrompt();
+            const { PromptDebugLogger } = await import('../debug/PromptDebugLogger');
+            PromptDebugLogger.logTurn('nonstream-turn', {
+              aiId: currentAI.id,
+              aiName: currentAI.name,
+              model: currentAI.model,
+              personalityId,
+              personalityName: UNIVERSAL_PERSONALITIES.find(p => p.id === personalityId)?.name,
+              stance: stances[currentAI.id],
+              civility,
+              format: { id: format.id, name: format.name },
+              phase,
+              round: this.session.currentRound,
+              messageCount,
+              systemPromptApplied: (composedPersonality as unknown as { systemPrompt?: string })?.systemPrompt,
+              systemPromptAdapter: sysCombined,
+              userPrompt: contextualPrompt,
+            });
+          }
+        } catch { /* ignore debug log errors */ }
 
         const personalityName = UNIVERSAL_PERSONALITIES.find(p => p.id === personalityId)?.name || 'Default';
         const { response: responseText, modelUsed } = response;
@@ -662,6 +737,9 @@ export class DebateOrchestrator {
       previousMessage,
       isFinalRound: phase === 'closing' || this.session.currentRound >= totalRounds,
       guidance: format.guidance[phase] as string,
+      civilityLevel: civility,
+      format,
+      personalityId,
     });
     // Role brief injection only if this AI has not spoken yet
     const hasSpokenBefore = messages.some(m => m.senderType === 'ai' && m.sender.startsWith(currentAI.name));
@@ -949,8 +1027,16 @@ export class DebateOrchestrator {
    * Reset and cleanup
    */
   reset(): void {
+    // Cancel any pending scheduled turns
     this.timeouts.forEach(timeout => clearTimeout(timeout));
     this.timeouts.clear();
+    // Proactively cancel any active provider streams
+    try {
+      const streaming = getStreamingService();
+      streaming.cancelAllStreams();
+    } catch {
+      // ignore
+    }
     this.session = null;
     this.votingService = null;
     this.eventHandlers = [];

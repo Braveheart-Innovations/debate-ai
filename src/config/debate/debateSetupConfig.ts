@@ -16,7 +16,7 @@ export const DEBATE_SETUP_CONFIG = {
   SUGGESTED_TOPICS_COUNT: 6, // Number of suggested topics to show
   
   // Step Configuration
-  STEP_LABELS: ['Topic', 'Debaters', 'Personalities', 'Review'] as const,
+  STEP_LABELS: ['Motion', 'Debaters', 'Personalities', 'Review'] as const,
   STEPS: {
     TOPIC: 'topic' as const,
     AI_SELECTION: 'ai' as const,
@@ -35,9 +35,9 @@ export const DEBATE_SETUP_CONFIG = {
   
   // Validation Messages
   VALIDATION_MESSAGES: {
-    TOPIC_REQUIRED: 'Please choose or enter a debate topic first!',
-    TOPIC_TOO_SHORT: 'Topic must be at least 10 characters long',
-    TOPIC_TOO_LONG: 'Topic must be less than 200 characters long',
+    TOPIC_REQUIRED: 'Please choose or enter a debate motion first!',
+    TOPIC_TOO_SHORT: 'Motion must be at least 10 characters long',
+    TOPIC_TOO_LONG: 'Motion must be less than 200 characters long',
     DEBATERS_REQUIRED: 'Please select exactly 2 AIs for the debate!',
     MIN_DEBATERS: 'You need at least 2 AIs for a debate!',
     MAX_DEBATERS_EXCEEDED: 'Maximum 6 AIs allowed in a debate',

@@ -155,7 +155,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
     
     const finalTopic = topicMode === 'custom' ? customTopic : selectedTopic;
     if (!finalTopic) {
-      Alert.alert('Select a Topic', 'Please choose a debate topic first!');
+      Alert.alert('Select a Motion', 'Please choose a debate motion first!');
       return;
     }
     
@@ -192,7 +192,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
   const handleTopicNext = () => {
     const finalTopic = topicMode === 'custom' ? customTopic : selectedTopic;
     if (!finalTopic) {
-      Alert.alert('Select a Topic', 'Please choose or enter a debate topic first!');
+      Alert.alert('Select a Motion', 'Please choose or enter a debate motion first!');
       return;
     }
     setCurrentStep('ai');
@@ -203,11 +203,8 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
       Alert.alert('Select 2 AIs', 'Please select exactly 2 AIs for the debate!');
       return;
     }
-    if (access.isPremium || access.isInTrial) {
-      setCurrentStep('personality');
-    } else {
-      handleStartDebate();
-    }
+    // Always allow personality selection (restriction removed)
+    setCurrentStep('personality');
   };
   
   return (
@@ -267,7 +264,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
             <Card shadow style={{ marginTop: theme.spacing.sm, marginBottom: theme.spacing.xl }}>
               <Box style={{ marginBottom: theme.spacing.md }}>
                 <Typography variant="subtitle" weight="semibold" style={{ marginBottom: 4 }}>
-                  💭 Choose Your Topic
+                  💭 Choose Your Motion
                 </Typography>
                 <Typography variant="caption" color="secondary">
                   Presets, custom input, or let fate decide
@@ -340,9 +337,9 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
                 </Box>
                 {/* Help text showing debate phases for exchanges */}
                 <Typography variant="caption" color="secondary" style={{ marginTop: 6 }}>
-                  {exchanges === 3 && 'Opening statements → Direct rebuttals → Closing arguments'}
-                  {exchanges === 5 && 'Opening → Rebuttal → Cross-examination → Counter → Closing'}
-                  {exchanges === 7 && 'Opening → Rebuttals → Deep analysis → Counters → Synthesis → Closing'}
+                  {exchanges === 3 && 'Opening Argument → Rebuttal → Closing Argument'}
+                  {exchanges === 5 && 'Opening Argument → Rebuttal → Cross-examination → Counter → Closing'}
+                  {exchanges === 7 && 'Opening → Rebuttal → Deep analysis → Cross-examination → Counter → Synthesis → Closing'}
                 </Typography>
               </Box>
             </Card>
@@ -461,8 +458,8 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
           </Box>
         )}
         
-        {/* Step 3: Personality Selection (Premium/Trial Only) */}
-        {currentStep === 'personality' && (access.isPremium || access.isInTrial) && (
+        {/* Step 3: Personality Selection */}
+        {currentStep === 'personality' && (
           <DebatePersonalitySelector
             selectedTopic={selectedTopic}
             customTopic={customTopic}

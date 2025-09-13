@@ -33,7 +33,7 @@ export const DebateStepIndicator: React.FC<DebateStepIndicatorProps> = ({
   const steps: StepInfo[] = [
     {
       id: 'topic',
-      label: 'Topic',
+      label: 'Motion',
       icon: '💭',
       description: 'Choose what to debate',
     },
