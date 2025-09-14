@@ -25,6 +25,7 @@ import { showSheet } from '@/store';
 import { DemoContentService } from '@/services/demo/DemoContentService';
 import { primeCompare } from '@/services/demo/DemoPlaybackRouter';
 import { DemoSamplesBar } from '@/components/organisms/demo/DemoSamplesBar';
+import { getStreamingService } from '@/services/streaming/StreamingService';
 
 interface CompareScreenProps {
   navigation: {
@@ -53,6 +54,8 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
   const selectedModels = useSelector((state: RootState) => state.chat.selectedModels);
   const expertModeConfigs = useSelector((state: RootState) => state.settings.expertMode || {});
   const currentUser = useSelector((state: RootState) => state.user.currentUser);
+  const streamingState = useSelector((state: RootState) => state.streaming);
+  const apiKeys = useSelector((state: RootState) => state.settings.apiKeys || ({} as Record<string, string | undefined>));
   
   // Check if we're resuming a session
   const currentSession = useSelector((state: RootState) => 
@@ -175,7 +178,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
   }, [userMessages, leftMessages, rightMessages, leftAI, rightAI, currentUser, continuedSide, sessionId, hasBeenSaved]);
   
   const handleSend = useCallback(async () => {
-    if (isDemo) { dispatch(showSheet({ sheet: 'demo' })); return; }
+    if (isDemo) { dispatch(showSheet({ sheet: 'subscription' })); return; }
     if (!inputText.trim() || !aiService || !isInitialized || !leftAI || !rightAI) return;
     
     const messageText = inputText.trim();
@@ -197,15 +200,25 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
     leftHistoryRef.current.push(userMessage);
     rightHistoryRef.current.push(userMessage);
     
-    // Start typing indicators based on mode
-    if (viewMode === 'split' && !continuedSide) {
-      setLeftTyping(true);
-      setRightTyping(true);
-    } else if (continuedSide === 'left' || viewMode === 'left-only') {
-      setLeftTyping(true);
-    } else if (continuedSide === 'right' || viewMode === 'right-only') {
-      setRightTyping(true);
-    }
+    // Determine streaming capability and preferences for each side
+    const leftAdapter = aiService.getAdapter(leftAI.provider);
+    const rightAdapter = aiService.getAdapter(rightAI.provider);
+    const globalEnabled = streamingState?.globalStreamingEnabled ?? true;
+    const leftEnabled = streamingState?.streamingPreferences?.[leftAI.id]?.enabled ?? true;
+    const rightEnabled = streamingState?.streamingPreferences?.[rightAI.id]?.enabled ?? true;
+    const leftBlocked = !!streamingState?.providerVerificationErrors?.[leftAI.id];
+    const rightBlocked = !!streamingState?.providerVerificationErrors?.[rightAI.id];
+    const hasLeftKey = Boolean(apiKeys[leftAI.provider]);
+    const hasRightKey = Boolean(apiKeys[rightAI.provider]);
+    const shouldStreamLeft = globalEnabled && leftEnabled && !leftBlocked && (hasLeftKey || isDemo);
+    const shouldStreamRight = globalEnabled && rightEnabled && !rightBlocked && (hasRightKey || isDemo);
+    const streamSpeed = (streamingState?.streamingSpeed as 'instant' | 'natural' | 'slow') || 'natural';
+
+    // Start typing indicators only for non-streaming sides
+    const leftActive = (viewMode === 'split' && !continuedSide) || continuedSide === 'left' || viewMode === 'left-only' || viewMode === 'left-full';
+    const rightActive = (viewMode === 'split' && !continuedSide) || continuedSide === 'right' || viewMode === 'right-only' || viewMode === 'right-full';
+    if (leftActive && !shouldStreamLeft) setLeftTyping(true);
+    if (rightActive && !shouldStreamRight) setRightTyping(true);
     
     // Compute effective models and expert params at send time
     const leftEffModel = selectedModels[leftAI.id] || leftAI.model;
@@ -218,93 +231,261 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
       if (leftAI?.personality && leftAI.personality !== 'default') {
         const { getPersonality } = await import('../config/personalities');
         const p = getPersonality(leftAI.personality);
-        if (p) aiService.setPersonality(leftAI.id, p);
+        if (p) aiService.setPersonality(leftAI.provider, p);
       }
       if (rightAI?.personality && rightAI.personality !== 'default') {
         const { getPersonality } = await import('../config/personalities');
         const p = getPersonality(rightAI.personality);
-        if (p) aiService.setPersonality(rightAI.id, p);
+        if (p) aiService.setPersonality(rightAI.provider, p);
       }
     } catch { /* ignore */ }
 
     // Send to left AI if active
-    if ((viewMode === 'split' && !continuedSide) || continuedSide === 'left' || viewMode === 'left-only' || viewMode === 'left-full') {
+    if (leftActive) {
       // Apply expert parameters to adapter if enabled
       try {
-        const adapter = aiService.getAdapter(leftAI.id);
+        const adapter = leftAdapter;
         const leftParams = leftExp && leftExp.parameters;
         if (adapter && leftExp.enabled && leftParams) {
           adapter.config.parameters = leftParams as never;
         }
       } catch { /* ignore */ }
-      aiService.sendMessage(
-      leftAI.id,
-      messageText,
-      leftHistoryRef.current,
-      false,
-      undefined,
-      undefined,
-      leftEffModel
-    ).then(response => {
-      const leftMessage: Message = {
-        id: `msg_left_${Date.now()}`,
-        sender: leftAI.name,
-        senderType: 'ai',
-        content: typeof response === 'string' ? response : response.response,
-        timestamp: Date.now(),
-        metadata: {
-          modelUsed: leftEffModel,
-        },
-      };
-      setLeftMessages(prev => [...prev, leftMessage]);
-      leftHistoryRef.current.push(leftMessage);
-      setLeftTyping(false);
-      setLeftStreamingContent('');
-    }).catch(error => {
-      console.error('Left AI error:', error);
-      setLeftTyping(false);
-      Alert.alert('Error', `Failed to get response from ${leftAI.name}`);
-    });
+      if (shouldStreamLeft) {
+        // Reset streaming content and start streaming via StreamingService
+        setLeftStreamingContent('');
+        getStreamingService().streamResponse(
+          {
+            messageId: `cmp_left_${Date.now()}`,
+            adapterConfig: {
+              provider: leftAI.provider,
+              apiKey: apiKeys[leftAI.provider] || 'demo',
+              model: leftEffModel,
+              parameters: (leftExp && leftExp.enabled) ? (leftExp.parameters as never) : undefined,
+              isDebateMode: false,
+            },
+            message: messageText,
+            conversationHistory: leftHistoryRef.current,
+            modelOverride: leftEffModel,
+            speed: streamSpeed,
+          },
+          // onChunk
+          (chunk: string) => {
+            setLeftStreamingContent(prev => prev + chunk);
+          },
+          // onComplete
+          (finalContent: string) => {
+            const leftMessage: Message = {
+              id: `msg_left_${Date.now()}`,
+              sender: leftAI.name,
+              senderType: 'ai',
+              content: finalContent,
+              timestamp: Date.now(),
+              metadata: { modelUsed: leftEffModel },
+            };
+            setLeftMessages(prev => [...prev, leftMessage]);
+            leftHistoryRef.current.push(leftMessage);
+            setLeftStreamingContent('');
+            setLeftTyping(false);
+          },
+          // onError
+          async (err: Error) => {
+            const msg = err?.message || '';
+            const isVerification = msg.toLowerCase().includes('verification');
+            const isOverload = msg.toLowerCase().includes('overload') || msg.toLowerCase().includes('rate limit');
+            try {
+              const response = await aiService.sendMessage(leftAI.provider, messageText, leftHistoryRef.current, false, undefined, undefined, leftEffModel);
+              const leftMessage: Message = {
+                id: `msg_left_${Date.now()}`,
+                sender: leftAI.name,
+                senderType: 'ai',
+                content: typeof response === 'string' ? response : response.response,
+                timestamp: Date.now(),
+                metadata: { modelUsed: leftEffModel },
+              };
+              setLeftMessages(prev => [...prev, leftMessage]);
+              leftHistoryRef.current.push(leftMessage);
+            } catch (fallbackError) {
+              console.error('Left AI streaming error:', err, 'fallback error:', fallbackError);
+              Alert.alert('Error', isVerification ? `${leftAI.name} requires org verification to stream.` : isOverload ? `${leftAI.name} is overloaded. Try again soon.` : `Failed to get response from ${leftAI.name}`);
+            } finally {
+              setLeftStreamingContent('');
+              setLeftTyping(false);
+            }
+          },
+          // onEvent (log provider events; inline images if present)
+          (event: unknown) => {
+            try {
+              const e = event as Record<string, unknown>;
+              const type = String(e?.type || '');
+              if (type.includes('output_image')) {
+                const ee = e as { image?: { url?: string; b64?: string; data?: string }; delta?: { image?: { url?: string; b64?: string; data?: string } }; image_url?: string };
+                const imageUrl = ee?.image?.url || ee?.delta?.image?.url || ee?.image_url;
+                const imageB64 = ee?.image?.b64 || ee?.delta?.image?.b64 || ee?.image?.data || ee?.delta?.image?.data;
+                if (imageUrl) setLeftStreamingContent(prev => prev + `\n\n![image](${imageUrl})\n\n`);
+                else if (imageB64) setLeftStreamingContent(prev => prev + `\n\n![image](data:image/png;base64,${imageB64})\n\n`);
+                else setLeftStreamingContent(prev => prev + `\n\n[image content]\n\n`);
+              }
+              if (type.includes('tool')) {
+                const name = (e as { tool?: { name?: string }; name?: string }).tool?.name || (e as { name?: string }).name || 'tool';
+                const args = (e as { tool?: { arguments?: unknown }; arguments?: unknown; params?: unknown; parameters?: unknown }).tool?.arguments || (e as { arguments?: unknown }).arguments || (e as { params?: unknown }).params || (e as { parameters?: unknown }).parameters;
+                const snippet = '```json\n' + JSON.stringify(args, null, 2).slice(0, 400) + '\n```';
+                setLeftStreamingContent(prev => prev + `\n\n[${name} call]\n${snippet}\n`);
+              }
+              if (process.env.NODE_ENV === 'development') {
+                console.warn(`[${leftAI.provider}] event`, JSON.stringify(event).slice(0, 200));
+              }
+            } catch { /* noop */ }
+          }
+        ).catch(() => {
+          // Safety: ensure typing cleared on unexpected promise rejection
+          setLeftTyping(false);
+        });
+      } else {
+        aiService
+          .sendMessage(leftAI.provider, messageText, leftHistoryRef.current, false, undefined, undefined, leftEffModel)
+          .then(response => {
+            const leftMessage: Message = {
+              id: `msg_left_${Date.now()}`,
+              sender: leftAI.name,
+              senderType: 'ai',
+              content: typeof response === 'string' ? response : response.response,
+              timestamp: Date.now(),
+              metadata: {
+                modelUsed: leftEffModel,
+              },
+            };
+            setLeftMessages(prev => [...prev, leftMessage]);
+            leftHistoryRef.current.push(leftMessage);
+            setLeftTyping(false);
+            setLeftStreamingContent('');
+          })
+          .catch(error => {
+            console.error('Left AI error:', error);
+            setLeftTyping(false);
+            Alert.alert('Error', `Failed to get response from ${leftAI.name}`);
+          });
+      }
     }
     
     // Send to right AI if active
-    if ((viewMode === 'split' && !continuedSide) || continuedSide === 'right' || viewMode === 'right-only' || viewMode === 'right-full') {
+    if (rightActive) {
       // Apply expert parameters to adapter if enabled
       try {
-        const adapter = aiService.getAdapter(rightAI.id);
+        const adapter = rightAdapter;
         const rightParams = rightExp && rightExp.parameters;
         if (adapter && rightExp.enabled && rightParams) {
           adapter.config.parameters = rightParams as never;
         }
       } catch { /* ignore */ }
-      aiService.sendMessage(
-      rightAI.id,
-      messageText,
-      rightHistoryRef.current,
-      false,
-      undefined,
-      undefined,
-      rightEffModel
-    ).then(response => {
-      const rightMessage: Message = {
-        id: `msg_right_${Date.now()}`,
-        sender: rightAI.name,
-        senderType: 'ai',
-        content: typeof response === 'string' ? response : response.response,
-        timestamp: Date.now(),
-        metadata: {
-          modelUsed: rightEffModel,
-        },
-      };
-      setRightMessages(prev => [...prev, rightMessage]);
-      rightHistoryRef.current.push(rightMessage);
-      setRightTyping(false);
-      setRightStreamingContent('');
-    }).catch(error => {
-      console.error('Right AI error:', error);
-      setRightTyping(false);
-      Alert.alert('Error', `Failed to get response from ${rightAI.name}`);
-    });
+      if (shouldStreamRight) {
+        setRightStreamingContent('');
+        getStreamingService().streamResponse(
+          {
+            messageId: `cmp_right_${Date.now()}`,
+            adapterConfig: {
+              provider: rightAI.provider,
+              apiKey: apiKeys[rightAI.provider] || 'demo',
+              model: rightEffModel,
+              parameters: (rightExp && rightExp.enabled) ? (rightExp.parameters as never) : undefined,
+              isDebateMode: false,
+            },
+            message: messageText,
+            conversationHistory: rightHistoryRef.current,
+            modelOverride: rightEffModel,
+            speed: streamSpeed,
+          },
+          (chunk: string) => {
+            setRightStreamingContent(prev => prev + chunk);
+          },
+          (finalContent: string) => {
+            const rightMessage: Message = {
+              id: `msg_right_${Date.now()}`,
+              sender: rightAI.name,
+              senderType: 'ai',
+              content: finalContent,
+              timestamp: Date.now(),
+              metadata: { modelUsed: rightEffModel },
+            };
+            setRightMessages(prev => [...prev, rightMessage]);
+            rightHistoryRef.current.push(rightMessage);
+            setRightStreamingContent('');
+            setRightTyping(false);
+          },
+          async (err: Error) => {
+            const msg = err?.message || '';
+            const isVerification = msg.toLowerCase().includes('verification');
+            const isOverload = msg.toLowerCase().includes('overload') || msg.toLowerCase().includes('rate limit');
+            try {
+              const response = await aiService.sendMessage(rightAI.provider, messageText, rightHistoryRef.current, false, undefined, undefined, rightEffModel);
+              const rightMessage: Message = {
+                id: `msg_right_${Date.now()}`,
+                sender: rightAI.name,
+                senderType: 'ai',
+                content: typeof response === 'string' ? response : response.response,
+                timestamp: Date.now(),
+                metadata: { modelUsed: rightEffModel },
+              };
+              setRightMessages(prev => [...prev, rightMessage]);
+              rightHistoryRef.current.push(rightMessage);
+            } catch (fallbackError) {
+              console.error('Right AI streaming error:', err, 'fallback error:', fallbackError);
+              Alert.alert('Error', isVerification ? `${rightAI.name} requires org verification to stream.` : isOverload ? `${rightAI.name} is overloaded. Try again soon.` : `Failed to get response from ${rightAI.name}`);
+            } finally {
+              setRightStreamingContent('');
+              setRightTyping(false);
+            }
+          },
+          (event: unknown) => {
+            try {
+              const e = event as Record<string, unknown>;
+              const type = String(e?.type || '');
+              if (type.includes('output_image')) {
+                const ee = e as { image?: { url?: string; b64?: string; data?: string }; delta?: { image?: { url?: string; b64?: string; data?: string } }; image_url?: string };
+                const imageUrl = ee?.image?.url || ee?.delta?.image?.url || ee?.image_url;
+                const imageB64 = ee?.image?.b64 || ee?.delta?.image?.b64 || ee?.image?.data || ee?.delta?.image?.data;
+                if (imageUrl) setRightStreamingContent(prev => prev + `\n\n![image](${imageUrl})\n\n`);
+                else if (imageB64) setRightStreamingContent(prev => prev + `\n\n![image](data:image/png;base64,${imageB64})\n\n`);
+                else setRightStreamingContent(prev => prev + `\n\n[image content]\n\n`);
+              }
+              if (type.includes('tool')) {
+                const name = (e as { tool?: { name?: string }; name?: string }).tool?.name || (e as { name?: string }).name || 'tool';
+                const args = (e as { tool?: { arguments?: unknown }; arguments?: unknown; params?: unknown; parameters?: unknown }).tool?.arguments || (e as { arguments?: unknown }).arguments || (e as { params?: unknown }).params || (e as { parameters?: unknown }).parameters;
+                const snippet = '```json\n' + JSON.stringify(args, null, 2).slice(0, 400) + '\n```';
+                setRightStreamingContent(prev => prev + `\n\n[${name} call]\n${snippet}\n`);
+              }
+              if (process.env.NODE_ENV === 'development') {
+                console.warn(`[${rightAI.provider}] event`, JSON.stringify(event).slice(0, 200));
+              }
+            } catch { /* noop */ }
+          }
+        ).catch(() => {
+          setRightTyping(false);
+        });
+      } else {
+        aiService
+          .sendMessage(rightAI.provider, messageText, rightHistoryRef.current, false, undefined, undefined, rightEffModel)
+          .then(response => {
+            const rightMessage: Message = {
+              id: `msg_right_${Date.now()}`,
+              sender: rightAI.name,
+              senderType: 'ai',
+              content: typeof response === 'string' ? response : response.response,
+              timestamp: Date.now(),
+              metadata: {
+                modelUsed: rightEffModel,
+              },
+            };
+            setRightMessages(prev => [...prev, rightMessage]);
+            rightHistoryRef.current.push(rightMessage);
+            setRightTyping(false);
+            setRightStreamingContent('');
+          })
+          .catch(error => {
+            console.error('Right AI error:', error);
+            setRightTyping(false);
+            Alert.alert('Error', `Failed to get response from ${rightAI.name}`);
+          });
+      }
     }
     
     // Save session after sending messages
@@ -316,7 +497,26 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
       saveComparisonSession();
     }, 1000);
     
-  }, [dispatch, inputText, aiService, isInitialized, leftAI, rightAI, viewMode, continuedSide, hasBeenSaved, saveComparisonSession, expertModeConfigs, selectedModels, isDemo]);
+  }, [
+    dispatch,
+    inputText,
+    aiService,
+    isInitialized,
+    leftAI,
+    rightAI,
+    viewMode,
+    continuedSide,
+    hasBeenSaved,
+    saveComparisonSession,
+    expertModeConfigs,
+    selectedModels,
+    isDemo,
+    apiKeys,
+    streamingState?.globalStreamingEnabled,
+    streamingState?.streamingPreferences,
+    streamingState?.providerVerificationErrors,
+    streamingState?.streamingSpeed,
+  ]);
 
   // Demo Mode: auto-start playback when both AIs are selected and no messages yet
   React.useEffect(() => {

@@ -198,8 +198,16 @@ export class StreamingService {
     // Determine buffer configuration
     const bufferConfig = config.bufferConfig || this.getBufferConfigForSpeed(config.speed);
 
-    // Create buffer with flush callback
-    const buffer = new ChunkBuffer(bufferConfig, onChunk);
+    // Create buffer with flush callback (log UI flushes, not raw adapter yields)
+    let flushCount = 0;
+    const onBufferFlush = (content: string) => {
+      flushCount++;
+      if (process.env.NODE_ENV === 'development' && (flushCount <= 3 || flushCount % 50 === 0)) {
+        console.warn(`[StreamingService] flush #${flushCount} (${content.length})`);
+      }
+      onChunk(content);
+    };
+    const buffer = new ChunkBuffer(bufferConfig, onBufferFlush);
 
     // Create stream state
     const streamState: StreamState = {
@@ -254,8 +262,7 @@ export class StreamingService {
 
       let fullContent = '';
 
-      // Process stream chunks
-      // Process stream chunks
+      // Process stream chunks (adapter yields)
       let iterationCount = 0;
       
       for await (const chunk of stream) {
@@ -279,11 +286,8 @@ export class StreamingService {
           await this.slowDelay();
         }
 
-        // Buffer and flush chunk
+        // Buffer and flush chunk (UI flushes are logged in onBufferFlush)
         buffer.append(chunk);
-        if (process.env.NODE_ENV === 'development' && (iterationCount <= 3 || iterationCount % 100 === 0)) {
-          console.warn(`[StreamingService] chunk #${iterationCount} (${chunk.length})`);
-        }
       }
       
       // Stream iteration complete
@@ -300,7 +304,7 @@ export class StreamingService {
 
       // Call completion callback
       if (process.env.NODE_ENV === 'development') {
-        console.warn(`[StreamingService] Complete ${messageId}, chunks=${streamState.chunksReceived}, bytes=${streamState.bytesReceived}`);
+        console.warn(`[StreamingService] Complete ${messageId}, chunks=${streamState.chunksReceived}, bytes=${streamState.bytesReceived}, flushes=${flushCount}`);
       }
       onComplete(fullContent);
 

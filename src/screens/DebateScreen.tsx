@@ -146,8 +146,10 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
   
   // Auto-start debate if topic is provided from DebateSetupScreen
   const canAutoStart = Boolean(initialTopic && !session.isInitialized && selectedAIs.length >= 2 && session.orchestrator);
+  const autoStartedRef = React.useRef(false);
   useEffect(() => {
-    if (canAutoStart) {
+    if (canAutoStart && !autoStartedRef.current) {
+      autoStartedRef.current = true;
       handleStartDebate(initialTopic);
     }
   }, [canAutoStart, initialTopic, handleStartDebate]);
@@ -270,7 +272,7 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
         >
           <DemoBanner
             subtitle="Pre‑recorded debates only in Demo. Start a free trial to create custom debates."
-            onPress={() => dispatch(showSheet({ sheet: 'demo' }))}
+            onPress={() => dispatch(showSheet({ sheet: 'subscription' }))}
           />
           {isDemo && debateSamples.length > 0 && (
             <DemoSamplesBar

@@ -129,8 +129,8 @@ export const DebateMessageList: React.FC<DebateMessageListProps> = ({
   
   // Memoized key extractor - optimized
   const keyExtractor = useCallback((item: Message, index: number) => {
-    // Use a stable key based on id or index
-    return item.id ? `msg-${item.id}` : `idx-${index}`;
+    // Guard against accidental duplicate ids by including index suffix
+    return item.id ? `msg-${item.id}-${index}` : `idx-${index}`;
   }, []);
 
   // Memoized typing indicator

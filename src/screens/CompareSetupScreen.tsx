@@ -143,7 +143,7 @@ const CompareSetupScreen: React.FC<CompareSetupScreenProps> = ({ navigation, rou
       {access.isDemo && (
         <DemoBanner
           subtitle="Sample comparisons only in Demo. Start a free trial for live comparisons."
-          onPress={() => dispatch(showSheet({ sheet: 'demo' }))}
+          onPress={() => dispatch(showSheet({ sheet: 'subscription' }))}
         />
       )}
       

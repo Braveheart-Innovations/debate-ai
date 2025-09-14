@@ -185,7 +185,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
 
   // Handle message sending
   const handleSendMessage = useCallback(async (messageText?: string, attachments?: MessageAttachment[]): Promise<void> => {
-    if (isDemo) { dispatch(showSheet({ sheet: 'demo' })); return; }
+    if (isDemo) { dispatch(showSheet({ sheet: 'subscription' })); return; }
     const textToSend = messageText || input.inputText;
     
     if (!textToSend.trim() && (!attachments || attachments.length === 0)) {

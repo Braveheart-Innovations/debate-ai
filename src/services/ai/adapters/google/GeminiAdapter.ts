@@ -185,9 +185,8 @@ export class GeminiAdapter extends BaseAdapter {
       return { contents, generationConfig: cfg };
     })());
     
-    // Create EventSource for SSE streaming
-    // Note: EventSource in React Native may not support custom headers properly,
-    // so we need to put the API key in the URL despite what the docs say
+    // Create EventSource for SSE streaming (React Native)
+    // Note: In RN, pass API key via URL
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${resolvedModel}:streamGenerateContent?alt=sse&key=${this.config.apiKey}`;
     
     const es = new EventSource(url, {
@@ -201,8 +200,8 @@ export class GeminiAdapter extends BaseAdapter {
       withCredentials: false,
     });
     
-    // Accumulator for text chunks
-    const chunks: string[] = [];
+    const eventQueue: string[] = [];
+    let resolver: ((value: IteratorResult<string, void>) => void) | null = null;
     let isComplete = false;
     let errorOccurred: Error | null = null;
     
@@ -211,96 +210,61 @@ export class GeminiAdapter extends BaseAdapter {
       try {
         const line = event.data;
         if (!line) return;
-        
-        // Parse the JSON data
         const data = JSON.parse(line);
-        
-        // Extract text from Gemini response
-        // Per documentation, Gemini sends INCREMENTAL text chunks, not accumulated
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text as string | undefined;
         if (text) {
-          // Push the text chunk directly - it's already incremental
-          chunks.push(text);
+          if (resolver) { const r = resolver; resolver = null; r({ value: text, done: false }); }
+          else eventQueue.push(text);
         }
-        
-        // Check if stream is complete
-        const finishReason = data.candidates?.[0]?.finishReason;
+        const finishReason = data.candidates?.[0]?.finishReason as string | undefined;
         if (finishReason) {
           isComplete = true;
-          es.close();
+          try { es.close(); } catch { /* noop */ }
+          if (resolver) { const r = resolver; resolver = null; r({ value: undefined, done: true }); }
         }
       } catch (error) {
         console.error('[GeminiAdapter] Error parsing message:', error);
-        console.error('[GeminiAdapter] Raw data:', event.data);
       }
     });
     
     // Handle errors
     es.addEventListener('error', (error) => {
-      console.error('[GeminiAdapter] SSE error:', error);
-      
-      // Parse error message if possible
       let errorMessage = 'SSE connection error';
       try {
         if (error && typeof error === 'object' && 'data' in error) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const errorData = JSON.parse((error as any).data);
-          if (errorData.error) {
-            errorMessage = errorData.error.message || errorData.error.status || errorMessage;
-          }
+          if (errorData.error) errorMessage = errorData.error.message || errorData.error.status || errorMessage;
         }
       } catch {
-        // If we can't parse the error, use the raw message
         if (error && typeof error === 'object' && 'message' in error) {
-          errorMessage = String(error.message);
+          errorMessage = String((error as { message?: string }).message || errorMessage);
         }
       }
-      
       errorOccurred = new Error(errorMessage);
       isComplete = true;
-      es.close();
+      try { es.close(); } catch { /* noop */ }
+      if (resolver) { const r = resolver; resolver = null; r({ value: undefined, done: true }); }
     });
     
-    // Handle connection open
-    es.addEventListener('open', () => {
-      // SSE connection opened successfully
-    });
-    
-    // Yield chunks with immediate first chunk for responsiveness
-    let lastYieldIndex = 0;
-    let firstChunk = true;
+    // Handle connection open (no-op)
+    es.addEventListener('open', () => {});
     
     try {
-      while (!isComplete || lastYieldIndex < chunks.length) {
-        if (errorOccurred) {
-          throw errorOccurred;
-        }
-        
-        // Yield all accumulated chunks
-        while (lastYieldIndex < chunks.length) {
-          const chunk = chunks[lastYieldIndex];
-          lastYieldIndex++;
-          
-          // Immediate first chunk, no waiting
-          if (firstChunk) {
-            yield chunk;
-            firstChunk = false;
-            continue;
-          }
-          
+      while (!isComplete || eventQueue.length > 0) {
+        if (errorOccurred) throw errorOccurred;
+        if (eventQueue.length > 0) {
+          const chunk = eventQueue.shift()!;
           yield chunk;
+          continue;
         }
-        
-        // If stream isn't complete, wait for more chunks
-        if (!isComplete) {
-          // Shorter wait for initial chunks, longer for later ones
-          const waitTime = firstChunk ? 10 : 50;
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-        }
+        const result = await new Promise<IteratorResult<string, void>>((resolve) => { resolver = resolve; });
+        if (errorOccurred) throw errorOccurred;
+        if (result.done) break;
+        if (result.value) yield result.value;
       }
     } finally {
-      es.close();
+      try { es.close(); } catch { /* noop */ }
     }
   }
 }

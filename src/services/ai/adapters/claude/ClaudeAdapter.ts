@@ -204,9 +204,9 @@ export class ClaudeAdapter extends BaseAdapter {
       pollingInterval: 30000, // 30 second polling (shouldn't be needed for streaming)
     });
     
-    // Queue to handle SSE events
+    // Queue to handle SSE events; StreamingService will own pacing/buffering
     const eventQueue: string[] = [];
-    // Keep a rolling tail of what we've already emitted to dedupe any accidental repeats
+    // Dedupe rolling tail to avoid repeating overlaps between deltas
     let outputTail = '';
     const MAX_TAIL = 100;
     const dedupeChunk = (text: string): string => {
@@ -214,15 +214,10 @@ export class ClaudeAdapter extends BaseAdapter {
       if (!outputTail) return text;
       const maxOverlap = Math.min(outputTail.length, text.length, MAX_TAIL);
       for (let k = maxOverlap; k > 0; k--) {
-        if (outputTail.slice(-k) === text.slice(0, k)) {
-          return text.slice(k);
-        }
+        if (outputTail.slice(-k) === text.slice(0, k)) return text.slice(k);
       }
       return text;
     };
-    // Track activity to prevent tail-hangs if a terminal event is dropped
-    let blockStoppedAt: number | null = null;
-    const IDLE_TIMEOUT_MS = 20000; // Be tolerant: end only if idle >20s (prevents truncation)
     let resolver: ((value: IteratorResult<string, void>) => void) | null = null;
     let isComplete = false;
     let errorOccurred: Error | null = null;
@@ -236,17 +231,17 @@ export class ClaudeAdapter extends BaseAdapter {
         if (data.delta?.text) {
           const nextText = dedupeChunk(data.delta.text);
           if (nextText) {
+            // Update rolling tail
+            outputTail = (outputTail + nextText).slice(-MAX_TAIL);
             if (resolver) {
-              resolver({ value: nextText, done: false });
-              resolver = null;
+              const r = resolver; resolver = null;
+              r({ value: nextText, done: false });
             } else {
               eventQueue.push(nextText);
             }
-            // Update rolling tail
-            outputTail = (outputTail + nextText).slice(-MAX_TAIL);
           } else {
             // Pure duplicate; ignore
-            resolver = null;
+            // no-op
           }
         }
         if (onEvent) onEvent({ type: 'content_block_delta', ...data });
@@ -257,7 +252,6 @@ export class ClaudeAdapter extends BaseAdapter {
     
     // Mark content block completion (sometimes message_stop can be delayed)
     es.addEventListener('content_block_stop', (event: CustomEvent<'content_block_stop'>) => {
-      blockStoppedAt = Date.now();
       try { if (onEvent) onEvent({ type: 'content_block_stop', ...(event?.data ? JSON.parse(event.data) : {}) }); } catch { /* noop */ }
     });
     
@@ -274,13 +268,11 @@ export class ClaudeAdapter extends BaseAdapter {
     
     // Handle other SSE events
     es.addEventListener('message_start', (event: CustomEvent<'message_start'>) => {
-      blockStoppedAt = null;
       if (onEvent) {
         try { onEvent({ type: 'message_start', ...(event?.data ? JSON.parse(event.data) : {}) }); } catch { /* noop */ }
       }
     });
     es.addEventListener('content_block_start', (event: CustomEvent<'content_block_start'>) => {
-      blockStoppedAt = null;
       if (onEvent) {
         try { onEvent({ type: 'content_block_start', ...(event?.data ? JSON.parse(event.data) : {}) }); } catch { /* noop */ }
       }
@@ -361,113 +353,21 @@ export class ClaudeAdapter extends BaseAdapter {
     // Handle connection open
     es.addEventListener('open', () => {});
     
-    // Yield chunks with smart buffering for smoother output
-    let yieldCount = 0;
-    let buffer = '';
-    let firstChunk = true;
-    
+    // Yield raw deltas promptly; StreamingService will handle pacing/buffering
     try {
-      while (!isComplete) {
-        // Check for errors immediately
-        if (errorOccurred) {
-          console.error(`[ClaudeAdapter] Error occurred, throwing:`, (errorOccurred as Error).message);
-          throw errorOccurred;
-        }
-        
+      while (!isComplete || eventQueue.length > 0) {
+        if (errorOccurred) throw errorOccurred;
         if (eventQueue.length > 0) {
           const chunk = eventQueue.shift()!;
-          
-          // Immediate first chunk for responsiveness
-          if (firstChunk) {
-            yieldCount++;
-            yield chunk;
-            firstChunk = false;
-            continue;
-          }
-          
-          // Buffer subsequent chunks for smoothness
-          buffer += chunk;
-          
-          // Flush at word boundaries or when buffer is large enough
-          const shouldFlush = buffer.length > 20 || 
-                            buffer.includes('\n') || 
-                            buffer.endsWith(' ') ||
-                            buffer.endsWith('.') ||
-                            buffer.endsWith(',');
-          
-          if (shouldFlush) {
-            yieldCount++;
-            yield buffer;
-            buffer = '';
-          }
-        } else {
-          // If we have buffered content and no new events, flush it
-          if (buffer.length > 0) {
-            yieldCount++;
-            yield buffer;
-            buffer = '';
-          }
-          
-          // Wait for next event, with idle timeout so we don't hang on missing message_stop
-          const result = await new Promise<IteratorResult<string, void>>((resolve) => {
-            resolver = resolve;
-            // Idle timeout watchdog
-            const timeoutMs = IDLE_TIMEOUT_MS;
-            const timeout = setTimeout(() => {
-              if (resolver === resolve) {
-                resolve({ value: undefined, done: true });
-                resolver = null;
-                isComplete = true;
-              }
-            }, timeoutMs);
-            // If we get resolved normally, clear the timer (best-effort next tick)
-            const r0 = resolver;
-            setTimeout(() => { if (resolver !== r0) clearTimeout(timeout); }, 0);
-          });
-          
-          // Check for errors after waiting
-          if (errorOccurred) {
-            console.error(`[ClaudeAdapter] Error occurred after waiting, throwing:`, (errorOccurred as Error).message);
-            throw errorOccurred;
-          }
-          
-          if (!result.done && result.value) {
-            // Handle resolved chunk same as queued chunks
-            if (firstChunk) {
-              yieldCount++;
-              yield result.value;
-              firstChunk = false;
-            } else {
-              buffer += result.value;
-              const shouldFlush = buffer.length > 20 || 
-                                buffer.includes('\n') || 
-                                buffer.endsWith(' ');
-              if (shouldFlush) {
-                yieldCount++;
-                yield buffer;
-                buffer = '';
-              }
-            }
-          }
+          yield chunk;
+          continue;
         }
+        // Wait until next event or completion
+        const result = await new Promise<IteratorResult<string, void>>((resolve) => { resolver = resolve; });
+        if (errorOccurred) throw errorOccurred;
+        if (result.done) break;
+        if (result.value) yield result.value;
       }
-      
-      // Idle-guard: if we saw content_block_stop and no deltas after a short grace, end
-      if (!isComplete && blockStoppedAt && Date.now() - blockStoppedAt > 500) {
-        isComplete = true;
-      }
-
-      // Flush any remaining buffer
-      if (buffer.length > 0) {
-        yieldCount++;
-        yield buffer;
-      }
-      
-      // Final error check before completing
-      if (errorOccurred && yieldCount === 0) {
-        throw errorOccurred;
-      }
-      
     } finally {
       try { es.close(); } catch { /* noop */ }
       if (abortSignal) {

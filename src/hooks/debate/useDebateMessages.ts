@@ -43,6 +43,9 @@ export const useDebateMessages = (debateStartTime?: number): UseDebateMessagesRe
   
   // Add host message
   const addHostMessage = useCallback((content: string) => {
+    // Avoid duplicate host announcements (e.g., double-invocation in dev/StrictMode)
+    const alreadyExists = messages.some(m => m.sender === 'Debate Host' && m.content === content);
+    if (alreadyExists) return;
     const hostMessage: Message = {
       id: `msg_${Date.now()}_host`,
       sender: 'Debate Host',
@@ -52,7 +55,7 @@ export const useDebateMessages = (debateStartTime?: number): UseDebateMessagesRe
     };
     
     dispatch(addMessage(hostMessage));
-  }, [dispatch]);
+  }, [dispatch, messages]);
   
   const debateMessages = getDebateMessages();
   

@@ -300,25 +300,16 @@ export class ChatGPTAdapter extends OpenAICompatibleAdapter {
     });
 
     // Hook abort -> close
-    const onAbort = () => {
-      try { es.close(); } catch (e) { void e; }
-    };
+    const onAbort = () => { try { es.close(); } catch { /* noop */ } };
     if (abortSignal) abortSignal.addEventListener('abort', onAbort);
 
-    // Accumulate chunks and stream them out
-    const chunks: string[] = [];
+    // Queue-based streaming (no adapter pacing)
+    const eventQueue: string[] = [];
+    let resolver: ((value: IteratorResult<string, void>) => void) | null = null;
     let isComplete = false;
     let errorMsg: string | null = null;
-    let messageCount = 0;
-    let lastMessageTime = Date.now();
-    let awaitingFinal = false;
-    let pendingFinal: Promise<void> | null = null;
 
-    es.addEventListener('open', () => {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('[ChatGPT] SSE connection opened (Responses API)');
-      }
-    });
+    es.addEventListener('open', () => {});
 
     const extractTextFromOutput = (root: unknown): string => {
       // Strictly extract only output_text payloads from Responses format
@@ -376,80 +367,31 @@ export class ChatGPTAdapter extends OpenAICompatibleAdapter {
         const obj = JSON.parse(dataStr);
         // Surface non-text events to router if provided
         if (onEvent && eventType && eventType !== 'response.output_text.delta' && eventType !== 'response.delta') {
-          try { onEvent({ type: eventType, ...obj }); } catch (e) { void e; }
-        }
-        messageCount++;
-        if (process.env.NODE_ENV === 'development' && (messageCount <= 3 || messageCount % 100 === 0)) {
-          const preview = (dataStr || '').slice(0, 120);
-          console.warn('[ChatGPT] event', messageCount, eventType || obj?.type, preview);
+          try { onEvent({ type: eventType, ...obj }); } catch { /* noop */ }
         }
         const type = eventType || obj?.type;
         if (type === 'response.output_text.delta' && typeof obj.delta === 'string') {
-          chunks.push(obj.delta);
-          lastMessageTime = Date.now();
+          if (resolver) { const r = resolver; resolver = null; r({ value: obj.delta, done: false }); }
+          else eventQueue.push(obj.delta);
         } else if (type === 'response.delta' && obj?.delta?.type === 'output_text.delta' && typeof obj.delta.text === 'string') {
-          chunks.push(obj.delta.text);
-          lastMessageTime = Date.now();
+          const t = obj.delta.text as string;
+          if (resolver) { const r = resolver; resolver = null; r({ value: t, done: false }); }
+          else eventQueue.push(t);
         } else if (type === 'response.error') {
           errorMsg = obj?.error?.message || 'Upstream error';
           isComplete = true;
-          try { es.close(); } catch (e) { void e; }
+          try { es.close(); } catch { /* noop */ }
+          if (resolver) { const r = resolver; resolver = null; r({ value: undefined, done: true }); }
         } else if (type === 'response.output_text.done' || type === 'response.completed') {
-          if (chunks.length === 0) {
-            // Try to extract from this event
-            const finalFromEvent = extractTextFromOutput(obj?.response ?? obj?.output ?? obj);
-            if (finalFromEvent) {
-              chunks.push(finalFromEvent);
-              lastMessageTime = Date.now();
-              isComplete = true;
-              try { es.close(); } catch (e) { void e; }
-              return;
-            }
-            // Fallback: create a single non-streaming request and await it in the generator loop
-            if (!awaitingFinal && !pendingFinal) {
-              awaitingFinal = true;
-              lastMessageTime = Date.now();
-              const reqBody = JSON.stringify({ ...body, stream: false });
-              pendingFinal = (async () => {
-                try {
-                  const resp = await fetch('https://api.openai.com/v1/responses', {
-                    method: 'POST',
-                    headers: {
-                      Authorization: `Bearer ${this.config.apiKey}`,
-                      'Content-Type': 'application/json',
-                    },
-                    body: reqBody,
-                  });
-                  const txt = await resp.text();
-                  if (resp.ok) {
-                    try {
-                      const parsed = JSON.parse(txt);
-                      const finalText = extractTextFromOutput(parsed?.response ?? parsed?.output ?? parsed);
-                      if (finalText) {
-                        chunks.push(finalText);
-                        lastMessageTime = Date.now();
-                      }
-                } catch (parseErr) { void parseErr; }
-                  } else if (process.env.NODE_ENV === 'development') {
-                    console.error('[ChatGPT] fallback fetch failed', resp.status, txt.slice(0,200));
-                  }
-                } catch (fetchErr) {
-                  if (process.env.NODE_ENV === 'development') {
-                    console.error('[ChatGPT] fallback fetch error', fetchErr);
-                  }
-                } finally {
-                  awaitingFinal = false;
-                  isComplete = true;
-                  pendingFinal = null;
-                  try { es.close(); } catch (e) { void e; }
-                }
-              })();
-            }
-            return; // keep generator alive until pendingFinal resolves
+          // Try to extract a final text from the completed event and enqueue once
+          const finalFromEvent = extractTextFromOutput(obj?.response ?? obj?.output ?? obj);
+          if (finalFromEvent) {
+            if (resolver) { const r = resolver; resolver = null; r({ value: finalFromEvent, done: false }); }
+            else eventQueue.push(finalFromEvent);
           }
-          // We already have chunks, we can finish
           isComplete = true;
-          try { es.close(); } catch (e) { void e; }
+          try { es.close(); } catch { /* noop */ }
+          if (resolver) { const r = resolver; resolver = null; r({ value: undefined, done: true }); }
         } else {
           // ignore other event kinds for now
         }
@@ -487,84 +429,31 @@ export class ChatGPTAdapter extends OpenAICompatibleAdapter {
     });
 
     es.addEventListener('error', (e: unknown) => {
-      const anyErr = e as { message?: string; status?: number; response?: unknown } | undefined;
-      if (process.env.NODE_ENV === 'development') {
-        try { console.error('[ChatGPT] SSE error event', JSON.stringify(anyErr)); } catch { console.error('[ChatGPT] SSE error event'); }
-      }
+      const anyErr = e as { message?: string; status?: number } | undefined;
       errorMsg = String(anyErr?.message || `SSE error${anyErr?.status ? ` (${anyErr.status})` : ''}`);
       isComplete = true;
-      try { es.close(); } catch (ee) { void ee; }
+      try { es.close(); } catch { /* noop */ }
+      if (resolver) { const r = resolver; resolver = null; r({ value: undefined, done: true }); }
     });
 
-    // Idle watchdog: extend for GPT-5/O1 due to known latency
-    const idleThresholdMs = (isGPT5Model || isO1Model) ? 180000 : 60000; // 3m for GPT-5/O1, 60s otherwise
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('[ChatGPT] idleThresholdMs', idleThresholdMs);
-    }
-    const idleTimer = setInterval(() => {
-      if (isComplete) return;
-      const idleFor = Date.now() - lastMessageTime;
-      if (idleFor > idleThresholdMs) {
-        errorMsg = `No streaming data from OpenAI for ${Math.round(idleFor/1000)}s`;
-        isComplete = true;
-        try { es.close(); } catch (ee) { void ee; }
-      }
-    }, 5000);
-
-    // First-byte diagnostic: if no event in 8s, POST non-streaming with same body to capture error
-    const diagnosticTimer = setTimeout(async () => {
-      if (isComplete || messageCount > 0) return;
-      try {
-        const diagRes = await fetch('https://api.openai.com/v1/responses', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${this.config.apiKey}`,
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-          },
-          body: JSON.stringify({ ...body, stream: false }),
-        });
-        const diagText = await diagRes.text().catch(() => '');
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('[ChatGPT] diagnostic status', diagRes.status);
-          console.warn('[ChatGPT] diagnostic body', diagText.slice(0, 500));
-        }
-        if (!diagRes.ok) {
-          errorMsg = `Responses preflight failed (${diagRes.status}): ${diagText}`;
-          isComplete = true;
-          try { es.close(); } catch (ee) { void ee; }
-        }
-      } catch (dErr) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('[ChatGPT] diagnostic error', dErr);
-        }
-      }
-    }, 8000);
-
     try {
-      let lastYield = 0;
-      while (!isComplete || lastYield < chunks.length || awaitingFinal || pendingFinal) {
-        // Abort requested
+      while (!isComplete || eventQueue.length > 0) {
         if (abortSignal?.aborted) break;
-        while (lastYield < chunks.length) {
-          const c = chunks[lastYield++];
+        if (errorMsg) throw new Error(errorMsg);
+        if (eventQueue.length > 0) {
+          const c = eventQueue.shift()!;
           yield c;
-        }
-        if (pendingFinal) {
-          // Await the fallback completion to avoid finishing with chunks=0
-          try { await pendingFinal; } catch { /* already logged */ }
           continue;
         }
-        if (!isComplete) {
-          await new Promise(r => setTimeout(r, 30));
-        }
+        const result = await new Promise<IteratorResult<string, void>>((resolve) => { resolver = resolve; });
+        if (errorMsg) throw new Error(errorMsg);
+        if (result.done) break;
+        if (result.value) yield result.value;
       }
       if (errorMsg) throw new Error(errorMsg);
     } finally {
       if (abortSignal) abortSignal.removeEventListener('abort', onAbort);
-      clearInterval(idleTimer);
-      clearTimeout(diagnosticTimer);
-      try { es.close(); } catch (e) { void e; }
+      try { es.close(); } catch { /* noop */ }
     }
   }
 }

@@ -242,8 +242,7 @@ export abstract class OpenAICompatibleAdapter extends BaseAdapter {
     const requestBody = JSON.stringify(requestBodyObj);
     const headers = config.headers(this.config.apiKey);
     
-    // Create EventSource - THIS IS REQUIRED FOR REACT NATIVE
-    console.warn(`[${this.config.provider}] Creating EventSource connection...`);
+    // Create EventSource - React Native SSE
     const es = new EventSource(`${config.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -257,114 +256,65 @@ export abstract class OpenAICompatibleAdapter extends BaseAdapter {
       pollingInterval: 30000, // 30 second polling like Claude
       withCredentials: false,
     });
-    
-    // Simple accumulator for chunks
-    const chunks: string[] = [];
+    // Queue-based streaming: adapters yield raw deltas; StreamingService owns pacing
+    const eventQueue: string[] = [];
+    let resolver: ((value: IteratorResult<string, void>) => void) | null = null;
     let isComplete = false;
     let errorOccurred: Error | null = null;
-    let lastMessageTime = Date.now();
-    
-    // Handle message events
-    let messageCount = 0;
+
     es.addEventListener('message', (event) => {
-      messageCount++;
       try {
         const line = event.data;
-        
-        // Log every 50th message to see what's happening
-        if (messageCount % 50 === 0 || messageCount <= 5) {
-          console.warn(`[${this.config.provider}] Message ${messageCount}:`, line?.substring(0, 100));
-        }
-        
+        if (!line) return;
         if (line === '[DONE]') {
-          console.warn(`[${this.config.provider}] Received [DONE] signal`);
           isComplete = true;
-          es.close();
+          try { es.close(); } catch { /* noop */ }
+          if (resolver) { const r = resolver; resolver = null; r({ value: undefined, done: true }); }
           return;
         }
-        
         const data = JSON.parse(line || '{}');
-        const content = data.choices?.[0]?.delta?.content;
-        const finishReason = data.choices?.[0]?.finish_reason;
-        
+        const content = data.choices?.[0]?.delta?.content as string | undefined;
+        const finishReason = data.choices?.[0]?.finish_reason as string | undefined;
         if (content) {
-          chunks.push(content);
-          lastMessageTime = Date.now();
+          if (resolver) { const r = resolver; resolver = null; r({ value: content, done: false }); }
+          else eventQueue.push(content);
         }
-        
         if (finishReason) {
-          console.warn(`[${this.config.provider}] Finish reason: ${finishReason}`);
           isComplete = true;
-          es.close();
-        }
-        
-        // Check for empty delta which might indicate end
-        if (data.choices?.[0]?.delta && Object.keys(data.choices[0].delta).length === 0 && !content) {
-          console.warn(`[${this.config.provider}] Empty delta detected, might be end of stream`);
+          try { es.close(); } catch { /* noop */ }
+          if (resolver) { const r = resolver; resolver = null; r({ value: undefined, done: true }); }
         }
       } catch (error) {
         console.error(`[${this.config.provider}] Error parsing SSE data:`, error);
       }
     });
-    
+
     // Handle errors
     es.addEventListener('error', (error) => {
-      console.error(`[${this.config.provider}] SSE error:`, error);
       errorOccurred = new Error(String(error));
       isComplete = true;
-      es.close();
+      try { es.close(); } catch { /* noop */ }
+      if (resolver) { const r = resolver; resolver = null; r({ value: undefined, done: true }); }
     });
-    
-    // Handle connection open
-    es.addEventListener('open', () => {
-      console.warn(`[${this.config.provider}] SSE connection opened`);
-    });
-    
-    // Yield chunks with immediate first chunk for responsiveness
-    let lastYieldIndex = 0;
-    let iterations = 0;
-    let firstChunk = true;
-    
+
+    // Connection open (no-op)
+    es.addEventListener('open', () => {});
+
     try {
-      while (!isComplete || lastYieldIndex < chunks.length) {
-        iterations++;
-        
-        if (errorOccurred) {
-          throw errorOccurred;
-        }
-        
-        // Yield all accumulated chunks
-        while (lastYieldIndex < chunks.length) {
-          const chunk = chunks[lastYieldIndex];
-          lastYieldIndex++;
-          
-          // Immediate first chunk for responsiveness
-          if (firstChunk) {
-            yield chunk;
-            firstChunk = false;
-            continue;
-          }
-          
+      while (!isComplete || eventQueue.length > 0) {
+        if (errorOccurred) throw errorOccurred;
+        if (eventQueue.length > 0) {
+          const chunk = eventQueue.shift()!;
           yield chunk;
+          continue;
         }
-        
-        // If stream isn't complete, wait for more chunks
-        if (!isComplete) {
-          // Check for idle timeout
-          const idleTime = Date.now() - lastMessageTime;
-          if (idleTime > 10000 && chunks.length > 0) {
-            console.warn(`[${this.config.provider}] No new messages for ${idleTime}ms, ending stream`);
-            break;
-          }
-          
-          // Shorter initial delay for responsiveness, then normal accumulation
-          const waitTime = firstChunk ? 10 : 50;
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-        }
+        const result = await new Promise<IteratorResult<string, void>>((resolve) => { resolver = resolve; });
+        if (errorOccurred) throw errorOccurred;
+        if (result.done) break;
+        if (result.value) yield result.value;
       }
     } finally {
-      console.warn(`[${this.config.provider}] Stream complete. Messages: ${messageCount}, Chunks: ${chunks.length}, Iterations: ${iterations}`);
-      es.close();
+      try { es.close(); } catch { /* noop */ }
     }
   }
 }
