@@ -38,6 +38,14 @@ import { DemoSamplesBar } from '@/components/organisms/demo/DemoSamplesBar';
 import type { DemoDebate } from '@/types/demo';
 import { useDispatch } from 'react-redux';
 import { showSheet } from '@/store';
+import { RecordController } from '@/services/demo/RecordController';
+import * as Clipboard from 'expo-clipboard';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
+import AppendToPackService from '@/services/demo/AppendToPackService';
+import { useSelector } from 'react-redux';
+import type { RootState } from '@/store';
+import { DebateRecordPickerModal } from '@/components/organisms/demo/DebateRecordPickerModal';
 // Topic block is now rendered inside header
 // Controls modal removed – using Start Over action directly
 
@@ -65,6 +73,9 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
   const { selectedAIs, topic: initialTopic, personalities: initialPersonalities, formatId, rounds, exchanges, civility } = route.params;
   const [showTranscript, setShowTranscript] = useState(false);
   const [debateSamples, setDebateSamples] = useState<Array<{ id: string; title: string; topic: string }>>([]);
+  const [isRecording, setIsRecording] = useState(false);
+  const recordModeEnabled = useSelector((state: RootState) => state.settings.recordModeEnabled ?? false);
+  const [pickerVisible, setPickerVisible] = useState(false);
   const selectedSampleRef = React.useRef<DemoDebate | null>(null);
   // No custom controls modal
   
@@ -402,26 +413,104 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
         const displayedTopic = session.session?.topic || topicSelection.finalTopic || initialTopic || 'Debate Motion';
         const vsLine = selectedAIs.length >= 2 ? `${displayName(selectedAIs[0])} vs ${displayName(selectedAIs[1])}` : '';
         const subtitle = [vsLine].filter(Boolean).join('\n');
-        return (
-          <Header
-            variant="gradient"
-            title={`Motion: ${displayedTopic}`}
-            subtitle={subtitle}
-            showBackButton={true}
-            onBack={handleStartOver}
-            showTime={false}
-            showDate={false}
-            animated={true}
-            rightElement={<HeaderActions variant="gradient" />}
-            showDemoBadge={isDemo}
-            height={110}
-          />
-        );
+      return (
+        <Header
+          variant="gradient"
+          title={`Motion: ${displayedTopic}`}
+          subtitle={subtitle}
+          showBackButton={true}
+          onBack={handleStartOver}
+          showTime={false}
+          showDate={false}
+          animated={true}
+          rightElement={<HeaderActions variant="gradient" />}
+          actionButton={recordModeEnabled ? {
+            label: isRecording ? 'Stop' : 'Record',
+            onPress: async () => {
+              if (isRecording) {
+                try {
+                  const res = RecordController.stop();
+                  if (res && res.session) {
+                    const sessionData = res.session as { id?: string };
+                    const json = JSON.stringify(sessionData, null, 2);
+                    console.warn('[DEMO_RECORDING_DEBATE]', json);
+                    try { await Clipboard.setStringAsync(json); } catch (e) { console.warn('clipboard failed', e); }
+                    try {
+                      const fileName = `${sessionData.id || 'debate'}_${Date.now()}.json`.replace(/[^a-zA-Z0-9_.-]/g, '_');
+                      const path = `${FileSystem.cacheDirectory}${fileName}`;
+                      await FileSystem.writeAsStringAsync(path, json, { encoding: FileSystem.EncodingType.UTF8 });
+                      if (await Sharing.isAvailableAsync()) {
+                        await Sharing.shareAsync(path, { mimeType: 'application/json' });
+                      }
+                    } catch (e) { console.warn('share failed', e); }
+                    try {
+                      Alert.alert(
+                        'Recording captured',
+                        'Copied to clipboard, saved to a temp file, and printed to logs.',
+                        [
+                          { text: 'OK' },
+                          { text: 'Append to Pack (dev)', onPress: async () => {
+                            try {
+                              const resp = await AppendToPackService.append(sessionData);
+                              if (!resp.ok) {
+                                Alert.alert('Append failed', resp.error || 'Unknown error. Is dev packer server running on :8889?');
+                              } else {
+                                Alert.alert('Appended', 'Recording appended to pack.');
+                              }
+                            } catch (e) {
+                              Alert.alert('Append error', (e as Error)?.message || String(e));
+                            }
+                          }},
+                        ]
+                      );
+                    } catch (e) { console.warn('append alert failed', e); }
+                  }
+                } finally {
+                  setIsRecording(false);
+                }
+              } else {
+                setPickerVisible(true);
+              }
+            },
+            variant: isRecording ? 'danger' : 'primary',
+          } : undefined}
+          showDemoBadge={isDemo}
+          height={110}
+        />
+      );
       })()}
       
       {/* Topic moved into header */}
       
-      {renderContent()}
+  {renderContent()}
+
+  {/* Record picker for Debate */}
+  {recordModeEnabled && (
+    <DebateRecordPickerModal
+      visible={pickerVisible}
+      providersKey={providersKey}
+      personaKey={personaKey}
+      onClose={() => setPickerVisible(false)}
+      onSelect={async (selection) => {
+        setPickerVisible(false);
+        try {
+          const providers = selectedAIs.map(a => a.provider);
+          const comboKey = `${providers.sort().join('+')}:${personaKey || 'default'}`;
+          if (selection.type === 'new') {
+            RecordController.startDebate({ id: selection.id, topic: selection.topic, comboKey, participants: selectedAIs.map(a => a.name) });
+            setIsRecording(true);
+            // Start the live debate with the chosen topic
+            await handleStartDebate(selection.topic);
+            return;
+          }
+          // Existing sample: use its topic but record live
+          RecordController.startDebate({ id: `${selection.id}_rec_${Date.now()}`, topic: selection.topic, comboKey, participants: selectedAIs.map(a => a.name) });
+          setIsRecording(true);
+          await handleStartDebate(selection.topic);
+        } catch (e) { console.warn('record picker selection failed', e); }
+      }}
+    />
+  )}
 
       {/* No custom Exit modal */}
       

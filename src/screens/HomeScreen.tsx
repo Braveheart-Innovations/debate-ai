@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Header, HeaderActions } from '../components/organisms';
 import { DynamicAISelector, QuickStartsSection, PromptWizard } from '../components/organisms';
+import { ChatTopicPickerModal } from '@/components/organisms/demo/ChatTopicPickerModal';
 
 import { useTheme } from '../theme';
 import { HOME_CONSTANTS } from '../config/homeConstants';
@@ -39,13 +40,17 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const quickStart = useQuickStart();
   const { isDemo } = useFeatureAccess();
   const dispatch = useDispatch();
+  const [topicPickerVisible, setTopicPickerVisible] = React.useState(false);
   
   // Event handlers using hook methods
   const handleStartChat = () => {
-    if (aiSelection.hasSelection) {
-      const sessionId = session.createSession(aiSelection.selectedAIs);
-      navigation.navigate(HOME_CONSTANTS.SCREENS.CHAT, { sessionId });
+    if (!aiSelection.hasSelection) return;
+    if (isDemo) {
+      setTopicPickerVisible(true);
+      return;
     }
+    const sessionId = session.createSession(aiSelection.selectedAIs);
+    navigation.navigate(HOME_CONSTANTS.SCREENS.CHAT, { sessionId });
   };
   
   const handleSelectTopic = (topic: typeof quickStart.topics[0]) => {
@@ -134,6 +139,21 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         onClose={quickStart.closeWizard}
         onComplete={handleCompleteWizard}
       />
+
+      {/* Demo Mode: Chat Topic Picker */}
+      {isDemo && (
+        <ChatTopicPickerModal
+          visible={topicPickerVisible}
+          providers={aiSelection.selectedAIs.map(a => a.provider)}
+          personaId={aiSelection.selectedAIs.length === 1 ? (aiSelection.aiPersonalities[aiSelection.selectedAIs[0].id] || 'default') : undefined}
+          onClose={() => setTopicPickerVisible(false)}
+          onSelect={(sampleId) => {
+            setTopicPickerVisible(false);
+            const sessionId = session.createSession(aiSelection.selectedAIs);
+            navigation.navigate(HOME_CONSTANTS.SCREENS.CHAT, { sessionId, demoSampleId: sampleId });
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 };

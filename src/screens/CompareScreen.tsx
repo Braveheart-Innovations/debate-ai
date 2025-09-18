@@ -23,9 +23,15 @@ import { DemoBanner } from '@/components/molecules/subscription/DemoBanner';
 import { useDispatch } from 'react-redux';
 import { showSheet } from '@/store';
 import { DemoContentService } from '@/services/demo/DemoContentService';
-import { primeCompare } from '@/services/demo/DemoPlaybackRouter';
+import { loadCompareScript, primeNextCompareTurn, hasNextCompareTurn } from '@/services/demo/DemoPlaybackRouter';
 import { DemoSamplesBar } from '@/components/organisms/demo/DemoSamplesBar';
 import { getStreamingService } from '@/services/streaming/StreamingService';
+import { RecordController } from '@/services/demo/RecordController';
+import * as Clipboard from 'expo-clipboard';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
+import { CompareRecordPickerModal } from '@/components/organisms/demo/CompareRecordPickerModal';
+import AppendToPackService from '@/services/demo/AppendToPackService';
 
 interface CompareScreenProps {
   navigation: {
@@ -128,6 +134,9 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
   const sessionId = useRef(currentSession?.id || `compare_${Date.now()}`).current;
   const [hasBeenSaved, setHasBeenSaved] = useState(route.params?.resuming || false);
   const [compareSamples, setCompareSamples] = useState<Array<{ id: string; title: string }>>([]);
+  const [isRecording, setIsRecording] = useState(false);
+  const [pickerVisible, setPickerVisible] = useState(false);
+  const recordModeEnabled = useSelector((state: RootState) => state.settings.recordModeEnabled ?? false);
   
   const saveComparisonSession = useCallback(async () => {
     if (userMessages.length === 0) return; // Don't save empty sessions
@@ -192,6 +201,8 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
       content: messageText,
       timestamp: Date.now(),
     };
+    // If recording, capture the user message
+    try { if (RecordController.isActive()) { RecordController.recordUserMessage(messageText); } } catch (_e) { console.warn('compare record user msg failed', _e); }
     
     // Add to user messages display
     setUserMessages(prev => [...prev, userMessage]);
@@ -238,7 +249,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
         const p = getPersonality(rightAI.personality);
         if (p) aiService.setPersonality(rightAI.provider, p);
       }
-    } catch { /* ignore */ }
+    } catch (_e) { console.warn('compare apply personality failed', _e); }
 
     // Send to left AI if active
     if (leftActive) {
@@ -249,7 +260,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
         if (adapter && leftExp.enabled && leftParams) {
           adapter.config.parameters = leftParams as never;
         }
-      } catch { /* ignore */ }
+      } catch (_e) { console.warn('compare left expert params failed', _e); }
       if (shouldStreamLeft) {
         // Reset streaming content and start streaming via StreamingService
         setLeftStreamingContent('');
@@ -271,6 +282,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
           // onChunk
           (chunk: string) => {
             setLeftStreamingContent(prev => prev + chunk);
+            try { if (RecordController.isActive()) { RecordController.recordAssistantChunk(leftAI.provider, chunk); } } catch (_e) { console.warn('compare left chunk record failed', _e); }
           },
           // onComplete
           (finalContent: string) => {
@@ -286,6 +298,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
             leftHistoryRef.current.push(leftMessage);
             setLeftStreamingContent('');
             setLeftTyping(false);
+            try { if (RecordController.isActive()) { RecordController.recordAssistantMessage(leftAI.provider, finalContent); } } catch (_e) { console.warn('compare left final record failed', _e); }
           },
           // onError
           async (err: Error) => {
@@ -304,6 +317,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
               };
               setLeftMessages(prev => [...prev, leftMessage]);
               leftHistoryRef.current.push(leftMessage);
+              try { if (RecordController.isActive()) { RecordController.recordAssistantMessage(leftAI.provider, leftMessage.content); } } catch (_e) { console.warn('compare left fallback final record failed', _e); }
             } catch (fallbackError) {
               console.error('Left AI streaming error:', err, 'fallback error:', fallbackError);
               Alert.alert('Error', isVerification ? `${leftAI.name} requires org verification to stream.` : isOverload ? `${leftAI.name} is overloaded. Try again soon.` : `Failed to get response from ${leftAI.name}`);
@@ -376,7 +390,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
         if (adapter && rightExp.enabled && rightParams) {
           adapter.config.parameters = rightParams as never;
         }
-      } catch { /* ignore */ }
+      } catch (_e) { console.warn('compare right expert params failed', _e); }
       if (shouldStreamRight) {
         setRightStreamingContent('');
         getStreamingService().streamResponse(
@@ -396,6 +410,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
           },
           (chunk: string) => {
             setRightStreamingContent(prev => prev + chunk);
+            try { if (RecordController.isActive()) { RecordController.recordAssistantChunk(rightAI.provider, chunk); } } catch (_e) { console.warn('compare right chunk record failed', _e); }
           },
           (finalContent: string) => {
             const rightMessage: Message = {
@@ -410,6 +425,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
             rightHistoryRef.current.push(rightMessage);
             setRightStreamingContent('');
             setRightTyping(false);
+            try { if (RecordController.isActive()) { RecordController.recordAssistantMessage(rightAI.provider, finalContent); } } catch (_e) { console.warn('compare right final record failed', _e); }
           },
           async (err: Error) => {
             const msg = err?.message || '';
@@ -427,6 +443,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
               };
               setRightMessages(prev => [...prev, rightMessage]);
               rightHistoryRef.current.push(rightMessage);
+              try { if (RecordController.isActive()) { RecordController.recordAssistantMessage(rightAI.provider, rightMessage.content); } } catch (_e) { console.warn('compare right fallback final record failed', _e); }
             } catch (fallbackError) {
               console.error('Right AI streaming error:', err, 'fallback error:', fallbackError);
               Alert.alert('Error', isVerification ? `${rightAI.name} requires org verification to stream.` : isOverload ? `${rightAI.name} is overloaded. Try again soon.` : `Failed to get response from ${rightAI.name}`);
@@ -528,8 +545,9 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
       try {
         const sample = await DemoContentService.getCompareSampleForProviders([leftAI.provider, rightAI.provider]);
         if (!sample) return;
-        primeCompare(sample);
-        const messageText = `Demo prompt: ${sample.title}`;
+        loadCompareScript(sample);
+        const { user } = primeNextCompareTurn();
+        const messageText = user || `Demo prompt: ${sample.title}`;
         const userMessage: Message = { id: `msg_${Date.now()}`, sender: 'You', senderType: 'user', content: messageText, timestamp: Date.now() };
         setUserMessages(prev => [...prev, userMessage]);
         leftHistoryRef.current.push(userMessage);
@@ -559,7 +577,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
             setRightStreamingContent('');
           })
           .catch(() => setRightTyping(false));
-      } catch { /* ignore */ }
+      } catch (_e) { console.warn('compare demo auto-start failed', _e); }
     };
     run();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -574,6 +592,52 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
     };
     run();
   }, [isDemo, leftAI, rightAI]);
+
+  // Auto-advance compare multi-turn when both sides finish typing
+  const prevTypingRef = React.useRef<{ left: boolean; right: boolean }>({ left: false, right: false });
+  React.useEffect(() => {
+    const prev = prevTypingRef.current;
+    prevTypingRef.current = { left: leftTyping, right: rightTyping };
+    if (!isDemo) return;
+    if (!leftAI || !rightAI || !aiService) return;
+    const bothStopped = !leftTyping && !rightTyping && (prev.left || prev.right);
+    if (bothStopped && hasNextCompareTurn()) {
+      const t = setTimeout(async () => {
+        try {
+          const { user } = primeNextCompareTurn();
+          const messageText = user || 'Next demo turn';
+          const userMessage: Message = { id: `msg_${Date.now()}`, sender: 'You', senderType: 'user', content: messageText, timestamp: Date.now() };
+          setUserMessages(prevMsgs => [...prevMsgs, userMessage]);
+          leftHistoryRef.current.push(userMessage);
+          rightHistoryRef.current.push(userMessage);
+          setLeftTyping(true);
+          setRightTyping(true);
+          const leftEffModel = selectedModels[leftAI.id] || leftAI.model;
+          const rightEffModel = selectedModels[rightAI.id] || rightAI.model;
+          aiService.sendMessage(leftAI.id, messageText, leftHistoryRef.current, false, undefined, undefined, leftEffModel)
+            .then(response => {
+              const leftMessage: Message = { id: `msg_left_${Date.now()}`, sender: leftAI.name, senderType: 'ai', content: typeof response === 'string' ? response : response.response, timestamp: Date.now(), metadata: { modelUsed: leftEffModel } };
+              setLeftMessages(prev2 => [...prev2, leftMessage]);
+              leftHistoryRef.current.push(leftMessage);
+              setLeftTyping(false);
+              setLeftStreamingContent('');
+            })
+            .catch(() => setLeftTyping(false));
+          aiService.sendMessage(rightAI.id, messageText, rightHistoryRef.current, false, undefined, undefined, rightEffModel)
+            .then(response => {
+              const rightMessage: Message = { id: `msg_right_${Date.now()}`, sender: rightAI.name, senderType: 'ai', content: typeof response === 'string' ? response : response.response, timestamp: Date.now(), metadata: { modelUsed: rightEffModel } };
+              setRightMessages(prev2 => [...prev2, rightMessage]);
+              rightHistoryRef.current.push(rightMessage);
+              setRightTyping(false);
+              setRightStreamingContent('');
+            })
+            .catch(() => setRightTyping(false));
+        } catch (_e) { console.warn('compare auto-advance failed', _e); }
+      }, 250);
+      return () => clearTimeout(t);
+    }
+    return undefined;
+  }, [leftTyping, rightTyping, isDemo, aiService, leftAI, rightAI, selectedModels]);
   
   const handleContinueWithLeft = useCallback(() => {
     if (!leftAI) return;
@@ -685,6 +749,56 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
           showDate={false}
           animated={true}
           rightElement={<HeaderActions variant="gradient" />}
+          actionButton={recordModeEnabled ? {
+            label: isRecording ? 'Stop' : 'Record',
+            onPress: async () => {
+              if (isRecording) {
+                try {
+                  const res = RecordController.stop();
+                  if (res && res.session) {
+                    const sessionData = res.session as { id?: string };
+                    const json = JSON.stringify(sessionData, null, 2);
+                    console.warn('[DEMO_RECORDING_COMPARE]', json);
+                    try { await Clipboard.setStringAsync(json); } catch (_e) { console.warn('clipboard failed', _e); }
+                    try {
+                      const fileName = `${sessionData.id || 'compare'}_${Date.now()}.json`.replace(/[^a-zA-Z0-9_.-]/g, '_');
+                      const path = `${FileSystem.cacheDirectory}${fileName}`;
+                      await FileSystem.writeAsStringAsync(path, json, { encoding: FileSystem.EncodingType.UTF8 });
+                      if (await Sharing.isAvailableAsync()) {
+                        await Sharing.shareAsync(path, { mimeType: 'application/json' });
+                      }
+                    } catch (_e) { console.warn('share failed', _e); }
+                    try {
+                      Alert.alert(
+                        'Recording captured',
+                        'Copied to clipboard, saved to a temp file, and printed to logs.',
+                        [
+                          { text: 'OK' },
+                          { text: 'Append to Pack (dev)', onPress: async () => {
+                            try {
+                              const resp = await AppendToPackService.append(sessionData);
+                              if (!resp.ok) {
+                                Alert.alert('Append failed', resp.error || 'Unknown error. Is dev packer server running on :8889?');
+                              } else {
+                                Alert.alert('Appended', 'Recording appended to pack.');
+                              }
+                            } catch (e) {
+                              Alert.alert('Append error', (e as Error)?.message || String(e));
+                            }
+                          }},
+                        ]
+                      );
+                    } catch (_e) { console.warn('append alert failed', _e); }
+                  }
+                } finally {
+                  setIsRecording(false);
+                }
+              } else {
+                setPickerVisible(true);
+              }
+            },
+            variant: isRecording ? 'danger' : 'primary',
+          } : undefined}
           showBackButton={true}
           onBack={handleStartOver}
           showDemoBadge={isDemo}
@@ -698,8 +812,9 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
               try {
                 const sample = await DemoContentService.findCompareById(sampleId);
                 if (!sample || !leftAI || !rightAI || !aiService) return;
-                primeCompare(sample);
-                const messageText = `Demo prompt: ${sample.title}`;
+                loadCompareScript(sample);
+                const { user } = primeNextCompareTurn();
+                const messageText = user || `Demo prompt: ${sample.title}`;
                 const userMessage: Message = { id: `msg_${Date.now()}`, sender: 'You', senderType: 'user', content: messageText, timestamp: Date.now() };
                 setUserMessages(prev => [...prev, userMessage]);
                 leftHistoryRef.current.push(userMessage);
@@ -726,7 +841,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
                     setRightStreamingContent('');
                   })
                   .catch(() => setRightTyping(false));
-              } catch { /* ignore */ }
+              } catch (_e) { console.warn('compare samples bar selection failed', _e); }
             }}
           />
         )}
@@ -794,6 +909,61 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
           />
         </SafeAreaView>
       </SafeAreaView>
+      {recordModeEnabled && (
+        <CompareRecordPickerModal
+          visible={pickerVisible}
+          leftProvider={leftAI.provider}
+          rightProvider={rightAI.provider}
+          onClose={() => setPickerVisible(false)}
+          onSelect={async (sel) => {
+            setPickerVisible(false);
+            try {
+              const providers = [leftAI.provider, rightAI.provider];
+              const comboKey = providers.sort().join('+');
+              if (sel.type === 'new') {
+                RecordController.startCompare({ id: sel.id, title: sel.title, comboKey });
+                setIsRecording(true);
+                return;
+              }
+              RecordController.startCompare({ id: `${sel.id}_rec_${Date.now()}`, title: sel.title, comboKey });
+              setIsRecording(true);
+              const sample = await DemoContentService.findCompareById(sel.id);
+              if (sample) {
+                if (!aiService) return;
+                loadCompareScript(sample);
+                const { user } = primeNextCompareTurn();
+                const messageText = user || `Demo prompt: ${sample.title}`;
+                const userMessage: Message = { id: `msg_${Date.now()}`, sender: 'You', senderType: 'user', content: messageText, timestamp: Date.now() };
+                setUserMessages(prev => [...prev, userMessage]);
+                leftHistoryRef.current.push(userMessage);
+                rightHistoryRef.current.push(userMessage);
+                setLeftTyping(true);
+                setRightTyping(true);
+                const leftEffModel = selectedModels[leftAI.id] || leftAI.model;
+                const rightEffModel = selectedModels[rightAI.id] || rightAI.model;
+                aiService.sendMessage(leftAI.id, messageText, leftHistoryRef.current, false, undefined, undefined, leftEffModel)
+                  .then(response => {
+                    const leftMessage: Message = { id: `msg_left_${Date.now()}`, sender: leftAI.name, senderType: 'ai', content: typeof response === 'string' ? response : response.response, timestamp: Date.now(), metadata: { modelUsed: leftEffModel } };
+                    setLeftMessages(prev => [...prev, leftMessage]);
+                    leftHistoryRef.current.push(leftMessage);
+                    setLeftTyping(false);
+                    setLeftStreamingContent('');
+                  })
+                  .catch(() => setLeftTyping(false));
+                aiService.sendMessage(rightAI.id, messageText, rightHistoryRef.current, false, undefined, undefined, rightEffModel)
+                  .then(response => {
+                    const rightMessage: Message = { id: `msg_right_${Date.now()}`, sender: rightAI.name, senderType: 'ai', content: typeof response === 'string' ? response : response.response, timestamp: Date.now(), metadata: { modelUsed: rightEffModel } };
+                    setRightMessages(prev => [...prev, rightMessage]);
+                    rightHistoryRef.current.push(rightMessage);
+                    setRightTyping(false);
+                    setRightStreamingContent('');
+                  })
+                  .catch(() => setRightTyping(false));
+              }
+            } catch (_e) { console.warn('compare record picker runtime failed', _e); }
+          }}
+        />
+      )}
     </KeyboardAvoidingView>
   );
 };

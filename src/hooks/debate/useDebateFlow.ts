@@ -14,6 +14,7 @@ import {
   streamingError,
 } from '../../store/streamingSlice';
 import { DebateOrchestrator, DebateEvent, DebateStatus } from '../../services/debate';
+import { RecordController } from '@/services/demo/RecordController';
 import { Message } from '../../types';
 
 export interface UseDebateFlowReturn {
@@ -45,6 +46,16 @@ export const useDebateFlow = (orchestrator: DebateOrchestrator | null): UseDebat
       case 'message_added':
         if (event.data.message) {
           dispatch(addMessage(event.data.message as Message));
+          // If recording a debate, capture assistant messages
+          try {
+            if (RecordController.isActive()) {
+              const m = event.data.message as Message & { metadata?: { providerId?: string } };
+              if (m.senderType === 'ai') {
+                const provider = m?.metadata?.providerId || '';
+                RecordController.recordAssistantMessage(provider, m.content || '');
+              }
+            }
+          } catch { /* ignore */ }
         }
         break;
       
@@ -95,6 +106,14 @@ export const useDebateFlow = (orchestrator: DebateOrchestrator | null): UseDebat
         const messageId = String((event.data as { messageId?: string }).messageId || '');
         const chunk = String((event.data as { chunk?: string }).chunk || '');
         if (messageId && chunk) dispatch(updateStreamingContent({ messageId, chunk }));
+        // If recording a debate, capture chunks
+        try {
+          if (RecordController.isActive()) {
+            const src = event.data as { aiProvider?: string; providerId?: string };
+            const aiProvider = String(src?.aiProvider || src?.providerId || '');
+            if (aiProvider) RecordController.recordAssistantChunk(aiProvider, chunk);
+          }
+        } catch (_e) { console.warn('debate stream chunk capture failed', _e); }
         break;
       }
       case 'stream_completed': {

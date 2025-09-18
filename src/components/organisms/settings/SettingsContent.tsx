@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
-import { RootState, setGlobalStreaming, setStreamingSpeed, setPremiumStatus } from '../../../store';
+import { RootState, setGlobalStreaming, setStreamingSpeed, setPremiumStatus, setRecordModeEnabled } from '../../../store';
 import { Typography, SheetHeader, SettingRow, Button } from '@/components/molecules';
 import { useTheme } from '../../../theme';
 import { 
@@ -28,6 +28,7 @@ export const SettingsContent: React.FC<SettingsContentProps> = ({
   const relayUrl = useSelector((state: RootState) => state.settings.realtimeRelayUrl || '');
   const apiKeys = useSelector((state: RootState) => state.settings.apiKeys || {});
   const hasAnyApiKey = Object.values(apiKeys).some(Boolean);
+  const recordModeEnabled = useSelector((state: RootState) => state.settings.recordModeEnabled ?? false);
   
   const themeSettings = useThemeSettings();
   const hasPremiumAccess = useSelector((state: RootState) => state.auth.isPremium);
@@ -109,6 +110,19 @@ export const SettingsContent: React.FC<SettingsContentProps> = ({
       </View>
       
       <View style={[styles.section, { backgroundColor: theme.colors.surface }]}>
+        <SettingRow
+          title="Record Mode"
+          subtitle="Dev-only: show Record/Stop in headers"
+          icon="radio-button-on"
+          rightElement={
+            <Button
+              title={recordModeEnabled ? 'On' : 'Off'}
+              onPress={() => dispatch(setRecordModeEnabled(!recordModeEnabled))}
+              variant={recordModeEnabled ? 'primary' : 'secondary'}
+              size="small"
+            />
+          }
+        />
         <SettingRow
           title="Premium Mode"
           subtitle={hasPremiumAccess ? 'Premium features unlocked' : 'Simulate premium to test UI'}

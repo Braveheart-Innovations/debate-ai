@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback } from 'react';
-import { KeyboardAvoidingView, Platform, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, View, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AIServiceLoading, Header, HeaderActions } from '../components/organisms';
 import { useAIService } from '../providers/AIServiceProvider';
@@ -36,12 +36,18 @@ import { AIConfig, Message } from '../types';
 import { cancelAllStreams, selectActiveStreamCount } from '../store';
 import { getStreamingService } from '../services/streaming/StreamingService';
 import { DemoContentService } from '@/services/demo/DemoContentService';
-import { primeChat } from '@/services/demo/DemoPlaybackRouter';
+import { loadChatScript, primeNextChatTurn, hasNextChatTurn } from '@/services/demo/DemoPlaybackRouter';
 import { DemoSamplesBar } from '@/components/organisms/demo/DemoSamplesBar';
 import { showSheet } from '@/store';
 import useFeatureAccess from '@/hooks/useFeatureAccess';
 import { showTrialCTA } from '@/utils/demoGating';
 import { DemoBanner } from '@/components/molecules/subscription/DemoBanner';
+import { ChatTopicPickerModal } from '@/components/organisms/demo/ChatTopicPickerModal';
+import { RecordController } from '@/services/demo/RecordController';
+import * as Clipboard from 'expo-clipboard';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
+import AppendToPackService from '@/services/demo/AppendToPackService';
 
 
 interface ChatScreenProps {
@@ -56,6 +62,7 @@ interface ChatScreenProps {
       initialPrompt?: string;
       userPrompt?: string;
       autoSend?: boolean;
+      demoSampleId?: string;
       selectedAIs?: AIConfig[];
       initialMessages?: Message[];
     };
@@ -99,6 +106,9 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
   const [imageModalPrompt, setImageModalPrompt] = React.useState('');
   const { isDemo } = useFeatureAccess();
   const [chatSamples, setChatSamples] = React.useState<Array<{ id: string; title: string }>>([]);
+  const recordModeEnabled = useSelector((state: RootState) => state.settings.recordModeEnabled ?? false);
+  const [isRecording, setIsRecording] = React.useState(false);
+  const [topicPickerVisible, setTopicPickerVisible] = React.useState(false);
   // Local nav function compatible with showTrialCTA typing
   const navTo = React.useMemo(() => (
     (screen: string, params?: Record<string, unknown>) => {
@@ -185,6 +195,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
 
   // Handle message sending
   const handleSendMessage = useCallback(async (messageText?: string, attachments?: MessageAttachment[]): Promise<void> => {
+    // In Demo Mode, always gate sending (recording should be done in Premium mode)
     if (isDemo) { dispatch(showSheet({ sheet: 'subscription' })); return; }
     const textToSend = messageText || input.inputText;
     
@@ -199,6 +210,9 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
     // Parse mentions from the message
     const messageMentions = mentions.parseMentions(textToSend);
     
+    // If recording, capture the user message text
+    try { if (RecordController.isActive() && textToSend.trim()) { RecordController.recordUserMessage(textToSend.trim()); } } catch { /* ignore */ }
+
     // Send user message with attachments
     messages.sendMessage(textToSend, messageMentions, attachments);
     
@@ -252,23 +266,22 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
     quickStart.initialPromptSent,
   ]);
 
-  // Demo Mode: auto-start playback based on selected AIs using pack routing
+  // Demo Mode: start selected sample if provided via navigation
   useEffect(() => {
     const run = async () => {
       if (!isDemo) return;
       if (!session.currentSession) return;
       if (messages.messages.length > 0) return;
-      const providers = session.currentSession.selectedAIs.map(ai => ai.provider);
-      if (providers.length === 0) return;
+      const sampleId = route.params?.demoSampleId;
+      if (!sampleId) return; // Wait for user selection from Home
       try {
-        const sample = await DemoContentService.getChatSampleForProviders(providers);
+        const sample = await DemoContentService.findChatById(sampleId);
         if (!sample) return;
-        // Prime playback router for adapters
-        primeChat(sample);
-        // Find first user message content
-        const firstUser = sample.events.find(e => e.role === 'user' && e.type === 'message');
-        const content = firstUser?.content || 'Let’s chat.';
-        // Dispatch user message
+        loadChatScript(sample);
+        // Prime and play first turn
+        const { user } = primeNextChatTurn();
+        const content = user || 'Let’s chat.';
+        messages.sendMessage(content, []);
         const userMessage = {
           id: `msg_${Date.now()}`,
           sender: 'You',
@@ -277,17 +290,81 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
           timestamp: Date.now(),
           mentions: [],
         };
-        // Use existing helpers to add and trigger AI responses without invoking gated handler
-        messages.sendMessage(content, []);
         await aiResponses.sendAIResponses(userMessage);
-      } catch (e) {
-        void e;
-      }
+      } catch { /* ignore */ }
     };
     run();
-    // Only when entering an empty chat in demo with selected AIs
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDemo, session.currentSession?.id]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDemo, session.currentSession?.id, route.params?.demoSampleId]);
+
+  // Advance multi-turn demo chat when streaming completes
+  const prevActiveStreamsRef = React.useRef<number>(0);
+  useEffect(() => {
+    const prev = prevActiveStreamsRef.current;
+    prevActiveStreamsRef.current = activeStreams;
+    if (!isDemo) return;
+    if (!session.currentSession) return;
+    // Trigger on transition from >0 to 0 (responses ended)
+    if (prev > 0 && activeStreams === 0 && hasNextChatTurn()) {
+      const t = setTimeout(async () => {
+        try {
+          const { user } = primeNextChatTurn();
+          const content = user || 'OK.';
+          // If recording, capture the user message
+          try { if (RecordController.isActive()) { RecordController.recordUserMessage(content); } } catch { /* ignore */ }
+          messages.sendMessage(content, []);
+          const userMessage = {
+            id: `msg_${Date.now()}`,
+            sender: 'You',
+            senderType: 'user' as const,
+            content,
+            timestamp: Date.now(),
+            mentions: [],
+          };
+          await aiResponses.sendAIResponses(userMessage);
+        } catch { /* ignore */ }
+      }, 250);
+      return () => clearTimeout(t);
+    }
+    return undefined;
+  }, [activeStreams, isDemo, session.currentSession, aiResponses, messages]);
+
+  // Fallback: advance multi-turn even for non-streaming responses (no active stream boundary)
+  const demoAdvanceGuardRef = React.useRef(false);
+  useEffect(() => {
+    if (!isDemo) return;
+    if (!session.currentSession) return;
+    if (!hasNextChatTurn()) return;
+    if (activeStreams > 0) { demoAdvanceGuardRef.current = false; return; }
+    const last = messages.messages[messages.messages.length - 1];
+    if (!last || last.senderType !== 'ai') return;
+    if (demoAdvanceGuardRef.current) return;
+    demoAdvanceGuardRef.current = true;
+    const t = setTimeout(async () => {
+      try {
+        const { user } = primeNextChatTurn();
+        const content = user || 'OK.';
+        try { if (RecordController.isActive()) { RecordController.recordUserMessage(content); } } catch { /* ignore */ }
+        messages.sendMessage(content, []);
+        const userMessage = {
+          id: `msg_${Date.now()}`,
+          sender: 'You',
+          senderType: 'user' as const,
+          content,
+          timestamp: Date.now(),
+          mentions: [],
+        };
+        await aiResponses.sendAIResponses(userMessage);
+      } catch { /* ignore */ }
+      finally {
+        demoAdvanceGuardRef.current = false;
+      }
+    }, 350);
+    return () => {
+      clearTimeout(t);
+      demoAdvanceGuardRef.current = false;
+    };
+  }, [messages.messages.length, activeStreams, isDemo, session.currentSession, aiResponses, messages]);
 
   // Demo Mode: fetch available samples for current selection
   useEffect(() => {
@@ -357,6 +434,56 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
           showTime={true}
           animated={true}
           rightElement={<HeaderActions variant="gradient" />}
+          actionButton={recordModeEnabled ? {
+            label: isRecording ? 'Stop' : 'Record',
+            onPress: async () => {
+              if (isRecording) {
+                try {
+                  const res = RecordController.stop();
+                  if (res && res.session) {
+                    const sessionData = res.session as { id?: string };
+                    const json = JSON.stringify(sessionData, null, 2);
+                    console.warn('[DEMO_RECORDING]', json);
+                    try { await Clipboard.setStringAsync(json); } catch { /* ignore */ }
+                    // Save to a temp file and open share sheet
+                    try {
+                      const fileName = `${sessionData.id || 'recording'}_${Date.now()}.json`.replace(/[^a-zA-Z0-9_.-]/g, '_');
+                      const path = `${FileSystem.cacheDirectory}${fileName}`;
+                      await FileSystem.writeAsStringAsync(path, json, { encoding: FileSystem.EncodingType.UTF8 });
+                      if (await Sharing.isAvailableAsync()) {
+                        await Sharing.shareAsync(path, { mimeType: 'application/json' });
+                      }
+                    } catch { /* ignore */ }
+                    try {
+                      Alert.alert(
+                        'Recording captured',
+                        'Copied to clipboard, saved to a temp file, and printed to logs.',
+                        [
+                          { text: 'OK' },
+                          { text: 'Append to Pack (dev)', onPress: async () => {
+                            try {
+                              const resp = await AppendToPackService.append(sessionData);
+                              if (!resp.ok) {
+                                Alert.alert('Append failed', resp.error || 'Unknown error. Is dev packer server running on :8889?');
+                              } else {
+                                Alert.alert('Appended', 'Recording appended to pack.');
+                              }
+                            } catch (e) {
+                              Alert.alert('Append error', (e as Error)?.message || String(e));
+                            }
+                          }},
+                        ]
+                      );
+                    } catch { /* ignore */ }
+                  }
+                } catch { /* ignore */ }
+                setIsRecording(false);
+              } else {
+                setTopicPickerVisible(true);
+              }
+            },
+            variant: isRecording ? 'danger' : 'primary'
+          } : undefined}
           showDemoBadge={isDemo}
         />
 
@@ -372,10 +499,9 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
               try {
                 const sample = await DemoContentService.findChatById(sampleId);
                 if (!sample) return;
-                primeChat(sample);
-                const firstUser = sample.events.find(e => e.role === 'user' && e.type === 'message');
-                const content = firstUser?.content || 'Let’s chat.';
-                // Send user message and trigger responses
+                loadChatScript(sample);
+                const { user } = primeNextChatTurn();
+                const content = user || 'Let’s chat.';
                 messages.sendMessage(content, []);
                 const userMessage = {
                   id: `msg_${Date.now()}`,
@@ -466,6 +592,50 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
           />
         </View>
       </KeyboardAvoidingView>
+      {/* Record Mode: Chat Topic Picker */}
+      {recordModeEnabled && (
+        <ChatTopicPickerModal
+          visible={topicPickerVisible}
+          providers={session.currentSession ? session.currentSession.selectedAIs.map(a => a.provider) : []}
+          personaId={session.currentSession && session.currentSession.selectedAIs.length === 1 ? (session.currentSession.selectedAIs[0].personality || 'default') : undefined}
+          onClose={() => setTopicPickerVisible(false)}
+          onSelect={async (sampleId, title) => {
+            setTopicPickerVisible(false);
+            if (!session.currentSession) return;
+            try {
+              const providers = session.currentSession.selectedAIs.map(a => a.provider);
+              const comboKey = DemoContentService.comboKey(providers);
+              if (sampleId.startsWith('new:')) {
+                const rawId = sampleId.slice(4);
+                try { RecordController.startChat({ id: rawId, title, comboKey }); } catch { /* ignore */ }
+                setIsRecording(true);
+                // No script; user will type the first prompt in Premium mode
+                return;
+              }
+              const sample = await DemoContentService.findChatById(sampleId);
+              if (!sample) return;
+              // Start recording
+              try { RecordController.startChat({ id: `${sampleId}_rec_${Date.now()}`, title, comboKey }); } catch { /* ignore */ }
+              setIsRecording(true);
+              // Load multi-turn script and play first turn
+              loadChatScript(sample);
+              const { user } = primeNextChatTurn();
+              const content = user || 'Let’s chat.';
+              try { if (RecordController.isActive()) { RecordController.recordUserMessage(content); } } catch { /* ignore */ }
+              messages.sendMessage(content, []);
+              const userMessage = {
+                id: `msg_${Date.now()}`,
+                sender: 'You',
+                senderType: 'user' as const,
+                content,
+                timestamp: Date.now(),
+                mentions: [],
+              };
+              await aiResponses.sendAIResponses(userMessage);
+            } catch { /* ignore */ }
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 };

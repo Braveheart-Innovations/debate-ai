@@ -195,6 +195,8 @@ interface SettingsState {
     [providerId: string]: ExpertModeConfig | undefined;
   };
   hasCompletedOnboarding: boolean;
+  // Dev-only: enable recording controls in headers
+  recordModeEnabled?: boolean;
 }
 
 const initialSettingsState: SettingsState = {
@@ -207,6 +209,7 @@ const initialSettingsState: SettingsState = {
   verificationModels: {},
   expertMode: {},
   hasCompletedOnboarding: false,
+  recordModeEnabled: false,
 };
 
 const settingsSlice = createSlice({
@@ -284,6 +287,9 @@ const settingsSlice = createSlice({
     updateExpertMode: (state, action: PayloadAction<{ provider: string; config: ExpertModeConfig }>) => {
       state.expertMode[action.payload.provider] = action.payload.config;
     },
+    setRecordModeEnabled: (state, action: PayloadAction<boolean>) => {
+      state.recordModeEnabled = !!action.payload;
+    },
   },
 });
 
@@ -318,7 +324,8 @@ export const {
   removeVerifiedProvider,
   restoreVerificationData,
   completeOnboarding, 
-  updateExpertMode 
+  updateExpertMode,
+  setRecordModeEnabled,
 } = settingsSlice.actions;
 
 // Export auth actions

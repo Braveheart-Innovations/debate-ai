@@ -11,7 +11,8 @@ const RECORDINGS_DIR = resolve(__dirname, './recordings');
 const PACK_PATH = resolve(ROOT, 'src/assets/demo/demo-pack.v1.json');
 
 function loadJSON(path) {
-  return JSON.parse(readFileSync(path, 'utf8'));
+  const raw = readFileSync(path, 'utf8');
+  return JSON.parse(raw);
 }
 function saveJSON(path, data) {
   writeFileSync(path, JSON.stringify(data, null, 2) + '\n');
@@ -52,11 +53,24 @@ function main() {
     console.error('No recordings directory found:', RECORDINGS_DIR);
     process.exit(1);
   }
-  const pack = loadJSON(PACK_PATH);
+  let pack;
+  try {
+    pack = loadJSON(PACK_PATH);
+  } catch (e) {
+    console.error('[packer] Failed to parse pack JSON at', PACK_PATH);
+    console.error(String(e?.message || e));
+    process.exit(1);
+  }
   const files = readdirSync(RECORDINGS_DIR).filter(f => f.endsWith('.json'));
   for (const f of files) {
-    const rec = loadJSON(resolve(RECORDINGS_DIR, f));
-    appendRecording(pack, rec);
+    const full = resolve(RECORDINGS_DIR, f);
+    try {
+      const rec = loadJSON(full);
+      appendRecording(pack, rec);
+    } catch (e) {
+      console.error('[packer] Skipping invalid JSON:', full);
+      console.error(String(e?.message || e));
+    }
   }
   // Update meta timestamp
   pack.meta = pack.meta || {};
@@ -66,4 +80,3 @@ function main() {
 }
 
 main();
-

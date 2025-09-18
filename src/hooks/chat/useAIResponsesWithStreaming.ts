@@ -19,6 +19,7 @@ import { getStreamingService } from '../../services/streaming/StreamingService';
 import type { ResumptionContext } from '../../services/aiAdapter';
 import { getExpertOverrides } from '../../utils/expertMode';
 import useFeatureAccess from '@/hooks/useFeatureAccess';
+import { RecordController } from '@/services/demo/RecordController';
 
 export interface AIResponsesHook {
   typingAIs: string[];
@@ -203,6 +204,8 @@ export const useAIResponsesWithStreaming = (isResuming?: boolean): AIResponsesHo
                 messageId: aiMessage.id, 
                 chunk 
               }));
+              // If recording, capture the assistant chunk
+              try { if (RecordController.isActive()) { RecordController.recordAssistantChunk(ai.provider, chunk); } } catch { /* ignore */ }
             },
             // On complete
             (finalContent: string) => {
@@ -314,9 +317,11 @@ export const useAIResponsesWithStreaming = (isResuming?: boolean): AIResponsesHo
                   const imageB64 = ee?.image?.b64 || ee?.delta?.image?.b64 || ee?.image?.data || ee?.delta?.image?.data;
                   if (imageUrl) {
                     dispatch(updateStreamingContent({ messageId: aiMessage.id, chunk: `\n\n![image](${imageUrl})\n\n` }));
+                    try { if (RecordController.isActive()) { RecordController.recordImageMarkdown(imageUrl); } } catch { /* ignore */ }
                   } else if (imageB64) {
                     const dataUrl = `data:image/png;base64,${imageB64}`;
                     dispatch(updateStreamingContent({ messageId: aiMessage.id, chunk: `\n\n![image](${dataUrl})\n\n` }));
+                    try { if (RecordController.isActive()) { RecordController.recordImageMarkdown(dataUrl); } } catch { /* ignore */ }
                   } else {
                     dispatch(updateStreamingContent({ messageId: aiMessage.id, chunk: `\n\n[image content]\n\n` }));
                   }
@@ -562,17 +567,19 @@ export const useAIResponsesWithStreaming = (isResuming?: boolean): AIResponsesHo
                     ai.model
                   );
                   
-                  const response = typeof result === 'string' ? result : result.response;
-                  
-                  // Success! Clear the error and update with the response
-                  dispatch(clearStreamingMessage(aiMessage.id)); // Clear the error state
-                  dispatch(updateMessage({
-                    id: aiMessage.id,
-                    content: response,
-                  }));
-                  
-                  streamedContent = response; // Update for context building
-                } catch (fallbackError) {
+          const response = typeof result === 'string' ? result : result.response;
+          
+          // Success! Clear the error and update with the response
+          dispatch(clearStreamingMessage(aiMessage.id)); // Clear the error state
+          dispatch(updateMessage({
+            id: aiMessage.id,
+            content: response,
+          }));
+          // If recording (non-streaming fallback), capture the assistant message
+          try { if (RecordController.isActive()) { RecordController.recordAssistantMessage(ai.provider, response); } } catch { /* ignore */ }
+          
+          streamedContent = response; // Update for context building
+        } catch (fallbackError) {
                   console.error(`Fallback to non-streaming also failed:`, fallbackError);
                   
                   // Update the message to show the error
