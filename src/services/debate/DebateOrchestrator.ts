@@ -410,18 +410,18 @@ export class DebateOrchestrator {
             modelOverride: currentAI.model,
             speed: streamSpeed,
           },
-          (chunk: string) => {
-            this.emitEvent({ type: 'stream_chunk', data: { messageId, chunk }, timestamp: Date.now() });
+            (chunk: string) => {
+            this.emitEvent({ type: 'stream_chunk', data: { messageId, chunk, aiProvider: currentAI.id }, timestamp: Date.now() });
           },
           (completeText: string) => {
             finalContent = completeText;
-            this.emitEvent({ type: 'stream_completed', data: { messageId, finalContent: completeText, modelUsed: currentAI.model }, timestamp: Date.now() });
+            this.emitEvent({ type: 'stream_completed', data: { messageId, finalContent: completeText, modelUsed: currentAI.model, aiProvider: currentAI.id }, timestamp: Date.now() });
           },
           (err: Error) => {
             hadError = true;
             const msg = err?.message || '';
             errorForFallback = msg;
-            this.emitEvent({ type: 'stream_error', data: { messageId, error: msg }, timestamp: Date.now() });
+            this.emitEvent({ type: 'stream_error', data: { messageId, error: msg, aiProvider: currentAI.id }, timestamp: Date.now() });
           }
         );
 

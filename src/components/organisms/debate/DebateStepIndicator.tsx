@@ -14,6 +14,7 @@ interface DebateStepIndicatorProps {
   currentStep: DebateStep;
   completedSteps: DebateStep[];
   isPremium: boolean;
+  showPersonalityStep?: boolean;
 }
 
 interface StepInfo {
@@ -27,6 +28,7 @@ export const DebateStepIndicator: React.FC<DebateStepIndicatorProps> = ({
   currentStep,
   completedSteps,
   isPremium,
+  showPersonalityStep = true,
 }) => {
   const { theme } = useTheme();
 
@@ -43,13 +45,16 @@ export const DebateStepIndicator: React.FC<DebateStepIndicatorProps> = ({
       icon: '🤖',
       description: 'Select 2 AIs',
     },
-    {
-      id: 'personality' as DebateStep,
+  ];
+
+  if (showPersonalityStep) {
+    steps.push({
+      id: 'personality',
       label: 'Personalities',
       icon: '🎭',
       description: isPremium ? 'Set the tone' : 'Premium feature',
-    },
-  ];
+    });
+  }
 
   const currentStepIndex = steps.findIndex(step => step.id === currentStep);
   const progressPercentage = currentStepIndex >= 0 ? ((currentStepIndex + 1) / steps.length) * 100 : 0;

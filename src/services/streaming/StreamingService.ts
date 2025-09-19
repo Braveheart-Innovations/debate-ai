@@ -132,8 +132,8 @@ class ChunkBuffer {
 export class StreamingService {
   private activeStreams: Map<string, StreamState> = new Map();
   private readonly defaultBufferConfig: BufferConfig = {
-    flushInterval: 100,  // 100ms default flush
-    maxBufferSize: 50,   // 50 characters default
+    flushInterval: 60,  // Faster cadence for natural speed
+    maxBufferSize: 30,  // Flush smaller chunks for snappier updates
     enabled: true,
   };
 
@@ -421,7 +421,7 @@ export class StreamingService {
    * Natural typing delay
    */
   private naturalDelay(): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, 20 + Math.random() * 30));
+    return new Promise(resolve => setTimeout(resolve, 8 + Math.random() * 22));
   }
 
   /**

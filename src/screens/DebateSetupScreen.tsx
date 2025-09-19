@@ -19,6 +19,7 @@ import {
 
 import { useTheme } from '../theme';
 import { AIConfig } from '../types';
+import type { DemoDebate } from '@/types/demo';
 import { AI_PROVIDERS } from '../config/aiProviders';
 import { FormatModal } from '../components/organisms/debate/FormatModal';
 import { TopicService } from '../services/debate/TopicService';
@@ -31,6 +32,10 @@ import { FORMATS } from '../config/debate/formats';
 import { TrialBanner } from '@/components/molecules/subscription/TrialBanner';
 import { DemoBanner } from '@/components/molecules/subscription/DemoBanner';
 import { showSheet } from '@/store';
+import { RecordController } from '@/services/demo/RecordController';
+import { DebateRecordPickerModal } from '@/components/organisms/demo/DebateRecordPickerModal';
+import { DemoDebatePickerModal } from '@/components/organisms/demo/DemoDebatePickerModal';
+import { DemoContentService } from '@/services/demo/DemoContentService';
 
 interface DebateSetupScreenProps {
   navigation: {
@@ -56,6 +61,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
   const preservedTopicMode = useSelector((state: RootState) => state.debateStats.preservedTopicMode);
   const access = useFeatureAccess();
   const streamingState = useSelector((state: RootState) => state.streaming);
+  const recordModeEnabled = useSelector((state: RootState) => state.settings.recordModeEnabled ?? false);
   
   // Pre-debate validation
   const validation = usePreDebateValidation(navigation);
@@ -104,6 +110,20 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
   const [civility, setCivility] = useState<1|2|3|4|5>(1);
   const [formatModalVisible, setFormatModalVisible] = useState(false);
   // Removed category UI for now to prioritize proven UX
+  const [recordPickerVisible, setRecordPickerVisible] = useState(false);
+  const [recordMeta, setRecordMeta] = useState<{
+    aiConfigs: AIConfig[];
+    defaultTopic: string;
+    providersKey: string;
+    personaKey: string;
+  } | null>(null);
+  const [demoPickerVisible, setDemoPickerVisible] = useState(false);
+  const [demoSamplesLoading, setDemoSamplesLoading] = useState(false);
+  const [demoSamples, setDemoSamples] = useState<Array<{ id: string; title: string; topic: string }>>([]);
+  const [demoMeta, setDemoMeta] = useState<{
+    aiConfigs: AIConfig[];
+    personaKey: string;
+  } | null>(null);
   
   // Debate mode always requires exactly 2 AIs
   const maxAIs = 2;
@@ -155,35 +175,63 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
     }));
   };
   
+  const computePersonaKey = (configs: AIConfig[]) => {
+    const joined = configs
+      .map(ai => (aiPersonalities[ai.id] || 'default').toLowerCase())
+      .join(' ');
+    if (joined.includes('george')) return 'George';
+    if (joined.includes('sage')) return 'Prof. Sage';
+    return 'default';
+  };
+
+  const startDebateNavigation = (topic: string, aiConfigs: AIConfig[], options?: { demoSampleId?: string; demoSample?: DemoDebate }) => {
+    clearPreservedData();
+    navigation.navigate('Debate', {
+      selectedAIs: aiConfigs,
+      topic,
+      personalities: aiPersonalities,
+      formatId,
+      rounds: exchanges,
+      civility,
+      demoDebateId: options?.demoSampleId,
+      demoSample: options?.demoSample,
+    });
+  };
+
+  const mapSelectedAIsWithModels = () => selectedAIs.map(ai => ({
+    ...ai,
+    model: selectedModels[ai.id] || ai.model,
+  }));
+
   const handleStartDebate = () => {
     if (selectedAIs.length < 2) {
       Alert.alert('Select More AIs', 'You need at least 2 AIs for a debate!');
       return;
     }
-    
+
     const finalTopic = topicMode === 'custom' ? customTopic : selectedTopic;
     if (!finalTopic) {
       Alert.alert('Select a Motion', 'Please choose a debate motion first!');
       return;
     }
-    
+
     // Update AIs with selected models
-    const aiConfigsWithModels = selectedAIs.map(ai => ({
-      ...ai,
-      model: selectedModels[ai.id] || ai.model,
-    }));
-    
-    // Clear preserved topic since we're starting the debate
-    clearPreservedData();
-    
-    navigation.navigate('Debate', { 
-      selectedAIs: aiConfigsWithModels,
-      topic: finalTopic,
-      personalities: aiPersonalities,
-      formatId,
-      rounds: exchanges,
-      civility,
-    });
+    const aiConfigsWithModels = mapSelectedAIsWithModels();
+
+    if (recordModeEnabled) {
+      const providersKey = aiConfigsWithModels.map(ai => ai.provider).sort().join('+');
+      const personaKey = computePersonaKey(aiConfigsWithModels);
+      setRecordMeta({
+        aiConfigs: aiConfigsWithModels,
+        defaultTopic: finalTopic,
+        providersKey,
+        personaKey,
+      });
+      setRecordPickerVisible(true);
+      return;
+    }
+
+    startDebateNavigation(finalTopic, aiConfigsWithModels);
   };
   
   // Deprecated: selectRandomTopic (superseded by inline Surprise Me handler)
@@ -206,12 +254,38 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
     setCurrentStep('ai');
   };
   
+  const openDemoPicker = async (aiConfigs: AIConfig[], personaKey: string) => {
+    try {
+      setDemoSamplesLoading(true);
+      const providers = aiConfigs.map(ai => ai.provider);
+      const list = await DemoContentService.listDebateSamples(providers, personaKey);
+      setDemoSamples(list);
+    } catch {
+      setDemoSamples([]);
+    } finally {
+      setDemoSamplesLoading(false);
+      setDemoPickerVisible(true);
+    }
+  };
+
   const handleAINext = () => {
     if (selectedAIs.length < 2) {
       Alert.alert('Select 2 AIs', 'Please select exactly 2 AIs for the debate!');
       return;
     }
-    // Always allow personality selection (restriction removed)
+    if (access.isDemo) {
+      const finalTopic = topicMode === 'custom' ? customTopic : selectedTopic;
+      if (!finalTopic) {
+        Alert.alert('Select a Motion', 'Please choose or enter a debate motion first!');
+        return;
+      }
+      const aiConfigsWithModels = mapSelectedAIsWithModels();
+      const personaKey = computePersonaKey(aiConfigsWithModels);
+      setDemoMeta({ aiConfigs: aiConfigsWithModels, personaKey });
+      void openDemoPicker(aiConfigsWithModels, personaKey);
+      return;
+    }
+    // Premium / live flow continues to personality configuration
     setCurrentStep('personality');
   };
   
@@ -257,6 +331,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
           currentStep={currentStep}
           completedSteps={currentStep === 'ai' ? ['topic'] : currentStep === 'personality' ? ['topic', 'ai'] : []}
           isPremium={access.isPremium || access.isInTrial}
+          showPersonalityStep={!access.isDemo}
         />
 
         {/* Step 1: Format, Rounds, Topic (clean and minimal) */}
@@ -460,8 +535,8 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
           </Box>
         )}
         
-        {/* Step 3: Personality Selection */}
-        {currentStep === 'personality' && (
+        {/* Step 3: Personality Selection (Premium only) */}
+        {!access.isDemo && currentStep === 'personality' && (
           <DebatePersonalitySelector
             selectedTopic={selectedTopic}
             customTopic={customTopic}
@@ -476,6 +551,76 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
           />
         )}
       </ScrollView>
+
+      {recordModeEnabled && recordMeta && (
+        <DebateRecordPickerModal
+          visible={recordPickerVisible}
+          providersKey={recordMeta.providersKey}
+          personaKey={recordMeta.personaKey}
+          defaultTopic={recordMeta.defaultTopic}
+          onClose={() => {
+            setRecordPickerVisible(false);
+            setRecordMeta(null);
+          }}
+          onSelect={(selection) => {
+            setRecordPickerVisible(false);
+            if (!recordMeta) return;
+            try {
+              const { aiConfigs, providersKey, personaKey } = recordMeta;
+              const comboKey = `${providersKey}:${personaKey}`;
+              const participants = aiConfigs.map(ai => ai.name);
+              if (selection.type === 'new') {
+                RecordController.startDebate({ id: selection.id, topic: selection.topic, comboKey, participants });
+                startDebateNavigation(selection.topic, aiConfigs);
+              } else {
+                RecordController.startDebate({ id: `${selection.id}_rec_${Date.now()}`, topic: selection.topic, comboKey, participants });
+                startDebateNavigation(selection.topic, aiConfigs);
+              }
+            } catch (error) {
+              const message = error instanceof Error ? error.message : 'Failed to start recording';
+              Alert.alert('Recording Error', message);
+            } finally {
+              setRecordMeta(null);
+            }
+          }}
+        />
+      )}
+
+      {access.isDemo && (
+        <DemoDebatePickerModal
+          visible={demoPickerVisible}
+          loading={demoSamplesLoading}
+          samples={demoSamples}
+          onClose={() => {
+            setDemoPickerVisible(false);
+            setDemoMeta(null);
+          }}
+          onSelect={async (sample) => {
+            if (!demoMeta) {
+              setDemoPickerVisible(false);
+              return;
+            }
+            setDemoSamplesLoading(true);
+            try {
+              const fullSample = await DemoContentService.findDebateById(sample.id);
+              if (!fullSample) {
+                Alert.alert('Unavailable', 'This demo debate is not available right now.');
+                return;
+              }
+              setSelectedTopic(fullSample.topic);
+              setTopicMode('preset');
+              startDebateNavigation(fullSample.topic, demoMeta.aiConfigs, { demoSampleId: sample.id, demoSample: fullSample });
+            } catch (error) {
+              const message = error instanceof Error ? error.message : 'Failed to load demo debate.';
+              Alert.alert('Error', message);
+            } finally {
+              setDemoSamplesLoading(false);
+              setDemoPickerVisible(false);
+              setDemoMeta(null);
+            }
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 };

@@ -8,16 +8,17 @@ interface DebateRecordPickerModalProps {
   visible: boolean;
   providersKey: string; // e.g., 'claude+openai'
   personaKey: string;   // e.g., 'George' | 'default'
+  defaultTopic?: string;
   onSelect: (sel: { type: 'new'; id: string; topic: string } | { type: 'existing'; id: string; topic: string }) => void;
   onClose: () => void;
 }
 
-export const DebateRecordPickerModal: React.FC<DebateRecordPickerModalProps> = ({ visible, providersKey, personaKey, onSelect, onClose }) => {
+export const DebateRecordPickerModal: React.FC<DebateRecordPickerModalProps> = ({ visible, providersKey, personaKey, defaultTopic, onSelect, onClose }) => {
   const { theme } = useTheme();
   const [items, setItems] = React.useState<Array<{ id: string; title: string; topic: string }>>([]);
   const [creatingNew, setCreatingNew] = React.useState(false);
   const [newId, setNewId] = React.useState('');
-  const [newTopic, setNewTopic] = React.useState('');
+  const [newTopic, setNewTopic] = React.useState(defaultTopic || '');
 
   React.useEffect(() => {
     const run = async () => {
@@ -31,6 +32,12 @@ export const DebateRecordPickerModal: React.FC<DebateRecordPickerModalProps> = (
     };
     run();
   }, [visible, providersKey, personaKey]);
+
+  React.useEffect(() => {
+    if (visible && !creatingNew) {
+      setNewTopic(defaultTopic || '');
+    }
+  }, [visible, defaultTopic, creatingNew]);
 
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
@@ -57,7 +64,7 @@ export const DebateRecordPickerModal: React.FC<DebateRecordPickerModalProps> = (
                 <InputField placeholder="Debate motion/topic" value={newTopic} onChangeText={setNewTopic} />
                 <View style={{ height: 12 }} />
                 <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
-                  <Button title="Cancel" variant="secondary" size="small" onPress={() => { setCreatingNew(false); setNewId(''); setNewTopic(''); }} />
+                  <Button title="Cancel" variant="secondary" size="small" onPress={() => { setCreatingNew(false); setNewId(''); setNewTopic(defaultTopic || ''); }} />
                   <Button title="Create & Start" variant="primary" size="small" onPress={() => {
                     const id = newId.trim();
                     const topic = newTopic.trim();
@@ -93,4 +100,3 @@ const styles = StyleSheet.create({
 });
 
 export default DebateRecordPickerModal;
-

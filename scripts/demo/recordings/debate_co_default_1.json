@@ -1,0 +1,62 @@
+{
+  "type": "debate",
+  "id": "debate_co_default_1_rec_1758214809710",
+  "title": "Should homework be abolished?",
+  "comboKey": "claude+openai:default",
+  "events": [
+    {
+      "type": "divider",
+      "meta": {
+        "startedAt": "2025-09-18T17:00:09.710Z",
+        "screen": "debate",
+        "comboKey": "claude+openai:default",
+        "platform": "ios",
+        "participants": ["Claude", "ChatGPT"],
+        "topic": "Should homework be abolished?"
+      }
+    },
+    {
+      "type": "message",
+      "role": "user",
+      "content": "Motion: Should homework be abolished?"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": "",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": "",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": "",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": "",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": "",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": "",
+      "speakerProvider": "openai"
+    }
+  ],
+  "topic": "Should homework be abolished?",
+  "participants": ["Claude", "ChatGPT"]
+}

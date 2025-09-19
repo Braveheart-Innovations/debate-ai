@@ -25498,6 +25498,71 @@
           "content": "Pragmatically, externalities alter the calculus…"
         }
       ]
+    },
+    {
+      "id": "debate_co_default_1_rec_1758214809710",
+      "topic": "Should homework be abolished?",
+      "participants": [
+        "Claude",
+        "ChatGPT"
+      ],
+      "events": [
+        {
+          "type": "divider",
+          "meta": {
+            "startedAt": "2025-09-18T17:00:09.710Z",
+            "screen": "debate",
+            "comboKey": "claude+openai:default",
+            "platform": "ios",
+            "participants": [
+              "Claude",
+              "ChatGPT"
+            ],
+            "topic": "Should homework be abolished?"
+          }
+        },
+        {
+          "type": "message",
+          "role": "user",
+          "content": "Motion: Should homework be abolished?"
+        },
+        {
+          "type": "message",
+          "role": "assistant",
+          "content": "",
+          "speakerProvider": "claude"
+        },
+        {
+          "type": "message",
+          "role": "assistant",
+          "content": "",
+          "speakerProvider": "openai"
+        },
+        {
+          "type": "message",
+          "role": "assistant",
+          "content": "",
+          "speakerProvider": "claude"
+        },
+        {
+          "type": "message",
+          "role": "assistant",
+          "content": "",
+          "speakerProvider": "openai"
+        },
+        {
+          "type": "message",
+          "role": "assistant",
+          "content": "",
+          "speakerProvider": "claude"
+        },
+        {
+          "type": "message",
+          "role": "assistant",
+          "content": "",
+          "speakerProvider": "openai"
+        }
+      ]
     }
   ],
   "compares": [
@@ -25716,7 +25781,7 @@
   "assets": {},
   "meta": {
     "build": "demo-v1",
-    "createdAt": "2025-09-16T06:35:29.301Z"
+    "createdAt": "2025-09-19T02:36:30.431Z"
   },
   "routing": {
     "chat": {
@@ -25754,7 +25819,8 @@
     },
     "debate": {
       "claude+openai:default": [
-        "debate_co_default_1"
+        "debate_co_default_1",
+        "debate_co_default_1_rec_1758214809710"
       ],
       "claude+openai:George": [
         "debate_co_george_1"

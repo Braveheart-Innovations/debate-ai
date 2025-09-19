@@ -63,6 +63,8 @@ interface DebateScreenProps {
       rounds?: number;
       exchanges?: number;
       civility?: 1|2|3|4|5;
+      demoDebateId?: string;
+      demoSample?: DemoDebate;
     };
   };
 }
@@ -70,7 +72,7 @@ interface DebateScreenProps {
 const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
   const { theme } = useTheme();
   const dispatch = useDispatch();
-  const { selectedAIs, topic: initialTopic, personalities: initialPersonalities, formatId, rounds, exchanges, civility } = route.params;
+  const { selectedAIs, topic: initialTopic, personalities: initialPersonalities, formatId, rounds, exchanges, civility, demoDebateId, demoSample } = route.params;
   const [showTranscript, setShowTranscript] = useState(false);
   const [debateSamples, setDebateSamples] = useState<Array<{ id: string; title: string; topic: string }>>([]);
   const [isRecording, setIsRecording] = useState(false);
@@ -86,6 +88,26 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
   const voting = useDebateVoting(session.orchestrator, selectedAIs);
   const messages = useDebateMessages(session.session?.startTime);
   const { isDemo } = useFeatureAccess();
+
+  useEffect(() => {
+    if (demoSample) {
+      selectedSampleRef.current = demoSample;
+    }
+  }, [demoSample]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (demoDebateId && !demoSample) {
+      DemoContentService.findDebateById(demoDebateId).then(sample => {
+        if (!cancelled && sample) {
+          selectedSampleRef.current = sample;
+        }
+      }).catch(() => {});
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [demoDebateId, demoSample]);
   
   // Handle topic selection and debate start
   const handleStartDebate = useCallback(async (topic?: string) => {
@@ -164,6 +186,10 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
       handleStartDebate(initialTopic);
     }
   }, [canAutoStart, initialTopic, handleStartDebate]);
+
+  useEffect(() => {
+    setIsRecording(RecordController.isActive());
+  }, []);
 
   const providersKey = React.useMemo(() => selectedAIs.map(a => a.provider).join('+'), [selectedAIs]);
   const personaKey = React.useMemo(() => {
@@ -490,6 +516,7 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
       visible={pickerVisible}
       providersKey={providersKey}
       personaKey={personaKey}
+      defaultTopic={topicSelection.finalTopic || initialTopic || ''}
       onClose={() => setPickerVisible(false)}
       onSelect={async (selection) => {
         setPickerVisible(false);
