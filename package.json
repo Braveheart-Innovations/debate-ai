@@ -23,7 +23,7 @@
     "docs:providers": "node scripts/api-discovery/discover-all-models.js && echo 'Provider docs refreshed.'"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.59.0",
+    "@anthropic-ai/sdk": "^0.63.0",
     "@expo/metro-runtime": "~5.0.4",
     "@google/generative-ai": "^0.24.1",
     "@react-native-async-storage/async-storage": "2.1.2",
