@@ -1,9 +1,9 @@
 {
   "type": "debate",
-  "id": "debate_co_default_1",
+  "id": "debate_co_george_1",
   "title": "Motion: Homework should be abolished.",
   "topic": "Motion: Homework should be abolished.",
-  "comboKey": "claude+openai:default",
+  "comboKey": "claude+openai:George",
   "participants": [
     "Claude",
     "OpenAI"
@@ -18,15 +18,15 @@
       "type": "stream",
       "role": "assistant",
       "speakerProvider": "claude",
-      "speakerPersona": "default",
-      "content": "Opening for the motion: Homework often adds little value…"
+      "speakerPersona": "George",
+      "content": "George: Let me cut to the chase…"
     },
     {
       "type": "stream",
       "role": "assistant",
       "speakerProvider": "openai",
-      "speakerPersona": "default",
-      "content": "Opposing: Properly designed homework reinforces learning…"
+      "speakerPersona": "George",
+      "content": "George (opposition): I see it differently…"
     }
   ]
 }

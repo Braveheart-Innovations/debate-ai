@@ -1,0 +1,32 @@
+{
+  "type": "debate",
+  "id": "debate_cg_default_1",
+  "title": "Motion: Humanity has a moral imperative to colonize Mars.",
+  "topic": "Motion: Humanity has a moral imperative to colonize Mars.",
+  "comboKey": "claude+google:default",
+  "participants": [
+    "Claude",
+    "Gemini"
+  ],
+  "events": [
+    {
+      "type": "message",
+      "role": "user",
+      "content": "Motion: Humanity has a moral imperative to colonize Mars."
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "speakerProvider": "claude",
+      "speakerPersona": "default",
+      "content": "In favor: redundancy of civilization is prudence…"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "speakerProvider": "google",
+      "speakerPersona": "default",
+      "content": "Against: ethical and environmental concerns remain…"
+    }
+  ]
+}

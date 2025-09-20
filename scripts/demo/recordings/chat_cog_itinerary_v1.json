@@ -1,0 +1,35 @@
+{
+  "type": "chat",
+  "id": "chat_cog_itinerary_v1",
+  "title": "Kyoto itinerary (Claude+OpenAI+Gemini)",
+  "comboKey": "claude+openai+google",
+  "tags": [
+    "trio",
+    "travel"
+  ],
+  "events": [
+    {
+      "type": "message",
+      "role": "user",
+      "content": "Plan a concise 3‑day Kyoto trip with must‑see shrines and great coffee."
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "speakerProvider": "claude",
+      "content": "Let’s optimize walking and transit; Day 1 east side…"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "speakerProvider": "openai",
+      "content": "Day 2 Arashiyama and riverside; reserve a cafe mid‑afternoon."
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "speakerProvider": "google",
+      "content": "Day 3 Philosopher’s Path, Ginkaku‑ji, and %AROMA% espresso bar."
+    }
+  ]
+}

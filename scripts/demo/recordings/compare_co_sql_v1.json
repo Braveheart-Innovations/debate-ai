@@ -1,0 +1,37 @@
+{
+  "type": "compare",
+  "id": "compare_co_sql_v1",
+  "title": "Explain SQL CTE (Claude vs OpenAI)",
+  "comboKey": "claude+openai",
+  "category": "provider",
+  "runs": [
+    {
+      "id": "r1",
+      "label": "providers",
+      "columns": [
+        {
+          "name": "Claude",
+          "events": [
+            {
+              "type": "message",
+              "role": "assistant",
+              "speakerProvider": "claude",
+              "content": "A CTE is a named subquery…"
+            }
+          ]
+        },
+        {
+          "name": "OpenAI",
+          "events": [
+            {
+              "type": "message",
+              "role": "assistant",
+              "speakerProvider": "openai",
+              "content": "CTEs: declare with WITH; small example…"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

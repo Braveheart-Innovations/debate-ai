@@ -20,7 +20,11 @@
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck && npm run lint",
     "discover:models": "node scripts/api-discovery/discover-all-models.js",
-    "docs:providers": "node scripts/api-discovery/discover-all-models.js && echo 'Provider docs refreshed.'"
+    "docs:providers": "node scripts/api-discovery/discover-all-models.js && echo 'Provider docs refreshed.'",
+    "demo:pack": "node scripts/demo/packer.mjs",
+    "demo:packer": "node scripts/demo/dev-packer-server.mjs",
+    "demo:unpack": "node scripts/demo/unpack.mjs",
+    "demo:validate": "node scripts/demo/validate.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.63.0",

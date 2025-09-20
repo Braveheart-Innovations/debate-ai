@@ -1,0 +1,32 @@
+{
+  "type": "chat",
+  "id": "chat_cog_sql_v1",
+  "title": "Collaborative refactor: PromptComposer (All AIs)",
+  "comboKey": "claude+openai+google",
+  "tags": ["collaboration", "prompt-composer"],
+  "events": [
+    {
+      "type": "message",
+      "role": "user",
+      "content": "Team, here's PromptComposer. It still uses legacy context, doesn't debounce preview generation, and accessibility is lacking. Let's clean it up together.```tsx\nexport function PromptComposer({ value, onChange, onLaunch }) {\n  const ctx = React.useContext(PromptContext);\n  React.useEffect(() => {\n    ctx.track('composer_open');\n  }, []);\n\n  return (\n    <View style={{ padding: 16 }}>\n      <TextInput\n        value={value}\n        onChangeText={onChange}\n        multiline\n        style={{ minHeight: 120, fontSize: 16, color: 'white' }}\n      />\n      <Pressable onPress={() => onLaunch(value)} style={{ marginTop: 12, backgroundColor: '#7c4dff', padding: 14, borderRadius: 12 }}>\n        <Text style={{ color: 'white', textAlign: 'center' }}>Launch prompt</Text>\n      </Pressable>\n    </View>\n  );\n}\n```"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "speakerProvider": "claude",
+      "content": "I'll start by migrating off context and introducing a composer store hook.```tsx\nconst { trackComposerEvent } = useComposerAnalytics();\nReact.useEffect(() => {\n  trackComposerEvent('composer_open');\n}, [trackComposerEvent]);\n```"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "speakerProvider": "openai",
+      "content": "Then I'll add a debounced preview signal so we don't hammer the summarizer service.```tsx\nconst debouncedPreview = useDebounce(value, 400);\nuseEffect(() => {\n  if (debouncedPreview.trim().length === 0) return;\n  previewQuery.refetch({ prompt: debouncedPreview });\n}, [debouncedPreview, previewQuery]);\n```"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "speakerProvider": "google",
+      "content": "I'll wrap it in accessible markup and surface the preview using tokens.```tsx\nreturn (\n  <View style={styles.container}>\n    <Label htmlFor={inputId}>Compose prompt</Label>\n    <PromptEditor\n      id={inputId}\n      value={value}\n      onChange={onChange}\n      accessibilityHint=\"Double tap to edit the system prompt\"\n    />\n    <LivePreview aria-live=\"polite\">{previewQuery.data?.summary}</LivePreview>\n    <PrimaryButton onPress={() => onLaunch(value)} disabled={!value.trim()}>Launch prompt</PrimaryButton>\n  </View>\n);\n```"
+    }
+  ]
+}

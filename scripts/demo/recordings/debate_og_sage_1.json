@@ -1,0 +1,32 @@
+{
+  "type": "debate",
+  "id": "debate_og_sage_1",
+  "title": "Motion: Open weights benefit society more than closed models.",
+  "topic": "Motion: Open weights benefit society more than closed models.",
+  "comboKey": "openai+google:Prof. Sage",
+  "participants": [
+    "OpenAI",
+    "Gemini"
+  ],
+  "events": [
+    {
+      "type": "message",
+      "role": "user",
+      "content": "Motion: Open weights benefit society more than closed models."
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "speakerProvider": "openai",
+      "speakerPersona": "Prof. Sage",
+      "content": "Epistemically, openness enables error-correction…"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "speakerProvider": "google",
+      "speakerPersona": "Prof. Sage",
+      "content": "Pragmatically, externalities alter the calculus…"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "type": "debate",
+  "id": "debate_co_default_2",
+  "title": "Motion: This House would replace high-stakes standardized tests with portfolio-based assessment.",
+  "topic": "Motion: This House would replace high-stakes standardized tests with portfolio-based assessment.",
+  "comboKey": "claude+openai:default",
+  "participants": [
+    "Claude",
+    "OpenAI"
+  ],
+  "events": [
+    {
+      "type": "message",
+      "role": "user",
+      "content": "Motion: This House would replace high-stakes standardized tests with portfolio-based assessment."
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "speakerProvider": "claude",
+      "speakerPersona": "default",
+      "content": "Proposition frame: portfolios capture creativity, critical thinking, and sustained effort, while test-centric systems reward short-term cramming and amplify inequity."
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "speakerProvider": "openai",
+      "speakerPersona": "default",
+      "content": "Opposition frame: standardized measures enable comparability, protect against grade inflation, and provide policymakers with the longitudinal data needed to fund interventions."
+    }
+  ]
+}

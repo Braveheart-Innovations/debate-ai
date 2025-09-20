@@ -19,18 +19,39 @@ export const CompareRecordPickerModal: React.FC<CompareRecordPickerModalProps> =
   const [newId, setNewId] = React.useState('');
   const [newTitle, setNewTitle] = React.useState('');
 
-  React.useEffect(() => {
+  const refreshItems = React.useCallback(() => {
+    let cancelled = false;
     const run = async () => {
-      if (!visible) return;
       try {
         const list = await DemoContentService.listCompareSamples([leftProvider, rightProvider]);
-        setItems(list);
+        if (!cancelled) setItems(list);
       } catch {
-        setItems([]);
+        if (!cancelled) setItems([]);
       }
     };
     run();
-  }, [visible, leftProvider, rightProvider]);
+    return () => {
+      cancelled = true;
+    };
+  }, [leftProvider, rightProvider]);
+
+  React.useEffect(() => {
+    if (!visible) return;
+    const dispose = refreshItems();
+    return () => {
+      dispose?.();
+    };
+  }, [visible, refreshItems]);
+
+  React.useEffect(() => {
+    if (!visible) return;
+    const unsubscribe = DemoContentService.subscribe(() => {
+      refreshItems();
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, [visible, refreshItems]);
 
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
@@ -93,4 +114,3 @@ const styles = StyleSheet.create({
 });
 
 export default CompareRecordPickerModal;
-

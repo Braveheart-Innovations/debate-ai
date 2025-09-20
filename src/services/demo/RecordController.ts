@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 import { startRecording, recordEvent, stopRecording } from '@/services/demo/Recorder';
-import type { DemoMessageEvent } from '@/types/demo';
+import { DemoContentService } from '@/services/demo/DemoContentService';
+import type { DemoMessageEvent, DemoRecordingSession } from '@/types/demo';
 
 type ChatStartOpts = { id: string; title: string; comboKey?: string };
 type DebateStartOpts = { id: string; topic: string; comboKey?: string; participants?: string[] };
@@ -52,7 +53,9 @@ export const RecordController = {
     startRecording({ type: 'debate', id: opts.id, title: opts.topic, comboKey: opts.comboKey } as unknown as { type: 'debate'; id: string; title: string; comboKey?: string });
     recordEvent({ type: 'divider', meta } as DemoMessageEvent);
     // Record a motion marker as a user message for context (optional)
-    recordEvent({ type: 'message', role: 'user', content: `Motion: ${opts.topic}` });
+    const topic = opts.topic || '';
+    const motionContent = topic.trim().toLowerCase().startsWith('motion:') ? topic : `Motion: ${topic}`;
+    recordEvent({ type: 'message', role: 'user', content: motionContent });
     current = { type: 'debate', id: opts.id, topic: opts.topic, comboKey: opts.comboKey, participants: opts.participants };
     active = true;
   },
@@ -137,7 +140,11 @@ export const RecordController = {
     }
     active = false;
     current = null;
-    return res as { session: unknown };
+    const result = res as { session: unknown } | null;
+    if (result?.session) {
+      void DemoContentService.ingestRecording(result.session as DemoRecordingSession);
+    }
+    return result;
   },
 };
 

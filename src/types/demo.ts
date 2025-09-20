@@ -62,3 +62,8 @@ export interface DemoPackV1 {
     compare?: Record<string, string[]>; // comboKey -> compare IDs
   };
 }
+
+export type DemoRecordingSession =
+  | ({ type: 'chat'; comboKey?: string; tags?: string[] } & Pick<DemoChat, 'id' | 'title' | 'events'>)
+  | ({ type: 'debate'; comboKey?: string; participants?: string[] } & Pick<DemoDebate, 'id' | 'topic' | 'events'>)
+  | ({ type: 'compare'; comboKey?: string; category?: DemoCompare['category'] } & Pick<DemoCompare, 'id' | 'title' | 'runs'>);

@@ -1,0 +1,32 @@
+{
+  "type": "debate",
+  "id": "debate_og_george_1",
+  "title": "Motion: Open weights benefit society more than closed models.",
+  "topic": "Motion: Open weights benefit society more than closed models.",
+  "comboKey": "openai+google:George",
+  "participants": [
+    "OpenAI",
+    "Gemini"
+  ],
+  "events": [
+    {
+      "type": "message",
+      "role": "user",
+      "content": "Motion: Open weights benefit society more than closed models."
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "speakerProvider": "openai",
+      "speakerPersona": "George",
+      "content": "George (pro): Sunlight is the best disinfectant…"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "speakerProvider": "google",
+      "speakerPersona": "George",
+      "content": "George (con): But misuse scales too…"
+    }
+  ]
+}

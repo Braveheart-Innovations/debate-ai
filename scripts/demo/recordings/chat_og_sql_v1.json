@@ -1,0 +1,26 @@
+{
+  "type": "chat",
+  "id": "chat_og_sql_v1",
+  "title": "Redesign PersonaSheet (ChatGPT + Gemini)",
+  "comboKey": "openai+google",
+  "tags": ["ui", "design-system"],
+  "events": [
+    {
+      "type": "message",
+      "role": "user",
+      "content": "Please audit this PersonaSheet. It mixes inline styles and doesn't adapt to tablets.```tsx\nexport const PersonaSheet = ({ persona, onClose }) => (\n  <Modal visible onRequestClose={onClose}>\n    <View style={{ flex: 1, backgroundColor: '#060a12', padding: 24 }}>\n      <Text style={{ color: 'white', fontSize: 28 }}>{persona.name}</Text>\n      <Text style={{ color: '#9fb3d2', marginTop: 8 }}>{persona.description}</Text>\n      <Image source={{ uri: persona.hero }} style={{ width: '100%', height: 240, borderRadius: 24, marginTop: 24 }} />\n      <Pressable onPress={onClose} style={{ marginTop: 32, padding: 16, backgroundColor: '#4c8fff', borderRadius: 16 }}>\n        <Text style={{ color: 'white', textAlign: 'center' }}>Close</Text>\n      </Pressable>\n    </View>\n  </Modal>\n);\n```"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "speakerProvider": "openai",
+      "content": "I'll move layout tokens to the theme, add safe-area handling, and support split view.```tsx\nimport { useSafeAreaInsets } from 'react-native-safe-area-context';\nimport { useResponsiveValue } from '@/hooks/layout/useResponsiveValue';\n\nconst containerStyle = React.useMemo(() => ({\n  flexDirection: isTablet ? 'row' : 'column',\n  gap: theme.spacing.lg,\n  paddingHorizontal: theme.spacing.xl,\n  paddingTop: insets.top + theme.spacing.lg\n}), [isTablet, theme, insets]);\n```"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "speakerProvider": "google",
+      "content": "I'll complement that with a media query hook and focus management.```tsx\nconst headerId = React.useId();\nReact.useEffect(() => {\n  AccessibilityInfo.setAccessibilityFocus(headerRef.current);\n}, [persona.id]);\n```"
+    }
+  ]
+}

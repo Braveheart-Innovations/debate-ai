@@ -27,24 +27,48 @@ function ensureRouting(pack) {
 
 function appendRecording(pack, rec) {
   ensureRouting(pack);
+  const isDraft = typeof rec.id === 'string' && /_rec_/i.test(rec.id);
+
+  const removeFromRouting = (zone, key, id) => {
+    if (!key) return;
+    const routing = pack.routing[zone];
+    if (!routing || !routing[key]) return;
+    routing[key] = routing[key].filter(existing => existing !== id);
+  };
+
   if (rec.type === 'chat') {
-    const exists = pack.chats.some(c => c.id === rec.id);
-    if (!exists) pack.chats.push({ id: rec.id, title: rec.title, events: rec.events, tags: rec.tags || [] });
+    const entry = { id: rec.id, title: rec.title, events: rec.events, tags: rec.tags || [] };
+    const idx = pack.chats.findIndex(c => c.id === rec.id);
+    if (idx >= 0) pack.chats[idx] = entry;
+    else pack.chats.push(entry);
     const key = rec.comboKey;
-    pack.routing.chat[key] = pack.routing.chat[key] || [];
-    if (!pack.routing.chat[key].includes(rec.id)) pack.routing.chat[key].push(rec.id);
+    if (isDraft) removeFromRouting('chat', key, rec.id);
+    else if (key) {
+      pack.routing.chat[key] = pack.routing.chat[key] || [];
+      if (!pack.routing.chat[key].includes(rec.id)) pack.routing.chat[key].push(rec.id);
+    }
   } else if (rec.type === 'debate') {
-    const exists = pack.debates.some(d => d.id === rec.id);
-    if (!exists) pack.debates.push({ id: rec.id, topic: rec.topic, participants: rec.participants || [], events: rec.events });
+    const entry = { id: rec.id, topic: rec.topic, participants: rec.participants || [], events: rec.events };
+    const idx = pack.debates.findIndex(d => d.id === rec.id);
+    if (idx >= 0) pack.debates[idx] = entry;
+    else pack.debates.push(entry);
     const key = rec.comboKey; // e.g., "claude+openai:George"
-    pack.routing.debate[key] = pack.routing.debate[key] || [];
-    if (!pack.routing.debate[key].includes(rec.id)) pack.routing.debate[key].push(rec.id);
+    if (isDraft) removeFromRouting('debate', key, rec.id);
+    else if (key) {
+      pack.routing.debate[key] = pack.routing.debate[key] || [];
+      if (!pack.routing.debate[key].includes(rec.id)) pack.routing.debate[key].push(rec.id);
+    }
   } else if (rec.type === 'compare') {
-    const exists = pack.compares.some(c => c.id === rec.id);
-    if (!exists) pack.compares.push({ id: rec.id, title: rec.title, category: rec.category || 'provider', runs: rec.runs });
+    const entry = { id: rec.id, title: rec.title, category: rec.category || 'provider', runs: rec.runs };
+    const idx = pack.compares.findIndex(c => c.id === rec.id);
+    if (idx >= 0) pack.compares[idx] = entry;
+    else pack.compares.push(entry);
     const key = rec.comboKey;
-    pack.routing.compare[key] = pack.routing.compare[key] || [];
-    if (!pack.routing.compare[key].includes(rec.id)) pack.routing.compare[key].push(rec.id);
+    if (isDraft) removeFromRouting('compare', key, rec.id);
+    else if (key) {
+      pack.routing.compare[key] = pack.routing.compare[key] || [];
+      if (!pack.routing.compare[key].includes(rec.id)) pack.routing.compare[key].push(rec.id);
+    }
   }
 }
 

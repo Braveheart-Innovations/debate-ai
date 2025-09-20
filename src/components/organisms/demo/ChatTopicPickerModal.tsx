@@ -19,22 +19,39 @@ export const ChatTopicPickerModal: React.FC<ChatTopicPickerModalProps> = ({ visi
   const [newId, setNewId] = React.useState('');
   const [newTitle, setNewTitle] = React.useState('');
 
-  React.useEffect(() => {
-    if (!visible) return;
-    let isMounted = true;
-    const loadItems = async () => {
+  const refreshItems = React.useCallback(() => {
+    let cancelled = false;
+    const run = async () => {
       try {
         const list = await DemoContentService.listChatSamples(providers);
-        if (isMounted) setItems(list);
+        if (!cancelled) setItems(list);
       } catch {
-        if (isMounted) setItems([]);
+        if (!cancelled) setItems([]);
       }
     };
-    loadItems();
+    run();
     return () => {
-      isMounted = false;
+      cancelled = true;
     };
-  }, [visible, providers]);
+  }, [providers]);
+
+  React.useEffect(() => {
+    if (!visible) return;
+    const dispose = refreshItems();
+    return () => {
+      dispose?.();
+    };
+  }, [visible, refreshItems]);
+
+  React.useEffect(() => {
+    if (!visible) return;
+    const unsubscribe = DemoContentService.subscribe(() => {
+      refreshItems();
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, [visible, refreshItems]);
 
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>

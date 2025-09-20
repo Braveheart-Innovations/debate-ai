@@ -1,0 +1,32 @@
+{
+  "type": "debate",
+  "id": "debate_cg_sage_1",
+  "title": "Motion: Humanity has a moral imperative to colonize Mars.",
+  "topic": "Motion: Humanity has a moral imperative to colonize Mars.",
+  "comboKey": "claude+google:Prof. Sage",
+  "participants": [
+    "Claude",
+    "Gemini"
+  ],
+  "events": [
+    {
+      "type": "message",
+      "role": "user",
+      "content": "Motion: Humanity has a moral imperative to colonize Mars."
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "speakerProvider": "claude",
+      "speakerPersona": "Prof. Sage",
+      "content": "Permit me to disentangle the prudential and moral claims…"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "speakerProvider": "google",
+      "speakerPersona": "Prof. Sage",
+      "content": "Yet the deontic obligations to present populations…"
+    }
+  ]
+}

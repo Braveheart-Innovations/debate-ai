@@ -1,0 +1,32 @@
+{
+  "type": "debate",
+  "id": "debate_og_default_1",
+  "title": "Motion: Open weights benefit society more than closed models.",
+  "topic": "Motion: Open weights benefit society more than closed models.",
+  "comboKey": "openai+google:default",
+  "participants": [
+    "OpenAI",
+    "Gemini"
+  ],
+  "events": [
+    {
+      "type": "message",
+      "role": "user",
+      "content": "Motion: Open weights benefit society more than closed models."
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "speakerProvider": "openai",
+      "speakerPersona": "default",
+      "content": "For: openness fosters auditability and innovation…"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "speakerProvider": "google",
+      "speakerPersona": "default",
+      "content": "Against: safety, abuse, and business incentives complicate…"
+    }
+  ]
+}

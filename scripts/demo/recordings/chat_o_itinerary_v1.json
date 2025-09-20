@@ -1,0 +1,24 @@
+{
+  "type": "chat",
+  "id": "chat_o_itinerary_v1",
+  "title": "Kyoto itinerary (OpenAI)",
+  "comboKey": "openai",
+  "tags": [
+    "single",
+    "openai",
+    "travel"
+  ],
+  "events": [
+    {
+      "type": "message",
+      "role": "user",
+      "content": "Plan a 3-day itinerary for Kyoto with highlights and coffee."
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "speakerProvider": "openai",
+      "content": "Here’s a concise 3‑day plan with minimal transit:"
+    }
+  ]
+}

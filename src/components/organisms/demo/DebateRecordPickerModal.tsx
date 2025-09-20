@@ -20,18 +20,39 @@ export const DebateRecordPickerModal: React.FC<DebateRecordPickerModalProps> = (
   const [newId, setNewId] = React.useState('');
   const [newTopic, setNewTopic] = React.useState(defaultTopic || '');
 
-  React.useEffect(() => {
+  const refreshItems = React.useCallback(() => {
+    let cancelled = false;
     const run = async () => {
-      if (!visible) return;
       try {
         const list = await DemoContentService.listDebateSamples(providersKey.split('+'), personaKey);
-        setItems(list);
+        if (!cancelled) setItems(list);
       } catch {
-        setItems([]);
+        if (!cancelled) setItems([]);
       }
     };
     run();
-  }, [visible, providersKey, personaKey]);
+    return () => {
+      cancelled = true;
+    };
+  }, [providersKey, personaKey]);
+
+  React.useEffect(() => {
+    if (!visible) return;
+    const dispose = refreshItems();
+    return () => {
+      dispose?.();
+    };
+  }, [visible, refreshItems]);
+
+  React.useEffect(() => {
+    if (!visible) return;
+    const unsubscribe = DemoContentService.subscribe(() => {
+      refreshItems();
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, [visible, refreshItems]);
 
   React.useEffect(() => {
     if (visible && !creatingNew) {

@@ -1,0 +1,26 @@
+{
+  "type": "chat",
+  "id": "chat_cg_sql_v1",
+  "title": "Improve LiveTranscript (Claude + Gemini)",
+  "comboKey": "claude+google",
+  "tags": ["live-transcript", "optimization"],
+  "events": [
+    {
+      "type": "message",
+      "role": "user",
+      "content": "Here's our LiveTranscript component. It jitters when new tokens stream in and VoiceOver can't keep up. Any ideas?```tsx\nexport function LiveTranscript({ chunks }) {\n  return (\n    <ScrollView style={{ padding: 16 }}>\n      {chunks.map(chunk => (\n        <Text key={chunk.id} style={{ color: 'white', fontSize: 18 }}>{chunk.text}</Text>\n      ))}\n    </ScrollView>\n  );\n}\n```"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "speakerProvider": "claude",
+      "content": "I'd recommend windowing the scroll region and announcing only finalized sentences.```tsx\nconst finalized = React.useMemo(() => chunks.filter(c => c.state === 'final'), [chunks]);\nconst streaming = chunks.filter(c => c.state === 'stream');\n\nreturn (\n  <FlatList\n    data={finalized}\n    keyExtractor={item => item.id}\n    renderItem={({ item }) => (\n      <Text accessibilityLiveRegion=\"polite\" style={styles.finalLine}>{item.text}</Text>\n    )}\n    ListFooterComponent={\n      <AnimatedStreamingLine text={streaming.map(c => c.text).join('')} />\n    }\n  />\n);\n```"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "speakerProvider": "google",
+      "content": "I'll add an animated footer plus throttled announcements so assistive tech isn't spammed.```tsx\nconst announce = React.useRef(_.throttle((text: string) => {\n  AccessibilityInfo.announceForAccessibility(text);\n}, 1500));\n\nReact.useEffect(() => {\n  if (streamingText.length > 12) {\n    announce.current(streamingText);\n  }\n}, [streamingText]);\n```"
+    }
+  ]
+}

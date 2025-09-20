@@ -1,0 +1,24 @@
+{
+  "type": "chat",
+  "id": "chat_g_itinerary_v1",
+  "title": "Kyoto itinerary (Gemini)",
+  "comboKey": "google",
+  "tags": [
+    "single",
+    "google",
+    "travel"
+  ],
+  "events": [
+    {
+      "type": "message",
+      "role": "user",
+      "content": "Plan a 3-day Kyoto itinerary with temples, nature, and cafes."
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "speakerProvider": "google",
+      "content": "Let’s keep it scenic and efficient:"
+    }
+  ]
+}

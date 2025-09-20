@@ -1,0 +1,31 @@
+{
+  "type": "chat",
+  "id": "chat_og_itinerary_v1",
+  "title": "Kyoto itinerary (OpenAI+Gemini)",
+  "comboKey": "openai+google",
+  "tags": [
+    "pair",
+    "openai",
+    "google",
+    "travel"
+  ],
+  "events": [
+    {
+      "type": "message",
+      "role": "user",
+      "content": "3 days in Kyoto: temples + coffee route please."
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "speakerProvider": "openai",
+      "content": "Start early at Fushimi Inari, then Kiyomizu‑dera…"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "speakerProvider": "google",
+      "content": "On day 2, Arashiyama bamboo grove plus %AROMA% roasters…"
+    }
+  ]
+}

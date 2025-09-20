@@ -10,10 +10,10 @@ export type SanitizeMarkdownOptions = {
 };
 
 const DEFAULTS: Required<SanitizeMarkdownOptions> = {
-  maxChars: 20000,
-  maxLines: 400,
-  maxLineLength: 1000,
-  maxCodeBlockChars: 3000,
+  maxChars: 40000,
+  maxLines: 800,
+  maxLineLength: 2000,
+  maxCodeBlockChars: 12000,
 };
 
 export function sanitizeMarkdown(input: string, opts: SanitizeMarkdownOptions = {}): string {
@@ -64,4 +64,3 @@ export function sanitizeMarkdown(input: string, opts: SanitizeMarkdownOptions = 
 
   return limitedLines.join('\n');
 }
-

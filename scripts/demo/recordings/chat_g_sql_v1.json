@@ -1,0 +1,25 @@
+{
+  "type": "chat",
+  "id": "chat_g_sql_v1",
+  "title": "Optimize FeedList (Gemini)",
+  "comboKey": "google",
+  "tags": ["react-native", "performance"],
+  "events": [
+    {
+      "type": "message",
+      "role": "user",
+      "content": "Our debate feed list stutters on Android. Could you suggest a better approach that uses FlashList, adds item separators, and virtualizes avatars? Here's the component we have:```tsx\nexport const DebateFeed = ({ items, onSelect }) => {\n  return (\n    <ScrollView style={{ flex: 1 }}>\n      {items.map(item => (\n        <Pressable key={item.id} onPress={() => onSelect(item)}>\n          <View style={{ flexDirection: 'row', padding: 16 }}>\n            <Image source={{ uri: item.avatar }} style={{ width: 48, height: 48, borderRadius: 24 }} />\n            <View style={{ marginLeft: 12, flex: 1 }}>\n              <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>{item.title}</Text>\n              <Text style={{ color: '#8ea0c0', marginTop: 4 }}>{item.preview}</Text>\n            </View>\n          </View>\n        </Pressable>\n      ))}\n    </ScrollView>\n  );\n};\n```"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "speakerProvider": "google",
+      "content": "Switching to FlashList gives you windowed rendering and header/footer support. I'll also move the avatar into a memoized component so React Native can cache it.```tsx\nimport React from 'react';\nimport { Pressable, View, Text, Image } from 'react-native';\nimport { FlashList } from '@shopify/flash-list';\nimport { useTheme } from '@/theme';\n\ntype DebateFeedProps = {\n  items: Array<{ id: string; title: string; preview: string; avatar: string }>;\n  onSelect: (item: DebateFeedProps['items'][number]) => void;\n};\n\nconst Avatar: React.FC<{ uri: string }> = React.memo(({ uri }) => (\n  <Image source={{ uri }} style={{ width: 48, height: 48, borderRadius: 24 }} />\n));\n\nexport const DebateFeed: React.FC<DebateFeedProps> = ({ items, onSelect }) => {\n  const { theme } = useTheme();\n\n  const renderItem = React.useCallback(({ item }) => (\n    <Pressable onPress={() => onSelect(item)} accessibilityRole=\"button\">\n      <View style={{ flexDirection: 'row', paddingVertical: theme.spacing.md, paddingHorizontal: theme.spacing.lg }}>\n        <Avatar uri={item.avatar} />\n        <View style={{ marginLeft: theme.spacing.md, flex: 1 }}>\n          <Text style={theme.typography.title.xs} numberOfLines={1}>{item.title}</Text>\n          <Text\n            style={[theme.typography.body.sm, { color: theme.colors.muted, marginTop: theme.spacing.xs }]}\n            numberOfLines={2}\n          >\n            {item.preview}\n          </Text>\n        </View>\n      </View>\n    </Pressable>\n  ), [onSelect, theme.colors.muted, theme.spacing, theme.typography]);\n\n  const ItemSeparator = React.useCallback(() => (\n    <View style={{ height: 1, marginLeft: theme.spacing.xl, backgroundColor: theme.colors.border }} />\n  ), [theme.colors.border, theme.spacing.xl]);\n\n  return (\n    <FlashList\n      data={items}\n      renderItem={renderItem}\n      estimatedItemSize={84}\n      ItemSeparatorComponent={ItemSeparator}\n      keyboardShouldPersistTaps=\"handled\"\n    />\n  );\n};\n```"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "speakerProvider": "google",
+      "content": "Two instrumentation tips: set `estimatedItemSize` using profiling data to keep layout passes stable, and pass `onScrollBeginDrag` from the parent navigator so the sheet can collapse while someone swipes the feed." }
+  ]
+}

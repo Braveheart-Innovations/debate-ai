@@ -1,0 +1,31 @@
+{
+  "type": "chat",
+  "id": "chat_co_itinerary_v1",
+  "title": "Kyoto itinerary (Claude+OpenAI)",
+  "comboKey": "claude+openai",
+  "tags": [
+    "pair",
+    "claude",
+    "openai",
+    "travel"
+  ],
+  "events": [
+    {
+      "type": "message",
+      "role": "user",
+      "content": "Kyoto 3 days: temples + coffee. Suggestions?"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "speakerProvider": "claude",
+      "content": "Day 1: Fushimi Inari → Higashiyama → Gion"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "speakerProvider": "openai",
+      "content": "Day 2: Arashiyama → Tenryu‑ji → Nishiki Market"
+    }
+  ]
+}
