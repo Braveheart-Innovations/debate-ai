@@ -35,7 +35,7 @@
     "@react-navigation/bottom-tabs": "^7.4.7",
     "@react-navigation/native": "^7.1.17",
     "@react-navigation/stack": "^7.4.5",
-    "@reduxjs/toolkit": "^2.8.2",
+    "@reduxjs/toolkit": "^2.9.0",
     "axios": "^1.11.0",
     "expo": "53.0.22",
     "expo-apple-authentication": "~7.2.4",
