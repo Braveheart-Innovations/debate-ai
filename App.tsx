@@ -1,3 +1,4 @@
+// Test comment for CI pipeline verification
 import React, { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { Provider, useDispatch } from 'react-redux';
