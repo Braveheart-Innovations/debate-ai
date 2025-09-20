@@ -1,0 +1,37 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "mspnc1"
+    labels:
+      - "dependencies"
+    groups:
+      react-native:
+        patterns:
+          - "react-native*"
+          - "@react-native*"
+      expo:
+        patterns:
+          - "expo*"
+          - "@expo/*"
+      development:
+        patterns:
+          - "@types/*"
+          - "eslint*"
+          - "prettier*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "github-actions"

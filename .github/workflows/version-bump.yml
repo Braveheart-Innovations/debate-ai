@@ -1,0 +1,84 @@
+name: Version Bump
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Version bump type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Bump version
+        run: |
+          npm version ${{ github.event.inputs.version_type }} --no-git-tag-version
+          VERSION=$(node -p "require('./package.json').version")
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Update app.json
+        run: |
+          node -e "
+          const fs = require('fs');
+          const appJson = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+          appJson.expo.version = '${{ env.VERSION }}';
+          const buildNumber = parseInt(appJson.expo.ios.buildNumber) + 1;
+          appJson.expo.ios.buildNumber = String(buildNumber);
+          appJson.expo.android.versionCode = buildNumber;
+          fs.writeFileSync('app.json', JSON.stringify(appJson, null, 2));
+          "
+
+      - name: Commit changes
+        run: |
+          git add package.json package-lock.json app.json
+          git commit -m "chore: bump version to ${{ env.VERSION }}"
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          branch: version-bump-${{ env.VERSION }}
+          title: "chore: bump version to ${{ env.VERSION }}"
+          body: |
+            ## Version Bump
+
+            Bumping version to `${{ env.VERSION }}` (${{ github.event.inputs.version_type }} bump)
+
+            ### Changes
+            - Updated version in package.json
+            - Updated version in app.json
+            - Incremented build numbers
+
+            ### Next Steps
+            1. Review the changes
+            2. Merge this PR
+            3. Create a release tag: `v${{ env.VERSION }}`
+          labels: version-bump
+          assignees: ${{ github.actor }}

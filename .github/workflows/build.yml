@@ -1,0 +1,72 @@
+name: EAS Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform to build for'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - ios
+          - android
+          - all
+      profile:
+        description: 'Build profile'
+        required: true
+        default: 'preview'
+        type: choice
+        options:
+          - development
+          - preview
+          - production
+      submit:
+        description: 'Submit to store after build'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Setup Expo
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build for iOS
+        if: ${{ github.event.inputs.platform == 'ios' || github.event.inputs.platform == 'all' }}
+        run: |
+          eas build --platform ios --profile ${{ github.event.inputs.profile }} --non-interactive
+
+      - name: Build for Android
+        if: ${{ github.event.inputs.platform == 'android' || github.event.inputs.platform == 'all' }}
+        run: |
+          eas build --platform android --profile ${{ github.event.inputs.profile }} --non-interactive
+
+      - name: Submit to stores
+        if: ${{ github.event.inputs.submit == 'true' && github.event.inputs.profile == 'production' }}
+        run: |
+          if [[ "${{ github.event.inputs.platform }}" == "ios" || "${{ github.event.inputs.platform }}" == "all" ]]; then
+            eas submit --platform ios --latest --non-interactive
+          fi
+          if [[ "${{ github.event.inputs.platform }}" == "android" || "${{ github.event.inputs.platform }}" == "all" ]]; then
+            eas submit --platform android --latest --non-interactive
+          fi

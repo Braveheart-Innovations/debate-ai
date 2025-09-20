@@ -1,0 +1,19 @@
+# Default owners for everything in the repo
+* @mspnc1
+
+# Frontend code
+/src/ @mspnc1
+/src/components/ @mspnc1
+/src/screens/ @mspnc1
+
+# Configuration files
+/app.json @mspnc1
+/eas.json @mspnc1
+/package.json @mspnc1
+
+# Documentation
+/docs/ @mspnc1
+*.md @mspnc1
+
+# GitHub Actions
+/.github/ @mspnc1
