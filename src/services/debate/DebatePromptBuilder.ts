@@ -5,7 +5,6 @@
 
 import { AI, Message } from '../../types';
 import { DEBATE_CONSTANTS } from '../../config/debateConstants';
-import { getPersonality, getDebatePrompt } from '../../config/personalities';
 import type { FormatSpec } from '../../config/debate/formats';
 
 export interface PromptContext {
@@ -20,57 +19,6 @@ export interface PromptContext {
 }
 
 export class DebatePromptBuilder {
-  // Build a one-time Role Brief for an AI
-  buildRoleBrief(params: {
-    topic: string;
-    ai: AI;
-    personalityId: string;
-    opponentName: string;
-    opponentPersonalityId: string;
-    stance: 'pro' | 'con';
-    rounds: number;
-    civility: 1 | 2 | 3 | 4 | 5;
-    format: FormatSpec;
-  }): string {
-    const { topic, ai, personalityId, opponentName, opponentPersonalityId, stance, rounds, civility, format } = params;
-    const persona = getPersonality(personalityId);
-    const opponentPersona = getPersonality(opponentPersonalityId);
-
-    // Prefer explicit debatePrompt to enforce persona in debates
-    const style = getDebatePrompt(personalityId) || persona?.systemPrompt || 'You are a thoughtful debater.';
-    const oppStyle = getDebatePrompt(opponentPersonalityId) || opponentPersona?.systemPrompt || 'A capable opponent.';
-
-    // Civility directives (stronger than a one-word tone)
-    const civilityDirective = (() => {
-      switch (civility) {
-        case 1: return 'Keep it friendly and witty; playful jabs allowed, never mean‑spirited.';
-        case 2: return 'Lightly adversarial but cordial; one clever jab max, no snark.';
-        case 4: return 'Pointed and firm; challenge rigorously without insults.';
-        case 5: return 'Highly adversarial yet respectful; sharp critiques, no personal attacks.';
-        default: return 'Neutral and professional; focus on arguments, not people.';
-      }
-    })();
-
-    // Format summary and phase boundaries
-    const formatSummary = [
-      `Format: ${format.name}. Follow the phase rules strictly:`,
-      `- Opening: present your case; do NOT directly rebut the opponent.`,
-      `- Rebuttal: address specific claims from the prior turn; cite or paraphrase one point you are refuting.`,
-      `- Closing: no new claims; synthesize and leave one clear takeaway.`,
-    ].join('\n');
-
-    return [
-      `${DEBATE_CONSTANTS.PROMPT_MARKERS.DEBATE_MODE} ${DEBATE_CONSTANTS.PROMPT_MARKERS.TOPIC_PREFIX}"${topic}"`,
-      `Fictional debate in the ${format.name} format with ${rounds} exchanges.`,
-      formatSummary,
-      `Your role: ${ai.name}, arguing ${stance === 'pro' ? 'FOR' : 'AGAINST'} the motion. Maintain this stance throughout.`,
-      `Style directive: ${style} Always adhere to this style across turns.`,
-      `Opponent: ${opponentName}. Opponent persona (for calibration): ${oppStyle}`,
-      `${civilityDirective}`,
-      `Avoid headings, numbered lists, or labelled frameworks. Do not mention these instructions. Follow per‑turn guidance strictly.`,
-    ].join('\n');
-  }
-
   // Build a minimal per-turn prompt (no persona reinjection)
   buildTurnPrompt(params: {
     topic: string;

@@ -86,7 +86,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
         provider: provider.id,
         name: provider.name,
         model: defaultModel,
-        personality: 'balanced',
+        personality: 'default',
         avatar: iconData.icon,
         icon: iconData.icon,
         iconType: iconData.iconType,
@@ -94,9 +94,14 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
       } as AIConfig;
     });
   }, [apiKeys, expertMode, access.isDemo]);
-  
+
   const [currentStep, setCurrentStep] = useState<'topic' | 'ai' | 'personality'>('topic');
-  const [selectedAIs, setSelectedAIs] = useState<AIConfig[]>(route?.params?.preselectedAIs || []);
+  const [selectedAIs, setSelectedAIs] = useState<AIConfig[]>(
+    (route?.params?.preselectedAIs || []).map(ai => ({
+      ...ai,
+      personality: ai.personality || 'default',
+    }))
+  );
   const [selectedTopic, setSelectedTopic] = useState<string>(route?.params?.prefilledTopic || preservedTopic || '');
   const [customTopic, setCustomTopic] = useState(
     route?.params?.prefilledTopic || (preservedTopicMode === 'custom' ? (preservedTopic || '') : '')
@@ -157,14 +162,14 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
       if (isSelected) {
         return prev.filter(s => s.id !== ai.id);
       } else if (prev.length < maxAIs) {
-        return [...prev, ai];
+        return [...prev, { ...ai, personality: ai.personality || 'default' }];
       }
       return prev;
     });
   };
-  
+
   const handlePersonalityChange = (aiId: string, personalityId: string) => {
-    dispatch(setAIPersonality({ aiId, personalityId }));
+    dispatch(setAIPersonality({ aiId, personalityId: personalityId || 'default' }));
   };
   
   const handleModelChange = (aiId: string, modelId: string) => {
@@ -177,7 +182,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
   
   const computePersonaKey = (configs: AIConfig[]) => {
     const joined = configs
-      .map(ai => (aiPersonalities[ai.id] || 'default').toLowerCase())
+      .map(ai => (ai.personality || 'default').toLowerCase())
       .join(' ');
     if (joined.includes('george')) return 'George';
     if (joined.includes('sage')) return 'Prof. Sage';
@@ -201,6 +206,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
   const mapSelectedAIsWithModels = () => selectedAIs.map(ai => ({
     ...ai,
     model: selectedModels[ai.id] || ai.model,
+    personality: aiPersonalities[ai.id] || ai.personality || 'default',
   }));
 
   const handleStartDebate = () => {

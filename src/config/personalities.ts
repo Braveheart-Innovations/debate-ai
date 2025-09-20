@@ -97,26 +97,7 @@ export const UNIVERSAL_PERSONALITIES: PersonalityOption[] = [
 
 // Get personality by ID
 export function getPersonality(id: string): PersonalityOption | undefined {
-  const byId = UNIVERSAL_PERSONALITIES.find(p => p.id === id);
-  if (byId) return byId;
-  // Legacy ID mapping
-  const LEGACY_MAP: Record<string, string> = {
-    analytical: 'prof_sage',
-    philosopher: 'prof_sage',
-    debater: 'devlin',
-    contrarian: 'devlin',
-    nerdy: 'scout',
-    comedian: 'george',
-    sarcastic: 'george',
-    dramatic: 'george',
-    optimist: 'bestie',
-    balanced: 'prof_sage',
-  };
-  const mapped = LEGACY_MAP[id];
-  if (mapped) {
-    return UNIVERSAL_PERSONALITIES.find(p => p.id === mapped);
-  }
-  return undefined;
+  return UNIVERSAL_PERSONALITIES.find(p => p.id === id);
 }
 
 // Get debate-specific prompt for a personality

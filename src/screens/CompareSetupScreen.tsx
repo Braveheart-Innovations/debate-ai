@@ -61,7 +61,7 @@ const CompareSetupScreen: React.FC<CompareSetupScreenProps> = ({ navigation, rou
         provider: provider.id,
         name: provider.name,
         model: defaultModel,
-        personality: 'balanced',
+        personality: 'default',
         icon: iconData.icon,
         iconType: iconData.iconType,
         color: provider.color,
@@ -71,10 +71,14 @@ const CompareSetupScreen: React.FC<CompareSetupScreenProps> = ({ navigation, rou
   
   // Separate states for left and right AI selection - initialize from route params if available
   const [leftAI, setLeftAI] = useState<AIConfig[]>(
-    route?.params?.preselectedLeftAI ? [route.params.preselectedLeftAI] : []
+    route?.params?.preselectedLeftAI
+      ? [{ ...route.params.preselectedLeftAI, personality: route.params.preselectedLeftAI.personality || 'default' }]
+      : []
   );
   const [rightAI, setRightAI] = useState<AIConfig[]>(
-    route?.params?.preselectedRightAI ? [route.params.preselectedRightAI] : []
+    route?.params?.preselectedRightAI
+      ? [{ ...route.params.preselectedRightAI, personality: route.params.preselectedRightAI.personality || 'default' }]
+      : []
   );
   
   // Separate personality and model states
@@ -84,11 +88,11 @@ const CompareSetupScreen: React.FC<CompareSetupScreenProps> = ({ navigation, rou
   const [rightModels, setRightModels] = useState<{ [aiId: string]: string }>({});
   
   const handleToggleLeftAI = (ai: AIConfig) => {
-    setLeftAI(leftAI.length > 0 && leftAI[0].id === ai.id ? [] : [ai]);
+    setLeftAI(leftAI.length > 0 && leftAI[0].id === ai.id ? [] : [{ ...ai, personality: ai.personality || 'default' }]);
   };
   
   const handleToggleRightAI = (ai: AIConfig) => {
-    setRightAI(rightAI.length > 0 && rightAI[0].id === ai.id ? [] : [ai]);
+    setRightAI(rightAI.length > 0 && rightAI[0].id === ai.id ? [] : [{ ...ai, personality: ai.personality || 'default' }]);
   };
   
   const handleStartComparison = () => {
@@ -101,13 +105,13 @@ const CompareSetupScreen: React.FC<CompareSetupScreenProps> = ({ navigation, rou
     const leftAIConfig = {
       ...leftAI[0],
       model: leftModels[leftAI[0].id] || leftAI[0].model,
-      personality: leftPersonalities[leftAI[0].id] || 'balanced',
+      personality: leftPersonalities[leftAI[0].id] || leftAI[0].personality || 'default',
     };
     
     const rightAIConfig = {
       ...rightAI[0],
       model: rightModels[rightAI[0].id] || rightAI[0].model,
-      personality: rightPersonalities[rightAI[0].id] || 'balanced',
+      personality: rightPersonalities[rightAI[0].id] || rightAI[0].personality || 'default',
     };
     
     // Save personalities and models to Redux for the session

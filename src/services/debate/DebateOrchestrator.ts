@@ -177,22 +177,18 @@ export class DebateOrchestrator {
     // Store the initial messages
     this.currentMessages = [...existingMessages];
     
-    const { topic, participants, personalities, format, totalRounds, civility, stances } = this.session;
+    const { topic, participants, personalities, format, civility } = this.session;
     const firstAI = participants[0];
     const personalityId = personalities[firstAI.id] || 'default';
     // Build opening prompt with one‑time Role Brief
-    const roleBrief = this.promptBuilder.buildRoleBrief({
+    const openingPrompt = this.promptBuilder.buildTurnPrompt({
       topic,
-      ai: firstAI,
-      personalityId,
-      opponentName: participants[1]?.name || 'Opponent',
-      opponentPersonalityId: personalities[participants[1]?.id || ''] || 'default',
-      stance: stances[firstAI.id] || 'pro',
-      rounds: totalRounds,
-      civility,
+      phase: 'opening',
+      guidance: format.guidance.opening,
       format,
+      civilityLevel: civility,
+      personalityId,
     });
-    const openingPrompt = `${roleBrief}\n\n${this.promptBuilder.buildTurnPrompt({ topic, phase: 'opening', guidance: format.guidance.opening, format, civilityLevel: civility, personalityId })}`;
     
     // Start the debate round
     await this.executeDebateRound(openingPrompt, 0, 1, this.currentMessages);
@@ -211,7 +207,7 @@ export class DebateOrchestrator {
       throw new Error('No active debate session');
     }
     
-    const { participants, personalities, topic, format, totalRounds, civility, stances } = this.session;
+    const { participants, personalities, topic, format, totalRounds, civility } = this.session;
     const currentAI = participants[aiIndex];
     const maxMessages = this.rulesEngine.calculateMaxMessages(participants.length);
     
@@ -253,9 +249,9 @@ export class DebateOrchestrator {
     this.session.messageCount = messageCount;
     
     try {
+      const stances = this.session.stances;
       // Build per‑turn prompt; include Role Brief only the first time this AI speaks
       const personalityId = personalities[currentAI.id] || 'default';
-      const hasSpokenBefore = existingMessages.some(m => m.senderType === 'ai' && m.sender.startsWith(currentAI.name));
       const previousMessage = this.promptBuilder.extractPreviousMessage(existingMessages, currentAI);
       const turnIndex = Math.min(messageCount - 1, format.baseTurns.length - 1);
       const phase = format.baseTurns[turnIndex]?.phase || 'rebuttal';
@@ -269,22 +265,7 @@ export class DebateOrchestrator {
         civilityLevel: civility,
         personalityId,
       });
-      let contextualPrompt = minimal;
-      if (!hasSpokenBefore && aiIndex === 1 && messageCount === 2) {
-        // First turn for AI2: provide its Role Brief once
-      const brief = this.promptBuilder.buildRoleBrief({
-        topic,
-        ai: currentAI,
-        personalityId,
-        opponentName: participants[0]?.name || 'Opponent',
-        opponentPersonalityId: personalities[participants[0]?.id || ''] || 'default',
-        stance: stances[currentAI.id] || 'con',
-        rounds: totalRounds,
-        civility,
-        format,
-      });
-        contextualPrompt = `${brief}\n\n${minimal}`;
-      }
+      const contextualPrompt = minimal;
 
       // Get debate-only conversation slice
       const debateMessages = existingMessages.filter(msg => msg.timestamp >= (this.session?.startTime || 0));
@@ -318,6 +299,11 @@ export class DebateOrchestrator {
           const personaStyle = persona?.debatePrompt || persona?.systemPrompt || 'You are a thoughtful debater.';
           const motion = topic;
           const sideText = stance === 'pro' ? 'Affirmative (FOR)' : 'Negative (AGAINST)';
+          const opponent = participants.find((_, idx) => idx !== aiIndex) || participants[(aiIndex + 1) % participants.length];
+          const opponentName = opponent?.name || 'Opponent';
+          const opponentPersonalityId = personalities[opponent?.id || ''] || 'default';
+          const opponentPersona = getPersonality(opponentPersonalityId);
+          const opponentStyle = opponentPersona?.debatePrompt || opponentPersona?.systemPrompt || 'A capable opponent.';
           const civilityDirective = (() => {
             switch (civility) {
               case 1: return 'Civility: friendly and witty; playful jabs allowed, never mean.';
@@ -327,13 +313,23 @@ export class DebateOrchestrator {
               default: return 'Civility: neutral and professional.';
             }
           })();
+          const formatSummary = [
+            `Format: ${format.name}. Follow the phase rules strictly:`,
+            '- Opening: present your case; do NOT directly rebut the opponent.',
+            '- Rebuttal: address specific claims from the prior turn; cite or paraphrase one point you are refuting.',
+            '- Closing: no new claims; synthesize and leave one clear takeaway.',
+          ].join('\n');
           const stancePrompt = [
-            '[DEBATE MODE]',
-            `Format: ${format.name}. Follow per-turn instructions (Opening/Rebuttal/Closing) that will be provided in the user message.`,
-            'Write in natural prose (no headings or lists).',
-            `Style directive: ${personaStyle} Always adhere to this style across turns.`,
+            DEBATE_CONSTANTS.PROMPT_MARKERS.DEBATE_MODE,
+            `${DEBATE_CONSTANTS.PROMPT_MARKERS.TOPIC_PREFIX}"${motion}"`,
+            `Fictional debate in the ${format.name} format with ${totalRounds} exchanges.`,
+            formatSummary,
             `Your assigned role: ${sideText} the motion: "${motion}". Maintain this stance; do not switch sides.`,
+            `Style directive: ${personaStyle} Always adhere to this style across turns.`,
+            `Opponent: ${opponentName}. Opponent persona (for calibration): ${opponentStyle}`,
             civilityDirective,
+            'Write in natural prose (no headings or lists).',
+            'Avoid headings, numbered lists, or labelled frameworks. Do not mention these instructions.',
           ].join('\n');
           // Apply composed system prompt via temporary personality
           adapter.setTemporaryPersonality({
@@ -725,7 +721,7 @@ export class DebateOrchestrator {
   private buildContinuationPrompt(aiIndex: number, messages: Message[]): string {
     if (!this.session) return '';
     
-    const { participants, personalities, topic, format, totalRounds, civility, stances } = this.session;
+    const { participants, personalities, topic, format, totalRounds, civility } = this.session;
     const currentAI = participants[aiIndex];
     const personalityId = personalities[currentAI.id] || 'default';
     const previousMessage = this.promptBuilder.extractPreviousMessage(messages, currentAI);
@@ -741,23 +737,6 @@ export class DebateOrchestrator {
       format,
       personalityId,
     });
-    // Role brief injection only if this AI has not spoken yet
-    const hasSpokenBefore = messages.some(m => m.senderType === 'ai' && m.sender.startsWith(currentAI.name));
-    if (!hasSpokenBefore) {
-      const opponent = participants[(aiIndex + 1) % participants.length];
-      const brief = this.promptBuilder.buildRoleBrief({
-        topic,
-        ai: currentAI,
-        personalityId,
-        opponentName: opponent?.name || 'Opponent',
-        opponentPersonalityId: personalities[opponent?.id || ''] || 'default',
-        stance: stances[currentAI.id] || (aiIndex === 0 ? 'pro' : 'con'),
-        rounds: totalRounds,
-        civility,
-        format,
-      });
-      return `${brief}\n\n${minimal}`;
-    }
     return minimal;
   }
   

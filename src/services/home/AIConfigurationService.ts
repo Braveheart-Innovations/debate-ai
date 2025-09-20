@@ -65,7 +65,7 @@ export class AIConfigurationService {
       provider: provider.id as AIProvider, // Provider ID maps to AIProvider type
       name: provider.name,
       model: defaultModel, // Add default model
-      personality: 'balanced', // Default personality
+      personality: 'default', // Default personality aligns with UI label
       avatar: iconData.icon as string, // Keep for backwards compatibility
       icon: iconData.icon,
       iconType: iconData.iconType,

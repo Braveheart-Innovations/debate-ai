@@ -120,9 +120,12 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
     try {
       // Initialize debate session
       // Merge any explicit personalities from setup with defaults on selected AIs
-      const explicit = initialPersonalities || {};
+      const explicit = Object.entries(initialPersonalities || {}).reduce((acc, [aiId, personaId]) => {
+        acc[aiId] = personaId || 'default';
+        return acc;
+      }, {} as { [aiId: string]: string });
       const defaultsFromAIs = selectedAIs.reduce((acc, ai) => {
-        if (ai.personality && !acc[ai.id]) acc[ai.id] = ai.personality;
+        if (!acc[ai.id]) acc[ai.id] = ai.personality || 'default';
         return acc;
       }, {} as { [aiId: string]: string });
       const effectivePersonalities = { ...defaultsFromAIs, ...explicit };
