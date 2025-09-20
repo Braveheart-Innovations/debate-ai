@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Text, StyleSheet, Linking, TouchableOpacity } from 'react-native';
+import type { TextStyle } from 'react-native';
 import Animated, { 
   useAnimatedStyle,
   withSpring,
@@ -50,14 +51,14 @@ const HighlightedText: React.FC<{ text: string; searchTerm: string }> = ({ text,
 };
 
 // Helper function for formatting mentions
-const highlightMentions = (text: string) => {
+const highlightMentions = (text: string, mentionStyle: TextStyle) => {
   const mentionRegex = /@(\w+)/g;
   const parts = text.split(mentionRegex);
   
   return parts.map((part, index) => {
     if (index % 2 === 1) {
       return (
-        <Text key={index} style={{ fontWeight: 'bold', color: '#007AFF' }}>
+        <Text key={index} style={[{ fontWeight: '700' }, mentionStyle]}>
           @{part}
         </Text>
       );
@@ -246,7 +247,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, s
             lineHeight: 22,
             color: theme.colors.text.inverse
           }} selectable>
-            {searchTerm ? <HighlightedText text={displayContent} searchTerm={searchTerm} /> : highlightMentions(displayContent)}
+            {searchTerm ? <HighlightedText text={displayContent} searchTerm={searchTerm} /> : highlightMentions(displayContent, { color: theme.colors.text.inverse })}
           </Typography>
         ) : (
           // AI messages - render markdown with streaming support

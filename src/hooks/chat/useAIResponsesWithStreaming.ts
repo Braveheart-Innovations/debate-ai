@@ -20,6 +20,7 @@ import type { ResumptionContext } from '../../services/aiAdapter';
 import { getExpertOverrides } from '../../utils/expertMode';
 import useFeatureAccess from '@/hooks/useFeatureAccess';
 import { RecordController } from '@/services/demo/RecordController';
+import { getCurrentTurnProviders, markProviderComplete } from '@/services/demo/DemoPlaybackRouter';
 
 export interface AIResponsesHook {
   typingAIs: string[];
@@ -76,7 +77,24 @@ export const useAIResponsesWithStreaming = (isResuming?: boolean): AIResponsesHo
 
     // Determine which AIs should respond
     const mentions = userMessage.mentions || [];
-    const respondingAIs = ChatService.determineRespondingAIs(mentions, selectedAIs, 2);
+    let respondingAIs = ChatService.determineRespondingAIs(mentions, selectedAIs, 2);
+
+    if (isDemo) {
+      const scriptedProviders = getCurrentTurnProviders().map(p => p.toLowerCase());
+      if (scriptedProviders.length > 0) {
+        const orderMap = new Map(scriptedProviders.map((provider, index) => [provider, index]));
+        const scriptedSet = new Set(scriptedProviders);
+        const filtered = respondingAIs.filter(ai => scriptedSet.has(ai.provider.toLowerCase()));
+        if (filtered.length > 0) {
+          respondingAIs = filtered.sort((a, b) => (orderMap.get(a.provider.toLowerCase()) ?? 99) - (orderMap.get(b.provider.toLowerCase()) ?? 99));
+        } else {
+          const fallback = selectedAIs
+            .filter(ai => scriptedSet.has(ai.provider.toLowerCase()))
+            .sort((a, b) => (orderMap.get(a.provider.toLowerCase()) ?? 99) - (orderMap.get(b.provider.toLowerCase()) ?? 99));
+          if (fallback.length > 0) respondingAIs = fallback;
+        }
+      }
+    }
 
     // Build resumption context if this is first message after resuming
     let resumptionContext: ResumptionContext | undefined;
@@ -413,6 +431,9 @@ export const useAIResponsesWithStreaming = (isResuming?: boolean): AIResponsesHo
           [errorMessage]
         );
       } finally {
+        if (isDemo) {
+          markProviderComplete(ai.provider);
+        }
         // Only clear typing indicator if it was set (non-streaming)
         if (!shouldStream) {
           dispatch(setTypingAI({ ai: ai.name, isTyping: false }));

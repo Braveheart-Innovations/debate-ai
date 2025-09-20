@@ -1,6 +1,6 @@
 {
   "type": "chat",
-  "id": "chat_cg_itinerary_v1_rec_1758402669323",
+  "id": "chat_cg_itinerary_v1",
   "title": "NYC itinerary (Claude+Gemini)",
   "comboKey": "claude+google",
   "events": [

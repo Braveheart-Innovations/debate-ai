@@ -36,7 +36,7 @@ import { AIConfig, Message } from '../types';
 import { cancelAllStreams, selectActiveStreamCount } from '../store';
 import { getStreamingService } from '../services/streaming/StreamingService';
 import { DemoContentService } from '@/services/demo/DemoContentService';
-import { loadChatScript, primeNextChatTurn, hasNextChatTurn } from '@/services/demo/DemoPlaybackRouter';
+import { loadChatScript, primeNextChatTurn, hasNextChatTurn, isTurnComplete } from '@/services/demo/DemoPlaybackRouter';
 import { DemoSamplesBar } from '@/components/organisms/demo/DemoSamplesBar';
 import { showSheet } from '@/store';
 import useFeatureAccess from '@/hooks/useFeatureAccess';
@@ -109,6 +109,39 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
   const recordModeEnabled = useSelector((state: RootState) => state.settings.recordModeEnabled ?? false);
   const [isRecording, setIsRecording] = React.useState(false);
   const [topicPickerVisible, setTopicPickerVisible] = React.useState(false);
+  const mapProvidersToMentions = React.useCallback((providers: string[]): string[] => {
+    if (!session.currentSession) return [];
+    const selected = session.currentSession.selectedAIs || [];
+    const normalized = providers.map(p => p.toLowerCase());
+    const results = new Set<string>();
+    for (const ai of selected) {
+      if (normalized.includes(ai.provider.toLowerCase())) {
+        results.add(ai.name.toLowerCase());
+      }
+    }
+    return Array.from(results);
+  }, [session.currentSession]);
+
+  const computeMentionsForTurn = React.useCallback((content: string, providersForTurn: string[] = []) => {
+    const textMentions = mentions.parseMentions(content);
+    if (!isDemo) return textMentions;
+    const scriptedMentions = mapProvidersToMentions(providersForTurn);
+    return Array.from(new Set([...textMentions, ...scriptedMentions]));
+  }, [isDemo, mapProvidersToMentions, mentions]);
+
+  const dispatchDemoTurn = React.useCallback(async (content: string, providersForTurn: string[] = []) => {
+    const messageMentions = computeMentionsForTurn(content, providersForTurn);
+    messages.sendMessage(content, messageMentions);
+    const userMessage = {
+      id: `msg_${Date.now()}`,
+      sender: 'You',
+      senderType: 'user' as const,
+      content,
+      timestamp: Date.now(),
+      mentions: messageMentions,
+    };
+    await aiResponses.sendAIResponses(userMessage);
+  }, [aiResponses, computeMentionsForTurn, messages]);
   // Local nav function compatible with showTrialCTA typing
   const navTo = React.useMemo(() => (
     (screen: string, params?: Record<string, unknown>) => {
@@ -279,23 +312,13 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
         if (!sample) return;
         loadChatScript(sample);
         // Prime and play first turn
-        const { user } = primeNextChatTurn();
+        const { user, providers: scriptedProviders = [] } = primeNextChatTurn();
         const content = user || 'Let’s chat.';
-        messages.sendMessage(content, []);
-        const userMessage = {
-          id: `msg_${Date.now()}`,
-          sender: 'You',
-          senderType: 'user' as const,
-          content,
-          timestamp: Date.now(),
-          mentions: [],
-        };
-        await aiResponses.sendAIResponses(userMessage);
+        await dispatchDemoTurn(content, scriptedProviders);
       } catch { /* ignore */ }
     };
     run();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDemo, session.currentSession?.id, route.params?.demoSampleId]);
+  }, [dispatchDemoTurn, isDemo, messages.messages.length, route.params?.demoSampleId, session.currentSession, session.currentSession?.id]);
 
   // Advance multi-turn demo chat when streaming completes
   const prevActiveStreamsRef = React.useRef<number>(0);
@@ -305,29 +328,20 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
     if (!isDemo) return;
     if (!session.currentSession) return;
     // Trigger on transition from >0 to 0 (responses ended)
-    if (prev > 0 && activeStreams === 0 && hasNextChatTurn()) {
+    if (prev > 0 && activeStreams === 0 && hasNextChatTurn() && isTurnComplete()) {
       const t = setTimeout(async () => {
         try {
-          const { user } = primeNextChatTurn();
+          const { user, providers: scriptedProviders = [] } = primeNextChatTurn();
           const content = user || 'OK.';
           // If recording, capture the user message
           try { if (RecordController.isActive()) { RecordController.recordUserMessage(content); } } catch { /* ignore */ }
-          messages.sendMessage(content, []);
-          const userMessage = {
-            id: `msg_${Date.now()}`,
-            sender: 'You',
-            senderType: 'user' as const,
-            content,
-            timestamp: Date.now(),
-            mentions: [],
-          };
-          await aiResponses.sendAIResponses(userMessage);
+          await dispatchDemoTurn(content, scriptedProviders);
         } catch { /* ignore */ }
       }, 250);
       return () => clearTimeout(t);
     }
     return undefined;
-  }, [activeStreams, isDemo, session.currentSession, aiResponses, messages]);
+  }, [activeStreams, dispatchDemoTurn, isDemo, session.currentSession]);
 
   // Fallback: advance multi-turn even for non-streaming responses (no active stream boundary)
   const demoAdvanceGuardRef = React.useRef(false);
@@ -336,25 +350,17 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
     if (!session.currentSession) return;
     if (!hasNextChatTurn()) return;
     if (activeStreams > 0) { demoAdvanceGuardRef.current = false; return; }
+    if (!isTurnComplete()) { demoAdvanceGuardRef.current = false; return; }
     const last = messages.messages[messages.messages.length - 1];
     if (!last || last.senderType !== 'ai') return;
     if (demoAdvanceGuardRef.current) return;
     demoAdvanceGuardRef.current = true;
     const t = setTimeout(async () => {
       try {
-        const { user } = primeNextChatTurn();
+        const { user, providers: scriptedProviders = [] } = primeNextChatTurn();
         const content = user || 'OK.';
         try { if (RecordController.isActive()) { RecordController.recordUserMessage(content); } } catch { /* ignore */ }
-        messages.sendMessage(content, []);
-        const userMessage = {
-          id: `msg_${Date.now()}`,
-          sender: 'You',
-          senderType: 'user' as const,
-          content,
-          timestamp: Date.now(),
-          mentions: [],
-        };
-        await aiResponses.sendAIResponses(userMessage);
+        await dispatchDemoTurn(content, scriptedProviders);
       } catch { /* ignore */ }
       finally {
         demoAdvanceGuardRef.current = false;
@@ -364,7 +370,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
       clearTimeout(t);
       demoAdvanceGuardRef.current = false;
     };
-  }, [messages.messages.length, activeStreams, isDemo, session.currentSession, aiResponses, messages]);
+  }, [messages.messages, messages.messages.length, activeStreams, dispatchDemoTurn, isDemo, session.currentSession]);
 
   // Demo Mode: fetch available samples for current selection
   useEffect(() => {
@@ -500,18 +506,9 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
                 const sample = await DemoContentService.findChatById(sampleId);
                 if (!sample) return;
                 loadChatScript(sample);
-                const { user } = primeNextChatTurn();
+                const { user, providers: scriptedProviders = [] } = primeNextChatTurn();
                 const content = user || 'Let’s chat.';
-                messages.sendMessage(content, []);
-                const userMessage = {
-                  id: `msg_${Date.now()}`,
-                  sender: 'You',
-                  senderType: 'user' as const,
-                  content,
-                  timestamp: Date.now(),
-                  mentions: [],
-                };
-                await aiResponses.sendAIResponses(userMessage);
+                await dispatchDemoTurn(content, scriptedProviders);
               } catch { /* ignore */ }
             }}
           />
@@ -619,19 +616,10 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
               setIsRecording(true);
               // Load multi-turn script and play first turn
               loadChatScript(sample);
-              const { user } = primeNextChatTurn();
+              const { user, providers: scriptedProviders = [] } = primeNextChatTurn();
               const content = user || 'Let’s chat.';
               try { if (RecordController.isActive()) { RecordController.recordUserMessage(content); } } catch { /* ignore */ }
-              messages.sendMessage(content, []);
-              const userMessage = {
-                id: `msg_${Date.now()}`,
-                sender: 'You',
-                senderType: 'user' as const,
-                content,
-                timestamp: Date.now(),
-                mentions: [],
-              };
-              await aiResponses.sendAIResponses(userMessage);
+              await dispatchDemoTurn(content, scriptedProviders);
             } catch { /* ignore */ }
           }}
         />

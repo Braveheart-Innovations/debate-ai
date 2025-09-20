@@ -1,6 +1,6 @@
 {
   "type": "chat",
-  "id": "chat_c_sql_v1_rec_1758402310017",
+  "id": "chat_c_sql_v1",
   "title": "Refactor ChatInput (Claude)",
   "comboKey": "claude",
   "events": [

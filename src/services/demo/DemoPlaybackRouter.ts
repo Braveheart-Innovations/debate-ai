@@ -11,8 +11,10 @@ const NAME_TO_PROVIDER: Record<string, ProviderId | undefined> = {
 let providerQueues: Record<ProviderId, string[]> = { claude: [], openai: [], google: [] };
 
 // Chat script turns for multi-turn playback
-let chatTurns: Array<{ user?: string; responses: Record<ProviderId, string> }> = [];
+let chatTurns: Array<{ user?: string; responses: Record<ProviderId, string>; providers: ProviderId[] }> = [];
 let currentTurnIndex = 0;
+let activeTurnProviders: ProviderId[] = [];
+let turnPendingProviders: Set<ProviderId> = new Set();
 
 // Compare script runs for multi-turn playback (each run = one turn)
 let compareTurns: Array<{ user?: string; responses: Record<ProviderId, string> }> = [];
@@ -20,6 +22,8 @@ let currentCompareIndex = 0;
 
 export function clearQueues(): void {
   providerQueues = { claude: [], openai: [], google: [] };
+  activeTurnProviders = [];
+  turnPendingProviders.clear();
 }
 
 export function primeChat(sample: DemoChat): void {
@@ -51,22 +55,23 @@ export function loadChatScript(sample: DemoChat): void {
   chatTurns = [];
   currentTurnIndex = 0;
   const events: DemoMessageEvent[] = sample.events || [];
-  let current: { user?: string; responses: Record<ProviderId, string> } | null = null;
+  let current: { user?: string; responses: Record<ProviderId, string>; order: ProviderId[] } | null = null;
   const pushTurn = () => {
     if (current && (current.user || Object.keys(current.responses).length > 0)) {
-      chatTurns.push(current);
+      chatTurns.push({ user: current.user, responses: current.responses, providers: [...current.order] });
     }
   };
   for (const ev of events) {
     if (ev.role === 'user' && ev.type === 'message') {
       // Start a new turn
       if (current) pushTurn();
-      current = { user: ev.content || '', responses: { claude: '', openai: '', google: '' } };
+      current = { user: ev.content || '', responses: { claude: '', openai: '', google: '' }, order: [] };
     } else if (ev.role === 'assistant' && (ev.type === 'message' || ev.type === 'stream')) {
       const p = (ev.speakerProvider as ProviderId | undefined) || 'openai';
       if (!current) {
-        current = { user: '', responses: { claude: '', openai: '', google: '' } };
+        current = { user: '', responses: { claude: '', openai: '', google: '' }, order: [] };
       }
+      if (!current.order.includes(p)) current.order.push(p);
       current.responses[p] = (current.responses[p] || '') + (ev.content || '');
     }
   }
@@ -80,19 +85,43 @@ export function hasNextChatTurn(): boolean {
 /**
  * Prime provider queues for the next chat turn and return the user prompt for that turn
  */
-export function primeNextChatTurn(): { user?: string } {
+export function getCurrentTurnProviders(): ProviderId[] {
+  return [...activeTurnProviders];
+}
+
+export function isTurnComplete(): boolean {
+  return turnPendingProviders.size === 0;
+}
+
+export function markProviderComplete(provider: string): void {
+  const p = provider.toLowerCase() as ProviderId;
+  if (turnPendingProviders.has(p)) {
+    turnPendingProviders.delete(p);
+  }
+}
+
+export function primeNextChatTurn(): { user?: string; providers: ProviderId[] } {
   clearQueues();
   const turn = chatTurns[currentTurnIndex];
   currentTurnIndex++;
-  if (!turn) return {};
-  const { responses, user } = turn;
+  if (!turn) {
+    activeTurnProviders = [];
+    turnPendingProviders.clear();
+    return { providers: [] };
+  }
+  const { responses, user, providers } = turn;
+  const providersWithText: ProviderId[] = [];
   (['claude', 'openai', 'google'] as ProviderId[]).forEach((p) => {
     const text = (responses[p] || '').trim();
     if (text) {
       providerQueues[p] = [text];
+      providersWithText.push(p);
     }
   });
-  return { user };
+  const orderedProviders = providers.length > 0 ? providers.filter(p => providersWithText.includes(p)) : providersWithText;
+  activeTurnProviders = orderedProviders;
+  turnPendingProviders = new Set(orderedProviders);
+  return { user, providers: orderedProviders };
 }
 
 /**

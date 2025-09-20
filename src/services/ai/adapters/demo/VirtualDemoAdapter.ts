@@ -1,7 +1,7 @@
 import { BaseAdapter } from '../../../ai/base/BaseAdapter';
 import { Message, MessageAttachment } from '@/types';
 import type { ResumptionContext, SendMessageResponse, AdapterCapabilities } from '../../types/adapter.types';
-import { nextProviderResponse } from '@/services/demo/DemoPlaybackRouter';
+import { nextProviderResponse, markProviderComplete } from '@/services/demo/DemoPlaybackRouter';
 
 // Very lightweight virtual adapter that simulates streaming via an async generator
 // and returns plausible content without performing any network calls.
@@ -28,6 +28,7 @@ export class VirtualDemoAdapter extends BaseAdapter {
   ): Promise<SendMessageResponse> {
     const routed = nextProviderResponse(String(this.config.provider));
     const final = routed || this.composeDemoResponse(message, conversationHistory, attachments);
+    markProviderComplete(String(this.config.provider));
     return {
       response: final,
       modelUsed: this.config.model || 'demo-model',
@@ -46,21 +47,20 @@ export class VirtualDemoAdapter extends BaseAdapter {
     _resumptionContext?: ResumptionContext,
     _modelOverride?: string,
     abortSignal?: AbortSignal,
-    onEvent?: (event: unknown) => void
+    _onEvent?: (event: unknown) => void
   ): AsyncGenerator<string, void, unknown> {
     const routed = nextProviderResponse(String(this.config.provider));
     const full = routed || this.composeDemoResponse(message, conversationHistory, attachments);
     const words = full.split(/(\s+)/); // keep spaces so buffering can flush at boundaries
-    for (const w of words) {
-      if (abortSignal?.aborted) {
-        return;
+    try {
+      for (const w of words) {
+        if (abortSignal?.aborted) {
+          return;
+        }
+        yield w;
       }
-      // Occasionally emit a faux event to simulate tool/image hooks
-      if (onEvent && Math.random() < 0.001) {
-        onEvent({ type: 'tool_call', name: 'search', parameters: { query: 'simulated' } });
-      }
-      yield w;
-      // Let StreamingService control pacing; no delay here
+    } finally {
+      markProviderComplete(String(this.config.provider));
     }
   }
 
