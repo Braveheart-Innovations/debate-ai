@@ -78,6 +78,8 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
   const [isRecording, setIsRecording] = useState(false);
   const recordModeEnabled = useSelector((state: RootState) => state.settings.recordModeEnabled ?? false);
   const [pickerVisible, setPickerVisible] = useState(false);
+  const [votingOverlayHeight, setVotingOverlayHeight] = useState(0);
+  const [scoreOverlayHeight, setScoreOverlayHeight] = useState(0);
   const selectedSampleRef = React.useRef<DemoDebate | null>(null);
   // No custom controls modal
   
@@ -108,6 +110,18 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
       cancelled = true;
     };
   }, [demoDebateId, demoSample]);
+
+  useEffect(() => {
+    if (!voting.isVoting) {
+      setVotingOverlayHeight(0);
+    }
+  }, [voting.isVoting]);
+
+  useEffect(() => {
+    if (!voting.scores || Object.keys(voting.scores).length === 0) {
+      setScoreOverlayHeight(0);
+    }
+  }, [voting.scores]);
   
   // Handle topic selection and debate start
   const handleStartDebate = useCallback(async (topic?: string) => {
@@ -283,7 +297,22 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
   const isShowingVictory = (flow.isDebateEnded && hasScores) || hasOverallWinner;
   
   // Determine what to show based on debate state
+  const displayedTopic = session.session?.topic || topicSelection.finalTopic || initialTopic || 'Debate Motion';
+  const vsLine = selectedAIs.length >= 2 ? `${displayName(selectedAIs[0])} vs ${displayName(selectedAIs[1])}` : '';
+  const headerSubtitle = vsLine || undefined;
+  const motionText = displayedTopic.replace(/^Motion:\s*/i, '').trim();
+  const approxCharsPerLine = 34;
+  const estimatedLines = Math.min(3, Math.max(1, Math.ceil(motionText.length / approxCharsPerLine)));
+  const subtitleLines = headerSubtitle ? headerSubtitle.split('\n').length : 0;
+  const dynamicHeightBase = 88;
+  const headerHeight = Math.max(
+    96,
+    Math.min(148, dynamicHeightBase + (estimatedLines - 1) * 18 + (subtitleLines > 0 ? 12 : 0))
+  );
+
   const renderContent = () => {
+    const bottomInset = votingOverlayHeight + scoreOverlayHeight;
+
     if (isLoading) {
       return (
         <Animated.View 
@@ -376,12 +405,14 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
           <DebateMessageList
             messages={messages.messages}
             typingAIs={messages.typingAIs}
+            bottomInset={bottomInset}
           />
           
           {voting.isVoting && (
             <Animated.View 
               entering={FadeIn.duration(300)}
               exiting={FadeOut.duration(200)}
+              onLayout={({ nativeEvent }) => setVotingOverlayHeight(nativeEvent.layout.height)}
             >
               <VotingInterface
                 participants={selectedAIs.map(ai => ({ ...ai, name: displayName(ai) }))}
@@ -400,6 +431,7 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
             <Animated.View 
               entering={FadeIn.delay(200).duration(300)}
               layout={Layout.springify()}
+              onLayout={({ nativeEvent }) => setScoreOverlayHeight(nativeEvent.layout.height)}
             >
               <ScoreDisplay
                 participants={selectedAIs.map(ai => ({ ...ai, name: displayName(ai) }))}
@@ -439,14 +471,11 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
       backgroundColor: theme.colors.background,
     }}>
       {(() => {
-        const displayedTopic = session.session?.topic || topicSelection.finalTopic || initialTopic || 'Debate Motion';
-        const vsLine = selectedAIs.length >= 2 ? `${displayName(selectedAIs[0])} vs ${displayName(selectedAIs[1])}` : '';
-        const subtitle = [vsLine].filter(Boolean).join('\n');
       return (
         <Header
           variant="gradient"
-          title={`Motion: ${displayedTopic}`}
-          subtitle={subtitle}
+          title={displayedTopic.startsWith('Motion:') ? displayedTopic : `Motion: ${displayedTopic}`}
+          subtitle={headerSubtitle}
           showBackButton={true}
           onBack={handleStartOver}
           showTime={false}
@@ -504,7 +533,7 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
             variant: isRecording ? 'danger' : 'primary',
           } : undefined}
           showDemoBadge={isDemo}
-          height={110}
+          height={headerHeight}
         />
       );
       })()}

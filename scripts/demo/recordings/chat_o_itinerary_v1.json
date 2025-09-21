@@ -1,18 +1,14 @@
 {
   "type": "chat",
   "id": "chat_o_itinerary_v1",
-  "title": "Kyoto itinerary (OpenAI)",
+  "title": "Boston itinerary (OpenAI)",
   "comboKey": "openai",
-  "tags": [
-    "single",
-    "openai",
-    "travel"
-  ],
+  "tags": ["single", "openai", "travel"],
   "events": [
     {
       "type": "message",
       "role": "user",
-      "content": "Plan a 3-day itinerary for Kyoto with highlights and coffee."
+      "content": "Plan a 3-day itinerary for Boston focused on the Revolutionary War and local cuisine."
     },
     {
       "type": "stream",

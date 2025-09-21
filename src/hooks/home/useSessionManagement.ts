@@ -71,8 +71,8 @@ export const useSessionManagement = () => {
    * @param totalAvailableAIs - Total number of configured AIs
    * @returns Maximum number of AIs allowed
    */
-  const getSessionLimits = (isPremium: boolean, totalAvailableAIs: number): number => {
-    return SessionService.calculateSessionLimits(isPremium, totalAvailableAIs);
+  const getSessionLimits = (_isPremium: boolean, totalAvailableAIs: number): number => {
+    return SessionService.calculateSessionLimits(totalAvailableAIs);
   };
 
   return {

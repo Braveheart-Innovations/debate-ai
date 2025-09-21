@@ -45,10 +45,18 @@ export class DemoContentService {
   }
 
   static comboKey(providers: string[]): string {
+    const orderMap = new Map((DEMO_ALLOWED as readonly string[]).map((id, index) => [id, index]));
     const ids = providers
       .map(p => p.toLowerCase())
       .filter(p => (DEMO_ALLOWED as readonly string[]).includes(p))
-      .sort();
+      .sort((a, b) => {
+        const rankA = orderMap.get(a);
+        const rankB = orderMap.get(b);
+        if (rankA !== undefined && rankB !== undefined) return rankA - rankB;
+        if (rankA !== undefined) return -1;
+        if (rankB !== undefined) return 1;
+        return a.localeCompare(b);
+      });
     return ids.join('+');
   }
 

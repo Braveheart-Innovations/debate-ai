@@ -35,55 +35,71 @@ export const CompareMessageBubble: React.FC<CompareMessageBubbleProps> = ({
   const bodyColor = isDark ? theme.colors.text.primary : theme.colors.text.primary;
 
   return (
-    <View style={[styles.container, bubbleStyle]}>
-      {isDemo && (
-        <View style={{ position: 'absolute', top: 6, left: 6, transform: [{ rotate: '-18deg' }], pointerEvents: 'none' }}>
-          <Typography variant="caption" style={{ fontSize: 18, fontWeight: '800', letterSpacing: 1, color: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}>
-            DEMO
+    <View style={[
+      styles.row,
+      side === 'left' ? styles.alignStart : styles.alignEnd,
+    ]}>
+      <View style={[styles.container, bubbleStyle]}>
+        {isDemo && (
+          <View style={{ position: 'absolute', top: 6, left: 6, transform: [{ rotate: '-18deg' }], pointerEvents: 'none' }}>
+            <Typography variant="caption" style={{ fontSize: 18, fontWeight: '800', letterSpacing: 1, color: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}>
+              DEMO
+            </Typography>
+          </View>
+        )}
+        <View style={styles.header}>
+          <Typography 
+            variant="caption" 
+            weight="semibold" 
+            style={{ color: headerColor }}
+          >
+            {message.sender}
           </Typography>
         </View>
-      )}
-      <View style={styles.header}>
-        <Typography 
-          variant="caption" 
-          weight="semibold" 
-          style={{ color: headerColor }}
-        >
-          {message.sender}
+        <Typography variant="body" style={[styles.content, { color: bodyColor }]} selectable>
+          {message.content}
         </Typography>
+        {/* Copy button */}
+        <TouchableOpacity
+          onPress={async () => {
+            try {
+              await Clipboard.setStringAsync(message.content || '');
+              setCopied(true);
+              setTimeout(() => setCopied(false), 1500);
+            } catch {
+              void 0;
+            }
+          }}
+          accessibilityLabel="Copy message"
+          hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+          style={[
+            styles.copyButton,
+            { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' },
+          ]}
+        >
+          <Ionicons
+            name={copied ? 'checkmark-outline' : 'copy-outline'}
+            size={16}
+            color={bodyColor}
+          />
+        </TouchableOpacity>
       </View>
-      <Typography variant="body" style={[styles.content, { color: bodyColor }]} selectable>
-        {message.content}
-      </Typography>
-      {/* Copy button */}
-      <TouchableOpacity
-        onPress={async () => {
-          try {
-            await Clipboard.setStringAsync(message.content || '');
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1500);
-          } catch {
-            void 0;
-          }
-        }}
-        accessibilityLabel="Copy message"
-        hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
-        style={[
-          styles.copyButton,
-          { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' },
-        ]}
-      >
-        <Ionicons
-          name={copied ? 'checkmark-outline' : 'copy-outline'}
-          size={16}
-          color={bodyColor}
-        />
-      </TouchableOpacity>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  row: {
+    width: '100%',
+    paddingHorizontal: 8,
+    flexDirection: 'row',
+  },
+  alignStart: {
+    justifyContent: 'flex-start',
+  },
+  alignEnd: {
+    justifyContent: 'flex-end',
+  },
   container: {
     borderRadius: 12,
     borderWidth: 1,

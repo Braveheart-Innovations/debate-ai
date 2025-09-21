@@ -2,31 +2,3157 @@
   "type": "debate",
   "id": "debate_co_default_1",
   "title": "Motion: Homework should be abolished.",
-  "topic": "Motion: Homework should be abolished.",
   "comboKey": "claude+openai:default",
-  "participants": [
-    "Claude",
-    "OpenAI"
-  ],
   "events": [
+    {
+      "type": "divider",
+      "meta": {
+        "startedAt": "2025-09-21T01:08:02.844Z",
+        "screen": "debate",
+        "comboKey": "claude+openai:default",
+        "platform": "ios",
+        "participants": ["Claude", "ChatGPT"],
+        "topic": "Motion: Homework should be abolished."
+      }
+    },
     {
       "type": "message",
       "role": "user",
       "content": "Motion: Homework should be abolished."
     },
     {
-      "type": "stream",
+      "type": "message",
       "role": "assistant",
-      "speakerProvider": "claude",
-      "speakerPersona": "default",
-      "content": "Opening for the motion: Homework often adds little value…"
+      "content": "",
+      "speakerProvider": "claude"
     },
     {
       "type": "stream",
       "role": "assistant",
-      "speakerProvider": "openai",
-      "speakerPersona": "default",
-      "content": "Opposing: Properly designed homework reinforces learning…"
+      "content": "Homework, that",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " age-old educational",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " tradition, has outl",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ived its usefulness and now",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " does more harm than good to",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " students, families, and the",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " very goals of education itself. The time",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " has come to abolish this antiqu",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ated practice entirely.\n\nConsider first the mounting",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " evidence that homework provides negligible academic",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " benefits, particularly for younger students. Research consistently shows that elementary",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " students gain virtually no academic advantage from homework assignments",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ", while middle school students see only modest improvements that",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " hardly justify the costs. Even for",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " high school students, the correlation",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " between homework and achievement plate",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "aus quickly, suggesting that quality",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " instruction during school",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " hours matters",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " far more than additional",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " busywork at home.\n\nMore",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " troubling still is homework's role",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " in exacerbating educational inequality. Students",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " from affluent families enjoy quiet",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " study spaces, parental assistance",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ", tutoring resources, and high",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-speed internet access. Meanwhile, their",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " peers may struggle with noisy living",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " conditions, parents working multiple jobs, younger",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " siblings to care for, or",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " lack of basic",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " materials. Homework doesn",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "'t level the playing field—it til",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ts it further towar",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "d those already advantaged,",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " transforming what",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " should be an equalizing force",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " of public education into another mechanism",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " of social stratification.\n\nThe psychological",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " toll on children deser",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ves serious consideration as well. Today",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "'s students face unprecedented levels of stress, anxiety, and depression,",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " with homework serving as a primary cul",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "prit in their overwhel",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "med schedules. After",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " spending six to eight hours in",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " structured learning environments, children",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " need time for play",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ", exploration, family relationships, and rest—",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "all crucial for healthy development. Instea",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "d, we burden them with additional academic",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " tasks that crowd out these",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " fundamental childhood experiences.\n\nFinally",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ", homework undermines family",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " harmony and parental authority. Evening",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " battles over assignments strain",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " relationships, while parents fin",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "d themselves thrust into teaching roles they're unprepared for,",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " often leading to frustration and conflict",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ". Education should strengthen family bonds, not frac",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ture them over fr",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "actions and book reports.",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": "",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Homework",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " is not the villain of",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " schooling; it",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "’s the screwdriver",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " in the",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " toolbox—us",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "eless if mis",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "used,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " indispensable when applied to",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the right job.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Abolishing",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " it would throw",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " away a simple",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " proven lever for",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " learning: spaced",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " practice and retrieval",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Decades of",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " cognitive science show",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " that skills and",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " knowledge stick when",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " learners revisit them",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " over time,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " test themselves",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " from memory,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and apply ideas in",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " new contexts.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Well‑des",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "igned homework does",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " exactly that.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Ten minutes spent",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " recalling key vocabulary",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " outlining tomorrow’s",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " history argument,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " or working through",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a few targeted algebra",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " problems yields more",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " durable learning than",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " an extra ten minutes",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " of lecture.\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Beyond memory,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " homework helps cultivate",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " habits that matter",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " long after graduation",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": planning,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " persistence,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " time management,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and self‑",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "monitoring.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " These aren’t",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " magically absorbed between",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "8 a.m",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "3 p.m",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " A short",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " purposeful task with",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a clear goal",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and feedback nud",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ges students to",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " practice those executive",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " skills in low‑",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "stakes conditions,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " much like drills",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " build stamina before",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the big game.\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "It also extends scarce",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " classroom minutes.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " A science teacher",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " who assigns a brief",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " pre‑read",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and a couple",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " of conceptual checks",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " can use class",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " for experiments and discussion",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " instead of exposition",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " An English teacher",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " who asks students to",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " draft a thesis",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " at home can",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " spend the period conferencing",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " not lecturing",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Homework,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " in this sense",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " is not extra",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "; it’s",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the other half of",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " an efficient lesson",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Concerns about",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " overload and inequ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ity are real,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " but they argue",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " for smarter design",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " not abolition.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " The guardrails",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " are straightforward and",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " concrete: keep it",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " short and focused",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " (for example",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the widely used",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " “10‑",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "minute rule”",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " per grade level",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "),",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " prioritize practice",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and reading over",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " elaborate projects",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " offer flexible deadlines",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and offline options",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and provide school",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "‑based supports",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " like after‑",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "school study halls",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " or lending libraries",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " of devices and",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " materials.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " When teachers assign only",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " what they are",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " prepared to use",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " for feedback",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "—whether a quick",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " exit problem set",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " or a two",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "‑paragraph reflection",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "—homework",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " becomes a diagnostic tool",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " rather than busy",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "work.\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "We do not ban",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " seatbelts because",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " some are uncomfortable",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "; we fit",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " them properly.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Homework,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " kept purposeful,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " proportional,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and supported,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " remains a modest",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " intervention with outs",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ized benefits.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " The sensible",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " course is to refine",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " it,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " not abolish",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " it.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Homework is not the villain of schooling; it’s the screwdriver in the toolbox—useless if misused, indispensable when applied to the right job. Abolishing it would throw away a simple, proven lever for learning: spaced practice and retrieval. Decades of cognitive science show that skills and knowledge stick when learners revisit them over time, test themselves from memory, and apply ideas in new contexts. Well‑designed homework does exactly that. Ten minutes spent recalling key vocabulary, outlining tomorrow’s history argument, or working through a few targeted algebra problems yields more durable learning than an extra ten minutes of lecture.\n\nBeyond memory, homework helps cultivate habits that matter long after graduation: planning, persistence, time management, and self‑monitoring. These aren’t magically absorbed between 8 a.m. and 3 p.m. A short, purposeful task with a clear goal and feedback nudges students to practice those executive skills in low‑stakes conditions, much like drills build stamina before the big game.\n\nIt also extends scarce classroom minutes. A science teacher who assigns a brief pre‑read and a couple of conceptual checks can use class for experiments and discussion instead of exposition. An English teacher who asks students to draft a thesis at home can spend the period conferencing, not lecturing. Homework, in this sense, is not extra; it’s the other half of an efficient lesson.\n\nConcerns about overload and inequity are real, but they argue for smarter design, not abolition. The guardrails are straightforward and concrete: keep it short and focused (for example, the widely used “10‑minute rule” per grade level), prioritize practice and reading over elaborate projects, offer flexible deadlines and offline options, and provide school‑based supports like after‑school study halls or lending libraries of devices and materials. When teachers assign only what they are prepared to use for feedback—whether a quick exit problem set or a two‑paragraph reflection—homework becomes a diagnostic tool rather than busywork.\n\nWe do not ban seatbelts because some are uncomfortable; we fit them properly. Homework, kept purposeful, proportional, and supported, remains a modest intervention with outsized benefits. The sensible course is to refine it, not abolish it.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": "",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "My",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " opponent paints a rosy picture of homework as",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a perfectly calibrated \"screwdriver in the toolbox,\"",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " but this ide",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "alized vision crumbles when",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " confronted with educational reality. The claim",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " that \"well-designed homework\"",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " provides spaced practice and retrieval sounds",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " wonderful in theory, yet",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ignores a fundamental truth: the",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " vast majority of homework assigne",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "d in actual classrooms bears little resemblance to this cognitive",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " science ideal.\n\nWalk into",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " any American household on a Tuesday",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " evening and you'll find students",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " laboriously copying definitions,",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " completing worksheets that",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " require no higher-order thinking, or",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " churning out",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " projects that priorit",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ize presentation over learning. The gap",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " between homework theory and homework practice is so",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " vast that we might as well be deb",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ating the merits of unicorns.",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Harris Cooper's comprehensive research reveals that most",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " homework consists of low-level",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " busywork that fails to engage the",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " very cognitive processes my opponent champions",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ". When the implementation is this",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " consistently poor across thousands",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " of schools and millions",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " of teachers, the problem",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " isn't design—it's the",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " system itself.\n\nEven",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " more telling is the opponent's assertion",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " that homework teaches \"planning, persistence, time management, and self",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-monitoring.\" This assumes that struggling through",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " poorly designed assignments at kitchen tables somehow builds",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " character better than the countless other activities we",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "'re displacing. A child who spends three hours batt",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ling through repet",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "itive math problems isn",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "'t learning persistence—they're learning to associate",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " learning with ",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "drudgery. Meanwhile",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ", the student",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " who joins a community",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " theater group, helps",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a grandparent with technology",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ", or simply has unstructured time to",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " wonder and explore is developing far",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " richer executive function",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " skills through intrinsically",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " motivated experiences.\n\nThe \"",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ten-minute rule\" and other",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " proposed guardrails sound reasonable until",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " we acknowledge that educational",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " reforms requiring such precise implementation",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " across millions of teachers have historically",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " failed. We've been trying to \"fix\" homework for decades,",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " yet student stress continues to mount and achievement",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " gaps persist. Sometimes the most radical solution is also",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the most practical: stop doing what isn't working.",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": "",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "You",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " argue,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " citing Harris Cooper",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " that “the",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " vast majority of",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " homework”",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " is low‑",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "level busywork",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " But Cooper’s",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " own syntheses",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " don’t say",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " that; they find",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " small‑to",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "‑moderate",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " positive effects for grades",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "7–12",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and recommend calibrated",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " amounts and",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " feedback,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " not abolition.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " If the landscape",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " were dominated by",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " empty worksheets,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " we’d expect",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " null results.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " The Education End",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "owment Foundation reaches a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " similar conclusion:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " secondary homework",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " when set and",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " checked,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " yields meaningful gains",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "You also claim",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " guardrails",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " like the ten",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "‑minute rule can",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "’t be implemented",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " at scale.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Yet we have",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " real‑world counter",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "examples.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " The Brook",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ings Brown",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Center reports",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " show typical loads",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " already align roughly",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " with those limits",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "—about an",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " hour a night",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " for high school",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " not the “",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "three hours” Tuesday",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-night gaunt",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "let.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " And when",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " quality is scaled",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " with simple tools",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " outcomes move",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": a randomized",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " trial of ASSIST",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ments across dozens",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " of regular middle",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " schools found that teachers",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " who used immediate‑",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "feedback homework",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " boosted math achievement",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " with especially strong",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " effects for lower",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "‑performing",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " students.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Unicorns are scarce",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "; practical",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " fixes like time",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " limits,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " feedback,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and light tech",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " support are not",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Abolishing",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " homework because some",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " is bad throws",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " away approaches that",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " demonstrably work",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " when applied with these",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " straightforward guard",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "rails.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": "",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "My",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " opponent cleverly cherry-picks Cooper",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "'s findings while overloo",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "king a crucial detail: Cooper himself acknowledges that correlation",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " doesn't prove causation, and his modest",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " effect sizes for high schoolers pale",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " beside the documented harms. More",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " importantly, Cooper's research consistently shows zero",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " to negative effects for elementary students—nearly half",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " of all homework recipients. If we're abol",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ishing homework, we needn't salv",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "age a practice that demonstrably fails our youngest",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " learners while providing questionable benefits to older",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ones.\n\nThe Brookings data about",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " \"typical loads\" reveals another sle",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ight of hand. Aver",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ages mask enormous variation and don't account",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " for the compounding effect across subjects",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ". A student taking five classes might face that magical",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " \"one hour\" from each teacher",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " who believes they're being reasonable",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ". Meanwhile, the",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ASSISTments study my",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " opponent cites involved a highly",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " controlled intervention with immediate digital feedback—",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "hardly representative of typical homework where",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " students toil over assignments that may not",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " be checked for days,",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " if ever. This actually proves my point",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": homework only works under such artificial conditions that",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " it becomes a different beast entirely.\n\nBut",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " here's the deeper issue the opposition",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " misses: even if we coul",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "d wave a magic wand and make",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " all homework perfectly calibrated an",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "d immediately feedback-rich, we",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "'d still be",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " solving the wrong problem. The question",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " isn't whether we can make",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " homework marginally less",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " harmful, but whether the",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " modest gains justify displ",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "acing family time, sleep",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ", play, and student agency",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ". When Finnish students",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " consistently outperform their",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " homework-laden international",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " peers while enjoying significantly less academic stress, the",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " path forward becomes clear. We",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " don't need to perfect",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a flawed system—we need the",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " courage to abandon it for something better.",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": "",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "You",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " argue that Cooper",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " shows “zero to",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " negative effects for",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " elementary students”",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and that this",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " warrants abolition.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Cooper’s",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " meta-anal",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "yses actually report",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " near-zero",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " academic effects in",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the early grades",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and small-to",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-moder",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ate gains in",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " secondary school,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and his",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " takeaway is not abolition",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " but age-",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "appropriate use",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "—little to",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " none in K",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "–5 beyond reading",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " increasing with age",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and feedback.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " On the caus",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ation point",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " we’re not",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " stuck with correlations",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": randomized studies",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "—like ASS",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ISTments in",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ordinary public middle schools",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "—show that homework",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " with timely feedback",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " raises achievement,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " especially for struggling",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " students.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " That’s a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " case for calibrating",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " by grade and design",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " not for scr",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "apping homework across",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the board.\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "You also claim",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " that “Finn",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ish students outperform",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "… while enjoying",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " significantly less",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " academic stress,”",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " so we should",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " abandon homework.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Finland doesn’t",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " abolish homework;",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " it assigns modest amounts",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " And cross-national data",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " undercut a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " simple dose–",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "response story:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " top performers include",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " systems with",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " both low homework",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " time (Fin",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "land) and",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " high homework time (",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "East Asia).",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " The OECD has",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " shown that once",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " you account for",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " socioeconomic factors and",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " school practices,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " homework volume explains",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " little of the",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " gap.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " That suggests the",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " right lever is",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " smarter,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " limited homework—not none",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "You argue that Cooper shows “zero to negative effects for elementary students” and that this warrants abolition. Cooper’s meta-analyses actually report near-zero academic effects in the early grades and small-to-moderate gains in secondary school, and his takeaway is not abolition but age-appropriate use—little to none in K–5 beyond reading, increasing with age and feedback. On the causation point, we’re not stuck with correlations: randomized studies—like ASSISTments in ordinary public middle schools—show that homework with timely feedback raises achievement, especially for struggling students. That’s a case for calibrating by grade and design, not for scrapping homework across the board.\n\nYou also claim that “Finnish students outperform… while enjoying significantly less academic stress,” so we should abandon homework. Finland doesn’t abolish homework; it assigns modest amounts. And cross-national data undercut a simple dose–response story: top performers include systems with both low homework time (Finland) and high homework time (East Asia). The OECD has shown that once you account for socioeconomic factors and school practices, homework volume explains little of the gap. That suggests the right lever is smarter, limited homework—not none.",
+      "speakerProvider": "openai"
     }
-  ]
+  ],
+  "topic": "Motion: Homework should be abolished.",
+  "participants": ["Claude", "ChatGPT"]
 }

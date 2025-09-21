@@ -21,6 +21,7 @@ import { getExpertOverrides } from '../../utils/expertMode';
 import useFeatureAccess from '@/hooks/useFeatureAccess';
 import { RecordController } from '@/services/demo/RecordController';
 import { getCurrentTurnProviders, markProviderComplete } from '@/services/demo/DemoPlaybackRouter';
+import { HOME_CONSTANTS } from '@/config/homeConstants';
 
 export interface AIResponsesHook {
   typingAIs: string[];
@@ -77,7 +78,11 @@ export const useAIResponsesWithStreaming = (isResuming?: boolean): AIResponsesHo
 
     // Determine which AIs should respond
     const mentions = userMessage.mentions || [];
-    let respondingAIs = ChatService.determineRespondingAIs(mentions, selectedAIs, 2);
+    let respondingAIs = ChatService.determineRespondingAIs(
+      mentions,
+      selectedAIs,
+      HOME_CONSTANTS.MAX_AIS_FOR_CHAT
+    );
 
     if (isDemo) {
       const scriptedProviders = getCurrentTurnProviders().map(p => p.toLowerCase());
@@ -455,8 +460,8 @@ export const useAIResponsesWithStreaming = (isResuming?: boolean): AIResponsesHo
     const userMessage = ChatService.createUserMessage(userPrompt, []);
     dispatch(addMessage(userMessage));
 
-    // Use enriched prompt for AI responses
-    const respondingAIs = selectedAIs.slice(0, 2);
+    // Use enriched prompt for AI responses capped at the session limit
+    const respondingAIs = selectedAIs.slice(0, HOME_CONSTANTS.MAX_AIS_FOR_CHAT);
     let conversationContext = ChatService.buildConversationContext(messages, userMessage);
     
     for (const ai of respondingAIs) {

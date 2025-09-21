@@ -196,43 +196,55 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, s
   
   const aiColor = getAIColor();
 
+  const markdownContent = !isUser && displayContent
+    ? sanitizeMarkdown(
+        processMessageContent({ ...message, content: displayContent })
+      ).replace(/\s+$/, '')
+    : '';
+
   return (
     <Animated.View
       style={[
-        styles.messageContainer,
-        isUser && styles.userMessageContainer,
+        styles.messageRow,
+        isUser ? styles.rowAlignEnd : styles.rowAlignStart,
         animatedStyle,
       ]}
     >
-      {!isUser && (
-        <Box style={styles.aiHeader}>
-          <Typography 
-            variant="caption" 
-            weight="semibold"
-            style={{ color: hasError ? (isDark ? theme.colors.error[400] : theme.colors.error[600]) : (aiColor?.border || theme.colors.text.secondary) }}
-          >
-            {message.sender}{(hasError && !isCancelled) ? ' ⚠️' : ''}
-          </Typography>
-        </Box>
-      )}
       <Box
         style={[
-          styles.messageBubble,
-          isUser ? {
-            backgroundColor: theme.colors.primary[500],
-            borderBottomRightRadius: 4,
-          } : {
-            backgroundColor: (hasError && !isCancelled)
-              ? (isDark ? theme.colors.semantic.error : theme.colors.error[50]) 
-              : (aiColor ? (isDark ? aiColor.dark : aiColor.light) : theme.colors.card),
-            borderBottomLeftRadius: 4,
-            borderWidth: 1,
-            borderColor: (hasError && !isCancelled)
-              ? (isDark ? theme.colors.error[600] : theme.colors.error[500]) 
-              : (aiColor?.border || theme.colors.border),
-          },
+          styles.stack,
+          isUser ? styles.stackRight : styles.stackLeft,
         ]}
       >
+        {!isUser && (
+          <Box style={styles.aiHeader}>
+            <Typography 
+              variant="caption" 
+              weight="semibold"
+              style={{ color: hasError ? (isDark ? theme.colors.error[400] : theme.colors.error[600]) : (aiColor?.border || theme.colors.text.secondary) }}
+            >
+              {message.sender}{(hasError && !isCancelled) ? ' ⚠️' : ''}
+            </Typography>
+          </Box>
+        )}
+        <Box
+          style={[
+            styles.messageBubble,
+            isUser ? {
+              backgroundColor: theme.colors.primary[500],
+              borderBottomRightRadius: 4,
+            } : {
+              backgroundColor: (hasError && !isCancelled)
+                ? (isDark ? theme.colors.semantic.error : theme.colors.error[50]) 
+                : (aiColor ? (isDark ? aiColor.dark : aiColor.light) : theme.colors.card),
+              borderBottomLeftRadius: 4,
+              borderWidth: 1,
+              borderColor: (hasError && !isCancelled)
+                ? (isDark ? theme.colors.error[600] : theme.colors.error[500]) 
+                : (aiColor?.border || theme.colors.border),
+            },
+          ]}
+        >
         {isDemo && (
           <View style={{ position: 'absolute', top: 8, left: 8, transform: [{ rotate: '-18deg' }], pointerEvents: 'none' }}>
             <Text style={{ fontSize: 28, fontWeight: '900', letterSpacing: 2, color: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
@@ -352,9 +364,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, s
               },
             }}
           >
-            {displayContent 
-              ? sanitizeMarkdown(processMessageContent({ ...message, content: displayContent })) 
-              : ''}
+            {markdownContent}
           </Markdown>
           {/* Render image attachments if present */}
           {!isUser && message.attachments && message.attachments.length > 0 && (
@@ -395,82 +405,103 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, s
             color={isUser ? theme.colors.text.inverse : theme.colors.text.primary}
           />
         </TouchableOpacity>
-      </Box>
+        </Box>
 
-      {/* Status pill for cancelled streams */}
-      {!isUser && isCancelled && (
-        <Box
-          style={{
-            marginTop: 6,
-            alignSelf: 'flex-start',
-            paddingVertical: 4,
-            paddingHorizontal: 8,
-            borderRadius: 999,
-            backgroundColor: isDark ? theme.colors.semantic.error : theme.colors.error[50],
-            borderWidth: StyleSheet.hairlineWidth,
-            borderColor: isDark ? theme.colors.error[600] : theme.colors.error[300],
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 6,
-          }}
-        >
-          <IconStopOctagon size={12} color={isDark ? theme.colors.error[300] : theme.colors.error[600]} />
-          <Typography variant="caption" style={{ color: isDark ? theme.colors.error[300] : theme.colors.error[700], marginLeft: 6 }}>
-            Cancelled by you
-          </Typography>
-        </Box>
-      )}
-      
-      {/* Citations section for messages with sources */}
-      {!isUser && message.metadata?.citations && message.metadata.citations.length > 0 && (
-        <Box style={[styles.citationsContainer, { borderTopColor: theme.colors.border }]}>
-          <Typography variant="caption" weight="semibold" style={{ marginBottom: 4 }}>
-            Sources:
-          </Typography>
-          {message.metadata.citations.slice(0, 3).map((citation, index) => (
-            <TouchableOpacity
-              key={index}
-              onPress={() => Linking.openURL(citation.url)}
-              style={styles.citationItem}
-            >
-              <Typography variant="caption" style={{ color: theme.colors.primary[500] }}>
-                [{citation.index}] {citation.title || citation.url}
-              </Typography>
-            </TouchableOpacity>
-          ))}
-        </Box>
-      )}
-      
-      <Box style={[styles.metadataContainer, isUser && styles.userMetadata]}>
-        <Typography 
-          variant="caption" 
-          color="secondary"
-          style={styles.timestamp}
-        >
-          {formatTime(message.timestamp)}
-        </Typography>
-        {!isUser && message.metadata?.modelUsed && (
-          <Typography
-            variant="caption"
-            color="secondary"
-            style={styles.modelInfo}
+        {/* Status pill for cancelled streams */}
+        {!isUser && isCancelled && (
+          <Box
+            style={{
+              marginTop: 6,
+              alignSelf: 'flex-start',
+              paddingVertical: 4,
+              paddingHorizontal: 8,
+              borderRadius: 999,
+              backgroundColor: isDark ? theme.colors.semantic.error : theme.colors.error[50],
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: isDark ? theme.colors.error[600] : theme.colors.error[300],
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+            }}
           >
-            • {message.metadata.modelUsed}
-          </Typography>
+            <IconStopOctagon size={12} color={isDark ? theme.colors.error[300] : theme.colors.error[600]} />
+            <Typography variant="caption" style={{ color: isDark ? theme.colors.error[300] : theme.colors.error[700], marginLeft: 6 }}>
+              Cancelled by you
+            </Typography>
+          </Box>
         )}
+        
+        {/* Citations section for messages with sources */}
+        {!isUser && message.metadata?.citations && message.metadata.citations.length > 0 && (
+          <Box style={[styles.citationsContainer, { borderTopColor: theme.colors.border }]}>
+            <Typography variant="caption" weight="semibold" style={{ marginBottom: 4 }}>
+              Sources:
+            </Typography>
+            {message.metadata.citations.slice(0, 3).map((citation, index) => (
+              <TouchableOpacity
+                key={index}
+                onPress={() => Linking.openURL(citation.url)}
+                style={styles.citationItem}
+              >
+                <Typography variant="caption" style={{ color: theme.colors.primary[500] }}>
+                  [{citation.index}] {citation.title || citation.url}
+                </Typography>
+              </TouchableOpacity>
+            ))}
+          </Box>
+        )}
+        
+        <Box
+          style={[
+            styles.metadataContainer,
+            isUser ? styles.userMetadata : styles.aiMetadata,
+          ]}
+        >
+          <Typography 
+            variant="caption" 
+            color="secondary"
+            style={styles.timestamp}
+          >
+            {formatTime(message.timestamp)}
+          </Typography>
+          {!isUser && message.metadata?.modelUsed && (
+            <Typography
+              variant="caption"
+              color="secondary"
+              style={styles.modelInfo}
+            >
+              • {message.metadata.modelUsed}
+            </Typography>
+          )}
+        </Box>
       </Box>
     </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
-  messageContainer: {
-    marginHorizontal: 16,
+  messageRow: {
+    width: '100%',
+    paddingHorizontal: 16,
     marginVertical: 8,
-    maxWidth: '80%',
+    flexDirection: 'row',
+  },
+  rowAlignStart: {
+    justifyContent: 'flex-start',
+  },
+  rowAlignEnd: {
+    justifyContent: 'flex-end',
+  },
+  stack: {
+    maxWidth: '88%',
+    flexShrink: 1,
+  },
+  stackLeft: {
+    alignItems: 'flex-start',
     alignSelf: 'flex-start',
   },
-  userMessageContainer: {
+  stackRight: {
+    alignItems: 'flex-end',
     alignSelf: 'flex-end',
   },
   aiHeader: {
@@ -484,17 +515,18 @@ const styles = StyleSheet.create({
   timestamp: {
     fontSize: 11,
   },
-  userTimestamp: {
-    textAlign: 'right',
-  },
   metadataContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 4,
     gap: 4,
   },
+  aiMetadata: {
+    alignSelf: 'flex-start',
+  },
   userMetadata: {
     justifyContent: 'flex-end',
+    alignSelf: 'flex-end',
   },
   modelInfo: {
     fontSize: 11,

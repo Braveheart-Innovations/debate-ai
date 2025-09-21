@@ -1,23 +1,20 @@
 {
   "type": "chat",
   "id": "chat_cog_itinerary_v1",
-  "title": "Kyoto itinerary (Claude+OpenAI+Gemini)",
+  "title": "San Francisco itinerary (Claude+OpenAI+Gemini)",
   "comboKey": "claude+openai+google",
-  "tags": [
-    "trio",
-    "travel"
-  ],
+  "tags": ["trio", "travel"],
   "events": [
     {
       "type": "message",
       "role": "user",
-      "content": "Plan a concise 3‑day Kyoto trip with must‑see shrines and great coffee."
+      "content": "Help me plan a 3 day itenerary for San Francisco focused on local history and cuisine."
     },
     {
       "type": "stream",
       "role": "assistant",
       "speakerProvider": "claude",
-      "content": "Let’s optimize walking and transit; Day 1 east side…"
+      "content": "Let's optimize walking and transit; Day 1 east side…"
     },
     {
       "type": "stream",

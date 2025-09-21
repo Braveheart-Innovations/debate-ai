@@ -5,6 +5,7 @@ import { addMessage, setTypingAI } from '../../store';
 import { Message, MessageAttachment } from '../../types';
 import { useAIService } from '../../providers/AIServiceProvider';
 import { ChatService, PromptBuilder } from '../../services/chat';
+import { HOME_CONSTANTS } from '@/config/homeConstants';
 import { getPersonality } from '../../config/personalities';
 import type { ResumptionContext } from '../../services/aiAdapter';
 
@@ -50,7 +51,11 @@ export const useAIResponses = (isResuming?: boolean): AIResponsesHook => {
 
     // Determine which AIs should respond
     const mentions = userMessage.mentions || [];
-    const respondingAIs = ChatService.determineRespondingAIs(mentions, selectedAIs, 2);
+    const respondingAIs = ChatService.determineRespondingAIs(
+      mentions,
+      selectedAIs,
+      HOME_CONSTANTS.MAX_AIS_FOR_CHAT
+    );
 
     // Build resumption context if this is first message after resuming
     let resumptionContext: ResumptionContext | undefined;
@@ -170,8 +175,8 @@ export const useAIResponses = (isResuming?: boolean): AIResponsesHook => {
     const userMessage = ChatService.createUserMessage(userPrompt, []);
     dispatch(addMessage(userMessage));
 
-    // Use enriched prompt for AI responses
-    const respondingAIs = selectedAIs.slice(0, 2); // Pick up to 2 AIs for response
+    // Use enriched prompt for AI responses capped at the session limit
+    const respondingAIs = selectedAIs.slice(0, HOME_CONSTANTS.MAX_AIS_FOR_CHAT);
     let conversationContext = ChatService.buildConversationContext(messages, userMessage);
     
     for (const ai of respondingAIs) {

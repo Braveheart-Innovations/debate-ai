@@ -1,6 +1,6 @@
 {
   "type": "chat",
-  "id": "chat_og_sql_v1",
+  "id": "chat_og_refactor_v1",
   "title": "Redesign PersonaSheet (ChatGPT + Gemini)",
   "comboKey": "openai+google",
   "tags": ["ui", "design-system"],

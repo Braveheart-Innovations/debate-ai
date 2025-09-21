@@ -54,13 +54,12 @@ export const DynamicAISelector: React.FC<DynamicAISelectorProps> = ({
     }
     if (configuredAIs.length === 0) {
       return 'No AIs configured yet';
-    } else if (configuredAIs.length === 1) {
-      return '1 AI ready';
-    } else if (isPremium) {
-      return `${configuredAIs.length} AIs ready`;
-    } else {
-      return `${configuredAIs.length} configured • Select up to ${maxAIs}`;
     }
+
+    const countLabel = configuredAIs.length === 1
+      ? '1 AI configured'
+      : `${configuredAIs.length} AIs configured`;
+    return `${countLabel} • Select up to ${maxAIs}`;
   };
   
   const handleAddAI = () => {

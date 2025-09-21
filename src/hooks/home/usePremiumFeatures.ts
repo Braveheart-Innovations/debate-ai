@@ -12,9 +12,8 @@ export const usePremiumFeatures = () => {
   const user = useSelector((state: RootState) => state.user.currentUser);
   const apiKeys = useSelector((state: RootState) => state.settings.apiKeys || {});
 
-  // TODO: Remove true || for production - defaulting to premium for development
-  // eslint-disable-next-line no-constant-binary-expression
-  const isPremium = true || user?.subscription === 'pro' || user?.subscription === 'business';
+  // Premium gating removed — treat all users as having full access to AI features.
+  const isPremium = true;
 
   /**
    * Gets the maximum number of AIs allowed based on premium status.
@@ -23,7 +22,7 @@ export const usePremiumFeatures = () => {
    */
   const getMaxAILimit = (): number => {
     const availableAICount = AIConfigurationService.getAvailableAICount(apiKeys);
-    return SessionService.calculateSessionLimits(isPremium, availableAICount);
+    return SessionService.calculateSessionLimits(availableAICount);
   };
 
   /**
@@ -81,9 +80,7 @@ export const usePremiumFeatures = () => {
     return {
       maxAllowed,
       availableCount,
-      freeLimit: HOME_CONSTANTS.MAX_FREE_AIS,
-      premiumLimit: HOME_CONSTANTS.MAX_PREMIUM_AIS,
-      isLimited: !isPremium,
+      selectionLimit: HOME_CONSTANTS.MAX_AIS_FOR_CHAT,
     };
   };
 
@@ -164,7 +161,7 @@ export const usePremiumFeatures = () => {
         remaining: limits.maxAllowed - currentAISelection,
       },
       isAtLimit: currentAISelection >= limits.maxAllowed,
-      needsUpgrade: !isPremium && currentAISelection >= HOME_CONSTANTS.MAX_FREE_AIS,
+      needsUpgrade: false,
     };
   };
 

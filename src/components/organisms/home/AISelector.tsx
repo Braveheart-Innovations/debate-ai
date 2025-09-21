@@ -14,7 +14,6 @@ interface AISelectorProps {
   maxAIs: number;
   onToggleAI: (ai: AIConfig) => void;
   onStartChat: () => void;
-  isPremium: boolean;
 }
 
 export const AISelector: React.FC<AISelectorProps> = ({
@@ -23,7 +22,6 @@ export const AISelector: React.FC<AISelectorProps> = ({
   maxAIs,
   onToggleAI,
   onStartChat,
-  isPremium,
 }) => {
   const { theme } = useTheme();
   const cardWidth = (width - 48 - 20) / 3; // Account for padding and gaps
@@ -32,10 +30,7 @@ export const AISelector: React.FC<AISelectorProps> = ({
     <Box>
       <SectionHeader
         title="Select your AIs"
-        subtitle={isPremium 
-          ? 'All AIs unlocked and ready'
-          : `Choose up to ${maxAIs} (upgrade for the full crew)`
-        }
+        subtitle={`Choose up to ${maxAIs}`}
         icon="🤖"
       />
       

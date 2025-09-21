@@ -4,9 +4,8 @@
  */
 export const HOME_CONSTANTS = {
   // AI Selection Limits
-  MAX_FREE_AIS: 2,
+  MAX_AIS_FOR_CHAT: 3,
   MIN_AIS_FOR_CHAT: 1,
-  MAX_PREMIUM_AIS: 999, // Effectively unlimited for premium users
 
   // Session Management
   SESSION_ID_PREFIX: 'session_',

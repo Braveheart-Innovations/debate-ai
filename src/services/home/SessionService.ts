@@ -112,11 +112,8 @@ export class SessionService {
    * @param totalAvailableAIs - Total number of configured AIs
    * @returns Maximum number of AIs allowed in a session
    */
-  static calculateSessionLimits(isPremium: boolean, totalAvailableAIs: number): number {
-    if (isPremium) {
-      return Math.min(totalAvailableAIs, HOME_CONSTANTS.MAX_PREMIUM_AIS);
-    }
-    
-    return Math.min(HOME_CONSTANTS.MAX_FREE_AIS, totalAvailableAIs);
+  static calculateSessionLimits(totalAvailableAIs: number): number {
+    const maxSelectable = HOME_CONSTANTS.MAX_AIS_FOR_CHAT;
+    return Math.min(maxSelectable, totalAvailableAIs);
   }
 }

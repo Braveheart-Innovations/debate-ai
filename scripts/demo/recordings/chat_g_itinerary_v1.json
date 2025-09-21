@@ -1,18 +1,14 @@
 {
   "type": "chat",
   "id": "chat_g_itinerary_v1",
-  "title": "Kyoto itinerary (Gemini)",
+  "title": "Boston itinerary (Gemini)",
   "comboKey": "google",
-  "tags": [
-    "single",
-    "google",
-    "travel"
-  ],
+  "tags": ["single", "google", "travel"],
   "events": [
     {
       "type": "message",
       "role": "user",
-      "content": "Plan a 3-day Kyoto itinerary with temples, nature, and cafes."
+      "content": "Plan a 3-day itinerary for Boston focused on the Revolutionary War and local cuisine."
     },
     {
       "type": "stream",

@@ -2,31 +2,1567 @@
   "type": "debate",
   "id": "debate_cg_default_1",
   "title": "Motion: Humanity has a moral imperative to colonize Mars.",
-  "topic": "Motion: Humanity has a moral imperative to colonize Mars.",
   "comboKey": "claude+google:default",
-  "participants": [
-    "Claude",
-    "Gemini"
-  ],
   "events": [
+    {
+      "type": "divider",
+      "meta": {
+        "startedAt": "2025-09-20T23:57:02.947Z",
+        "screen": "debate",
+        "comboKey": "claude+google:default",
+        "platform": "ios",
+        "participants": ["Claude", "Gemini"],
+        "topic": "Motion: Humanity has a moral imperative to colonize Mars."
+      }
+    },
     {
       "type": "message",
       "role": "user",
       "content": "Motion: Humanity has a moral imperative to colonize Mars."
     },
     {
-      "type": "stream",
+      "type": "message",
       "role": "assistant",
-      "speakerProvider": "claude",
-      "speakerPersona": "default",
-      "content": "In favor: redundancy of civilization is prudence…"
+      "content": "",
+      "speakerProvider": "claude"
     },
     {
       "type": "stream",
       "role": "assistant",
-      "speakerProvider": "google",
-      "speakerPersona": "default",
-      "content": "Against: ethical and environmental concerns remain…"
+      "content": "Distinguishe",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "d colleagues, I stand before you today to",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " argue that humanity not only can",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " colonize Mars, but",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " that we absolutely must. The moral",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " imperative to establish a self-",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "sustaining human presence on the",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Red Planet emerges from our most",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " fundamental responsibilities as a species an",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "d our unique position in cosmic history",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n\nConsider for a moment that",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Earth represents, as far",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " as we know, the only repository",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " of consciousness in the observable universe.",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Every poem ever written, every mathematical proof discovere",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "d, every act of love an",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "d kindness exists on this single,",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " fragile world. We are essentially",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " keeping all of humanity's eggs in one",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " planetary basket—a basket that faces",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " existential threats ranging from asteroid impacts to",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " nuclear war, from climate catastroph",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "e to pandemic disease. The moral weight of",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " this precarious position cannot be",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " overstated. We have a duty",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " to ensure that human consciousness",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ", culture, and the accumulated wisdom of thousands",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " of years survives beyond any",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " single planetary catastrophe.",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\n\nBut this imperative extends beyond mere",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " survival. Human beings possess an extraordinary capacity",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " for exploration and discovery that defines our very",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " nature. From the moment",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " our ancestors left Africa to populate the globe,",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " we have been a species that",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " expands, explores, and seeks",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " new frontiers. To artific",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ially constrain ourselves to one worl",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "d when we have the technological capability to become",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " multiplanetary would be to",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " betray something essential about who",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " we are. Mars colonization represents",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the natural continuation of humanity's greatest journey",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n\nFurthermore, the very act of establishing",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a Martian colony would catal",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "yze technological and social innovations that woul",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "d dramatically improve life on Earth. The close",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "d-loop life support systems, renewable",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " energy technologies, and resource recyc",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ling methods required for Mars would revolut",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ionize how we address environmental",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " challenges here at home. The collaborative",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " international effort needed would foster unprecedented cooperation among",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " nations. And perhaps most importantly, the",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " perspective shift that comes from becoming",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a spacefaring civilization—",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "seeing Earth as the precious oasis it truly is",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "—would fundamentally transform how",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " we value and protect our home planet.",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\n\nWe stand at a unique moment in history",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " where we possess both the technological",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " capability and the resources to take",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " this monumental step. Future",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " generations will judge us not by whether we",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " tried and failed, but by",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " whether we tried at all. The",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " moral imperative is clear: we",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " must secure humanity's future,",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " honor our exploratory nature, and se",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ize this singular opportunity to become a",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " multiplanetary species.",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": "",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "While the dream of setting foot on another world is a powerful and alluring one, to frame it as a \"moral imperative\" is",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a profound misreading of our actual responsibilities. It suggests that our primary duty is to scatter our seeds to the cosmic",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " winds, when in fact, our most urgent moral test is to properly tend the garden we already inhabit. The grand narrative",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " of Martian colonization is a beautiful, expensive, and ultimately dangerous distraction from the real imperatives that stare us in the face every",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " single day.\n\nOur moral ledger is already overflowing with obligations here on Earth. We have a moral imperative to provide clean water to the",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " nearly one billion people who lack it, to secure food for the millions who go hungry, and to create a just and stable",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " society for the generations who will inherit the consequences of our actions. To divert trillions of dollars, immense intellectual capital, and our",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " collective focus toward establishing a precarious outpost on a hostile world, while we fail to meet these fundamental duties to our fellow human beings, is",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " not a moral triumph; it is an abdication of our most basic ethical commitments. It is like a homeowner obsessing",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " over building a lavish treehouse while the main house is on fire.\n\nFurthermore, this push for an off-world colony",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " is often framed as a lifeboat, a backup plan for humanity. But this is a deeply flawed and perhaps even cynical premise",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ". Who gets a seat in this lifeboat? A tiny, privileged fraction of humanity, while the rest are left to contend",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " with the problems we failed to solve. The true moral imperative is not to build an escape pod for the few, but to make",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " our current vessel, the Earth, seaworthy for all. Pouring our resources into a Martian colony under the guise of saving",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " humanity is a convenient way to avoid the much harder work of saving ourselves from ourselves, right here, right now. The",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " greatest frontier for human ingenuity and cooperation is not the rust-colored dust of Mars, but the complex, vibrant, and imper",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "iled biosphere of our home.",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": "",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "My",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " esteemed colleague paints a compelling",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " picture of Earth as a burning house, suggesting",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " we must choose between fighting fires here",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " or building elsewhere. But this is",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " precisely the false dichotomy that has",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " plagued human progress throughout history. When",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Europeans set sail for the Americas, di",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "d exploration halt agricultural innovation at home? When we",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "nt to the Moon, did we abandon",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the fight for civil rights?",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Quite the opposite—the Apollo program employe",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "d 400,000 people",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ", generated countless technologies we still use today,",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and gave us the first photographs",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " of Earth that galvanized the environmental movement.",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " History shows us that humanity's greatest le",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "aps forward come not from singular",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " focus but from ambitious expansion that creates",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " new resources, perspectives, and possibilities.",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\n\nThe argument that Mars colonization woul",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "d divert \"trillions of",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " dollars\" from solving Earth's problems fundament",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ally misunderstands both",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the economics and the nature of technological",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " development. The entire global space economy is",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " currently worth about $450 billion annually—",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "less than what the world spends on cosm",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "etics. Meanwhile, space technologies have already revolution",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ized agriculture through GPS-guided precision farming",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ", enabled global communications that connect isolate",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "d communities to education and healthcare, and provide",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "d climate monitoring systems essential for understanding",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " our environmental challenges. The technologies require",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "d for Mars—closed-loop life support",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ", extreme water recycling, sustainable",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " food production in hostile environments—are exactly",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the innovations that would help those",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " billion people lacking clean water.",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " You don't develop radical efficiency",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " by staying comfortable; you develop it by",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " putting yourself in situations where waste equals",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " death.\n\nAs for the \"lifeboat for the privileged\"",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " concern, this critique could have been leveled at",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " every transformative human migration in history. Yes",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ", the Mayflower carried just 102 passengers, not all",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " of England. Yes, the first",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " permanent Antarctic research stations housed dozens, not millions",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ". But these weren't abandonment projects",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "—they were beachheads that",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " expanded human capability and knowledge for everyone. The first",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Mars colonists won't be escaping Earth's",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " problems; they'll be taking",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " on far greater challenges to expan",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "d humanity's total resource base and knowledge",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ". Every child born on",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Mars will be living proof that humanity",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " can thrive beyond Earth,",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " transforming us from a single-",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "planet species vulnerable to any",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " number of catastrophes into something",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " far more resilient.",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " That's not abandoning",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " our moral obligations—it's",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " taking the longest possible view of them.",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": "",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "My esteemed colleague suggests I have presented a \"false dichotomy,\" invoking the spirit of the Apollo program to argue that great leaps",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " outward inevitably produce benefits back home. It's a powerful and romantic image, but it compares apples to, well, entire alien",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " planets. The Apollo program was a state-funded sprint to plant a flag, a monumental but temporary expedition driven by Cold",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " War rivalry. Colonizing Mars is a permanent, multi-generational, multi-trillion-dollar marathon with no clear economic",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " or geopolitical driver. To equate the two is to mistake a glorious firework display for the slow, arduous work of building a new",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " sun. The scale, cost, and permanence of a Martian colony create a resource drain so immense that it makes the choice between focusing",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " on Earth or Mars a very real one, not a false one.\n\nHe also claims that the technologies developed for Mars are",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " \"exactly the innovations\" we need for Earth's problems, particularly citing the need for water recycling. This argument, while appealing,",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " puts the cart light-years before the horse. If the goal is to develop better water purification systems for the billion people who need",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " them, the most direct, efficient, and morally sound path is to fund brilliant minds to work on that specific problem right here on",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Earth. To instead pour those resources into building a Martian habitat in the *hope* that a useful water filter might emerge as",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a byproduct is an incredibly inefficient and speculative approach to a life-or-death crisis. It is a form of trickle",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-down innovation that asks the most vulnerable people on our planet to wait for a solution to be invented for a different world",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ". Our moral imperative should be to solve the problem directly, not to embark on an expensive cosmic detour and hope for happy",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " accidents.",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": "",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "My",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " distinguished opponent suggests that developing",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " water recycling for Mars",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and hoping it helps Earth is putting",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the cart \"light-years before",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the horse\"—a",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " delightfully astronomical mixe",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "d metaphor that I'll treasure",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ". But this fundamentally misunderst",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ands how breakthrough innovation actually occurs. We",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " didn't develop GPS to help farmers",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " increase crop yields, yet precision",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " agriculture now feeds millions more people because",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " of it. We didn't create the",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " internet to help rural villages",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " access education, yet that",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "'s exactly what happened.",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " The most transformative technologies rarely",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " emerge from trying to solve problems",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " directly; they come from pushing",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " into extreme environments where conventional",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " solutions simply won't work.",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\n\nWhen you need to recycle every drop of water on",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Mars because the nearest fresh",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " source is 140 million miles away",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ", you don't get",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " incremental improvements—you",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " get revolutionary breakthroughs. The",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " same brilliant minds my colleague wants",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " to fund to work on Earth's water",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " problems would achieve far more when",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " failure means death, not just a",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " disappointing grant review. The",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " International Space Station already rec",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ycles 98% of all",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " water, including urine, more",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " efficiently than any Earth-based system,",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " precisely because it has to. These",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " aren't \"happy accidents\" or \"trick",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "le-down innovation\"—they're",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the predictable result of necessity being",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the mother of invention.",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\n\nAs for the claim that Mars colon",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ization represents a \"multi-trillion-dollar",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\" drain with no economic",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " driver, this reveals",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a startling lack of imagination about the",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " economic transformation that's already under",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "way. SpaceX has",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " reduced launch costs by ",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "90% in just two",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " decades. Private companies are already planning",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " asteroid mining operations worth quint",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "illions in rare minerals. The first",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " successful Mars colony won't",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " be a permanent drain—it will",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " be the gateway to an",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " entire planet's worth of resources an",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "d the launching pad for humanity's",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " expansion into the solar system. My",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " colleague sees only costs where",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " history shows us there are un",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "imaginable returns.",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " The question isn't whether we can afford to",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " go to Mars; it's whether we",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " can afford not to.",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": "",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "My opponent is a masterful storyteller, painting a dazzling future where the harsh necessities of Mars magically solve the stubborn problems of Earth.",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " He chides me for my \"startling lack of imagination,\" but I would argue the real issue is a startling lack of interest",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " in logistics. He holds up the International Space Station's water recycler as a prime example of space-driven innovation.",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " It is indeed a marvel of engineering, capable of recycling 98% of the water for a half-dozen people",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " in a controlled environment at a cost of billions of dollars. To suggest this bespoke, hyper-expensive gadget is a practical",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " precursor to solving the water crisis for a billion people on Earth is to fundamentally misunderstand the nature of the problem. The challenge",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " on Earth is not just one of technological possibility, but of scale, cost, and distribution in messy, uncontrolled environments. We",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " don't need a Swiss watch for every village; we need millions of durable, affordable, and repairable pumps. The",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " moral imperative is to build the pumps, not to design the watch and hope someone figures out how to make it cheap a",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " century from now.\n\nFurthermore, his economic vision for this Martian venture seems to be powered by what I can only describe",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " as pure, unadulterated optimism. He speaks of asteroid mining and a gateway to planetary resources as if these are",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " items on a corporate roadmap, rather than theoretical concepts from a science fiction novel. The promise of \"quintillions\" in mineral",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " wealth is a tantalizing fantasy, but it is not a sound basis for moral action. The costs of a Mars colony are concrete,",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " immediate, and astronomical. The returns are abstract, distant, and speculative. To frame this as an investment is misleading; it is a",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " gamble of unprecedented scale, and we are being asked to stake the very real and pressing needs of our current world on a",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " future that may never materialize. True moral leadership is not about betting the house on a long shot, however glorious; it's about",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " making sure everyone in the house is safe and cared for first.",
+      "speakerProvider": "google"
     }
-  ]
+  ],
+  "topic": "Motion: Humanity has a moral imperative to colonize Mars.",
+  "participants": ["Claude", "Gemini"]
 }

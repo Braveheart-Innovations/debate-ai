@@ -194,6 +194,7 @@ export const Header: React.FC<HeaderProps> = ({
   const insets = useSafeAreaInsets();
   const [currentTime, setCurrentTime] = useState(new Date());
   const { width } = useWindowDimensions();
+  const hasSubtitle = Boolean(subtitle);
   // Subtle, battery-friendly accents inside the SVG (no edges move)
   const enableAccents = true;
   
@@ -364,6 +365,67 @@ export const Header: React.FC<HeaderProps> = ({
     );
   };
   
+  const renderGradientTitleContent = () => {
+    if (!title) {
+      return (
+        <Typography
+          variant="heading"
+          weight="bold"
+          color="inverse"
+          style={styles.gradientTitle}
+        >
+          {getGreeting()}
+        </Typography>
+      );
+    }
+
+    const motionMatch = title.match(/^\s*Motion:\s*(.+)$/i);
+    if (motionMatch) {
+      const motionText = motionMatch[1]?.trim() || '';
+      const maxContentWidth = Math.max(200, width - theme.spacing.lg * 2);
+      const responsiveFontSize = Math.min(30, Math.max(20, width * 0.065));
+      const responsiveLineHeight = responsiveFontSize + 6;
+
+      return (
+        <Box
+          style={[
+            styles.motionContainer,
+            { maxWidth: maxContentWidth },
+            { marginBottom: hasSubtitle ? theme.spacing.xs : theme.spacing.xs * 0.5 },
+          ]}
+        >
+          <Typography
+            variant="title"
+            weight="bold"
+            color="inverse"
+            numberOfLines={3}
+            ellipsizeMode="tail"
+            style={[
+              styles.motionTitle,
+              { fontSize: responsiveFontSize, lineHeight: responsiveLineHeight },
+              hasSubtitle && { marginBottom: theme.spacing.xs * 0.5 },
+            ]}
+          >
+            {motionText}
+          </Typography>
+        </Box>
+      );
+    }
+
+    return (
+      <Typography
+        variant="heading"
+        weight="bold"
+        color="inverse"
+        numberOfLines={2}
+        ellipsizeMode="tail"
+        style={[styles.gradientTitle, hasSubtitle && styles.gradientTitleWithSubtitle]}
+      >
+        {title}
+      </Typography>
+    );
+  };
+
   
   // Render left section (back button or "Go Back" text)
   const renderLeftSection = () => {
@@ -493,15 +555,8 @@ export const Header: React.FC<HeaderProps> = ({
             </Box>
           )}
           
-          <Animated.View style={titleAnimatedStyle}>
-            <Typography
-              variant="heading"
-              weight="bold"
-              color="inverse"
-              style={styles.gradientTitle}
-            >
-              {title || getGreeting()}
-            </Typography>
+          <Animated.View style={[titleAnimatedStyle, styles.gradientTitleWrapper]}>
+            {renderGradientTitleContent()}
           </Animated.View>
           
           {subtitle && (
@@ -678,10 +733,11 @@ const createStyles = (
 ) => StyleSheet.create({
   container: {
     position: 'relative',
-    height: totalHeight,
+    minHeight: totalHeight,
     width: '100%',
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: theme.colors.border,
+    paddingBottom: theme.spacing.xs,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -695,9 +751,10 @@ const createStyles = (
     }),
   },
   content: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    paddingBottom: 8,
+    flex: 0,
+    justifyContent: 'flex-start',
+    paddingBottom: 0,
+    paddingTop: theme.spacing.xs,
   },
   headerRow: {
     flexDirection: 'row',
@@ -825,13 +882,17 @@ const createStyles = (
     justifyContent: 'flex-start',
     alignItems: 'flex-start',
     zIndex: 15,
+    paddingBottom: theme.spacing.xs,
   },
   gradientMainContent: {
     justifyContent: 'flex-start',
     alignItems: 'flex-start',
     zIndex: 10,  // Lower than headerTopRightContainer
-    minHeight: 45,
-    paddingTop: theme.spacing.xs,
+    minHeight: 0,
+    paddingTop: theme.spacing.xs * 0.25,
+  },
+  gradientTitleWrapper: {
+    width: '100%',
   },
   gradientTitle: {
     letterSpacing: -1,
@@ -842,6 +903,9 @@ const createStyles = (
     textShadowRadius: 8,
     marginBottom: 2,
   },
+  gradientTitleWithSubtitle: {
+    marginBottom: theme.spacing.xs,
+  },
   gradientSubtitle: {
     letterSpacing: 0.5,
     lineHeight: 20,
@@ -850,6 +914,12 @@ const createStyles = (
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
     marginTop: -2,
+  },
+  motionContainer: {
+    width: '100%',
+  },
+  motionTitle: {
+    letterSpacing: -0.4,
   },
   gradientBackButton: {
     position: 'absolute',
