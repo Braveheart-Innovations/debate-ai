@@ -7,7 +7,8 @@ import {
   clearStreamingMessage,
   setProviderVerificationError,
 } from '@/store/streamingSlice';
-import { ChatService, PromptBuilder } from '@/services/chat';
+import { ChatService } from './ChatService';
+import { PromptBuilder } from './PromptBuilder';
 import { HOME_CONSTANTS } from '@/config/homeConstants';
 import { getPersonality } from '@/config/personalities';
 import { getExpertOverrides } from '@/utils/expertMode';

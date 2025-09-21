@@ -1,24 +1,62 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { View, StyleSheet, TouchableOpacity, Linking } from 'react-native';
+import Markdown from 'react-native-markdown-display';
 import { Typography } from '../../molecules';
+import { LazyMarkdownRenderer, createMarkdownStyles } from '../../molecules/common/LazyMarkdownRenderer';
 import { Message } from '../../../types';
 import { useTheme } from '../../../theme';
+import { sanitizeMarkdown, shouldLazyRender } from '@/utils/markdown';
+import { selectableMarkdownRules } from '@/utils/markdownSelectable';
+import { useStreamingMessage } from '@/hooks/streaming';
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 import useFeatureAccess from '@/hooks/useFeatureAccess';
+import { Image } from 'react-native';
 
 interface CompareMessageBubbleProps {
   message: Message;
   side: 'left' | 'right';
 }
 
-export const CompareMessageBubble: React.FC<CompareMessageBubbleProps> = ({ 
-  message, 
-  side 
+export const CompareMessageBubble: React.FC<CompareMessageBubbleProps> = ({
+  message,
+  side
 }) => {
   const { theme, isDark } = useTheme();
   const [copied, setCopied] = useState(false);
   const { isDemo } = useFeatureAccess();
+
+  // Hook for streaming messages
+  const {
+    content: streamingContent,
+    isStreaming,
+    error: streamingError
+  } = useStreamingMessage(message.id);
+
+  // Determine what content to display
+  const displayContent = useMemo(() => {
+    if (streamingError) {
+      // If there's an error, show original content or error message
+      return streamingContent || message.content || 'Error loading message';
+    } else if (isStreaming && streamingContent) {
+      // Use streaming content while streaming
+      return streamingContent;
+    }
+    return message.content;
+  }, [message.content, streamingContent, streamingError, isStreaming]);
+
+  // Process markdown content
+  const markdownContent = useMemo(() => {
+    return sanitizeMarkdown(displayContent, { showWarning: false });
+  }, [displayContent]);
+
+  // Check if content needs lazy rendering
+  const isLongContent = useMemo(() => {
+    return shouldLazyRender(markdownContent);
+  }, [markdownContent]);
+
+  // Create markdown styles
+  const markdownStyles = useMemo(() => createMarkdownStyles(theme, isDark), [theme, isDark]);
   
   const bubbleStyle = isDark
     ? {
@@ -56,14 +94,75 @@ export const CompareMessageBubble: React.FC<CompareMessageBubbleProps> = ({
             {message.sender}
           </Typography>
         </View>
-        <Typography variant="body" style={[styles.content, { color: bodyColor }]} selectable>
-          {message.content}
-        </Typography>
+        {isLongContent ? (
+          <LazyMarkdownRenderer
+            content={markdownContent}
+            style={markdownStyles}
+            onLinkPress={(url: string) => {
+              Linking.openURL(url).catch(err =>
+                console.error('Failed to open URL:', err)
+              );
+              return false;
+            }}
+            rules={{
+              ...selectableMarkdownRules,
+              // Custom image renderer
+              image: (node: { key?: string; attributes?: { src?: string; href?: string; alt?: string } }) => {
+                const src: string | undefined = node?.attributes?.src || node?.attributes?.href;
+                const alt: string | undefined = node?.attributes?.alt;
+                if (!src) return null;
+                return (
+                  <View key={node?.key || `img_${Math.random()}`} style={{ marginVertical: 8 }}>
+                    <Image
+                      source={{ uri: src }}
+                      style={{ width: '100%', height: 180, borderRadius: 8 }}
+                      resizeMode="cover"
+                      accessible
+                      accessibilityLabel={alt || 'image'}
+                    />
+                  </View>
+                );
+              },
+            }}
+          />
+        ) : (
+          <Markdown
+            style={markdownStyles}
+            onLinkPress={(url: string) => {
+              Linking.openURL(url).catch(err =>
+                console.error('Failed to open URL:', err)
+              );
+              return false;
+            }}
+            rules={{
+              ...selectableMarkdownRules,
+              // Custom image renderer
+              image: (node: { key?: string; attributes?: { src?: string; href?: string; alt?: string } }) => {
+                const src: string | undefined = node?.attributes?.src || node?.attributes?.href;
+                const alt: string | undefined = node?.attributes?.alt;
+                if (!src) return null;
+                return (
+                  <View key={node?.key || `img_${Math.random()}`} style={{ marginVertical: 8 }}>
+                    <Image
+                      source={{ uri: src }}
+                      style={{ width: '100%', height: 180, borderRadius: 8 }}
+                      resizeMode="cover"
+                      accessible
+                      accessibilityLabel={alt || 'image'}
+                    />
+                  </View>
+                );
+              },
+            }}
+          >
+            {markdownContent}
+          </Markdown>
+        )}
         {/* Copy button */}
         <TouchableOpacity
           onPress={async () => {
             try {
-              await Clipboard.setStringAsync(message.content || '');
+              await Clipboard.setStringAsync(displayContent || '');
               setCopied(true);
               setTimeout(() => setCopied(false), 1500);
             } catch {

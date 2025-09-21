@@ -1,18 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Text, StyleSheet, Linking, TouchableOpacity } from 'react-native';
 import type { TextStyle } from 'react-native';
-import Animated, { 
+import Animated, {
   useAnimatedStyle,
   withSpring,
   useSharedValue,
 } from 'react-native-reanimated';
 import Markdown from 'react-native-markdown-display';
-import { sanitizeMarkdown } from '@/utils/markdown';
+import { sanitizeMarkdown, shouldLazyRender } from '@/utils/markdown';
 import { Image, View } from 'react-native';
 import { ImageBubble } from '../chat/ImageBubble';
 import { Box } from '@/components/atoms';
 import IconStopOctagon from '@/components/atoms/icons/IconStopOctagon';
 import { Typography } from '@/components/molecules';
+import { LazyMarkdownRenderer, createMarkdownStyles } from '@/components/molecules/common/LazyMarkdownRenderer';
 import { StreamingIndicator } from './StreamingIndicator';
 import { useTheme } from '@/theme';
 import { Message } from '@/types';
@@ -80,21 +81,21 @@ const formatTime = (timestamp: number) => {
 // Process message content to add citation links
 const processMessageContent = (message: Message): string => {
   let content = message.content;
-  
+
   // If we have citations, convert [1] references to clickable links
   if (message.metadata?.citations && message.metadata.citations.length > 0) {
     const citations = message.metadata.citations;
-    
+
     // Replace [n] with markdown links keeping the bracket format
     citations.forEach(citation => {
       const pattern = new RegExp(`\\[${citation.index}\\]`, 'g');
       // Keep the [n] format but make it a link
       content = content.replace(pattern, `[[${citation.index}]](${citation.url})`);
     });
-    
+
     // Don't add sources section here - we show it separately in the UI
   }
-  
+
   return content;
 };
 
@@ -196,11 +197,19 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, s
   
   const aiColor = getAIColor();
 
-  const markdownContent = !isUser && displayContent
-    ? sanitizeMarkdown(
-        processMessageContent({ ...message, content: displayContent })
-      )
-    : '';
+  const markdownContent = useMemo(() => {
+    if (isUser || !displayContent) return '';
+    return sanitizeMarkdown(
+      processMessageContent({ ...message, content: displayContent }),
+      { showWarning: !isCancelled } // Don't show warning for cancelled messages
+    );
+  }, [isUser, displayContent, message, isCancelled]);
+
+  const isLongContent = useMemo(() => {
+    return shouldLazyRender(markdownContent);
+  }, [markdownContent]);
+
+  const markdownStyles = useMemo(() => createMarkdownStyles(theme, isDark), [theme, isDark]);
 
   return (
     <Animated.View
@@ -264,108 +273,70 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, s
         ) : (
           // AI messages - render markdown with streaming support
           <>
-            <Markdown
-            style={{
-              body: { 
-                fontSize: 16, 
-                lineHeight: 22,
-                color: theme.colors.text.primary
-              },
-              heading1: { 
-                fontSize: 20, 
-                fontWeight: 'bold', 
-                marginBottom: 8,
-                color: theme.colors.text.primary
-              },
-              heading2: { 
-                fontSize: 18, 
-                fontWeight: 'bold', 
-                marginBottom: 6,
-                color: theme.colors.text.primary
-              },
-              heading3: { 
-                fontSize: 16, 
-                fontWeight: 'bold', 
-                marginBottom: 4,
-                color: theme.colors.text.primary
-              },
-              strong: { 
-                fontWeight: 'bold',
-                color: theme.colors.text.primary
-              },
-              em: { 
-                fontStyle: 'italic',
-                color: theme.colors.text.primary
-              },
-              link: { 
-                color: theme.colors.primary[600], 
-                textDecorationLine: 'none',  // No underline for cleaner appearance
-                fontSize: 15,  // Almost same as body for better readability
-                fontWeight: '600',  // Semi-bold for visibility
-                paddingHorizontal: 2,  // Small padding for better touch targets
-              },
-              code_inline: { 
-                backgroundColor: isDark ? theme.colors.gray[800] : theme.colors.gray[100], 
-                paddingHorizontal: 4,
-                paddingVertical: 2,
-                borderRadius: 4,
-                fontFamily: 'monospace',
-                fontSize: 14,
-                color: theme.colors.text.primary
-              },
-              code_block: {
-                backgroundColor: isDark ? theme.colors.gray[800] : theme.colors.gray[100],
-                padding: 12,
-                borderRadius: 8,
-                marginVertical: 8,
-                fontFamily: 'monospace',
-                fontSize: 14,
-                color: theme.colors.text.primary
-              },
-              list_item: { 
-                marginBottom: 4,
-                color: theme.colors.text.primary
-              },
-              bullet_list: { marginVertical: 4 },
-              ordered_list: { marginVertical: 4 },
-              blockquote: {
-                backgroundColor: isDark ? theme.colors.gray[800] : theme.colors.gray[50],
-                borderLeftWidth: 4,
-                borderLeftColor: theme.colors.primary[500],
-                paddingLeft: 12,
-                paddingVertical: 8,
-                marginVertical: 8,
-              }
-            }}
-            onLinkPress={(url: string) => {
-              Linking.openURL(url).catch(err => 
-                console.error('Failed to open URL:', err)
-              );
-              return false;
-            }}
-            rules={{
-              ...selectableMarkdownRules,
-              // Custom image renderer to avoid spreading key in props (RN warning) and to control sizing
-              image: (node: { key?: string; attributes?: { src?: string; href?: string; alt?: string } }) => {
-                const src: string | undefined = node?.attributes?.src || node?.attributes?.href;
-                const alt: string | undefined = node?.attributes?.alt;
-                if (!src) return null;
-                return (
-                  <View key={node?.key || `img_${Math.random()}`} style={{ marginVertical: 8 }}>
-                    <Image
-                      source={{ uri: src }}
-                      style={{ width: '100%', height: 220, borderRadius: 8 }}
-                      resizeMode="cover"
-                      accessible
-                      accessibilityLabel={alt || 'image'}
-                    />
-                  </View>
-                );
-              },
-            }}
-          >
-            {markdownContent}
-          </Markdown>
+            {isLongContent ? (
+              <LazyMarkdownRenderer
+                content={markdownContent}
+                style={markdownStyles}
+                onLinkPress={(url: string) => {
+                  Linking.openURL(url).catch(err =>
+                    console.error('Failed to open URL:', err)
+                  );
+                  return false;
+                }}
+                rules={{
+                  ...selectableMarkdownRules,
+                  // Custom image renderer to avoid spreading key in props (RN warning) and to control sizing
+                  image: (node: { key?: string; attributes?: { src?: string; href?: string; alt?: string } }) => {
+                    const src: string | undefined = node?.attributes?.src || node?.attributes?.href;
+                    const alt: string | undefined = node?.attributes?.alt;
+                    if (!src) return null;
+                    return (
+                      <View key={node?.key || `img_${Math.random()}`} style={{ marginVertical: 8 }}>
+                        <Image
+                          source={{ uri: src }}
+                          style={{ width: '100%', height: 220, borderRadius: 8 }}
+                          resizeMode="cover"
+                          accessible
+                          accessibilityLabel={alt || 'image'}
+                        />
+                      </View>
+                    );
+                  },
+                }}
+              />
+            ) : (
+              <Markdown
+                style={markdownStyles}
+                onLinkPress={(url: string) => {
+                  Linking.openURL(url).catch(err =>
+                    console.error('Failed to open URL:', err)
+                  );
+                  return false;
+                }}
+                rules={{
+                  ...selectableMarkdownRules,
+                  // Custom image renderer to avoid spreading key in props (RN warning) and to control sizing
+                  image: (node: { key?: string; attributes?: { src?: string; href?: string; alt?: string } }) => {
+                    const src: string | undefined = node?.attributes?.src || node?.attributes?.href;
+                    const alt: string | undefined = node?.attributes?.alt;
+                    if (!src) return null;
+                    return (
+                      <View key={node?.key || `img_${Math.random()}`} style={{ marginVertical: 8 }}>
+                        <Image
+                          source={{ uri: src }}
+                          style={{ width: '100%', height: 220, borderRadius: 8 }}
+                          resizeMode="cover"
+                          accessible
+                          accessibilityLabel={alt || 'image'}
+                        />
+                      </View>
+                    );
+                  },
+                }}
+              >
+                {markdownContent}
+              </Markdown>
+            )}
           {/* Render image attachments if present */}
           {!isUser && message.attachments && message.attachments.length > 0 && (
             <ImageBubble uris={message.attachments.filter(a => a.type === 'image').map(a => a.uri)} />

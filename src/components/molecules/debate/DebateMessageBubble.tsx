@@ -4,7 +4,7 @@
  * Extends the base MessageBubble functionality for debate-specific features
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Animated, {
   useAnimatedStyle,
   withTiming,
@@ -13,7 +13,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { StyleSheet, Linking, TouchableOpacity } from 'react-native';
 import Markdown from 'react-native-markdown-display';
-import { sanitizeMarkdown } from '@/utils/markdown';
+import { sanitizeMarkdown, shouldLazyRender } from '@/utils/markdown';
+import { LazyMarkdownRenderer, createMarkdownStyles } from '@/components/molecules/common/LazyMarkdownRenderer';
 import { Box } from '@/components/atoms';
 import { Typography } from '../common/Typography';
 import { StreamingIndicator } from '@/components/organisms/common/StreamingIndicator';
@@ -33,7 +34,7 @@ export interface DebateMessageBubbleProps {
   side?: 'left' | 'right' | 'center';
 }
 
-export const DebateMessageBubble: React.FC<DebateMessageBubbleProps> = React.memo(({ 
+export const DebateMessageBubble: React.FC<DebateMessageBubbleProps> = React.memo(({
   message,
   participants: _participants,
   scores: _scores,
@@ -43,6 +44,21 @@ export const DebateMessageBubble: React.FC<DebateMessageBubbleProps> = React.mem
   const isHost = message.sender === 'Debate Host';
   const { content: streamingContent, isStreaming, cursorVisible, error: streamingError, chunksReceived } = useStreamingMessage(message.id);
   const [copied, setCopied] = useState(false);
+
+  // Determine display content
+  const displayContent = useMemo(() => {
+    if (isStreaming) return sanitizeMarkdown(streamingContent || '', { showWarning: false });
+    if (!isStreaming && (!message.content || message.content.trim() === '')) {
+      return sanitizeMarkdown(streamingContent || '', { showWarning: false });
+    }
+    return sanitizeMarkdown(message.content, { showWarning: false });
+  }, [isStreaming, streamingContent, message.content]);
+
+  // Check if content needs lazy rendering
+  const isLongContent = useMemo(() => shouldLazyRender(displayContent), [displayContent]);
+
+  // Create markdown styles
+  const markdownStyles = useMemo(() => createMarkdownStyles(theme, isDark), [theme, isDark]);
   
   
   // Get AI-specific color from the message sender using theme brand colors
@@ -130,7 +146,7 @@ export const DebateMessageBubble: React.FC<DebateMessageBubbleProps> = React.mem
               }}
               rules={selectableMarkdownRules}
             >
-              {sanitizeMarkdown(message.content)}
+              {displayContent}
             </Markdown>
             
             <Box style={{
@@ -176,59 +192,32 @@ export const DebateMessageBubble: React.FC<DebateMessageBubbleProps> = React.mem
             borderWidth: 1,
           }
         ]}>
-        <Markdown
-          style={{
-            body: { 
-              fontSize: 16, 
-              lineHeight: 22,
-              color: theme.colors.text.primary
-            },
-            strong: { fontWeight: 'bold', color: theme.colors.text.primary },
-            em: { fontStyle: 'italic', color: theme.colors.text.primary },
-            link: { color: theme.colors.primary[500], textDecorationLine: 'underline' },
-            code_inline: { 
-              backgroundColor: isDark ? theme.colors.gray[800] : theme.colors.gray[100], 
-              paddingHorizontal: 4,
-              paddingVertical: 2,
-              borderRadius: 4,
-              fontFamily: 'monospace',
-              fontSize: 14,
-              color: theme.colors.text.primary
-            },
-            code_block: {
-              backgroundColor: isDark ? theme.colors.gray[800] : theme.colors.gray[100],
-              padding: 12,
-              borderRadius: 8,
-              marginVertical: 8,
-              fontFamily: 'monospace',
-              fontSize: 14,
-              color: theme.colors.text.primary
-            },
-            list_item: { marginBottom: 4, color: theme.colors.text.primary },
-            bullet_list: { marginVertical: 4 },
-            ordered_list: { marginVertical: 4 },
-          }}
-          rules={selectableMarkdownRules}
-          onLinkPress={(url: string) => {
-            Linking.openURL(url).catch(err => 
-              console.error('Failed to open URL:', err)
-            );
-            return false;
-          }}
-        >
-          {(() => {
-            // If streaming, show live content
-            if (isStreaming) return sanitizeMarkdown(streamingContent || '');
-            // After streaming completes, there can be a short window where
-            // message.content hasn't been updated yet. Fall back to the last
-            // streamed content to avoid an empty bubble.
-            if (!isStreaming && (!message.content || message.content.trim() === '')) {
-              return sanitizeMarkdown(streamingContent || '');
-            }
-            // Otherwise, show finalized message content
-            return sanitizeMarkdown(message.content);
-          })()}
-        </Markdown>
+        {isLongContent ? (
+          <LazyMarkdownRenderer
+            content={displayContent}
+            style={markdownStyles}
+            onLinkPress={(url: string) => {
+              Linking.openURL(url).catch(err =>
+                console.error('Failed to open URL:', err)
+              );
+              return false;
+            }}
+            rules={selectableMarkdownRules}
+          />
+        ) : (
+          <Markdown
+            style={markdownStyles}
+            rules={selectableMarkdownRules}
+            onLinkPress={(url: string) => {
+              Linking.openURL(url).catch(err =>
+                console.error('Failed to open URL:', err)
+              );
+              return false;
+            }}
+          >
+            {displayContent}
+          </Markdown>
+        )}
         {isStreaming && (
           <Box style={{ marginTop: 4, flexDirection: 'row', alignItems: 'center' }}>
             {/* Use dots until first chunk arrives, then blink cursor based on state */}
