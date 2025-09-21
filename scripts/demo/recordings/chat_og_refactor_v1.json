@@ -3,24 +3,7555 @@
   "id": "chat_og_refactor_v1",
   "title": "Redesign PersonaSheet (ChatGPT + Gemini)",
   "comboKey": "openai+google",
-  "tags": ["ui", "design-system"],
   "events": [
+    {
+      "type": "divider",
+      "meta": {
+        "startedAt": "2025-09-21T18:42:45.255Z",
+        "screen": "chat",
+        "comboKey": "openai+google",
+        "platform": "ios"
+      }
+    },
     {
       "type": "message",
       "role": "user",
       "content": "Please audit this PersonaSheet. It mixes inline styles and doesn't adapt to tablets.```tsx\nexport const PersonaSheet = ({ persona, onClose }) => (\n  <Modal visible onRequestClose={onClose}>\n    <View style={{ flex: 1, backgroundColor: '#060a12', padding: 24 }}>\n      <Text style={{ color: 'white', fontSize: 28 }}>{persona.name}</Text>\n      <Text style={{ color: '#9fb3d2', marginTop: 8 }}>{persona.description}</Text>\n      <Image source={{ uri: persona.hero }} style={{ width: '100%', height: 240, borderRadius: 24, marginTop: 24 }} />\n      <Pressable onPress={onClose} style={{ marginTop: 32, padding: 16, backgroundColor: '#4c8fff', borderRadius: 16 }}>\n        <Text style={{ color: 'white', textAlign: 'center' }}>Close</Text>\n      </Pressable>\n    </View>\n  </Modal>\n);\n```"
     },
     {
-      "type": "message",
+      "type": "stream",
       "role": "assistant",
-      "speakerProvider": "openai",
-      "content": "I'll move layout tokens to the theme, add safe-area handling, and support split view.```tsx\nimport { useSafeAreaInsets } from 'react-native-safe-area-context';\nimport { useResponsiveValue } from '@/hooks/layout/useResponsiveValue';\n\nconst containerStyle = React.useMemo(() => ({\n  flexDirection: isTablet ? 'row' : 'column',\n  gap: theme.spacing.lg,\n  paddingHorizontal: theme.spacing.xl,\n  paddingTop: insets.top + theme.spacing.lg\n}), [isTablet, theme, insets]);\n```"
+      "content": "Here",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "’s an audit",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " plus a tablet",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-friendly refactor.\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "What’s problematic",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Inline",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " styles everywhere:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " harder to maintain,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " theme,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " reuse,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and they’re",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " re-created each",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " render.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Fixed layout:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " always full-screen",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " fixed paddings",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and a fixed image",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " height.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " On tablets it should present",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " as a centered",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " sheet with a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " capped width.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- No Safe",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Area or ScrollView",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": content can be",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " clipped on not",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ched devices or in",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " landscape.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Type safety",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": TSX file",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " with untyped",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " props.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Minor a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "11y gaps",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": no accessibility",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Role on the",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " button,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " image missing label",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "/fallback.\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Goals for the",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " refactor\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Extract styles",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " to StyleSheet",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Responsive behavior",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": detect large",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " screens and use",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a sheet-like layout with",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " capped width; full",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-screen on phones",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Use Safe",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "AreaView and",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ScrollView.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Prefer aspect",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Ratio over fixed",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " image height.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Add basic",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " types and a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "11y improvements",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Keep it",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " drop-in,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " no extra",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " libraries.\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Refact",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ored component\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "```tsx\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "import React from",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " 'react';\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "import {\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Modal,\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " View,\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Text,\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Image,\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Pressable,\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " StyleSheet,\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " SafeAreaView",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " useWindowDimensions",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Platform,\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ScrollView,\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "} from 'react",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-native';\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "type Persona =",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " {\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " name: string",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ";\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " description?:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " string;\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " hero?: string",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ";\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "};\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "type Persona",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "SheetProps =",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " {\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " persona: Persona",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ";\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " onClose:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " () => void",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ";\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " visible?: boolean",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ";\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "};\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "const use",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "IsTablet =",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " () => {\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " const { width",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " height } =",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " useWindowDimensions();\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " const minDim",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " = Math.min",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "(width,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " height);\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " // Common heuristic",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " threshold; adjust",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " if your design system",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " differs\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " return minDim",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " >= ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "600;\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "};\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "export const Persona",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Sheet: React",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".FC<Persona",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "SheetProps>",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " = ({\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " persona,\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " onClose,\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " visible =",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " true,\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "}) => {\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " const isTablet",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " = useIs",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Tablet();\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " const { width",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " } = use",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "WindowDimensions();\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " const presentationStyle",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " =\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Platform.OS ===",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " 'ios'",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ? (is",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Tablet ? '",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "formSheet'",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " : 'fullScreen",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "') : 'full",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Screen';\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " return (\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " <Modal\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " visible={visible",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "}\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " onRequestClose",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "={onClose",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "}\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " animationType=\"",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "slide\"\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " presentationStyle={",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "presentationStyle}\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " // On tablets",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " we render a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " centered card with a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " dimmed backdrop",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " transparent={isTablet",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "}\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " supportedOrientations",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "={['portrait',",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " 'landscape']}\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " >\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " <SafeArea",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "View\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "       ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " style={[styles",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".backdrop,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " isTablet ?",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " styles.backdrop",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Tablet : styles",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".backdropPhone]}\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " >\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "       ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " <View\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "         ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " style={[\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "           ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " styles.card,\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "           ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " {\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "             ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " // Cap width",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " on large screens",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "; full width",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " on phones\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "             ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " maxWidth:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " isTablet ?",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "720 : width,\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "           ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " },\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "         ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ]}\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "       ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " >\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "         ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " <ScrollView",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " contentContainerStyle",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "={styles.content}",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " bounces={",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "false}>\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "           ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " <Text style",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "={styles.title",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "} numberOfLines",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "={2}>\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "             ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " {persona.name",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "}\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "           ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " </Text>\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "           ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " {!!persona.description",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " && (\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "             ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " <Text style",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "={styles.description",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "}>{persona.description",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "}</Text",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ">\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "           ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " )}\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "           ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " {!!persona",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".hero && (\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "             ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " <View style",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "={styles.hero",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Wrap}>\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "               ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " <Image\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "                 ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " source={{ uri",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": persona.hero }}\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "                 ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " resizeMode=\"cover",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\"\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "                 ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " style={styles.hero",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "}\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "                 ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " accessible\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "                 ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " accessibilityIgno",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "resInvertColors\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "                 ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " accessibilityLabel={`${persona",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".name}",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " hero image`}\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "               ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " />\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "             ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " </View>\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "           ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " )}\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "           ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " <Pressable",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "             ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " onPress={",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "onClose}\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "             ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " accessibilityRole=\"button",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\"\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "             ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " style={({ pressed",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " }) => [",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "styles.button,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " pressed &&",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " styles.buttonPressed",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "]}\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "           ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " >\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "             ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " <Text style",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "={styles",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".buttonText}>",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Close</Text",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ">\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "           ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " </Pressable",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ">\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "         ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " </ScrollView",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ">\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "       ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " </View>\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " </SafeArea",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "View>\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " </Modal>\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " );\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "};\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "const styles =",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " StyleSheet.create({\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " backdrop: {\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " flex: ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "1,\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " },\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " backdropPhone: {\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " backgroundColor: '#",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "060a12",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "',\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " },\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " backdropTablet:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " {\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " backgroundColor:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " 'rgba(0,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "0,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "0,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "0.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "5)',\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " padding: ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "24,\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " justifyContent:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " 'center',\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " alignItems:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " 'center',\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " },\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " card: {\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " alignSelf:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " 'center',\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " width: '",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "100%',\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " backgroundColor: '#",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "060a12",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "',\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " borderRadius: ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "20,\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " overflow: '",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "hidden',\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " },\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " content:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " {\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " padding: ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "24,\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " },\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " title: {\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " color: '",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "white',\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " fontSize: ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "28,\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " fontWeight:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " '600',\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " },\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " description: {\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " color: '#",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "9fb3d",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "2',\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " marginTop:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "8,\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " },\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " heroWrap:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " {\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " marginTop:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "24,\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " borderRadius",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "24,\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " overflow: 'hidden",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "',\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " },\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " hero: {\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " width: '",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "100%',\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " aspectRatio: ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "16 / ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "9,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " // responsive height",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " },\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " button: {\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " marginTop:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "32,\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " paddingVertical:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "16,\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " backgroundColor: '#",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "4c8fff",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "',\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " borderRadius:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "16,\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " },\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " buttonPressed:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " {\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " opacity: ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "0.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "9,\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " },\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " buttonText:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " {\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " color: '",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "white',\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " textAlign",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": '",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "center',\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " fontWeight",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": '600",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "',\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " },\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "});\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "```\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Notes and optional",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " enhancements\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- If you",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " support system dark",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "/light themes,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " replace hard-coded",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " colors with a theme",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " or PlatformColor",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "/DynamicColor",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- For i",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "OS page",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Sheet/formSheet",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " behavior on iPhone",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " in landscape,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " you may also",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " try presentationStyle",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "=\"pageSheet",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\".\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Consider a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " placeholder for the hero",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " image (default",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Source on i",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "OS) and on",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Error fallback.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- If you",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " want to dismiss",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " by tapping outside",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " on tablets,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " add a Press",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "able around the",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " card when transparent",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "=true and detect",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " backdrop presses.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "That's an excellent and thorough audit. The response is well-structured, moving from identifying the problems to establishing goals and then",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " providing a high-quality, commented code solution.\n\nI agree completely with the analysis and the refactoring strategy. The provided",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " code is a massive improvement.\n\nHere are the specific aspects I find particularly strong:\n\n*   **Platform-Aware",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Logic:** Using `presentationStyle: 'formSheet'` on iOS for tablets is a fantastic, elegant solution. It leverages the native",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " platform's UI conventions, which often results in a better user experience (e.g., respecting system gestures) than a",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " purely custom implementation.\n*   **Custom Hook (`useIsTablet`):** Abstracting the screen size logic into a",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " reusable hook is a great pattern. It keeps the component logic clean and makes the heuristic for defining a \"tablet\" easy to",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " modify in one central place.\n*   **Robust Styling:** The combination of `StyleSheet.create`, conditional styles in",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " arrays (`[styles.backdrop, isTablet && styles.backdropTablet]`), and the use of `maxWidth` demonstrates",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a solid, maintainable approach to responsive styling in React Native.\n*   **Attention to Detail:** Adding `accessibilityRole",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "`, `accessibilityLabel`, and handling the `pressed` state of the `Pressable` are hallmarks of a production-",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "quality component.\n\nTo build on this already great foundation, here are a couple of additional perspectives that could be considered,",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " especially in the context of a larger application:\n\n**1. Further Component Composition**\n\nThe `PersonaSheet` is now",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a smart, responsive *container*. We could take reusability a step further by extracting the content into its own component.",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\n\n```tsx\n// A new, \"dumb\" component that just renders the persona data.\nconst PersonaCard = ({ persona,",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " onClose }) => (\n  <View>\n    <Text style={styles.title}>{persona.name}</Text>",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\n    {/* ... description, hero image, close button ... */}\n  </View>\n);\n\n// The Persona",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Sheet now focuses *only* on the modal presentation logic.\nexport const PersonaSheet = ({ persona, onClose, visible }) =>",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " {\n  const isTablet = useIsTablet();\n  // ... all the modal and layout logic from the ref",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "actor ...\n\n  return (\n    <Modal {...modalProps}>\n      <SafeAreaView style={...}>\n        <",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "View style={...}>\n          {/* We could pass props through, or use context */}\n          <PersonaCard persona",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "={persona} onClose={onClose} />\n        </View>\n      </SafeAreaView>\n    </Modal",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ">\n  );\n};\n```\n\n**Why is this useful?** This decouples the *presentation* (",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "how the persona is displayed) from the *container* (the modal sheet). You could now reuse `PersonaCard` in",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " other parts of the app, like on a profile page or in a list, without bringing the modal logic along with it.\n\n**",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "2. Enhancing the Tablet Animation**\n\nThe refactor correctly uses `transparent={isTablet}`. When a modal is transparent,",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the `animationType=\"slide\"` can sometimes feel a bit disconnected, as the transparent backdrop just appears instantly while the content",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " slides in.\n\nA subtle but effective enhancement for the tablet view would be to pair it with a fade animation.\n\n```tsx\n",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "// Inside the PersonaSheet component\nconst animationType = isTablet ? 'fade' : 'slide';\n\nreturn (\n  <",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Modal\n    ...\n    animationType={animationType}\n    transparent={isTablet}\n  >\n    ",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "{/* ... */}\n  </Modal>\n);\n```\n\nThis way, phones get the standard bottom-up",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " slide, while tablets get a more subtle and conventional fade-in for the centered dialog, which often feels more appropriate for that",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " form factor.\n\nOverall, the provided refactor is excellent. It's a production-ready solution that addresses all",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the initial problems. My suggestions are simply next-step considerations for integrating such a component into a broader, more complex design system.",
+      "speakerProvider": "google"
     },
     {
       "type": "message",
+      "role": "user",
+      "content": "I need a test file for this component, too"
+    },
+    {
+      "type": "stream",
       "role": "assistant",
-      "speakerProvider": "google",
-      "content": "I'll complement that with a media query hook and focus management.```tsx\nconst headerId = React.useId();\nReact.useEffect(() => {\n  AccessibilityInfo.setAccessibilityFocus(headerRef.current);\n}, [persona.id]);\n```"
+      "content": "Of course. Here is a comprehensive test file for the refactored `PersonaSheet` component using Jest and React Native Testing",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Library.\n\nThis file covers:\n*   **Basic Rendering:** Ensures all expected content appears when data is provided.\n*   ",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "**Conditional Rendering:** Checks that optional elements (like description and hero) are hidden when their data is missing.\n*   ",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "**User Interactions:** Verifies that the `onClose` callback is triggered correctly.\n*   **Responsive Behavior:** M",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ocks the `useWindowDimensions` hook to test the component's layout and props on both phone and tablet screen sizes",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n\n### Prerequisites\n\nTo run this test, your project should be set up with Jest and React Native Testing Library. If",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " you created your project with a standard template like Expo or `react-native-cli`, this is likely already configured. You",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " may need to install the libraries if not:\n\n```bash\nnpm install --save-dev @testing-library/",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "react-native jest\n# or\nyarn add --dev @testing-library/react-native jest\n```\n\n### Test File",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": `PersonaSheet.test.tsx`\n\nPlace this file alongside your `PersonaSheet.tsx` component.\n\n```tsx\n",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "import React from 'react';\nimport { render, screen, fireEvent } from '@testing-library/react-",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "native';\nimport { PersonaSheet } from './PersonaSheet'; // Adjust path if necessary\nimport { Modal, Platform }",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " from 'react-native';\n\n// --- Mock Data ---\nconst mockPersona = {\n  name: 'A",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ria',\n  description: 'A thoughtful AI assistant designed for creative collaboration.',\n  hero: 'https://example",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".com/aria-hero.png',\n};\n\nconst minimalPersona = {\n  name: 'Kai',\n};\n\n",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "// --- Test Suite ---\ndescribe('PersonaSheet', () => {\n  const onCloseMock = jest.fn();\n\n  //",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Reset mocks before each test to ensure isolation\n  beforeEach(() => {\n    onCloseMock.mockClear();\n  ",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "});\n\n  // --- Rendering and Content ---\n  describe('Rendering and Content', () => {\n    it('renders all",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " persona details when provided', () => {\n      render(<PersonaSheet persona={mockPersona} onClose={onCloseMock",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "} visible />);\n\n      // Check for name, description, and close button text\n      expect(screen.getByText('A",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ria')).toBeOnTheScreen();\n      expect(screen.getByText(mockPersona.description)).toBeOnThe",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Screen();\n      expect(screen.getByText('Close')).toBeOnTheScreen();\n\n      // Check for the",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " image via its accessibility label\n      const heroImage = screen.getByLabelText('Aria hero image');\n      expect(",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "heroImage).toBeOnTheScreen();\n      expect(heroImage.props.source).toEqual({ uri: mock",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Persona.hero });\n    });\n\n    it('does not render optional elements if data is missing', () => {\n      ",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "render(<PersonaSheet persona={minimalPersona} onClose={onCloseMock} visible />);\n\n      expect(screen.getBy",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Text('Kai')).toBeOnTheScreen();\n\n      // Use queryBy for elements that should NOT be present\n      expect",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "(screen.queryByText(mockPersona.description)).toBeNull();\n      expect(screen.queryByLabelText(/hero",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " image/i)).toBeNull();\n    });\n\n    it('is not visible when the visible prop is false',",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " () => {\n      render(<PersonaSheet persona={mockPersona} onClose={onCloseMock} visible={false}",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " />);\n      const modal = screen.UNSAFE_getByType(Modal);\n      expect(modal.props.visible).toBe",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "(false);\n    });\n  });\n\n  // --- Interactions ---\n  describe('Interactions', () =>",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " {\n    it('calls onClose when the close button is pressed', () => {\n      render(<PersonaSheet persona={mockPersona",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "} onClose={onCloseMock} visible />);\n\n      const closeButton = screen.getByRole('button', { name",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": 'Close' });\n      fireEvent.press(closeButton);\n\n      expect(onCloseMock).toHaveBeenCalled",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Times(1);\n    });\n\n    it('calls onClose when the modal`s onRequestClose is triggered', () =>",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " {\n      render(<PersonaSheet persona={mockPersona} onClose={onCloseMock} visible />);\n\n      // Simulate",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the hardware back button on Android or escape key\n      fireEvent(screen.UNSAFE_getByType(Modal), '",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "requestClose');\n\n      expect(onCloseMock).toHaveBeenCalledTimes(1);\n    });\n  });\n\n  ",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "// --- Responsive Behavior ---\n  describe('Responsive Behavior', () => {\n    // We mock the 'react-native' module",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " to control the output of useWindowDimensions\n    const mockUseWindowDimensions = jest.spyOn(\n      require('react-",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "native'),\n      'useWindowDimensions'\n    );\n\n    // Clean up the mock after these tests are done\n    after",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "All(() => {\n      mockUseWindowDimensions.mockRestore();\n    });\n\n    it('renders in full",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-screen mode on a phone-sized screen', () => {\n      // Simulate a phone screen\n      mockUseWindowDimensions.",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "mockReturnValue({ width: 390, height: 844 });\n      Platform.OS = '",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ios'; // Set platform for presentationStyle check\n\n      render(<PersonaSheet persona={mockPersona} onClose={onCloseMock",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "} visible />);\n\n      const modal = screen.UNSAFE_getByType(Modal);\n      const backdrop = screen",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".getByTestId('safe-area-backdrop'); // Add testID to SafeAreaView for this\n\n      // On",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " phones, it should be a full-screen, opaque modal\n      expect(modal.props.transparent).toBe(false);\n",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "      expect(modal.props.presentationStyle).toBe('fullScreen');\n      expect(backdrop.props.style",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ").toContainEqual({ backgroundColor: '#060a12' });\n    });\n\n    it('renders as",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a transparent sheet on a tablet-sized screen', () => {\n      // Simulate a tablet screen\n      mockUseWindow",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Dimensions.mockReturnValue({ width: 1024, height: 768 });\n      Platform.",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "OS = 'ios';\n\n      render(<PersonaSheet persona={mockPersona} onClose={onCloseMock} visible />);",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\n\n      const modal = screen.UNSAFE_getByType(Modal);\n      const backdrop = screen.getByTest",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Id('safe-area-backdrop');\n\n      // On tablets, it should be a transparent modal to show the backdrop",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\n      expect(modal.props.transparent).toBe(true);\n      expect(modal.props.presentationStyle",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ").toBe('formSheet');\n      expect(backdrop.props.style).toContainEqual({\n        backgroundColor: '",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "rgba(0,0,0,0.5)',\n      });\n    });\n  });\n});\n",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "```\n\n### Small Tweak to the Component\n\nTo make the backdrop style easier to test, add a `testID",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "` to the `SafeAreaView`.\n\n```tsx\n// In PersonaSheet.tsx\n\n// ...\n<SafeAreaView\n  test",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ID=\"safe-area-backdrop\" // <-- Add this line\n  style={[styles.backdrop, isTablet ? styles",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".backdropTablet : styles.backdropPhone]}\n>\n  {/* ... */}\n</SafeAreaView>\n//",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ...\n```\n\nThis test file provides strong coverage for your component, ensuring it not only works as expected but also correctly",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " adapts its presentation to different devices.",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Great",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " coverage and structure",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " I have a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " few tweaks",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " to make the",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " tests more robust",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and less brittle",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " with React Native",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Testing Library:\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Key adjustments\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Don’t",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " mutate Platform.OS",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " directly.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Use a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " getter spy or",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " module mock.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Mutating can throw",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " or bleed between",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " tests.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Use to",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "HaveStyle instead",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " of inspecting style",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " arrays.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " StyleSheet.create",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " returns numeric",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " IDs; direct",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " object equality",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " often fails.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Fire the correct",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " event name.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Use fireEvent",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "(element,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " 'onRequest",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Close') instead of",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " 'requestClose",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "'.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Ensure jest",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-native matchers",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " are loaded (",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "toBeOnThe",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Screen,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " toHave",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Style,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " toHaveProp",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ").\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Minor component tweak",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- As you",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " noted,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " add testID",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "=\"safe-area",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-backdrop\"",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " to the Safe",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "AreaView.\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Improved test",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " file (Persona",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Sheet.test.ts",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "x)\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "```tsx",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "import React from",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " 'react';\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "import { render",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " screen,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " fireEvent } from",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " '@testing-library",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "/react-native';\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "import '@testing",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-library/jest-native",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "/extend",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-expect';\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "import { Persona",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Sheet } from",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " './PersonaSheet",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "';\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "import { Modal",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Platform } from",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " 'react-native",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "';\n\n// Mock data",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "const mockPersona",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " = {\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " name: '",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Aria',\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " description: '",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "A thoughtful AI",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " assistant designed for",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " creative collaboration.',\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " hero: '",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "https://example",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".com/aria",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-hero.png",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "',\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "};\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "const minimalPersona",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " = { name",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": 'Kai",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "' };\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "describe('Persona",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Sheet',",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " () => {\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " const onClose",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Mock = jest",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".fn();\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " // Spy on",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " useWindowDimensions",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " so each test",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " can control it",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " const rn =",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " require('react",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-native');\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " const dimsSpy",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " = jest.spy",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "On(rn",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " 'useWindow",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Dimensions');\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " // Spy on",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Platform.OS getter",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " to control platform",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " per test\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " const platformGetter =",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " jest.spyOn",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "(Platform,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " 'OS',",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " 'get');\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " beforeEach(()",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " => {\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " onCloseMock",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".mockClear();\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " // Default to i",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "OS phone",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-ish dims unless",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a test overrides",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " platformGetter.mockReturn",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Value('ios",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "');\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " dimsSpy.mock",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ReturnValue",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "({ width:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "390,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " height: ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "844,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " scale: ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "3,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " fontScale:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "1 });\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " });\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " afterAll(()",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " => {\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " dimsSpy.mock",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Restore();\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " platformGetter.mock",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Restore();\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " });\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " describe('Rendering",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and Content',",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " () => {\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " it('renders",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " all persona details",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " when provided',",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " () => {\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " render(<",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "PersonaSheet persona={",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "mockPersona}",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " onClose={on",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "CloseMock}",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " visible />);\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " expect(screen.get",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ByText('",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Aria')).",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "toBe",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "OnTheScreen",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "();\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " expect(screen.get",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ByText(mock",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Persona.description)).",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "toBeOnThe",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Screen();\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " expect(screen.getBy",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Text('Close",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "')).",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "toBeOnThe",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Screen();\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " const heroImage =",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " screen.getBy",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "LabelText('",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Aria hero",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " image');\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " expect(heroImage",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ").",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "toBeOn",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "TheScreen();\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " expect(heroImage",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ").",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "toHaveProp('",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "source',",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " { uri:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " mockPersona.hero",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " });\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " });\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " it('does",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " not render optional",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " elements if data is",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " missing',",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " () => {\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " render(<Persona",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Sheet persona={",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "minimalPersona}",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " onClose={",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "onCloseMock",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "} visible />",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ");\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " expect(screen.get",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ByText('",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Kai')).",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "toBeOn",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "TheScreen();\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " expect(screen.queryBy",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Text(mockPersona.description",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ")).",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "toBeNull",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "();\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " expect(screen",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".queryByLabel",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Text(/hero",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " image/i)).",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "toBeNull",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "();\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " });\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " it('res",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "pects the visible",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " prop',",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " () => {\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " render(<Persona",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Sheet persona={",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "mockPersona}",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " onClose={on",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "CloseMock}",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " visible={false",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "} />);\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " const modal =",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " screen.UNSAFE",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "_getByType(",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Modal);\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " expect(modal",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".props.visible).",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "toBe(false",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ");\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " });\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " });\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " describe('",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Interactions',",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " () => {\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " it('calls",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " onClose when",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the close button",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " is pressed',",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " () => {\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " render(<Persona",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Sheet persona={",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "mockPersona}",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " onClose",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "={onClose",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Mock} visible",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " />);\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " const closeButton",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " = screen",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".getByRole",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "('button',",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " { name",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": 'Close",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "' });\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " fireEvent.press",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "(closeButton);\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " expect(onCloseMock",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ").",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "toHaveBeen",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "CalledTimes(",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "1);\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " });\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " it('calls on",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Close when the Modal",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " onRequestClose fires',",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " () =>",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " {\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " render(<PersonaSheet",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " persona={mock",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Persona} on",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Close={on",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "CloseMock}",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " visible />);\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " const modal =",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " screen.UNSAFE",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "_getByType",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "(Modal);\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " fireEvent(mod",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "al,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " 'onRequest",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Close'); // use",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the prop name",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " expect(onClose",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Mock).",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "toHaveBeen",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "CalledTimes(",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "1);\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " });\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " });\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " describe('Responsive",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Behavior',",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " () => {\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " it('renders",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " as full-screen on",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " phone-sized screens",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " (iOS",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ")',",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " () => {\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " platformGetter.mock",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ReturnValue('ios');\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " dimsSpy.mock",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ReturnValue({",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " width: ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "390,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " height: ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "844,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " scale: ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "3,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " fontScale",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "1 });\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " render(<Persona",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Sheet persona={",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "mockPersona}",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " onClose={",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "onCloseMock",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "} visible />",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ");\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " const modal",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " = screen.UN",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "SAFE_getBy",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Type(Modal",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ");\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " expect(modal",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".props.transparent).",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "toBe(false",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ");\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " expect(modal",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".props.presentationStyle).",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "toBe('full",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Screen');\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " const backdrop = screen",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".getByTest",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Id('safe",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-area-backdrop",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "');\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " expect(backdrop",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ").",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "toHaveStyle",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "({ backgroundColor:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " '#060a12",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "' });\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " });\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " it('",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "renders as a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " transparent centered sheet",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " on tablet-sized",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " screens (i",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "OS)',",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " () => {\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " platformGetter.mock",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ReturnValue",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "('ios');\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " dimsSpy.mock",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ReturnValue({",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " width:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "1024,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " height: ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "768,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " scale: ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "2,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " fontScale:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "1 });\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " render(<Persona",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Sheet persona={",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "mockPersona}",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " onClose={",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "onCloseMock}",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " visible />);\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " const modal",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " = screen.UN",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "SAFE_getBy",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Type(Modal",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ");\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " expect(modal",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".props.transparent).",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "toBe(true",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ");\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " expect(mod",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "al.props.presentation",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Style).",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "toBe('form",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Sheet');\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " const backdrop =",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " screen.getBy",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "TestId('",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "safe-area-back",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "drop');\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " expect(backdrop",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ").",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "toHaveStyle",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "({ backgroundColor",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": 'rgba",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "(0,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "0,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "0,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "0.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "5)' });\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " });\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " it('uses",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " fullScreen on",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Android regardless of",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " size',",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " () =>",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " {\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " platformGetter.mock",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ReturnValue('",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "android');\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " dimsSpy.mockReturn",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Value({ width",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "1024,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " height: ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "768,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " scale: ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "2,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " fontScale: ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "1 });\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " render(<Persona",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Sheet persona={",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "mockPersona}",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " onClose={",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "onCloseMock",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "} visible />",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ");\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " const modal = screen",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".UNSAFE_get",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ByType(",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Modal);\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "     ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " expect(modal.props",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".presentationStyle).",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "toBe('",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "fullScreen');\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " });\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " });\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "});\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "```\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Setup note",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Ensure you load",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " jest-native",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " matchers once (",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "e.g.,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " jest.setup.js",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "):\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " import '@testing",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-library/jest",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-native/extend",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-expect';\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Why these changes\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Platform mocking",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": Using a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " getter spy avoids",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " mutating a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " read-only property",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Style assertions",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": toHave",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Style flattens",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " arrays and resolves",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " StyleSheet IDs,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " making tests resilient",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " to refactors",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Correct event",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " name: fire",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Event(element,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " 'onRequest",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Close') aligns",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " with how",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " RNTL",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " triggers prop callbacks.\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Optional extras\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- If you",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " later switch the",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " tablet animationType",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " to 'fade",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "',",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " add an",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " assertion for modal.props",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".animationType based on",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " dimension thresholds.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- If you",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " add backdrop-",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "press-to-dismiss",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " on tablets,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " you can",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " include a test",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " that taps the",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " backdrop Pressable",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and expects on",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Close to",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " be called.",
+      "speakerProvider": "openai"
     }
   ]
 }

@@ -1,0 +1,422 @@
+name: Beta Release - All Platforms
+
+on:
+  push:
+    branches: [staging]
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform to release'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - ios
+          - android
+      release_notes:
+        description: 'Release notes for beta testers'
+        required: true
+        type: string
+        default: 'Bug fixes and performance improvements'
+      ios_test_group:
+        description: 'TestFlight test group (iOS only)'
+        required: false
+        default: 'beta-testers'
+        type: choice
+        options:
+          - internal-team
+          - alpha-testers
+          - beta-testers
+          - all-groups
+      android_track:
+        description: 'Google Play track (Android only)'
+        required: false
+        default: 'beta'
+        type: choice
+        options:
+          - internal
+          - alpha
+          - beta
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  check-environment:
+    runs-on: ubuntu-latest
+    environment: staging
+    outputs:
+      should_deploy: ${{ steps.check.outputs.should_deploy }}
+      release_notes: ${{ steps.notes.outputs.release_notes }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check deployment conditions
+        id: check
+        run: |
+          # Always deploy on manual trigger
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "should_deploy=true" >> $GITHUB_OUTPUT
+          # Deploy on push to staging if changes exist
+          elif [ "${{ github.event_name }}" == "push" ]; then
+            # Check if there are actual code changes
+            if git diff --name-only HEAD~1 | grep -E '\.(ts|tsx|js|jsx|json)$'; then
+              echo "should_deploy=true" >> $GITHUB_OUTPUT
+            else
+              echo "should_deploy=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "should_deploy=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate release notes
+        id: notes
+        if: steps.check.outputs.should_deploy == 'true'
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            # Use provided release notes
+            NOTES="${{ github.event.inputs.release_notes }}"
+          else
+            # Auto-generate from commits
+            NOTES="Updates from staging branch:
+            $(git log --oneline --no-merges HEAD~5..HEAD | head -10)"
+          fi
+
+          # Escape for JSON
+          NOTES_ESCAPED=$(echo "$NOTES" | jq -Rs .)
+          echo "release_notes=${NOTES_ESCAPED}" >> $GITHUB_OUTPUT
+
+  version-management:
+    needs: check-environment
+    if: needs.check-environment.outputs.should_deploy == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      build_number: ${{ steps.version.outputs.build_number }}
+      version_code: ${{ steps.version.outputs.version_code }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Calculate version
+        id: version
+        run: |
+          # Get current version
+          CURRENT_VERSION=$(node -p "require('./app.json').expo.version")
+
+          # Generate build identifiers
+          TIMESTAMP=$(date +%s)
+          BUILD_NUMBER=$((TIMESTAMP / 100))  # Shorter number for iOS
+          VERSION_CODE=${TIMESTAMP}           # Full timestamp for Android
+
+          # Create beta version
+          BETA_VERSION="${CURRENT_VERSION}-beta.${BUILD_NUMBER}"
+
+          echo "version=${BETA_VERSION}" >> $GITHUB_OUTPUT
+          echo "build_number=${BUILD_NUMBER}" >> $GITHUB_OUTPUT
+          echo "version_code=${VERSION_CODE}" >> $GITHUB_OUTPUT
+
+          # Update app.json
+          node -e "
+            const fs = require('fs');
+            const appJson = require('./app.json');
+            appJson.expo.version = '${BETA_VERSION}';
+            appJson.expo.ios = appJson.expo.ios || {};
+            appJson.expo.ios.buildNumber = '${BUILD_NUMBER}';
+            appJson.expo.android = appJson.expo.android || {};
+            appJson.expo.android.versionCode = ${VERSION_CODE};
+            fs.writeFileSync('app.json', JSON.stringify(appJson, null, 2) + '\\n');
+          "
+
+      - name: Commit version updates
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add app.json
+          git commit -m "chore: bump to beta version ${{ steps.version.outputs.version }} [skip ci]"
+          git push
+
+  build-ios:
+    needs: [check-environment, version-management]
+    if: |
+      needs.check-environment.outputs.should_deploy == 'true' &&
+      (github.event.inputs.platform == 'all' || github.event.inputs.platform == 'ios')
+    runs-on: ubuntu-latest
+    environment: staging
+    outputs:
+      build_id: ${{ steps.build.outputs.build_id }}
+      build_url: ${{ steps.build.outputs.build_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build iOS for TestFlight
+        id: build
+        run: |
+          # Start EAS build
+          BUILD_OUTPUT=$(eas build --platform ios --profile beta --non-interactive --json)
+
+          # Extract build information
+          BUILD_ID=$(echo $BUILD_OUTPUT | jq -r '.[0].id')
+          BUILD_URL=$(echo $BUILD_OUTPUT | jq -r '.[0].buildDetailsPageUrl')
+
+          echo "build_id=${BUILD_ID}" >> $GITHUB_OUTPUT
+          echo "build_url=${BUILD_URL}" >> $GITHUB_OUTPUT
+
+          # Wait for build completion
+          eas build:wait --build-id ${BUILD_ID}
+
+  build-android:
+    needs: [check-environment, version-management]
+    if: |
+      needs.check-environment.outputs.should_deploy == 'true' &&
+      (github.event.inputs.platform == 'all' || github.event.inputs.platform == 'android')
+    runs-on: ubuntu-latest
+    environment: staging
+    outputs:
+      build_id: ${{ steps.build.outputs.build_id }}
+      build_url: ${{ steps.build.outputs.build_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build Android for Play Console
+        id: build
+        run: |
+          # Determine profile based on track
+          TRACK="${{ github.event.inputs.android_track }}"
+          if [ "$TRACK" == "internal" ]; then
+            PROFILE="internal-testing"
+          else
+            PROFILE="beta"
+          fi
+
+          # Start EAS build
+          BUILD_OUTPUT=$(eas build --platform android --profile ${PROFILE} --non-interactive --json)
+
+          # Extract build information
+          BUILD_ID=$(echo $BUILD_OUTPUT | jq -r '.[0].id')
+          BUILD_URL=$(echo $BUILD_OUTPUT | jq -r '.[0].buildDetailsPageUrl')
+
+          echo "build_id=${BUILD_ID}" >> $GITHUB_OUTPUT
+          echo "build_url=${BUILD_URL}" >> $GITHUB_OUTPUT
+
+          # Wait for build completion
+          eas build:wait --build-id ${BUILD_ID}
+
+  submit-ios:
+    needs: [check-environment, version-management, build-ios]
+    if: success() && needs.build-ios.result == 'success'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Submit to TestFlight
+        run: |
+          # Create Apple API key file
+          echo "${{ secrets.APPSTORE_API_KEY_BASE64 }}" | base64 -d > appstore_key.p8
+
+          # Submit build to TestFlight
+          eas submit --platform ios \
+            --id ${{ needs.build-ios.outputs.build_id }} \
+            --profile beta \
+            --apple-api-key-path appstore_key.p8 \
+            --apple-api-key-id ${{ secrets.APPSTORE_API_KEY_ID }} \
+            --apple-api-key-issuer-id ${{ secrets.APPSTORE_ISSUER_ID }} \
+            --non-interactive
+
+          # Clean up sensitive file
+          rm appstore_key.p8
+
+      - name: Update TestFlight test notes
+        run: |
+          echo "TestFlight submission complete for version ${{ needs.version-management.outputs.version }}"
+          echo "Release notes: ${{ needs.check-environment.outputs.release_notes }}"
+
+  submit-android:
+    needs: [check-environment, version-management, build-android]
+    if: success() && needs.build-android.result == 'success'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Submit to Google Play
+        run: |
+          # Determine track
+          TRACK="${{ github.event.inputs.android_track || 'beta' }}"
+          if [ "$TRACK" == "internal" ]; then
+            PROFILE="internal-testing"
+          else
+            PROFILE="beta"
+          fi
+
+          # Save service account credentials
+          echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}' > google-service-account.json
+
+          # Submit build to Play Console
+          eas submit --platform android \
+            --id ${{ needs.build-android.outputs.build_id }} \
+            --profile ${PROFILE} \
+            --key google-service-account.json \
+            --track ${TRACK} \
+            --release-status draft \
+            --non-interactive
+
+          # Clean up sensitive file
+          rm google-service-account.json
+
+      - name: Update Play Console release notes
+        run: |
+          echo "Play Console submission complete for version ${{ needs.version-management.outputs.version }}"
+          echo "Track: ${{ github.event.inputs.android_track || 'beta' }}"
+          echo "Release notes: ${{ needs.check-environment.outputs.release_notes }}"
+
+  create-release:
+    needs: [check-environment, version-management, submit-ios, submit-android]
+    if: always() && needs.version-management.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determine release status
+        id: status
+        run: |
+          IOS_STATUS="${{ needs.submit-ios.result }}"
+          ANDROID_STATUS="${{ needs.submit-android.result }}"
+
+          if [ "$IOS_STATUS" == "success" ] && [ "$ANDROID_STATUS" == "success" ]; then
+            STATUS="✅ Both platforms"
+          elif [ "$IOS_STATUS" == "success" ]; then
+            STATUS="✅ iOS only"
+          elif [ "$ANDROID_STATUS" == "success" ]; then
+            STATUS="✅ Android only"
+          else
+            STATUS="⚠️ Build completed, submission pending"
+          fi
+
+          echo "status=${STATUS}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: beta-${{ needs.version-management.outputs.version }}
+          release_name: Beta Release ${{ needs.version-management.outputs.version }}
+          body: |
+            ## Beta Release ${{ needs.version-management.outputs.version }}
+
+            **Status:** ${{ steps.status.outputs.status }}
+            **Environment:** Staging
+            **Triggered by:** ${{ github.event_name == 'push' && 'Push to staging' || 'Manual dispatch' }}
+
+            ### Release Notes
+            ${{ needs.check-environment.outputs.release_notes }}
+
+            ### Platform Details
+
+            #### iOS (TestFlight)
+            - Build: #${{ needs.version-management.outputs.build_number }}
+            - Status: ${{ needs.submit-ios.result == 'success' && '✅ Submitted' || '⏭️ Skipped' }}
+            - Test Group: ${{ github.event.inputs.ios_test_group || 'beta-testers' }}
+            ${{ needs.build-ios.outputs.build_url && format('- [View Build]({0})', needs.build-ios.outputs.build_url) || '' }}
+
+            #### Android (Play Console)
+            - Version Code: ${{ needs.version-management.outputs.version_code }}
+            - Status: ${{ needs.submit-android.result == 'success' && '✅ Submitted' || '⏭️ Skipped' }}
+            - Track: ${{ github.event.inputs.android_track || 'beta' }}
+            ${{ needs.build-android.outputs.build_url && format('- [View Build]({0})', needs.build-android.outputs.build_url) || '' }}
+
+            ### For Testers
+
+            **iOS:**
+            1. Install TestFlight from App Store
+            2. Accept invitation or use public link
+            3. Install Symposium AI beta
+
+            **Android:**
+            1. Join beta program: [Opt-in Link](https://play.google.com/apps/testing/com.braveheartinnovations.debateai)
+            2. Update from Play Store
+            3. Look for "Beta" badge
+
+            ---
+            🚀 Deployed via GitHub Actions
+          draft: false
+          prerelease: true
+
+  notify-status:
+    needs: [check-environment, version-management, create-release]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Summary
+        run: |
+          echo "## 🚀 Beta Release Summary"
+          echo ""
+          echo "**Version:** ${{ needs.version-management.outputs.version }}"
+          echo "**Status:** ${{ needs.create-release.result == 'success' && '✅ Complete' || '⚠️ Partial' }}"
+          echo ""
+          echo "### Next Steps"
+          echo "1. Monitor TestFlight for iOS processing (10-30 minutes)"
+          echo "2. Check Play Console for Android review status"
+          echo "3. Verify testers received notifications"
+          echo "4. Monitor crash reports and feedback"
+          echo ""
+          echo "View full details in the GitHub Release"

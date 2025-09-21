@@ -3,8 +3,16 @@
   "id": "chat_g_itinerary_v1",
   "title": "Boston itinerary (Gemini)",
   "comboKey": "google",
-  "tags": ["single", "google", "travel"],
   "events": [
+    {
+      "type": "divider",
+      "meta": {
+        "startedAt": "2025-09-21T07:25:29.959Z",
+        "screen": "chat",
+        "comboKey": "google",
+        "platform": "ios"
+      }
+    },
     {
       "type": "message",
       "role": "user",
@@ -13,8 +21,739 @@
     {
       "type": "stream",
       "role": "assistant",
-      "speakerProvider": "google",
-      "content": "Let’s keep it scenic and efficient:"
+      "content": "Of course! Here is a thoughtful and balanced 3-day itinerary for Boston, focusing on its rich Revolutionary War history",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and iconic local cuisine. This plan is designed to be walkable and immersive, giving you a true taste of the city's past and",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " present.\n\n### **Boston: Revolution & Cuisine Itinerary**\n\nThis itinerary is structured to follow the historical narrative of",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the Revolution, from the sparks of rebellion in the city to the first shots of the war in the surrounding towns.\n\n---",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\n\n### **Day 1: The Heart of the Revolution (The Freedom Trail)**\n\nToday is all about walking the path",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " of patriots. You'll cover the majority of the famous Freedom Trail, a 2.5-mile red-",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "brick line that connects 16 nationally significant historic sites.\n\n**Morning (9:00 AM - 1:",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "00 PM): The Seeds of Dissent**\n\n*   **Start at Boston Common:** Begin your journey at America",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "'s oldest public park. Grab a coffee and pastry from a local spot to fuel up.\n*   **Massachusetts",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " State House:** Admire the impressive golden dome. This is the seat of the state government.\n*   **Park Street",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Church & Granary Burying Ground:** See the historic church before entering the burying ground. This is a \"who's who\"",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " of the Revolution. Take your time to find the final resting places of **Samuel Adams, John Hancock, and Paul Revere**.",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\n*   **King's Chapel & Old South Meeting House:** Visit the city's first Anglican church and then",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " proceed to the Old South Meeting House, the site where the fiery speeches of patriots like Samuel Adams incited the Boston Tea",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Party.\n\n**Lunch (1:00 PM - 2:00 PM): A Taste of Boston at",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Faneuil Hall**\n\n*   **Quincy Market:** The Freedom Trail leads you directly to Faneuil Hall Marketplace",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ". The central building, Quincy Market, is a bustling food hall. This is the perfect place for a classic Boston lunch",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n*   **Cuisine Focus:** Get a cup of **New England Clam Chowder** in a bread",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " bowl from one of the many vendors (like Boston Chowda Co.). It’s a quintessential Boston experience.\n\n**",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Afternoon (2:00 PM - 5:00 PM): The Path to Conflict**\n\n*   ",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "**Faneuil Hall:** Before leaving the area, spend time at Faneuil Hall itself, known as the \"C",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "radle of Liberty,\" where colonists gathered to protest British rule.\n*   **Old State House:** This is one of the",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " most important buildings in American history. See the balcony where the Declaration of Independence was first read to the people of Boston and",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " stand on the circle marking the site of the **Boston Massacre**.\n*   **The North End:** Cross the street",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " into Boston's oldest residential neighborhood, the North End. The character changes immediately to narrow, charming streets.\n*   **",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Paul Revere House & Old North Church:** Visit the home of the famous silversmith and patriot. Then, walk",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " to the Old North Church, where the lanterns were hung (\"One if by land, and two if by sea\") to signal the",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " movement of British troops.\n\n**Dinner (7:00 PM): Authentic Italian in the North End**\n\n*   **",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Cuisine Focus:** The North End is Boston's Little Italy, packed with incredible restaurants. Make reservations in advance.",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Enjoy classic Italian-American pasta dishes.\n*   **Don't Forget Dessert:** After dinner, engage in the",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " city's most delicious rivalry: the cannoli debate. Get one from **Mike's Pastry** and one",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " from **Modern Pastry** (usually a block apart) and decide for yourself which is better.\n\n---\n\n### **Day ",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "2: Charlestown, Tea, and the Sea**\n\nToday you'll finish the Freedom Trail by crossing the bridge",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " into Charlestown and then explore the pivotal event that pushed the colonies over the edge.\n\n**Morning (9:30 AM",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - 1:00 PM): Bunker Hill & \"Old Ironsides\"**\n\n*   **USS Constitution:**",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Walk across the Charlestown Bridge to the Charlestown Navy Yard. Tour the USS Constitution, the world's oldest commissioned",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " warship afloat. Nicknamed \"Old Ironsides,\" it's a magnificent piece of naval history. Active-duty Navy sailors",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " serve as guides.\n*   **Bunker Hill Monument:** From the Navy Yard, it's a short but",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " uphill walk to the Bunker Hill Monument. This commemorates the first major battle of the Revolutionary War. For a fantastic view of the city",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ", climb the 294 steps to the top.\n\n**Lunch (1:00 PM - 2",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ":00 PM): Casual Charlestown Fare**\n\n*   Grab a casual lunch in Charlestown. A classic pub like **Warren",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Tavern**, which claims to be the oldest in Massachusetts and was once frequented by Paul Revere and George Washington, is a great historic",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " choice.\n\n**Afternoon (2:30 PM - 5:00 PM): The Boston Tea Party",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "**\n\n*   **Boston Tea Party Ships & Museum:** Take a ferry or walk back across the bridge and head to",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the Seaport District. This interactive museum is a highlight for many visitors. You'll hear from costumed interpreters, explore",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " replica 18th-century ships, and even get to throw \"tea\" into the harbor. It’s both",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " fun and educational.\n\n**Dinner (7:00 PM): Modern Seafood in the Seaport**\n\n*   **",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Cuisine Focus:** The Seaport is Boston's modern, bustling waterfront neighborhood, known for its excellent restaurants. This",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " is the perfect place to indulge in fresh seafood.\n*   **Recommendations:** Treat yourself to a classic **Lobster Roll",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "** (served hot with butter, Connecticut-style, or cold with mayo, Maine-style) or a platter of fresh,",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " local oysters.\n\n---\n\n### **Day 3: The Shot Heard 'Round the World**\n\nToday, you'll",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " venture just outside the city to where the first shots of the American Revolution were fired.\n\n**Option A (Guided Tour -",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Easiest):** Book a half-day bus tour from Boston to Lexington and Concord. This is the most hassle",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-free way to see the sites without worrying about transportation.\n\n**Option B (DIY - More Flexible):** Take",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the MBTA Commuter Rail (Fitchburg Line) from North Station to Concord, or use a rideshare service to",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " get to Lexington first.\n\n**Morning & Afternoon (9:00 AM - 3:00 PM): Lexington",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and Concord**\n\n*   **Lexington Battle Green:** Start in Lexington, where the first conflict between the colonial Min",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "utemen and the British Redcoats took place on April 19, 1775. Stand on the very",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ground where the \"shot heard 'round the world\" was fired.\n*   **Minute Man National Historical Park:** Travel the",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " historic \"Battle Road\" between the two towns. Stop at the visitor center to get oriented.\n*   **Old North Bridge",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " (Concord):** Walk across the reconstructed bridge where colonial militia first fired upon and forced the retreat of British soldiers.",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " The famous \"Concord Hymn\" statue by Daniel Chester French is a powerful sight.\n\n**Late Afternoon (3:",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "00 PM - 5:00 PM): Return to Boston**\n\n*   Head back to the city. Use",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " this time to relax, do some last-minute souvenir shopping, or revisit a favorite spot.\n\n**Farewell Dinner (7",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ":00 PM): Historic Dining**\n\n*   **Cuisine Focus:** For your final meal, dine in one",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " of America's most historic restaurants.\n*   **Top Choice:** The **Union Oyster House**, which has been serving food",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " since 1826 and is a National Historic Landmark. The classic, dark wood interior feels like a step back in time",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n*   **Iconic Dessert:** If you haven't yet, head to the **Omni Parker House**",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " hotel. Their restaurant is the birthplace of the **Boston Cream Pie**. Ordering a slice here is the perfect culinary end to your",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " historic trip.\n\n### **Helpful Tips:**\n\n*   **Wear Comfortable Shoes:** This cannot be overstated. Boston",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " is a walking city, and this itinerary involves several miles of walking each day.\n*   **Use Public Transit (The \"",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "T\"):** Avoid driving in Boston. The subway system, known as the \"T,\" is efficient for longer distances not",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " covered on foot.\n*   **Book in Advance:** For popular restaurants and tours (especially the Tea Party Museum),",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " it's wise to book your tickets or make reservations online ahead of time.\n*   **Stay Hydrated:** Carry",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a water bottle, especially for the long walking days.",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "message",
+      "role": "user",
+      "content": "What’s the best place to get a lobster roll?"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "That's an excellent and highly debated question in Boston! Asking for the \"best\" lobster roll is like asking for the best pizza",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " in New York—everyone has a passionate opinion. The truth is, the \"best\" one depends entirely on what you'",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "re looking for: the style, the atmosphere, and the price.\n\nFirst, it's crucial to understand the two main",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " styles:\n\n1.  **Maine Style (Cold):** This is the most common style. The lobster meat is chilled",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and tossed lightly with mayonnaise, often with celery or chives mixed in. It's served in a toasted, buttered,",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " split-top hot dog bun. It's refreshing and classic.\n2.  **Connecticut Style (Hot):** This style",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " features warm lobster meat poached in melted butter, served in the same type of toasted bun. It's rich, decadent",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ", and savory.\n\nHere is a balanced breakdown of the top contenders in Boston, categorized by what makes them special.",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\n\n---\n\n### **The \"Best Overall\" Contender (If you're willing to wait)**\n\n#### **Neptune",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Oyster**\n*   **Location:** North End\n*   **Style:** Famous for its **hot lobster roll with butter**,",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " but they also offer a cold one.\n*   **Why it's a top pick:** Consistently ranked as",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " one of the best in the country. The lobster is incredibly fresh and perfectly cooked, piled high on a toasted brioche bun. The",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " hot version, swimming in clarified butter, is legendary.\n*   **The Catch:** This is a tiny, no",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-reservations restaurant. The line to get in often wraps around the block, and you can easily wait for 1-2",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " hours at peak times.\n*   **Best for:** The dedicated foodie who wants to taste the roll that sets the standard.\n\n",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "---\n\n### **The Classic, No-Frills Experience**\n\n#### **James Hook & Co.**\n*   **",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Location:** Waterfront (near the Seaport)\n*   **Style:** Primarily **cold with mayo**.\n*   **Why",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " it's a top pick:** This is a family-owned seafood shack and retail market that has been around since 19",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "25. There's no fancy seating—it's all about the lobster. You get a generous portion of fresh, sweet",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " lobster meat with just a touch of mayo on a classic bun. It's pure, simple, and delicious.\n*   **",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "The Vibe:** It's a casual, walk-up counter. You'll eat at one of the few picnic tables outside",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " or take it to go. It feels authentic and is generally more affordable than the high-end restaurants.\n*   ",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "**Best for:** A fantastic, high-quality lobster roll without the fuss or the long wait of a sit-down restaurant.",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\n\n---\n\n### **The Modern & Upscale Twist**\n\n#### **Row 34**\n*   **",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Location:** Seaport & Cambridge\n*   **Style:** Offers both **hot (butter) and cold (mayo)** versions",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n*   **Why it's a top pick:** Row 34 is a trendy, acclaimed oyster bar with",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a more refined take. Their rolls are expertly prepared, with high-quality ingredients and a perfect lobster-to-bun",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ratio. It's a fantastic place to pair your roll with craft beer and some of the city's best oysters",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n*   **The Vibe:** It's a lively, modern, and spacious restaurant. You can make reservations,",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " making it a much more predictable and comfortable experience than Neptune.\n*   **Best for:** A great sit-down meal",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ", trying both styles of lobster roll, and enjoying a fun, energetic atmosphere.\n\n---\n\n### **The \"More",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " is More\" Option**\n\n#### **Pauli's**\n*   **Location:** North End\n*   **",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Style:** Cold with mayo.\n*   **Why it's a top pick:** If your main goal is sheer volume,",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Pauli's is your place. Their famous \"Lobstitution\" is a massive, 25-ounce lobster roll that",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " is almost comically large but surprisingly good. They also offer a standard-sized roll which is still very generous.\n",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "*   **The Vibe:** A casual, neighborhood sandwich shop. It's a great spot for a quick and",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " hearty lunch.\n*   **Best for:** The person with a huge appetite who wants the most lobster for their buck",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n\n### **Summary Table to Help You Choose**\n\n| Restaurant | Primary Style | Vibe | Best For... | Price",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " |\n| :--- | :--- | :--- | :--- | :--- |\n| **Neptune Oyster",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "** | Hot with Butter | Tiny & Crowded | The ultimate foodie experience | $$$$ |\n| **James Hook & Co",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".** | Cold with Mayo | Casual Seafood Shack | Authenticity and value | $$ |\n| **Row 34",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "** | Both Hot & Cold | Modern & Lively | A great sit-down meal | $$$ |\n| **Pauli's",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "** | Cold with Mayo | Casual Sandwich Shop | Getting the most lobster meat | $$$ |\n\n**Final Recommendation:**\n\n*",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   **For the purist who wants the absolute best and doesn't mind a wait:** Go to **Nept",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "une Oyster** for the hot buttered roll.\n*   **For a quick, delicious, and authentic experience:** Go",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " to **James Hook & Co.** for a classic cold roll.\n*   **For a guaranteed great meal in a fun",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ", modern setting:** Go to **Row 34** and try both styles.",
+      "speakerProvider": "google"
     }
   ]
 }

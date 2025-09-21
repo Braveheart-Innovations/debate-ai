@@ -199,7 +199,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, s
   const markdownContent = !isUser && displayContent
     ? sanitizeMarkdown(
         processMessageContent({ ...message, content: displayContent })
-      ).replace(/\s+$/, '')
+      )
     : '';
 
   return (

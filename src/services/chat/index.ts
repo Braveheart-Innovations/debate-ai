@@ -2,10 +2,10 @@ export { ChatService } from './ChatService';
 export { MessageService } from './MessageService';
 export { StorageService } from './StorageService';
 export { PromptBuilder } from './PromptBuilder';
+export { ChatOrchestrator } from './ChatOrchestrator';
 
 export type {
   ConversationContext,
-  AIResponseConfig,
 } from './ChatService';
 
 export type {

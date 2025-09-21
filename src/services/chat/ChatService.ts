@@ -1,19 +1,10 @@
 import { Message, AI } from '../../types';
-import { HOME_CONSTANTS } from '../../config/homeConstants';
 
 export interface ConversationContext {
   messages: Message[];
   isDebateMode: boolean;
   lastSpeaker?: string;
   lastMessage?: string;
-}
-
-export interface AIResponseConfig {
-  ai: AI;
-  conversationContext: ConversationContext;
-  isFirstAI: boolean;
-  userMessage?: Message;
-  enrichedPrompt?: string;
 }
 
 export class ChatService {
@@ -96,33 +87,6 @@ export class ChatService {
   /**
    * Determines which AIs should respond based on mentions and selection
    */
-  static determineRespondingAIs(
-    mentions: string[],
-    selectedAIs: AI[],
-    maxAIs: number = HOME_CONSTANTS.MAX_AIS_FOR_CHAT
-  ): AI[] {
-    const maxParticipants = Math.min(
-      HOME_CONSTANTS.MAX_AIS_FOR_CHAT,
-      maxAIs,
-      selectedAIs.length
-    );
-
-    // If mentions exist, only those AIs respond
-    if (mentions.length > 0) {
-      return selectedAIs
-        .filter(ai => mentions.includes(ai.name.toLowerCase()))
-        .slice(0, maxParticipants);
-    }
-
-    // No mentions - pick random AIs for conversation
-    if (selectedAIs.length <= 1) {
-      return selectedAIs;
-    }
-
-    // Use the selection order and cap at max participants to keep conversations manageable
-    return selectedAIs.slice(0, maxParticipants);
-  }
-
   /**
    * Builds conversation context for AI processing
    */

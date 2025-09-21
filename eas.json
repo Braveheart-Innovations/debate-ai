@@ -8,13 +8,43 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_RELEASE_CHANNEL": "development"
+        "EXPO_PUBLIC_RELEASE_CHANNEL": "development",
+        "EXPO_PUBLIC_ENVIRONMENT": "development"
       },
       "ios": {
         "resourceClass": "m-medium"
       },
       "android": {
         "buildType": "apk"
+      }
+    },
+    "internal-testing": {
+      "developmentClient": false,
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_RELEASE_CHANNEL": "internal",
+        "EXPO_PUBLIC_ENVIRONMENT": "development"
+      },
+      "ios": {
+        "resourceClass": "m-medium"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "beta": {
+      "developmentClient": false,
+      "distribution": "store",
+      "env": {
+        "EXPO_PUBLIC_RELEASE_CHANNEL": "beta",
+        "EXPO_PUBLIC_ENVIRONMENT": "staging"
+      },
+      "ios": {
+        "resourceClass": "m-medium"
+      },
+      "android": {
+        "buildType": "app-bundle",
+        "gradleCommand": ":app:bundleRelease"
       }
     },
     "preview": {
@@ -34,7 +64,8 @@
       "developmentClient": false,
       "distribution": "store",
       "env": {
-        "EXPO_PUBLIC_RELEASE_CHANNEL": "production"
+        "EXPO_PUBLIC_RELEASE_CHANNEL": "production",
+        "EXPO_PUBLIC_ENVIRONMENT": "production"
       },
       "ios": {
         "resourceClass": "m-medium"
@@ -46,6 +77,28 @@
     }
   },
   "submit": {
+    "internal-testing": {
+      "ios": {
+        "ascAppId": "6751146458",
+        "companyName": "Braveheart Innovations",
+        "sku": "com.braveheartinnovations.debateai"
+      },
+      "android": {
+        "track": "internal",
+        "releaseStatus": "draft"
+      }
+    },
+    "beta": {
+      "ios": {
+        "ascAppId": "6751146458",
+        "companyName": "Braveheart Innovations",
+        "sku": "com.braveheartinnovations.debateai"
+      },
+      "android": {
+        "track": "beta",
+        "releaseStatus": "draft"
+      }
+    },
     "preview": {
       "ios": {
         "ascAppId": "6751146458",
@@ -63,7 +116,8 @@
         "sku": "com.braveheartinnovations.debateai"
       },
       "android": {
-        "track": "production"
+        "track": "production",
+        "releaseStatus": "completed"
       }
     }
   }

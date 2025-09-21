@@ -1,0 +1,291 @@
+name: Beta Release - Android (Play Console)
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_notes:
+        description: 'Release notes for beta testers'
+        required: true
+        type: string
+      track:
+        description: 'Google Play track'
+        required: false
+        default: 'beta'
+        type: choice
+        options:
+          - internal
+          - alpha
+          - beta
+      rollout_percentage:
+        description: 'Rollout percentage (1-100)'
+        required: false
+        default: '100'
+        type: string
+
+jobs:
+  version-bump:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      version_code: ${{ steps.version.outputs.version_code }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Bump version
+        id: version
+        run: |
+          # Get current version from app.json
+          CURRENT_VERSION=$(node -p "require('./app.json').expo.version")
+
+          # Generate version code (timestamp-based for uniqueness)
+          VERSION_CODE=$(date +%s)
+
+          # Update beta version
+          BETA_VERSION="${CURRENT_VERSION}-beta.${VERSION_CODE}"
+
+          echo "version=${BETA_VERSION}" >> $GITHUB_OUTPUT
+          echo "version_code=${VERSION_CODE}" >> $GITHUB_OUTPUT
+
+          # Update app.json
+          node -e "
+            const fs = require('fs');
+            const appJson = require('./app.json');
+            appJson.expo.version = '${BETA_VERSION}';
+            appJson.expo.android = appJson.expo.android || {};
+            appJson.expo.android.versionCode = ${VERSION_CODE};
+            fs.writeFileSync('app.json', JSON.stringify(appJson, null, 2) + '\\n');
+          "
+
+      - name: Commit version bump
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add app.json
+          git commit -m "chore: bump version to ${{ steps.version.outputs.version }} for Android beta [skip ci]"
+          git push
+
+  build-android:
+    needs: version-bump
+    runs-on: ubuntu-latest
+    environment: staging
+    outputs:
+      build_url: ${{ steps.build.outputs.build_url }}
+      artifact_url: ${{ steps.build.outputs.artifact_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup Expo
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build Android app for Play Console
+        id: build
+        run: |
+          # Select profile based on track
+          if [ "${{ github.event.inputs.track }}" == "internal" ]; then
+            PROFILE="internal-testing"
+          else
+            PROFILE="beta"
+          fi
+
+          # Start build
+          BUILD_OUTPUT=$(eas build --platform android --profile ${PROFILE} --non-interactive --json)
+
+          # Extract build URLs
+          BUILD_URL=$(echo $BUILD_OUTPUT | jq -r '.[0].buildDetailsPageUrl')
+          ARTIFACT_URL=$(echo $BUILD_OUTPUT | jq -r '.[0].artifacts.buildUrl')
+
+          echo "build_url=${BUILD_URL}" >> $GITHUB_OUTPUT
+          echo "artifact_url=${ARTIFACT_URL}" >> $GITHUB_OUTPUT
+
+          # Wait for build to complete
+          eas build:wait --platform android --profile ${PROFILE}
+
+      - name: Download AAB
+        run: |
+          # Download the AAB file for submission
+          wget -O app.aab "${{ steps.build.outputs.artifact_url }}"
+
+      - name: Submit to Google Play
+        run: |
+          # Select profile based on track
+          if [ "${{ github.event.inputs.track }}" == "internal" ]; then
+            PROFILE="internal-testing"
+          else
+            PROFILE="beta"
+          fi
+
+          # Save service account credentials
+          echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}' > google-service-account.json
+
+          # Submit to Play Console with proper track
+          eas submit --platform android --profile ${PROFILE} \
+            --path app.aab \
+            --key google-service-account.json \
+            --track ${{ github.event.inputs.track }} \
+            --release-status draft \
+            --rollout-percentage ${{ github.event.inputs.rollout_percentage }} \
+            --non-interactive
+
+          # Clean up
+          rm google-service-account.json app.aab
+
+  update-release-notes:
+    needs: [version-bump, build-android]
+    runs-on: ubuntu-latest
+    environment: staging
+    if: success()
+    steps:
+      - name: Setup Google Play API
+        run: |
+          # Install Google Play Publisher API tools
+          pip install google-api-python-client google-auth google-auth-httplib2
+
+      - name: Update release notes in Play Console
+        run: |
+          cat > update_release_notes.py << 'EOF'
+          import json
+          import os
+          from google.oauth2 import service_account
+          from googleapiclient.discovery import build
+
+          # Configuration
+          PACKAGE_NAME = "com.braveheartinnovations.debateai"
+          TRACK = "${{ github.event.inputs.track }}"
+          VERSION_CODE = "${{ needs.version-bump.outputs.version_code }}"
+          RELEASE_NOTES = """${{ github.event.inputs.release_notes }}"""
+
+          # Authenticate
+          credentials_json = os.environ['GOOGLE_SERVICE_ACCOUNT_JSON']
+          credentials_dict = json.loads(credentials_json)
+          credentials = service_account.Credentials.from_service_account_info(
+              credentials_dict,
+              scopes=['https://www.googleapis.com/auth/androidpublisher']
+          )
+
+          # Build service
+          service = build('androidpublisher', 'v3', credentials=credentials)
+
+          try:
+              # Get edit ID
+              edit = service.edits().insert(packageName=PACKAGE_NAME).execute()
+              edit_id = edit['id']
+
+              # Update release notes
+              release_notes = [{
+                  'language': 'en-US',
+                  'text': RELEASE_NOTES
+              }]
+
+              # Update track with release notes
+              track_response = service.edits().tracks().update(
+                  packageName=PACKAGE_NAME,
+                  editId=edit_id,
+                  track=TRACK,
+                  body={
+                      'releases': [{
+                          'versionCodes': [VERSION_CODE],
+                          'releaseNotes': release_notes,
+                          'status': 'draft'
+                      }]
+                  }
+              ).execute()
+
+              # Commit the edit
+              service.edits().commit(
+                  packageName=PACKAGE_NAME,
+                  editId=edit_id
+              ).execute()
+
+              print(f"✅ Release notes updated for {TRACK} track")
+          except Exception as e:
+              print(f"⚠️ Could not update release notes: {e}")
+          EOF
+
+          GOOGLE_SERVICE_ACCOUNT_JSON='${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}' \
+          python update_release_notes.py
+
+  notify-testers:
+    needs: [version-bump, build-android]
+    runs-on: ubuntu-latest
+    if: success()
+    steps:
+      - name: Generate opt-in link
+        id: links
+        run: |
+          if [ "${{ github.event.inputs.track }}" == "internal" ]; then
+            LINK="https://play.google.com/apps/internaltest/4701094065804829485"
+          else
+            LINK="https://play.google.com/apps/testing/com.braveheartinnovations.debateai"
+          fi
+          echo "optin_link=${LINK}" >> $GITHUB_OUTPUT
+
+      - name: Notify beta testers
+        run: |
+          echo "✅ Android Beta Build ${{ needs.version-bump.outputs.version }} submitted to Play Console"
+          echo "Build URL: ${{ needs.build-android.outputs.build_url }}"
+          echo ""
+          echo "Track: ${{ github.event.inputs.track }}"
+          echo "Rollout: ${{ github.event.inputs.rollout_percentage }}%"
+          echo ""
+          echo "Release Notes:"
+          echo "${{ github.event.inputs.release_notes }}"
+          echo ""
+          echo "Opt-in Link: ${{ steps.links.outputs.optin_link }}"
+          echo ""
+          echo "Testers can join the beta program and receive updates within 2-4 hours."
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: beta-android-${{ needs.version-bump.outputs.version }}
+          release_name: Android Beta ${{ needs.version-bump.outputs.version }}
+          body: |
+            ## Android Beta Release for Play Console
+
+            **Version:** ${{ needs.version-bump.outputs.version }}
+            **Version Code:** ${{ needs.version-bump.outputs.version_code }}
+            **Track:** ${{ github.event.inputs.track }}
+            **Rollout:** ${{ github.event.inputs.rollout_percentage }}%
+
+            ### Release Notes
+            ${{ github.event.inputs.release_notes }}
+
+            ### Build Details
+            - [EAS Build](${{ needs.build-android.outputs.build_url }})
+            - Platform: Android (Play Console)
+            - Profile: ${{ github.event.inputs.track == 'internal' && 'internal-testing' || 'beta' }}
+
+            ### For Testers
+            1. Join the beta program: ${{ steps.links.outputs.optin_link }}
+            2. Wait for approval (automatic for open beta)
+            3. Update the app from Play Store
+            4. Look for the "Beta" badge in Play Store
+            5. Provide feedback via Play Store or in-app
+          draft: false
+          prerelease: true

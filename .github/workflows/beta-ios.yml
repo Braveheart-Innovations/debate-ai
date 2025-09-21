@@ -1,0 +1,170 @@
+name: Beta Release - iOS (TestFlight)
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_notes:
+        description: 'Release notes for beta testers'
+        required: true
+        type: string
+      test_group:
+        description: 'TestFlight test group'
+        required: false
+        default: 'beta-testers'
+        type: choice
+        options:
+          - internal-team
+          - alpha-testers
+          - beta-testers
+          - all-groups
+
+jobs:
+  version-bump:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      build_number: ${{ steps.version.outputs.build_number }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Bump version
+        id: version
+        run: |
+          # Get current version from app.json
+          CURRENT_VERSION=$(node -p "require('./app.json').expo.version")
+
+          # Increment build number
+          BUILD_NUMBER=$(date +%s)
+
+          # Update beta version (append -beta.BUILD)
+          BETA_VERSION="${CURRENT_VERSION}-beta.${BUILD_NUMBER}"
+
+          echo "version=${BETA_VERSION}" >> $GITHUB_OUTPUT
+          echo "build_number=${BUILD_NUMBER}" >> $GITHUB_OUTPUT
+
+          # Update app.json
+          node -e "
+            const fs = require('fs');
+            const appJson = require('./app.json');
+            appJson.expo.version = '${BETA_VERSION}';
+            fs.writeFileSync('app.json', JSON.stringify(appJson, null, 2) + '\\n');
+          "
+
+      - name: Commit version bump
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add app.json
+          git commit -m "chore: bump version to ${{ steps.version.outputs.version }} for iOS beta [skip ci]"
+          git push
+
+  build-ios:
+    needs: version-bump
+    runs-on: ubuntu-latest
+    environment: staging
+    outputs:
+      build_url: ${{ steps.build.outputs.build_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup Expo
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build iOS app for TestFlight
+        id: build
+        run: |
+          # Start build
+          BUILD_OUTPUT=$(eas build --platform ios --profile beta --non-interactive --json)
+
+          # Extract build URL
+          BUILD_URL=$(echo $BUILD_OUTPUT | jq -r '.[0].buildDetailsPageUrl')
+          echo "build_url=${BUILD_URL}" >> $GITHUB_OUTPUT
+
+          # Wait for build to complete
+          eas build:wait --platform ios --profile beta
+
+      - name: Submit to TestFlight
+        run: |
+          # Configure App Store Connect credentials
+          echo "${{ secrets.APPSTORE_API_KEY_BASE64 }}" | base64 -d > appstore_key.p8
+
+          # Submit to TestFlight with release notes
+          eas submit --platform ios --profile beta \
+            --apple-api-key-path appstore_key.p8 \
+            --apple-api-key-id ${{ secrets.APPSTORE_API_KEY_ID }} \
+            --apple-api-key-issuer-id ${{ secrets.APPSTORE_ISSUER_ID }} \
+            --non-interactive
+
+          # Clean up
+          rm appstore_key.p8
+
+  notify-testers:
+    needs: [version-bump, build-ios]
+    runs-on: ubuntu-latest
+    if: success()
+    steps:
+      - name: Notify TestFlight testers
+        run: |
+          echo "✅ iOS Beta Build ${{ needs.version-bump.outputs.version }} submitted to TestFlight"
+          echo "Build URL: ${{ needs.build-ios.outputs.build_url }}"
+          echo ""
+          echo "Release Notes:"
+          echo "${{ github.event.inputs.release_notes }}"
+          echo ""
+          echo "TestFlight Group: ${{ github.event.inputs.test_group }}"
+          echo ""
+          echo "Testers will receive the update within 10-30 minutes after Apple processes the build."
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: beta-ios-${{ needs.version-bump.outputs.version }}
+          release_name: iOS Beta ${{ needs.version-bump.outputs.version }}
+          body: |
+            ## iOS Beta Release for TestFlight
+
+            **Version:** ${{ needs.version-bump.outputs.version }}
+            **Build Number:** ${{ needs.version-bump.outputs.build_number }}
+            **TestFlight Group:** ${{ github.event.inputs.test_group }}
+
+            ### Release Notes
+            ${{ github.event.inputs.release_notes }}
+
+            ### Build Details
+            - [EAS Build](${{ needs.build-ios.outputs.build_url }})
+            - Platform: iOS (TestFlight)
+            - Profile: beta
+
+            ### For Testers
+            1. Install TestFlight from the App Store
+            2. Accept the invitation or use the public link
+            3. Install the beta version
+            4. Provide feedback through TestFlight
+          draft: false
+          prerelease: true
