@@ -60,21 +60,31 @@ export abstract class BaseAdapter {
       this.config.personality = undefined;
       return;
     }
-    // Convert PersonalityOption to PersonalityConfig if needed
-    if ('systemPrompt' in personality) {
-      this.config.personality = personality as PersonalityConfig;
-    } else {
-      // PersonalityOption - create a basic PersonalityConfig
-      const option = personality as PersonalityOption;
-      this.config.personality = {
-        id: option.id,
-        name: option.name,
-        description: option.description,
-        systemPrompt: `You are ${option.name}: ${option.description}`,
-        traits: { formality: 0.5, humor: 0.5, technicality: 0.5, empathy: 0.5 },
-        isPremium: false,
-      };
+    if ((personality as PersonalityOption).id === 'default') {
+      this.config.personality = undefined;
+      return;
     }
+    if ((personality as PersonalityConfig).traits) {
+      this.config.personality = personality as PersonalityConfig;
+      return;
+    }
+
+    const option = personality as PersonalityOption;
+    const tone = option.tone ?? { formality: 0.6, humor: 0.3, energy: 0.4, empathy: 0.6, technicality: 0.5 };
+
+    this.config.personality = {
+      id: option.id,
+      name: option.name,
+      description: option.tagline || option.description,
+      systemPrompt: option.systemPrompt,
+      traits: {
+        formality: tone.formality,
+        humor: tone.humor,
+        technicality: tone.technicality,
+        empathy: tone.empathy,
+      },
+      isPremium: false,
+    };
   }
   
   protected formatHistory(

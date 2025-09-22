@@ -28,6 +28,7 @@ export interface DemoDebate {
 export interface DemoCompareRun {
   id: string;
   label: string; // e.g., provider/model/persona
+  prompt?: string; // optional user prompt that triggered this run
   columns: Array<{
     name: string; // left/right label
     events: DemoMessageEvent[];

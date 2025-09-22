@@ -124,6 +124,7 @@ export const RecordController = {
       const runs = compareTurns.map((t, idx) => ({
         id: `r${idx + 1}`,
         label: 'providers',
+        ...(t.user ? { prompt: t.user } : {}),
         columns: [
           ...(t.responses.claude?.trim() ? [{ name: 'Claude', events: [{ type: 'message', role: 'assistant', content: t.responses.claude, speakerProvider: 'claude' }] }] : []),
           ...(t.responses.openai?.trim() ? [{ name: 'OpenAI', events: [{ type: 'message', role: 'assistant', content: t.responses.openai, speakerProvider: 'openai' }] }] : []),

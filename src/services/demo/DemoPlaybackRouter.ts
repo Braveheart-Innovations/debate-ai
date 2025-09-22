@@ -146,7 +146,10 @@ export function loadCompareScript(sample: DemoCompare): void {
       }
       responses[p] = text;
     }
-    const user = `Demo prompt: ${sample.title}${runs.length > 1 ? ` — turn ${i + 1}` : ''}`;
+    const prompt = run.prompt?.trim();
+    const user = prompt && prompt.length > 0
+      ? prompt
+      : `Demo prompt: ${sample.title}${runs.length > 1 ? ` — turn ${i + 1}` : ''}`;
     compareTurns.push({ user, responses });
   }
 }

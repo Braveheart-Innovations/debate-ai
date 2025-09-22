@@ -25,7 +25,6 @@ interface AICardProps {
   personalityId?: string;
   onPersonalityChange?: (personalityId: string) => void;
   onModelChange?: (modelId: string) => void;
-  isPremium?: boolean;
 }
 
 export const AICard: React.FC<AICardProps> = ({
@@ -38,7 +37,6 @@ export const AICard: React.FC<AICardProps> = ({
   personalityId = 'default',
   onPersonalityChange,
   onModelChange,
-  isPremium = false,
 }) => {
   const scaleAnim = useSharedValue(1);
   
@@ -115,7 +113,6 @@ export const AICard: React.FC<AICardProps> = ({
                     <PersonalityPicker
                       currentPersonalityId={personalityId}
                       onSelectPersonality={onPersonalityChange}
-                      isPremium={isPremium}
                       aiName={ai.name}
                     />
                   </Box>

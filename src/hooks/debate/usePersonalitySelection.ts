@@ -9,7 +9,6 @@ import { PersonalityService } from '../../services/debate/PersonalityService';
 
 export const usePersonalitySelection = (
   selectedAIs: AIDebater[] = [],
-  isPremium: boolean = false,
   initialPersonalities: Map<string, Personality> = new Map()
 ): UsePersonalitySelectionReturn => {
   const [selectedPersonalities, setSelectedPersonalities] = useState<Map<string, Personality>>(
@@ -18,8 +17,8 @@ export const usePersonalitySelection = (
 
   // Get available personalities based on premium status
   const availablePersonalities = useMemo(() => {
-    return PersonalityService.getAvailablePersonalities(isPremium);
-  }, [isPremium]);
+    return PersonalityService.getAvailablePersonalities();
+  }, []);
 
   // Set personality for specific AI
   const setPersonality = (aiId: string, personality: Personality) => {
@@ -142,7 +141,7 @@ export const usePersonalitySelection = (
 
   // Generate random personalities
   const randomizePersonalities = () => {
-    const personalities = PersonalityService.getAvailablePersonalities(isPremium);
+    const personalities = PersonalityService.getAvailablePersonalities();
     const newMap = new Map<string, Personality>();
     
     selectedAIs.forEach(ai => {
@@ -151,11 +150,6 @@ export const usePersonalitySelection = (
     });
     
     setSelectedPersonalities(newMap);
-  };
-
-  // Get personality stats for UI
-  const getPersonalityStats = () => {
-    return PersonalityService.getPersonalityStats();
   };
 
   // Create summary for display
@@ -179,14 +173,13 @@ export const usePersonalitySelection = (
     setPersonality,
     resetPersonalities,
     hasCustomPersonalities,
-    isPremiumFeature: true, // Personality selection is a premium feature
+    isPremiumFeature: false,
     availablePersonalities,
     validation,
     getPersonalityForAI,
     getPersonalityCombinations,
     applyRecommendedCombination,
     randomizePersonalities,
-    getPersonalityStats,
     getCompatibilityScore,
     getSummary,
   };

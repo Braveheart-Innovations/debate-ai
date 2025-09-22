@@ -1,0 +1,6020 @@
+{
+  "type": "chat",
+  "id": "chat_og_itinerary_v1",
+  "title": "Austin itinerary (OpenAI+Gemini)",
+  "comboKey": "openai+google",
+  "events": [
+    {
+      "type": "divider",
+      "meta": {
+        "startedAt": "2025-09-21T18:31:43.275Z",
+        "screen": "chat",
+        "comboKey": "openai+google",
+        "platform": "ios"
+      }
+    },
+    {
+      "type": "message",
+      "role": "user",
+      "content": "Help me plan a 3 day itenerary for Austin focused on local history and cuisine."
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Here",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "’s a ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "3‑day",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Austin itinerary that",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " weaves together",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " key local history",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " sites with classic",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " (and current",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ") Austin eats",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " It’s grouped",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " by area to",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " minimize back",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "tracking.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Double-check hours",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and make reservations",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " where possible;",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " many museums close",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Mon/Tue",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Day ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "1 — Downtown",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and UT",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": Foundations of Texas",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " history\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Morning\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Breakfast",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " tacos: Veracruz",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " All Natural (",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "E.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Cesar Chavez)",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " or Tacodeli",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " (multiple locations",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "; breakfast ends",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " late morning).\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Texas State",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Capitol: Free",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " guided tour of",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the building and",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " grounds; learn",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Republic-to-state",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "hood history and",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " see the historic",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " chambers.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Bull",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ock Texas State",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " History Museum:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Overview of Texas",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " from Indigenous history",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " to space tech",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "; the Texas",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Story exhibits are",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a great primer",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Lunch\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Texas Chili",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Parlor",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " (downtown",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "): Old-school",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " spot for a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " bowl of Texas red",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " (no",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " beans),",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a Texas classic",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Or Schol",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "z Garten (",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "near Capitol,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " since ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "1866):",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Historic German-T",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "exan beer",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " garden; saus",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ages,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " schnitzel",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and local beer",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Afternoon\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- LBJ Presidential Library",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " (UT campus",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "): Civil Rights",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " era,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " War on Poverty",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "1960s",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " context.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Pair with a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " quick walk by",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Littlefield Fountain",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and the UT",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Tower for campus history",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Optional:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Harry Ransom",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Center (G",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "utenberg Bible,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " cultural history)",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " or Blanton",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Museum’s Ell",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "sworth Kelly’s",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Austin for architectural",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "/art history.\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Evening\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Dinner:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Fonda San",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Miguel (R",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "osedale) for",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " landmark interior Mexican",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " cuisine in a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " museum-like space;",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " make a reservation",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Nightcap",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": The",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Driskill",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Bar (188",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "6 hotel)",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " for a peek",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " at Gild",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ed Age Austin",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " architecture and a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " classic cocktail.\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Day ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "2 — East",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Austin: Te",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "jano roots",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Black cultural history,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and barbecue\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Morning\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Breakfast:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Joe’s Bakery",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " & Coffee Shop",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " (since ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "1962;",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " East ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "7th)",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " for classic Tex",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "‑Mex breakfast",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " plates and pan",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " dulce.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Alternative: Juan",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " in a Million",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " (famous",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Don Juan taco",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ").\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Tej",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ano Walking Trail",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " (self-guid",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ed; start",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " near Plaza Saltillo",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "): Murals",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Guadalupe Cemetery",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Our Lady of",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Guadalupe Church—",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "markers highlight Mexican",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " American heritage",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Six Square",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "/African",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " American Cultural Heritage",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " District: Walk",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "11th/",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "12th Streets",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "; see historical markers",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and the exterior of",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the Historic Victory",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Grill (stop",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " in if open).\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- George Washington",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Carver Museum",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": Exhib",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "its on Austin",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "’s Black history",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and arts.\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Lunch\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Barbecue",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " options (arr",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ive early;",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " expect lines",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "):\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - la Bar",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "becue (",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "E.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Cesar Chavez) for",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Central Texas standards",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Mickle",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "thwait Craft",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Meats (",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Rosewood",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ") from a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " vintage trailer,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " great sausages and",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " sides.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Sam’s",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " BBQ (historic",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " no-frills",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ") for an",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " old‑",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Austin vibe.\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Afternoon\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- French Leg",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ation State Historic",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Site (184",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "0s):",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Oldest house",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " in Austin;",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " learn about the",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Republic-era French",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " diplomatic post",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Texas",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " State Cemetery:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Final resting place",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " for many Texas",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " figures; serene",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and surprisingly informative",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " with good interpret",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ive signage.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Optional:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Carver Branch",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Library mural",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " viewing,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " or a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " quick beer at",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Lazarus or",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Zilker",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Brewing (local",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " craft on East",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "side).\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Evening\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Dinner:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Nixta Ta",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "queria (",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "E.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "12th;",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " make a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " res or arrive",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " early).",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Heirloom corn",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " masa and",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " modern Mexican influence tied",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " to Austin’s",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " evolving food story",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Live music",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " in a historic",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " setting: The",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Scoot Inn",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " (est.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "1871) or",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " check if Victory",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Grill has a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " show.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Eastside patios make",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " for an easy",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " night.\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Day ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "3 — Hyde",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Park,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Clarksville,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and pioneer-era",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Austin\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Morning\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Breakfast:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Batch Craft Beer",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " & Kolaches (",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Manor Rd",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ").",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Czech‑Tex",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "an kolaches",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " are a delicious",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " nod to immigrant",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " foodways.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Elisabet",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Ney Museum (Hy",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "de Park):",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "1892",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " studio of the",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " sculptor;",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " layered immigrant and women",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "’s history.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Or Ne",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ill‑Coch",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ran House Museum",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " (west of",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " UT): ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "1850",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "s Greek Revival",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " home; includes",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " one of the",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " city’s only",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " remaining slave dwell",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ings,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " with thoughtful interpretation",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Midday/",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Walk\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Clarksville",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Historic District:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Self-guided",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " stroll through one",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " of the oldest freed",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "men communities in",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the South;",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " see Sweet Home",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Missionary Baptist",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Church and historical",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " markers.\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Lunch\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Terry Black",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "’s Barbecue",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " (S.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Lamar) for",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " classic brisket",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " with great views",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " of the skyline from",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the trail after",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Alternative BBQ pilgr",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "images if you",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "’ll drive:\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Interstellar",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " BBQ (far",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " NW; often",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ranked nationally).\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Valentina",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "’s Tex‑",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Mex BBQ (B",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "uda; Tex‑",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Mex meets Central",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Texas ‘",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "cue).\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Afternoon\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Jourdan",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "‑Bach",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "man Pioneer Farms",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " (NE Austin",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "): Living history",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " site with ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "19th‑",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "century buildings",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and occasional demonstrations",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Or nature with",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " history: Covert",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Park at Mount Bonn",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ell,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a historic overlook",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " visited since the",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "1850s",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "; pair with",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a drive along",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Scenic Dr",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " for context",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " on Austin’s",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " early resort era",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Evening\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Early dinner/",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "beer: Schol",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "z Garten if you",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " didn’t go",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Day ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "1,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " or\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Hoover’s",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Cooking (Manor",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Rd): Long",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "‑running spot",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " for East Austin",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " soul food and",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " comfort classics.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Dessert: Amy",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "’s Ice Cream",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "s (",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "local institution)",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " or Tiny Pies",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Sunday option:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Little Longhorn Sal",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "oon for",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the famously quirky",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Chicken Shit",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Bingo (",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "check schedule).\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Practical tips",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Bar",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "becue strategy:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " For Franklin Bar",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "becue (if",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " you want the",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " full legend),",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " line up by",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ~8",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ":30",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "–9:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "30 a.m",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " for an early",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " lunch; it",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " sells out",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Otherwise pick la",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Barbecue/T",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "erry Black’s",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " for shorter waits",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Reservations:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Book Fonda San",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Miguel and Ni",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "xta in advance",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "; popular",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " times fill quickly",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Heat/s",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "un:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Plan museum visits",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " midday and outdoor",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " walks mornings/e",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "venings.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Hydrate;",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " wear sunscreen.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Getting around",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": Rideshare",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " works well.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " If driving,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " budget time for",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " parking around UT",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and downtown.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Capital Metro’s",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "801/803",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " rapid lines are",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " handy along the",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Guadalupe/Lamar corridor",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Closures: Many",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " museums close Mon/T",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ue; confirm",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " hours for French",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Legation,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Carver Museum",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and Pioneer Farms.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Budget/time",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " savers: Food",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " trucks often outperform",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " sit‑downs",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "; splitting plates lets",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " you taste more",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Want me to",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " map this to",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " your hotel location,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " make reservations,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " or tailor for",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " dietary needs or",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " kids?",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "That is an absolutely stellar itinerary. You've done an excellent job of grouping activities geographically and hitting the essential historical and culinary",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " landmarks of Austin. The practical tips at the end are incredibly useful as well.\n\nI'd like to build on your foundation",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " by adding a thematic layer that connects the history and the cuisine even more explicitly. Your plan isn't just \"history sites",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " *and* good food\"; it's a perfect opportunity to experience \"history *through* food.\"\n\nHere are",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a few ways to frame that connection for the user:\n\n1.  **Food as Living History:** You can emphasize that many",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " of the restaurants on your list are historical artifacts in their own right.\n    *   **Scholz Garten (Day 1):",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "** It's not just a convenient lunch spot near the Capitol; it's a direct link to the German immigrants",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " who were foundational to Central Texas culture, politics, and music in the 19th century. Eating there is experiencing",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a piece of that heritage.\n    *   **Joe’s Bakery (Day 2):** This is a brilliant",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " choice. It’s more than a restaurant—it's been a social and political hub for the East Austin Tej",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ano community for over 60 years. Having breakfast there provides the perfect cultural context before walking the Tejano Trail.\n    ",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "*   **Central Texas Barbecue (Day 2/3):** It's worth explicitly mentioning that the style",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " of barbecue they'll be eating—salt-and-pepper rub, slow-smoked brisket, served on butcher paper—",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "has its roots in the German and Czech meat markets of the surrounding Hill Country. It's a culinary tradition born from immigrant",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " history.\n\n2.  **Pacing and Absorption:** This is an ambitious schedule, which is great for offering a",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " wealth of options. I would add a note about preventing \"museum fatigue.\" I'd suggest framing each day as a \"",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "menu\" where the user should pick one major indoor activity (like the Bullock Museum or the LBJ Library) and pair",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " it with more active, outdoor exploration (like the Capitol grounds or a historic district walk). Doing two major museums back-",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "to-back can be exhausting and might dilute the experience.\n\n3.  **A Small Thematic Addition:** For",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a unique piece of Austin's civic history, I might suggest they keep an eye out for the **Moonlight Towers**.",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " These 165-foot carbon-arc lamps are the only known surviving towers of their kind in the world. There",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "'s a prominent one in Zilker Park and another at 12th and Rio Grande. They're a quirky",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ", atmospheric part of the city's late 19th-century history and are even featured in the film *Dazed",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and Confused*. It's a small detail that adds a lot of local flavor.\n\nOverall, your plan is comprehensive",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and expertly organized. My suggestions are simply to help the user see the powerful narrative thread that ties the city's past",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " to what's on their plate.",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "message",
+      "role": "user",
+      "content": "Where should I stay while I’m there? I can afford $200/night. I’d prefer something local, not a chain."
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Of course. Finding a local spot to stay is the perfect way to round out a history and cuisine-focused trip. A",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " $200/night budget is achievable in Austin, especially if you're traveling on weekdays or outside of major",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " festival seasons (like SXSW or ACL).\n\nHere are some excellent local, non-chain hotel options that fit your budget",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and the spirit of your itinerary, grouped by neighborhood vibe.\n\n### **Category 1: South Congress Cool & Classic",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "**\nThis area puts you right in the middle of a walkable, historic strip with great food, shops, and easy",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " access to downtown. It's a fantastic central base.\n\n*   **Austin Motel:**\n    *   **",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Vibe:** Iconic, quirky, and pure retro fun. Its famous neon sign is a landmark. The rooms are individually",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " styled with a vintage-modern feel, and the kidney-shaped pool is a classic. It’s not luxurious, but it’",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "s an experience.\n    *   **Why it Fits:** It’s a piece of Austin history itself (opened in ",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "1938) and is surrounded by culinary institutions. You can walk to classic spots and new favorites.\n    *",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "   **Price:** Often starts right around or slightly above $200, especially on weekdays.\n\n*   **Hotel",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " San José:**\n    *   **Vibe:** Minimalist, chic, and serene. This former 1930",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "s motor court was transformed into a bungalow-style hotel with a lush courtyard lounge. It feels like a hidden oasis.\n",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "    *   **Why it Fits:** It’s a landmark of Austin's modern design renaissance. Staying here connects",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " you to the city's more recent cultural history and its focus on thoughtful, local design. The attached Jo's Coffee is",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a historic spot in its own right.\n    *   **Price:** Can be a stretch, but you can sometimes find rooms at",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the upper end of your budget ($200-250) during the week or off-season.\n\n",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "### **Category 2: East Austin Immersion**\nStaying here puts you in the heart of the Tejano and",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Black cultural history you'll be exploring on Day 2, surrounded by the city's most exciting food scene.",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\n\n*   **Heywood Hotel:**\n    *   **Vibe:** A small, seven-room boutique hotel",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " built into a renovated 1920s bungalow. It’s intimate, design-forward, and the service",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " is incredibly personal. They offer free bikes, which are perfect for exploring the neighborhood.\n    *   **Why it",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Fits:** It embodies the creative, local spirit of East Austin. You'll be staying just blocks away from the Tej",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ano Walking Trail, the Carver Museum, and some of the best barbecue and tacos in the city.\n    *   ",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "**Price:** Tends to be in the low-to-mid $200s, making it a great",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " value for the quality and experience.\n\n*   **East Austin Hotel:**\n    *   **Vibe:** A",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " modern, minimalist hotel with a global design influence. It offers a range of room types, from standard rooms to more affordable \"cab",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ana\" rooms with shared bathrooms, which can be a great budget option. It has a great pool and a popular restaurant.\n",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "    *   **Why it Fits:** It’s a modern hub in a historic neighborhood, placing you right on East",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " 6th Street, a block from Franklin Barbecue and within walking distance of the entire Day 2 itinerary.\n    *   ",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "**Price:** Standard rooms might be slightly above your budget, but their smaller rooms can often be found for under $200.",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\n\n### **Category 3: Quiet & Historic Charm**\nIf you prefer a quieter, more residential feel that’",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "s still close to the action, a historic guesthouse is a great choice.\n\n*   **The Fairview Guesthouse:**",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\n    *   **Vibe:** A beautiful and historic property (c. 1910) in the Travis Heights neighborhood",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ", just south of the river. It operates like a boutique hotel with the charm of a B&B. The rooms are elegant",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and the grounds are lovely and quiet.\n    *   **Why it Fits:** You get to stay in a historic Austin",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " home and neighborhood, offering a different perspective than a downtown hotel. It’s a peaceful retreat that’s still just",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a 5-minute drive or a 20-minute walk from South Congress.\n    *   **Price",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ":** Often has rooms available right at or below the $200 mark, making it an excellent value.\n\n### **Spl",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "urge-Worthy (But Check for Deals)**\n\n*   **The Driskill Hotel:**\n    *   **Why",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " you should check:** Since your itinerary ends here for a nightcap, you should at least look. As Austin's oldest and",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " most historic hotel (1886), it's the ultimate place to stay for a history buff. It's now",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " part of the Hyatt chain, but it operates with a fiercely independent and historic character.\n    *   **Price:** Usually",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " well over $300, but on a rare off-season weekday, you might find a deal that gets closer",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " to your budget. It’s worth a 30-second search just in case.\n\n### **Practical Tips",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " for Booking:**\n\n1.  **Weekdays are Key:** Hotel prices in Austin can nearly double from a Wednesday to a Friday",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ", especially during the spring and fall.\n2.  **Watch for Fees:** The listed price is before Austin's high",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " hotel occupancy taxes (~17%) and any potential resort or parking fees. Factor that into your budget.\n3.",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "  **Book Direct:** After comparing prices, check the hotel's own website. They sometimes offer slightly better rates,",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " free parking, or other small perks for booking directly.\n\nFor your itinerary, my top recommendation would be the **Hey",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "wood Hotel** for its perfect location for Day 2 and its deeply local ethos, or the **Austin Motel** for",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " its iconic status and walkability.",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Great",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " list,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and I",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " like how you",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " tied neighborhoods",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " to the itinerary",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " A couple of",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " tweaks and a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " few more truly",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " local options",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " that often land",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " near or",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " under $200",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " (especially mid",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "week/off-",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "peak):\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Small correction",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": East Austin Hotel",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " isn’t quite “",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "a block” from",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Franklin Barbecue",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "—it’s about",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "10–15",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " minute walk (",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "E ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "6th to",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " E ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "11th).",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Still an",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " excellent base",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " for Day ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "2.\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Historic B",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "&Bs with",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " local character:\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Br",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ava House",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " B&B (",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Clarksville):",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "1880s",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Victorian near historic Clark",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "sville; walkable",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " to West ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "6th and a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " short hop to downtown",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Frequently around $",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "175–",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "$220.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Star of",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Texas Inn",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " (near UT",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "): Restored",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " historic homes with a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " B&B feel;",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " good value,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " often under or",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " around $200.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Strickland",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Arms B&B",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " (Hyde",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Park): Old",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Austin stone mansion",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " vibe; peaceful",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " usually in the",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " $150–",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "$200 range",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Budget-friendly",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " but central,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " non-chain or",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " very small-brand",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ":\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Firehouse",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Hostel (Dow",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ntown): In an ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "1885 fire",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "house; private rooms",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " are simple but comfy",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and often <$",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "180 midweek",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " You also get",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a genuinely",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " historic building steps",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " from the Day",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "1 sights.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - ARRIVE",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " East Austin:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Indie-brand property",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " on E ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "6th;",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " weekday rates sometimes",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " $150–",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "$220.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Puts you",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " right in the",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Eastside",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " food corridor.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Not a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " big-box chain",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " but technically",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a small brand.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Carpenter Hotel",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " (Zil",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ker/Barton",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Springs): Local",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " hospitality group;",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " serene,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " design-y,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and walkable",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " to Zil",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ker.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Often just above",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " $200,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " but deals pop up",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " midweek.\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Apartment-style",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " indie options:\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Colton",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " House Hotel (",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "South Congress,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " farther south):",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Spacious studios with",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " kitchenettes;",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " rates can dip",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " to ~$180",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "–$220 on",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " quiet weeks.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Good for",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " longer stays or if",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " you want to stock",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " local groceries.\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Practical add",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-ons to your",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " tips:\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Parking can",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " swing the total cost",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a lot.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Downtown/So",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Co hotels may",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " charge $30",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "–$50",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "/night; East",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "side/B&B",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "s often have",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " free or easy",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " street parking.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - If $",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "200 is your hard",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ceiling before taxes",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " target private rooms",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " at Firehouse",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Hostel,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " East Austin Hotel",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " cabanas (",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "shared bath),",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " or the B&B",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "s above.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " If $200",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " is your target",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " before tax,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Heywood and",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Austin Motel become very",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " realistic.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Avoid festival",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " windows (SXSW",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ACL,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " F1",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ") and UT",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " graduation/home football",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " weekends—",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "prices can jump",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "2–3",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "x.\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "If I had",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " to slot",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " picks to the itinerary",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": Heywood",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Hotel for the East",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "side immersion;",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Brava House",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " or Star of",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Texas Inn if",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " you want",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " that historic-home",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " feel near Day",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "1/UT",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "; Firehouse",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Hostel private room",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " if you need",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " to stay well",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " under $200",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " while being dead-center",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "message",
+      "role": "user",
+      "content": "I always hear about Austin’s taco culture. Can you recommend a few places so I can see what the hype is all about?"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Austin",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "’s taco",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " scene spans classic",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " breakfast tacos,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Tex‑Mex",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " standbys,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Mexico City–",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "style street tacos",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and modern heir",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "loom‑corn",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " spots.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Here are standout",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " local picks with what",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " to order:\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Veracruz All",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Natural (East",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "/Central)\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Why: Handmade",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " tortillas,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " bright sals",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "as; an",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Austin benchmark.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Order:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Migas Pob",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "lanas breakfast",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " taco; La",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Reyna;",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " al pastor",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Mi Madre’s",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " (East ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "11th)\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Why:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Classic Austin Tex‑",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Mex breakfast tacos",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and hearty plates",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Order",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": Numbered",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " breakfast tacos (",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "try #8 or",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " #9),",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " plus chips and",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " salsa.\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Vaqu",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ero Taqu",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ero (near",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " UT/Hy",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "de Park)\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Why:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Trompo al",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " pastor carved to",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " order.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Order:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Al pastor with",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " pineapple; campe",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "chana;",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " queso flameado.\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Cuantos",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Tacos (",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "E.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Cesar Chavez)\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Why: Mexico",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " City–style mini",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " tacos on",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " perfect corn tortillas.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Order:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Suadero,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " longaniza",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " campechano",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "; add ceboll",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "itas and consom",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "é.\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Discada",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " (East ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "6th)\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Why:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Northern Mexican “",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "discada”",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " meat blend cooked",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " on a pl",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ow‑disc",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "—unique",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " in ATX",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Order:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " The disc",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ada tacos (it",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "’s the move",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "); grab a topo",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and enjoy on",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the patio.\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Ni",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "xta Taquer",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ia (E",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "12th)\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Why:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Heirloom",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " corn masa and",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " creative,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " chef‑dr",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "iven fillings.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Order: Duck",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " carnitas",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " taco; beet",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " “tart",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "are”",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " tostada",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "; check for",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " daily specials.\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Pueblo Vie",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "jo (East",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "side and",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " multiple)\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Why: Reliable",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " affordable neighborhood favorite",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " for breakfast and",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " late lunch.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Order:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " La Reyna",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " breakfast taco;",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " al pastor;",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " verde salsa.\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Valentina",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "’s Tex‑",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Mex BBQ (B",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "uda; short",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " drive)\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Why: Tex",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "‑Mex",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " meets Central Texas",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " barbecue.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Order:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Smoked brisk",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "et taco",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " on flour",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "; Real Deal",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Holyfield (",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "breakfast)",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " if available.\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Bonus: Granny",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "’s Tacos",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " (East)\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Why:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Big,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " made‑to",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "‑order breakfast",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " tacos and homemade",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " tortillas.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Order:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Chorizo",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "/egg/p",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "otato;",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " barbacoa",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "; salsa roja",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Tips\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Go early",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " for breakfast tacos",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "; lines",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " move fast but",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " sell‑outs",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " happen.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Many spots",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " are trailer setups",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " with limited seating",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "—shade and cold",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " drinks help in warm",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " months.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Check hours and",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " locations the day",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " of; popular",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " places sometimes close",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " when they sell",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " out.\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "If you tell",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " me where you",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "’re staying,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " I can plot a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " taco crawl you",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " can walk or",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " bike.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "That's a killer list. You've hit all the essential food groups of the Austin taco scene, from the legendary breakfast",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " tacos at Veracruz to the Mexico City-style perfection of Cuantos.\n\nTo build on that, it might be helpful to",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " frame it around the three main pillars of Austin's taco culture. Each one represents a different part of the city's history and",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " palate, which ties directly into the user's original request.\n\n1.  **The Breakfast Taco: The City's",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Fuel.** This is a uniquely Austin/Texas tradition. It's the city's everyday ritual, almost always served",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " on a fluffy flour tortilla (a key distinction from most other taco styles). It’s less about strict authenticity and more about",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " comfort and community. Your recommendations of **Veracruz** and **Mi Madre's** are the gold standard here. The",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " \"Real Deal Holyfield\" from **Valentina's** is the barbecue-infused, heavyweight champion of this entire",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " category.\n\n2.  **The Regional Mexican Street Taco: The Craft.** This is where technique and tradition shine,",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " almost always on corn tortillas. It’s about honoring specific preparations that have been perfected over generations. **Vaquero Ta",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "quero's** trompo al pastor (carved from the vertical spit) and **Cuantos Tacos'**",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " suadero (slow-cooked beef) are perfect examples. They're a direct link to the street food culture of specific",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " regions in Mexico, brought to Austin. This is the heart of the city's authentic taco scene.\n\n3.  **",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "The \"New Austin\" Taco: The Canvas.** This is the chef-driven, creative evolution of the taco. It",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "’s about sourcing, innovation, and fusion. **Nixta Taqueria**, with its focus on heirloom corn (ni",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "xtamalization is the ancient process of preparing masa) and inventive fillings like duck carnitas, is the pinnacle of this.",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " It shows how the taco is a canvas for Austin's modern culinary identity, blending tradition with high-level technique.\n\nOne",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " more local insight to add: A great taco spot is often defined by its **salsa bar**. A place like Tac",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "odeli (another major player, especially for breakfast) is legendary for its creamy, spicy Salsa Doña. Don't be",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " shy about trying a few different salsas—it's a key part of the experience and a point of pride for these",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " taqueros.\n\nBy thinking in these categories, the user isn't just eating at great spots; they're tasting different",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " chapters of Austin's cultural and culinary story.",
+      "speakerProvider": "google"
+    }
+  ]
+}

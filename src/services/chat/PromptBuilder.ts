@@ -39,14 +39,15 @@ export class PromptBuilder {
       prompt = this.buildRoundRobinPrompt(lastSpeaker!, lastMessage!);
     }
 
-    // Apply personality if provided
-    if (personality) {
-      prompt = this.injectPersonality(prompt, personality, isDebateMode);
-    }
-
     // Apply debate mode modifications if active
     if (isDebateMode) {
       prompt = this.applyDebateMode(prompt, ai, context);
+    }
+
+    // Layer persona guidance after debate framing so it stays closest to the actionable instructions
+    if (personality) {
+      const mode: 'chat' | 'debate' | 'compare' = isDebateMode ? 'debate' : 'chat';
+      prompt = this.appendPersonaGuidance(prompt, personality, mode);
     }
 
     return prompt;
@@ -63,9 +64,9 @@ export class PromptBuilder {
   ): EnrichedPrompt {
     let enrichedPrompt = aiPrompt;
 
-    // Apply personality if provided
     if (personality) {
-      enrichedPrompt = this.injectPersonality(enrichedPrompt, personality, isDebateMode);
+      const mode: 'chat' | 'debate' | 'compare' = isDebateMode ? 'debate' : 'chat';
+      enrichedPrompt = this.appendPersonaGuidance(enrichedPrompt, personality, mode);
     }
 
     return {
@@ -77,18 +78,30 @@ export class PromptBuilder {
   }
 
   /**
-   * Injects personality into a prompt
+   * Appends persona-specific guidance to a prompt without re-stating the full system prompt
    */
-  static injectPersonality(
+  static appendPersonaGuidance(
     prompt: string,
     personality: PersonalityOption,
-    isDebateMode: boolean = false
+    mode: 'chat' | 'debate' | 'compare' = 'chat'
   ): string {
-    const systemPrompt = isDebateMode && personality.debatePrompt 
-      ? `${personality.systemPrompt}\n\nDebate Style: ${personality.debatePrompt}`
-      : personality.systemPrompt;
+    if (personality.id === 'default') {
+      return prompt;
+    }
 
-    return `${systemPrompt}\n\nUser: ${prompt}`;
+    const guidance =
+      (mode === 'debate' ? personality.debateGuidance : undefined) ||
+      (mode === 'compare' ? personality.compareGuidance : undefined) ||
+      personality.chatGuidance;
+
+    const signature = personality.signatureMoves?.[0];
+    const reminder = guidance || signature;
+
+    if (!reminder) {
+      return prompt;
+    }
+
+    return `${prompt}\n\nPersona focus: ${reminder}`;
   }
 
   /**
@@ -173,7 +186,7 @@ ${prompt}`;
 ${originalPrompt}`;
 
     if (personality) {
-      return this.injectPersonality(mentionPrompt, personality);
+      return this.appendPersonaGuidance(mentionPrompt, personality, 'chat');
     }
 
     return mentionPrompt;

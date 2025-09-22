@@ -186,7 +186,7 @@ export const PromptWizard: React.FC<PromptWizardProps> = ({
     if (selectedAIs.length > 0) {
       const aiId = selectedAIs[0].id;
       const personalityId = aiPersonalities[aiId] || 'default';
-      const personality = getPersonality(personalityId);
+      const personality = personalityId !== 'default' ? getPersonality(personalityId) : undefined;
       
       if (personality) {
         enrichedPrompt = `[PERSONALITY: ${personality.name}]\n${personality.systemPrompt}\n\n[TONE: ${toneText}]\n\n${userPrompt}`;

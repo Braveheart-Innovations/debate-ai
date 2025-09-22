@@ -20,6 +20,7 @@
   "include": [
     "src/**/*.ts",
     "src/**/*.tsx",
+    "scripts/demo/recordings/**/*.json",
     "index.ts",
     "App.tsx"
   ],

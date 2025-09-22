@@ -595,6 +595,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
           visible={topicPickerVisible}
           providers={session.currentSession ? session.currentSession.selectedAIs.map(a => a.provider) : []}
           personaId={session.currentSession && session.currentSession.selectedAIs.length === 1 ? (session.currentSession.selectedAIs[0].personality || 'default') : undefined}
+          allowNewSample={true}
           onClose={() => setTopicPickerVisible(false)}
           onSelect={async (sampleId, title) => {
             setTopicPickerVisible(false);

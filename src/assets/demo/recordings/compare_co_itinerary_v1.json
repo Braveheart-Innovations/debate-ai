@@ -1,0 +1,37 @@
+{
+  "type": "compare",
+  "id": "compare_co_itinerary_v1",
+  "title": "Kyoto Itinerary (Claude vs OpenAI)",
+  "comboKey": "claude+openai",
+  "category": "provider",
+  "runs": [
+    {
+      "id": "r1",
+      "label": "providers",
+      "columns": [
+        {
+          "name": "Claude",
+          "events": [
+            {
+              "type": "message",
+              "role": "assistant",
+              "speakerProvider": "claude",
+              "content": "Day 1: Fushimi Inari; Day 2: Arashiyama…"
+            }
+          ]
+        },
+        {
+          "name": "OpenAI",
+          "events": [
+            {
+              "type": "message",
+              "role": "assistant",
+              "speakerProvider": "openai",
+              "content": "Day 1: Kiyomizu-dera; Day 2: Nishiki Market…"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,3578 @@
+{
+  "type": "debate",
+  "id": "debate_og_sage_1",
+  "title": "Motion: There should be a universal basic income.",
+  "comboKey": "google+openai:Prof. Sage",
+  "events": [
+    {
+      "type": "divider",
+      "meta": {
+        "startedAt": "2025-09-21T00:45:54.186Z",
+        "screen": "debate",
+        "comboKey": "google+openai:Prof. Sage",
+        "platform": "ios",
+        "participants": ["ChatGPT", "Gemini"],
+        "topic": "Motion: There should be a universal basic income."
+      }
+    },
+    {
+      "type": "message",
+      "role": "user",
+      "content": "Motion: There should be a universal basic income."
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": "",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "By",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " universal basic income,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " I mean",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a regular,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " unconditional cash payment",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " to every adult",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " sufficient to secure",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " basic needs,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " paid individually and",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " not withdrawn as",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " earnings rise.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " The question is",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " whether such",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a floor should",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " exist in modern",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " economies marked",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " by volatile work",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " automation,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and thin",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " margins for error",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " I argue yes",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": a U",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "BI is a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " pragmatic upgrade to our",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " social contract that",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " enhances freedom,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " simplifies support",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and strengthens economic resilience",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "First,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " UBI expands",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " real freedom by",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " guaranteeing a baseline",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " of security.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " When the next",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " paycheck is not",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " existential,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " people make better",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " choices—",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "taking a new job",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " starting a business,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " moving for work",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " returning to school,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " or caring for",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a child",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " or aging parent without",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " falling into dest",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "itution.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Evidence from cash",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-transfer studies and",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " pilots suggests that unconditional",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " cash reduces stress",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " improves health,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and increases financial stability",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " with little to no",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " reduction in overall",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " labor supply;",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Finland’s ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "2017–",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "2018 trial",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and the",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Stockton SEED",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " program observed gains",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " in well-being",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and employment quality",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " rather than mass",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " withdrawal from work",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Security here is",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a floor,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " not a hammock",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Second,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " UBI replaces",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " complexity with clarity",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Today’s patch",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "work often requires people",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " to prove and",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " re-pro",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ve hardship,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " creating high administrative",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " costs,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " low take-up,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and perverse cliffs",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " A universal payment",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " is simple",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " to administer,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " easy to access,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and hard to",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " game.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " The Alaska Permanent",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Fund Dividend,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " while smaller than",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a true U",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "BI,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " shows that universal",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " cash can be",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " delivered annually with",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " high participation and",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " minimal bureaucracy,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and research finds",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " no meaningful effect",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " on full-time",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " employment.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Universality also",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " removes stigma:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " receiving basic",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " security is not",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a mark",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " of failure;",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " it is a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " civic dividend.\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Third,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " UBI acts",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " as an automatic",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " stabilizer that",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " supports a dynamic",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " economy.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Regular cash cushions",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " shocks,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " maintains consumption",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " in downturns",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and smooths",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " local demand—help",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ful in communities",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " facing automation or",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " industry shifts.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Financing can be",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " responsibly assembled from",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a blend of",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " measures—con",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "solidating some",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " existing programs,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " broad-based taxes",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " such as VAT",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " or carbon dividends",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and progressive lev",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ies on high-end",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " wealth or rents",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "—paired with",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " clawbacks through",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the tax system for",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " top earners",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Because payments",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " recycle through taxation",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and scale with",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " revenue,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a well-designed",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " UBI",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " need not be",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " inflationary;",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " experience with permanent cash",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " transfers like Alaska",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "’s and",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " modeling of",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " carbon-dividend",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " schemes suggest modest",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " manageable price effects",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " when funded",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and predictable,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " especially if paired",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " with supply-side",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " investments.\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "The uncomplicated core",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " is this:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a guaranteed",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " income floor",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " gives every person the",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " bargaining power to",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " say yes",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " to opportunity and",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " no to exploitation",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " while reducing red",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " tape and making the",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " overall economy more shock",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-resistant.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " In a century",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " of uncertain work,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " UBI is",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the simple,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " dignified tool",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " that lets people",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " stand on their own",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " two feet.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": "",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "My esteemed colleague paints a rather fetching picture of a world made simple and secure by a universal basic income. Let us define our",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " terms similarly: a regular, unconditional cash payment to all adults, intended to provide a floor of economic security. The core",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " question, however, is not whether we desire security and dignity for our citizens—of course, we do—but whether",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " this specific, radical proposal is a sound vehicle for achieving those ends. I contend it is not. UBI, for all",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " its utopian appeal, represents a fiscally perilous, socially corrosive, and inefficiently targeted policy.\n\nFirst, let us speak",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " of the elephant in the room, or rather, the mountain of cash it would be sitting on. A truly 'basic' income",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ", sufficient to live on, provided 'universally' to every adult, would carry a price tag so colossal it would",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " fundamentally reshape our economy for the worse. Preliminary analyses, even conservative ones, suggest costs running into the trillions annually for a country",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " like the United States. Funding this would require either dismantling the existing social safety net and public services—from healthcare to education—",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "or imposing tax rates so punitive they would discourage investment, hamstring businesses, and ultimately shrink the very economic pie we seek to",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " distribute. The small-scale, temporary pilots often cited are simply not comparable; they are boutique experiments, not blueprints for restructuring",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a continental economy.\n\nSecond, we must consider the profound social consequences of severing the link between contribution and compensation on",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a societal scale. Proponents often dismiss concerns about work incentives, pointing to studies showing minimal impact. But these short-term",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " trials cannot capture the long-term cultural shift that occurs when work is no longer the primary means of securing one's livelihood",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ". The issue transcends mere labor supply; it touches upon the dignity, structure, and purpose that meaningful work provides. While we",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " should absolutely protect people from exploitation, creating a system where a baseline of existence requires no contribution risks fostering dependency and eroding the social contract that",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " binds us. It offers a safety net, yes, but one so wide it could easily become a permanent cushion from which many",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " never rise.\n\nFinally, the 'universality' of UBI is its greatest weakness, not its strength. It",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " is a tool of remarkable bluntness, showering resources on millionaires and struggling parents alike. This makes it a fantastically inefficient mechanism for",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " alleviating poverty. A significant portion of the immense cost would be directed to those who have no need for it, diverting funds that could be",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " more effectively concentrated on the vulnerable through targeted support systems. While our current welfare systems are indeed complex and in need of reform, the",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " answer is not to replace a scalpel, however imperfect, with a sledgehammer.\n\nIn essence, UBI is",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a seductive but ultimately flawed proposition. It mistakes simplicity for efficacy and risks bankrupting the state, devaluing work, and mis",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "allocating aid in its quest for an elegant solution. Our goal should be to build a ladder of opportunity, not just",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a floor of subsistence.",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": "",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "By",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " universal basic income",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " I mean an",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " unconditional,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " regular cash payment",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " to every adult",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " with the amount",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " set to secure basic",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " needs and",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " taxed like other",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " income.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " The live question",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " is whether U",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "BI is fisc",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ally reckless and",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " socially corrosive",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " as my colleague",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " claims,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " or whether those",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " fears rest on",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " misleading abstractions",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Two points in rebut",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "tal.\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "On “",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "a mountain of cash",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "” that would",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " “require",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " dismantling the",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " safety net",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " or punitive tax",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " rates”: the",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " headline gross cost",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " is not the",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " net fiscal burden",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Universality is",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " an administrative feature",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "; progressivity happens",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " through the tax",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " system.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " If the payment",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " is taxable and",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " higher earners",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " face existing or",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " modestly higher",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " effective rates,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " most of what",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the top dec",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "iles receive is",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " simply clawed",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " back.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " That is why economists",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " often note the",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " equivalence between",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a universal grant",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " plus taxes and",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a negative income",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " tax.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Real-world preced",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ents suggest feasibility",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " without fiscal ruin",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": Alaska has",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " paid a universal",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " dividend for decades",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " financed by resource",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " rents; carbon",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-dividend proposals are",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " designed the same way",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "; and modeling",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " exercises show that",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " blending broad consumption",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " bases with progressive",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " levies",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and consolidating overlapping",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " cash programs can",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " finance a basic",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " floor without “",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "punitive”",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " rates,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " because the same",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " dollars circulate",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " back.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " The elephant’s",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " mountain,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " in other words",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " is largely the",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " same money returning",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " via taxation rather",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " than a new",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " pile conjured",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " from nowhere.\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "On the claim",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " that UBI",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " would “se",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ver the link",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " between contribution and",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " compensation” and er",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ode work:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " long-run cultural",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " forecasts are speculative",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " but the best",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " evidence we have",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " from durable universal",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " or quasi-un",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "iversal cash says",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the sky doesn",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "’t fall.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " The Alaska Permanent",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Fund Dividend,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " paid to all",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " residents since the ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "1980s",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " shows no reduction",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " in overall employment",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "; research finds",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " stable employment rates with",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " some substitution toward",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " part-time work",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " as people",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " adjust margins,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " not mass withdrawal",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Finland’s national trial",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " while limited in",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " size,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " reported neutral employment",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " effects alongside better",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " well-being; Stockton",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "’s SEED",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " saw increased full",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-time work among",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " recipients.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " These are not",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " boutique handouts",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " to a few",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " streets for",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a few weeks",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "; Alaska,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " in particular,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " is permanent,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " universal,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and salient.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " The pattern is",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " consistent with how",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " most people actually",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " value work: a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " secure floor improves",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " job search,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " reduces “bad",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "” matches,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and raises bargaining",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " power,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " rather than turning",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " work into an",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " optional hobby.\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "The takeaway is simple",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": the spect",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "er of fiscal",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " collapse and a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " workless",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " society relies on",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " treating gross",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " transfers as net",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " costs and conject",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ure as evidence.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Design U",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "BI with tax",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-based clawbacks",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and stable",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " funding,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and you get",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a targeted net",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " benefit without punitive",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " rates—and a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " floor that",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " supports,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " rather than",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " supplants,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " productive work.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": "",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "My colleague has skillfully attempted to shrink my mountain of cash into a manageable molehill and to dismiss concerns about work ethic as mere",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " speculation. While I admire the elegance of the argument, I find the evidence upon which it rests to be rather thin soil",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " for such a grand structure.\n\nFirst, let us address the assertion that the \"headline gross cost is not the net fiscal burden",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\" and that Alaska’s dividend serves as a viable precedent. This comparison, I must gently suggest, is a category",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " error. The Alaska Permanent Fund pays out a modest annual dividend, typically a couple of thousand dollars, financed by a unique",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " windfall of oil revenue. This is not a 'basic income' upon which one can live; it is a welcome bonus.",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " To scale this model to a national level without a vast, state-owned oil field would require the very punitive and distortion",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ary taxes I mentioned. The proposed 'clawback' mechanism, where the state gives money to high earners only to tax",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " it back immediately, is a solution of breathtaking inefficiency. It creates a monumental administrative churn simply to avoid the political inconvenience of admitting",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " that universality is not the same as equity. We would be flooding the entire system with trillions of dollars just to ensure a",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " targeted stream reaches those in need.\n\nSecond, my opponent leans on short-term pilots in places like Stockton and Finland to counter",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the claim that UBI would \"sever the link between contribution and compensation.\" But these experiments are simply not predictive of long",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-term, society-wide behavior. A two-year study involving a few thousand people who know the payments will end is",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a poor proxy for a permanent, universal system embedded in the culture. Participants in such trials are in an artificial environment; their",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " behavior cannot tell us what happens when an entire generation grows up in a society where the economic necessity of work has been fundamentally altered.",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " To suggest that these small-scale, temporary observations negate the deep, historical connection between work, purpose, and social cohesion",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " is a leap of faith I am not prepared to make.\n\nThe core issues, therefore, remain. The proposed funding",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " mechanisms are either based on a non-replicable anomaly like Alaska or an inefficient churn of capital, and the evidence marsh",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "aled to dismiss legitimate concerns about work incentives is drawn from small, temporary trials that cannot possibly model permanent, societal change. The",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " molehill, I'm afraid, is still a mountain.",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": "",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "By",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a universal basic",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " income,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " I mean an",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " unconditional,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " regular cash payment",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " to every adult",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " financed transparently",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and taxed like",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " other income.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Two clarifications to",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " my colleague’s",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " points.\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "You called",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Alaska a “",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "category error”",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and the tax",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-based clawback",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " “breathtaking",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ly inefficient",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".” Alaska is",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " not a full",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " basic income",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " but it is",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a clean demonstration",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " that universal cash",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " can be delivered",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " at scale with",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " vanishingly",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " low administrative overhead;",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the dividend has",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " run for decades",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " with administrative costs",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " well under a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " couple of percent.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " The alleged “",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "churn”",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " of giving",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and taxing",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " back is exactly",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " how modern fiscal",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " systems already net",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " flows: withholding",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " quarterly estimates,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and annual reconciliation",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Programs like the Canada",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Child Benefit",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and the U",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".S.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Earned Income",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Tax Credit use",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the tax system",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " to phase payments",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " by income with",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " high take-up",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and low admin",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " costs relative to",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " targeted,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " verification-heavy welfare",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Universality simplifies",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " gatekeeping; progress",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ivity happens on the",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " same ledger without",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " armies of case",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "workers.\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "You also argued",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " that short pilots",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " cannot speak to long",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-run work norms",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Fair caution,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " but the relevant",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " evidence is broader",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and longer than",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Stockton or Finland",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " A statewide,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " permanent,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " universal cash program exists",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": Alaska’s",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " dividend.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Studies find no",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " decline in overall",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " employment there,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " with some re",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "allocation toward part",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-time work rather",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " than exit.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Earlier large negative",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " income tax experiments",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " in the U",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".S.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and Canada observed",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " modest labor-supply",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " reductions measured in weeks",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " per year,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " concentrated among secondary",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " earners and",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " students—hard",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ly a cultural",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " unraveling.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Longitudinal",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " evidence from unconditional",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " tribal revenue shares likewise",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " shows improved youth",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " outcomes without collapsing",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " adult employment.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " The best available natural",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " experiments don’t",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " support a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " story of sever",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ed work incentives",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "The takeaway:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " treating universality-plus",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-tax as “",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "inefficient churn",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "” mistakes how",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " public finance actually",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " nets flows,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and the strongest",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " long-run evidence",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " we have—from",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Alaska and past",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " guaranteed-income trials",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "—does not",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " show the work",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " erosion my colleague",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " predicts.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "By a universal basic income, I mean an unconditional, regular cash payment to every adult, financed transparently and taxed like other income. Two clarifications to my colleague’s points.\n\nYou called Alaska a “category error” and the tax-based clawback “breathtakingly inefficient.” Alaska is not a full basic income, but it is a clean demonstration that universal cash can be delivered at scale with vanishingly low administrative overhead; the dividend has run for decades with administrative costs well under a couple of percent. The alleged “churn” of giving and taxing back is exactly how modern fiscal systems already net flows: withholding, quarterly estimates, and annual reconciliation. Programs like the Canada Child Benefit and the U.S. Earned Income Tax Credit use the tax system to phase payments by income with high take-up and low admin costs relative to targeted, verification-heavy welfare. Universality simplifies gatekeeping; progressivity happens on the same ledger without armies of caseworkers.\n\nYou also argued that short pilots cannot speak to long-run work norms. Fair caution, but the relevant evidence is broader and longer than Stockton or Finland. A statewide, permanent, universal cash program exists: Alaska’s dividend. Studies find no decline in overall employment there, with some reallocation toward part-time work rather than exit. Earlier large negative income tax experiments in the U.S. and Canada observed modest labor-supply reductions measured in weeks per year, concentrated among secondary earners and students—hardly a cultural unraveling. Longitudinal evidence from unconditional tribal revenue shares likewise shows improved youth outcomes without collapsing adult employment. The best available natural experiments don’t support a story of severed work incentives.\n\nThe takeaway: treating universality-plus-tax as “inefficient churn” mistakes how public finance actually nets flows, and the strongest long-run evidence we have—from Alaska and past guaranteed-income trials—does not show the work erosion my colleague predicts.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": "",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Throughout this discussion, my esteemed colleague and I have agreed on the destination: a society that offers security, dignity, and",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " opportunity. Our fundamental disagreement lies in the map he has chosen to get there—a map drawn with the beautifully simple, straight line",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " of a universal basic income. I have argued that this path, for all its elegance, leads us over a fiscal cliff and into a",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " socially unfamiliar land.\n\nWe have debated the staggering cost, which my opponent suggests can be managed through clever tax clawbacks",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ". Yet, this vision of circulating trillions of dollars only to reclaim most of it from those who do not need it remains",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a monument to inefficiency. It is like installing a fire sprinkler in every room of a city to water a few potted plants. The scale",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " of a true UBI is simply not comparable to the targeted tax credits or the unique, oil-funded dividend of Alaska. It",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " is a radical restructuring of our fiscal priorities, one whose price tag cannot be waved away with accounting tricks.\n\nWe have also touched",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " upon the very soul of our social contract: the role of work. My opponent has pointed to short-term studies and",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " limited experiments to assure us that people will not abandon productive effort. But these snapshots cannot capture the long-term, cultural",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " change of permanently decoupling survival from contribution for an entire society. The risk is not a nation of idlers overnight, but a slow",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " erosion of the sense of purpose, mutual obligation, and dignity that meaningful work, however difficult, provides. This is a",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " profound gamble with the character of our society, and the evidence offered is not nearly enough to justify the stakes.\n\nIn",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the end, this motion asks us to embrace a solution whose primary virtue is its universality. But this is precisely its deepest",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " flaw. In its attempt to solve everything for everyone, it solves the acute problems of poverty and vulnerability with a shocking lack of focus.",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " It is a blunt instrument where precision is required.\n\nTherefore, the choice before us is clear. We can opt for the seductive",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " simplicity of a universal payment that is fiscally precarious, socially untested on a grand scale, and inefficiently targeted. Or,",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " we can commit to the more difficult but ultimately more rewarding work of building a robust, targeted, and effective safety net that empowers",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " people to climb, rather than just providing a floor to stand on. The most compassionate and practical path forward is not to",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " subsidize existence, but to enable opportunity.",
+      "speakerProvider": "google"
+    }
+  ],
+  "topic": "Motion: There should be a universal basic income.",
+  "participants": ["ChatGPT", "Gemini"]
+}

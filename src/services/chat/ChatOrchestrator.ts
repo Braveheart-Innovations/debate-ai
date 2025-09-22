@@ -126,7 +126,7 @@ export class ChatOrchestrator {
         await this.sleep(ChatService.calculateTypingDelay());
 
         const personalityId = aiPersonalities[ai.id] || 'default';
-        const personality = getPersonality(personalityId);
+        const personality = personalityId !== 'default' ? getPersonality(personalityId) : undefined;
         if (personality) {
           this.aiService.setPersonality(ai.id, personality);
         }

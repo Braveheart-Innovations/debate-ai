@@ -17,6 +17,7 @@ import { TrialBanner } from '@/components/molecules/subscription/TrialBanner';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { DemoBanner } from '@/components/molecules/subscription/DemoBanner';
 import { showSheet } from '@/store';
+import { CompareSamplePickerModal } from '@/components/organisms/demo/CompareSamplePickerModal';
 
 interface CompareSetupScreenProps {
   navigation: {
@@ -86,6 +87,8 @@ const CompareSetupScreen: React.FC<CompareSetupScreenProps> = ({ navigation, rou
   const [rightPersonalities, setRightPersonalities] = useState<{ [aiId: string]: string }>({});
   const [leftModels, setLeftModels] = useState<{ [aiId: string]: string }>({});
   const [rightModels, setRightModels] = useState<{ [aiId: string]: string }>({});
+  const [samplePickerVisible, setSamplePickerVisible] = useState(false);
+  const [pendingConfigs, setPendingConfigs] = useState<{ left: AIConfig; right: AIConfig } | null>(null);
   
   const handleToggleLeftAI = (ai: AIConfig) => {
     setLeftAI(leftAI.length > 0 && leftAI[0].id === ai.id ? [] : [{ ...ai, personality: ai.personality || 'default' }]);
@@ -120,6 +123,12 @@ const CompareSetupScreen: React.FC<CompareSetupScreenProps> = ({ navigation, rou
     dispatch(setAIPersonality({ aiId: rightAI[0].id, personalityId: rightAIConfig.personality }));
     dispatch(setAIModel({ aiId: rightAI[0].id, modelId: rightAIConfig.model }));
     
+    if (access.isDemo) {
+      setPendingConfigs({ left: leftAIConfig, right: rightAIConfig });
+      setSamplePickerVisible(true);
+      return;
+    }
+
     navigation.navigate('CompareSession', { 
       leftAI: leftAIConfig,
       rightAI: rightAIConfig,
@@ -186,7 +195,6 @@ const CompareSetupScreen: React.FC<CompareSetupScreenProps> = ({ navigation, rou
               columnCount={1}
               containerWidth={selectorWidth}
               onAddAI={() => navigation.navigate('APIConfig')}
-              isPremium={access.isPremium || access.isInTrial}
               aiPersonalities={leftPersonalities}
               selectedModels={leftModels}
               onPersonalityChange={(aiId, personalityId) => 
@@ -225,7 +233,6 @@ const CompareSetupScreen: React.FC<CompareSetupScreenProps> = ({ navigation, rou
               columnCount={1}
               containerWidth={selectorWidth}
               onAddAI={() => navigation.navigate('APIConfig')}
-              isPremium={access.isPremium || access.isInTrial}
               aiPersonalities={rightPersonalities}
               selectedModels={rightModels}
               onPersonalityChange={(aiId, personalityId) => 
@@ -270,6 +277,24 @@ const CompareSetupScreen: React.FC<CompareSetupScreenProps> = ({ navigation, rou
           </Box>
         )}
       </ScrollView>
+      <CompareSamplePickerModal
+        visible={samplePickerVisible}
+        providers={pendingConfigs ? [pendingConfigs.left.provider, pendingConfigs.right.provider] : []}
+        onSelect={(sampleId) => {
+          setSamplePickerVisible(false);
+          if (!pendingConfigs) return;
+          navigation.navigate('CompareSession', {
+            leftAI: pendingConfigs.left,
+            rightAI: pendingConfigs.right,
+            demoSampleId: sampleId,
+          });
+          setPendingConfigs(null);
+        }}
+        onClose={() => {
+          setSamplePickerVisible(false);
+          setPendingConfigs(null);
+        }}
+      />
     </SafeAreaView>
   );
 };

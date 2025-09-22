@@ -5,23 +5,19 @@ import { UNIVERSAL_PERSONALITIES } from '@/config/personalities';
 import { PersonalityBadge } from './PersonalityBadge';
 import * as Haptics from 'expo-haptics';
 import { PersonalityModal } from '../debate/PersonalityModal';
-import { useNavigation } from '@react-navigation/native';
 
 interface PersonalityPickerProps {
   currentPersonalityId: string;
   onSelectPersonality: (personalityId: string) => void;
-  isPremium: boolean;
   aiName: string;
 }
 
 export const PersonalityPicker: React.FC<PersonalityPickerProps> = ({
   currentPersonalityId,
   onSelectPersonality,
-  isPremium,
   aiName,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const navigation = useNavigation();
   
   const currentPersonality = UNIVERSAL_PERSONALITIES.find(p => p.id === currentPersonalityId) || UNIVERSAL_PERSONALITIES[0];
   
@@ -31,9 +27,7 @@ export const PersonalityPicker: React.FC<PersonalityPickerProps> = ({
     setIsOpen(false);
   };
   
-  const availablePersonalities = isPremium 
-    ? UNIVERSAL_PERSONALITIES 
-    : UNIVERSAL_PERSONALITIES.filter(p => p.id === 'default' || p.id === 'prof_sage');
+  const availablePersonalities = UNIVERSAL_PERSONALITIES;
   
   return (
     <View style={styles.container}>
@@ -45,8 +39,7 @@ export const PersonalityPicker: React.FC<PersonalityPickerProps> = ({
       <PersonalityBadge
         personalityName={currentPersonality.name}
         onPress={() => setIsOpen(true)}
-        isPremium={isPremium}
-        isLocked={false}
+        disabled={false}
       />
 
       <PersonalityModal
@@ -55,12 +48,7 @@ export const PersonalityPicker: React.FC<PersonalityPickerProps> = ({
         onConfirm={handleSelect}
         selectedPersonalityId={currentPersonalityId}
         availablePersonalities={availablePersonalities}
-        isPremium={isPremium}
         aiName={aiName}
-        onUpgrade={() => {
-          setIsOpen(false);
-          navigation.navigate('Subscription' as never);
-        }}
       />
     </View>
   );

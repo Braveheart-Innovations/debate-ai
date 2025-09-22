@@ -12,8 +12,7 @@ import * as Haptics from 'expo-haptics';
 interface PersonalityBadgeProps {
   personalityName: string;
   onPress: () => void;
-  isPremium: boolean;
-  isLocked?: boolean;
+  disabled?: boolean;
   style?: object;
 }
 
@@ -22,8 +21,7 @@ const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 export const PersonalityBadge: React.FC<PersonalityBadgeProps> = ({
   personalityName,
   onPress,
-  isPremium,
-  isLocked = false,
+  disabled = false,
   style,
 }) => {
   const { theme } = useTheme();
@@ -51,39 +49,32 @@ export const PersonalityBadge: React.FC<PersonalityBadgeProps> = ({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onPress();
   };
-  
-  const displayName = isLocked && !isPremium ? 'Locked' : personalityName;
-  const showLock = !isPremium && personalityName !== 'Default';
-  
+
   return (
     <AnimatedTouchable
       onPress={handlePress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       activeOpacity={1}
+      disabled={disabled}
       style={[
         styles.badge,
         animatedStyle,
         {
           backgroundColor: theme.colors.surface,
-          borderColor: showLock ? theme.colors.warning[400] : theme.colors.border,
+          borderColor: theme.colors.border,
         },
         style,
       ]}
     >
       <View style={styles.content}>
-        {showLock && (
-          <Text style={[styles.lockIcon, { color: theme.colors.warning[500] }]}>
-            🔒
-          </Text>
-        )}
         <Typography
           variant="caption"
           weight="medium"
-          color={showLock ? 'disabled' : 'secondary'}
+          color={disabled ? 'disabled' : 'secondary'}
           style={styles.text}
         >
-          {displayName}
+          {personalityName}
         </Typography>
         <Text style={[styles.chevron, { color: theme.colors.text.disabled }]}>
           ›
@@ -106,10 +97,6 @@ const styles = StyleSheet.create({
   content: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  lockIcon: {
-    fontSize: 10,
-    marginRight: 4,
   },
   text: {
     fontSize: 12,

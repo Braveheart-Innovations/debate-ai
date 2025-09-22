@@ -10,9 +10,10 @@ interface ChatTopicPickerModalProps {
   personaId?: string; // only for 1x AI chats
   onSelect: (sampleId: string, title: string) => void;
   onClose: () => void;
+  allowNewSample?: boolean;
 }
 
-export const ChatTopicPickerModal: React.FC<ChatTopicPickerModalProps> = ({ visible, providers, personaId, onSelect, onClose }) => {
+export const ChatTopicPickerModal: React.FC<ChatTopicPickerModalProps> = ({ visible, providers, personaId, onSelect, onClose, allowNewSample = false }) => {
   const { theme } = useTheme();
   const [items, setItems] = React.useState<Array<{ id: string; title: string }>>([]);
   const [creatingNew, setCreatingNew] = React.useState(false);
@@ -24,7 +25,9 @@ export const ChatTopicPickerModal: React.FC<ChatTopicPickerModalProps> = ({ visi
     const run = async () => {
       try {
         const list = await DemoContentService.listChatSamples(providers);
-        if (!cancelled) setItems(list);
+        if (!cancelled) {
+          setItems(list);
+        }
       } catch {
         if (!cancelled) setItems([]);
       }
@@ -53,6 +56,12 @@ export const ChatTopicPickerModal: React.FC<ChatTopicPickerModalProps> = ({ visi
     };
   }, [visible, refreshItems]);
 
+  React.useEffect(() => {
+    if (!allowNewSample) {
+      setCreatingNew(false);
+    }
+  }, [allowNewSample, visible]);
+
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
       <View style={styles.backdrop}>
@@ -69,7 +78,7 @@ export const ChatTopicPickerModal: React.FC<ChatTopicPickerModalProps> = ({ visi
 
           <ScrollView style={{ maxHeight: 520 }} contentContainerStyle={{ padding: 12 }}>
             {/* New sample option */}
-            {!creatingNew && (
+            {allowNewSample && !creatingNew && (
               <TouchableOpacity
                 style={[styles.item, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}
                 onPress={() => setCreatingNew(true)}
@@ -78,7 +87,7 @@ export const ChatTopicPickerModal: React.FC<ChatTopicPickerModalProps> = ({ visi
                 <Typography variant="caption" color="secondary">Start blank and type your own first prompt</Typography>
               </TouchableOpacity>
             )}
-            {creatingNew && (
+            {allowNewSample && creatingNew && (
               <View style={[styles.form, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}> 
                 <Typography variant="caption" color="secondary" style={{ marginBottom: 8 }}>
                   Enter a unique ID and title for this recording.

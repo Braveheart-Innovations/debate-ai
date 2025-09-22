@@ -293,16 +293,15 @@ export class DebateOrchestrator {
       try {
         if (adapter) {
           const stance = stances[currentAI.id] || (aiIndex === 0 ? 'pro' : 'con');
-          // Prefer debatePrompt; fall back to systemPrompt
           const personalityId = personalities[currentAI.id] || 'default';
-          const persona = getPersonality(personalityId);
-          const personaStyle = persona?.debatePrompt || persona?.systemPrompt || 'You are a thoughtful debater.';
+          const persona = personalityId !== 'default' ? getPersonality(personalityId) : undefined;
+          const personaStyle = persona?.debatePrompt || persona?.systemPrompt || 'Adopt a clear, professional debate tone.';
           const motion = topic;
           const sideText = stance === 'pro' ? 'Affirmative (FOR)' : 'Negative (AGAINST)';
           const opponent = participants.find((_, idx) => idx !== aiIndex) || participants[(aiIndex + 1) % participants.length];
           const opponentName = opponent?.name || 'Opponent';
           const opponentPersonalityId = personalities[opponent?.id || ''] || 'default';
-          const opponentPersona = getPersonality(opponentPersonalityId);
+          const opponentPersona = opponentPersonalityId !== 'default' ? getPersonality(opponentPersonalityId) : undefined;
           const opponentStyle = opponentPersona?.debatePrompt || opponentPersona?.systemPrompt || 'A capable opponent.';
           const civilityDirective = (() => {
             switch (civility) {

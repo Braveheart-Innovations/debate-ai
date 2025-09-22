@@ -3,15 +3,13 @@
  * Full-screen modal for selecting a personality with richer content
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Modal, View, TouchableOpacity, FlatList, StyleSheet, Platform } from 'react-native';
 import { useTheme } from '../../../theme';
 import { Typography } from '../../molecules';
 import { SheetHeader } from '@/components/molecules';
-import { GradientButton, Button } from '../../molecules';
+import { GradientButton } from '../../molecules';
 import { PersonalityOption } from '../../../config/personalities';
-import { PersonalityService } from '../../../services/debate/PersonalityService';
-import { } from 'react-native';
 
 export interface PersonalityModalProps {
   visible: boolean;
@@ -19,33 +17,10 @@ export interface PersonalityModalProps {
   onConfirm: (personalityId: string) => void;
   selectedPersonalityId: string;
   availablePersonalities: PersonalityOption[];
-  isPremium: boolean;
-  context?: 'chat' | 'debate';
-  aiId?: string;
   aiName?: string;
-  initialTab?: 'signature' | 'seasonal';
-  onPreview?: (personalityId: string) => void;
-  onUpgrade?: () => void;
   disableBackdropDismiss?: boolean;
   testID?: string;
 }
-
-const ICONS: Record<string, string> = {
-  default: '🤖',
-  prof_sage: '🎓',
-  brody: '🏈',
-  bestie: '💖',
-  zen: '🧘',
-  skeptic: '🔍',
-  scout: '📖',
-  devlin: '😈',
-  george: '🎤',
-  pragmatist: '🧭',
-  enforcer: '📎',
-  traditionalist: '🧱',
-};
-
-const FREE_SET = new Set(['default', 'prof_sage']);
 
 export const PersonalityModal: React.FC<PersonalityModalProps> = ({
   visible,
@@ -53,46 +28,49 @@ export const PersonalityModal: React.FC<PersonalityModalProps> = ({
   onConfirm,
   selectedPersonalityId,
   availablePersonalities,
-  isPremium,
   aiName,
-  onPreview,
-  onUpgrade,
   disableBackdropDismiss = false,
   testID,
 }) => {
   const { theme } = useTheme();
   const [localSelection, setLocalSelection] = useState<string>(selectedPersonalityId);
-  const [previewingId, setPreviewingId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (visible) {
+      setLocalSelection(selectedPersonalityId);
+      setExpandedId(null);
+    }
+  }, [selectedPersonalityId, visible]);
 
   const canConfirm = useMemo(() => {
-    if (!localSelection) return false;
-    if (isPremium) return true;
-    return FREE_SET.has(localSelection);
-  }, [localSelection, isPremium]);
+    return Boolean(localSelection);
+  }, [localSelection]);
 
   const sortedPersonas = useMemo(() => {
-    if (isPremium) return availablePersonalities;
-    const list = [...availablePersonalities];
-    list.sort((a, b) => {
-      const aFree = FREE_SET.has(a.id) ? 1 : 0;
-      const bFree = FREE_SET.has(b.id) ? 1 : 0;
-      return bFree - aFree;
-    });
-    return list;
-  }, [availablePersonalities, isPremium]);
+    const [defaults, rest] = availablePersonalities.reduce<[
+      PersonalityOption[],
+      PersonalityOption[]
+    ]>((acc, persona) => {
+      if (persona.id === 'default') {
+        acc[0].push(persona);
+      } else {
+        acc[1].push(persona);
+      }
+      return acc;
+    }, [[], []]);
+    return [...defaults, ...rest.sort((a, b) => a.name.localeCompare(b.name))];
+  }, [availablePersonalities]);
 
   const renderItem = ({ item }: { item: PersonalityOption }) => {
     const isSelected = localSelection === item.id;
-    const isLocked = !isPremium && !FREE_SET.has(item.id);
-    const icon = ICONS[item.id] || '🤖';
-    const snapshot = PersonalityService.getTraitSnapshot(item.id);
+    const isDefault = item.id === 'default';
+    const isExpanded = !isDefault && expandedId === item.id;
+    const signaturePreview = item.signatureMoves[0];
+    const samplePreview = item.sampleOpeners?.chat;
 
     return (
-      <TouchableOpacity
-        onPress={() => {
-          if (!isLocked) setLocalSelection(item.id);
-        }}
-        activeOpacity={0.9}
+      <View
         style={[
           styles.card,
           {
@@ -101,51 +79,90 @@ export const PersonalityModal: React.FC<PersonalityModalProps> = ({
           },
         ]}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-          <Typography weight="bold" style={{ fontSize: 18 }}>
-            {icon} {item.name}
+        <TouchableOpacity
+          onPress={() => setLocalSelection(item.id)}
+          activeOpacity={0.9}
+          style={{ marginBottom: 8 }}
+        >
+          <Typography weight="bold" style={{ fontSize: 18, marginBottom: 4 }}>
+            {item.emoji} {item.name}
           </Typography>
-          {isLocked && (
-            <Typography variant="caption" style={{ marginLeft: 8 }}>
-              🔒
+          <Typography variant="caption" color="secondary" numberOfLines={2}>
+            {item.tagline}
+          </Typography>
+          {isDefault && (
+            <Typography variant="caption" color="secondary" style={{ marginTop: 6 }}>
+              {item.bio}
             </Typography>
           )}
-        </View>
-        <Typography variant="caption" color="secondary" numberOfLines={2}>
-          {item.description}
-        </Typography>
-        {/* Compact trait tags for clarity */}
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8, gap: 6 }}>
-          {renderTag('Formality', level(snapshot.formality), theme.colors.primary[500])}
-          {renderTag('Humor', level(snapshot.humor), theme.colors.warning[600])}
-          {renderTag('Energy', level(snapshot.energy), theme.colors.success[600])}
-        </View>
-        {previewingId === item.id && (
-          <View style={{ marginTop: 8 }}>
-            <Typography variant="caption" style={{ fontStyle: 'italic' }}>
-              {item.previewLine || 'Preview unavailable.'}
+          {!isDefault && signaturePreview && (
+            <Typography variant="caption" color="secondary" style={{ marginTop: 6 }}>
+              • {signaturePreview}
             </Typography>
-          </View>
-        )}
-        <View style={{ flexDirection: 'row', marginTop: 10, justifyContent: 'space-between' }}>
-          <TouchableOpacity
-            onPress={() => {
-              setPreviewingId(prev => (prev === item.id ? null : item.id));
-              onPreview?.(item.id);
-            }}
-            accessibilityLabel={`Preview ${item.name}`}
-          >
-            <Typography variant="caption" color="secondary">
-              Preview
+          )}
+          {!isDefault && samplePreview && (
+            <Typography
+              variant="caption"
+              style={{ fontStyle: 'italic', marginTop: 6 }}
+              numberOfLines={2}
+            >
+              “{samplePreview}”
             </Typography>
-          </TouchableOpacity>
+          )}
           {isSelected && (
-            <Typography variant="caption" color="secondary">
+            <Typography variant="caption" color="secondary" style={{ marginTop: 6 }}>
               Selected
             </Typography>
           )}
-        </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
+
+        {!isDefault && (
+          <TouchableOpacity
+            accessibilityRole="button"
+            onPress={() => setExpandedId(prev => (prev === item.id ? null : item.id))}
+            style={{ paddingVertical: 4 }}
+          >
+            <Typography variant="caption" color="primary" weight="semibold" style={{ textAlign: 'center' }}>
+              {isExpanded ? 'Hide details ▲' : 'View details ▼'}
+            </Typography>
+          </TouchableOpacity>
+        )}
+
+        {isExpanded && (
+          <View style={{ marginTop: 8, gap: 8 }}>
+            <Typography variant="caption" color="secondary">
+              {item.bio}
+            </Typography>
+
+            {item.signatureMoves.length > 0 && (
+              <View>
+                <Typography variant="caption" weight="semibold" style={{ marginBottom: 2 }}>
+                  Signature moves
+                </Typography>
+                {item.signatureMoves.map(move => (
+                  <Typography key={move} variant="caption" style={{ marginBottom: 2 }}>
+                    • {move}
+                  </Typography>
+                ))}
+              </View>
+            )}
+
+            {item.watchouts && item.watchouts.length > 0 && (
+              <View>
+                <Typography variant="caption" weight="semibold" style={{ marginBottom: 2 }}>
+                  Watch outs
+                </Typography>
+                {item.watchouts.map(note => (
+                  <Typography key={note} variant="caption" color="secondary">
+                    {note}
+                  </Typography>
+                ))}
+              </View>
+            )}
+
+          </View>
+        )}
+      </View>
     );
   };
 
@@ -172,7 +189,6 @@ export const PersonalityModal: React.FC<PersonalityModalProps> = ({
             <Typography variant="caption" color="secondary">for {aiName}</Typography>
           </View>
         ) : null}
-        {/* Suggested pairings removed to simplify mobile layout */}
 
         <View style={{ flex: 1, paddingHorizontal: 16 }}>
           <FlatList
@@ -188,21 +204,12 @@ export const PersonalityModal: React.FC<PersonalityModalProps> = ({
 
         <View style={{ padding: 16 }}>
           <GradientButton
-            title={canConfirm ? 'Use This Style' : isPremium ? 'Select a style' : 'Unlock to use this style'}
+            title="Use This Style"
             onPress={() => canConfirm && onConfirm(localSelection)}
             disabled={!canConfirm}
             gradient={theme.colors.gradients.primary}
             fullWidth
           />
-          {!isPremium && (
-            <Button
-              title="Learn about styles"
-              onPress={onUpgrade || onClose}
-              variant="ghost"
-              fullWidth
-              style={{ marginTop: 8 }}
-            />
-          )}
         </View>
       </View>
     </Modal>
@@ -229,39 +236,12 @@ const styles = StyleSheet.create({
   },
   card: {
     flex: 1,
-    padding: 12,
-    borderRadius: 12,
+    padding: 14,
+    borderRadius: 16,
     borderWidth: 1,
-    minHeight: 120,
+    minHeight: 160,
     marginBottom: 12,
   },
 });
 
 export default PersonalityModal;
-
-// Helpers
-function level(v: number): 'Low' | 'Medium' | 'High' {
-  if (v < 0.34) return 'Low';
-  if (v < 0.67) return 'Medium';
-  return 'High';
-}
-
-function renderTag(label: string, value: string, color: string) {
-  return (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: color,
-      }}
-    >
-      <Typography variant="caption" style={{ color }}>
-        {label}: {value}
-      </Typography>
-    </View>
-  );
-}

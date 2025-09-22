@@ -80,6 +80,7 @@ export const DebatePersonalitySelector: React.FC<DebatePersonalitySelectorProps>
       <View style={{ gap: theme.spacing.md }}>
         {selectedAIs.map((ai) => {
           const currentPersonality = aiPersonalities[ai.id] || 'default';
+          const personaMeta = UNIVERSAL_PERSONALITIES.find(p => p.id === currentPersonality) || UNIVERSAL_PERSONALITIES[0];
           return (
             <View 
               key={ai.id}
@@ -106,8 +107,13 @@ export const DebatePersonalitySelector: React.FC<DebatePersonalitySelectorProps>
                     Personality Selection
                   </Typography>
                   <Typography variant="caption" color="secondary">
-                    Selected: {UNIVERSAL_PERSONALITIES.find(p => p.id === currentPersonality)?.name || 'Default'}
+                    Selected: {personaMeta.emoji} {personaMeta.name}
                   </Typography>
+                  {personaMeta.tagline && (
+                    <Typography variant="caption" color="disabled">
+                      {personaMeta.tagline}
+                    </Typography>
+                  )}
                 </View>
               </View>
               <TouchableOpacity
@@ -146,7 +152,6 @@ export const DebatePersonalitySelector: React.FC<DebatePersonalitySelectorProps>
         }}
         selectedPersonalityId={activeAI ? aiPersonalities[activeAI.id] || 'default' : 'default'}
         availablePersonalities={UNIVERSAL_PERSONALITIES}
-        isPremium={true}
         aiName={activeAI?.name}
       />
       

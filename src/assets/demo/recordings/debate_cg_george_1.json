@@ -1,0 +1,1100 @@
+{
+  "type": "debate",
+  "id": "debate_cg_george_1",
+  "title": "Motion: A hot dog is a sandwich.",
+  "comboKey": "claude+google:George",
+  "events": [
+    {
+      "type": "divider",
+      "meta": {
+        "startedAt": "2025-09-21T01:12:06.460Z",
+        "screen": "debate",
+        "comboKey": "claude+google:George",
+        "platform": "ios",
+        "participants": ["Gemini", "Claude"],
+        "topic": "Motion: A hot dog is a sandwich."
+      }
+    },
+    {
+      "type": "message",
+      "role": "user",
+      "content": "Motion: A hot dog is a sandwich."
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": "",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "The motion before us asks whether a hot dog is a sandwich, and the affirmative position is not merely a culinary whim but a recognition of fundamental definitions. At its core, a sandwich is a dish consisting of a filling placed between two pieces of bread,",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " or within a single piece of bread that has been split or hollowed out for the purpose of containment. This definition, broadly accepted and logically sound, perfectly encapsulates the humble hot dog.\n\nConsider the components: a savory sausage, undeniably a",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " filling, snugly nestled within a bun. This bun, a specialized form of bread, is specifically designed to cradle its contents, often sliced lengthwise to create an ideal receptacle. To suggest that this arrangement is somehow *not* a sandwich because the",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " bun often remains connected at one seam is to impose an arbitrary and inconsistent standard. If we apply such stringent criteria, then a submarine sandwich, with its single, elongated roll split down the middle, would also cease to be a sandwich. Are",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " we truly prepared to tell a proud deli hero that it's merely a lonely loaf of bread with some cold cuts trapped inside, utterly adrift from its sandwich peers? I think not.\n\nThe hot dog bun functions precisely as the bread in",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " any other sandwich: it provides structure, portability, and a complementary texture and flavor profile to the filling. It is a handheld meal where bread embraces a filling, fulfilling every functional requirement of a sandwich. Its unique form is an evolution for practicality",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and enjoyment, not a deviation from its foundational identity.",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": "",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "The",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " hot dog stands before us today, prou",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "dly defiant in its cylin",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "drical glory, refusing to be sh",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "oehorned into the cram",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ped confines of sandwich categorization. To",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " understand why a hot dog transc",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ends the mundane world of sandwiches, we must examine",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the fundamental architecture of each culinary creation an",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "d recognize their distinct evolutionary paths.\n\nA sandwich, in",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " its purest form, represents a deliber",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ate act of assembly—two separate pieces of bread consc",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "iously brought together to embrace a filling. This bilateral",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " symmetry creates a contained ecosystem where ingredients",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " mingle within defined boundaries. The hot dog,",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " however, operates on an entirely different principle. Its",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " bun is a single, continuous",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " vessel, a purpose-built cra",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "dle that has never known the trauma of separation. The hot",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " dog bun emerges from the bak",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ery as a unified whole, split only",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " to accommodate its destined occupant, much",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " like a baseball glove is forme",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "d to catch a ball.\n\nConsider the cultural",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and functional distinctions that separate these foods.",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Sandwiches are static, stackable, often",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " consumed in contemplative bites that allow",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " for ingredient examination. Hot dogs are dynamic, theatrical",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " performances meant to be consumed lengthwise in",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a celebration of portable efficiency. They demand condiment",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " artistry—mustard zigzags, on",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ion cascades, relish gardens—that",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " would seem absurd on a turkey club",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ". A hot dog is not merely food; it's",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " an edible sculpture that happens to involve bread.\n\nThe hot dog has",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " earned its independence through centuries of distinct cultural",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " identity, from ballpark traditions to street corner vendors. To",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " call it a sandwich would be like calling a violin",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a guitar simply because both have strings—you're missing the entire",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " point of what makes each instrument sing.",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": "",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "My esteemed opponent, Claude, suggests that \"a sandwich, in its purest form, represents a deliberate act of assembly—two separate pieces of bread consciously brought together.\" He posits that the hot dog bun, as a \"single, continuous vessel,\" operates",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " on an entirely different principle, having \"never known the trauma of separation.\" This argument, while poetically put, creates an unnecessarily restrictive and inconsistent definition that unravels when applied to other universally accepted sandwiches.\n\nConsider the submarine sandwich, the",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " pita pocket, or even the ubiquitous taco, which many culinary experts readily acknowledge as a form of sandwich. Each of these relies on a single piece of bread, split or shaped, to embrace its filling. Are we to declare these culinary main",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "stays as non-sandwiches simply because their bread hasn't experienced a full, existential cleavage? The hot dog bun's continuity is not a disqualifier; it is an ingenious design choice, optimizing for containment and ease of eating. It",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " performs the exact same function as two slices of bread: holding the filling. Perhaps the hot dog bun is simply a more committed piece of bread, preferring to keep its relationship with the filling intact from the start.\n\nFurthermore, Claude argues that \"sandwiches",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " are static, stackable... Hot dogs are dynamic, theatrical performances,\" suggesting cultural and functional distinctions separate them. This line of reasoning, however, confuses the *experience* of eating a food with its fundamental *definition*. A pizza can be eaten at a",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " formal dinner or a casual party; its context doesn't change its identity as a baked flatbread with toppings. The hot dog's cultural cachet at ballparks or its \"condiment artistry\" are delightful aspects of its consumption,",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " but they do not magically transform it into something other than a filling contained by bread. To define a food by its serving ritual rather than its core components is to miss the culinary forest for the theatrical trees. The true essence lies in the bread'",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "s embrace of a filling, a role the hot dog bun fulfills with undeniable grace.",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": "",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "George",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "'s comparison of hot dogs to submarine",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " sandwiches reveals a fundamental misunderstanding of structural",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " integrity and culinary taxonomy. While he claims",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " that submarine sandwiches operate on the same",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " principle as hot dogs because both use",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " \"a single piece of bread, split or shaped,\"",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " this conflates two entirely different architectural approaches.",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " A submarine sandwich begins as a complete",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " loaf that is deliberately bisected—",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "creating two distinct surfaces that can",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " theoretically exist independently. The hot dog bun,",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " conversely, is manufactured as a hin",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ged vessel, never",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " intended to separate, functioning",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " more like a taco shell than",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " traditional sandwich bread. If we're",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " going to lump",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " everything with a split piece of bread into",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the sandwich category, we might as well declare",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " that a fortune cookie is a sandwich the",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " moment we crack it open to",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " read our destiny.\n\nGeorge",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "'s assertion that I'm defining foo",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "d \"by its serving ritual rather than its core",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " components\" misses the mark",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " entirely. The structural",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " differences I outlined aren't ceremon",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ial flourishes—they're fundamental design principles",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " that determine how the food functions. A",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " hot dog's longitudinal consumption",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " pattern isn't merely cultural",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " theater; it's dictated by the physics of its construction",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ". The bun's h",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "inge mechanism creates a fundament",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ally different eating experience that",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " requires different jaw mechanics,",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " different condiment distribution, and different structural",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " support than any traditional sandwich. You",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " don't eat a",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Reuben like a hot dog,",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and you don't eat a hot dog like a",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Reuben, because they are",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " architecturally distinct foo",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "d categories.\n\nThe hot dog's",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " refusal to conform to sandwich conventions",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " isn't stubbornness—it's evolutionary",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " specialization that deserves recognition,",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " not reclassification.",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": "",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "My esteemed opponent, Claude, attempts to draw an arbitrary line between a \"bisected\" submarine sandwich and a \"hinged\" hot dog bun, suggesting that the former's bread can \"theoretically exist independently\" while the latter is \"",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "never intended to separate.\" This distinction is a culinary red herring. Whether the bread is fully cut or merely split down the middle, its fundamental purpose remains identical: to cradle a filling. Many submarine sandwiches, heroes, or hoagies are *",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "not* fully bisected; they are deliberately hinged to maintain structural integrity, much like a hot dog bun. The idea that a piece of bread must be capable of a solo career to qualify its contents as a sandwich is an architectural criterion that simply",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " doesn't hold water across the diverse world of handheld meals. If a hot dog bun's hinge disqualifies it, then perhaps we should also question if a book is truly a book if its pages are merely bound, not individually detachable",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n\nFurthermore, Claude’s argument that \"jaw mechanics, different condiment distribution, and different structural support\" fundamentally distinguish a hot dog from a sandwich again conflates the *experience* of eating with the *definition* of the food. By",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " this logic, a grilled cheese sandwich, which requires different jaw mechanics due to its melted, gooey interior, or a wrap, which demands a different grip and consumption pattern, would cease to be sandwiches. These are variations in form and function *",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "within* the sandwich category, not reasons to exile a food entirely. A hot dog's specialized construction is an *evolution* of the sandwich form, designed for optimal enjoyment of its specific filling, not a departure from the core concept of bread embracing",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a filling. It is a sandwich that simply knows how to commit to its contents, unlike some of its more flaky, two-slice cousins.",
+      "speakerProvider": "google"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": "",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "George",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "'s claim",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " that submarine sandwiches are \"deliberately",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " hinged to maintain structural integrity,",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " much like a hot dog bun\"",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " fundamentally misrep",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "resents how these foods are",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " constructed and consumed. A",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " submarine sandwich that remains connecte",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "d does so as a practical",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " concession—the",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " bread could be fully separated without",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " losing its essential sandwich identity. The connection",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " is incidental, not integral. A",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " hot dog bun, however, is engine",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "red from conception as a unified cra",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "dle, with its hinge being",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the defining architectural feature that enables its function. Remove",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " that hinge, and you don't have two",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " pieces of hot dog bun bread—you have a structural",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " failure and a very sad sausage rolling",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " around your plate.\n\nGeorge's assertion",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " that my focus on consumption mechanics \"confl",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ates the experience of eating with the definition of the foo",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "d\" misses a crucial distinction. I",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "'m not discussing mere eating preferences—I'm identifying",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " how structural design determines categorical",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " identity. A grilled cheese sandwich,",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " despite its gooey interior, still",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " maintains the fundamental",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " sandwich architecture of discrete bread pieces",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " containing a filling. The mel",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ted cheese doesn",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "'t alter the brea",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "d's bilateral nature",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ". A wrap, while",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " cylindrical in consumption, begins",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " as a flat tort",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "illa that's rolle",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "d around ingredients—",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "a fundamentally different construction",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " principle than the hot dog's",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " pre-formed vessel.",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " These are not \"",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "variations within the sandwich category\" but evidence",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " that form follows function in",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " food classification.\n\nThe",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " hot dog bun's commitment",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " to its contents isn't romantic",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " devotion—it's architectural",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " necessity. Unlike George's \"fl",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "aky, two-slice cousins,\"",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the hot dog represents an",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " entirely different evolutionary branch",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " in the handheld food family",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " tree, one that deser",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ves its own taxonomical",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " respect rather than force",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "d assimilation into",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " sandwich society.",
+      "speakerProvider": "claude"
+    }
+  ],
+  "topic": "Motion: A hot dog is a sandwich.",
+  "participants": ["Gemini", "Claude"]
+}

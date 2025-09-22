@@ -75,9 +75,12 @@ export const DebateSetupSummary: React.FC<DebateSetupSummaryProps> = ({
         <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
           {selectedAIs.map((ai) => {
             const personality = aiPersonalities[ai.id];
-            const personalityName = personality ? 
-              UNIVERSAL_PERSONALITIES.find(p => p.id === personality)?.name : 
-              'Default';
+            const personaMeta = personality
+              ? UNIVERSAL_PERSONALITIES.find(p => p.id === personality)
+              : UNIVERSAL_PERSONALITIES.find(p => p.id === 'default');
+            const personalityLabel = personaMeta
+              ? `${personaMeta.emoji} ${personaMeta.name}`
+              : '🤖 Default';
             
             return (
               <View 
@@ -94,11 +97,16 @@ export const DebateSetupSummary: React.FC<DebateSetupSummaryProps> = ({
                 <Typography variant="caption" weight="semibold">
                   {ai.name}
                 </Typography>
-                {personality && (
+                <>
                   <Typography variant="caption" color="secondary" style={{ fontSize: 10 }}>
-                    {personalityName}
+                    {personalityLabel}
                   </Typography>
-                )}
+                  {personaMeta?.tagline && (
+                    <Typography variant="caption" color="disabled" style={{ fontSize: 9 }}>
+                      {personaMeta.tagline}
+                    </Typography>
+                  )}
+                </>
               </View>
             );
           })}

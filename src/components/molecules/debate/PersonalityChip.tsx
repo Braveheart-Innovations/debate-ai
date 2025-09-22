@@ -7,8 +7,8 @@ import React from 'react';
 import { TouchableOpacity } from 'react-native';
 import { useTheme } from '@/theme';
 import { Typography } from '../common/Typography';
-import { Box } from '@/components/atoms';
 import { Personality } from '@/types/debate';
+import { getPersonality } from '@/config/personalities';
 
 export interface PersonalityChipProps {
   personality: Personality;
@@ -17,24 +17,7 @@ export interface PersonalityChipProps {
   disabled?: boolean;
   size?: 'small' | 'medium' | 'large';
   color?: string;
-  showIcon?: boolean;
-  showMeters?: boolean; // optional tiny trait meters
 }
-
-const PERSONALITY_ICONS: Record<string, string> = {
-  default: '🤖',
-  prof_sage: '🎓',
-  brody: '🏈',
-  bestie: '💖',
-  zen: '🧘',
-  skeptic: '🔍',
-  scout: '📖',
-  devlin: '😈',
-  george: '🎤',
-  pragmatist: '🧭',
-  enforcer: '📎',
-  traditionalist: '🧱',
-};
 
 export const PersonalityChip: React.FC<PersonalityChipProps> = ({
   personality,
@@ -43,10 +26,11 @@ export const PersonalityChip: React.FC<PersonalityChipProps> = ({
   disabled = false,
   size = 'medium',
   color,
-  showIcon = true,
-  showMeters = false,
 }) => {
   const { theme } = useTheme();
+  const personaMeta = getPersonality(personality.id);
+  const icon = personaMeta?.emoji ?? '🤖';
+  const tagline = personaMeta?.tagline ?? personality.description;
 
   const sizeStyles = {
     small: {
@@ -73,8 +57,6 @@ export const PersonalityChip: React.FC<PersonalityChipProps> = ({
   const textColor = isSelected ? '#fff' : theme.colors.text.primary;
   const borderColor = isSelected ? chipColor : theme.colors.border;
 
-  const icon = showIcon ? PERSONALITY_ICONS[personality.id] || '🤖' : '';
-
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -100,51 +82,18 @@ export const PersonalityChip: React.FC<PersonalityChipProps> = ({
           fontSize: sizeStyles[size].fontSize,
         }}
       >
-        {icon && `${icon} `}{personality.name}
-        {personality.isPremium && !isSelected && ' 🔒'}
+        {`${icon} ${personality.name}`}
       </Typography>
-      {showMeters && (
-        <>
-          <Typography variant="caption" style={{ color: textColor, fontSize: 10, marginTop: 2 }}>
-            {/* Tiny bars: F/H/E */}
-          </Typography>
-          <TinyMeters 
-            formality={personality.traits?.formality ?? 0.5}
-            humor={personality.traits?.humor ?? 0.3}
-            energy={personality.debateModifiers?.aggression ?? 0.4}
-            trackColor={isSelected ? 'rgba(255,255,255,0.25)' : theme.colors.border}
-            fillColors={{
-              formality: isSelected ? '#fff' : theme.colors.primary[500],
-              humor: isSelected ? '#fff' : theme.colors.warning[600],
-              energy: isSelected ? '#fff' : theme.colors.success[600],
-            }}
-          />
-        </>
-      )}
+      <Typography
+        variant="caption"
+        style={{
+          marginTop: 2,
+          fontSize: Math.max(10, sizeStyles[size].fontSize - 2),
+          color: isSelected ? '#F4F4F5' : theme.colors.text.secondary,
+        }}
+      >
+        {tagline}
+      </Typography>
     </TouchableOpacity>
-  );
-};
-
-const TinyMeters: React.FC<{
-  formality: number;
-  humor: number;
-  energy: number;
-  trackColor: string;
-  fillColors: { formality: string; humor: string; energy: string };
-}> = ({ formality, humor, energy, trackColor, fillColors }) => {
-  const bar = (val: number, color: string) => (
-    <>
-      <Box style={{ width: 36, height: 4, borderRadius: 3, backgroundColor: trackColor }}>
-        <Box style={{ width: Math.max(6, Math.round(val * 36)), height: 4, borderRadius: 3, backgroundColor: color }} />
-      </Box>
-    </>
-  );
-
-  return (
-    <Box style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 6 }}>
-      {bar(formality, fillColors.formality)}
-      {bar(humor, fillColors.humor)}
-      {bar(energy, fillColors.energy)}
-    </Box>
   );
 };

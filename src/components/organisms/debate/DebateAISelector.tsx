@@ -72,7 +72,6 @@ export const DebateAISelector: React.FC<DebateAISelectorProps> = ({
         maxAIs={maxAIs}
         onToggleAI={onToggleAI}
         onAddAI={onAddAI}
-        isPremium={isPremium}
         customSubtitle="Select exactly 2 AIs for the debate"
         hideStartButton={true}
         aiPersonalities={aiPersonalities}

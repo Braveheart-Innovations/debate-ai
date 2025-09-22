@@ -12,8 +12,8 @@ This document describes the architecture, components, and data flow for Demo Mod
 - Virtual adapters: `VirtualDemoAdapter` implements `sendMessage` and `streamMessage`
 - Factory switch: `AdapterFactory` returns `VirtualDemoAdapter` when Demo is enabled
 - Playback routing: `DemoPlaybackRouter` primes provider queues from content pack and serves responses per provider call
-- Content pack: `src/assets/demo/demo-pack.v1.json` (DemoPackV1 schema)
-- Loader: `DemoContentService` provides routing helpers and pack cache
+- Recording manifest: generated from `scripts/demo/recordings/*.json` via `scripts/demo/build-recordings-manifest.js`
+- Loader: `DemoContentService` filters the manifest by provider combo and rotates through samples
 - UI: Regular Chat/Debate/Compare screens; Demo Banner; CTA gating for live actions
 
 ### Components
@@ -33,13 +33,11 @@ This document describes the architecture, components, and data flow for Demo Mod
 - Gating helpers
   - `DemoBanner` and `showTrialCTA()` for consistent trial prompts
 
-### Data Model (DemoPackV1)
-- `chats: DemoChat[]` with `events: DemoMessageEvent[]`
-- `debates: DemoDebate[]` with alternating assistant events and `speakerProvider`/`speakerPersona`
-- `compares: DemoCompare[]` with `runs[0].columns[]` and assistant events
-- `routing: { chat, debate, compare }`: maps combo keys to IDs
-  - Provider combos: `claude+openai`, `claude+openai+google`, etc.
-  - Personas: `:default`, `:George`, `:Prof. Sage` suffix for debate
+### Data Model
+- Source files: JSON recordings in `scripts/demo/recordings` captured via record mode
+- Manifest: `src/assets/demo/recordingsManifest.ts` enumerates recordings with providers, titles, and data payloads
+- Provider combos normalized as `claude+openai(+google)`, independent of persona selection
+- Persona metadata kept in recording IDs/titles but does not gate availability
 
 ### UI Integration
 - Chat
@@ -67,5 +65,5 @@ This document describes the architecture, components, and data flow for Demo Mod
 ### Files
 - Services: `src/services/demo/*`, `src/services/ai/adapters/demo/VirtualDemoAdapter.ts`
 - UI: screens `ChatScreen`, `CompareScreen`, `DebateScreen`
-- Data: `src/assets/demo/demo-pack.v1.json`
-
+- Recordings: `scripts/demo/recordings`
+- Manifest + helpers: `scripts/demo/build-recordings-manifest.js`, `src/assets/demo/recordingsManifest.ts`

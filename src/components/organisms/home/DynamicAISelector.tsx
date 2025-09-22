@@ -16,7 +16,6 @@ interface DynamicAISelectorProps {
   onToggleAI: (ai: AIConfig) => void;
   onStartChat?: () => void;  // Made optional
   onAddAI: () => void;
-  isPremium: boolean;
   customSubtitle?: string;
   hideStartButton?: boolean;  // New prop to hide the start button
   hideHeader?: boolean;  // New prop to hide the section header
@@ -35,7 +34,6 @@ export const DynamicAISelector: React.FC<DynamicAISelectorProps> = ({
   onToggleAI,
   onStartChat,
   onAddAI,
-  isPremium,
   customSubtitle,
   hideStartButton = false,
   hideHeader = false,
@@ -133,7 +131,6 @@ export const DynamicAISelector: React.FC<DynamicAISelectorProps> = ({
                       personalityId={aiPersonalities[ai.id] || 'default'}
                       onPersonalityChange={isSelected && onPersonalityChange ? (personalityId) => onPersonalityChange(ai.id, personalityId) : undefined}
                       onModelChange={isSelected && onModelChange ? (modelId) => onModelChange(ai.id, modelId) : undefined}
-                      isPremium={isPremium}
                     />
                   </View>
                 );

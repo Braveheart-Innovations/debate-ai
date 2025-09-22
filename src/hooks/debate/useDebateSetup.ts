@@ -45,8 +45,7 @@ export const useDebateSetup = (
   const aiSelection = useAIDebaterSelection([], 2);
   
   const personalitySelection = usePersonalitySelection(
-    aiSelection.selectedAIs,
-    isPremium
+    aiSelection.selectedAIs
   );
   
   const validation = useDebateValidation(

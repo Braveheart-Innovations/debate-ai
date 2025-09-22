@@ -279,7 +279,6 @@ export interface UsePersonalitySelectionReturn {
   getPersonalityCombinations: () => { name: string; description: string; personalities: string[] }[];
   applyRecommendedCombination: (combination: { personalities: string[] }) => boolean;
   randomizePersonalities: () => void;
-  getPersonalityStats: () => Record<string, { usage: number; rating: number; category: 'popular' | 'balanced' | 'unique' }>;
   getCompatibilityScore: () => number;
   getSummary: () => {
     totalAssigned: number;
@@ -332,8 +331,8 @@ export interface DebaterSelectionServiceInterface {
 }
 
 export interface PersonalityServiceInterface {
-  getDefaultPersonality(ai: AIDebater): Personality;
-  getAvailablePersonalities(isPremium: boolean): Personality[];
+  getDefaultPersonality(): Personality;
+  getAvailablePersonalities(isPremium?: boolean): Personality[];
   validatePersonalitySelection(selections: Map<string, Personality>): ValidationResult;
   applyPersonalityToDebater(debater: AIDebater, personality: Personality): AIDebater;
 }
