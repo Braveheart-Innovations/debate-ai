@@ -50,7 +50,7 @@ jobs:
       should_deploy: ${{ steps.check.outputs.should_deploy }}
       release_notes: ${{ steps.notes.outputs.release_notes }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Check deployment conditions
         id: check
@@ -96,7 +96,7 @@ jobs:
       build_number: ${{ steps.version.outputs.build_number }}
       version_code: ${{ steps.version.outputs.version_code }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -156,7 +156,7 @@ jobs:
       build_id: ${{ steps.build.outputs.build_id }}
       build_url: ${{ steps.build.outputs.build_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ github.ref }}
 
@@ -203,7 +203,7 @@ jobs:
       build_id: ${{ steps.build.outputs.build_id }}
       build_url: ${{ steps.build.outputs.build_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ github.ref }}
 
@@ -253,7 +253,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: staging
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Expo and EAS
         uses: expo/expo-github-action@v8
@@ -290,7 +290,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: staging
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Expo and EAS
         uses: expo/expo-github-action@v8
