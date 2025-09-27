@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { CompareMessageBubble } from './CompareMessageBubble';
 import { ContinueButton } from './ContinueButton';
@@ -7,6 +7,8 @@ import { Box } from '../../atoms';
 import { Message, AIConfig } from '../../../types';
 import { useTheme } from '../../../theme';
 import { Ionicons } from '@expo/vector-icons';
+import type { BrandColor } from '@/constants/aiColors';
+import { getBrandPalette } from '@/utils/aiBrandColors';
 
 interface CompareResponsePaneProps {
   ai: AIConfig;
@@ -32,18 +34,27 @@ export const CompareResponsePane: React.FC<CompareResponsePaneProps> = ({
   onExpand,
 }) => {
   const { theme, isDark } = useTheme();
-  
-  const paneStyle = isDark
-    ? {
-        backgroundColor: theme.colors.card,
-        borderColor: theme.colors.border,
-        opacity: isDisabled ? 0.5 : 1,
-      }
-    : {
-        backgroundColor: side === 'left' ? theme.colors.warning[50] : theme.colors.info[50],
-        borderColor: side === 'left' ? theme.colors.warning[200] : theme.colors.info[200],
-        opacity: isDisabled ? 0.5 : 1,
-      };
+
+  const brandPalette: BrandColor | null = useMemo(
+    () => getBrandPalette(ai.provider, ai.name),
+    [ai.name, ai.provider]
+  );
+
+  const paneBorderColor = brandPalette
+    ? (isDark ? brandPalette[500] : brandPalette[300])
+    : (side === 'left' ? theme.colors.warning[200] : theme.colors.info[200]);
+  const paneBackgroundColor = brandPalette
+    ? (isDark ? theme.colors.card : brandPalette[50])
+    : (isDark ? theme.colors.card : side === 'left' ? theme.colors.warning[50] : theme.colors.info[50]);
+  const accentColor = brandPalette
+    ? brandPalette[500]
+    : (side === 'left' ? theme.colors.warning[500] : theme.colors.info[500]);
+
+  const paneStyle = {
+    backgroundColor: paneBackgroundColor,
+    borderColor: paneBorderColor,
+    opacity: isDisabled ? 0.5 : 1,
+  } as const;
 
   return (
     <View style={[styles.pane, paneStyle]}>
@@ -73,6 +84,8 @@ export const CompareResponsePane: React.FC<CompareResponsePaneProps> = ({
             <CompareMessageBubble
               message={message}
               side={side}
+              brandPalette={brandPalette}
+              providerName={ai.name}
             />
           </Box>
         ))}
@@ -87,8 +100,11 @@ export const CompareResponsePane: React.FC<CompareResponsePaneProps> = ({
                 senderType: 'ai',
                 content: streamingContent,
                 timestamp: Date.now(),
+                metadata: { providerId: ai.provider },
               }}
               side={side}
+              brandPalette={brandPalette}
+              providerName={ai.name}
             />
           </Box>
         )}
@@ -96,7 +112,7 @@ export const CompareResponsePane: React.FC<CompareResponsePaneProps> = ({
         {/* Typing Indicator */}
         <CompareTypingIndicator 
           isVisible={isTyping && !streamingContent}
-          side={side}
+          accentColor={accentColor}
         />
       </ScrollView>
       
@@ -105,6 +121,7 @@ export const CompareResponsePane: React.FC<CompareResponsePaneProps> = ({
         onPress={onContinueWithAI}
         isDisabled={isDisabled}
         side={side}
+        accentColor={accentColor}
       />
     </View>
   );

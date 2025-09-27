@@ -15,8 +15,10 @@ import recording_chat_o_itinerary_v1 from './recordings/chat_o_itinerary_v1.json
 import recording_chat_o_refactor_v1 from './recordings/chat_o_refactor_v1.json';
 import recording_chat_og_itinerary_v1 from './recordings/chat_og_itinerary_v1.json';
 import recording_chat_og_refactor_v1 from './recordings/chat_og_refactor_v1.json';
+import recording_compare_cg_dinosaurs_v1 from './recordings/compare_cg_dinosaurs_v1.json';
 import recording_compare_cg_itinerary_v1 from './recordings/compare_cg_itinerary_v1.json';
 import recording_compare_cg_sql_v1 from './recordings/compare_cg_sql_v1.json';
+import recording_compare_co_bali_v1 from './recordings/compare_co_bali_v1.json';
 import recording_compare_co_itinerary_v1 from './recordings/compare_co_itinerary_v1.json';
 import recording_compare_co_sql_v1 from './recordings/compare_co_sql_v1.json';
 import recording_compare_og_itinerary_v1 from './recordings/compare_og_itinerary_v1.json';
@@ -142,10 +144,17 @@ export const demoRecordings: DemoRecordingEntry[] = [
     data: recording_chat_og_refactor_v1 as unknown as (DemoChat),
   },
   {
+    id: 'compare_cg_dinosaurs_v1',
+    type: 'compare',
+    providers: ['claude', 'google'],
+    title: 'compare_cg_dinosaurs_v1',
+    data: recording_compare_cg_dinosaurs_v1 as unknown as (DemoCompare),
+  },
+  {
     id: 'compare_cg_itinerary_v1',
     type: 'compare',
     providers: ['claude', 'google'],
-    title: "Road Trip to NYC",
+    title: "Kyoto Itinerary (Claude vs Gemini)",
     data: recording_compare_cg_itinerary_v1 as unknown as (DemoCompare),
   },
   {
@@ -154,6 +163,13 @@ export const demoRecordings: DemoRecordingEntry[] = [
     providers: ['claude', 'google'],
     title: "Explain SQL CTE (Claude vs Gemini)",
     data: recording_compare_cg_sql_v1 as unknown as (DemoCompare),
+  },
+  {
+    id: 'compare_co_bali_v1',
+    type: 'compare',
+    providers: ['claude', 'openai'],
+    title: "Trip to Bali (Claude vs ChatGPT)",
+    data: recording_compare_co_bali_v1 as unknown as (DemoCompare),
   },
   {
     id: 'compare_co_itinerary_v1',

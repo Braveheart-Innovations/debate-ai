@@ -52,6 +52,12 @@ This document describes the architecture, components, and data flow for Demo Mod
 - Debate routing keys: `providerCombo:Persona`
 - `speakerPersona` optional in events for clarity
 
+### Recording Workflow (local dev)
+- Enable **Record Mode** in the app.
+- Run `npm run demo:bridge` in the repo root. The bridge listens on `http://127.0.0.1:8889`, captures recordings sent via **Append to Pack (dev)**, mirrors them into `scripts/demo/recordings/`, and reruns the manifest builder automatically.
+- When you stop a recording, choose **Append to Pack (dev)**. The new sample becomes available immediately in Demo pickers.
+- If you skip the bridge, copy the JSON into `scripts/demo/recordings/` manually and run `npm run demo:build-recordings` to refresh the manifest.
+
 ### Safety And Guarantees
 - No network: Factory forces `VirtualDemoAdapter` in Demo
 - Truthfulness: banners + simulated copy; optionally watermark & chips

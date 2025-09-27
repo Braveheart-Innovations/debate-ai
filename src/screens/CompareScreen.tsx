@@ -231,9 +231,9 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
     // Start typing indicators only for non-streaming sides
     const leftActive = (viewMode === 'split' && !continuedSide) || continuedSide === 'left' || viewMode === 'left-only' || viewMode === 'left-full';
     const rightActive = (viewMode === 'split' && !continuedSide) || continuedSide === 'right' || viewMode === 'right-only' || viewMode === 'right-full';
-    if (leftActive && !shouldStreamLeft) setLeftTyping(true);
-    if (rightActive && !shouldStreamRight) setRightTyping(true);
     
+    const pendingPromises: Promise<void>[] = [];
+
     // Compute effective models and expert params at send time
     const leftEffModel = selectedModels[leftAI.id] || leftAI.model;
     const rightEffModel = selectedModels[rightAI.id] || rightAI.model;
@@ -266,7 +266,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
 
     // Send to left AI if active
     if (leftActive) {
-      // Apply expert parameters to adapter if enabled
+      setLeftTyping(true);
       try {
         const adapter = leftAdapter;
         const leftParams = leftExp && leftExp.parameters;
@@ -274,10 +274,10 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
           adapter.config.parameters = leftParams as never;
         }
       } catch (_e) { console.warn('compare left expert params failed', _e); }
+
       if (shouldStreamLeft) {
-        // Reset streaming content and start streaming via StreamingService
         setLeftStreamingContent('');
-        getStreamingService().streamResponse(
+        const leftStreamPromise = getStreamingService().streamResponse(
           {
             messageId: `cmp_left_${Date.now()}`,
             adapterConfig: {
@@ -292,12 +292,11 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
             modelOverride: leftEffModel,
             speed: streamSpeed,
           },
-          // onChunk
           (chunk: string) => {
+            setLeftTyping(false);
             setLeftStreamingContent(prev => prev + chunk);
             try { if (RecordController.isActive()) { RecordController.recordAssistantChunk(leftAI.provider, chunk); } } catch (_e) { console.warn('compare left chunk record failed', _e); }
           },
-          // onComplete
           (finalContent: string) => {
             const leftMessage: Message = {
               id: `msg_left_${Date.now()}`,
@@ -305,7 +304,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
               senderType: 'ai',
               content: finalContent,
               timestamp: Date.now(),
-              metadata: { modelUsed: leftEffModel },
+              metadata: { modelUsed: leftEffModel, providerId: leftAI.provider },
             };
             setLeftMessages(prev => [...prev, leftMessage]);
             leftHistoryRef.current.push(leftMessage);
@@ -313,7 +312,6 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
             setLeftTyping(false);
             try { if (RecordController.isActive()) { RecordController.recordAssistantMessage(leftAI.provider, finalContent); } } catch (_e) { console.warn('compare left final record failed', _e); }
           },
-          // onError
           async (err: Error) => {
             const msg = err?.message || '';
             const isVerification = msg.toLowerCase().includes('verification');
@@ -326,7 +324,10 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
                 senderType: 'ai',
                 content: typeof response === 'string' ? response : response.response,
                 timestamp: Date.now(),
-                metadata: { modelUsed: leftEffModel },
+                metadata: {
+                  modelUsed: typeof response === 'string' ? leftEffModel : response.modelUsed || leftEffModel,
+                  providerId: leftAI.provider,
+                },
               };
               setLeftMessages(prev => [...prev, leftMessage]);
               leftHistoryRef.current.push(leftMessage);
@@ -339,7 +340,6 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
               setLeftTyping(false);
             }
           },
-          // onEvent (log provider events; inline images if present)
           (event: unknown) => {
             try {
               const e = event as Record<string, unknown>;
@@ -364,12 +364,12 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
             } catch { /* noop */ }
           }
         ).catch(() => {
-          // Safety: ensure typing cleared on unexpected promise rejection
           setLeftTyping(false);
         });
+        pendingPromises.push(leftStreamPromise);
       } else {
-        aiService
-          .sendMessage(leftAI.provider, messageText, leftHistoryRef.current, false, undefined, undefined, leftEffModel)
+        const leftCompletion = aiService
+          .sendMessage(leftAI.provider, leftPromptBody, leftHistoryRef.current, false, undefined, undefined, leftEffModel)
           .then(response => {
             const leftMessage: Message = {
               id: `msg_left_${Date.now()}`,
@@ -378,7 +378,8 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
               content: typeof response === 'string' ? response : response.response,
               timestamp: Date.now(),
               metadata: {
-                modelUsed: leftEffModel,
+                modelUsed: typeof response === 'string' ? leftEffModel : response.modelUsed || leftEffModel,
+                providerId: leftAI.provider,
               },
             };
             setLeftMessages(prev => [...prev, leftMessage]);
@@ -392,12 +393,13 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
             setLeftTyping(false);
             Alert.alert('Error', `Failed to get response from ${leftAI.name}`);
           });
+        pendingPromises.push(leftCompletion);
       }
     }
     
     // Send to right AI if active
     if (rightActive) {
-      // Apply expert parameters to adapter if enabled
+      setRightTyping(true);
       try {
         const adapter = rightAdapter;
         const rightParams = rightExp && rightExp.parameters;
@@ -405,9 +407,10 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
           adapter.config.parameters = rightParams as never;
         }
       } catch (_e) { console.warn('compare right expert params failed', _e); }
+
       if (shouldStreamRight) {
         setRightStreamingContent('');
-        getStreamingService().streamResponse(
+        const rightStreamPromise = getStreamingService().streamResponse(
           {
             messageId: `cmp_right_${Date.now()}`,
             adapterConfig: {
@@ -423,6 +426,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
             speed: streamSpeed,
           },
           (chunk: string) => {
+            setRightTyping(false);
             setRightStreamingContent(prev => prev + chunk);
             try { if (RecordController.isActive()) { RecordController.recordAssistantChunk(rightAI.provider, chunk); } } catch (_e) { console.warn('compare right chunk record failed', _e); }
           },
@@ -433,7 +437,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
               senderType: 'ai',
               content: finalContent,
               timestamp: Date.now(),
-              metadata: { modelUsed: rightEffModel },
+              metadata: { modelUsed: rightEffModel, providerId: rightAI.provider },
             };
             setRightMessages(prev => [...prev, rightMessage]);
             rightHistoryRef.current.push(rightMessage);
@@ -453,7 +457,10 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
                 senderType: 'ai',
                 content: typeof response === 'string' ? response : response.response,
                 timestamp: Date.now(),
-                metadata: { modelUsed: rightEffModel },
+                metadata: {
+                  modelUsed: typeof response === 'string' ? rightEffModel : response.modelUsed || rightEffModel,
+                  providerId: rightAI.provider,
+                },
               };
               setRightMessages(prev => [...prev, rightMessage]);
               rightHistoryRef.current.push(rightMessage);
@@ -492,9 +499,10 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
         ).catch(() => {
           setRightTyping(false);
         });
+        pendingPromises.push(rightStreamPromise);
       } else {
-        aiService
-          .sendMessage(rightAI.provider, messageText, rightHistoryRef.current, false, undefined, undefined, rightEffModel)
+        const rightCompletion = aiService
+          .sendMessage(rightAI.provider, rightPromptBody, rightHistoryRef.current, false, undefined, undefined, rightEffModel)
           .then(response => {
             const rightMessage: Message = {
               id: `msg_right_${Date.now()}`,
@@ -503,7 +511,8 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
               content: typeof response === 'string' ? response : response.response,
               timestamp: Date.now(),
               metadata: {
-                modelUsed: rightEffModel,
+                modelUsed: typeof response === 'string' ? rightEffModel : response.modelUsed || rightEffModel,
+                providerId: rightAI.provider,
               },
             };
             setRightMessages(prev => [...prev, rightMessage]);
@@ -517,9 +526,14 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
             setRightTyping(false);
             Alert.alert('Error', `Failed to get response from ${rightAI.name}`);
           });
+        pendingPromises.push(rightCompletion);
       }
     }
-    
+
+    if (pendingPromises.length) {
+      void Promise.allSettled(pendingPromises);
+    }
+
     // Save session after sending messages
     if (!hasBeenSaved) {
       setHasBeenSaved(true);
@@ -573,7 +587,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
     const leftEffModel = selectedModels[leftAI.id] || leftAI.model;
     const rightEffModel = selectedModels[rightAI.id] || rightAI.model;
 
-    void aiService.sendMessage(leftAI.provider, messageText, leftHistoryRef.current, false, undefined, undefined, leftEffModel)
+    const leftPromise = aiService.sendMessage(leftAI.provider, messageText, leftHistoryRef.current, false, undefined, undefined, leftEffModel)
       .then(response => {
         const leftMessage: Message = {
           id: `msg_left_${Date.now()}`,
@@ -581,7 +595,10 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
           senderType: 'ai',
           content: typeof response === 'string' ? response : response.response,
           timestamp: Date.now(),
-          metadata: { modelUsed: leftEffModel },
+          metadata: {
+            modelUsed: typeof response === 'string' ? leftEffModel : response.modelUsed || leftEffModel,
+            providerId: leftAI.provider,
+          },
         };
         setLeftMessages(prev => [...prev, leftMessage]);
         leftHistoryRef.current.push(leftMessage);
@@ -594,7 +611,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
         setLeftTyping(false);
       });
 
-    void aiService.sendMessage(rightAI.provider, messageText, rightHistoryRef.current, false, undefined, undefined, rightEffModel)
+    const rightPromise = aiService.sendMessage(rightAI.provider, messageText, rightHistoryRef.current, false, undefined, undefined, rightEffModel)
       .then(response => {
         const rightMessage: Message = {
           id: `msg_right_${Date.now()}`,
@@ -602,7 +619,10 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
           senderType: 'ai',
           content: typeof response === 'string' ? response : response.response,
           timestamp: Date.now(),
-          metadata: { modelUsed: rightEffModel },
+          metadata: {
+            modelUsed: typeof response === 'string' ? rightEffModel : response.modelUsed || rightEffModel,
+            providerId: rightAI.provider,
+          },
         };
         setRightMessages(prev => [...prev, rightMessage]);
         rightHistoryRef.current.push(rightMessage);
@@ -614,7 +634,24 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
         console.warn('compare scripted right failed', error);
         setRightTyping(false);
       });
-  }, [aiService, leftAI, rightAI, selectedModels]);
+
+    Promise.allSettled([leftPromise, rightPromise]).then(() => {
+      if (!isDemo) return;
+      if (!leftAI || !rightAI) return;
+      if (!hasNextCompareTurn()) return;
+      setTimeout(() => {
+        try {
+          const { user } = primeNextCompareTurn();
+          const nextMessage = user || 'Next demo turn';
+          dispatchScriptedTurn(nextMessage);
+        } catch (err) {
+          console.warn('compare scripted auto-advance failed', err);
+        }
+      }, 350);
+    }).catch(() => {
+      // ignore individual rejection handling above
+    });
+  }, [aiService, leftAI, rightAI, selectedModels, isDemo]);
 
   // Demo Mode: auto-start playback when both AIs are selected and no messages yet
   React.useEffect(() => {
@@ -650,27 +687,6 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
     run();
   }, [isDemo, leftAI, rightAI]);
 
-  // Auto-advance compare multi-turn when both sides finish typing
-  const prevTypingRef = React.useRef<{ left: boolean; right: boolean }>({ left: false, right: false });
-  React.useEffect(() => {
-    const prev = prevTypingRef.current;
-    prevTypingRef.current = { left: leftTyping, right: rightTyping };
-    if (!isDemo) return;
-    if (!leftAI || !rightAI || !aiService) return;
-    const bothStopped = !leftTyping && !rightTyping && (prev.left || prev.right);
-    if (bothStopped && hasNextCompareTurn()) {
-      const t = setTimeout(async () => {
-        try {
-          const { user } = primeNextCompareTurn();
-          const messageText = user || 'Next demo turn';
-          dispatchScriptedTurn(messageText);
-        } catch (_e) { console.warn('compare auto-advance failed', _e); }
-      }, 250);
-      return () => clearTimeout(t);
-    }
-    return undefined;
-  }, [leftTyping, rightTyping, isDemo, aiService, leftAI, rightAI, dispatchScriptedTurn]);
-  
   const handleContinueWithLeft = useCallback(() => {
     if (!leftAI) return;
     Alert.alert(

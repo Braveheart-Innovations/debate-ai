@@ -21,7 +21,8 @@
     "check": "npm run typecheck && npm run lint",
     "discover:models": "node scripts/api-discovery/discover-all-models.js",
     "docs:providers": "node scripts/api-discovery/discover-all-models.js && echo 'Provider docs refreshed.'",
-    "demo:build-recordings": "node scripts/demo/build-recordings-manifest.js"
+    "demo:build-recordings": "node scripts/demo/build-recordings-manifest.js",
+    "demo:bridge": "node scripts/demo/dev-bridge.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.63.0",

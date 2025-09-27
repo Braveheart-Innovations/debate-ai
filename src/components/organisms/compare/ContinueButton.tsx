@@ -7,29 +7,32 @@ interface ContinueButtonProps {
   onPress: () => void;
   isDisabled?: boolean;
   side: 'left' | 'right';
+  accentColor?: string;
 }
 
 export const ContinueButton: React.FC<ContinueButtonProps> = ({ 
   onPress, 
   isDisabled = false,
-  side 
+  side,
+  accentColor,
 }) => {
   const { theme, isDark } = useTheme();
   
+  const resolvedAccent = accentColor || (side === 'left' ? theme.colors.warning[500] : theme.colors.info[500]);
+  const textAccent = accentColor
+    ? accentColor
+    : (side === 'left' ? theme.colors.warning[700] : theme.colors.info[700]);
+
   const buttonColors = {
     backgroundColor: isDisabled 
       ? theme.colors.disabled[100] 
       : theme.colors.background,
     borderColor: isDisabled 
       ? theme.colors.disabled[300]
-      : side === 'left' 
-        ? theme.colors.warning[500] 
-        : theme.colors.info[500],
+      : resolvedAccent,
     textColor: isDisabled
       ? theme.colors.text.disabled
-      : side === 'left'
-        ? theme.colors.warning[700]
-        : theme.colors.info[700],
+      : textAccent,
   };
 
   const containerStyle = {

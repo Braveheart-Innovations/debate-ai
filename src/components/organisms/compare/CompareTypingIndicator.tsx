@@ -4,12 +4,12 @@ import { useTheme } from '../../../theme';
 
 interface CompareTypingIndicatorProps {
   isVisible: boolean;
-  side: 'left' | 'right';
+  accentColor?: string;
 }
 
 export const CompareTypingIndicator: React.FC<CompareTypingIndicatorProps> = ({ 
   isVisible,
-  side 
+  accentColor,
 }) => {
   const { theme } = useTheme();
   const dot1 = useRef(new Animated.Value(0)).current;
@@ -56,9 +56,7 @@ export const CompareTypingIndicator: React.FC<CompareTypingIndicatorProps> = ({
 
   if (!isVisible) return null;
 
-  const dotColor = side === 'left' 
-    ? theme.colors.warning[500]
-    : theme.colors.info[500];
+  const dotColor = accentColor || theme.colors.info[500];
 
   return (
     <View style={styles.container}>

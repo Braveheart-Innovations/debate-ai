@@ -12,15 +12,21 @@ import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 import useFeatureAccess from '@/hooks/useFeatureAccess';
 import { Image } from 'react-native';
+import type { BrandColor } from '@/constants/aiColors';
+import { getBrandPalette } from '@/utils/aiBrandColors';
 
 interface CompareMessageBubbleProps {
   message: Message;
   side: 'left' | 'right';
+  brandPalette?: BrandColor | null;
+  providerName?: string;
 }
 
 export const CompareMessageBubble: React.FC<CompareMessageBubbleProps> = ({
   message,
-  side
+  side,
+  brandPalette,
+  providerName,
 }) => {
   const { theme, isDark } = useTheme();
   const [copied, setCopied] = useState(false);
@@ -58,19 +64,32 @@ export const CompareMessageBubble: React.FC<CompareMessageBubbleProps> = ({
   // Create markdown styles
   const markdownStyles = useMemo(() => createMarkdownStyles(theme, isDark), [theme, isDark]);
   
+  const resolvedPalette = useMemo(() => {
+    if (brandPalette) {
+      return brandPalette;
+    }
+    return getBrandPalette(message.metadata?.providerId, providerName || message.sender);
+  }, [brandPalette, message.metadata?.providerId, providerName, message.sender]);
+
   const bubbleStyle = isDark
     ? {
         backgroundColor: theme.colors.surface,
-        borderColor: side === 'left' ? theme.colors.warning[500] : theme.colors.info[500],
+        borderColor: resolvedPalette ? resolvedPalette[500] : theme.colors.border,
       }
     : {
-        backgroundColor: side === 'left' ? theme.colors.warning[100] : theme.colors.info[100],
-        borderColor: side === 'left' ? theme.colors.warning[300] : theme.colors.info[300],
+        backgroundColor: resolvedPalette ? resolvedPalette[50] : theme.colors.card,
+        borderColor: resolvedPalette ? resolvedPalette[500] : theme.colors.border,
       };
 
-  // Match Chat dark mode: primary text on dark bubble
-  const headerColor = isDark ? theme.colors.text.secondary : theme.colors.text.primary;
-  const bodyColor = isDark ? theme.colors.text.primary : theme.colors.text.primary;
+  const headerColor = resolvedPalette
+    ? resolvedPalette[500]
+    : theme.colors.text.secondary;
+
+  const copyButtonFill = isDark
+    ? 'rgba(255,255,255,0.08)'
+    : 'rgba(0,0,0,0.06)';
+
+  const copyIconColor = theme.colors.text.primary;
 
   return (
     <View style={[
@@ -173,13 +192,13 @@ export const CompareMessageBubble: React.FC<CompareMessageBubbleProps> = ({
           hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
           style={[
             styles.copyButton,
-            { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' },
+            { backgroundColor: copyButtonFill },
           ]}
         >
           <Ionicons
             name={copied ? 'checkmark-outline' : 'copy-outline'}
             size={16}
-            color={bodyColor}
+            color={copyIconColor}
           />
         </TouchableOpacity>
       </View>
