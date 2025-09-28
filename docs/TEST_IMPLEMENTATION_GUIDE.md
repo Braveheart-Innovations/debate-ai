@@ -213,19 +213,18 @@ Create `test-utils/renderHookWithProviders.ts` that reuses the same wrapper for 
   - `src/services/subscription/*`, `src/hooks/useSubscriptionStatus.ts`, `useFeatureAccess.ts` – entitlement gating.
   - `functions/src/validatePurchase.ts` – Firebase callable contract tests using `firebase-functions-test`.
 
-### Stage 2 – Core Logic & State
-- Debate orchestration:
-  - `src/services/debate/DebateOrchestrator.ts`, `VotingService.ts`, `DebateRulesEngine.ts`, `DebatePromptBuilder.ts`, `DebateSetupService.ts`, `TopicService.ts`, `PersonalityService.ts`.
-  - Hooks `src/hooks/debate/useDebateSession.ts`, `useDebateFlow.ts`, `useDebateVoting.ts`, `useDebateMessages.ts` with mocked orchestrator.
-- Streaming & AI routing:
-  - `src/services/streaming/StreamingService.ts` – chunk buffering, aborts, resume flows.
-  - `src/services/ai/factory/AdapterFactory.ts`, `src/services/ai/base/BaseAdapter.ts`, provider adapters (use spies to assert provider-specific behaviour without calling network).
-- Chat and history:
-  - `src/services/chat/ChatOrchestrator.ts`, `StorageService.ts`, `MessageService.ts`.
-  - Hooks under `src/hooks/chat/*` verifying session lifecycles and typing indicators.
-- Redux slices:
-  - `src/store/authSlice.ts`, `compareSlice.ts`, `debateStatsSlice.ts`, `navigationSlice.ts`, `streamingSlice.ts`, plus store setup in `src/store/index.ts`.
-  - Validate reducer outputs and memoized selectors (if added).
+### Stage 2 – Core Logic & State *(In progress – March 2025)*
+- ✅ Covered supporting services and slices:
+  - `VotingService.ts`, `DebateRulesEngine.ts`, `DebatePromptBuilder.ts`, `DebateSetupService.ts`, `TopicService.ts`, `PersonalityService.ts` via unit tests.
+  - Redux slices (`authSlice`, `compareSlice`, `debateStatsSlice`, `navigationSlice`, `streamingSlice`) and `createAppStore` factory.
+  - Streaming/router utilities: `StreamingService.ts`, `AdapterFactory.ts`.
+  - Chat persistence utilities: `StorageService.ts`, `MessageService.ts`.
+  - Hooks: `useDebateSession`, `useDebateFlow`, `useDebateVoting`, `useDebateMessages`, `useChatMessages`.
+- Next focus areas to complete Stage 2:
+  - Debate orchestration core: add deterministic suites for `DebateOrchestrator.ts` and `DebaterSelectionService.ts` (turn scheduling, streaming fallback, participant validation).
+  - Chat pipeline orchestration: cover `ChatOrchestrator.ts` (round-robin flow, streaming preference handling) and remaining chat hooks (`useAIResponses`, `useAIResponsesWithStreaming`, `useChatInput`, `useMentions`, `useQuickStart`).
+  - Streaming base adapter: test `BaseAdapter.formatHistory` debate-mode remapping and resumption behaviour.
+  - Optional: extend adapter/service tests with targeted fixtures for provider-specific behaviour once orchestrator coverage lands.
 
 ### Stage 3 – UI & Integration
 - Component tests for high-value surfaces:

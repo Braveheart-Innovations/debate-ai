@@ -54,6 +54,7 @@ describe('PurchaseService', () => {
   const authInstance = {
     currentUser: { uid: 'user-123' },
   } as any;
+  let consoleErrorSpy: jest.SpyInstance;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -71,10 +72,12 @@ describe('PurchaseService', () => {
     purchaseUpdatedListenerMock.mockReturnValue({ remove: jest.fn() } as any);
     purchaseErrorListenerMock.mockReturnValue({ remove: jest.fn() } as any);
     endConnectionMock.mockResolvedValue(undefined as any);
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
     PurchaseService.cleanup();
+    consoleErrorSpy.mockRestore();
   });
 
   it('initializes connection and listeners', async () => {
@@ -91,13 +94,13 @@ describe('PurchaseService', () => {
   it('returns failure when initialization throws', async () => {
     const error = new Error('init failed');
     initConnectionMock.mockRejectedValue(error);
-    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+    consoleErrorSpy.mockClear();
 
     const result = await PurchaseService.initialize();
 
     expect(result.success).toBe(false);
     expect(result).toHaveProperty('error', error);
-    consoleError.mockRestore();
+    expect(consoleErrorSpy).toHaveBeenCalled();
   });
 
   it('requests iOS subscription with existing account token', async () => {
@@ -171,22 +174,24 @@ describe('PurchaseService', () => {
     setPlatform('ios');
     const error = new Error('iap failure');
     requestSubscriptionMock.mockRejectedValueOnce(error);
-    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+    consoleErrorSpy.mockClear();
 
     const result = await PurchaseService.purchaseSubscription('monthly');
 
     expect(result.success).toBe(false);
     expect(result).toHaveProperty('error', error);
-    consoleError.mockRestore();
+    expect(consoleErrorSpy).toHaveBeenCalledWith('IAP purchaseSubscription failed', error);
   });
 
   it('fails purchase when user is not authenticated', async () => {
     authInstance.currentUser = null;
+    consoleErrorSpy.mockClear();
 
     const result = await PurchaseService.purchaseSubscription('monthly');
 
     expect(result.success).toBe(false);
     expect(result).toHaveProperty('error');
+    expect(consoleErrorSpy).toHaveBeenCalledWith('IAP purchaseSubscription failed', expect.any(Error));
     authInstance.currentUser = { uid: 'user-123' };
   });
 
