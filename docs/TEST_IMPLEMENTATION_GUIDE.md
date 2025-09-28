@@ -203,8 +203,9 @@ Create `test-utils/renderHookWithProviders.ts` that reuses the same wrapper for 
 - Introduce `npm run test` and update CI to call it.
 - Add first unit tests for `src/utils/expertMode.ts`, `src/utils/*`, `src/services/secureStorage.ts`, and `src/services/APIKeyService.ts` (verifying SecureStore behaviour).
 
-### Stage 1 – Security-Critical Coverage
+### Stage 1 - Security-Critical Coverage *(Completed - February 2025)*
 - ✅ Baseline implemented: unit tests now cover `APIKeyService`, `secureStorage`, hooks (`useAPIKeys`, `useProviderVerification`), and `PurchaseService` purchase/restore paths.
+- ✅ Entitlement coverage expanded: tests now exercise `SubscriptionManager`, `useFeatureAccess`, `useSubscriptionStatus`, and the `validatePurchase` callable end-to-end with mocked Firebase/Google surfaces.
 - Cover credential and entitlement flows:
   - `src/services/APIKeyService.ts`, `src/services/secureStorage.ts` – key lifecycle, error handling, empty keys.
   - `src/hooks/useAPIKeys.ts`, `src/hooks/useProviderVerification.ts` – ensure state derived from storage stays consistent.
