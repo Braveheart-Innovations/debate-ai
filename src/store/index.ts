@@ -1,5 +1,5 @@
 // Redux store configuration
-import { configureStore, createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { configureStore, createSlice, PayloadAction, combineReducers } from '@reduxjs/toolkit';
 import { User, ChatSession, Message, UIMode, SubscriptionTier, AIConfig, MessageAttachment, MessageMetadata } from '../types';
 import debateStatsReducer from './debateStatsSlice';
 import streamingReducer from './streamingSlice';
@@ -293,22 +293,29 @@ const settingsSlice = createSlice({
   },
 });
 
-// Configure store
-export const store = configureStore({
-  reducer: {
-    user: userSlice.reducer,
-    chat: chatSlice.reducer,
-    settings: settingsSlice.reducer,
-    debateStats: debateStatsReducer,
-    streaming: streamingReducer,
-    auth: authReducer,
-    navigation: navigationReducer,
-    compare: compareReducer,
-  },
+const rootReducer = combineReducers({
+  user: userSlice.reducer,
+  chat: chatSlice.reducer,
+  settings: settingsSlice.reducer,
+  debateStats: debateStatsReducer,
+  streaming: streamingReducer,
+  auth: authReducer,
+  navigation: navigationReducer,
+  compare: compareReducer,
 });
 
-export type RootState = ReturnType<typeof store.getState>;
-export type AppDispatch = typeof store.dispatch;
+export type RootState = ReturnType<typeof rootReducer>;
+
+export const createAppStore = (preloadedState?: Partial<RootState>) =>
+  configureStore({
+    reducer: rootReducer,
+    preloadedState: preloadedState as RootState | undefined,
+  });
+
+export const store = createAppStore();
+
+export type AppStore = typeof store;
+export type AppDispatch = AppStore['dispatch'];
 
 // Export actions
 export const { setUser, updateUIMode, updateSubscription, logout } = userSlice.actions;

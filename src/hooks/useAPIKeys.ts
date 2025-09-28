@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '../store';
-import { updateApiKeys } from '../store';
-import APIKeyService from '../services/APIKeyService';
-import { AI_PROVIDERS } from '../config/aiProviders';
+import { RootState, updateApiKeys } from '@/store';
+import APIKeyService from '@/services/APIKeyService';
+import { AI_PROVIDERS } from '@/config/aiProviders';
 // Type guards imported for future validation needs
 
 export interface UseAPIKeysReturn {

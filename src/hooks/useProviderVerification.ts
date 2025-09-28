@@ -1,8 +1,7 @@
 import { useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '../store';
-// Removed unused imports - actions are used in VerificationService
-import VerificationService, { VerificationStatus, VerificationResult } from '../services/VerificationService';
+import { RootState } from '@/store';
+import VerificationService, { VerificationStatus, VerificationResult } from '@/services/VerificationService';
 
 export interface UseProviderVerificationReturn {
   verifiedProviders: string[];

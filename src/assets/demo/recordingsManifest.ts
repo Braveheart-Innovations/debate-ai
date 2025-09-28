@@ -16,13 +16,11 @@ import recording_chat_o_refactor_v1 from './recordings/chat_o_refactor_v1.json';
 import recording_chat_og_itinerary_v1 from './recordings/chat_og_itinerary_v1.json';
 import recording_chat_og_refactor_v1 from './recordings/chat_og_refactor_v1.json';
 import recording_compare_cg_dinosaurs_v1 from './recordings/compare_cg_dinosaurs_v1.json';
-import recording_compare_cg_itinerary_v1 from './recordings/compare_cg_itinerary_v1.json';
-import recording_compare_cg_sql_v1 from './recordings/compare_cg_sql_v1.json';
+import recording_compare_cg_roadtrip_v1 from './recordings/compare_cg_roadtrip_v1.json';
 import recording_compare_co_bali_v1 from './recordings/compare_co_bali_v1.json';
-import recording_compare_co_itinerary_v1 from './recordings/compare_co_itinerary_v1.json';
-import recording_compare_co_sql_v1 from './recordings/compare_co_sql_v1.json';
-import recording_compare_og_itinerary_v1 from './recordings/compare_og_itinerary_v1.json';
-import recording_compare_og_sql_v1 from './recordings/compare_og_sql_v1.json';
+import recording_compare_co_bestthaifood_v1 from './recordings/compare_co_bestthaifood_v1.json';
+import recording_compare_og_disneyworld_v1 from './recordings/compare_og_disneyworld_v1.json';
+import recording_compare_og_vaccines_v1 from './recordings/compare_og_vaccines_v1.json';
 import recording_debate_cg_default_1 from './recordings/debate_cg_default_1.json';
 import recording_debate_cg_george_1 from './recordings/debate_cg_george_1.json';
 import recording_debate_cg_sage_1 from './recordings/debate_cg_sage_1.json';
@@ -147,22 +145,15 @@ export const demoRecordings: DemoRecordingEntry[] = [
     id: 'compare_cg_dinosaurs_v1',
     type: 'compare',
     providers: ['claude', 'google'],
-    title: 'compare_cg_dinosaurs_v1',
+    title: "Dinosaur Extinction (Claude vs Gemini)",
     data: recording_compare_cg_dinosaurs_v1 as unknown as (DemoCompare),
   },
   {
-    id: 'compare_cg_itinerary_v1',
+    id: 'compare_cg_roadtrip_v1',
     type: 'compare',
     providers: ['claude', 'google'],
-    title: "Kyoto Itinerary (Claude vs Gemini)",
-    data: recording_compare_cg_itinerary_v1 as unknown as (DemoCompare),
-  },
-  {
-    id: 'compare_cg_sql_v1',
-    type: 'compare',
-    providers: ['claude', 'google'],
-    title: "Explain SQL CTE (Claude vs Gemini)",
-    data: recording_compare_cg_sql_v1 as unknown as (DemoCompare),
+    title: "Roadtrip to NYC (Claude vs Gemini)",
+    data: recording_compare_cg_roadtrip_v1 as unknown as (DemoCompare),
   },
   {
     id: 'compare_co_bali_v1',
@@ -172,32 +163,25 @@ export const demoRecordings: DemoRecordingEntry[] = [
     data: recording_compare_co_bali_v1 as unknown as (DemoCompare),
   },
   {
-    id: 'compare_co_itinerary_v1',
+    id: 'compare_co_bestthaifood_v1',
     type: 'compare',
     providers: ['claude', 'openai'],
-    title: "Kyoto Itinerary (Claude vs OpenAI)",
-    data: recording_compare_co_itinerary_v1 as unknown as (DemoCompare),
+    title: "Best Thai Food in Austin (Claude vs ChatGPT)",
+    data: recording_compare_co_bestthaifood_v1 as unknown as (DemoCompare),
   },
   {
-    id: 'compare_co_sql_v1',
-    type: 'compare',
-    providers: ['claude', 'openai'],
-    title: "Explain SQL CTE (Claude vs OpenAI)",
-    data: recording_compare_co_sql_v1 as unknown as (DemoCompare),
-  },
-  {
-    id: 'compare_og_itinerary_v1',
+    id: 'compare_og_disneyworld_v1',
     type: 'compare',
     providers: ['openai', 'google'],
-    title: "Kyoto Itinerary (OpenAI vs Gemini)",
-    data: recording_compare_og_itinerary_v1 as unknown as (DemoCompare),
+    title: "Trip to Disney World (ChatGPT vs Gemini)",
+    data: recording_compare_og_disneyworld_v1 as unknown as (DemoCompare),
   },
   {
-    id: 'compare_og_sql_v1',
+    id: 'compare_og_vaccines_v1',
     type: 'compare',
     providers: ['openai', 'google'],
-    title: "Explain SQL CTE (OpenAI vs Gemini)",
-    data: recording_compare_og_sql_v1 as unknown as (DemoCompare),
+    title: "Are Vaccines Safe? (ChatGPT vs Gemini)",
+    data: recording_compare_og_vaccines_v1 as unknown as (DemoCompare),
   },
   {
     id: 'debate_cg_default_1',

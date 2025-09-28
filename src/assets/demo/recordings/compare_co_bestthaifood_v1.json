@@ -1,0 +1,2080 @@
+{
+  "type": "compare",
+  "id": "compare_co_bestthaifood_v1",
+  "title": "Best Thai Food in Austin (Claude vs ChatGPT)",
+  "comboKey": "claude+openai",
+  "events": [
+    {
+      "type": "divider",
+      "meta": {
+        "startedAt": "2025-09-27T15:49:13.285Z",
+        "screen": "compare",
+        "comboKey": "claude+openai",
+        "platform": "ios"
+      }
+    },
+    {
+      "type": "message",
+      "role": "user",
+      "content": "What is the best Thai restaurant in Austin, TX?"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "I don't have",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " access to real-time information about",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " current restaurant ratings or recent openings, but",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " some Thai restaurants that have historically been well-regarde",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "d in Austin include:\n\n- **S",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "way** - A modern Thai restaurant known",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " for creative interpretations and high",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-quality ingredients\n- **Tit",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "aya's Thai Cuisine** -",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " A long-standing family",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-owned restaurant popular for authentic dishes",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\n- **Dee",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Dee** - A northern Thai restaurant that's",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " received critical acclaim\n- **Thai",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Fresh** - Known for fresh ingredients",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and also features a bakery\n\nThe",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " \"best\" restaurant really depends on what",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " you're looking for - authentic regional",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Thai cuisine, modern interpretations, specific",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " dishes, atmosphere, or price point",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ". I'd recommend checking recent reviews on Google,",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Yelp, or local Austin",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " food blogs for current ratings and to",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " see which might best match your preferences.",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Austin's food scene changes frequently, so there",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " may be newer excellent options I'm not aware of",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": "I don't have access to real-time information about current restaurant ratings or recent openings, but some Thai restaurants that have historically been well-regarded in Austin include:\n\n- **Sway** - A modern Thai restaurant known for creative interpretations and high-quality ingredients\n- **Titaya's Thai Cuisine** - A long-standing family-owned restaurant popular for authentic dishes\n- **Dee Dee** - A northern Thai restaurant that's received critical acclaim\n- **Thai Fresh** - Known for fresh ingredients and also features a bakery\n\nThe \"best\" restaurant really depends on what you're looking for - authentic regional Thai cuisine, modern interpretations, specific dishes, atmosphere, or price point. I'd recommend checking recent reviews on Google, Yelp, or local Austin food blogs for current ratings and to see which might best match your preferences. Austin's food scene changes frequently, so there may be newer excellent options I'm not aware of.",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "“",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Best” depends",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " on what you’re",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " after (regional",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " style,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " spice level",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " vibe).",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Local standouts",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ":\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Dee Dee",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " (Northern Thai,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " casual/",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "food truck):",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Super-spicy",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Isan staples.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Get pad kap",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "rao,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " larb,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " som tam,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " mango sticky rice",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Thai-Kun",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " (street-food",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " style): Bold",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " fiery flavors",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Try waterfall pork",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " larb moo",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " panang beef",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Tit",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "aya’s Thai",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Cuisine (",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "North Lamar,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " sit-down): Broad",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " menu,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " consistent.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Boat noodles,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " khao soi",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " pad kee mao",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " are great.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Thai",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Fresh (South",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Austin,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " casual cafe/bak",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ery): Hom",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "estyle curries",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and many vegan",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "/gluten-free",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " options.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Don’t miss the",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " coconut ice creams",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Madam Mam",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "’s (",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "multiple locations,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " casual): Huge",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " menu with regional",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " dishes.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Solid khao",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " soi,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " pad see ew",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " spicy salads.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Sap’s",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Fine Thai (",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "multiple locations",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " casual): Extensive",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " classic Thai with",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " reliable heat levels",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "; good",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " for staples like",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " pad thai",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and curries",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "If you tell",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " me your neighborhood,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " spice tolerance,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and whether you",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " want a sit",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-down spot or a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " food truck,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " I’ll narrow",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " it to the",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " best pick for",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " you.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": "“Best” depends on what you’re after (regional style, spice level, vibe). Local standouts:\n\n- Dee Dee (Northern Thai, casual/food truck): Super-spicy Isan staples. Get pad kaprao, larb, som tam, mango sticky rice.\n- Thai-Kun (street-food style): Bold, fiery flavors. Try waterfall pork, larb moo, panang beef.\n- Titaya’s Thai Cuisine (North Lamar, sit-down): Broad menu, consistent. Boat noodles, khao soi, pad kee mao are great.\n- Thai Fresh (South Austin, casual cafe/bakery): Homestyle curries and many vegan/gluten-free options. Don’t miss the coconut ice creams.\n- Madam Mam’s (multiple locations, casual): Huge menu with regional dishes. Solid khao soi, pad see ew, spicy salads.\n- Sap’s Fine Thai (multiple locations, casual): Extensive, classic Thai with reliable heat levels; good for staples like pad thai and curries.\n\nIf you tell me your neighborhood, spice tolerance, and whether you want a sit-down spot or a food truck, I’ll narrow it to the best pick for you.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "message",
+      "role": "user",
+      "content": "I’d like a sit-down experience. I’d really like to experience Thai cuisine the way they eat their food, so am willing to get pretty spicy."
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Based on your preferences",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " for authentic Thai dining and heat levels, I",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "'d particularly recommend:\n\n**Tit",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "aya's Thai Cuisine** - This",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " family-run restaurant is known for serving",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " authentic Thai food with genuine spice levels.",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " They'll take you seriously when you ask for",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " \"Thai spicy\" and prepare",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " dishes the traditional way. It's a comfortable",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " sit-down restaurant with a loyal local following.",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\n\n**Dee Dee** -",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Specializes in northern Thai cuisine, which is",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " less commonly found in the US. They",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "'re known for respecting authentic sp",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ice levels and traditional preparations. The menu",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " includes dishes you won't find at",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " more Americanized Thai restaurants",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n\n**Sap's",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Fine Thai** - Another spot that's",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " gained a reputation for authentic flavors and proper",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " heat levels. They offer traditional Thai dishes an",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "d will prepare them with authentic spicing",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " when requested.\n\nWhen ordering",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ", you can specifically ask for \"",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Thai spicy\" or \"pet",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " mak mak\" (very",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " spicy) to indicate you want authentic",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " heat levels. Many Thai restaurants in the",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " US default to milder preparations",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ", so being explicit helps. Also consider",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ordering family-style with multiple dishes to share",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - this is how Thai food is traditionally",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " enjoyed, with various flavors and tex",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "tures complementing each other.\n\nWould you like",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " suggestions for specific dishes to try for",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " an authentic experience?",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": "Based on your preferences for authentic Thai dining and heat levels, I'd particularly recommend:\n\n**Titaya's Thai Cuisine** - This family-run restaurant is known for serving authentic Thai food with genuine spice levels. They'll take you seriously when you ask for \"Thai spicy\" and prepare dishes the traditional way. It's a comfortable sit-down restaurant with a loyal local following.\n\n**Dee Dee** - Specializes in northern Thai cuisine, which is less commonly found in the US. They're known for respecting authentic spice levels and traditional preparations. The menu includes dishes you won't find at more Americanized Thai restaurants.\n\n**Sap's Fine Thai** - Another spot that's gained a reputation for authentic flavors and proper heat levels. They offer traditional Thai dishes and will prepare them with authentic spicing when requested.\n\nWhen ordering, you can specifically ask for \"Thai spicy\" or \"pet mak mak\" (very spicy) to indicate you want authentic heat levels. Many Thai restaurants in the US default to milder preparations, so being explicit helps. Also consider ordering family-style with multiple dishes to share - this is how Thai food is traditionally enjoyed, with various flavors and textures complementing each other.\n\nWould you like suggestions for specific dishes to try for an authentic experience?",
+      "speakerProvider": "claude"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Top",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " pick for a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " sit-down",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Thai-level",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " heat: Tit",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "aya’s Thai",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Cuisine (N",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Lamar)\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Why",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": Cons",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "istently",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the most dial",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ed-in",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " flavors and",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " spice,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " big menu with regional",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " depth.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- How to",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " order for a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Thai-style meal",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " (share",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " everything):\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Spicy",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " salad: Som",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " tum (pap",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "aya salad)",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " “Thai spicy",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",” sticky rice on",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " the side.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Noodle",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " soups: Boat",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Noodle Soup",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " or Tom",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Yum Noodle",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Soup,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ask for Thai spicy",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Curry",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": K",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "hao soi",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " (Chi",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "ang Mai curry",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " noodles) or",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a red/green",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " curry at",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Thai spicy.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Stir",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-fry",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": Pad",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " krap",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "rao (holy",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " basil; pork",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " or crispy pork",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ") Thai spicy,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " add a fried egg",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Tips:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Tell them “Thai",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " spicy,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " not American spicy.”",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Ask for the condiment",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " set (",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "chili",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " flakes,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " fish sauce with",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " chilies,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " vinegar chilies",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " sugar) to",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " tune heat and",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " sourness.",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Go early or",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " expect a wait",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Excellent runner-up",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": Sap’s",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Fine Thai Cuisine (",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "multiple locations)\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Why:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Huge,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " very authentic menu",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "; they’ll",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " actually give you",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " real heat on",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " request.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- What to",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " order:\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Som",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " tum,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " larb or",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " nam tok",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " (gr",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "illed meat",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " salad) with",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " sticky rice",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Jungle curry",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " (ka",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "eng pa",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "; no",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " coconut,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " very spicy)",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " or panang",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "/green",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " curry.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " ",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " - Pad kee",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " mao (dr",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "unken noodles) or",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " pad prik",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " khing.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Tip:",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " Ask for",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " “Thai hot”",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " or the",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " highest heat level",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "; they’ll",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " oblige.\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "General pointers for",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " an authentic experience",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Balance the table",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": a",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " spicy salad",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " + a soup +",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a curry +",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a stir",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-fry,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " with both jasmine",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " and sticky",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " rice.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Cool",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "-down sides",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": cucumber slices",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ",",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " fried egg,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " or a mild",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " omelet",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " (kai",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " jeow)",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " if available.\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "- Drinks",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ": Soda",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " water,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " lager (",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "Singha",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "/Chang),",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " or lime soda cuts",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " heat better",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " than Thai",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " iced tea (",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "which is",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " very sweet).\n\n",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": "If you",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " share your",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " neighborhood or where",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " you’ll",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " be around",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " dinner time,",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " I can point",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " you to the closest",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " spot and suggest",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": " a precise order",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "stream",
+      "role": "assistant",
+      "content": ".",
+      "speakerProvider": "openai"
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": "Top pick for a sit-down, Thai-level heat: Titaya’s Thai Cuisine (N. Lamar)\n- Why: Consistently the most dialed-in flavors and spice, big menu with regional depth.\n- How to order for a Thai-style meal (share everything):\n  - Spicy salad: Som tum (papaya salad) “Thai spicy,” sticky rice on the side.\n  - Noodle soups: Boat Noodle Soup or Tom Yum Noodle Soup, ask for Thai spicy.\n  - Curry: Khao soi (Chiang Mai curry noodles) or a red/green curry at Thai spicy.\n  - Stir-fry: Pad kraprao (holy basil; pork or crispy pork) Thai spicy, add a fried egg.\n- Tips: Tell them “Thai spicy, not American spicy.” Ask for the condiment set (chili flakes, fish sauce with chilies, vinegar chilies, sugar) to tune heat and sourness. Go early or expect a wait.\n\nExcellent runner-up: Sap’s Fine Thai Cuisine (multiple locations)\n- Why: Huge, very authentic menu; they’ll actually give you real heat on request.\n- What to order:\n  - Som tum, larb or nam tok (grilled meat salad) with sticky rice.\n  - Jungle curry (kaeng pa; no coconut, very spicy) or panang/green curry.\n  - Pad kee mao (drunken noodles) or pad prik khing.\n- Tip: Ask for “Thai hot” or the highest heat level; they’ll oblige.\n\nGeneral pointers for an authentic experience\n- Balance the table: a spicy salad + a soup + a curry + a stir-fry, with both jasmine and sticky rice.\n- Cool-down sides: cucumber slices, fried egg, or a mild omelet (kai jeow) if available.\n- Drinks: Soda water, lager (Singha/Chang), or lime soda cuts heat better than Thai iced tea (which is very sweet).\n\nIf you share your neighborhood or where you’ll be around dinner time, I can point you to the closest spot and suggest a precise order.",
+      "speakerProvider": "openai"
+    }
+  ],
+  "runs": [
+    {
+      "id": "r1",
+      "label": "providers",
+      "prompt": "What is the best Thai restaurant in Austin, TX?",
+      "columns": [
+        {
+          "name": "Claude",
+          "events": [
+            {
+              "type": "message",
+              "role": "assistant",
+              "content": "I don't have access to real-time information about current restaurant ratings or recent openings, but some Thai restaurants that have historically been well-regarded in Austin include:\n\n- **Sway** - A modern Thai restaurant known for creative interpretations and high-quality ingredients\n- **Titaya's Thai Cuisine** - A long-standing family-owned restaurant popular for authentic dishes\n- **Dee Dee** - A northern Thai restaurant that's received critical acclaim\n- **Thai Fresh** - Known for fresh ingredients and also features a bakery\n\nThe \"best\" restaurant really depends on what you're looking for - authentic regional Thai cuisine, modern interpretations, specific dishes, atmosphere, or price point. I'd recommend checking recent reviews on Google, Yelp, or local Austin food blogs for current ratings and to see which might best match your preferences. Austin's food scene changes frequently, so there may be newer excellent options I'm not aware of.I don't have access to real-time information about current restaurant ratings or recent openings, but some Thai restaurants that have historically been well-regarded in Austin include:\n\n- **Sway** - A modern Thai restaurant known for creative interpretations and high-quality ingredients\n- **Titaya's Thai Cuisine** - A long-standing family-owned restaurant popular for authentic dishes\n- **Dee Dee** - A northern Thai restaurant that's received critical acclaim\n- **Thai Fresh** - Known for fresh ingredients and also features a bakery\n\nThe \"best\" restaurant really depends on what you're looking for - authentic regional Thai cuisine, modern interpretations, specific dishes, atmosphere, or price point. I'd recommend checking recent reviews on Google, Yelp, or local Austin food blogs for current ratings and to see which might best match your preferences. Austin's food scene changes frequently, so there may be newer excellent options I'm not aware of.",
+              "speakerProvider": "claude"
+            }
+          ]
+        },
+        {
+          "name": "OpenAI",
+          "events": [
+            {
+              "type": "message",
+              "role": "assistant",
+              "content": "“Best” depends on what you’re after (regional style, spice level, vibe). Local standouts:\n\n- Dee Dee (Northern Thai, casual/food truck): Super-spicy Isan staples. Get pad kaprao, larb, som tam, mango sticky rice.\n- Thai-Kun (street-food style): Bold, fiery flavors. Try waterfall pork, larb moo, panang beef.\n- Titaya’s Thai Cuisine (North Lamar, sit-down): Broad menu, consistent. Boat noodles, khao soi, pad kee mao are great.\n- Thai Fresh (South Austin, casual cafe/bakery): Homestyle curries and many vegan/gluten-free options. Don’t miss the coconut ice creams.\n- Madam Mam’s (multiple locations, casual): Huge menu with regional dishes. Solid khao soi, pad see ew, spicy salads.\n- Sap’s Fine Thai (multiple locations, casual): Extensive, classic Thai with reliable heat levels; good for staples like pad thai and curries.\n\nIf you tell me your neighborhood, spice tolerance, and whether you want a sit-down spot or a food truck, I’ll narrow it to the best pick for you.“Best” depends on what you’re after (regional style, spice level, vibe). Local standouts:\n\n- Dee Dee (Northern Thai, casual/food truck): Super-spicy Isan staples. Get pad kaprao, larb, som tam, mango sticky rice.\n- Thai-Kun (street-food style): Bold, fiery flavors. Try waterfall pork, larb moo, panang beef.\n- Titaya’s Thai Cuisine (North Lamar, sit-down): Broad menu, consistent. Boat noodles, khao soi, pad kee mao are great.\n- Thai Fresh (South Austin, casual cafe/bakery): Homestyle curries and many vegan/gluten-free options. Don’t miss the coconut ice creams.\n- Madam Mam’s (multiple locations, casual): Huge menu with regional dishes. Solid khao soi, pad see ew, spicy salads.\n- Sap’s Fine Thai (multiple locations, casual): Extensive, classic Thai with reliable heat levels; good for staples like pad thai and curries.\n\nIf you tell me your neighborhood, spice tolerance, and whether you want a sit-down spot or a food truck, I’ll narrow it to the best pick for you.",
+              "speakerProvider": "openai"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "r2",
+      "label": "providers",
+      "prompt": "I’d like a sit-down experience. I’d really like to experience Thai cuisine the way they eat their food, so am willing to get pretty spicy.",
+      "columns": [
+        {
+          "name": "Claude",
+          "events": [
+            {
+              "type": "message",
+              "role": "assistant",
+              "content": "Based on your preferences for authentic Thai dining and heat levels, I'd particularly recommend:\n\n**Titaya's Thai Cuisine** - This family-run restaurant is known for serving authentic Thai food with genuine spice levels. They'll take you seriously when you ask for \"Thai spicy\" and prepare dishes the traditional way. It's a comfortable sit-down restaurant with a loyal local following.\n\n**Dee Dee** - Specializes in northern Thai cuisine, which is less commonly found in the US. They're known for respecting authentic spice levels and traditional preparations. The menu includes dishes you won't find at more Americanized Thai restaurants.\n\n**Sap's Fine Thai** - Another spot that's gained a reputation for authentic flavors and proper heat levels. They offer traditional Thai dishes and will prepare them with authentic spicing when requested.\n\nWhen ordering, you can specifically ask for \"Thai spicy\" or \"pet mak mak\" (very spicy) to indicate you want authentic heat levels. Many Thai restaurants in the US default to milder preparations, so being explicit helps. Also consider ordering family-style with multiple dishes to share - this is how Thai food is traditionally enjoyed, with various flavors and textures complementing each other.\n\nWould you like suggestions for specific dishes to try for an authentic experience?Based on your preferences for authentic Thai dining and heat levels, I'd particularly recommend:\n\n**Titaya's Thai Cuisine** - This family-run restaurant is known for serving authentic Thai food with genuine spice levels. They'll take you seriously when you ask for \"Thai spicy\" and prepare dishes the traditional way. It's a comfortable sit-down restaurant with a loyal local following.\n\n**Dee Dee** - Specializes in northern Thai cuisine, which is less commonly found in the US. They're known for respecting authentic spice levels and traditional preparations. The menu includes dishes you won't find at more Americanized Thai restaurants.\n\n**Sap's Fine Thai** - Another spot that's gained a reputation for authentic flavors and proper heat levels. They offer traditional Thai dishes and will prepare them with authentic spicing when requested.\n\nWhen ordering, you can specifically ask for \"Thai spicy\" or \"pet mak mak\" (very spicy) to indicate you want authentic heat levels. Many Thai restaurants in the US default to milder preparations, so being explicit helps. Also consider ordering family-style with multiple dishes to share - this is how Thai food is traditionally enjoyed, with various flavors and textures complementing each other.\n\nWould you like suggestions for specific dishes to try for an authentic experience?",
+              "speakerProvider": "claude"
+            }
+          ]
+        },
+        {
+          "name": "OpenAI",
+          "events": [
+            {
+              "type": "message",
+              "role": "assistant",
+              "content": "Top pick for a sit-down, Thai-level heat: Titaya’s Thai Cuisine (N. Lamar)\n- Why: Consistently the most dialed-in flavors and spice, big menu with regional depth.\n- How to order for a Thai-style meal (share everything):\n  - Spicy salad: Som tum (papaya salad) “Thai spicy,” sticky rice on the side.\n  - Noodle soups: Boat Noodle Soup or Tom Yum Noodle Soup, ask for Thai spicy.\n  - Curry: Khao soi (Chiang Mai curry noodles) or a red/green curry at Thai spicy.\n  - Stir-fry: Pad kraprao (holy basil; pork or crispy pork) Thai spicy, add a fried egg.\n- Tips: Tell them “Thai spicy, not American spicy.” Ask for the condiment set (chili flakes, fish sauce with chilies, vinegar chilies, sugar) to tune heat and sourness. Go early or expect a wait.\n\nExcellent runner-up: Sap’s Fine Thai Cuisine (multiple locations)\n- Why: Huge, very authentic menu; they’ll actually give you real heat on request.\n- What to order:\n  - Som tum, larb or nam tok (grilled meat salad) with sticky rice.\n  - Jungle curry (kaeng pa; no coconut, very spicy) or panang/green curry.\n  - Pad kee mao (drunken noodles) or pad prik khing.\n- Tip: Ask for “Thai hot” or the highest heat level; they’ll oblige.\n\nGeneral pointers for an authentic experience\n- Balance the table: a spicy salad + a soup + a curry + a stir-fry, with both jasmine and sticky rice.\n- Cool-down sides: cucumber slices, fried egg, or a mild omelet (kai jeow) if available.\n- Drinks: Soda water, lager (Singha/Chang), or lime soda cuts heat better than Thai iced tea (which is very sweet).\n\nIf you share your neighborhood or where you’ll be around dinner time, I can point you to the closest spot and suggest a precise order.Top pick for a sit-down, Thai-level heat: Titaya’s Thai Cuisine (N. Lamar)\n- Why: Consistently the most dialed-in flavors and spice, big menu with regional depth.\n- How to order for a Thai-style meal (share everything):\n  - Spicy salad: Som tum (papaya salad) “Thai spicy,” sticky rice on the side.\n  - Noodle soups: Boat Noodle Soup or Tom Yum Noodle Soup, ask for Thai spicy.\n  - Curry: Khao soi (Chiang Mai curry noodles) or a red/green curry at Thai spicy.\n  - Stir-fry: Pad kraprao (holy basil; pork or crispy pork) Thai spicy, add a fried egg.\n- Tips: Tell them “Thai spicy, not American spicy.” Ask for the condiment set (chili flakes, fish sauce with chilies, vinegar chilies, sugar) to tune heat and sourness. Go early or expect a wait.\n\nExcellent runner-up: Sap’s Fine Thai Cuisine (multiple locations)\n- Why: Huge, very authentic menu; they’ll actually give you real heat on request.\n- What to order:\n  - Som tum, larb or nam tok (grilled meat salad) with sticky rice.\n  - Jungle curry (kaeng pa; no coconut, very spicy) or panang/green curry.\n  - Pad kee mao (drunken noodles) or pad prik khing.\n- Tip: Ask for “Thai hot” or the highest heat level; they’ll oblige.\n\nGeneral pointers for an authentic experience\n- Balance the table: a spicy salad + a soup + a curry + a stir-fry, with both jasmine and sticky rice.\n- Cool-down sides: cucumber slices, fried egg, or a mild omelet (kai jeow) if available.\n- Drinks: Soda water, lager (Singha/Chang), or lime soda cuts heat better than Thai iced tea (which is very sweet).\n\nIf you share your neighborhood or where you’ll be around dinner time, I can point you to the closest spot and suggest a precise order.",
+              "speakerProvider": "openai"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "category": "provider"
+}
