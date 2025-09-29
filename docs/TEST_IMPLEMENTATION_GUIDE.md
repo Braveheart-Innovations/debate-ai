@@ -213,18 +213,17 @@ Create `test-utils/renderHookWithProviders.ts` that reuses the same wrapper for 
   - `src/services/subscription/*`, `src/hooks/useSubscriptionStatus.ts`, `useFeatureAccess.ts` – entitlement gating.
   - `functions/src/validatePurchase.ts` – Firebase callable contract tests using `firebase-functions-test`.
 
-### Stage 2 – Core Logic & State *(In progress – March 2025)*
+### Stage 2 – Core Logic & State *(Completed – March 2025)*
 - ✅ Covered supporting services and slices:
   - `VotingService.ts`, `DebateRulesEngine.ts`, `DebatePromptBuilder.ts`, `DebateSetupService.ts`, `TopicService.ts`, `PersonalityService.ts` via unit tests.
   - Redux slices (`authSlice`, `compareSlice`, `debateStatsSlice`, `navigationSlice`, `streamingSlice`) and `createAppStore` factory.
   - Streaming/router utilities: `StreamingService.ts`, `AdapterFactory.ts`.
   - Chat persistence utilities: `StorageService.ts`, `MessageService.ts`.
-  - Hooks: `useDebateSession`, `useDebateFlow`, `useDebateVoting`, `useDebateMessages`, `useChatMessages`.
-- Next focus areas to complete Stage 2:
-  - Debate orchestration core: add deterministic suites for `DebateOrchestrator.ts` and `DebaterSelectionService.ts` (turn scheduling, streaming fallback, participant validation).
-  - Chat pipeline orchestration: cover `ChatOrchestrator.ts` (round-robin flow, streaming preference handling) and remaining chat hooks (`useAIResponses`, `useAIResponsesWithStreaming`, `useChatInput`, `useMentions`, `useQuickStart`).
-  - Streaming base adapter: test `BaseAdapter.formatHistory` debate-mode remapping and resumption behaviour.
-  - Optional: extend adapter/service tests with targeted fixtures for provider-specific behaviour once orchestrator coverage lands.
+  - Hooks: `useDebateSession`, `useDebateFlow`, `useDebateVoting`, `useDebateMessages`, `useChatMessages`, `useAIResponses`, `useAIResponsesWithStreaming`, `useChatInput`, `useMentions`, `useQuickStart`.
+- ✅ Debate orchestration core: deterministic suites for `DebateOrchestrator.ts` (turn scheduling, streaming fallback) and validation coverage for `DebaterSelectionService.ts`.
+- ✅ Chat pipeline orchestration: `ChatOrchestrator.ts` flow, streaming preference handling, and fallback paths guarded via tests.
+- ✅ Streaming base adapter: `BaseAdapter.formatHistory` verified for debate-mode remapping and resumption behaviour.
+- 🔁 Optional (deferred): targeted provider-specific adapter fixtures remain valuable when iterating on individual providers but are not required for Stage 2 exit, given current App Store priorities.
 
 ### Stage 3 – UI & Integration
 - Component tests for high-value surfaces:
