@@ -92,7 +92,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
     "sharp": "^0.34.4",
-    "typescript": "~5.8.3",
+    "typescript": "~5.9.3",
     "typescript-eslint": "^8.39.0",
     "jest-expo": "~53.0.2",
     "@testing-library/react-native": "^12.3.0",
