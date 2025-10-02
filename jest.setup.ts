@@ -4,6 +4,28 @@ import mockSafeAreaContext from 'react-native-safe-area-context/jest/mock';
 jest.mock('react-native-safe-area-context', () => mockSafeAreaContext);
 jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
 jest.mock('react-native-gesture-handler', () => require('react-native-gesture-handler/jestSetup'));
+jest.mock('react-native/Libraries/Modal/Modal', () => {
+  const React = require('react');
+
+  const ModalMock = ({ children, visible = true, ...rest }: any = {}) => {
+    if (!visible) return null;
+    return React.createElement('Modal', { hardwareAccelerated: false, ...rest, visible }, children);
+  };
+
+  ModalMock.displayName = 'Modal';
+  (ModalMock as unknown as { __esModule?: boolean }).__esModule = true;
+  (ModalMock as unknown as { default?: unknown }).default = ModalMock;
+  return ModalMock;
+});
+
+const modalModule = require('react-native/Libraries/Modal/Modal');
+if (!modalModule) {
+  // eslint-disable-next-line no-console
+  console.warn('Modal mock missing module', modalModule);
+} else if (!(modalModule as { default?: unknown }).default) {
+  // eslint-disable-next-line no-console
+  console.warn('Modal mock missing default', Object.keys(modalModule));
+}
 
 jest.mock('expo-secure-store', () => ({
   setItemAsync: jest.fn(),
