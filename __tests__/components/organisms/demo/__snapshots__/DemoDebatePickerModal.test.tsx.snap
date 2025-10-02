@@ -1,0 +1,526 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`DemoDebatePickerModal Snapshot Tests matches snapshot when empty 1`] = `
+<Modal
+  animationType="fade"
+  hardwareAccelerated={false}
+  onRequestClose={[MockFunction]}
+  transparent={true}
+  visible={true}
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "rgba(0,0,0,0.5)",
+        "flex": 1,
+        "justifyContent": "center",
+        "paddingHorizontal": 16,
+      }
+    }
+  >
+    <View
+      style={
+        [
+          {
+            "borderRadius": 16,
+            "borderWidth": 0.5,
+            "maxWidth": 560,
+            "overflow": "hidden",
+            "width": "100%",
+          },
+          {
+            "backgroundColor": "#FFFFFF",
+            "borderColor": "#EEEEEE",
+          },
+        ]
+      }
+    >
+      <View
+        testID="sheet-header"
+      >
+        <Text>
+          Choose a Demo Debate
+        </Text>
+        <View
+          accessibilityState={
+            {
+              "busy": undefined,
+              "checked": undefined,
+              "disabled": undefined,
+              "expanded": undefined,
+              "selected": undefined,
+            }
+          }
+          accessibilityValue={
+            {
+              "max": undefined,
+              "min": undefined,
+              "now": undefined,
+              "text": undefined,
+            }
+          }
+          accessible={true}
+          collapsable={false}
+          focusable={true}
+          onClick={[Function]}
+          onResponderGrant={[Function]}
+          onResponderMove={[Function]}
+          onResponderRelease={[Function]}
+          onResponderTerminate={[Function]}
+          onResponderTerminationRequest={[Function]}
+          onStartShouldSetResponder={[Function]}
+          style={
+            {
+              "opacity": 1,
+            }
+          }
+          testID="sheet-header-close"
+        >
+          <Text>
+            Close
+          </Text>
+        </View>
+      </View>
+      <RCTScrollView
+        contentContainerStyle={
+          {
+            "padding": 12,
+          }
+        }
+        style={
+          {
+            "maxHeight": 520,
+          }
+        }
+      >
+        <View>
+          <View
+            style={
+              {
+                "alignItems": "center",
+                "justifyContent": "center",
+                "paddingHorizontal": 12,
+                "paddingVertical": 32,
+              }
+            }
+          >
+            <Text>
+              No demo debates available for this pairing yet.
+            </Text>
+            <Text>
+              Try another combination of AIs.
+            </Text>
+          </View>
+        </View>
+      </RCTScrollView>
+    </View>
+  </View>
+</Modal>
+`;
+
+exports[`DemoDebatePickerModal Snapshot Tests matches snapshot when loading 1`] = `
+<Modal
+  animationType="fade"
+  hardwareAccelerated={false}
+  onRequestClose={[MockFunction]}
+  transparent={true}
+  visible={true}
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "rgba(0,0,0,0.5)",
+        "flex": 1,
+        "justifyContent": "center",
+        "paddingHorizontal": 16,
+      }
+    }
+  >
+    <View
+      style={
+        [
+          {
+            "borderRadius": 16,
+            "borderWidth": 0.5,
+            "maxWidth": 560,
+            "overflow": "hidden",
+            "width": "100%",
+          },
+          {
+            "backgroundColor": "#FFFFFF",
+            "borderColor": "#EEEEEE",
+          },
+        ]
+      }
+    >
+      <View
+        testID="sheet-header"
+      >
+        <Text>
+          Choose a Demo Debate
+        </Text>
+        <View
+          accessibilityState={
+            {
+              "busy": undefined,
+              "checked": undefined,
+              "disabled": undefined,
+              "expanded": undefined,
+              "selected": undefined,
+            }
+          }
+          accessibilityValue={
+            {
+              "max": undefined,
+              "min": undefined,
+              "now": undefined,
+              "text": undefined,
+            }
+          }
+          accessible={true}
+          collapsable={false}
+          focusable={true}
+          onClick={[Function]}
+          onResponderGrant={[Function]}
+          onResponderMove={[Function]}
+          onResponderRelease={[Function]}
+          onResponderTerminate={[Function]}
+          onResponderTerminationRequest={[Function]}
+          onStartShouldSetResponder={[Function]}
+          style={
+            {
+              "opacity": 1,
+            }
+          }
+          testID="sheet-header-close"
+        >
+          <Text>
+            Close
+          </Text>
+        </View>
+      </View>
+      <RCTScrollView
+        contentContainerStyle={
+          {
+            "padding": 12,
+          }
+        }
+        style={
+          {
+            "maxHeight": 520,
+          }
+        }
+      >
+        <View>
+          <View
+            style={
+              {
+                "alignItems": "center",
+                "justifyContent": "center",
+                "paddingVertical": 32,
+              }
+            }
+          >
+            <ActivityIndicator
+              color="#007AFF"
+            />
+            <Text>
+              Loading demo debates…
+            </Text>
+          </View>
+        </View>
+      </RCTScrollView>
+    </View>
+  </View>
+</Modal>
+`;
+
+exports[`DemoDebatePickerModal Snapshot Tests matches snapshot with samples 1`] = `
+<Modal
+  animationType="fade"
+  hardwareAccelerated={false}
+  onRequestClose={[MockFunction]}
+  transparent={true}
+  visible={true}
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "rgba(0,0,0,0.5)",
+        "flex": 1,
+        "justifyContent": "center",
+        "paddingHorizontal": 16,
+      }
+    }
+  >
+    <View
+      style={
+        [
+          {
+            "borderRadius": 16,
+            "borderWidth": 0.5,
+            "maxWidth": 560,
+            "overflow": "hidden",
+            "width": "100%",
+          },
+          {
+            "backgroundColor": "#FFFFFF",
+            "borderColor": "#EEEEEE",
+          },
+        ]
+      }
+    >
+      <View
+        testID="sheet-header"
+      >
+        <Text>
+          Choose a Demo Debate
+        </Text>
+        <View
+          accessibilityState={
+            {
+              "busy": undefined,
+              "checked": undefined,
+              "disabled": undefined,
+              "expanded": undefined,
+              "selected": undefined,
+            }
+          }
+          accessibilityValue={
+            {
+              "max": undefined,
+              "min": undefined,
+              "now": undefined,
+              "text": undefined,
+            }
+          }
+          accessible={true}
+          collapsable={false}
+          focusable={true}
+          onClick={[Function]}
+          onResponderGrant={[Function]}
+          onResponderMove={[Function]}
+          onResponderRelease={[Function]}
+          onResponderTerminate={[Function]}
+          onResponderTerminationRequest={[Function]}
+          onStartShouldSetResponder={[Function]}
+          style={
+            {
+              "opacity": 1,
+            }
+          }
+          testID="sheet-header-close"
+        >
+          <Text>
+            Close
+          </Text>
+        </View>
+      </View>
+      <RCTScrollView
+        contentContainerStyle={
+          {
+            "padding": 12,
+          }
+        }
+        style={
+          {
+            "maxHeight": 520,
+          }
+        }
+      >
+        <View>
+          <View
+            accessibilityState={
+              {
+                "busy": undefined,
+                "checked": undefined,
+                "disabled": undefined,
+                "expanded": undefined,
+                "selected": undefined,
+              }
+            }
+            accessibilityValue={
+              {
+                "max": undefined,
+                "min": undefined,
+                "now": undefined,
+                "text": undefined,
+              }
+            }
+            accessible={true}
+            collapsable={false}
+            focusable={true}
+            onClick={[Function]}
+            onResponderGrant={[Function]}
+            onResponderMove={[Function]}
+            onResponderRelease={[Function]}
+            onResponderTerminate={[Function]}
+            onResponderTerminationRequest={[Function]}
+            onStartShouldSetResponder={[Function]}
+            style={
+              {
+                "backgroundColor": "#FAFAFA",
+                "borderColor": "#EEEEEE",
+                "borderRadius": 12,
+                "borderWidth": 0.5,
+                "marginBottom": 8,
+                "opacity": 1,
+                "paddingHorizontal": 14,
+                "paddingVertical": 12,
+              }
+            }
+          >
+            <Text>
+              Climate Change Solutions
+            </Text>
+            <Text>
+              Motion: 
+              Should we prioritize nuclear energy?
+            </Text>
+          </View>
+          <View
+            accessibilityState={
+              {
+                "busy": undefined,
+                "checked": undefined,
+                "disabled": undefined,
+                "expanded": undefined,
+                "selected": undefined,
+              }
+            }
+            accessibilityValue={
+              {
+                "max": undefined,
+                "min": undefined,
+                "now": undefined,
+                "text": undefined,
+              }
+            }
+            accessible={true}
+            collapsable={false}
+            focusable={true}
+            onClick={[Function]}
+            onResponderGrant={[Function]}
+            onResponderMove={[Function]}
+            onResponderRelease={[Function]}
+            onResponderTerminate={[Function]}
+            onResponderTerminationRequest={[Function]}
+            onStartShouldSetResponder={[Function]}
+            style={
+              {
+                "backgroundColor": "#FAFAFA",
+                "borderColor": "#EEEEEE",
+                "borderRadius": 12,
+                "borderWidth": 0.5,
+                "marginBottom": 8,
+                "opacity": 1,
+                "paddingHorizontal": 14,
+                "paddingVertical": 12,
+              }
+            }
+          >
+            <Text>
+              AI Ethics
+            </Text>
+            <Text>
+              Motion: 
+              Is AI consciousness possible?
+            </Text>
+          </View>
+          <View
+            accessibilityState={
+              {
+                "busy": undefined,
+                "checked": undefined,
+                "disabled": undefined,
+                "expanded": undefined,
+                "selected": undefined,
+              }
+            }
+            accessibilityValue={
+              {
+                "max": undefined,
+                "min": undefined,
+                "now": undefined,
+                "text": undefined,
+              }
+            }
+            accessible={true}
+            collapsable={false}
+            focusable={true}
+            onClick={[Function]}
+            onResponderGrant={[Function]}
+            onResponderMove={[Function]}
+            onResponderRelease={[Function]}
+            onResponderTerminate={[Function]}
+            onResponderTerminationRequest={[Function]}
+            onStartShouldSetResponder={[Function]}
+            style={
+              {
+                "backgroundColor": "#FAFAFA",
+                "borderColor": "#EEEEEE",
+                "borderRadius": 12,
+                "borderWidth": 0.5,
+                "marginBottom": 8,
+                "opacity": 1,
+                "paddingHorizontal": 14,
+                "paddingVertical": 12,
+              }
+            }
+          >
+            <Text>
+              Economic Policy
+            </Text>
+            <Text>
+              Motion: 
+              Universal Basic Income pros and cons
+            </Text>
+          </View>
+          <View
+            accessibilityState={
+              {
+                "busy": undefined,
+                "checked": undefined,
+                "disabled": undefined,
+                "expanded": undefined,
+                "selected": undefined,
+              }
+            }
+            accessibilityValue={
+              {
+                "max": undefined,
+                "min": undefined,
+                "now": undefined,
+                "text": undefined,
+              }
+            }
+            accessible={true}
+            collapsable={false}
+            focusable={true}
+            onClick={[Function]}
+            onResponderGrant={[Function]}
+            onResponderMove={[Function]}
+            onResponderRelease={[Function]}
+            onResponderTerminate={[Function]}
+            onResponderTerminationRequest={[Function]}
+            onStartShouldSetResponder={[Function]}
+            style={
+              {
+                "opacity": 1,
+              }
+            }
+            testID="button"
+          >
+            <Text>
+              Cancel
+            </Text>
+          </View>
+        </View>
+      </RCTScrollView>
+    </View>
+  </View>
+</Modal>
+`;

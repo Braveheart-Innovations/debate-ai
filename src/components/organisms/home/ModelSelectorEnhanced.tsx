@@ -6,7 +6,7 @@ import { useTheme } from '@/theme';
 import { getProviderModels } from '@/config/modelConfigs';
 import { MODEL_PRICING } from '@/config/modelPricing';
 import * as Haptics from 'expo-haptics';
-import Animated, { FadeIn } from 'react-native-reanimated';
+import Animated, { FadeIn, type EntryExitAnimationFunction } from 'react-native-reanimated';
 
 interface ModelSelectorEnhancedProps {
   providerId: string;
@@ -28,7 +28,10 @@ export const ModelSelectorEnhanced: React.FC<ModelSelectorEnhancedProps> = ({
   aiName = '',
 }) => {
   const { theme } = useTheme();
-  
+  const AnimatedContainer = (Animated?.View ?? View) as typeof View;
+  const enteringAnimation = (FadeIn as EntryExitAnimationFunction | undefined) ?? undefined;
+  const ModalComponent = (Modal ?? View) as React.ComponentType<any>;
+
   const [isModalVisible, setIsModalVisible] = useState(false);
   
   const models = useMemo(() => {
@@ -103,7 +106,7 @@ export const ModelSelectorEnhanced: React.FC<ModelSelectorEnhancedProps> = ({
         </View>
 
         {/* Modal for model selection */}
-        <Modal
+        <ModalComponent
           visible={isModalVisible}
           transparent={true}
           animationType="slide"
@@ -114,8 +117,8 @@ export const ModelSelectorEnhanced: React.FC<ModelSelectorEnhancedProps> = ({
             justifyContent: 'flex-end',
             backgroundColor: 'rgba(0,0,0,0.5)',
           }}>
-            <Animated.View 
-              entering={FadeIn}
+            <AnimatedContainer 
+              entering={enteringAnimation}
               style={{
                 backgroundColor: theme.colors.background,
                 borderTopLeftRadius: theme.borderRadius.xl,
@@ -233,9 +236,9 @@ export const ModelSelectorEnhanced: React.FC<ModelSelectorEnhancedProps> = ({
 
               {/* Upsell CTA for free users when premium models exist */}
               {/* No upsell — all models selectable; demo mode handled elsewhere */}
-            </Animated.View>
+            </AnimatedContainer>
           </View>
-        </Modal>
+        </ModalComponent>
       </>
     );
   }

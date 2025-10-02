@@ -9,7 +9,7 @@ module.exports = {
     '\\.(jpg|jpeg|png|gif|mp4|mp3|svg)$': '<rootDir>/__mocks__/fileMock.js',
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(react-native|@react-native|expo|@expo|@unimodules|expo-modules-core|expo-asset|react-native-gesture-handler|react-native-reanimated|@react-native-firebase|react-native-svg|react-native-sse|react-native-safe-area-context)/)',
+    'node_modules/(?!(react-native|@react-native|expo|@expo|@unimodules|expo-modules-core|expo-asset|expo-font|expo-constants|expo-linear-gradient|expo-blur|react-native-gesture-handler|react-native-reanimated|@react-native-firebase|react-native-svg|react-native-sse|react-native-safe-area-context|react-native-markdown-display)/)',
   ],
   testPathIgnorePatterns: ['/node_modules/', '/android/', '/ios/'],
   collectCoverageFrom: [

@@ -13,6 +13,7 @@ interface CompareSamplePickerModalProps {
 
 export const CompareSamplePickerModal: React.FC<CompareSamplePickerModalProps> = ({ visible, providers, onSelect, onClose }) => {
   const { theme } = useTheme();
+  const ModalComponent = (Modal ?? View) as React.ComponentType<any>;
   const [items, setItems] = React.useState<Array<{ id: string; title: string }>>([]);
   const [loading, setLoading] = React.useState(false);
 
@@ -56,7 +57,7 @@ export const CompareSamplePickerModal: React.FC<CompareSamplePickerModalProps> =
   }, [visible, refreshItems]);
 
   return (
-    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
+    <ModalComponent visible={visible} animationType="fade" transparent onRequestClose={onClose}>
       <View style={styles.backdrop}>
         <View style={[styles.sheet, { backgroundColor: theme.colors.background, borderColor: theme.colors.border }]}> 
           <SheetHeader title="Choose a Comparison" onClose={onClose} showHandle />
@@ -86,7 +87,7 @@ export const CompareSamplePickerModal: React.FC<CompareSamplePickerModalProps> =
           </ScrollView>
         </View>
       </View>
-    </Modal>
+    </ModalComponent>
   );
 };
 

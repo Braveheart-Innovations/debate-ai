@@ -38,12 +38,20 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 jest.mock('@react-native-firebase/auth', () => {
   const authInstance = {
     currentUser: null,
-    signInWithEmailAndPassword: jest.fn(),
-    createUserWithEmailAndPassword: jest.fn(),
-    signOut: jest.fn(),
   };
   return {
     getAuth: jest.fn(() => authInstance),
+    signInAnonymously: jest.fn(),
+    signInWithEmailAndPassword: jest.fn(),
+    createUserWithEmailAndPassword: jest.fn(),
+    signOut: jest.fn(),
+    onAuthStateChanged: jest.fn(),
+    signInWithCredential: jest.fn(),
+    linkWithCredential: jest.fn(),
+    getIdToken: jest.fn(),
+    updateProfile: jest.fn(),
+    GoogleAuthProvider: { credential: jest.fn(() => ({ providerId: 'google' })) },
+    AppleAuthProvider: { credential: jest.fn(() => ({ providerId: 'apple' })) },
   };
 });
 
@@ -53,7 +61,9 @@ jest.mock('@react-native-firebase/firestore', () => {
   const doc = jest.fn(() => ({}));
   const getDoc = jest.fn();
   const setDoc = jest.fn();
-  return { getFirestore, collection, doc, getDoc, setDoc };
+  const onSnapshot = jest.fn();
+  const serverTimestamp = jest.fn(() => 'serverTimestamp');
+  return { getFirestore, collection, doc, getDoc, setDoc, onSnapshot, serverTimestamp };
 });
 
 jest.mock('@react-native-firebase/functions', () => {

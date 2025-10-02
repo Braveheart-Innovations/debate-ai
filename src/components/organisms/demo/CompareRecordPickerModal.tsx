@@ -14,6 +14,7 @@ interface CompareRecordPickerModalProps {
 
 export const CompareRecordPickerModal: React.FC<CompareRecordPickerModalProps> = ({ visible, leftProvider, rightProvider, onSelect, onClose }) => {
   const { theme } = useTheme();
+  const ModalComponent = (Modal ?? View) as React.ComponentType<any>;
   const [items, setItems] = React.useState<Array<{ id: string; title: string }>>([]);
   const [creatingNew, setCreatingNew] = React.useState(false);
   const [newId, setNewId] = React.useState('');
@@ -54,7 +55,7 @@ export const CompareRecordPickerModal: React.FC<CompareRecordPickerModalProps> =
   }, [visible, refreshItems]);
 
   return (
-    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
+    <ModalComponent visible={visible} animationType="fade" transparent onRequestClose={onClose}>
       <View style={styles.backdrop}>
         <View style={[styles.sheet, { backgroundColor: theme.colors.background, borderColor: theme.colors.border }]}> 
           <SheetHeader title="Record Comparison" onClose={onClose} showHandle />
@@ -102,7 +103,7 @@ export const CompareRecordPickerModal: React.FC<CompareRecordPickerModalProps> =
           </ScrollView>
         </View>
       </View>
-    </Modal>
+    </ModalComponent>
   );
 };
 
