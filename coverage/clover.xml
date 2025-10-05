@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1759560711948" clover="3.2.0">
-  <project timestamp="1759560711948" name="All files">
-    <metrics statements="11503" coveredstatements="5970" conditionals="9213" coveredconditionals="3953" methods="2901" coveredmethods="1528" elements="23617" coveredelements="11451" complexity="0" loc="11503" ncloc="11503" packages="85" files="340" classes="340"/>
+<coverage generated="1759634162195" clover="3.2.0">
+  <project timestamp="1759634162195" name="All files">
+    <metrics statements="11503" coveredstatements="6212" conditionals="9213" coveredconditionals="4196" methods="2901" coveredmethods="1607" elements="23617" coveredelements="12015" complexity="0" loc="11503" ncloc="11503" packages="85" files="340" classes="340"/>
     <package name="assets.demo">
       <metrics statements="8" coveredstatements="2" conditionals="2" coveredconditionals="0" methods="7" coveredmethods="1"/>
       <file name="recordingsManifest.ts" path="/Users/michaelspencer/Developer/DebateAI/src/assets/demo/recordingsManifest.ts">
         <metrics statements="8" coveredstatements="2" conditionals="2" coveredconditionals="0" methods="7" coveredmethods="1"/>
-        <line num="45" count="7" type="stmt"/>
-        <line num="260" count="203" type="stmt"/>
+        <line num="45" count="6" type="stmt"/>
+        <line num="260" count="174" type="stmt"/>
         <line num="266" count="0" type="stmt"/>
         <line num="267" count="0" type="cond" truecount="0" falsecount="2"/>
         <line num="271" count="0" type="stmt"/>
@@ -49,15 +49,15 @@
       <file name="Box.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/atoms/layout/Box.tsx">
         <metrics statements="3" coveredstatements="3" conditionals="72" coveredconditionals="72" methods="1" coveredmethods="1"/>
         <line num="54" count="71" type="stmt"/>
-        <line num="106" count="1280" type="stmt"/>
-        <line num="150" count="1280" type="stmt"/>
+        <line num="106" count="1597" type="stmt"/>
+        <line num="150" count="1597" type="stmt"/>
       </file>
     </package>
     <package name="components.molecules.api-config">
       <metrics statements="69" coveredstatements="59" conditionals="80" coveredconditionals="69" methods="15" coveredmethods="13"/>
       <file name="APIKeyInput.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/api-config/APIKeyInput.tsx">
         <metrics statements="11" coveredstatements="11" conditionals="17" coveredconditionals="17" methods="3" coveredmethods="3"/>
-        <line num="20" count="19" type="stmt"/>
+        <line num="20" count="18" type="stmt"/>
         <line num="32" count="12" type="stmt"/>
         <line num="34" count="12" type="stmt"/>
         <line num="35" count="12" type="cond" truecount="2" falsecount="0"/>
@@ -67,11 +67,11 @@
         <line num="41" count="12" type="cond" truecount="2" falsecount="0"/>
         <line num="42" count="10" type="stmt"/>
         <line num="45" count="12" type="stmt"/>
-        <line num="101" count="19" type="stmt"/>
+        <line num="101" count="18" type="stmt"/>
       </file>
       <file name="ClearKeysButton.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/api-config/ClearKeysButton.tsx">
         <metrics statements="16" coveredstatements="9" conditionals="22" coveredconditionals="17" methods="4" coveredmethods="2"/>
-        <line num="21" count="19" type="stmt"/>
+        <line num="21" count="18" type="stmt"/>
         <line num="33" count="11" type="stmt"/>
         <line num="35" count="11" type="stmt"/>
         <line num="36" count="3" type="stmt"/>
@@ -86,11 +86,11 @@
         <line num="70" count="11" type="cond" truecount="2" falsecount="0"/>
         <line num="71" count="1" type="stmt"/>
         <line num="74" count="10" type="stmt"/>
-        <line num="127" count="19" type="stmt"/>
+        <line num="127" count="18" type="stmt"/>
       </file>
       <file name="ConnectionStatus.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/api-config/ConnectionStatus.tsx">
         <metrics statements="27" coveredstatements="24" conditionals="27" coveredconditionals="21" methods="5" coveredmethods="5"/>
-        <line num="16" count="19" type="stmt"/>
+        <line num="16" count="18" type="stmt"/>
         <line num="24" count="13" type="stmt"/>
         <line num="26" count="13" type="stmt"/>
         <line num="27" count="12" type="cond" truecount="3" falsecount="2"/>
@@ -116,28 +116,28 @@
         <line num="87" count="13" type="cond" truecount="2" falsecount="0"/>
         <line num="88" count="1" type="stmt"/>
         <line num="91" count="12" type="stmt"/>
-        <line num="135" count="19" type="stmt"/>
+        <line num="135" count="18" type="stmt"/>
       </file>
       <file name="ProgressBar.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/api-config/ProgressBar.tsx">
         <metrics statements="7" coveredstatements="7" conditionals="6" coveredconditionals="6" methods="1" coveredmethods="1"/>
-        <line num="17" count="19" type="stmt"/>
+        <line num="17" count="18" type="stmt"/>
         <line num="26" count="11" type="stmt"/>
         <line num="28" count="11" type="cond" truecount="2" falsecount="0"/>
         <line num="29" count="11" type="cond" truecount="2" falsecount="0"/>
         <line num="32" count="11" type="stmt"/>
         <line num="34" count="11" type="stmt"/>
-        <line num="64" count="19" type="stmt"/>
+        <line num="64" count="18" type="stmt"/>
       </file>
       <file name="ProviderFeatures.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/api-config/ProviderFeatures.tsx">
         <metrics statements="8" coveredstatements="8" conditionals="8" coveredconditionals="8" methods="2" coveredmethods="2"/>
-        <line num="14" count="19" type="stmt"/>
+        <line num="14" count="18" type="stmt"/>
         <line num="22" count="10" type="cond" truecount="4" falsecount="0"/>
         <line num="23" count="3" type="stmt"/>
         <line num="26" count="7" type="stmt"/>
         <line num="27" count="7" type="stmt"/>
         <line num="29" count="7" type="stmt"/>
         <line num="39" count="14" type="stmt"/>
-        <line num="57" count="19" type="stmt"/>
+        <line num="57" count="18" type="stmt"/>
       </file>
     </package>
     <package name="components.molecules.auth">
@@ -234,7 +234,7 @@
       <metrics statements="139" coveredstatements="128" conditionals="190" coveredconditionals="154" methods="37" coveredmethods="36"/>
       <file name="Badge.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/common/Badge.tsx">
         <metrics statements="10" coveredstatements="10" conditionals="5" coveredconditionals="5" methods="2" coveredmethods="2"/>
-        <line num="10" count="19" type="stmt"/>
+        <line num="10" count="18" type="stmt"/>
         <line num="14" count="7" type="stmt"/>
         <line num="16" count="7" type="stmt"/>
         <line num="17" count="7" type="cond" truecount="4" falsecount="0"/>
@@ -247,29 +247,29 @@
       </file>
       <file name="Button.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/common/Button.tsx">
         <metrics statements="19" coveredstatements="15" conditionals="56" coveredconditionals="37" methods="3" coveredmethods="3"/>
-        <line num="23" count="22" type="stmt"/>
-        <line num="37" count="55" type="stmt"/>
-        <line num="39" count="55" type="stmt"/>
-        <line num="40" count="55" type="cond" truecount="3" falsecount="1"/>
-        <line num="42" count="23" type="stmt"/>
+        <line num="23" count="21" type="stmt"/>
+        <line num="37" count="51" type="stmt"/>
+        <line num="39" count="51" type="stmt"/>
+        <line num="40" count="51" type="cond" truecount="3" falsecount="1"/>
+        <line num="42" count="19" type="stmt"/>
         <line num="49" count="0" type="stmt"/>
         <line num="56" count="32" type="stmt"/>
-        <line num="64" count="55" type="stmt"/>
-        <line num="65" count="55" type="cond" truecount="3" falsecount="3"/>
-        <line num="67" count="39" type="stmt"/>
+        <line num="64" count="51" type="stmt"/>
+        <line num="65" count="51" type="cond" truecount="3" falsecount="3"/>
+        <line num="67" count="38" type="stmt"/>
         <line num="73" count="7" type="stmt"/>
         <line num="79" count="0" type="stmt"/>
-        <line num="85" count="9" type="stmt"/>
+        <line num="85" count="6" type="stmt"/>
         <line num="91" count="0" type="stmt"/>
         <line num="97" count="0" type="stmt"/>
-        <line num="105" count="55" type="cond" truecount="5" falsecount="0"/>
-        <line num="106" count="55" type="cond" truecount="3" falsecount="1"/>
-        <line num="108" count="55" type="stmt"/>
-        <line num="158" count="22" type="stmt"/>
+        <line num="105" count="51" type="cond" truecount="5" falsecount="0"/>
+        <line num="106" count="51" type="cond" truecount="3" falsecount="1"/>
+        <line num="108" count="51" type="stmt"/>
+        <line num="158" count="21" type="stmt"/>
       </file>
       <file name="Card.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/common/Card.tsx">
         <metrics statements="17" coveredstatements="11" conditionals="19" coveredconditionals="8" methods="3" coveredmethods="3"/>
-        <line num="14" count="19" type="stmt"/>
+        <line num="14" count="18" type="stmt"/>
         <line num="21" count="5" type="stmt"/>
         <line num="23" count="5" type="stmt"/>
         <line num="24" count="5" type="cond" truecount="2" falsecount="3"/>
@@ -285,11 +285,11 @@
         <line num="47" count="0" type="stmt"/>
         <line num="51" count="5" type="cond" truecount="1" falsecount="1"/>
         <line num="62" count="5" type="stmt"/>
-        <line num="81" count="19" type="stmt"/>
+        <line num="81" count="18" type="stmt"/>
       </file>
       <file name="GlassCard.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/common/GlassCard.tsx">
         <metrics statements="9" coveredstatements="9" conditionals="10" coveredconditionals="7" methods="1" coveredmethods="1"/>
-        <line num="15" count="19" type="stmt"/>
+        <line num="15" count="18" type="stmt"/>
         <line num="22" count="8" type="stmt"/>
         <line num="24" count="8" type="stmt"/>
         <line num="31" count="8" type="stmt"/>
@@ -301,7 +301,7 @@
       </file>
       <file name="GradientButton.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/common/GradientButton.tsx">
         <metrics statements="16" coveredstatements="16" conditionals="24" coveredconditionals="24" methods="3" coveredmethods="3"/>
-        <line num="18" count="20" type="stmt"/>
+        <line num="18" count="19" type="stmt"/>
         <line num="31" count="20" type="stmt"/>
         <line num="34" count="20" type="stmt"/>
         <line num="35" count="20" type="cond" truecount="2" falsecount="0"/>
@@ -316,11 +316,11 @@
         <line num="72" count="20" type="stmt"/>
         <line num="73" count="20" type="cond" truecount="4" falsecount="0"/>
         <line num="75" count="20" type="stmt"/>
-        <line num="112" count="20" type="stmt"/>
+        <line num="112" count="19" type="stmt"/>
       </file>
       <file name="IconButton.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/common/IconButton.tsx">
         <metrics statements="8" coveredstatements="8" conditionals="12" coveredconditionals="11" methods="2" coveredmethods="2"/>
-        <line num="14" count="19" type="stmt"/>
+        <line num="14" count="18" type="stmt"/>
         <line num="21" count="7" type="stmt"/>
         <line num="23" count="7" type="stmt"/>
         <line num="24" count="1" type="cond" truecount="1" falsecount="1"/>
@@ -331,14 +331,14 @@
       </file>
       <file name="InputField.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/common/InputField.tsx">
         <metrics statements="4" coveredstatements="4" conditionals="9" coveredconditionals="9" methods="1" coveredmethods="1"/>
-        <line num="15" count="19" type="stmt"/>
+        <line num="15" count="18" type="stmt"/>
         <line num="23" count="22" type="stmt"/>
         <line num="25" count="22" type="stmt"/>
-        <line num="74" count="19" type="stmt"/>
+        <line num="74" count="18" type="stmt"/>
       </file>
       <file name="LazyMarkdownRenderer.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/common/LazyMarkdownRenderer.tsx">
         <metrics statements="13" coveredstatements="12" conditionals="12" coveredconditionals="12" methods="8" coveredmethods="7"/>
-        <line num="41" count="21" type="stmt"/>
+        <line num="41" count="20" type="stmt"/>
         <line num="49" count="7" type="stmt"/>
         <line num="50" count="7" type="stmt"/>
         <line num="51" count="7" type="stmt"/>
@@ -350,11 +350,11 @@
         <line num="64" count="0" type="stmt"/>
         <line num="67" count="7" type="stmt"/>
         <line num="70" count="8" type="stmt"/>
-        <line num="104" count="21" type="stmt"/>
+        <line num="104" count="20" type="stmt"/>
       </file>
       <file name="ParameterLabel.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/common/ParameterLabel.tsx">
         <metrics statements="5" coveredstatements="5" conditionals="2" coveredconditionals="2" methods="2" coveredmethods="2"/>
-        <line num="12" count="19" type="stmt"/>
+        <line num="12" count="18" type="stmt"/>
         <line num="17" count="6" type="stmt"/>
         <line num="19" count="6" type="stmt"/>
         <line num="20" count="6" type="stmt"/>
@@ -362,7 +362,7 @@
       </file>
       <file name="SearchHighlight.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/common/SearchHighlight.tsx">
         <metrics statements="9" coveredstatements="9" conditionals="4" coveredconditionals="4" methods="2" coveredmethods="2"/>
-        <line num="10" count="19" type="stmt"/>
+        <line num="10" count="18" type="stmt"/>
         <line num="14" count="5" type="stmt"/>
         <line num="16" count="5" type="cond" truecount="2" falsecount="0"/>
         <line num="17" count="2" type="stmt"/>
@@ -374,7 +374,7 @@
       </file>
       <file name="SectionHeader.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/common/SectionHeader.tsx">
         <metrics statements="3" coveredstatements="3" conditionals="7" coveredconditionals="7" methods="1" coveredmethods="1"/>
-        <line num="16" count="19" type="stmt"/>
+        <line num="16" count="18" type="stmt"/>
         <line num="24" count="7" type="stmt"/>
         <line num="26" count="7" type="stmt"/>
       </file>
@@ -389,14 +389,14 @@
       </file>
       <file name="SelectionIndicator.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/common/SelectionIndicator.tsx">
         <metrics statements="4" coveredstatements="4" conditionals="4" coveredconditionals="4" methods="1" coveredmethods="1"/>
-        <line num="14" count="19" type="stmt"/>
+        <line num="14" count="18" type="stmt"/>
         <line num="18" count="4" type="stmt"/>
         <line num="20" count="4" type="cond" truecount="2" falsecount="0"/>
         <line num="22" count="3" type="stmt"/>
       </file>
       <file name="StorageIndicator.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/common/StorageIndicator.tsx">
         <metrics statements="10" coveredstatements="10" conditionals="12" coveredconditionals="10" methods="4" coveredmethods="4"/>
-        <line num="19" count="19" type="stmt"/>
+        <line num="19" count="18" type="stmt"/>
         <line num="20" count="9" type="stmt"/>
         <line num="23" count="15" type="stmt"/>
         <line num="24" count="15" type="stmt"/>
@@ -405,23 +405,23 @@
         <line num="47" count="15" type="cond" truecount="1" falsecount="1"/>
         <line num="48" count="15" type="stmt"/>
         <line num="50" count="15" type="stmt"/>
-        <line num="96" count="19" type="stmt"/>
+        <line num="96" count="18" type="stmt"/>
       </file>
       <file name="Typography.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/common/Typography.tsx">
         <metrics statements="6" coveredstatements="6" conditionals="4" coveredconditionals="4" methods="1" coveredmethods="1"/>
-        <line num="17" count="59" type="stmt"/>
-        <line num="27" count="528" type="stmt"/>
-        <line num="30" count="528" type="stmt"/>
-        <line num="41" count="528" type="stmt"/>
-        <line num="52" count="528" type="stmt"/>
-        <line num="59" count="528" type="stmt"/>
+        <line num="17" count="58" type="stmt"/>
+        <line num="27" count="524" type="stmt"/>
+        <line num="30" count="524" type="stmt"/>
+        <line num="41" count="524" type="stmt"/>
+        <line num="52" count="524" type="stmt"/>
+        <line num="59" count="524" type="stmt"/>
       </file>
     </package>
     <package name="components.molecules.debate">
       <metrics statements="112" coveredstatements="85" conditionals="297" coveredconditionals="132" methods="29" coveredmethods="18"/>
       <file name="AIDebaterCard.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/debate/AIDebaterCard.tsx">
         <metrics statements="6" coveredstatements="5" conditionals="53" coveredconditionals="29" methods="3" coveredmethods="1"/>
-        <line num="26" count="19" type="stmt"/>
+        <line num="26" count="18" type="stmt"/>
         <line num="36" count="1" type="stmt"/>
         <line num="38" count="1" type="cond" truecount="2" falsecount="0"/>
         <line num="39" count="1" type="cond" truecount="2" falsecount="0"/>
@@ -430,7 +430,7 @@
       </file>
       <file name="AIProviderTile.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/debate/AIProviderTile.tsx">
         <metrics statements="21" coveredstatements="18" conditionals="40" coveredconditionals="23" methods="3" coveredmethods="3"/>
-        <line num="36" count="20" type="stmt"/>
+        <line num="36" count="19" type="stmt"/>
         <line num="49" count="3" type="stmt"/>
         <line num="52" count="3" type="stmt"/>
         <line num="79" count="3" type="stmt"/>
@@ -454,7 +454,7 @@
       </file>
       <file name="DebateMessageBubble.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/debate/DebateMessageBubble.tsx">
         <metrics statements="46" coveredstatements="26" conditionals="113" coveredconditionals="32" methods="15" coveredmethods="7"/>
-        <line num="37" count="19" type="stmt"/>
+        <line num="37" count="18" type="stmt"/>
         <line num="43" count="1" type="stmt"/>
         <line num="44" count="1" type="stmt"/>
         <line num="45" count="1" type="stmt"/>
@@ -499,11 +499,11 @@
         <line num="256" count="0" type="stmt"/>
         <line num="258" count="0" type="stmt"/>
         <line num="280" count="0" type="stmt"/>
-        <line num="288" count="19" type="stmt"/>
+        <line num="288" count="18" type="stmt"/>
       </file>
       <file name="DebatePreviewCard.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/debate/DebatePreviewCard.tsx">
         <metrics statements="8" coveredstatements="7" conditionals="13" coveredconditionals="7" methods="1" coveredmethods="1"/>
-        <line num="20" count="19" type="stmt"/>
+        <line num="20" count="18" type="stmt"/>
         <line num="28" count="1" type="stmt"/>
         <line num="30" count="1" type="stmt"/>
         <line num="51" count="1" type="stmt"/>
@@ -514,19 +514,19 @@
       </file>
       <file name="DebateTopicCard.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/debate/DebateTopicCard.tsx">
         <metrics statements="3" coveredstatements="3" conditionals="14" coveredconditionals="8" methods="1" coveredmethods="1"/>
-        <line num="21" count="19" type="stmt"/>
+        <line num="21" count="18" type="stmt"/>
         <line num="29" count="1" type="stmt"/>
         <line num="31" count="1" type="stmt"/>
       </file>
       <file name="DebateTypingIndicator.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/debate/DebateTypingIndicator.tsx">
         <metrics statements="3" coveredstatements="3" conditionals="0" coveredconditionals="0" methods="1" coveredmethods="1"/>
-        <line num="18" count="19" type="stmt"/>
+        <line num="18" count="18" type="stmt"/>
         <line num="19" count="1" type="stmt"/>
         <line num="21" count="1" type="stmt"/>
       </file>
       <file name="PersonalityChip.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/debate/PersonalityChip.tsx">
         <metrics statements="10" coveredstatements="10" conditionals="24" coveredconditionals="16" methods="1" coveredmethods="1"/>
-        <line num="22" count="20" type="stmt"/>
+        <line num="22" count="19" type="stmt"/>
         <line num="30" count="1" type="stmt"/>
         <line num="31" count="1" type="stmt"/>
         <line num="32" count="1" type="cond" truecount="2" falsecount="0"/>
@@ -539,7 +539,7 @@
       </file>
       <file name="SurpriseTopicDisplay.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/debate/SurpriseTopicDisplay.tsx">
         <metrics statements="5" coveredstatements="4" conditionals="20" coveredconditionals="6" methods="1" coveredmethods="1"/>
-        <line num="21" count="19" type="stmt"/>
+        <line num="21" count="18" type="stmt"/>
         <line num="28" count="1" type="stmt"/>
         <line num="30" count="1" type="cond" truecount="3" falsecount="1"/>
         <line num="31" count="1" type="stmt"/>
@@ -547,8 +547,8 @@
       </file>
       <file name="TopicModeSelector.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/debate/TopicModeSelector.tsx">
         <metrics statements="10" coveredstatements="9" conditionals="20" coveredconditionals="11" methods="3" coveredmethods="2"/>
-        <line num="28" count="19" type="stmt"/>
-        <line num="43" count="19" type="stmt"/>
+        <line num="28" count="18" type="stmt"/>
+        <line num="43" count="18" type="stmt"/>
         <line num="50" count="1" type="stmt"/>
         <line num="52" count="1" type="stmt"/>
         <line num="53" count="2" type="stmt"/>
@@ -563,7 +563,7 @@
       <metrics statements="23" coveredstatements="19" conditionals="37" coveredconditionals="32" methods="5" coveredmethods="5"/>
       <file name="HeaderIcon.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/header/HeaderIcon.tsx">
         <metrics statements="14" coveredstatements="12" conditionals="23" coveredconditionals="20" methods="3" coveredmethods="3"/>
-        <line num="22" count="19" type="stmt"/>
+        <line num="22" count="18" type="stmt"/>
         <line num="34" count="5" type="stmt"/>
         <line num="36" count="5" type="stmt"/>
         <line num="37" count="1" type="cond" truecount="1" falsecount="1"/>
@@ -576,11 +576,11 @@
         <line num="50" count="0" type="stmt"/>
         <line num="53" count="5" type="stmt"/>
         <line num="57" count="5" type="stmt"/>
-        <line num="83" count="19" type="stmt"/>
+        <line num="83" count="18" type="stmt"/>
       </file>
       <file name="TabBarIcon.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/header/TabBarIcon.tsx">
         <metrics statements="9" coveredstatements="7" conditionals="14" coveredconditionals="12" methods="2" coveredmethods="2"/>
-        <line num="18" count="19" type="stmt"/>
+        <line num="18" count="18" type="stmt"/>
         <line num="26" count="3" type="stmt"/>
         <line num="28" count="3" type="stmt"/>
         <line num="29" count="3" type="cond" truecount="2" falsecount="2"/>
@@ -588,7 +588,7 @@
         <line num="33" count="0" type="stmt"/>
         <line num="36" count="3" type="stmt"/>
         <line num="40" count="3" type="stmt"/>
-        <line num="57" count="19" type="stmt"/>
+        <line num="57" count="18" type="stmt"/>
       </file>
     </package>
     <package name="components.molecules.history">
@@ -690,7 +690,7 @@
       <metrics statements="25" coveredstatements="23" conditionals="35" coveredconditionals="29" methods="3" coveredmethods="3"/>
       <file name="ProfileAvatar.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/profile/ProfileAvatar.tsx">
         <metrics statements="25" coveredstatements="23" conditionals="35" coveredconditionals="29" methods="3" coveredmethods="3"/>
-        <line num="17" count="19" type="stmt"/>
+        <line num="17" count="18" type="stmt"/>
         <line num="27" count="4" type="stmt"/>
         <line num="29" count="4" type="stmt"/>
         <line num="30" count="4" type="cond" truecount="3" falsecount="1"/>
@@ -714,26 +714,26 @@
         <line num="126" count="4" type="cond" truecount="2" falsecount="0"/>
         <line num="127" count="1" type="stmt"/>
         <line num="134" count="3" type="stmt"/>
-        <line num="137" count="19" type="stmt"/>
+        <line num="137" count="18" type="stmt"/>
       </file>
     </package>
     <package name="components.molecules.settings">
       <metrics statements="6" coveredstatements="6" conditionals="15" coveredconditionals="11" methods="1" coveredmethods="1"/>
       <file name="SettingRow.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/settings/SettingRow.tsx">
         <metrics statements="6" coveredstatements="6" conditionals="15" coveredconditionals="11" methods="1" coveredmethods="1"/>
-        <line num="18" count="19" type="stmt"/>
+        <line num="18" count="18" type="stmt"/>
         <line num="28" count="4" type="stmt"/>
         <line num="30" count="4" type="cond" truecount="2" falsecount="0"/>
         <line num="31" count="4" type="cond" truecount="2" falsecount="0"/>
         <line num="38" count="4" type="stmt"/>
-        <line num="93" count="19" type="stmt"/>
+        <line num="93" count="18" type="stmt"/>
       </file>
     </package>
     <package name="components.molecules.share">
       <metrics statements="65" coveredstatements="18" conditionals="20" coveredconditionals="11" methods="7" coveredmethods="2"/>
       <file name="ShareActionButtons.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/share/ShareActionButtons.tsx">
         <metrics statements="56" coveredstatements="9" conditionals="14" coveredconditionals="5" methods="6" coveredmethods="1"/>
-        <line num="30" count="19" type="stmt"/>
+        <line num="30" count="18" type="stmt"/>
         <line num="43" count="1" type="stmt"/>
         <line num="45" count="1" type="stmt"/>
         <line num="46" count="0" type="stmt"/>
@@ -788,26 +788,26 @@
         <line num="145" count="0" type="stmt"/>
         <line num="146" count="0" type="stmt"/>
         <line num="149" count="1" type="stmt"/>
-        <line num="262" count="19" type="stmt"/>
+        <line num="262" count="18" type="stmt"/>
       </file>
       <file name="SharePreviewCard.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/share/SharePreviewCard.tsx">
         <metrics statements="9" coveredstatements="9" conditionals="6" coveredconditionals="6" methods="1" coveredmethods="1"/>
-        <line num="14" count="19" type="stmt"/>
-        <line num="15" count="19" type="stmt"/>
-        <line num="16" count="19" type="stmt"/>
-        <line num="25" count="19" type="stmt"/>
+        <line num="14" count="18" type="stmt"/>
+        <line num="15" count="18" type="stmt"/>
+        <line num="16" count="18" type="stmt"/>
+        <line num="25" count="18" type="stmt"/>
         <line num="32" count="1" type="stmt"/>
         <line num="33" count="1" type="cond" truecount="2" falsecount="0"/>
         <line num="34" count="1" type="cond" truecount="2" falsecount="0"/>
         <line num="36" count="1" type="stmt"/>
-        <line num="147" count="19" type="stmt"/>
+        <line num="147" count="18" type="stmt"/>
       </file>
     </package>
     <package name="components.molecules.sheets">
       <metrics statements="18" coveredstatements="18" conditionals="25" coveredconditionals="22" methods="4" coveredmethods="4"/>
       <file name="ModalHeader.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/sheets/ModalHeader.tsx">
         <metrics statements="9" coveredstatements="9" conditionals="13" coveredconditionals="12" methods="2" coveredmethods="2"/>
-        <line num="19" count="19" type="stmt"/>
+        <line num="19" count="18" type="stmt"/>
         <line num="25" count="4" type="stmt"/>
         <line num="27" count="4" type="stmt"/>
         <line num="28" count="4" type="stmt"/>
@@ -815,29 +815,29 @@
         <line num="54" count="3" type="stmt"/>
         <line num="55" count="3" type="stmt"/>
         <line num="67" count="1" type="stmt"/>
-        <line num="74" count="19" type="stmt"/>
+        <line num="74" count="18" type="stmt"/>
       </file>
       <file name="SheetHandle.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/sheets/SheetHandle.tsx">
         <metrics statements="4" coveredstatements="4" conditionals="3" coveredconditionals="3" methods="1" coveredmethods="1"/>
-        <line num="11" count="19" type="stmt"/>
+        <line num="11" count="18" type="stmt"/>
         <line num="16" count="3" type="stmt"/>
         <line num="18" count="3" type="stmt"/>
-        <line num="35" count="19" type="stmt"/>
+        <line num="35" count="18" type="stmt"/>
       </file>
       <file name="SheetHeader.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/sheets/SheetHeader.tsx">
         <metrics statements="5" coveredstatements="5" conditionals="9" coveredconditionals="7" methods="1" coveredmethods="1"/>
-        <line num="15" count="20" type="stmt"/>
+        <line num="15" count="19" type="stmt"/>
         <line num="21" count="13" type="stmt"/>
         <line num="25" count="13" type="cond" truecount="1" falsecount="1"/>
         <line num="29" count="13" type="stmt"/>
-        <line num="68" count="20" type="stmt"/>
+        <line num="68" count="19" type="stmt"/>
       </file>
     </package>
     <package name="components.molecules.stats">
       <metrics statements="91" coveredstatements="48" conditionals="158" coveredconditionals="41" methods="21" coveredmethods="6"/>
       <file name="DebateHistoryItem.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/stats/DebateHistoryItem.tsx">
         <metrics statements="30" coveredstatements="11" conditionals="40" coveredconditionals="6" methods="7" coveredmethods="1"/>
-        <line num="33" count="19" type="stmt"/>
+        <line num="33" count="18" type="stmt"/>
         <line num="42" count="1" type="stmt"/>
         <line num="44" count="1" type="cond" truecount="1" falsecount="1"/>
         <line num="48" count="1" type="cond" truecount="1" falsecount="1"/>
@@ -847,7 +847,7 @@
         <line num="56" count="0" type="stmt"/>
         <line num="59" count="1" type="cond" truecount="1" falsecount="1"/>
         <line num="61" count="1" type="stmt"/>
-        <line num="114" count="19" type="stmt"/>
+        <line num="114" count="18" type="stmt"/>
         <line num="119" count="0" type="stmt"/>
         <line num="120" count="0" type="cond" truecount="0" falsecount="2"/>
         <line num="121" count="0" type="stmt"/>
@@ -856,7 +856,7 @@
         <line num="125" count="0" type="stmt"/>
         <line num="128" count="0" type="cond" truecount="0" falsecount="2"/>
         <line num="130" count="0" type="stmt"/>
-        <line num="173" count="19" type="stmt"/>
+        <line num="173" count="18" type="stmt"/>
         <line num="180" count="0" type="stmt"/>
         <line num="182" count="0" type="cond" truecount="0" falsecount="2"/>
         <line num="183" count="0" type="stmt"/>
@@ -864,13 +864,13 @@
         <line num="193" count="0" type="cond" truecount="0" falsecount="2"/>
         <line num="194" count="0" type="stmt"/>
         <line num="203" count="0" type="stmt"/>
-        <line num="229" count="19" type="stmt"/>
+        <line num="229" count="18" type="stmt"/>
         <line num="233" count="0" type="stmt"/>
-        <line num="245" count="19" type="stmt"/>
+        <line num="245" count="18" type="stmt"/>
       </file>
       <file name="RankBadge.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/stats/RankBadge.tsx">
         <metrics statements="24" coveredstatements="16" conditionals="41" coveredconditionals="15" methods="5" coveredmethods="3"/>
-        <line num="26" count="19" type="stmt"/>
+        <line num="26" count="18" type="stmt"/>
         <line num="34" count="1" type="stmt"/>
         <line num="37" count="1" type="stmt"/>
         <line num="38" count="1" type="cond" truecount="3" falsecount="1"/>
@@ -884,36 +884,36 @@
         <line num="75" count="1" type="stmt"/>
         <line num="77" count="1" type="cond" truecount="2" falsecount="2"/>
         <line num="79" count="1" type="stmt"/>
-        <line num="112" count="19" type="stmt"/>
+        <line num="112" count="18" type="stmt"/>
         <line num="116" count="0" type="stmt"/>
-        <line num="137" count="19" type="stmt"/>
+        <line num="137" count="18" type="stmt"/>
         <line num="141" count="0" type="stmt"/>
-        <line num="152" count="19" type="stmt"/>
+        <line num="152" count="18" type="stmt"/>
         <line num="153" count="1" type="cond" truecount="2" falsecount="2"/>
         <line num="155" count="0" type="stmt"/>
         <line num="160" count="0" type="stmt"/>
         <line num="166" count="1" type="stmt"/>
-        <line num="173" count="19" type="stmt"/>
+        <line num="173" count="18" type="stmt"/>
       </file>
       <file name="StatsCard.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/stats/StatsCard.tsx">
         <metrics statements="13" coveredstatements="8" conditionals="18" coveredconditionals="4" methods="5" coveredmethods="1"/>
-        <line num="24" count="19" type="stmt"/>
+        <line num="24" count="18" type="stmt"/>
         <line num="31" count="1" type="stmt"/>
         <line num="33" count="1" type="stmt"/>
-        <line num="65" count="19" type="stmt"/>
+        <line num="65" count="18" type="stmt"/>
         <line num="71" count="0" type="stmt"/>
-        <line num="94" count="19" type="stmt"/>
+        <line num="94" count="18" type="stmt"/>
         <line num="98" count="0" type="stmt"/>
         <line num="100" count="0" type="stmt"/>
-        <line num="127" count="19" type="stmt"/>
+        <line num="127" count="18" type="stmt"/>
         <line num="134" count="0" type="stmt"/>
-        <line num="163" count="19" type="stmt"/>
+        <line num="163" count="18" type="stmt"/>
         <line num="168" count="0" type="stmt"/>
-        <line num="194" count="19" type="stmt"/>
+        <line num="194" count="18" type="stmt"/>
       </file>
       <file name="TopicBadge.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/stats/TopicBadge.tsx">
         <metrics statements="24" coveredstatements="13" conditionals="59" coveredconditionals="16" methods="4" coveredmethods="1"/>
-        <line num="29" count="19" type="stmt"/>
+        <line num="29" count="18" type="stmt"/>
         <line num="38" count="1" type="stmt"/>
         <line num="41" count="1" type="cond" truecount="2" falsecount="0"/>
         <line num="42" count="1" type="cond" truecount="1" falsecount="1"/>
@@ -923,36 +923,36 @@
         <line num="53" count="1" type="cond" truecount="1" falsecount="1"/>
         <line num="55" count="1" type="cond" truecount="1" falsecount="1"/>
         <line num="57" count="1" type="stmt"/>
-        <line num="108" count="19" type="stmt"/>
+        <line num="108" count="18" type="stmt"/>
         <line num="115" count="0" type="stmt"/>
         <line num="116" count="0" type="stmt"/>
         <line num="118" count="0" type="cond" truecount="0" falsecount="2"/>
         <line num="119" count="0" type="stmt"/>
         <line num="126" count="0" type="stmt"/>
         <line num="137" count="0" type="stmt"/>
-        <line num="171" count="19" type="stmt"/>
+        <line num="171" count="18" type="stmt"/>
         <line num="179" count="0" type="stmt"/>
         <line num="180" count="0" type="cond" truecount="0" falsecount="2"/>
         <line num="181" count="0" type="cond" truecount="0" falsecount="2"/>
         <line num="184" count="0" type="cond" truecount="0" falsecount="4"/>
         <line num="186" count="0" type="stmt"/>
-        <line num="242" count="19" type="stmt"/>
+        <line num="242" count="18" type="stmt"/>
       </file>
     </package>
     <package name="components.molecules.subscription">
       <metrics statements="20" coveredstatements="20" conditionals="21" coveredconditionals="20" methods="4" coveredmethods="4"/>
       <file name="DemoBanner.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/subscription/DemoBanner.tsx">
         <metrics statements="6" coveredstatements="6" conditionals="6" coveredconditionals="5" methods="1" coveredmethods="1"/>
-        <line num="12" count="2" type="stmt"/>
-        <line num="13" count="6" type="stmt"/>
-        <line num="14" count="6" type="stmt"/>
-        <line num="15" count="6" type="cond" truecount="2" falsecount="0"/>
-        <line num="17" count="3" type="stmt"/>
-        <line num="44" count="2" type="stmt"/>
+        <line num="12" count="1" type="stmt"/>
+        <line num="13" count="2" type="stmt"/>
+        <line num="14" count="2" type="stmt"/>
+        <line num="15" count="2" type="cond" truecount="2" falsecount="0"/>
+        <line num="17" count="1" type="stmt"/>
+        <line num="44" count="1" type="stmt"/>
       </file>
       <file name="PricingBadge.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/molecules/subscription/PricingBadge.tsx">
         <metrics statements="5" coveredstatements="5" conditionals="7" coveredconditionals="7" methods="1" coveredmethods="1"/>
-        <line num="12" count="19" type="stmt"/>
+        <line num="12" count="18" type="stmt"/>
         <line num="17" count="4" type="stmt"/>
         <line num="19" count="4" type="cond" truecount="2" falsecount="0"/>
         <line num="20" count="2" type="stmt"/>
@@ -1634,10 +1634,10 @@
       </file>
     </package>
     <package name="components.organisms.common">
-      <metrics statements="288" coveredstatements="228" conditionals="389" coveredconditionals="220" methods="70" coveredmethods="56"/>
+      <metrics statements="288" coveredstatements="231" conditionals="389" coveredconditionals="222" methods="70" coveredmethods="56"/>
       <file name="AIAvatar.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/organisms/common/AIAvatar.tsx">
         <metrics statements="19" coveredstatements="15" conditionals="31" coveredconditionals="23" methods="4" coveredmethods="4"/>
-        <line num="21" count="23" type="stmt"/>
+        <line num="21" count="22" type="stmt"/>
         <line num="30" count="7" type="stmt"/>
         <line num="31" count="7" type="stmt"/>
         <line num="33" count="7" type="stmt"/>
@@ -1667,7 +1667,7 @@
       </file>
       <file name="AppLogo.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/organisms/common/AppLogo.tsx">
         <metrics statements="21" coveredstatements="21" conditionals="5" coveredconditionals="2" methods="6" coveredmethods="6"/>
-        <line num="21" count="20" type="cond" truecount="0" falsecount="1"/>
+        <line num="21" count="19" type="cond" truecount="0" falsecount="1"/>
         <line num="22" count="2" type="stmt"/>
         <line num="23" count="2" type="stmt"/>
         <line num="24" count="2" type="stmt"/>
@@ -1687,7 +1687,7 @@
         <line num="109" count="18" type="stmt"/>
         <line num="110" count="18" type="stmt"/>
         <line num="112" count="18" type="stmt"/>
-        <line num="160" count="20" type="stmt"/>
+        <line num="160" count="19" type="stmt"/>
       </file>
       <file name="ErrorBoundary.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/organisms/common/ErrorBoundary.tsx">
         <metrics statements="16" coveredstatements="16" conditionals="11" coveredconditionals="10" methods="6" coveredmethods="6"/>
@@ -1709,7 +1709,7 @@
         <line num="110" count="2" type="stmt"/>
       </file>
       <file name="Header.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/organisms/common/Header.tsx">
-        <metrics statements="114" coveredstatements="99" conditionals="156" coveredconditionals="105" methods="22" coveredmethods="21"/>
+        <metrics statements="114" coveredstatements="102" conditionals="156" coveredconditionals="107" methods="22" coveredmethods="21"/>
         <line num="31" count="2" type="stmt"/>
         <line num="36" count="1" type="stmt"/>
         <line num="55" count="2" type="stmt"/>
@@ -1726,104 +1726,104 @@
         <line num="168" count="2" type="stmt"/>
         <line num="171" count="2" type="stmt"/>
         <line num="173" count="2" type="stmt"/>
-        <line num="193" count="5" type="stmt"/>
-        <line num="194" count="5" type="stmt"/>
-        <line num="195" count="5" type="stmt"/>
-        <line num="196" count="5" type="stmt"/>
-        <line num="197" count="5" type="stmt"/>
-        <line num="199" count="5" type="stmt"/>
-        <line num="202" count="5" type="cond" truecount="2" falsecount="0"/>
-        <line num="203" count="5" type="cond" truecount="2" falsecount="0"/>
-        <line num="206" count="5" type="stmt"/>
-        <line num="207" count="5" type="cond" truecount="2" falsecount="0"/>
-        <line num="208" count="5" type="cond" truecount="2" falsecount="0"/>
-        <line num="212" count="5" type="stmt"/>
+        <line num="193" count="33" type="stmt"/>
+        <line num="194" count="33" type="stmt"/>
+        <line num="195" count="33" type="stmt"/>
+        <line num="196" count="33" type="stmt"/>
+        <line num="197" count="33" type="stmt"/>
+        <line num="199" count="33" type="stmt"/>
+        <line num="202" count="33" type="cond" truecount="2" falsecount="0"/>
+        <line num="203" count="33" type="cond" truecount="2" falsecount="0"/>
+        <line num="206" count="33" type="stmt"/>
+        <line num="207" count="33" type="cond" truecount="2" falsecount="0"/>
+        <line num="208" count="33" type="cond" truecount="2" falsecount="0"/>
+        <line num="212" count="33" type="stmt"/>
         <line num="213" count="1" type="stmt"/>
         <line num="214" count="1" type="cond" truecount="1" falsecount="1"/>
-        <line num="215" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="216" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="217" count="0" type="stmt"/>
-        <line num="221" count="5" type="stmt"/>
-        <line num="222" count="5" type="cond" truecount="4" falsecount="0"/>
-        <line num="223" count="2" type="stmt"/>
+        <line num="215" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="216" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="217" count="1" type="stmt"/>
+        <line num="221" count="33" type="stmt"/>
+        <line num="222" count="11" type="cond" truecount="4" falsecount="0"/>
+        <line num="223" count="8" type="stmt"/>
         <line num="224" count="0" type="stmt"/>
-        <line num="226" count="2" type="stmt"/>
+        <line num="226" count="8" type="stmt"/>
         <line num="228" count="3" type="stmt"/>
-        <line num="232" count="5" type="stmt"/>
-        <line num="233" count="5" type="cond" truecount="4" falsecount="0"/>
-        <line num="235" count="2" type="stmt"/>
-        <line num="236" count="2" type="stmt"/>
-        <line num="241" count="2" type="stmt"/>
-        <line num="245" count="2" type="stmt"/>
-        <line num="253" count="5" type="stmt"/>
-        <line num="254" count="5" type="cond" truecount="4" falsecount="0"/>
-        <line num="255" count="2" type="stmt"/>
-        <line num="263" count="5" type="stmt"/>
-        <line num="268" count="5" type="stmt"/>
-        <line num="276" count="5" type="cond" truecount="3" falsecount="1"/>
-        <line num="277" count="5" type="stmt"/>
-        <line num="280" count="5" type="stmt"/>
-        <line num="281" count="5" type="cond" truecount="2" falsecount="2"/>
-        <line num="283" count="2" type="stmt"/>
+        <line num="232" count="33" type="stmt"/>
+        <line num="233" count="33" type="cond" truecount="4" falsecount="0"/>
+        <line num="235" count="30" type="stmt"/>
+        <line num="236" count="30" type="stmt"/>
+        <line num="241" count="30" type="stmt"/>
+        <line num="245" count="30" type="stmt"/>
+        <line num="253" count="33" type="stmt"/>
+        <line num="254" count="33" type="cond" truecount="4" falsecount="0"/>
+        <line num="255" count="30" type="stmt"/>
+        <line num="263" count="33" type="stmt"/>
+        <line num="268" count="33" type="stmt"/>
+        <line num="276" count="33" type="cond" truecount="3" falsecount="1"/>
+        <line num="277" count="33" type="stmt"/>
+        <line num="280" count="33" type="stmt"/>
+        <line num="281" count="33" type="cond" truecount="2" falsecount="2"/>
+        <line num="283" count="30" type="stmt"/>
         <line num="290" count="0" type="stmt"/>
         <line num="297" count="0" type="stmt"/>
         <line num="304" count="3" type="stmt"/>
-        <line num="313" count="5" type="stmt"/>
-        <line num="314" count="5" type="stmt"/>
-        <line num="317" count="5" type="stmt"/>
-        <line num="320" count="5" type="stmt"/>
-        <line num="325" count="5" type="stmt"/>
-        <line num="326" count="5" type="cond" truecount="2" falsecount="0"/>
-        <line num="328" count="2" type="cond" truecount="1" falsecount="1"/>
-        <line num="332" count="2" type="stmt"/>
-        <line num="333" count="2" type="stmt"/>
-        <line num="334" count="2" type="stmt"/>
-        <line num="335" count="2" type="stmt"/>
-        <line num="337" count="2" type="stmt"/>
-        <line num="338" count="2" type="stmt"/>
-        <line num="339" count="2" type="stmt"/>
-        <line num="341" count="2" type="stmt"/>
-        <line num="346" count="6" type="stmt"/>
-        <line num="368" count="5" type="stmt"/>
-        <line num="369" count="2" type="cond" truecount="2" falsecount="0"/>
+        <line num="313" count="33" type="stmt"/>
+        <line num="314" count="33" type="stmt"/>
+        <line num="317" count="33" type="stmt"/>
+        <line num="320" count="33" type="stmt"/>
+        <line num="325" count="33" type="stmt"/>
+        <line num="326" count="33" type="cond" truecount="2" falsecount="0"/>
+        <line num="328" count="30" type="cond" truecount="1" falsecount="1"/>
+        <line num="332" count="30" type="stmt"/>
+        <line num="333" count="30" type="stmt"/>
+        <line num="334" count="30" type="stmt"/>
+        <line num="335" count="30" type="stmt"/>
+        <line num="337" count="30" type="stmt"/>
+        <line num="338" count="30" type="stmt"/>
+        <line num="339" count="30" type="stmt"/>
+        <line num="341" count="30" type="stmt"/>
+        <line num="346" count="90" type="stmt"/>
+        <line num="368" count="33" type="stmt"/>
+        <line num="369" count="30" type="cond" truecount="2" falsecount="0"/>
         <line num="370" count="1" type="stmt"/>
-        <line num="382" count="1" type="stmt"/>
-        <line num="383" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="382" count="29" type="stmt"/>
+        <line num="383" count="29" type="cond" truecount="1" falsecount="1"/>
         <line num="384" count="0" type="cond" truecount="0" falsecount="2"/>
         <line num="385" count="0" type="stmt"/>
         <line num="386" count="0" type="stmt"/>
         <line num="387" count="0" type="stmt"/>
         <line num="389" count="0" type="stmt"/>
-        <line num="415" count="1" type="stmt"/>
-        <line num="431" count="5" type="stmt"/>
+        <line num="415" count="29" type="stmt"/>
+        <line num="431" count="33" type="stmt"/>
         <line num="432" count="3" type="cond" truecount="4" falsecount="0"/>
         <line num="435" count="1" type="cond" truecount="1" falsecount="1"/>
         <line num="436" count="0" type="stmt"/>
         <line num="440" count="1" type="stmt"/>
-        <line num="453" count="5" type="stmt"/>
-        <line num="454" count="5" type="cond" truecount="2" falsecount="0"/>
-        <line num="455" count="5" type="cond" truecount="2" falsecount="0"/>
-        <line num="458" count="5" type="cond" truecount="2" falsecount="2"/>
+        <line num="453" count="33" type="stmt"/>
+        <line num="454" count="33" type="cond" truecount="2" falsecount="0"/>
+        <line num="455" count="33" type="cond" truecount="2" falsecount="0"/>
+        <line num="458" count="33" type="cond" truecount="2" falsecount="2"/>
         <line num="459" count="0" type="stmt"/>
-        <line num="472" count="5" type="cond" truecount="1" falsecount="1"/>
+        <line num="472" count="33" type="cond" truecount="1" falsecount="1"/>
         <line num="473" count="0" type="stmt"/>
-        <line num="486" count="5" type="cond" truecount="2" falsecount="0"/>
+        <line num="486" count="33" type="cond" truecount="2" falsecount="0"/>
         <line num="487" count="1" type="cond" truecount="2" falsecount="0"/>
         <line num="488" count="1" type="stmt"/>
-        <line num="513" count="4" type="cond" truecount="2" falsecount="0"/>
-        <line num="514" count="2" type="stmt"/>
+        <line num="513" count="32" type="cond" truecount="2" falsecount="0"/>
+        <line num="514" count="30" type="stmt"/>
         <line num="579" count="2" type="stmt"/>
-        <line num="625" count="5" type="stmt"/>
+        <line num="625" count="33" type="stmt"/>
         <line num="626" count="3" type="cond" truecount="1" falsecount="1"/>
         <line num="627" count="0" type="stmt"/>
         <line num="630" count="3" type="cond" truecount="2" falsecount="0"/>
         <line num="631" count="1" type="stmt"/>
         <line num="643" count="2" type="stmt"/>
-        <line num="646" count="5" type="cond" truecount="3" falsecount="1"/>
-        <line num="648" count="5" type="cond" truecount="2" falsecount="0"/>
-        <line num="650" count="5" type="stmt"/>
+        <line num="646" count="33" type="cond" truecount="3" falsecount="1"/>
+        <line num="648" count="33" type="cond" truecount="2" falsecount="0"/>
+        <line num="650" count="33" type="stmt"/>
         <line num="728" count="2" type="stmt"/>
-        <line num="733" count="5" type="stmt"/>
+        <line num="733" count="33" type="stmt"/>
       </file>
       <file name="MessageBubble.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/organisms/common/MessageBubble.tsx">
         <metrics statements="93" coveredstatements="52" conditionals="172" coveredconditionals="66" methods="26" coveredmethods="13"/>
@@ -1923,7 +1923,7 @@
       </file>
       <file name="StreamingIndicator.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/organisms/common/StreamingIndicator.tsx">
         <metrics statements="20" coveredstatements="20" conditionals="12" coveredconditionals="12" methods="5" coveredmethods="5"/>
-        <line num="20" count="21" type="stmt"/>
+        <line num="20" count="20" type="stmt"/>
         <line num="26" count="3" type="stmt"/>
         <line num="27" count="3" type="stmt"/>
         <line num="28" count="3" type="stmt"/>
@@ -1942,7 +1942,7 @@
         <line num="73" count="1" type="stmt"/>
         <line num="90" count="1" type="stmt"/>
         <line num="93" count="3" type="stmt"/>
-        <line num="110" count="21" type="stmt"/>
+        <line num="110" count="20" type="stmt"/>
       </file>
     </package>
     <package name="components.organisms.compare">
@@ -2130,7 +2130,7 @@
         <line num="122" count="25" type="stmt"/>
         <line num="125" count="25" type="stmt"/>
         <line num="126" count="73" type="stmt"/>
-        <line num="127" count="9" type="stmt"/>
+        <line num="127" count="12" type="stmt"/>
         <line num="132" count="25" type="stmt"/>
         <line num="134" count="25" type="stmt"/>
         <line num="135" count="24" type="cond" truecount="2" falsecount="0"/>
@@ -2828,13 +2828,13 @@
       </file>
       <file name="DemoSamplesBar.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/organisms/demo/DemoSamplesBar.tsx">
         <metrics statements="7" coveredstatements="7" conditionals="5" coveredconditionals="5" methods="3" coveredmethods="3"/>
-        <line num="17" count="3" type="cond" truecount="1" falsecount="0"/>
+        <line num="17" count="2" type="cond" truecount="1" falsecount="0"/>
         <line num="18" count="4" type="stmt"/>
         <line num="19" count="4" type="cond" truecount="4" falsecount="0"/>
         <line num="20" count="2" type="stmt"/>
         <line num="25" count="3" type="stmt"/>
         <line num="27" count="2" type="stmt"/>
-        <line num="38" count="3" type="stmt"/>
+        <line num="38" count="2" type="stmt"/>
       </file>
     </package>
     <package name="components.organisms.header">
@@ -2842,22 +2842,22 @@
       <file name="HeaderActions.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/organisms/header/HeaderActions.tsx">
         <metrics statements="18" coveredstatements="13" conditionals="18" coveredconditionals="14" methods="4" coveredmethods="3"/>
         <line num="18" count="2" type="stmt"/>
-        <line num="27" count="4" type="stmt"/>
-        <line num="28" count="4" type="stmt"/>
-        <line num="31" count="4" type="cond" truecount="2" falsecount="0"/>
-        <line num="33" count="4" type="stmt"/>
+        <line num="27" count="32" type="stmt"/>
+        <line num="28" count="32" type="stmt"/>
+        <line num="31" count="32" type="cond" truecount="2" falsecount="0"/>
+        <line num="33" count="32" type="stmt"/>
         <line num="34" count="1" type="cond" truecount="1" falsecount="1"/>
         <line num="35" count="1" type="stmt"/>
         <line num="37" count="0" type="stmt"/>
-        <line num="41" count="4" type="stmt"/>
+        <line num="41" count="32" type="stmt"/>
         <line num="42" count="1" type="cond" truecount="1" falsecount="1"/>
         <line num="43" count="0" type="stmt"/>
         <line num="45" count="1" type="stmt"/>
-        <line num="49" count="4" type="stmt"/>
+        <line num="49" count="32" type="stmt"/>
         <line num="50" count="0" type="cond" truecount="0" falsecount="2"/>
         <line num="51" count="0" type="stmt"/>
         <line num="53" count="0" type="stmt"/>
-        <line num="57" count="4" type="stmt"/>
+        <line num="57" count="32" type="stmt"/>
         <line num="90" count="2" type="stmt"/>
       </file>
       <file name="NotificationBell.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/components/organisms/header/NotificationBell.tsx">
@@ -3613,7 +3613,7 @@
       </file>
       <file name="homeConstants.ts" path="/Users/michaelspencer/Developer/DebateAI/src/config/homeConstants.ts">
         <metrics statements="1" coveredstatements="1" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
-        <line num="5" count="11" type="stmt"/>
+        <line num="5" count="10" type="stmt"/>
       </file>
       <file name="logoConfig.ts" path="/Users/michaelspencer/Developer/DebateAI/src/config/logoConfig.ts">
         <metrics statements="3" coveredstatements="0" conditionals="2" coveredconditionals="0" methods="1" coveredmethods="0"/>
@@ -3623,21 +3623,21 @@
       </file>
       <file name="modelConfigs.ts" path="/Users/michaelspencer/Developer/DebateAI/src/config/modelConfigs.ts">
         <metrics statements="17" coveredstatements="12" conditionals="8" coveredconditionals="4" methods="6" coveredmethods="2"/>
-        <line num="27" count="18" type="stmt"/>
-        <line num="443" count="18" type="stmt"/>
-        <line num="451" count="18" type="stmt"/>
-        <line num="492" count="18" type="stmt"/>
-        <line num="534" count="18" type="stmt"/>
-        <line num="574" count="18" type="stmt"/>
+        <line num="27" count="17" type="stmt"/>
+        <line num="443" count="17" type="stmt"/>
+        <line num="451" count="17" type="stmt"/>
+        <line num="492" count="17" type="stmt"/>
+        <line num="534" count="17" type="stmt"/>
+        <line num="574" count="17" type="stmt"/>
         <line num="575" count="2" type="cond" truecount="1" falsecount="1"/>
         <line num="576" count="2" type="stmt"/>
         <line num="577" count="2" type="cond" truecount="3" falsecount="1"/>
         <line num="579" count="10" type="stmt"/>
         <line num="581" count="0" type="stmt"/>
-        <line num="585" count="18" type="stmt"/>
+        <line num="585" count="17" type="stmt"/>
         <line num="588" count="0" type="stmt"/>
         <line num="589" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="593" count="18" type="stmt"/>
+        <line num="593" count="17" type="stmt"/>
         <line num="597" count="0" type="stmt"/>
         <line num="598" count="0" type="stmt"/>
       </file>
@@ -3669,7 +3669,7 @@
       </file>
       <file name="personalities.ts" path="/Users/michaelspencer/Developer/DebateAI/src/config/personalities.ts">
         <metrics statements="6" coveredstatements="2" conditionals="4" coveredconditionals="0" methods="3" coveredmethods="2"/>
-        <line num="37" count="32" type="stmt"/>
+        <line num="37" count="31" type="stmt"/>
         <line num="232" count="8" type="stmt"/>
         <line num="237" count="0" type="stmt"/>
         <line num="238" count="0" type="cond" truecount="0" falsecount="2"/>
@@ -3741,16 +3741,16 @@
       <metrics statements="34" coveredstatements="7" conditionals="20" coveredconditionals="1" methods="10" coveredmethods="1"/>
       <file name="modelRegistry.ts" path="/Users/michaelspencer/Developer/DebateAI/src/config/providers/modelRegistry.ts">
         <metrics statements="13" coveredstatements="7" conditionals="10" coveredconditionals="1" methods="4" coveredmethods="1"/>
-        <line num="38" count="11" type="stmt"/>
-        <line num="95" count="11" type="stmt"/>
+        <line num="38" count="10" type="stmt"/>
+        <line num="95" count="10" type="stmt"/>
         <line num="96" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="100" count="11" type="stmt"/>
+        <line num="100" count="10" type="stmt"/>
         <line num="103" count="1" type="stmt"/>
         <line num="115" count="1" type="cond" truecount="1" falsecount="1"/>
-        <line num="119" count="11" type="stmt"/>
+        <line num="119" count="10" type="stmt"/>
         <line num="120" count="0" type="stmt"/>
         <line num="132" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="136" count="11" type="stmt"/>
+        <line num="136" count="10" type="stmt"/>
         <line num="137" count="0" type="cond" truecount="0" falsecount="4"/>
         <line num="138" count="0" type="stmt"/>
         <line num="140" count="0" type="stmt"/>
@@ -3784,7 +3784,7 @@
       <metrics statements="2" coveredstatements="1" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
       <file name="aiColors.ts" path="/Users/michaelspencer/Developer/DebateAI/src/constants/aiColors.ts">
         <metrics statements="1" coveredstatements="1" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
-        <line num="2" count="24" type="stmt"/>
+        <line num="2" count="23" type="stmt"/>
       </file>
       <file name="imageGeneration.ts" path="/Users/michaelspencer/Developer/DebateAI/src/constants/imageGeneration.ts">
         <metrics statements="1" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
@@ -6035,7 +6035,7 @@
       <metrics statements="22" coveredstatements="1" conditionals="15" coveredconditionals="0" methods="8" coveredmethods="0"/>
       <file name="useStreamingMessage.ts" path="/Users/michaelspencer/Developer/DebateAI/src/hooks/streaming/useStreamingMessage.ts">
         <metrics statements="22" coveredstatements="1" conditionals="15" coveredconditionals="0" methods="8" coveredmethods="0"/>
-        <line num="36" count="19" type="stmt"/>
+        <line num="36" count="18" type="stmt"/>
         <line num="37" count="0" type="stmt"/>
         <line num="40" count="0" type="stmt"/>
         <line num="41" count="0" type="stmt"/>
@@ -6151,7 +6151,7 @@
       </file>
     </package>
     <package name="screens">
-      <metrics statements="1316" coveredstatements="539" conditionals="1234" coveredconditionals="359" methods="348" coveredmethods="149"/>
+      <metrics statements="1316" coveredstatements="778" conditionals="1234" coveredconditionals="600" methods="348" coveredmethods="228"/>
       <file name="APIConfigScreen.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/screens/APIConfigScreen.tsx">
         <metrics statements="14" coveredstatements="13" conditionals="2" coveredconditionals="1" methods="4" coveredmethods="3"/>
         <line num="25" count="1" type="stmt"/>
@@ -6411,61 +6411,61 @@
         <line num="623" count="0" type="stmt"/>
       </file>
       <file name="CompareScreen.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/screens/CompareScreen.tsx">
-        <metrics statements="402" coveredstatements="77" conditionals="452" coveredconditionals="70" methods="86" coveredmethods="18"/>
+        <metrics statements="402" coveredstatements="135" conditionals="452" coveredconditionals="153" methods="86" coveredmethods="36"/>
         <line num="55" count="1" type="stmt"/>
-        <line num="56" count="2" type="stmt"/>
-        <line num="57" count="2" type="stmt"/>
-        <line num="58" count="2" type="stmt"/>
-        <line num="59" count="2" type="stmt"/>
-        <line num="62" count="3" type="stmt"/>
-        <line num="63" count="3" type="cond" truecount="1" falsecount="1"/>
-        <line num="64" count="3" type="stmt"/>
-        <line num="65" count="3" type="stmt"/>
-        <line num="66" count="3" type="cond" truecount="1" falsecount="1"/>
-        <line num="69" count="2" type="stmt"/>
-        <line num="70" count="3" type="cond" truecount="1" falsecount="1"/>
-        <line num="74" count="2" type="cond" truecount="2" falsecount="0"/>
-        <line num="75" count="2" type="cond" truecount="2" falsecount="0"/>
-        <line num="76" count="2" type="stmt"/>
-        <line num="79" count="2" type="stmt"/>
-        <line num="80" count="2" type="cond" truecount="2" falsecount="0"/>
-        <line num="81" count="2" type="stmt"/>
-        <line num="84" count="2" type="stmt"/>
-        <line num="85" count="1" type="cond" truecount="2" falsecount="3"/>
-        <line num="86" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="88" count="1" type="stmt"/>
-        <line num="91" count="2" type="stmt"/>
-        <line num="92" count="1" type="cond" truecount="2" falsecount="3"/>
-        <line num="93" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="95" count="1" type="stmt"/>
-        <line num="99" count="2" type="stmt"/>
-        <line num="100" count="1" type="cond" truecount="2" falsecount="2"/>
-        <line num="101" count="0" type="stmt"/>
-        <line num="103" count="1" type="stmt"/>
-        <line num="106" count="2" type="stmt"/>
-        <line num="107" count="1" type="cond" truecount="2" falsecount="3"/>
-        <line num="108" count="0" type="stmt"/>
-        <line num="110" count="1" type="stmt"/>
-        <line num="113" count="2" type="stmt"/>
-        <line num="114" count="1" type="cond" truecount="2" falsecount="3"/>
-        <line num="115" count="0" type="stmt"/>
-        <line num="117" count="1" type="stmt"/>
-        <line num="119" count="2" type="stmt"/>
-        <line num="122" count="2" type="stmt"/>
-        <line num="123" count="2" type="stmt"/>
-        <line num="124" count="2" type="stmt"/>
-        <line num="125" count="2" type="stmt"/>
-        <line num="128" count="2" type="cond" truecount="2" falsecount="3"/>
-        <line num="129" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="131" count="2" type="cond" truecount="2" falsecount="3"/>
-        <line num="132" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="137" count="2" type="cond" truecount="2" falsecount="0"/>
-        <line num="138" count="2" type="cond" truecount="2" falsecount="0"/>
-        <line num="139" count="2" type="stmt"/>
-        <line num="140" count="2" type="stmt"/>
-        <line num="141" count="2" type="stmt"/>
-        <line num="142" count="3" type="cond" truecount="1" falsecount="1"/>
-        <line num="144" count="2" type="stmt"/>
+        <line num="56" count="11" type="stmt"/>
+        <line num="57" count="11" type="stmt"/>
+        <line num="58" count="11" type="stmt"/>
+        <line num="59" count="11" type="stmt"/>
+        <line num="62" count="17" type="stmt"/>
+        <line num="63" count="17" type="cond" truecount="1" falsecount="1"/>
+        <line num="64" count="17" type="stmt"/>
+        <line num="65" count="17" type="stmt"/>
+        <line num="66" count="17" type="cond" truecount="1" falsecount="1"/>
+        <line num="69" count="11" type="stmt"/>
+        <line num="70" count="17" type="cond" truecount="2" falsecount="0"/>
+        <line num="74" count="11" type="cond" truecount="2" falsecount="0"/>
+        <line num="75" count="11" type="cond" truecount="2" falsecount="0"/>
+        <line num="76" count="11" type="stmt"/>
+        <line num="79" count="11" type="stmt"/>
+        <line num="80" count="11" type="cond" truecount="2" falsecount="0"/>
+        <line num="81" count="11" type="stmt"/>
+        <line num="84" count="11" type="stmt"/>
+        <line num="85" count="5" type="cond" truecount="5" falsecount="0"/>
+        <line num="86" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="88" count="4" type="stmt"/>
+        <line num="91" count="11" type="stmt"/>
+        <line num="92" count="5" type="cond" truecount="5" falsecount="0"/>
+        <line num="93" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="95" count="4" type="stmt"/>
+        <line num="99" count="11" type="stmt"/>
+        <line num="100" count="5" type="cond" truecount="4" falsecount="0"/>
+        <line num="101" count="3" type="stmt"/>
+        <line num="103" count="4" type="stmt"/>
+        <line num="106" count="11" type="stmt"/>
+        <line num="107" count="5" type="cond" truecount="5" falsecount="0"/>
+        <line num="108" count="3" type="stmt"/>
+        <line num="110" count="4" type="stmt"/>
+        <line num="113" count="11" type="stmt"/>
+        <line num="114" count="5" type="cond" truecount="5" falsecount="0"/>
+        <line num="115" count="3" type="stmt"/>
+        <line num="117" count="4" type="stmt"/>
+        <line num="119" count="11" type="stmt"/>
+        <line num="122" count="11" type="stmt"/>
+        <line num="123" count="11" type="stmt"/>
+        <line num="124" count="11" type="stmt"/>
+        <line num="125" count="11" type="stmt"/>
+        <line num="128" count="11" type="cond" truecount="5" falsecount="0"/>
+        <line num="129" count="6" type="cond" truecount="2" falsecount="0"/>
+        <line num="131" count="11" type="cond" truecount="5" falsecount="0"/>
+        <line num="132" count="6" type="cond" truecount="2" falsecount="0"/>
+        <line num="137" count="11" type="cond" truecount="2" falsecount="0"/>
+        <line num="138" count="11" type="cond" truecount="2" falsecount="0"/>
+        <line num="139" count="11" type="stmt"/>
+        <line num="140" count="11" type="stmt"/>
+        <line num="141" count="11" type="stmt"/>
+        <line num="142" count="17" type="cond" truecount="1" falsecount="1"/>
+        <line num="144" count="11" type="stmt"/>
         <line num="145" count="0" type="cond" truecount="0" falsecount="2"/>
         <line num="147" count="0" type="stmt"/>
         <line num="148" count="0" type="cond" truecount="0" falsecount="2"/>
@@ -6482,7 +6482,7 @@
         <line num="171" count="0" type="stmt"/>
         <line num="186" count="0" type="stmt"/>
         <line num="188" count="0" type="stmt"/>
-        <line num="192" count="2" type="stmt"/>
+        <line num="192" count="11" type="stmt"/>
         <line num="193" count="0" type="cond" truecount="0" falsecount="2"/>
         <line num="194" count="0" type="cond" truecount="0" falsecount="7"/>
         <line num="196" count="0" type="stmt"/>
@@ -6659,103 +6659,103 @@
         <line num="539" count="0" type="stmt"/>
         <line num="542" count="0" type="stmt"/>
         <line num="543" count="0" type="stmt"/>
-        <line num="567" count="2" type="stmt"/>
-        <line num="568" count="0" type="cond" truecount="0" falsecount="5"/>
-        <line num="569" count="0" type="cond" truecount="0" falsecount="4"/>
-        <line num="570" count="0" type="stmt"/>
-        <line num="578" count="0" type="stmt"/>
-        <line num="579" count="0" type="stmt"/>
-        <line num="580" count="0" type="stmt"/>
-        <line num="582" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="584" count="0" type="stmt"/>
-        <line num="585" count="0" type="stmt"/>
-        <line num="587" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="588" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="590" count="0" type="stmt"/>
-        <line num="592" count="0" type="stmt"/>
-        <line num="603" count="0" type="stmt"/>
-        <line num="604" count="0" type="stmt"/>
-        <line num="605" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="606" count="0" type="stmt"/>
-        <line num="607" count="0" type="stmt"/>
+        <line num="567" count="11" type="stmt"/>
+        <line num="568" count="1" type="cond" truecount="4" falsecount="1"/>
+        <line num="569" count="1" type="cond" truecount="1" falsecount="3"/>
+        <line num="570" count="1" type="stmt"/>
+        <line num="578" count="1" type="stmt"/>
+        <line num="579" count="1" type="stmt"/>
+        <line num="580" count="1" type="stmt"/>
+        <line num="582" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="584" count="1" type="stmt"/>
+        <line num="585" count="1" type="stmt"/>
+        <line num="587" count="1" type="cond" truecount="2" falsecount="0"/>
+        <line num="588" count="1" type="cond" truecount="2" falsecount="0"/>
+        <line num="590" count="1" type="stmt"/>
+        <line num="592" count="1" type="stmt"/>
+        <line num="603" count="1" type="stmt"/>
+        <line num="604" count="1" type="stmt"/>
+        <line num="605" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="606" count="1" type="stmt"/>
+        <line num="607" count="1" type="stmt"/>
         <line num="610" count="0" type="stmt"/>
         <line num="611" count="0" type="stmt"/>
-        <line num="614" count="0" type="stmt"/>
-        <line num="616" count="0" type="stmt"/>
-        <line num="627" count="0" type="stmt"/>
-        <line num="628" count="0" type="stmt"/>
-        <line num="629" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="630" count="0" type="stmt"/>
-        <line num="631" count="0" type="stmt"/>
+        <line num="614" count="1" type="stmt"/>
+        <line num="616" count="1" type="stmt"/>
+        <line num="627" count="1" type="stmt"/>
+        <line num="628" count="1" type="stmt"/>
+        <line num="629" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="630" count="1" type="stmt"/>
+        <line num="631" count="1" type="stmt"/>
         <line num="634" count="0" type="stmt"/>
         <line num="635" count="0" type="stmt"/>
-        <line num="638" count="0" type="stmt"/>
-        <line num="639" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="640" count="0" type="cond" truecount="0" falsecount="4"/>
-        <line num="641" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="638" count="1" type="stmt"/>
+        <line num="639" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="640" count="1" type="cond" truecount="3" falsecount="1"/>
+        <line num="641" count="1" type="cond" truecount="1" falsecount="1"/>
         <line num="642" count="0" type="stmt"/>
         <line num="643" count="0" type="stmt"/>
         <line num="644" count="0" type="stmt"/>
         <line num="645" count="0" type="cond" truecount="0" falsecount="2"/>
         <line num="646" count="0" type="stmt"/>
         <line num="648" count="0" type="stmt"/>
-        <line num="657" count="2" type="stmt"/>
-        <line num="658" count="1" type="stmt"/>
-        <line num="659" count="1" type="cond" truecount="2" falsecount="2"/>
-        <line num="660" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="661" count="0" type="cond" truecount="0" falsecount="4"/>
-        <line num="662" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="663" count="0" type="stmt"/>
-        <line num="664" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="667" count="0" type="cond" truecount="0" falsecount="4"/>
-        <line num="668" count="0" type="stmt"/>
-        <line num="670" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="657" count="11" type="stmt"/>
+        <line num="658" count="6" type="stmt"/>
+        <line num="659" count="6" type="cond" truecount="3" falsecount="1"/>
+        <line num="660" count="6" type="cond" truecount="2" falsecount="0"/>
+        <line num="661" count="3" type="cond" truecount="3" falsecount="1"/>
+        <line num="662" count="3" type="cond" truecount="2" falsecount="0"/>
+        <line num="663" count="2" type="stmt"/>
+        <line num="664" count="2" type="cond" truecount="1" falsecount="1"/>
+        <line num="667" count="2" type="cond" truecount="3" falsecount="1"/>
+        <line num="668" count="2" type="stmt"/>
+        <line num="670" count="2" type="cond" truecount="1" falsecount="1"/>
         <line num="671" count="0" type="stmt"/>
         <line num="672" count="0" type="stmt"/>
         <line num="673" count="0" type="cond" truecount="0" falsecount="2"/>
         <line num="674" count="0" type="stmt"/>
         <line num="675" count="0" type="stmt"/>
-        <line num="677" count="1" type="stmt"/>
-        <line num="681" count="2" type="stmt"/>
-        <line num="682" count="1" type="stmt"/>
-        <line num="683" count="1" type="cond" truecount="4" falsecount="1"/>
-        <line num="684" count="1" type="stmt"/>
-        <line num="685" count="1" type="stmt"/>
-        <line num="687" count="1" type="stmt"/>
-        <line num="690" count="2" type="stmt"/>
+        <line num="677" count="6" type="stmt"/>
+        <line num="681" count="11" type="stmt"/>
+        <line num="682" count="5" type="stmt"/>
+        <line num="683" count="5" type="cond" truecount="5" falsecount="0"/>
+        <line num="684" count="2" type="stmt"/>
+        <line num="685" count="2" type="stmt"/>
+        <line num="687" count="5" type="stmt"/>
+        <line num="690" count="11" type="stmt"/>
         <line num="691" count="0" type="cond" truecount="0" falsecount="2"/>
         <line num="692" count="0" type="stmt"/>
         <line num="700" count="0" type="stmt"/>
         <line num="701" count="0" type="stmt"/>
         <line num="703" count="0" type="stmt"/>
-        <line num="710" count="2" type="stmt"/>
+        <line num="710" count="11" type="stmt"/>
         <line num="711" count="0" type="cond" truecount="0" falsecount="2"/>
         <line num="712" count="0" type="stmt"/>
         <line num="720" count="0" type="stmt"/>
         <line num="721" count="0" type="stmt"/>
         <line num="723" count="0" type="stmt"/>
-        <line num="730" count="2" type="stmt"/>
+        <line num="730" count="11" type="stmt"/>
         <line num="731" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="734" count="2" type="stmt"/>
+        <line num="734" count="11" type="stmt"/>
         <line num="735" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="738" count="2" type="stmt"/>
-        <line num="739" count="0" type="stmt"/>
+        <line num="738" count="11" type="stmt"/>
+        <line num="739" count="1" type="stmt"/>
         <line num="748" count="0" type="stmt"/>
         <line num="749" count="0" type="stmt"/>
-        <line num="756" count="2" type="cond" truecount="2" falsecount="0"/>
-        <line num="757" count="2" type="cond" truecount="3" falsecount="1"/>
-        <line num="758" count="2" type="cond" truecount="3" falsecount="1"/>
-        <line num="760" count="2" type="stmt"/>
-        <line num="761" count="2" type="cond" truecount="3" falsecount="1"/>
-        <line num="762" count="2" type="cond" truecount="3" falsecount="1"/>
-        <line num="763" count="2" type="cond" truecount="3" falsecount="1"/>
-        <line num="764" count="2" type="stmt"/>
-        <line num="769" count="2" type="stmt"/>
-        <line num="770" count="2" type="stmt"/>
-        <line num="773" count="2" type="cond" truecount="3" falsecount="1"/>
-        <line num="774" count="0" type="stmt"/>
-        <line num="775" count="0" type="stmt"/>
-        <line num="778" count="2" type="stmt"/>
+        <line num="756" count="11" type="cond" truecount="2" falsecount="0"/>
+        <line num="757" count="11" type="cond" truecount="3" falsecount="1"/>
+        <line num="758" count="11" type="cond" truecount="4" falsecount="0"/>
+        <line num="760" count="11" type="stmt"/>
+        <line num="761" count="11" type="cond" truecount="4" falsecount="0"/>
+        <line num="762" count="9" type="cond" truecount="4" falsecount="0"/>
+        <line num="763" count="7" type="cond" truecount="3" falsecount="1"/>
+        <line num="764" count="7" type="stmt"/>
+        <line num="769" count="11" type="stmt"/>
+        <line num="770" count="11" type="stmt"/>
+        <line num="773" count="11" type="cond" truecount="4" falsecount="0"/>
+        <line num="774" count="2" type="stmt"/>
+        <line num="775" count="2" type="stmt"/>
+        <line num="778" count="9" type="stmt"/>
         <line num="799" count="0" type="cond" truecount="0" falsecount="2"/>
         <line num="800" count="0" type="stmt"/>
         <line num="801" count="0" type="stmt"/>
@@ -6782,18 +6782,18 @@
         <line num="835" count="0" type="stmt"/>
         <line num="838" count="0" type="stmt"/>
         <line num="841" count="0" type="stmt"/>
-        <line num="856" count="0" type="stmt"/>
-        <line num="857" count="0" type="stmt"/>
-        <line num="858" count="0" type="cond" truecount="0" falsecount="6"/>
-        <line num="859" count="0" type="stmt"/>
-        <line num="860" count="0" type="stmt"/>
-        <line num="861" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="862" count="0" type="stmt"/>
+        <line num="856" count="1" type="stmt"/>
+        <line num="857" count="1" type="stmt"/>
+        <line num="858" count="1" type="cond" truecount="5" falsecount="1"/>
+        <line num="859" count="1" type="stmt"/>
+        <line num="860" count="1" type="stmt"/>
+        <line num="861" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="862" count="1" type="stmt"/>
         <line num="863" count="0" type="stmt"/>
-        <line num="876" count="0" type="stmt"/>
-        <line num="881" count="0" type="stmt"/>
-        <line num="889" count="0" type="stmt"/>
-        <line num="890" count="0" type="stmt"/>
+        <line num="876" count="1" type="stmt"/>
+        <line num="881" count="3" type="stmt"/>
+        <line num="889" count="3" type="stmt"/>
+        <line num="890" count="3" type="stmt"/>
         <line num="942" count="0" type="stmt"/>
         <line num="944" count="0" type="stmt"/>
         <line num="945" count="0" type="stmt"/>
@@ -6816,227 +6816,227 @@
         <line num="971" count="1" type="stmt"/>
       </file>
       <file name="CompareSetupScreen.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/screens/CompareSetupScreen.tsx">
-        <metrics statements="64" coveredstatements="44" conditionals="72" coveredconditionals="39" methods="25" coveredmethods="10"/>
+        <metrics statements="64" coveredstatements="56" conditionals="72" coveredconditionals="49" methods="25" coveredmethods="15"/>
         <line num="34" count="1" type="stmt"/>
-        <line num="35" count="2" type="stmt"/>
-        <line num="36" count="2" type="stmt"/>
-        <line num="37" count="2" type="cond" truecount="1" falsecount="1"/>
-        <line num="38" count="2" type="stmt"/>
-        <line num="39" count="2" type="cond" truecount="1" falsecount="1"/>
-        <line num="42" count="2" type="stmt"/>
-        <line num="43" count="2" type="stmt"/>
-        <line num="46" count="2" type="stmt"/>
-        <line num="47" count="1" type="stmt"/>
-        <line num="48" count="1" type="stmt"/>
-        <line num="49" count="1" type="cond" truecount="1" falsecount="1"/>
-        <line num="50" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="51" count="2" type="cond" truecount="2" falsecount="0"/>
-        <line num="53" count="1" type="stmt"/>
-        <line num="54" count="2" type="stmt"/>
-        <line num="55" count="2" type="cond" truecount="1" falsecount="1"/>
-        <line num="57" count="2" type="cond" truecount="1" falsecount="2"/>
-        <line num="58" count="2" type="stmt"/>
-        <line num="59" count="2" type="cond" truecount="3" falsecount="2"/>
-        <line num="60" count="2" type="stmt"/>
-        <line num="74" count="2" type="stmt"/>
-        <line num="79" count="2" type="stmt"/>
-        <line num="86" count="2" type="stmt"/>
-        <line num="87" count="2" type="stmt"/>
-        <line num="88" count="2" type="stmt"/>
-        <line num="89" count="2" type="stmt"/>
-        <line num="90" count="2" type="stmt"/>
-        <line num="91" count="2" type="stmt"/>
-        <line num="93" count="2" type="stmt"/>
-        <line num="94" count="1" type="cond" truecount="3" falsecount="3"/>
-        <line num="97" count="2" type="stmt"/>
-        <line num="98" count="1" type="cond" truecount="3" falsecount="3"/>
-        <line num="101" count="2" type="stmt"/>
-        <line num="102" count="1" type="cond" truecount="3" falsecount="1"/>
+        <line num="35" count="8" type="stmt"/>
+        <line num="36" count="8" type="stmt"/>
+        <line num="37" count="8" type="cond" truecount="1" falsecount="1"/>
+        <line num="38" count="8" type="stmt"/>
+        <line num="39" count="8" type="cond" truecount="1" falsecount="1"/>
+        <line num="42" count="8" type="stmt"/>
+        <line num="43" count="8" type="stmt"/>
+        <line num="46" count="8" type="stmt"/>
+        <line num="47" count="3" type="stmt"/>
+        <line num="48" count="3" type="stmt"/>
+        <line num="49" count="3" type="cond" truecount="2" falsecount="0"/>
+        <line num="50" count="2" type="cond" truecount="2" falsecount="0"/>
+        <line num="51" count="4" type="cond" truecount="2" falsecount="0"/>
+        <line num="53" count="3" type="stmt"/>
+        <line num="54" count="5" type="stmt"/>
+        <line num="55" count="5" type="cond" truecount="2" falsecount="0"/>
+        <line num="57" count="3" type="cond" truecount="1" falsecount="2"/>
+        <line num="58" count="5" type="stmt"/>
+        <line num="59" count="5" type="cond" truecount="3" falsecount="2"/>
+        <line num="60" count="5" type="stmt"/>
+        <line num="74" count="8" type="stmt"/>
+        <line num="79" count="8" type="stmt"/>
+        <line num="86" count="8" type="stmt"/>
+        <line num="87" count="8" type="stmt"/>
+        <line num="88" count="8" type="stmt"/>
+        <line num="89" count="8" type="stmt"/>
+        <line num="90" count="8" type="stmt"/>
+        <line num="91" count="8" type="stmt"/>
+        <line num="93" count="8" type="stmt"/>
+        <line num="94" count="2" type="cond" truecount="3" falsecount="3"/>
+        <line num="97" count="8" type="stmt"/>
+        <line num="98" count="2" type="cond" truecount="3" falsecount="3"/>
+        <line num="101" count="8" type="stmt"/>
+        <line num="102" count="2" type="cond" truecount="3" falsecount="1"/>
         <line num="103" count="0" type="stmt"/>
         <line num="104" count="0" type="stmt"/>
-        <line num="108" count="1" type="stmt"/>
-        <line num="114" count="1" type="stmt"/>
-        <line num="121" count="1" type="stmt"/>
-        <line num="122" count="1" type="stmt"/>
-        <line num="123" count="1" type="stmt"/>
-        <line num="124" count="1" type="stmt"/>
-        <line num="126" count="1" type="cond" truecount="1" falsecount="1"/>
-        <line num="127" count="0" type="stmt"/>
-        <line num="128" count="0" type="stmt"/>
-        <line num="129" count="0" type="stmt"/>
+        <line num="108" count="2" type="stmt"/>
+        <line num="114" count="2" type="stmt"/>
+        <line num="121" count="2" type="stmt"/>
+        <line num="122" count="2" type="stmt"/>
+        <line num="123" count="2" type="stmt"/>
+        <line num="124" count="2" type="stmt"/>
+        <line num="126" count="2" type="cond" truecount="2" falsecount="0"/>
+        <line num="127" count="1" type="stmt"/>
+        <line num="128" count="1" type="stmt"/>
+        <line num="129" count="1" type="stmt"/>
         <line num="132" count="1" type="stmt"/>
-        <line num="138" count="2" type="cond" truecount="2" falsecount="0"/>
-        <line num="140" count="2" type="stmt"/>
-        <line num="159" count="0" type="stmt"/>
+        <line num="138" count="8" type="cond" truecount="2" falsecount="0"/>
+        <line num="140" count="8" type="stmt"/>
+        <line num="159" count="1" type="stmt"/>
         <line num="197" count="0" type="stmt"/>
         <line num="201" count="0" type="stmt"/>
         <line num="204" count="0" type="stmt"/>
         <line num="235" count="0" type="stmt"/>
         <line num="239" count="0" type="stmt"/>
         <line num="242" count="0" type="stmt"/>
-        <line num="272" count="0" type="stmt"/>
-        <line num="284" count="0" type="stmt"/>
-        <line num="285" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="286" count="0" type="stmt"/>
-        <line num="291" count="0" type="stmt"/>
-        <line num="294" count="0" type="stmt"/>
-        <line num="295" count="0" type="stmt"/>
+        <line num="272" count="1" type="stmt"/>
+        <line num="284" count="1" type="stmt"/>
+        <line num="285" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="286" count="1" type="stmt"/>
+        <line num="291" count="1" type="stmt"/>
+        <line num="294" count="1" type="stmt"/>
+        <line num="295" count="1" type="stmt"/>
       </file>
       <file name="DebateScreen.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/screens/DebateScreen.tsx">
-        <metrics statements="199" coveredstatements="97" conditionals="193" coveredconditionals="73" methods="53" coveredmethods="28"/>
+        <metrics statements="199" coveredstatements="135" conditionals="193" coveredconditionals="115" methods="53" coveredmethods="39"/>
         <line num="72" count="1" type="stmt"/>
-        <line num="73" count="8" type="stmt"/>
-        <line num="74" count="8" type="stmt"/>
-        <line num="75" count="8" type="stmt"/>
-        <line num="76" count="8" type="stmt"/>
-        <line num="77" count="8" type="stmt"/>
-        <line num="78" count="8" type="stmt"/>
-        <line num="79" count="12" type="cond" truecount="1" falsecount="1"/>
-        <line num="80" count="8" type="stmt"/>
-        <line num="81" count="8" type="stmt"/>
-        <line num="82" count="8" type="stmt"/>
-        <line num="83" count="8" type="stmt"/>
-        <line num="87" count="8" type="stmt"/>
-        <line num="88" count="8" type="stmt"/>
-        <line num="89" count="8" type="stmt"/>
-        <line num="90" count="8" type="stmt"/>
-        <line num="91" count="8" type="stmt"/>
-        <line num="92" count="8" type="stmt"/>
-        <line num="94" count="8" type="stmt"/>
-        <line num="95" count="4" type="cond" truecount="1" falsecount="1"/>
+        <line num="73" count="21" type="stmt"/>
+        <line num="74" count="21" type="stmt"/>
+        <line num="75" count="21" type="stmt"/>
+        <line num="76" count="21" type="stmt"/>
+        <line num="77" count="21" type="stmt"/>
+        <line num="78" count="21" type="stmt"/>
+        <line num="79" count="32" type="cond" truecount="1" falsecount="1"/>
+        <line num="80" count="21" type="stmt"/>
+        <line num="81" count="21" type="stmt"/>
+        <line num="82" count="21" type="stmt"/>
+        <line num="83" count="21" type="stmt"/>
+        <line num="87" count="21" type="stmt"/>
+        <line num="88" count="21" type="stmt"/>
+        <line num="89" count="21" type="stmt"/>
+        <line num="90" count="21" type="stmt"/>
+        <line num="91" count="21" type="stmt"/>
+        <line num="92" count="21" type="stmt"/>
+        <line num="94" count="21" type="stmt"/>
+        <line num="95" count="10" type="cond" truecount="1" falsecount="1"/>
         <line num="96" count="0" type="stmt"/>
-        <line num="100" count="8" type="stmt"/>
-        <line num="101" count="4" type="stmt"/>
-        <line num="102" count="4" type="cond" truecount="2" falsecount="2"/>
+        <line num="100" count="21" type="stmt"/>
+        <line num="101" count="10" type="stmt"/>
+        <line num="102" count="10" type="cond" truecount="2" falsecount="2"/>
         <line num="103" count="0" type="stmt"/>
         <line num="104" count="0" type="cond" truecount="0" falsecount="4"/>
         <line num="105" count="0" type="stmt"/>
-        <line num="109" count="4" type="stmt"/>
-        <line num="110" count="4" type="stmt"/>
-        <line num="114" count="8" type="stmt"/>
-        <line num="115" count="4" type="cond" truecount="1" falsecount="1"/>
-        <line num="116" count="4" type="stmt"/>
-        <line num="120" count="8" type="stmt"/>
-        <line num="121" count="4" type="cond" truecount="4" falsecount="0"/>
-        <line num="122" count="3" type="stmt"/>
-        <line num="127" count="8" type="stmt"/>
-        <line num="128" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="129" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="109" count="10" type="stmt"/>
+        <line num="110" count="10" type="stmt"/>
+        <line num="114" count="21" type="stmt"/>
+        <line num="115" count="10" type="cond" truecount="2" falsecount="0"/>
+        <line num="116" count="8" type="stmt"/>
+        <line num="120" count="21" type="stmt"/>
+        <line num="121" count="10" type="cond" truecount="4" falsecount="0"/>
+        <line num="122" count="7" type="stmt"/>
+        <line num="127" count="21" type="stmt"/>
+        <line num="128" count="2" type="cond" truecount="1" falsecount="1"/>
+        <line num="129" count="2" type="cond" truecount="1" falsecount="1"/>
         <line num="130" count="0" type="stmt"/>
         <line num="131" count="0" type="stmt"/>
-        <line num="134" count="0" type="stmt"/>
-        <line num="137" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="134" count="2" type="stmt"/>
+        <line num="137" count="2" type="cond" truecount="2" falsecount="0"/>
         <line num="138" count="0" type="cond" truecount="0" falsecount="2"/>
         <line num="139" count="0" type="stmt"/>
-        <line num="141" count="0" type="stmt"/>
-        <line num="142" count="0" type="cond" truecount="0" falsecount="4"/>
-        <line num="143" count="0" type="stmt"/>
-        <line num="145" count="0" type="stmt"/>
-        <line num="148" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="149" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="150" count="0" type="stmt"/>
+        <line num="141" count="2" type="stmt"/>
+        <line num="142" count="4" type="cond" truecount="3" falsecount="1"/>
+        <line num="143" count="4" type="stmt"/>
+        <line num="145" count="2" type="stmt"/>
+        <line num="148" count="2" type="cond" truecount="2" falsecount="0"/>
+        <line num="149" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="150" count="1" type="stmt"/>
         <line num="152" count="0" type="cond" truecount="0" falsecount="2"/>
         <line num="153" count="0" type="cond" truecount="0" falsecount="4"/>
         <line num="154" count="0" type="stmt"/>
         <line num="155" count="0" type="stmt"/>
         <line num="156" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="161" count="0" type="stmt"/>
-        <line num="169" count="0" type="stmt"/>
-        <line num="174" count="0" type="stmt"/>
-        <line num="177" count="0" type="stmt"/>
+        <line num="161" count="2" type="stmt"/>
+        <line num="169" count="2" type="stmt"/>
+        <line num="174" count="2" type="stmt"/>
+        <line num="177" count="1" type="stmt"/>
         <line num="180" count="0" type="cond" truecount="0" falsecount="2"/>
         <line num="181" count="0" type="stmt"/>
-        <line num="198" count="8" type="cond" truecount="4" falsecount="0"/>
-        <line num="199" count="8" type="stmt"/>
-        <line num="200" count="8" type="stmt"/>
-        <line num="201" count="4" type="cond" truecount="2" falsecount="2"/>
-        <line num="202" count="0" type="stmt"/>
-        <line num="203" count="0" type="stmt"/>
-        <line num="207" count="8" type="stmt"/>
-        <line num="208" count="4" type="stmt"/>
-        <line num="211" count="8" type="stmt"/>
-        <line num="212" count="8" type="stmt"/>
-        <line num="213" count="4" type="cond" truecount="2" falsecount="0"/>
-        <line num="214" count="4" type="cond" truecount="2" falsecount="2"/>
-        <line num="218" count="8" type="stmt"/>
-        <line num="219" count="4" type="stmt"/>
-        <line num="220" count="4" type="cond" truecount="2" falsecount="0"/>
-        <line num="221" count="1" type="stmt"/>
-        <line num="222" count="1" type="stmt"/>
-        <line num="224" count="4" type="stmt"/>
-        <line num="228" count="8" type="stmt"/>
-        <line num="229" count="0" type="stmt"/>
-        <line num="230" count="0" type="stmt"/>
-        <line num="234" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="235" count="0" type="stmt"/>
-        <line num="240" count="8" type="stmt"/>
+        <line num="198" count="21" type="cond" truecount="4" falsecount="0"/>
+        <line num="199" count="21" type="stmt"/>
+        <line num="200" count="21" type="stmt"/>
+        <line num="201" count="10" type="cond" truecount="4" falsecount="0"/>
+        <line num="202" count="1" type="stmt"/>
+        <line num="203" count="1" type="stmt"/>
+        <line num="207" count="21" type="stmt"/>
+        <line num="208" count="10" type="stmt"/>
+        <line num="211" count="21" type="stmt"/>
+        <line num="212" count="21" type="stmt"/>
+        <line num="213" count="10" type="cond" truecount="2" falsecount="0"/>
+        <line num="214" count="10" type="cond" truecount="2" falsecount="2"/>
+        <line num="218" count="21" type="stmt"/>
+        <line num="219" count="10" type="stmt"/>
+        <line num="220" count="10" type="cond" truecount="2" falsecount="0"/>
+        <line num="221" count="3" type="stmt"/>
+        <line num="222" count="3" type="stmt"/>
+        <line num="224" count="10" type="stmt"/>
+        <line num="228" count="21" type="stmt"/>
+        <line num="229" count="2" type="stmt"/>
+        <line num="230" count="2" type="stmt"/>
+        <line num="234" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="235" count="1" type="stmt"/>
+        <line num="240" count="21" type="stmt"/>
         <line num="242" count="1" type="stmt"/>
         <line num="243" count="1" type="stmt"/>
-        <line num="246" count="8" type="stmt"/>
+        <line num="246" count="21" type="stmt"/>
         <line num="248" count="1" type="stmt"/>
         <line num="249" count="1" type="stmt"/>
-        <line num="263" count="0" type="stmt"/>
-        <line num="271" count="8" type="stmt"/>
-        <line num="272" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="273" count="0" type="stmt"/>
-        <line num="274" count="0" type="stmt"/>
-        <line num="276" count="0" type="stmt"/>
-        <line num="280" count="8" type="stmt"/>
-        <line num="281" count="38" type="stmt"/>
-        <line num="282" count="38" type="cond" truecount="1" falsecount="1"/>
+        <line num="263" count="1" type="stmt"/>
+        <line num="271" count="21" type="stmt"/>
+        <line num="272" count="2" type="cond" truecount="2" falsecount="0"/>
+        <line num="273" count="1" type="stmt"/>
+        <line num="274" count="1" type="stmt"/>
+        <line num="276" count="1" type="stmt"/>
+        <line num="280" count="21" type="stmt"/>
+        <line num="281" count="107" type="stmt"/>
+        <line num="282" count="107" type="cond" truecount="1" falsecount="1"/>
         <line num="283" count="0" type="stmt"/>
         <line num="284" count="0" type="cond" truecount="0" falsecount="4"/>
         <line num="285" count="0" type="stmt"/>
-        <line num="289" count="8" type="cond" truecount="3" falsecount="0"/>
-        <line num="292" count="8" type="cond" truecount="2" falsecount="2"/>
-        <line num="295" count="8" type="cond" truecount="2" falsecount="0"/>
-        <line num="296" count="8" type="cond" truecount="2" falsecount="1"/>
-        <line num="297" count="8" type="cond" truecount="3" falsecount="0"/>
-        <line num="300" count="8" type="cond" truecount="4" falsecount="0"/>
-        <line num="301" count="8" type="cond" truecount="1" falsecount="1"/>
-        <line num="302" count="8" type="cond" truecount="1" falsecount="1"/>
-        <line num="303" count="8" type="stmt"/>
-        <line num="304" count="8" type="stmt"/>
-        <line num="305" count="8" type="stmt"/>
-        <line num="306" count="8" type="cond" truecount="1" falsecount="1"/>
-        <line num="307" count="8" type="stmt"/>
-        <line num="308" count="8" type="stmt"/>
-        <line num="313" count="8" type="stmt"/>
-        <line num="314" count="8" type="stmt"/>
-        <line num="316" count="8" type="cond" truecount="2" falsecount="0"/>
+        <line num="289" count="21" type="cond" truecount="3" falsecount="0"/>
+        <line num="292" count="21" type="cond" truecount="4" falsecount="0"/>
+        <line num="295" count="21" type="cond" truecount="2" falsecount="0"/>
+        <line num="296" count="21" type="cond" truecount="3" falsecount="0"/>
+        <line num="297" count="21" type="cond" truecount="3" falsecount="0"/>
+        <line num="300" count="21" type="cond" truecount="4" falsecount="0"/>
+        <line num="301" count="21" type="cond" truecount="1" falsecount="1"/>
+        <line num="302" count="21" type="cond" truecount="1" falsecount="1"/>
+        <line num="303" count="21" type="stmt"/>
+        <line num="304" count="21" type="stmt"/>
+        <line num="305" count="21" type="stmt"/>
+        <line num="306" count="21" type="cond" truecount="1" falsecount="1"/>
+        <line num="307" count="21" type="stmt"/>
+        <line num="308" count="21" type="stmt"/>
+        <line num="313" count="21" type="stmt"/>
+        <line num="314" count="21" type="stmt"/>
+        <line num="316" count="21" type="cond" truecount="2" falsecount="0"/>
         <line num="317" count="2" type="stmt"/>
-        <line num="335" count="6" type="cond" truecount="2" falsecount="0"/>
-        <line num="336" count="4" type="stmt"/>
-        <line num="344" count="0" type="stmt"/>
-        <line num="349" count="0" type="stmt"/>
-        <line num="351" count="0" type="stmt"/>
-        <line num="352" count="0" type="stmt"/>
-        <line num="353" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="354" count="0" type="stmt"/>
-        <line num="356" count="0" type="stmt"/>
-        <line num="370" count="2" type="cond" truecount="1" falsecount="1"/>
-        <line num="372" count="2" type="cond" truecount="1" falsecount="1"/>
-        <line num="373" count="2" type="cond" truecount="1" falsecount="1"/>
-        <line num="375" count="2" type="cond" truecount="1" falsecount="1"/>
-        <line num="377" count="2" type="stmt"/>
-        <line num="398" count="0" type="cond" truecount="0" falsecount="4"/>
-        <line num="399" count="0" type="stmt"/>
+        <line num="335" count="19" type="cond" truecount="2" falsecount="0"/>
+        <line num="336" count="8" type="stmt"/>
+        <line num="344" count="1" type="stmt"/>
+        <line num="349" count="1" type="stmt"/>
+        <line num="351" count="1" type="stmt"/>
+        <line num="352" count="1" type="stmt"/>
+        <line num="353" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="354" count="1" type="stmt"/>
+        <line num="356" count="1" type="stmt"/>
+        <line num="370" count="11" type="cond" truecount="2" falsecount="0"/>
+        <line num="372" count="5" type="cond" truecount="1" falsecount="1"/>
+        <line num="373" count="3" type="cond" truecount="1" falsecount="1"/>
+        <line num="375" count="5" type="cond" truecount="1" falsecount="1"/>
+        <line num="377" count="5" type="stmt"/>
+        <line num="398" count="6" type="cond" truecount="4" falsecount="0"/>
+        <line num="399" count="4" type="stmt"/>
         <line num="415" count="0" type="stmt"/>
-        <line num="418" count="0" type="stmt"/>
+        <line num="418" count="8" type="stmt"/>
         <line num="434" count="0" type="stmt"/>
-        <line num="437" count="0" type="stmt"/>
-        <line num="446" count="0" type="stmt"/>
-        <line num="450" count="8" type="stmt"/>
-        <line num="451" count="4" type="cond" truecount="1" falsecount="1"/>
+        <line num="437" count="4" type="stmt"/>
+        <line num="446" count="2" type="stmt"/>
+        <line num="450" count="21" type="stmt"/>
+        <line num="451" count="10" type="cond" truecount="1" falsecount="1"/>
         <line num="452" count="0" type="stmt"/>
-        <line num="456" count="8" type="stmt"/>
-        <line num="457" count="4" type="cond" truecount="1" falsecount="1"/>
+        <line num="456" count="21" type="stmt"/>
+        <line num="457" count="10" type="cond" truecount="1" falsecount="1"/>
         <line num="458" count="0" type="stmt"/>
-        <line num="462" count="8" type="stmt"/>
-        <line num="463" count="4" type="cond" truecount="1" falsecount="1"/>
+        <line num="462" count="21" type="stmt"/>
+        <line num="463" count="10" type="cond" truecount="1" falsecount="1"/>
         <line num="464" count="0" type="stmt"/>
-        <line num="468" count="8" type="stmt"/>
-        <line num="474" count="8" type="stmt"/>
+        <line num="468" count="21" type="stmt"/>
+        <line num="474" count="21" type="stmt"/>
         <line num="488" count="0" type="cond" truecount="0" falsecount="2"/>
         <line num="489" count="0" type="stmt"/>
         <line num="490" count="0" type="stmt"/>
@@ -7078,238 +7078,238 @@
         <line num="568" count="0" type="stmt"/>
         <line num="569" count="0" type="stmt"/>
         <line num="579" count="0" type="stmt"/>
-        <line num="581" count="16" type="stmt"/>
-        <line num="584" count="2" type="stmt"/>
-        <line num="585" count="2" type="cond" truecount="1" falsecount="1"/>
-        <line num="587" count="2" type="stmt"/>
-        <line num="588" count="2" type="cond" truecount="1" falsecount="1"/>
+        <line num="581" count="42" type="stmt"/>
+        <line num="584" count="7" type="stmt"/>
+        <line num="585" count="5" type="cond" truecount="1" falsecount="1"/>
+        <line num="587" count="7" type="stmt"/>
+        <line num="588" count="7" type="cond" truecount="1" falsecount="1"/>
       </file>
       <file name="DebateSetupScreen.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/screens/DebateSetupScreen.tsx">
-        <metrics statements="191" coveredstatements="65" conditionals="177" coveredconditionals="50" methods="62" coveredmethods="18"/>
+        <metrics statements="191" coveredstatements="154" conditionals="177" coveredconditionals="122" methods="62" coveredmethods="46"/>
         <line num="52" count="1" type="stmt"/>
-        <line num="53" count="1" type="stmt"/>
-        <line num="54" count="1" type="stmt"/>
-        <line num="55" count="1" type="stmt"/>
-        <line num="56" count="1" type="cond" truecount="1" falsecount="1"/>
-        <line num="57" count="1" type="cond" truecount="1" falsecount="1"/>
-        <line num="58" count="1" type="stmt"/>
-        <line num="59" count="1" type="stmt"/>
-        <line num="60" count="1" type="stmt"/>
-        <line num="61" count="1" type="stmt"/>
-        <line num="62" count="1" type="stmt"/>
-        <line num="63" count="1" type="stmt"/>
-        <line num="64" count="1" type="cond" truecount="1" falsecount="1"/>
-        <line num="67" count="1" type="stmt"/>
-        <line num="70" count="1" type="stmt"/>
-        <line num="71" count="1" type="stmt"/>
-        <line num="72" count="1" type="stmt"/>
-        <line num="73" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="53" count="29" type="stmt"/>
+        <line num="54" count="29" type="stmt"/>
+        <line num="55" count="29" type="stmt"/>
+        <line num="56" count="29" type="cond" truecount="1" falsecount="1"/>
+        <line num="57" count="29" type="cond" truecount="1" falsecount="1"/>
+        <line num="58" count="29" type="stmt"/>
+        <line num="59" count="29" type="stmt"/>
+        <line num="60" count="29" type="stmt"/>
+        <line num="61" count="29" type="stmt"/>
+        <line num="62" count="29" type="stmt"/>
+        <line num="63" count="29" type="stmt"/>
+        <line num="64" count="29" type="cond" truecount="1" falsecount="1"/>
+        <line num="67" count="29" type="stmt"/>
+        <line num="70" count="29" type="stmt"/>
+        <line num="71" count="7" type="stmt"/>
+        <line num="72" count="7" type="stmt"/>
+        <line num="73" count="7" type="cond" truecount="2" falsecount="0"/>
         <line num="74" count="9" type="cond" truecount="2" falsecount="0"/>
-        <line num="75" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="77" count="1" type="stmt"/>
-        <line num="78" count="3" type="stmt"/>
-        <line num="79" count="3" type="cond" truecount="1" falsecount="1"/>
-        <line num="81" count="0" type="cond" truecount="0" falsecount="3"/>
-        <line num="82" count="3" type="stmt"/>
-        <line num="83" count="3" type="cond" truecount="2" falsecount="3"/>
-        <line num="84" count="3" type="stmt"/>
-        <line num="98" count="1" type="stmt"/>
-        <line num="99" count="1" type="stmt"/>
-        <line num="100" count="2" type="cond" truecount="1" falsecount="1"/>
-        <line num="105" count="1" type="cond" truecount="3" falsecount="0"/>
-        <line num="106" count="1" type="stmt"/>
-        <line num="109" count="1" type="cond" truecount="1" falsecount="1"/>
-        <line num="110" count="1" type="cond" truecount="1" falsecount="1"/>
-        <line num="112" count="1" type="stmt"/>
-        <line num="113" count="1" type="stmt"/>
-        <line num="115" count="1" type="stmt"/>
-        <line num="116" count="1" type="stmt"/>
-        <line num="118" count="1" type="stmt"/>
-        <line num="119" count="1" type="stmt"/>
-        <line num="125" count="1" type="stmt"/>
-        <line num="126" count="1" type="stmt"/>
-        <line num="127" count="1" type="stmt"/>
-        <line num="128" count="1" type="stmt"/>
-        <line num="134" count="1" type="stmt"/>
-        <line num="137" count="1" type="stmt"/>
-        <line num="138" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="75" count="54" type="cond" truecount="2" falsecount="0"/>
+        <line num="77" count="7" type="stmt"/>
+        <line num="78" count="21" type="stmt"/>
+        <line num="79" count="21" type="cond" truecount="2" falsecount="0"/>
+        <line num="81" count="36" type="cond" truecount="1" falsecount="2"/>
+        <line num="82" count="21" type="stmt"/>
+        <line num="83" count="21" type="cond" truecount="3" falsecount="2"/>
+        <line num="84" count="21" type="stmt"/>
+        <line num="98" count="29" type="stmt"/>
+        <line num="99" count="29" type="stmt"/>
+        <line num="100" count="6" type="cond" truecount="2" falsecount="0"/>
+        <line num="105" count="29" type="cond" truecount="3" falsecount="0"/>
+        <line num="106" count="29" type="stmt"/>
+        <line num="109" count="29" type="cond" truecount="1" falsecount="1"/>
+        <line num="110" count="29" type="cond" truecount="1" falsecount="1"/>
+        <line num="112" count="29" type="stmt"/>
+        <line num="113" count="29" type="stmt"/>
+        <line num="115" count="29" type="stmt"/>
+        <line num="116" count="29" type="stmt"/>
+        <line num="118" count="29" type="stmt"/>
+        <line num="119" count="29" type="stmt"/>
+        <line num="125" count="29" type="stmt"/>
+        <line num="126" count="29" type="stmt"/>
+        <line num="127" count="29" type="stmt"/>
+        <line num="128" count="29" type="stmt"/>
+        <line num="134" count="29" type="stmt"/>
+        <line num="137" count="29" type="stmt"/>
+        <line num="138" count="29" type="cond" truecount="1" falsecount="1"/>
         <line num="139" count="0" type="stmt"/>
-        <line num="144" count="1" type="stmt"/>
-        <line num="145" count="1" type="stmt"/>
-        <line num="146" count="1" type="cond" truecount="1" falsecount="1"/>
-        <line num="147" count="1" type="cond" truecount="1" falsecount="1"/>
-        <line num="148" count="1" type="cond" truecount="1" falsecount="1"/>
-        <line num="149" count="0" type="stmt"/>
-        <line num="155" count="1" type="stmt"/>
-        <line num="156" count="0" type="stmt"/>
-        <line num="159" count="1" type="stmt"/>
-        <line num="160" count="0" type="stmt"/>
-        <line num="161" count="0" type="stmt"/>
-        <line num="162" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="144" count="29" type="stmt"/>
+        <line num="145" count="13" type="stmt"/>
+        <line num="146" count="13" type="cond" truecount="2" falsecount="0"/>
+        <line num="147" count="13" type="cond" truecount="1" falsecount="1"/>
+        <line num="148" count="13" type="cond" truecount="2" falsecount="0"/>
+        <line num="149" count="7" type="stmt"/>
+        <line num="155" count="29" type="stmt"/>
+        <line num="156" count="3" type="stmt"/>
+        <line num="159" count="29" type="stmt"/>
+        <line num="160" count="6" type="stmt"/>
+        <line num="161" count="6" type="stmt"/>
+        <line num="162" count="6" type="cond" truecount="1" falsecount="1"/>
         <line num="163" count="0" type="stmt"/>
-        <line num="164" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="165" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="164" count="6" type="cond" truecount="1" falsecount="1"/>
+        <line num="165" count="6" type="cond" truecount="1" falsecount="1"/>
         <line num="167" count="0" type="stmt"/>
-        <line num="171" count="1" type="stmt"/>
-        <line num="172" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="175" count="1" type="stmt"/>
-        <line num="176" count="0" type="stmt"/>
-        <line num="177" count="0" type="stmt"/>
-        <line num="183" count="1" type="stmt"/>
-        <line num="184" count="0" type="stmt"/>
-        <line num="185" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="187" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="188" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="189" count="0" type="stmt"/>
-        <line num="192" count="1" type="stmt"/>
-        <line num="193" count="0" type="stmt"/>
-        <line num="194" count="0" type="stmt"/>
-        <line num="206" count="1" type="stmt"/>
-        <line num="212" count="1" type="stmt"/>
-        <line num="213" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="171" count="29" type="stmt"/>
+        <line num="172" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="175" count="29" type="stmt"/>
+        <line num="176" count="1" type="stmt"/>
+        <line num="177" count="1" type="stmt"/>
+        <line num="183" count="29" type="stmt"/>
+        <line num="184" count="2" type="stmt"/>
+        <line num="185" count="4" type="cond" truecount="1" falsecount="1"/>
+        <line num="187" count="2" type="cond" truecount="1" falsecount="1"/>
+        <line num="188" count="2" type="cond" truecount="1" falsecount="1"/>
+        <line num="189" count="2" type="stmt"/>
+        <line num="192" count="29" type="stmt"/>
+        <line num="193" count="3" type="stmt"/>
+        <line num="194" count="3" type="stmt"/>
+        <line num="206" count="29" type="stmt"/>
+        <line num="212" count="29" type="stmt"/>
+        <line num="213" count="2" type="cond" truecount="1" falsecount="1"/>
         <line num="214" count="0" type="stmt"/>
         <line num="215" count="0" type="stmt"/>
-        <line num="218" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="219" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="218" count="2" type="cond" truecount="1" falsecount="1"/>
+        <line num="219" count="2" type="cond" truecount="1" falsecount="1"/>
         <line num="220" count="0" type="stmt"/>
         <line num="221" count="0" type="stmt"/>
-        <line num="225" count="0" type="stmt"/>
-        <line num="227" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="228" count="0" type="stmt"/>
-        <line num="229" count="0" type="stmt"/>
-        <line num="230" count="0" type="stmt"/>
-        <line num="236" count="0" type="stmt"/>
-        <line num="237" count="0" type="stmt"/>
-        <line num="240" count="0" type="stmt"/>
-        <line num="245" count="1" type="stmt"/>
-        <line num="247" count="0" type="stmt"/>
-        <line num="249" count="0" type="stmt"/>
+        <line num="225" count="2" type="stmt"/>
+        <line num="227" count="2" type="cond" truecount="2" falsecount="0"/>
+        <line num="228" count="2" type="stmt"/>
+        <line num="229" count="1" type="stmt"/>
+        <line num="230" count="1" type="stmt"/>
+        <line num="236" count="1" type="stmt"/>
+        <line num="237" count="1" type="stmt"/>
+        <line num="240" count="1" type="stmt"/>
+        <line num="245" count="29" type="stmt"/>
+        <line num="247" count="1" type="stmt"/>
+        <line num="249" count="1" type="stmt"/>
         <line num="250" count="0" type="stmt"/>
-        <line num="254" count="1" type="stmt"/>
-        <line num="255" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="256" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="257" count="0" type="stmt"/>
-        <line num="258" count="0" type="stmt"/>
-        <line num="260" count="0" type="stmt"/>
-        <line num="263" count="1" type="stmt"/>
-        <line num="264" count="0" type="stmt"/>
-        <line num="265" count="0" type="stmt"/>
-        <line num="266" count="0" type="stmt"/>
-        <line num="267" count="0" type="stmt"/>
-        <line num="268" count="0" type="stmt"/>
+        <line num="254" count="29" type="stmt"/>
+        <line num="255" count="7" type="cond" truecount="1" falsecount="1"/>
+        <line num="256" count="7" type="cond" truecount="2" falsecount="0"/>
+        <line num="257" count="1" type="stmt"/>
+        <line num="258" count="1" type="stmt"/>
+        <line num="260" count="6" type="stmt"/>
+        <line num="263" count="29" type="stmt"/>
+        <line num="264" count="1" type="stmt"/>
+        <line num="265" count="1" type="stmt"/>
+        <line num="266" count="2" type="stmt"/>
+        <line num="267" count="1" type="stmt"/>
+        <line num="268" count="1" type="stmt"/>
         <line num="270" count="0" type="stmt"/>
-        <line num="272" count="0" type="stmt"/>
-        <line num="273" count="0" type="stmt"/>
-        <line num="277" count="1" type="stmt"/>
-        <line num="278" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="279" count="0" type="stmt"/>
-        <line num="280" count="0" type="stmt"/>
-        <line num="282" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="283" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="284" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="272" count="1" type="stmt"/>
+        <line num="273" count="1" type="stmt"/>
+        <line num="277" count="29" type="stmt"/>
+        <line num="278" count="4" type="cond" truecount="2" falsecount="0"/>
+        <line num="279" count="1" type="stmt"/>
+        <line num="280" count="1" type="stmt"/>
+        <line num="282" count="3" type="cond" truecount="2" falsecount="0"/>
+        <line num="283" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="284" count="1" type="cond" truecount="1" falsecount="1"/>
         <line num="285" count="0" type="stmt"/>
         <line num="286" count="0" type="stmt"/>
-        <line num="288" count="0" type="stmt"/>
-        <line num="289" count="0" type="stmt"/>
-        <line num="290" count="0" type="stmt"/>
-        <line num="291" count="0" type="stmt"/>
-        <line num="292" count="0" type="stmt"/>
-        <line num="295" count="0" type="stmt"/>
-        <line num="298" count="1" type="stmt"/>
+        <line num="288" count="1" type="stmt"/>
+        <line num="289" count="1" type="stmt"/>
+        <line num="290" count="1" type="stmt"/>
+        <line num="291" count="1" type="stmt"/>
+        <line num="292" count="1" type="stmt"/>
+        <line num="295" count="2" type="stmt"/>
+        <line num="298" count="29" type="stmt"/>
         <line num="312" count="0" type="stmt"/>
-        <line num="320" count="1" type="stmt"/>
+        <line num="320" count="0" type="stmt"/>
         <line num="364" count="0" type="stmt"/>
         <line num="365" count="0" type="stmt"/>
         <line num="366" count="0" type="stmt"/>
         <line num="393" count="0" type="stmt"/>
-        <line num="411" count="3" type="stmt"/>
+        <line num="411" count="39" type="stmt"/>
         <line num="414" count="0" type="stmt"/>
         <line num="458" count="0" type="stmt"/>
         <line num="460" count="0" type="stmt"/>
         <line num="467" count="0" type="stmt"/>
-        <line num="485" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="491" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="493" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="494" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="495" count="0" type="cond" truecount="0" falsecount="4"/>
-        <line num="496" count="0" type="stmt"/>
-        <line num="504" count="0" type="stmt"/>
-        <line num="505" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="506" count="0" type="stmt"/>
-        <line num="507" count="0" type="cond" truecount="0" falsecount="4"/>
-        <line num="508" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="513" count="0" type="stmt"/>
-        <line num="532" count="0" type="stmt"/>
+        <line num="485" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="491" count="7" type="cond" truecount="1" falsecount="1"/>
+        <line num="493" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="494" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="495" count="1" type="cond" truecount="2" falsecount="2"/>
+        <line num="496" count="1" type="stmt"/>
+        <line num="504" count="14" type="stmt"/>
+        <line num="505" count="14" type="cond" truecount="2" falsecount="0"/>
+        <line num="506" count="14" type="stmt"/>
+        <line num="507" count="14" type="cond" truecount="3" falsecount="1"/>
+        <line num="508" count="14" type="cond" truecount="1" falsecount="1"/>
+        <line num="513" count="14" type="stmt"/>
+        <line num="532" count="1" type="stmt"/>
         <line num="554" count="0" type="stmt"/>
         <line num="556" count="0" type="stmt"/>
         <line num="568" count="0" type="stmt"/>
         <line num="569" count="0" type="stmt"/>
-        <line num="572" count="0" type="stmt"/>
-        <line num="573" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="574" count="0" type="stmt"/>
-        <line num="575" count="0" type="stmt"/>
-        <line num="576" count="0" type="stmt"/>
-        <line num="577" count="0" type="stmt"/>
-        <line num="578" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="579" count="0" type="stmt"/>
-        <line num="580" count="0" type="stmt"/>
+        <line num="572" count="1" type="stmt"/>
+        <line num="573" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="574" count="1" type="stmt"/>
+        <line num="575" count="1" type="stmt"/>
+        <line num="576" count="1" type="stmt"/>
+        <line num="577" count="2" type="stmt"/>
+        <line num="578" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="579" count="1" type="stmt"/>
+        <line num="580" count="1" type="stmt"/>
         <line num="582" count="0" type="stmt"/>
         <line num="583" count="0" type="stmt"/>
         <line num="586" count="0" type="cond" truecount="0" falsecount="2"/>
         <line num="587" count="0" type="stmt"/>
-        <line num="589" count="0" type="stmt"/>
+        <line num="589" count="1" type="stmt"/>
         <line num="601" count="0" type="stmt"/>
         <line num="602" count="0" type="stmt"/>
-        <line num="605" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="605" count="1" type="cond" truecount="1" falsecount="1"/>
         <line num="606" count="0" type="stmt"/>
         <line num="607" count="0" type="stmt"/>
-        <line num="609" count="0" type="stmt"/>
-        <line num="610" count="0" type="stmt"/>
-        <line num="611" count="0" type="stmt"/>
-        <line num="612" count="0" type="cond" truecount="0" falsecount="2"/>
+        <line num="609" count="1" type="stmt"/>
+        <line num="610" count="1" type="stmt"/>
+        <line num="611" count="1" type="stmt"/>
+        <line num="612" count="1" type="cond" truecount="1" falsecount="1"/>
         <line num="613" count="0" type="stmt"/>
         <line num="614" count="0" type="stmt"/>
-        <line num="616" count="0" type="stmt"/>
-        <line num="617" count="0" type="stmt"/>
-        <line num="618" count="0" type="stmt"/>
+        <line num="616" count="1" type="stmt"/>
+        <line num="617" count="1" type="stmt"/>
+        <line num="618" count="1" type="stmt"/>
         <line num="620" count="0" type="cond" truecount="0" falsecount="2"/>
         <line num="621" count="0" type="stmt"/>
-        <line num="623" count="0" type="stmt"/>
-        <line num="624" count="0" type="stmt"/>
-        <line num="625" count="0" type="stmt"/>
+        <line num="623" count="1" type="stmt"/>
+        <line num="624" count="1" type="stmt"/>
+        <line num="625" count="1" type="stmt"/>
       </file>
       <file name="DebateTranscriptScreen.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/screens/DebateTranscriptScreen.tsx">
-        <metrics statements="30" coveredstatements="23" conditionals="24" coveredconditionals="14" methods="8" coveredmethods="6"/>
+        <metrics statements="30" coveredstatements="28" conditionals="24" coveredconditionals="19" methods="8" coveredmethods="7"/>
         <line num="18" count="1" type="stmt"/>
-        <line num="19" count="1" type="stmt"/>
-        <line num="20" count="1" type="stmt"/>
-        <line num="23" count="1" type="cond" truecount="1" falsecount="1"/>
-        <line num="25" count="1" type="cond" truecount="1" falsecount="1"/>
-        <line num="27" count="0" type="stmt"/>
-        <line num="28" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="29" count="0" type="stmt"/>
-        <line num="30" count="0" type="cond" truecount="0" falsecount="2"/>
-        <line num="32" count="0" type="stmt"/>
-        <line num="37" count="1" type="stmt"/>
-        <line num="39" count="1" type="stmt"/>
-        <line num="40" count="1" type="cond" truecount="2" falsecount="0"/>
-        <line num="43" count="1" type="cond" truecount="1" falsecount="1"/>
-        <line num="44" count="1" type="stmt"/>
-        <line num="45" count="1" type="stmt"/>
-        <line num="47" count="1" type="cond" truecount="3" falsecount="1"/>
-        <line num="48" count="1" type="stmt"/>
-        <line num="49" count="1" type="stmt"/>
-        <line num="50" count="1" type="cond" truecount="1" falsecount="1"/>
-        <line num="51" count="1" type="stmt"/>
-        <line num="56" count="1" type="stmt"/>
-        <line num="57" count="2" type="cond" truecount="2" falsecount="0"/>
-        <line num="58" count="2" type="stmt"/>
-        <line num="66" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="19" count="3" type="stmt"/>
+        <line num="20" count="3" type="stmt"/>
+        <line num="23" count="3" type="cond" truecount="2" falsecount="0"/>
+        <line num="25" count="3" type="cond" truecount="2" falsecount="0"/>
+        <line num="27" count="1" type="stmt"/>
+        <line num="28" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="29" count="1" type="stmt"/>
+        <line num="30" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="32" count="1" type="stmt"/>
+        <line num="37" count="3" type="stmt"/>
+        <line num="39" count="3" type="stmt"/>
+        <line num="40" count="3" type="cond" truecount="2" falsecount="0"/>
+        <line num="43" count="3" type="cond" truecount="1" falsecount="1"/>
+        <line num="44" count="3" type="stmt"/>
+        <line num="45" count="3" type="stmt"/>
+        <line num="47" count="3" type="cond" truecount="4" falsecount="0"/>
+        <line num="48" count="2" type="stmt"/>
+        <line num="49" count="3" type="stmt"/>
+        <line num="50" count="2" type="cond" truecount="1" falsecount="1"/>
+        <line num="51" count="2" type="stmt"/>
+        <line num="56" count="3" type="stmt"/>
+        <line num="57" count="6" type="cond" truecount="2" falsecount="0"/>
+        <line num="58" count="6" type="stmt"/>
+        <line num="66" count="3" type="cond" truecount="1" falsecount="1"/>
         <line num="67" count="0" type="stmt"/>
         <line num="68" count="0" type="stmt"/>
-        <line num="75" count="1" type="stmt"/>
+        <line num="75" count="3" type="stmt"/>
         <line num="79" count="1" type="stmt"/>
-        <line num="81" count="2" type="stmt"/>
+        <line num="81" count="6" type="stmt"/>
       </file>
       <file name="ExpertModeScreen.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/screens/ExpertModeScreen.tsx">
         <metrics statements="23" coveredstatements="17" conditionals="30" coveredconditionals="17" methods="13" coveredmethods="8"/>
@@ -7338,106 +7338,106 @@
         <line num="158" count="0" type="stmt"/>
       </file>
       <file name="HistoryScreen.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/screens/HistoryScreen.tsx">
-        <metrics statements="62" coveredstatements="40" conditionals="48" coveredconditionals="29" methods="19" coveredmethods="10"/>
+        <metrics statements="62" coveredstatements="62" conditionals="48" coveredconditionals="47" methods="19" coveredmethods="19"/>
         <line num="34" count="1" type="stmt"/>
-        <line num="35" count="1" type="stmt"/>
-        <line num="36" count="1" type="stmt"/>
-        <line num="37" count="1" type="stmt"/>
-        <line num="38" count="1" type="stmt"/>
-        <line num="41" count="1" type="stmt"/>
-        <line num="42" count="1" type="stmt"/>
-        <line num="43" count="1" type="stmt"/>
-        <line num="44" count="1" type="stmt"/>
-        <line num="47" count="1" type="stmt"/>
-        <line num="48" count="1" type="cond" truecount="1" falsecount="1"/>
-        <line num="49" count="0" type="stmt"/>
-        <line num="51" count="0" type="stmt"/>
-        <line num="56" count="1" type="stmt"/>
-        <line num="57" count="1" type="stmt"/>
-        <line num="59" count="1" type="cond" truecount="1" falsecount="1"/>
-        <line num="60" count="1" type="cond" truecount="2" falsecount="0"/>
-        <line num="62" count="1" type="cond" truecount="2" falsecount="0"/>
-        <line num="63" count="1" type="stmt"/>
-        <line num="68" count="1" type="stmt"/>
-        <line num="69" count="1" type="stmt"/>
-        <line num="73" count="1" type="cond" truecount="3" falsecount="0"/>
-        <line num="80" count="1" type="stmt"/>
-        <line num="87" count="1" type="cond" truecount="1" falsecount="1"/>
-        <line num="90" count="1" type="stmt"/>
-        <line num="91" count="1" type="stmt"/>
-        <line num="95" count="1" type="stmt"/>
-        <line num="96" count="0" type="stmt"/>
-        <line num="105" count="0" type="stmt"/>
-        <line num="106" count="0" type="stmt"/>
-        <line num="107" count="0" type="stmt"/>
-        <line num="108" count="0" type="stmt"/>
-        <line num="110" count="0" type="stmt"/>
-        <line num="119" count="1" type="stmt"/>
-        <line num="122" count="1" type="stmt"/>
-        <line num="123" count="0" type="stmt"/>
-        <line num="125" count="1" type="stmt"/>
-        <line num="130" count="1" type="cond" truecount="1" falsecount="1"/>
-        <line num="131" count="0" type="stmt"/>
-        <line num="157" count="1" type="cond" truecount="1" falsecount="1"/>
-        <line num="158" count="0" type="stmt"/>
-        <line num="169" count="1" type="stmt"/>
-        <line num="170" count="1" type="cond" truecount="2" falsecount="2"/>
-        <line num="171" count="0" type="stmt"/>
-        <line num="173" count="1" type="stmt"/>
-        <line num="177" count="1" type="stmt"/>
-        <line num="178" count="0" type="cond" truecount="0" falsecount="5"/>
-        <line num="180" count="0" type="stmt"/>
-        <line num="181" count="0" type="stmt"/>
-        <line num="183" count="0" type="stmt"/>
-        <line num="184" count="0" type="stmt"/>
-        <line num="188" count="0" type="stmt"/>
-        <line num="189" count="0" type="stmt"/>
-        <line num="194" count="1" type="stmt"/>
-        <line num="195" count="0" type="stmt"/>
-        <line num="198" count="1" type="stmt"/>
-        <line num="221" count="0" type="stmt"/>
-        <line num="240" count="4" type="cond" truecount="2" falsecount="0"/>
-        <line num="241" count="4" type="stmt"/>
-        <line num="242" count="4" type="stmt"/>
-        <line num="244" count="4" type="stmt"/>
-        <line num="248" count="0" type="stmt"/>
+        <line num="35" count="25" type="stmt"/>
+        <line num="36" count="25" type="stmt"/>
+        <line num="37" count="25" type="stmt"/>
+        <line num="38" count="25" type="stmt"/>
+        <line num="41" count="25" type="stmt"/>
+        <line num="42" count="25" type="stmt"/>
+        <line num="43" count="25" type="stmt"/>
+        <line num="44" count="25" type="stmt"/>
+        <line num="47" count="25" type="stmt"/>
+        <line num="48" count="23" type="cond" truecount="2" falsecount="0"/>
+        <line num="49" count="7" type="stmt"/>
+        <line num="51" count="1" type="stmt"/>
+        <line num="56" count="25" type="stmt"/>
+        <line num="57" count="15" type="stmt"/>
+        <line num="59" count="131" type="cond" truecount="1" falsecount="1"/>
+        <line num="60" count="131" type="cond" truecount="2" falsecount="0"/>
+        <line num="62" count="131" type="cond" truecount="2" falsecount="0"/>
+        <line num="63" count="131" type="stmt"/>
+        <line num="68" count="25" type="stmt"/>
+        <line num="69" count="131" type="stmt"/>
+        <line num="73" count="25" type="cond" truecount="3" falsecount="0"/>
+        <line num="80" count="25" type="stmt"/>
+        <line num="87" count="25" type="cond" truecount="2" falsecount="0"/>
+        <line num="90" count="25" type="stmt"/>
+        <line num="91" count="25" type="stmt"/>
+        <line num="95" count="25" type="stmt"/>
+        <line num="96" count="2" type="stmt"/>
+        <line num="105" count="2" type="stmt"/>
+        <line num="106" count="2" type="stmt"/>
+        <line num="107" count="1" type="stmt"/>
+        <line num="108" count="1" type="stmt"/>
+        <line num="110" count="1" type="stmt"/>
+        <line num="119" count="25" type="stmt"/>
+        <line num="122" count="25" type="stmt"/>
+        <line num="123" count="1" type="stmt"/>
+        <line num="125" count="25" type="stmt"/>
+        <line num="130" count="25" type="cond" truecount="2" falsecount="0"/>
+        <line num="131" count="1" type="stmt"/>
+        <line num="157" count="24" type="cond" truecount="2" falsecount="0"/>
+        <line num="158" count="1" type="stmt"/>
+        <line num="169" count="23" type="stmt"/>
+        <line num="170" count="23" type="cond" truecount="4" falsecount="0"/>
+        <line num="171" count="4" type="stmt"/>
+        <line num="173" count="19" type="stmt"/>
+        <line num="177" count="23" type="stmt"/>
+        <line num="178" count="4" type="cond" truecount="5" falsecount="0"/>
+        <line num="180" count="1" type="stmt"/>
+        <line num="181" count="1" type="stmt"/>
+        <line num="183" count="1" type="stmt"/>
+        <line num="184" count="1" type="stmt"/>
+        <line num="188" count="2" type="stmt"/>
+        <line num="189" count="2" type="stmt"/>
+        <line num="194" count="23" type="stmt"/>
+        <line num="195" count="2" type="stmt"/>
+        <line num="198" count="23" type="stmt"/>
+        <line num="221" count="1" type="stmt"/>
+        <line num="240" count="92" type="cond" truecount="2" falsecount="0"/>
+        <line num="241" count="92" type="stmt"/>
+        <line num="242" count="92" type="stmt"/>
+        <line num="244" count="92" type="stmt"/>
+        <line num="248" count="7" type="stmt"/>
       </file>
       <file name="HomeScreen.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/screens/HomeScreen.tsx">
-        <metrics statements="34" coveredstatements="20" conditionals="20" coveredconditionals="9" methods="9" coveredmethods="3"/>
+        <metrics statements="34" coveredstatements="34" conditionals="20" coveredconditionals="20" methods="9" coveredmethods="9"/>
         <line num="32" count="1" type="stmt"/>
-        <line num="33" count="3" type="stmt"/>
-        <line num="36" count="3" type="stmt"/>
-        <line num="37" count="3" type="stmt"/>
-        <line num="38" count="3" type="stmt"/>
-        <line num="39" count="3" type="stmt"/>
-        <line num="40" count="3" type="stmt"/>
-        <line num="41" count="3" type="stmt"/>
-        <line num="42" count="3" type="stmt"/>
-        <line num="43" count="3" type="stmt"/>
-        <line num="46" count="3" type="stmt"/>
-        <line num="47" count="1" type="cond" truecount="1" falsecount="1"/>
-        <line num="48" count="1" type="cond" truecount="1" falsecount="1"/>
-        <line num="49" count="1" type="stmt"/>
-        <line num="50" count="1" type="stmt"/>
-        <line num="52" count="0" type="stmt"/>
-        <line num="53" count="0" type="stmt"/>
-        <line num="56" count="3" type="stmt"/>
-        <line num="57" count="0" type="cond" truecount="0" falsecount="4"/>
-        <line num="58" count="0" type="stmt"/>
-        <line num="62" count="3" type="stmt"/>
-        <line num="63" count="0" type="cond" truecount="0" falsecount="4"/>
-        <line num="64" count="0" type="stmt"/>
-        <line num="65" count="0" type="stmt"/>
-        <line num="72" count="0" type="stmt"/>
-        <line num="75" count="3" type="stmt"/>
-        <line num="76" count="0" type="stmt"/>
-        <line num="80" count="3" type="stmt"/>
-        <line num="106" count="0" type="stmt"/>
-        <line num="146" count="3" type="stmt"/>
-        <line num="148" count="0" type="stmt"/>
-        <line num="150" count="0" type="stmt"/>
-        <line num="151" count="0" type="stmt"/>
-        <line num="152" count="0" type="stmt"/>
+        <line num="33" count="21" type="stmt"/>
+        <line num="36" count="21" type="stmt"/>
+        <line num="37" count="21" type="stmt"/>
+        <line num="38" count="21" type="stmt"/>
+        <line num="39" count="21" type="stmt"/>
+        <line num="40" count="21" type="stmt"/>
+        <line num="41" count="21" type="stmt"/>
+        <line num="42" count="21" type="stmt"/>
+        <line num="43" count="21" type="stmt"/>
+        <line num="46" count="21" type="stmt"/>
+        <line num="47" count="7" type="cond" truecount="2" falsecount="0"/>
+        <line num="48" count="6" type="cond" truecount="2" falsecount="0"/>
+        <line num="49" count="5" type="stmt"/>
+        <line num="50" count="5" type="stmt"/>
+        <line num="52" count="1" type="stmt"/>
+        <line num="53" count="1" type="stmt"/>
+        <line num="56" count="21" type="stmt"/>
+        <line num="57" count="2" type="cond" truecount="4" falsecount="0"/>
+        <line num="58" count="1" type="stmt"/>
+        <line num="62" count="21" type="stmt"/>
+        <line num="63" count="2" type="cond" truecount="4" falsecount="0"/>
+        <line num="64" count="1" type="stmt"/>
+        <line num="65" count="1" type="stmt"/>
+        <line num="72" count="2" type="stmt"/>
+        <line num="75" count="21" type="stmt"/>
+        <line num="76" count="1" type="stmt"/>
+        <line num="80" count="21" type="stmt"/>
+        <line num="106" count="1" type="stmt"/>
+        <line num="146" count="14" type="stmt"/>
+        <line num="148" count="1" type="stmt"/>
+        <line num="150" count="1" type="stmt"/>
+        <line num="151" count="1" type="stmt"/>
+        <line num="152" count="1" type="stmt"/>
       </file>
       <file name="PrivacyPolicyScreen.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/screens/PrivacyPolicyScreen.tsx">
         <metrics statements="4" coveredstatements="4" conditionals="0" coveredconditionals="0" methods="2" coveredmethods="2"/>
@@ -7467,18 +7467,18 @@
         <line num="21" count="1" type="stmt"/>
       </file>
       <file name="UpgradeScreen.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/screens/UpgradeScreen.tsx">
-        <metrics statements="13" coveredstatements="12" conditionals="6" coveredconditionals="5" methods="7" coveredmethods="6"/>
+        <metrics statements="13" coveredstatements="13" conditionals="6" coveredconditionals="5" methods="7" coveredmethods="7"/>
         <line num="10" count="1" type="stmt"/>
         <line num="18" count="1" type="stmt"/>
         <line num="24" count="1" type="stmt"/>
         <line num="25" count="1" type="stmt"/>
         <line num="27" count="1" type="stmt"/>
-        <line num="29" count="1" type="stmt"/>
+        <line num="29" count="2" type="stmt"/>
         <line num="32" count="1" type="stmt"/>
-        <line num="40" count="0" type="stmt"/>
+        <line num="40" count="1" type="stmt"/>
         <line num="64" count="5" type="stmt"/>
         <line num="74" count="2" type="stmt"/>
-        <line num="92" count="1" type="stmt"/>
+        <line num="92" count="2" type="stmt"/>
         <line num="101" count="1" type="stmt"/>
         <line num="111" count="1" type="stmt"/>
       </file>
@@ -8753,7 +8753,7 @@
       <metrics statements="17" coveredstatements="12" conditionals="16" coveredconditionals="8" methods="5" coveredmethods="4"/>
       <file name="AdapterFactory.ts" path="/Users/michaelspencer/Developer/DebateAI/src/services/ai/factory/AdapterFactory.ts">
         <metrics statements="17" coveredstatements="12" conditionals="16" coveredconditionals="8" methods="5" coveredmethods="4"/>
-        <line num="20" count="10" type="stmt"/>
+        <line num="20" count="9" type="stmt"/>
         <line num="37" count="2" type="cond" truecount="2" falsecount="0"/>
         <line num="39" count="1" type="cond" truecount="1" falsecount="1"/>
         <line num="40" count="1" type="cond" truecount="1" falsecount="1"/>
@@ -9182,7 +9182,7 @@
       </file>
       <file name="StorageService.ts" path="/Users/michaelspencer/Developer/DebateAI/src/services/chat/StorageService.ts">
         <metrics statements="153" coveredstatements="50" conditionals="50" coveredconditionals="12" methods="32" coveredmethods="16"/>
-        <line num="30" count="9" type="stmt"/>
+        <line num="30" count="8" type="stmt"/>
         <line num="40" count="11" type="stmt"/>
         <line num="47" count="7" type="stmt"/>
         <line num="48" count="7" type="stmt"/>
@@ -10144,8 +10144,8 @@
       </file>
       <file name="DemoContentService.ts" path="/Users/michaelspencer/Developer/DebateAI/src/services/demo/DemoContentService.ts">
         <metrics statements="39" coveredstatements="2" conditionals="35" coveredconditionals="0" methods="21" coveredmethods="0"/>
-        <line num="9" count="7" type="stmt"/>
-        <line num="10" count="7" type="stmt"/>
+        <line num="9" count="6" type="stmt"/>
+        <line num="10" count="6" type="stmt"/>
         <line num="16" count="0" type="stmt"/>
         <line num="17" count="0" type="cond" truecount="0" falsecount="4"/>
         <line num="18" count="0" type="stmt"/>
@@ -10186,14 +10186,14 @@
       </file>
       <file name="DemoPlaybackRouter.ts" path="/Users/michaelspencer/Developer/DebateAI/src/services/demo/DemoPlaybackRouter.ts">
         <metrics statements="123" coveredstatements="8" conditionals="171" coveredconditionals="0" methods="18" coveredmethods="0"/>
-        <line num="5" count="9" type="stmt"/>
-        <line num="11" count="9" type="stmt"/>
-        <line num="14" count="9" type="stmt"/>
-        <line num="15" count="9" type="stmt"/>
-        <line num="16" count="9" type="stmt"/>
-        <line num="17" count="9" type="stmt"/>
-        <line num="20" count="9" type="stmt"/>
-        <line num="21" count="9" type="stmt"/>
+        <line num="5" count="8" type="stmt"/>
+        <line num="11" count="8" type="stmt"/>
+        <line num="14" count="8" type="stmt"/>
+        <line num="15" count="8" type="stmt"/>
+        <line num="16" count="8" type="stmt"/>
+        <line num="17" count="8" type="stmt"/>
+        <line num="20" count="8" type="stmt"/>
+        <line num="21" count="8" type="stmt"/>
         <line num="24" count="0" type="stmt"/>
         <line num="25" count="0" type="stmt"/>
         <line num="26" count="0" type="stmt"/>
@@ -10312,10 +10312,10 @@
       </file>
       <file name="RecordController.ts" path="/Users/michaelspencer/Developer/DebateAI/src/services/demo/RecordController.ts">
         <metrics statements="67" coveredstatements="4" conditionals="65" coveredconditionals="0" methods="10" coveredmethods="0"/>
-        <line num="10" count="7" type="stmt"/>
-        <line num="15" count="7" type="stmt"/>
-        <line num="21" count="7" type="stmt"/>
-        <line num="23" count="7" type="stmt"/>
+        <line num="10" count="6" type="stmt"/>
+        <line num="15" count="6" type="stmt"/>
+        <line num="21" count="6" type="stmt"/>
+        <line num="23" count="6" type="stmt"/>
         <line num="25" count="0" type="stmt"/>
         <line num="29" count="0" type="cond" truecount="0" falsecount="2"/>
         <line num="30" count="0" type="stmt"/>
@@ -10382,8 +10382,8 @@
       </file>
       <file name="Recorder.ts" path="/Users/michaelspencer/Developer/DebateAI/src/services/demo/Recorder.ts">
         <metrics statements="10" coveredstatements="2" conditionals="4" coveredconditionals="0" methods="3" coveredmethods="0"/>
-        <line num="9" count="7" type="stmt"/>
-        <line num="10" count="7" type="stmt"/>
+        <line num="9" count="6" type="stmt"/>
+        <line num="10" count="6" type="stmt"/>
         <line num="13" count="0" type="stmt"/>
         <line num="14" count="0" type="stmt"/>
         <line num="18" count="0" type="cond" truecount="0" falsecount="2"/>
@@ -10407,7 +10407,7 @@
       </file>
       <file name="demoMode.ts" path="/Users/michaelspencer/Developer/DebateAI/src/services/demo/demoMode.ts">
         <metrics statements="3" coveredstatements="1" conditionals="0" coveredconditionals="0" methods="2" coveredmethods="0"/>
-        <line num="1" count="9" type="stmt"/>
+        <line num="1" count="8" type="stmt"/>
         <line num="4" count="0" type="stmt"/>
         <line num="8" count="0" type="stmt"/>
       </file>
@@ -11622,49 +11622,49 @@
       <metrics statements="135" coveredstatements="130" conditionals="80" coveredconditionals="66" methods="46" coveredmethods="46"/>
       <file name="statsCalculator.ts" path="/Users/michaelspencer/Developer/DebateAI/src/services/stats/statsCalculator.ts">
         <metrics statements="24" coveredstatements="24" conditionals="12" coveredconditionals="12" methods="8" coveredmethods="8"/>
-        <line num="9" count="23" type="stmt"/>
+        <line num="9" count="22" type="stmt"/>
         <line num="10" count="2" type="cond" truecount="2" falsecount="0"/>
         <line num="11" count="1" type="stmt"/>
-        <line num="20" count="23" type="stmt"/>
+        <line num="20" count="22" type="stmt"/>
         <line num="21" count="2" type="cond" truecount="2" falsecount="0"/>
         <line num="22" count="1" type="stmt"/>
-        <line num="30" count="23" type="stmt"/>
+        <line num="30" count="22" type="stmt"/>
         <line num="31" count="2" type="stmt"/>
-        <line num="40" count="23" type="stmt"/>
+        <line num="40" count="22" type="stmt"/>
         <line num="41" count="2" type="cond" truecount="2" falsecount="0"/>
         <line num="42" count="1" type="stmt"/>
-        <line num="50" count="23" type="stmt"/>
+        <line num="50" count="22" type="stmt"/>
         <line num="51" count="2" type="stmt"/>
-        <line num="59" count="23" type="stmt"/>
+        <line num="59" count="22" type="stmt"/>
         <line num="60" count="1" type="stmt"/>
-        <line num="69" count="23" type="stmt"/>
+        <line num="69" count="22" type="stmt"/>
         <line num="73" count="3" type="stmt"/>
         <line num="74" count="3" type="cond" truecount="2" falsecount="0"/>
         <line num="75" count="2" type="cond" truecount="2" falsecount="0"/>
         <line num="76" count="1" type="stmt"/>
-        <line num="84" count="23" type="stmt"/>
+        <line num="84" count="22" type="stmt"/>
         <line num="85" count="2" type="cond" truecount="2" falsecount="0"/>
         <line num="86" count="1" type="stmt"/>
         <line num="87" count="1" type="stmt"/>
       </file>
       <file name="statsFormatter.ts" path="/Users/michaelspencer/Developer/DebateAI/src/services/stats/statsFormatter.ts">
         <metrics statements="49" coveredstatements="48" conditionals="37" coveredconditionals="32" methods="12" coveredmethods="12"/>
-        <line num="11" count="23" type="stmt"/>
+        <line num="11" count="22" type="stmt"/>
         <line num="12" count="1" type="stmt"/>
-        <line num="20" count="23" type="stmt"/>
+        <line num="20" count="22" type="stmt"/>
         <line num="21" count="2" type="stmt"/>
-        <line num="30" count="23" type="cond" truecount="1" falsecount="0"/>
+        <line num="30" count="22" type="cond" truecount="1" falsecount="0"/>
         <line num="31" count="2" type="stmt"/>
-        <line num="40" count="23" type="stmt"/>
+        <line num="40" count="22" type="stmt"/>
         <line num="41" count="4" type="cond" truecount="2" falsecount="0"/>
         <line num="43" count="2" type="stmt"/>
         <line num="44" count="2" type="stmt"/>
         <line num="45" count="2" type="cond" truecount="1" falsecount="1"/>
         <line num="46" count="2" type="stmt"/>
         <line num="48" count="0" type="stmt"/>
-        <line num="57" count="23" type="cond" truecount="0" falsecount="1"/>
+        <line num="57" count="22" type="cond" truecount="0" falsecount="1"/>
         <line num="58" count="2" type="stmt"/>
-        <line num="66" count="23" type="stmt"/>
+        <line num="66" count="22" type="stmt"/>
         <line num="67" count="4" type="cond" truecount="2" falsecount="0"/>
         <line num="68" count="1" type="stmt"/>
         <line num="70" count="3" type="cond" truecount="2" falsecount="0"/>
@@ -11672,22 +11672,22 @@
         <line num="73" count="2" type="cond" truecount="2" falsecount="0"/>
         <line num="74" count="1" type="stmt"/>
         <line num="76" count="1" type="stmt"/>
-        <line num="85" count="23" type="stmt"/>
+        <line num="85" count="22" type="stmt"/>
         <line num="86" count="4" type="cond" truecount="4" falsecount="0"/>
         <line num="87" count="3" type="cond" truecount="2" falsecount="0"/>
         <line num="88" count="2" type="cond" truecount="2" falsecount="0"/>
         <line num="90" count="2" type="cond" truecount="2" falsecount="0"/>
         <line num="91" count="1" type="stmt"/>
         <line num="93" count="1" type="stmt"/>
-        <line num="101" count="23" type="stmt"/>
+        <line num="101" count="22" type="stmt"/>
         <line num="102" count="4" type="stmt"/>
         <line num="103" count="4" type="stmt"/>
         <line num="104" count="4" type="cond" truecount="3" falsecount="0"/>
-        <line num="112" count="23" type="stmt"/>
+        <line num="112" count="22" type="stmt"/>
         <line num="113" count="2" type="stmt"/>
-        <line num="122" count="23" type="stmt"/>
+        <line num="122" count="22" type="stmt"/>
         <line num="123" count="2" type="stmt"/>
-        <line num="131" count="23" type="stmt"/>
+        <line num="131" count="22" type="stmt"/>
         <line num="132" count="4" type="stmt"/>
         <line num="133" count="4" type="stmt"/>
         <line num="134" count="4" type="stmt"/>
@@ -11701,31 +11701,31 @@
       </file>
       <file name="statsTransformer.ts" path="/Users/michaelspencer/Developer/DebateAI/src/services/stats/statsTransformer.ts">
         <metrics statements="62" coveredstatements="58" conditionals="31" coveredconditionals="22" methods="26" coveredmethods="26"/>
-        <line num="13" count="23" type="stmt"/>
+        <line num="13" count="22" type="stmt"/>
         <line num="14" count="2" type="stmt"/>
         <line num="15" count="3" type="stmt"/>
         <line num="16" count="5" type="stmt"/>
-        <line num="28" count="23" type="stmt"/>
+        <line num="28" count="22" type="stmt"/>
         <line num="29" count="1" type="stmt"/>
         <line num="30" count="3" type="stmt"/>
         <line num="31" count="3" type="stmt"/>
-        <line num="43" count="23" type="stmt"/>
+        <line num="43" count="22" type="stmt"/>
         <line num="44" count="1" type="stmt"/>
         <line num="45" count="2" type="stmt"/>
         <line num="46" count="3" type="stmt"/>
-        <line num="59" count="23" type="stmt"/>
+        <line num="59" count="22" type="stmt"/>
         <line num="63" count="1" type="stmt"/>
         <line num="64" count="2" type="stmt"/>
         <line num="72" count="1" type="cond" truecount="1" falsecount="1"/>
         <line num="74" count="0" type="stmt"/>
-        <line num="85" count="23" type="stmt"/>
+        <line num="85" count="22" type="stmt"/>
         <line num="89" count="3" type="stmt"/>
-        <line num="104" count="23" type="cond" truecount="0" falsecount="1"/>
+        <line num="104" count="22" type="cond" truecount="0" falsecount="1"/>
         <line num="105" count="1" type="stmt"/>
-        <line num="115" count="23" type="stmt"/>
+        <line num="115" count="22" type="stmt"/>
         <line num="116" count="2" type="stmt"/>
         <line num="118" count="6" type="cond" truecount="3" falsecount="0"/>
-        <line num="130" count="23" type="stmt"/>
+        <line num="130" count="22" type="stmt"/>
         <line num="131" count="1" type="stmt"/>
         <line num="132" count="1" type="stmt"/>
         <line num="134" count="2" type="stmt"/>
@@ -11733,7 +11733,7 @@
         <line num="136" count="2" type="stmt"/>
         <line num="140" count="1" type="stmt"/>
         <line num="146" count="2" type="stmt"/>
-        <line num="157" count="23" type="stmt"/>
+        <line num="157" count="22" type="stmt"/>
         <line num="161" count="3" type="stmt"/>
         <line num="163" count="3" type="stmt"/>
         <line num="164" count="9" type="stmt"/>
@@ -11752,7 +11752,7 @@
         <line num="189" count="6" type="stmt"/>
         <line num="191" count="9" type="stmt"/>
         <line num="194" count="3" type="stmt"/>
-        <line num="204" count="23" type="stmt"/>
+        <line num="204" count="22" type="stmt"/>
         <line num="209" count="2" type="stmt"/>
         <line num="210" count="6" type="cond" truecount="2" falsecount="0"/>
         <line num="213" count="2" type="stmt"/>
@@ -11908,7 +11908,7 @@
         <line num="431" count="0" type="stmt"/>
         <line num="438" count="0" type="stmt"/>
         <line num="439" count="0" type="stmt"/>
-        <line num="444" count="9" type="stmt"/>
+        <line num="444" count="8" type="stmt"/>
         <line num="450" count="0" type="cond" truecount="0" falsecount="2"/>
         <line num="451" count="0" type="stmt"/>
         <line num="453" count="0" type="stmt"/>
@@ -12274,9 +12274,9 @@
         <metrics statements="17" coveredstatements="13" conditionals="0" coveredconditionals="0" methods="10" coveredmethods="6"/>
         <line num="22" count="178" type="stmt"/>
         <line num="31" count="178" type="stmt"/>
-        <line num="37" count="3" type="stmt"/>
-        <line num="38" count="3" type="stmt"/>
-        <line num="39" count="3" type="stmt"/>
+        <line num="37" count="7" type="stmt"/>
+        <line num="38" count="7" type="stmt"/>
+        <line num="39" count="7" type="stmt"/>
         <line num="42" count="1" type="stmt"/>
         <line num="46" count="1" type="stmt"/>
         <line num="47" count="1" type="stmt"/>
@@ -12376,29 +12376,29 @@
         <line num="14" count="177" type="stmt"/>
         <line num="16" count="177" type="stmt"/>
         <line num="22" count="177" type="stmt"/>
-        <line num="23" count="875" type="stmt"/>
-        <line num="25" count="875" type="stmt"/>
-        <line num="30" count="875" type="cond" truecount="1" falsecount="1"/>
-        <line num="34" count="875" type="cond" truecount="1" falsecount="1"/>
-        <line num="37" count="875" type="stmt"/>
-        <line num="38" count="854" type="stmt"/>
-        <line num="39" count="854" type="cond" truecount="5" falsecount="1"/>
+        <line num="23" count="924" type="stmt"/>
+        <line num="25" count="924" type="stmt"/>
+        <line num="30" count="924" type="cond" truecount="1" falsecount="1"/>
+        <line num="34" count="924" type="cond" truecount="1" falsecount="1"/>
+        <line num="37" count="924" type="stmt"/>
+        <line num="38" count="899" type="stmt"/>
+        <line num="39" count="899" type="cond" truecount="5" falsecount="1"/>
         <line num="40" count="0" type="stmt"/>
-        <line num="47" count="875" type="stmt"/>
+        <line num="47" count="924" type="stmt"/>
         <line num="48" count="0" type="stmt"/>
         <line num="49" count="0" type="stmt"/>
-        <line num="55" count="875" type="stmt"/>
-        <line num="56" count="854" type="stmt"/>
+        <line num="55" count="924" type="stmt"/>
+        <line num="56" count="899" type="stmt"/>
         <line num="58" count="0" type="cond" truecount="0" falsecount="2"/>
         <line num="59" count="0" type="stmt"/>
-        <line num="63" count="854" type="stmt"/>
-        <line num="66" count="875" type="stmt"/>
-        <line num="73" count="875" type="stmt"/>
+        <line num="63" count="899" type="stmt"/>
+        <line num="66" count="924" type="stmt"/>
+        <line num="73" count="924" type="stmt"/>
         <line num="80" count="177" type="stmt"/>
-        <line num="81" count="1594" type="stmt"/>
-        <line num="82" count="1594" type="cond" truecount="1" falsecount="1"/>
+        <line num="81" count="1738" type="stmt"/>
+        <line num="82" count="1738" type="cond" truecount="1" falsecount="1"/>
         <line num="83" count="0" type="stmt"/>
-        <line num="85" count="1594" type="stmt"/>
+        <line num="85" count="1738" type="stmt"/>
       </file>
       <file name="spacing.ts" path="/Users/michaelspencer/Developer/DebateAI/src/theme/spacing.ts">
         <metrics statements="1" coveredstatements="1" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
@@ -12444,8 +12444,8 @@
       <file name="aiProviderAssets.ts" path="/Users/michaelspencer/Developer/DebateAI/src/utils/aiProviderAssets.ts">
         <metrics statements="5" coveredstatements="3" conditionals="4" coveredconditionals="1" methods="1" coveredmethods="1"/>
         <line num="6" count="1" type="stmt"/>
-        <line num="22" count="3" type="cond" truecount="1" falsecount="1"/>
-        <line num="23" count="3" type="stmt"/>
+        <line num="22" count="21" type="cond" truecount="1" falsecount="1"/>
+        <line num="23" count="21" type="stmt"/>
         <line num="30" count="0" type="stmt"/>
         <line num="42" count="0" type="stmt"/>
       </file>
@@ -12618,7 +12618,7 @@
       </file>
       <file name="markdown.ts" path="/Users/michaelspencer/Developer/DebateAI/src/utils/markdown.ts">
         <metrics statements="50" coveredstatements="1" conditionals="31" coveredconditionals="0" methods="6" coveredmethods="0"/>
-        <line num="18" count="19" type="stmt"/>
+        <line num="18" count="18" type="stmt"/>
         <line num="28" count="0" type="stmt"/>
         <line num="29" count="0" type="cond" truecount="0" falsecount="2"/>
         <line num="31" count="0" type="stmt"/>
@@ -12671,7 +12671,7 @@
       </file>
       <file name="markdownSelectable.tsx" path="/Users/michaelspencer/Developer/DebateAI/src/utils/markdownSelectable.tsx">
         <metrics statements="24" coveredstatements="1" conditionals="18" coveredconditionals="0" methods="15" coveredmethods="0"/>
-        <line num="22" count="20" type="stmt"/>
+        <line num="22" count="19" type="stmt"/>
         <line num="24" count="0" type="stmt"/>
         <line num="29" count="0" type="stmt"/>
         <line num="34" count="0" type="stmt"/>

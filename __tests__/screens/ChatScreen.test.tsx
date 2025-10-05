@@ -3,6 +3,7 @@ import { Alert } from 'react-native';
 import { act, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '../../test-utils/renderWithProviders';
 import type { AIConfig } from '@/types';
+import { setRecordModeEnabled } from '@/store';
 
 const mockUseAIService = jest.fn();
 
@@ -53,6 +54,7 @@ let mockTypingIndicatorsProps: any;
 let mockMentionSuggestionsProps: any;
 let mockDemoBannerProps: any;
 let mockImageModalProps: any;
+let mockTopicPickerProps: any;
 
 jest.mock('@/components/organisms', () => {
   const React = require('react');
@@ -115,7 +117,10 @@ jest.mock('@/components/organisms/demo/ChatTopicPickerModal', () => {
   const React = require('react');
   const { Text } = require('react-native');
   return {
-    ChatTopicPickerModal: () => React.createElement(Text, { testID: 'topic-picker' }, 'topic'),
+    ChatTopicPickerModal: (props: any) => {
+      mockTopicPickerProps = props;
+      return React.createElement(Text, { testID: 'topic-picker' }, props.visible ? 'visible' : 'hidden');
+    },
   };
 });
 
@@ -227,6 +232,18 @@ describe('ChatScreen', () => {
   let mockAIResponsesData: any;
   let mockQuickStartData: any;
 
+  const buildFeatureAccess = (overrides: Record<string, unknown> = {}) => ({
+    loading: false,
+    membershipStatus: 'demo',
+    trialDaysRemaining: null,
+    canAccessLiveAI: false,
+    isInTrial: false,
+    isPremium: false,
+    isDemo: false,
+    refresh: jest.fn(),
+    ...overrides,
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
 
@@ -326,16 +343,7 @@ describe('ChatScreen', () => {
     mockUseAIResponses.mockReturnValue(mockAIResponsesData);
     mockUseQuickStart.mockReturnValue(mockQuickStartData);
 
-    mockUseFeatureAccess.mockReturnValue({
-      loading: false,
-      membershipStatus: 'demo',
-      trialDaysRemaining: null,
-      canAccessLiveAI: false,
-      isInTrial: false,
-      isPremium: false,
-      isDemo: false,
-      refresh: jest.fn(),
-    });
+    mockUseFeatureAccess.mockReturnValue(buildFeatureAccess());
 
     mockUseAIService.mockReturnValue({
       aiService: {},
@@ -383,6 +391,7 @@ describe('ChatScreen', () => {
     mockMentionSuggestionsProps = undefined;
     mockDemoBannerProps = undefined;
     mockImageModalProps = undefined;
+    mockTopicPickerProps = undefined;
   });
 
   afterEach(() => {
@@ -477,6 +486,86 @@ describe('ChatScreen', () => {
 
     await waitFor(() => {
       expect(mockSession.saveSession).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('prevents sending messages in demo mode and opens subscription sheet', async () => {
+    mockUseFeatureAccess.mockReturnValue(buildFeatureAccess({ isDemo: true }));
+
+    const { store } = renderWithProviders(
+      <ChatScreen navigation={navigation} route={route} />
+    );
+
+    await act(async () => {
+      await mockChatInputBarProps.onSend('Demo message');
+    });
+
+    expect(store.getState().navigation.activeSheet).toBe('subscription');
+    expect(mockMessages.sendMessage).not.toHaveBeenCalled();
+    expect(mockAIResponsesData.sendAIResponses).not.toHaveBeenCalled();
+  });
+
+  it('auto plays provided demo sample when in demo mode', async () => {
+    mockUseFeatureAccess.mockReturnValue(buildFeatureAccess({ isDemo: true }));
+    route.params.demoSampleId = 'sample-123';
+
+    const demoSample = { id: 'sample-123', transcript: [] };
+    mockDemoContentService.findChatById.mockResolvedValue(demoSample);
+    mockDemoPlaybackRouter.primeNextChatTurn.mockReturnValue({ user: 'Scripted intro', providers: ['anthropic'] });
+
+    renderWithProviders(
+      <ChatScreen navigation={navigation} route={route} />
+    );
+
+    await waitFor(() => {
+      expect(mockDemoContentService.findChatById).toHaveBeenCalledWith('sample-123');
+    });
+
+    await waitFor(() => {
+      expect(mockMessages.sendMessage).toHaveBeenCalledWith('Scripted intro', expect.arrayContaining(['claude']));
+    });
+
+    expect(mockAIResponsesData.sendAIResponses).toHaveBeenCalledWith(
+      expect.objectContaining({ content: 'Scripted intro', sender: 'You' })
+    );
+  });
+
+  it('opens topic picker in record mode and starts new recording', async () => {
+    const { store } = renderWithProviders(
+      <ChatScreen navigation={navigation} route={route} />
+    );
+
+    await act(async () => {
+      store.dispatch(setRecordModeEnabled(true));
+    });
+
+    await waitFor(() => {
+      expect(mockHeaderProps.actionButton?.label).toBe('Record');
+    });
+
+    act(() => {
+      mockHeaderProps.actionButton.onPress();
+    });
+
+    expect(mockTopicPickerProps).toMatchObject({ visible: true });
+    expect(mockTopicPickerProps.providers).toEqual(selectedAIs.map(ai => ai.provider));
+
+    mockRecordController.startChat.mockImplementation(() => undefined);
+
+    await act(async () => {
+      await mockTopicPickerProps.onSelect('new:fresh-topic', 'Fresh Topic');
+    });
+
+    expect(mockRecordController.startChat).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'fresh-topic',
+      title: 'Fresh Topic',
+      comboKey: 'anthropic-openai',
+    }));
+
+    expect(mockTopicPickerProps.visible).toBe(false);
+
+    await waitFor(() => {
+      expect(mockHeaderProps.actionButton.label).toBe('Stop');
     });
   });
 });

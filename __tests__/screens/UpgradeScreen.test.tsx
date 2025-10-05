@@ -10,13 +10,15 @@ const mockHeader = jest.fn(({ title, subtitle, onBack }: { title: string; subtit
 ));
 const mockHeaderActions = jest.fn(() => null);
 
+const mockGoBack = jest.fn();
+
 jest.mock('@/components/organisms', () => ({
   Header: (props: any) => mockHeader(props),
   HeaderActions: () => mockHeaderActions(),
 }));
 
 jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({ goBack: jest.fn() }),
+  useNavigation: () => ({ goBack: mockGoBack }),
 }));
 
 jest.mock('expo-linear-gradient', () => {
@@ -53,23 +55,31 @@ const UpgradeScreen = require('@/screens/UpgradeScreen').default;
 describe('UpgradeScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockGoBack.mockReset();
   });
 
   it('renders feature list and handles subscription actions', () => {
     const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
 
-    const { getByText, getAllByText } = renderWithProviders(<UpgradeScreen />);
+    const { getByText, getAllByText, getByTestId } = renderWithProviders(<UpgradeScreen />);
 
     expect(getByText('Unlock Premium')).toBeTruthy();
     expect(getByText('All Signature Styles + Seasonal Packs')).toBeTruthy();
+    expect(getByTestId('gradient')).toBeTruthy();
 
     const subscribeButtons = getAllByText('Subscribe Now');
     fireEvent.press(subscribeButtons[0]);
     expect(alertSpy).toHaveBeenCalledWith('Subscribe', expect.stringContaining('monthly'));
 
+    fireEvent.press(subscribeButtons[1]);
+    expect(alertSpy).toHaveBeenCalledWith('Subscribe', expect.stringContaining('yearly'));
+
     const restoreButton = getByText('Restore Purchases');
     fireEvent.press(restoreButton);
     expect(alertSpy).toHaveBeenCalledWith('Restore', expect.any(String));
+
+    fireEvent.press(getByTestId('header'));
+    expect(mockGoBack).toHaveBeenCalledTimes(1);
 
     alertSpy.mockRestore();
   });

@@ -1,10 +1,13 @@
 import React from 'react';
 import { act } from '@testing-library/react-native';
 import { renderWithProviders } from '../../test-utils/renderWithProviders';
-import { setAIPersonality, setAIModel } from '@/store';
+import { setAIPersonality, setAIModel, showSheet } from '@/store';
 
 const mockDispatch = jest.fn();
 const mockUseSelector = jest.fn();
+const mockUseFeatureAccess = jest.fn();
+let mockDemoBannerProps: any;
+let mockCompareSamplePickerProps: any;
 
 jest.mock('react-redux', () => {
   const actual = jest.requireActual('react-redux');
@@ -17,8 +20,8 @@ jest.mock('react-redux', () => {
 
 jest.mock('@/hooks/useFeatureAccess', () => ({
   __esModule: true,
-  default: () => ({ isDemo: false }),
-  useFeatureAccess: () => ({ isDemo: false }),
+  default: (...args: unknown[]) => mockUseFeatureAccess(...args),
+  useFeatureAccess: (...args: unknown[]) => mockUseFeatureAccess(...args),
 }));
 
 jest.mock('@/components/molecules/subscription/TrialBanner', () => ({
@@ -26,11 +29,21 @@ jest.mock('@/components/molecules/subscription/TrialBanner', () => ({
 }));
 
 jest.mock('@/components/molecules/subscription/DemoBanner', () => ({
-  DemoBanner: () => null,
+  DemoBanner: (props: any) => {
+    mockDemoBannerProps = props;
+    const React = require('react');
+    const { Text } = require('react-native');
+    return React.createElement(Text, { testID: 'demo-banner', onPress: props.onPress }, 'demo-banner');
+  },
 }));
 
 jest.mock('@/components/organisms/demo/CompareSamplePickerModal', () => ({
-  CompareSamplePickerModal: () => null,
+  CompareSamplePickerModal: (props: any) => {
+    mockCompareSamplePickerProps = props;
+    const React = require('react');
+    const { Text } = require('react-native');
+    return React.createElement(Text, { testID: 'compare-sample-picker' }, props.visible ? 'visible' : 'hidden');
+  },
 }));
 
 const mockSelectorStore = { selectors: [] as any[] };
@@ -98,6 +111,10 @@ describe('CompareSetupScreen', () => {
     mockButton.mockClear();
     mockSelectorStore.selectors.length = 0;
     mockUseSelector.mockImplementation((selector) => selector(baseState));
+    mockUseFeatureAccess.mockReturnValue({ isDemo: false });
+    mockDemoBannerProps = undefined;
+    mockCompareSamplePickerProps = undefined;
+    baseState.settings.apiKeys = { claude: 'key-1', openai: 'key-2' };
   });
 
   it('starts comparison when both sides selected', () => {
@@ -133,5 +150,80 @@ describe('CompareSetupScreen', () => {
       leftAI: expect.objectContaining({ id: leftAI.id }),
       rightAI: expect.objectContaining({ id: rightAI.id }),
     }));
+  });
+
+  it('shows demo gating and routes through sample picker', async () => {
+    mockUseFeatureAccess.mockReturnValue({ isDemo: true });
+
+    renderWithProviders(
+      <CompareSetupScreen navigation={navigation as any} />
+    );
+
+    expect(mockDemoBannerProps).toMatchObject({
+      subtitle: expect.stringContaining('Demo'),
+    });
+
+    const leftProps = mockSelectorStore.selectors[0];
+    const rightProps = mockSelectorStore.selectors[1];
+
+    const leftAI = leftProps.configuredAIs[0];
+    const rightAI = rightProps.configuredAIs.find((ai: any) => ai.id !== leftAI.id) || rightProps.configuredAIs[0];
+
+    await act(async () => {
+      leftProps.onToggleAI(leftAI);
+      rightProps.onToggleAI(rightAI);
+    });
+
+    const startCall = mockButton.mock.calls.find(([props]) => props.title === 'Start Comparison');
+    expect(startCall).toBeDefined();
+
+    await act(async () => {
+      await startCall?.[0].onPress();
+    });
+
+    expect(mockCompareSamplePickerProps).toMatchObject({
+      visible: true,
+      providers: expect.arrayContaining([leftAI.provider, rightAI.provider]),
+    });
+
+    await act(async () => {
+      mockCompareSamplePickerProps.onSelect?.('demo-1');
+    });
+
+    expect(navigation.navigate).toHaveBeenCalledWith('CompareSession', expect.objectContaining({
+      leftAI: expect.objectContaining({ id: leftAI.id }),
+      rightAI: expect.objectContaining({ id: rightAI.id }),
+      demoSampleId: 'demo-1',
+    }));
+
+    await act(async () => {
+      mockCompareSamplePickerProps.onClose?.();
+    });
+
+    expect(mockCompareSamplePickerProps.visible).toBe(false);
+
+    await act(async () => {
+      mockDemoBannerProps.onPress();
+    });
+
+    expect(mockDispatch).toHaveBeenCalledWith(showSheet({ sheet: 'subscription' }));
+  });
+
+  it('prompts to add API keys when fewer than two providers configured', () => {
+    baseState.settings.apiKeys = { claude: 'key-1' };
+
+    renderWithProviders(
+      <CompareSetupScreen navigation={navigation as any} />
+    );
+
+    const addKeyCall = mockButton.mock.calls.find(([props]) => props.title === 'Add AI Keys');
+    expect(addKeyCall).toBeDefined();
+
+    act(() => {
+      addKeyCall?.[0].onPress();
+    });
+
+    expect(navigation.navigate).toHaveBeenCalledWith('APIConfig');
+    expect(mockButton.mock.calls.find(([props]) => props.title === 'Start Comparison')).toBeUndefined();
   });
 });
