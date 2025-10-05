@@ -2,8 +2,9 @@ import React from 'react';
 import { Alert } from 'react-native';
 import { act, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '../../test-utils/renderWithProviders';
-import type { AIConfig } from '@/types';
-import { setRecordModeEnabled } from '@/store';
+import type { AIConfig, Message } from '@/types';
+import { addMessage, endStreaming, setRecordModeEnabled, updateMessage } from '@/store';
+import type { RootState } from '@/store';
 
 const mockUseAIService = jest.fn();
 
@@ -53,6 +54,7 @@ let mockMessageListProps: any;
 let mockTypingIndicatorsProps: any;
 let mockMentionSuggestionsProps: any;
 let mockDemoBannerProps: any;
+let mockDemoSamplesBarProps: any;
 let mockImageModalProps: any;
 let mockTopicPickerProps: any;
 
@@ -109,7 +111,10 @@ jest.mock('@/components/organisms/demo/DemoSamplesBar', () => {
   const React = require('react');
   const { Text } = require('react-native');
   return {
-    DemoSamplesBar: () => React.createElement(Text, { testID: 'demo-samples' }, 'samples'),
+    DemoSamplesBar: (props: any) => {
+      mockDemoSamplesBarProps = props;
+      return React.createElement(Text, { testID: 'demo-samples', onPress: () => props.onSelect?.(props.samples?.[0]?.id) }, 'samples');
+    },
   };
 });
 
@@ -203,6 +208,10 @@ jest.mock('expo-sharing', () => ({
   isAvailableAsync: jest.fn().mockResolvedValue(false),
   shareAsync: jest.fn(),
 }));
+
+const Clipboard = require('expo-clipboard');
+const FileSystem = require('expo-file-system');
+const Sharing = require('expo-sharing');
 
 const mockShowTrialCTA = jest.fn();
 
@@ -390,6 +399,7 @@ describe('ChatScreen', () => {
     mockTypingIndicatorsProps = undefined;
     mockMentionSuggestionsProps = undefined;
     mockDemoBannerProps = undefined;
+    mockDemoSamplesBarProps = undefined;
     mockImageModalProps = undefined;
     mockTopicPickerProps = undefined;
   });
@@ -493,7 +503,23 @@ describe('ChatScreen', () => {
     mockUseFeatureAccess.mockReturnValue(buildFeatureAccess({ isDemo: true }));
 
     const { store } = renderWithProviders(
-      <ChatScreen navigation={navigation} route={route} />
+      <ChatScreen navigation={navigation} route={route} />,
+      {
+        preloadedState: {
+          settings: {
+            theme: 'auto',
+            fontSize: 'medium',
+            apiKeys: { openai: 'test-key' },
+            realtimeRelayUrl: undefined,
+            verifiedProviders: [],
+            verificationTimestamps: {},
+            verificationModels: {},
+            expertMode: {},
+            hasCompletedOnboarding: false,
+            recordModeEnabled: false,
+          },
+        } as Partial<RootState>,
+      }
     );
 
     await act(async () => {
@@ -532,7 +558,23 @@ describe('ChatScreen', () => {
 
   it('opens topic picker in record mode and starts new recording', async () => {
     const { store } = renderWithProviders(
-      <ChatScreen navigation={navigation} route={route} />
+      <ChatScreen navigation={navigation} route={route} />,
+      {
+        preloadedState: {
+          settings: {
+            theme: 'auto',
+            fontSize: 'medium',
+            apiKeys: { openai: 'demo-key' },
+            realtimeRelayUrl: undefined,
+            verifiedProviders: [],
+            verificationTimestamps: {},
+            verificationModels: {},
+            expertMode: {},
+            hasCompletedOnboarding: false,
+            recordModeEnabled: false,
+          },
+        } as Partial<RootState>,
+      }
     );
 
     await act(async () => {
@@ -567,5 +609,463 @@ describe('ChatScreen', () => {
     await waitFor(() => {
       expect(mockHeaderProps.actionButton.label).toBe('Stop');
     });
+
+    mockRecordController.stop.mockReturnValue({
+      session: { id: 'recording-123', transcript: [] },
+    } as any);
+    (Clipboard.setStringAsync as jest.Mock).mockClear();
+    (FileSystem.writeAsStringAsync as jest.Mock).mockResolvedValue(undefined);
+    (Sharing.isAvailableAsync as jest.Mock).mockResolvedValue(false);
+
+    await act(async () => {
+      await mockHeaderProps.actionButton.onPress();
+    });
+
+    expect(mockRecordController.stop).toHaveBeenCalled();
+    expect(Clipboard.setStringAsync).toHaveBeenCalledWith(expect.stringContaining('recording-123'));
+    expect(FileSystem.writeAsStringAsync).toHaveBeenCalled();
+    expect(alertSpy).toHaveBeenCalledWith(
+      'Recording captured',
+      'Copied to clipboard, saved to a temp file, and printed to logs.',
+      expect.any(Array),
+    );
+
+    const buttons = alertSpy.mock.calls[0][2] as Array<{ text: string; onPress?: () => void }>;
+    const appendButton = buttons.find(btn => btn.text === 'Append to Pack (dev)');
+
+    await act(async () => {
+      await appendButton?.onPress?.();
+    });
+
+    expect(mockAppendToPack).toHaveBeenCalledWith(expect.objectContaining({ id: 'recording-123' }));
+    expect(alertSpy).toHaveBeenCalledWith('Appended', 'Recording appended to pack.');
+  });
+
+  it('prompts trial upgrade when generating images in demo mode', async () => {
+    mockUseFeatureAccess.mockReturnValue(buildFeatureAccess({ isDemo: true }));
+    mockShowTrialCTA.mockImplementation((navigateFn: (screen: string, params?: Record<string, unknown>) => void) => {
+      navigateFn('Subscription');
+    });
+
+    renderWithProviders(
+      <ChatScreen navigation={navigation} route={route} />
+    );
+
+    await act(async () => {
+      mockChatInputBarProps.onOpenImageModal();
+    });
+
+    await act(async () => {
+      await mockImageModalProps.onGenerate({ prompt: 'sketch', size: 'square' });
+    });
+
+    expect(mockShowTrialCTA).toHaveBeenCalledWith(expect.any(Function), expect.objectContaining({ message: expect.stringContaining('Image generation requires') }));
+    expect(navigation.navigate).toHaveBeenCalledWith('Subscription', undefined);
+    expect(mockGenerateImage).not.toHaveBeenCalled();
+  });
+
+  it('records existing sample selection and plays scripted turn', async () => {
+    mockUseFeatureAccess.mockReturnValue(buildFeatureAccess({ isDemo: true }));
+    mockRecordController.startChat.mockImplementation(() => undefined);
+    const sampleData = { id: 'sample-existing', transcript: [] };
+    mockDemoContentService.findChatById.mockResolvedValue(sampleData as any);
+    mockDemoPlaybackRouter.primeNextChatTurn.mockReturnValue({ user: 'Sample turn', providers: ['anthropic'] });
+
+    const { store } = renderWithProviders(
+      <ChatScreen navigation={navigation} route={route} />
+    );
+
+    await act(async () => {
+      store.dispatch(setRecordModeEnabled(true));
+    });
+
+    await waitFor(() => {
+      expect(mockHeaderProps.actionButton?.label).toBe('Record');
+    });
+
+    act(() => {
+      mockHeaderProps.actionButton.onPress();
+    });
+
+    await act(async () => {
+      await mockTopicPickerProps.onSelect('sample-existing', 'Existing Title');
+    });
+
+    expect(mockRecordController.startChat).toHaveBeenCalledWith(expect.objectContaining({
+      id: expect.stringContaining('sample-existing_rec_'),
+      title: 'Existing Title',
+    }));
+    expect(mockMessages.sendMessage).toHaveBeenCalledWith('Sample turn', expect.any(Array));
+  });
+
+  it('prevents sending blank messages', async () => {
+    renderWithProviders(
+      <ChatScreen navigation={navigation} route={route} />
+    );
+
+    await act(async () => {
+      await mockChatInputBarProps.onSend('   ');
+    });
+
+    expect(mockMessages.sendMessage).not.toHaveBeenCalled();
+  });
+
+  it('skips send when session is unavailable', async () => {
+    const sessionless = {
+      ...mockSession,
+      currentSession: null,
+      selectedAIs: [],
+    };
+    mockUseChatSession.mockReturnValue(sessionless);
+
+    renderWithProviders(
+      <ChatScreen navigation={navigation} route={route} />
+    );
+
+    await act(async () => {
+      await mockChatInputBarProps.onSend('Hello there');
+    });
+
+    expect(mockMessages.sendMessage).not.toHaveBeenCalled();
+  });
+
+  it('handles image generation lifecycle including retry and cancel', async () => {
+    const originalAbortController = global.AbortController;
+    const abortSpy = jest.fn();
+    (global as any).AbortController = jest.fn(() => ({ abort: abortSpy, signal: Symbol('signal') })) as unknown as typeof AbortController;
+
+    mockUseFeatureAccess.mockReturnValue(buildFeatureAccess({ isDemo: false }));
+    mockGenerateImage.mockResolvedValue([
+      { url: 'https://example.com/image.png', mimeType: 'image/png' },
+    ]);
+
+    const { store } = renderWithProviders(
+      <ChatScreen navigation={navigation} route={route} />,
+      {
+        preloadedState: {
+          settings: {
+            theme: 'auto',
+            fontSize: 'medium',
+            apiKeys: { openai: 'test-key' },
+            realtimeRelayUrl: undefined,
+            verifiedProviders: [],
+            verificationTimestamps: {},
+            verificationModels: {},
+            expertMode: {},
+            hasCompletedOnboarding: false,
+            recordModeEnabled: false,
+          },
+        } as Partial<RootState>,
+      }
+    );
+
+    const dispatchSpy = jest.spyOn(store, 'dispatch');
+
+    await act(async () => {
+      mockChatInputBarProps.onOpenImageModal();
+    });
+
+    await act(async () => {
+      await mockImageModalProps.onGenerate({ prompt: 'Create art', size: 'portrait' });
+    });
+
+    expect(mockGenerateImage).toHaveBeenCalledWith(expect.objectContaining({ size: '1024x1536', prompt: 'Create art' }));
+    expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({ type: addMessage.type, payload: expect.objectContaining({ content: 'Generating image…' }) }));
+    expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({
+      type: updateMessage.type,
+      payload: expect.objectContaining({ attachments: [expect.objectContaining({ uri: 'https://example.com/image.png' })] }),
+    }));
+
+    const generatedAction = dispatchSpy.mock.calls.find(([action]) => action.type === addMessage.type);
+    const messageId = generatedAction?.[0].payload.id as string;
+
+    mockGenerateImage.mockClear();
+    mockGenerateImage.mockResolvedValue([
+      { url: 'https://example.com/second.png', mimeType: 'image/png' },
+    ]);
+
+    await act(async () => {
+      await mockMessageListProps.onRetryImage({
+        id: messageId,
+        metadata: {
+          providerMetadata: {
+            imageParams: { prompt: 'Retry it', size: 'landscape' },
+          },
+        },
+      } as any);
+    });
+
+    expect(mockGenerateImage).toHaveBeenCalledWith(expect.objectContaining({ size: '1536x1024', prompt: 'Retry it' }));
+
+    act(() => {
+      mockMessageListProps.onCancelImage({ id: messageId } as any);
+    });
+
+    expect(abortSpy).toHaveBeenCalled();
+    expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({
+      type: updateMessage.type,
+      payload: expect.objectContaining({ content: 'Generation cancelled.' }),
+    }));
+
+    mockGenerateImage.mockClear();
+    mockGenerateImage.mockResolvedValue([
+      { mimeType: 'image/png' } as any,
+    ]);
+
+    await act(async () => {
+      await mockMessageListProps.onRetryImage({
+        id: messageId,
+        metadata: {
+          providerMetadata: {
+            imageParams: { prompt: 'No uri variant', size: 'auto' },
+          },
+        },
+      } as any);
+    });
+
+    expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({
+      type: updateMessage.type,
+      payload: expect.objectContaining({ content: 'Image generated.' }),
+    }));
+
+    (global as any).AbortController = originalAbortController;
+  });
+
+  it('surfaces image generation errors when provider fails', async () => {
+    mockUseFeatureAccess.mockReturnValue(buildFeatureAccess({ isDemo: false }));
+    mockGenerateImage.mockRejectedValueOnce(new Error('Service down'));
+
+    const { store } = renderWithProviders(
+      <ChatScreen navigation={navigation} route={route} />,
+      {
+        preloadedState: {
+          settings: {
+            theme: 'auto',
+            fontSize: 'medium',
+            apiKeys: { openai: 'demo-key' },
+            realtimeRelayUrl: undefined,
+            verifiedProviders: [],
+            verificationTimestamps: {},
+            verificationModels: {},
+            expertMode: {},
+            hasCompletedOnboarding: false,
+            recordModeEnabled: false,
+          },
+        } as Partial<RootState>,
+      }
+    );
+
+    const dispatchSpy = jest.spyOn(store, 'dispatch');
+
+    await act(async () => {
+      mockChatInputBarProps.onOpenImageModal();
+    });
+
+    await act(async () => {
+      await mockImageModalProps.onGenerate({ prompt: 'Failure case', size: 'auto' });
+    });
+
+    expect(mockGenerateImage).toHaveBeenCalled();
+    expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({
+      type: updateMessage.type,
+      payload: expect.objectContaining({ content: expect.stringContaining('Failed to generate image: Service down') }),
+    }));
+  });
+
+  it('invokes quick start handler when auto prompt is available', async () => {
+    mockQuickStartData.hasInitialPrompt = true;
+    mockQuickStartData.handleQuickStart = jest.fn();
+
+    renderWithProviders(
+      <ChatScreen navigation={navigation} route={route} />
+    );
+
+    await waitFor(() => {
+      expect(mockQuickStartData.handleQuickStart).toHaveBeenCalledWith(
+        mockAIResponsesData.sendQuickStartResponses,
+        mockInput.setInputText,
+        expect.any(Function),
+      );
+    });
+  });
+
+  it('loads demo samples and primes playback when a sample is selected', async () => {
+    mockUseFeatureAccess.mockReturnValue(buildFeatureAccess({ isDemo: true }));
+    const sampleList = [{ id: 'sample-abc', title: 'Sample ABC' }];
+    const sampleData = { id: 'sample-abc', transcript: [] };
+    mockDemoContentService.listChatSamples.mockResolvedValueOnce(sampleList);
+    mockDemoContentService.findChatById.mockResolvedValue(sampleData as any);
+    mockDemoPlaybackRouter.primeNextChatTurn.mockReturnValue({ user: 'Scripted sample', providers: ['anthropic'] });
+
+    renderWithProviders(
+      <ChatScreen navigation={navigation} route={route} />
+    );
+
+    await waitFor(() => {
+      expect(mockDemoSamplesBarProps?.samples).toEqual(sampleList);
+    });
+
+    await act(async () => {
+      await mockDemoSamplesBarProps.onSelect('sample-abc');
+    });
+
+    expect(mockDemoContentService.findChatById).toHaveBeenCalledWith('sample-abc');
+    expect(mockDemoPlaybackRouter.primeNextChatTurn).toHaveBeenCalled();
+    expect(mockMessages.sendMessage).toHaveBeenCalledWith('Scripted sample', expect.any(Array));
+  });
+
+  it('derives header subtitle from selected AI count', () => {
+    const renderScenario = (ais: AIConfig[]) => {
+      const override = {
+        ...mockSession,
+        selectedAIs: ais,
+        currentSession: {
+          ...mockSession.currentSession,
+          selectedAIs: ais,
+        },
+      };
+      mockUseChatSession.mockReturnValue(override);
+      const result = renderWithProviders(
+        <ChatScreen navigation={navigation} route={route} />
+      );
+      mockUseChatSession.mockReturnValue(mockSession);
+      return result;
+    };
+
+    const noAI = renderScenario([]);
+    expect(mockHeaderProps.subtitle).toBe('Preparing symposium');
+    noAI.unmount();
+
+    const singleAI = renderScenario([selectedAIs[0]]);
+    expect(mockHeaderProps.subtitle).toBe('In dialogue with Claude');
+    singleAI.unmount();
+
+    const trio = renderScenario([
+      selectedAIs[0],
+      selectedAIs[1],
+      { id: 'gemini', provider: 'google', name: 'Gemini', model: 'gemini-1.5', color: '#222' },
+    ]);
+    expect(mockHeaderProps.subtitle).toBe('Claude, GPT-4 & 1 more');
+    trio.unmount();
+
+    const quartet = renderScenario([
+      selectedAIs[0],
+      selectedAIs[1],
+      { id: 'gemini', provider: 'google', name: 'Gemini', model: 'gemini-1.5', color: '#222' },
+      { id: 'mistral', provider: 'mistral', name: 'Mistral', model: 'mistral-large', color: '#333' },
+    ]);
+    expect(mockHeaderProps.subtitle).toBe('Claude, GPT-4 & 2 others');
+    quartet.unmount();
+  });
+
+  it('advances scripted chat turn after streaming responses complete', async () => {
+    jest.useFakeTimers();
+    const streamingState = {
+      streamingMessages: {
+        m1: {
+          messageId: 'm1',
+          content: '',
+          isStreaming: true,
+          startTime: 0,
+          aiProvider: 'anthropic',
+          cursorVisible: true,
+          chunksReceived: 0,
+          bytesReceived: 0,
+        },
+      },
+      streamingPreferences: {
+        claude: { enabled: true, supported: true },
+        openai: { enabled: true, supported: true },
+        google: { enabled: true, supported: true },
+        mistral: { enabled: true, supported: true },
+        perplexity: { enabled: true, supported: true },
+        cohere: { enabled: true, supported: true },
+        together: { enabled: true, supported: true },
+        deepseek: { enabled: true, supported: true },
+        grok: { enabled: true, supported: true },
+      },
+      globalStreamingEnabled: true,
+      streamingSpeed: 'natural',
+      activeStreamCount: 1,
+      totalStreamsCompleted: 0,
+      providerVerificationErrors: {},
+    };
+
+    mockUseFeatureAccess.mockReturnValue(buildFeatureAccess({ isDemo: true }));
+    mockDemoPlaybackRouter.hasNextChatTurn.mockReturnValue(true);
+    mockDemoPlaybackRouter.isTurnComplete.mockReturnValue(true);
+    mockDemoPlaybackRouter.primeNextChatTurn.mockReturnValue({ user: 'Next scripted', providers: ['anthropic'] });
+
+    try {
+      const { store } = renderWithProviders(
+        <ChatScreen navigation={navigation} route={route} />,
+        { preloadedState: { streaming: streamingState } as Partial<RootState> }
+      );
+
+      await act(async () => {
+        store.dispatch(endStreaming({ messageId: 'm1' }));
+      });
+
+      await act(async () => {
+        jest.advanceTimersByTime(300);
+      });
+
+      await waitFor(() => {
+        expect(mockMessages.sendMessage).toHaveBeenCalledWith('Next scripted', expect.any(Array));
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('falls back to advance scripted turn without active streams', async () => {
+    jest.useFakeTimers();
+    mockUseFeatureAccess.mockReturnValue(buildFeatureAccess({ isDemo: true }));
+    mockDemoPlaybackRouter.hasNextChatTurn.mockReturnValue(true);
+    mockDemoPlaybackRouter.isTurnComplete.mockReturnValue(true);
+    mockDemoPlaybackRouter.primeNextChatTurn.mockReturnValue({ user: 'Fallback scripted', providers: [] });
+    mockMessages.messages = [
+      { id: 'ai-last', senderType: 'ai', content: 'Answer', timestamp: 1 } as Message,
+    ];
+
+    try {
+      renderWithProviders(
+        <ChatScreen navigation={navigation} route={route} />,
+        {
+          preloadedState: {
+            streaming: {
+              streamingMessages: {},
+              streamingPreferences: {
+                claude: { enabled: true, supported: true },
+                openai: { enabled: true, supported: true },
+                google: { enabled: true, supported: true },
+                mistral: { enabled: true, supported: true },
+                perplexity: { enabled: true, supported: true },
+                cohere: { enabled: true, supported: true },
+                together: { enabled: true, supported: true },
+                deepseek: { enabled: true, supported: true },
+                grok: { enabled: true, supported: true },
+              },
+              globalStreamingEnabled: true,
+              streamingSpeed: 'natural',
+              activeStreamCount: 0,
+              totalStreamsCompleted: 0,
+              providerVerificationErrors: {},
+            },
+          } as Partial<RootState>,
+        }
+      );
+
+      await act(async () => {
+        jest.advanceTimersByTime(400);
+      });
+
+      await waitFor(() => {
+        expect(mockMessages.sendMessage).toHaveBeenCalledWith('Fallback scripted', expect.any(Array));
+      });
+    } finally {
+      jest.useRealTimers();
+      mockMessages.messages = [];
+    }
   });
 });

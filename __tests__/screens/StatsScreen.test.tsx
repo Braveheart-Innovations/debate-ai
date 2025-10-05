@@ -110,4 +110,38 @@ describe('StatsScreen', () => {
       expect.objectContaining({ maxDebates: 5 }),
     );
   });
+
+  it('shows recent debates without leaderboard when stats inactive but history exists', () => {
+    mockUseDebateStats.mockReturnValue({
+      history: [{ debateId: 'solo-history' }],
+      stats: {
+        claude: { totalDebates: 0, roundsWon: 0, roundsLost: 0 },
+      },
+    });
+
+    const { getByTestId, queryByTestId } = renderWithProviders(
+      <StatsScreen navigation={navigation} />,
+    );
+
+    expect(getByTestId('recent-debates')).toBeTruthy();
+    expect(queryByTestId('stats-leaderboard')).toBeNull();
+    expect(queryByTestId('stats-empty')).toBeNull();
+    expect(mockStatsEmptyState).not.toHaveBeenCalled();
+  });
+
+  it('invokes navigation goBack via header button', () => {
+    mockUseDebateStats.mockReturnValue({
+      history: [],
+      stats: {
+        claude: { totalDebates: 0, roundsWon: 0, roundsLost: 0 },
+      },
+    });
+
+    const { getByTestId } = renderWithProviders(
+      <StatsScreen navigation={navigation} />,
+    );
+
+    fireEvent.press(getByTestId('back-button'));
+    expect(navigation.goBack).toHaveBeenCalled();
+  });
 });

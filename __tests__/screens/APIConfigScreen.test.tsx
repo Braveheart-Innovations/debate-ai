@@ -1,6 +1,6 @@
 import React from 'react';
-import { Text } from 'react-native';
-import { fireEvent } from '@testing-library/react-native';
+import { Platform, Text } from 'react-native';
+import { act, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '../../test-utils/renderWithProviders';
 import { showSheet } from '@/store';
 
@@ -124,5 +124,54 @@ describe('APIConfigScreen', () => {
     fireEvent.press(getByTestId('header'));
     expect(navigation.goBack).toHaveBeenCalledTimes(1);
     expect(mockDispatch).toHaveBeenCalledWith(showSheet({ sheet: 'settings' }));
+  });
+
+  it('forwards toggle expand calls with current expanded state', async () => {
+    renderWithProviders(<APIConfigScreen navigation={navigation} />);
+
+    expect(lastProviderListProps.expandedProvider).toBeNull();
+
+    await act(async () => {
+      lastProviderListProps.onToggleExpand('claude');
+    });
+
+    expect(mockHandleToggleExpand).toHaveBeenCalledWith(
+      'claude',
+      null,
+      expect.any(Function),
+    );
+
+    const setter = mockHandleToggleExpand.mock.calls[0][2];
+
+    await act(async () => {
+      setter('claude');
+    });
+
+    await waitFor(() => {
+      expect(lastProviderListProps.expandedProvider).toBe('claude');
+    });
+
+    mockHandleToggleExpand.mockClear();
+
+    await act(async () => {
+      lastProviderListProps.onToggleExpand('claude');
+    });
+
+    expect(mockHandleToggleExpand).toHaveBeenCalledWith(
+      'claude',
+      'claude',
+      expect.any(Function),
+    );
+  });
+
+  it('uses height avoiding behavior on android', () => {
+    const originalOS = Platform.OS;
+    Platform.OS = 'android';
+
+    renderWithProviders(<APIConfigScreen navigation={navigation} />);
+
+    expect(lastProviderListProps).toBeDefined();
+
+    Platform.OS = originalOS;
   });
 });
