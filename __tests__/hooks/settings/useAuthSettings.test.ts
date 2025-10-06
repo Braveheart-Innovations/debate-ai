@@ -1,7 +1,8 @@
-import { act } from '@testing-library/react-native';
+import { act, waitFor } from '@testing-library/react-native';
 import { Alert } from 'react-native';
 import { renderHookWithProviders } from '../../../test-utils/renderHookWithProviders';
 import { useAuthSettings } from '@/hooks/settings/useAuthSettings';
+import * as storeModule from '@/store';
 import type { RootState } from '@/store';
 
 const baseState: Partial<RootState> = {
@@ -70,5 +71,51 @@ describe('useAuthSettings', () => {
     });
 
     expect(result.current.error).toBeNull();
+  });
+
+  it('captures sign-out failures and sets error state', async () => {
+    const logoutSpy = jest.spyOn(storeModule, 'logout').mockImplementation(() => {
+      throw new Error('boom');
+    });
+    const { result } = renderHookWithProviders(() => useAuthSettings(), {
+      preloadedState: baseState,
+    });
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(result.current.signOut()).rejects.toThrow('boom');
+
+    await waitFor(() => expect(result.current.error).toBe('Failed to sign out'));
+    expect(result.current.isLoading).toBe(false);
+
+    consoleSpy.mockRestore();
+    logoutSpy.mockRestore();
+  });
+
+  it('alerts when confirmation sign-out fails', async () => {
+    const alertSpy = jest.spyOn(Alert, 'alert');
+    const logoutSpy = jest.spyOn(storeModule, 'logout').mockImplementation(() => {
+      throw new Error('fail');
+    });
+    const { result } = renderHookWithProviders(() => useAuthSettings(), {
+      preloadedState: baseState,
+    });
+
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    act(() => {
+      result.current.signOutWithConfirmation();
+    });
+
+    const [, , buttons] = alertSpy.mock.calls[0];
+
+    await act(async () => {
+      await buttons?.find(button => button.text === 'Sign Out')?.onPress?.();
+    });
+
+    await waitFor(() => expect(alertSpy.mock.calls.length).toBeGreaterThan(1));
+    expect(alertSpy.mock.calls[1][0]).toBe('Error');
+
+    consoleSpy.mockRestore();
+    logoutSpy.mockRestore();
   });
 });

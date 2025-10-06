@@ -33,6 +33,8 @@ describe('useSubscriptionStatus', () => {
     expect(result.current.getSubscriptionLabel()).toBe('Free');
     expect(result.current.getFeatureLimit('monthlyChats')).toBeGreaterThan(0);
     expect(result.current.isFeatureUnlimited('monthlyChats')).toBe(false);
+    expect(result.current.getDaysRemaining()).toBeNull();
+    expect(result.current.isTrialActive()).toBe(false);
     expect(result.current.canUpgrade()).toBe(true);
     expect(result.current.getUpgradeOptions()).toEqual(['pro', 'business']);
   });
@@ -49,6 +51,7 @@ describe('useSubscriptionStatus', () => {
     expect(result.current.hasFeatureAccess('customPersonalities')).toBe(true);
     expect(result.current.getFeatureLimit('monthlyChats')).toBe(500);
     expect(result.current.isFeatureUnlimited('exportCount')).toBe(false);
+    expect(result.current.getDaysRemaining()).toBe(30);
     expect(result.current.canUpgrade()).toBe(true);
     expect(result.current.getUpgradeOptions()).toEqual(['business']);
   });
@@ -65,6 +68,7 @@ describe('useSubscriptionStatus', () => {
     expect(result.current.hasFeatureAccess('apiAccess')).toBe(true);
     expect(result.current.isFeatureUnlimited('monthlyChats')).toBe(true);
     expect(result.current.getSubscriptionLabel()).toBe('Business');
+    expect(result.current.getFeatureLimit('exportCount')).toBe(-1);
     expect(result.current.canUpgrade()).toBe(false);
     expect(result.current.getUpgradeOptions()).toEqual([]);
   });

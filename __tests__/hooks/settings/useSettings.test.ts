@@ -110,4 +110,39 @@ describe('useSettings', () => {
     expect(result.current.settings.themeMode).toBe('light');
     expect(result.current.error).toBeNull();
   });
+
+  it('handles load failures by resetting to defaults', async () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    mockLoadSettings.mockRejectedValueOnce(new Error('load failed'));
+
+    const { result } = renderHookWithProviders(() => useSettings());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.error).toBe('Failed to load settings');
+    expect(result.current.settings).toEqual(DEFAULT_SETTINGS);
+    consoleSpy.mockRestore();
+  });
+
+  it('surfaces reset, export, and import errors', async () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const { result } = renderHookWithProviders(() => useSettings());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    mockResetSettings.mockRejectedValueOnce(new Error('reset failed'));
+    await expect(result.current.resetSettings()).rejects.toThrow('reset failed');
+    await waitFor(() => expect(result.current.error).toBe('Failed to reset settings'));
+
+    mockExportSettings.mockRejectedValueOnce(new Error('export failed'));
+    await expect(result.current.exportSettings()).rejects.toThrow('export failed');
+    await waitFor(() => expect(result.current.error).toBe('Failed to export settings'));
+
+    mockImportSettings.mockRejectedValueOnce(new Error('import failed'));
+    await expect(result.current.importSettings('{}')).rejects.toThrow('import failed');
+    await waitFor(() => expect(result.current.error).toBe('Failed to import settings'));
+    expect(result.current.isLoading).toBe(false);
+
+    consoleSpy.mockRestore();
+  });
 });

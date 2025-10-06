@@ -44,6 +44,10 @@ class MockOrchestrator {
 describe('useDebateVoting', () => {
   const baseState = {} as Partial<RootState>;
 
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('updates voting state from orchestrator events and records votes', async () => {
     const orchestrator = new MockOrchestrator();
     const { result, store } = renderHookWithProviders(() => useDebateVoting(orchestrator as unknown as never, []), {
@@ -52,7 +56,15 @@ describe('useDebateVoting', () => {
 
     store.dispatch(startDebate({ debateId: 'debate-1', topic: 'AI', participants: ['claude', 'gpt4'] }));
 
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(orchestrator.votingService.calculateScores).toHaveBeenCalledTimes(1);
+    expect(result.current.scores).toEqual(orchestrator.votingService.scores);
+
     expect(result.current.getVotingPrompt()).toBe('🏅 Who won Opening?');
+    expect(orchestrator.votingService.getVotingPrompt).toHaveBeenCalledWith(0, false, false);
 
     act(() => {
       orchestrator.emit({ type: 'voting_started', data: { round: 1, isFinalRound: false, isOverallVote: false }, timestamp: Date.now() });
@@ -77,5 +89,78 @@ describe('useDebateVoting', () => {
 
     orchestrator.votingService.prompt = '🏆 Vote for Overall Winner!';
     expect(result.current.getVotingPrompt()).toBe('🏆 Vote for Overall Winner!');
+
+    act(() => {
+      orchestrator.emit({ type: 'voting_started', data: { round: 3, isFinalRound: true, isOverallVote: true }, timestamp: Date.now() });
+    });
+
+    await act(async () => {
+      await result.current.recordVote('gpt4');
+    });
+
+    expect(orchestrator.recordVote).toHaveBeenLastCalledWith(3, 'gpt4', true);
+    expect(store.getState().debateStats.history).toHaveLength(1);
+    expect(store.getState().debateStats.history[0]?.overallWinner).toBe('gpt4');
+    expect(result.current.getVotingPrompt()).toBe('🏆 Vote for Overall Winner!');
+    expect(orchestrator.votingService.getVotingPrompt).toHaveBeenLastCalledWith(3, true, true);
+
+    act(() => {
+      orchestrator.emit({ type: 'debate_ended', data: { overallWinner: 'claude' }, timestamp: Date.now() });
+    });
+
+    expect(store.getState().debateStats.history[0]?.overallWinner).toBe('gpt4');
+    expect(result.current.isVoting).toBe(false);
+  });
+
+  it('handles missing orchestrator, vote failures, and helper fallbacks', async () => {
+    let currentOrchestrator: MockOrchestrator | null = null;
+    const participants = [];
+
+    const { result, rerender } = renderHookWithProviders(
+      () => useDebateVoting(currentOrchestrator as unknown as MockOrchestrator | null, participants),
+      { preloadedState: baseState },
+    );
+
+    expect(result.current.getVotingPrompt()).toBe('');
+    expect(result.current.hasVotedForRound(5)).toBe(false);
+
+    await act(async () => {
+      await result.current.recordVote('claude');
+    });
+
+    expect(result.current.error).toBe('No active orchestrator');
+
+    const orchestrator = new MockOrchestrator();
+    orchestrator.recordVote.mockRejectedValueOnce(new Error('vote-failed'));
+    currentOrchestrator = orchestrator;
+
+    await act(async () => {
+      rerender();
+      await Promise.resolve();
+    });
+
+    act(() => {
+      orchestrator.emit({ type: 'voting_started', data: { round: 2, isFinalRound: false, isOverallVote: false }, timestamp: Date.now() });
+    });
+
+    await act(async () => {
+      await result.current.recordVote('claude');
+    });
+
+    expect(orchestrator.recordVote).toHaveBeenCalledWith(2, 'claude', false);
+    expect(result.current.error).toBe('vote-failed');
+
+    orchestrator.recordVote.mockResolvedValueOnce(undefined);
+
+    act(() => {
+      orchestrator.emit({ type: 'voting_started', data: { round: 4, isFinalRound: true, isOverallVote: true }, timestamp: Date.now() });
+    });
+
+    await act(async () => {
+      await result.current.recordVote('claude');
+    });
+
+    expect(orchestrator.recordVote).toHaveBeenLastCalledWith(4, 'claude', true);
+    expect(result.current.error).toBeNull();
   });
 });

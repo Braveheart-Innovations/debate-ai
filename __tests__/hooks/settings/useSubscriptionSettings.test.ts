@@ -153,4 +153,63 @@ describe('useSubscriptionSettings', () => {
 
     expect(result.current.subscription.plan).toBe('business');
   });
+
+  it('handles subscription load failures with graceful fallback', async () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    mockSubscriptionService.getCurrentSubscription.mockRejectedValue(new Error('load fail'));
+    mockSubscriptionService.getExpiryInfo.mockResolvedValue(expiryInfo);
+
+    const { result } = renderHookWithProviders(() => useSubscriptionSettings(), {
+      preloadedState: baseState,
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.subscription.plan).toBe('free');
+    expect(result.current.error).toBe('Failed to load subscription status');
+    consoleSpy.mockRestore();
+  });
+
+  it('returns safe defaults when feature helpers fail', async () => {
+    const { result } = renderHookWithProviders(() => useSubscriptionSettings(), {
+      preloadedState: baseState,
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    mockSubscriptionService.canAccessFeature.mockRejectedValueOnce(new Error('no feature'));
+    expect(await result.current.canAccessFeature('prioritySupport')).toBe(false);
+
+    mockSubscriptionService.getFeatureLimit.mockRejectedValueOnce(new Error('limit fail'));
+    expect(await result.current.getFeatureLimit('maxChatSessions')).toBe(0);
+  });
+
+  it('surfaces errors from upgrade, cancel, and restore actions', async () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const { result } = renderHookWithProviders(() => useSubscriptionSettings(), {
+      preloadedState: baseState,
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    mockSubscriptionService.initiatePurchase.mockRejectedValueOnce(new Error('purchase fail'));
+    await act(async () => {
+      await expect(result.current.upgradeToPro()).rejects.toThrow('purchase fail');
+    });
+    await waitFor(() => expect(result.current.error).toBe('Failed to upgrade subscription'));
+    expect(result.current.isLoading).toBe(false);
+
+    mockSubscriptionService.cancelSubscription.mockRejectedValueOnce(new Error('cancel fail'));
+    await act(async () => {
+      await expect(result.current.cancelSubscription()).rejects.toThrow('cancel fail');
+    });
+    await waitFor(() => expect(result.current.error).toBe('Failed to cancel subscription'));
+
+    mockSubscriptionService.restorePurchases.mockRejectedValueOnce(new Error('restore fail'));
+    await act(async () => {
+      await expect(result.current.restorePurchases()).rejects.toThrow('restore fail');
+    });
+    await waitFor(() => expect(result.current.error).toBe('Failed to restore purchases'));
+
+    consoleSpy.mockRestore();
+  });
 });
