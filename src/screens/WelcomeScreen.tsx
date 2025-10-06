@@ -4,7 +4,6 @@ import {
   StyleSheet,
   View,
   Dimensions,
-  Text,
   Image,
 } from 'react-native';
 import { GradientButton, Typography } from '../components/molecules';
@@ -117,14 +116,14 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
       icon: { type: 'material-community', name: 'account-group' },
       gradient: theme.colors.gradients.primary,
       title: 'Group AI Chat',
-      description: 'Collaborate with multiple AIs simultaneously. **Premium**: Unlimited AIs in one chat.',
+      description: 'Collaborate with up to 3 AIs simultaneously as our Chat Orchestrator manages context.',
       premiumType: 'partial' as const,
     },
     {
       icon: { type: 'material-community', name: 'sword-cross' },
       gradient: theme.colors.gradients.sunset,
       title: 'AI Debate Arena',
-      description: 'Watch AIs debate motions in real-time. **Premium**: Create debates on ANY motion you choose.',
+      description: 'Watch AIs debate motions in real-time. Select from a list of motions across a broad spectrum of categories, or create your own!',
       premiumType: 'partial' as const,
     },
     // Row 2
@@ -132,14 +131,14 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
       icon: { type: 'material', name: 'compare-arrows' },
       gradient: theme.colors.gradients.sunrise,
       title: 'Compare Mode',
-      description: 'See side-by-side AI responses to the same prompt. Compare different perspectives instantly.',
+      description: 'See side-by-side AI responses to the same prompt across different providers, models, or personalities. Compare different perspectives instantly.',
       premiumType: 'full' as const,
     },
     {
       icon: { type: 'material', name: 'theater-comedy' },
       gradient: theme.colors.gradients.forest,
-      title: 'Custom Personalities',
-      description: 'Design and tune personalities to guide tone, expertise, and behavior.',
+      title: 'Personality System',
+      description: 'Enrich AI responses with personalities including "Bestie", an empathetic companion; "George", a satirist with witty responses; and "Kai" the staff software engineer.',
       premiumType: 'none' as const,
     },
     // Row 3
@@ -154,7 +153,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
       icon: { type: 'material', name: 'tune' },
       gradient: theme.colors.gradients.forest,
       title: 'Expert Mode',
-      description: 'Advanced model and parameter controls for power users.',
+      description: 'Set advanced model controls like temperature, max token usage, Top P, and others depending on API availability. Find a combination you like? Set it as your default.',
       premiumType: 'none' as const,
     },
   ];
@@ -193,7 +192,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
             align="center"
             style={{ marginBottom: 20 }}
           >
-            Where Ideas Converge. Where Understanding Emerges.
+            {`Where Ideas Converge.\nWhere Understanding Emerges.`}
           </Typography>
         </Animated.View>
 
@@ -239,25 +238,12 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
               >
                 {feature.title}
               </Typography>
-              {feature.premiumType === 'partial' ? (
-                <Text style={{ 
-                  fontSize: 14,  // Changed from 12 to match Typography caption
-                  lineHeight: 16, 
-                  opacity: 0.8, 
-                  color: theme.colors.text.primary,
-                }}>
-                  {feature.description.split('**Premium**:')[0]}
-                  <Text style={{ fontWeight: 'bold' }}>Premium:</Text>
-                  {feature.description.split('**Premium**:')[1]}
-                </Text>
-              ) : (
-                <Typography 
-                  variant="caption" 
-                  style={{ lineHeight: 16, opacity: 0.8, color: theme.colors.text.primary }}
-                >
-                  {feature.description}
-                </Typography>
-              )}
+              <Typography 
+                variant="caption" 
+                style={{ lineHeight: 16, opacity: 0.8, color: theme.colors.text.primary }}
+              >
+                {feature.description}
+              </Typography>
               </View>
             </Animated.View>
           ))}
