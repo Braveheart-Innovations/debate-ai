@@ -146,6 +146,7 @@ describe('SocialAuthProviders', () => {
     Object.defineProperty(Platform, 'OS', { value: 'android' });
     const error = new Error('Network issue');
     (signInWithGoogle as jest.Mock).mockRejectedValue(error);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     const onError = jest.fn();
     const { getByTestId } = renderWithProviders(
@@ -160,15 +161,18 @@ describe('SocialAuthProviders', () => {
     });
 
     expect(Alert.alert).toHaveBeenCalledWith('Sign In', 'Network issue');
+    consoleSpy.mockRestore();
   });
 
   it('shows simulator notice when Apple auth unavailable in dev', async () => {
     Object.defineProperty(Platform, 'OS', { value: 'ios' });
     (global as any).__DEV__ = true;
     (AppleAuthentication.isAvailableAsync as jest.Mock).mockResolvedValue(false);
+    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
     const { findByText } = renderWithProviders(<SocialAuthProviders />);
 
     expect(await findByText(/iOS Simulator Detected/i)).toBeTruthy();
+    consoleSpy.mockRestore();
   });
 });

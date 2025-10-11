@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/10</span>
+                <span class='fraction'>10/10</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/10</span>
+                <span class='fraction'>10/10</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/3</span>
+                <span class='fraction'>3/3</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/8</span>
+                <span class='fraction'>8/8</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -130,25 +130,25 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -173,28 +173,28 @@
 };
 &nbsp;
 export class PromptDebugLogger {
-<span class="fstat-no" title="function not covered" >  st</span>atic enabled(): boolean {
+  static enabled(): boolean {
     // __DEV__ is defined in React Native; fall back to NODE_ENV/DEBUG_PROMPTS
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const isDev = <span class="cstat-no" title="statement not covered" >(global as any)?.__DEV__ === true || process?.env?.NODE_ENV === 'development';</span>
-    const optIn = <span class="cstat-no" title="statement not covered" >process?.env?.DEBUG_PROMPTS === '1';</span>
-<span class="cstat-no" title="statement not covered" >    return Boolean(isDev || optIn);</span>
+    const isDev = (global as any)?.__DEV__ === true || process?.env?.NODE_ENV === 'development';
+    const optIn = process?.env?.DEBUG_PROMPTS === '1';
+    return Boolean(isDev || optIn);
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  st</span>atic logTurn(label: string, payload: PromptDebugPayload): void {
-<span class="cstat-no" title="statement not covered" >    if (!PromptDebugLogger.enabled()) <span class="cstat-no" title="statement not covered" >return;</span></span>
-<span class="cstat-no" title="statement not covered" >    try {</span>
+  static logTurn(label: string, payload: PromptDebugPayload): void {
+    if (!PromptDebugLogger.enabled()) return;
+    try {
       // Use a compact label + pretty JSON for readability in RN logs
       // Avoid massive spam: cap extremely large prompts but keep them mostly intact
-      const cap = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(s</span>?: string) =&gt; (<span class="cstat-no" title="statement not covered" >s &amp;&amp; s.length &gt; 8000 ? s.slice(0, 8000) + '\n…[truncated]' : s)</span>;</span>
-      const sanitized: PromptDebugPayload = <span class="cstat-no" title="statement not covered" >{</span>
+      const cap = (s?: string) =&gt; (s &amp;&amp; s.length &gt; 8000 ? s.slice(0, 8000) + '\n…[truncated]' : s);
+      const sanitized: PromptDebugPayload = {
         ...payload,
         systemPromptApplied: cap(payload.systemPromptApplied),
         systemPromptAdapter: cap(payload.systemPromptAdapter),
         userPrompt: cap(payload.userPrompt),
       };
       // eslint-disable-next-line no-console
-<span class="cstat-no" title="statement not covered" >      console.log(`\n[PromptDebug][${label}]\n` + JSON.stringify(sanitized, null, 2));</span>
+      console.log(`\n[PromptDebug][${label}]\n` + JSON.stringify(sanitized, null, 2));
     } catch {
       // ignore logging errors
     }
@@ -208,7 +208,7 @@ export class PromptDebugLogger {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-10-05T03:16:02.057Z
+                at 2025-10-10T05:05:22.629Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

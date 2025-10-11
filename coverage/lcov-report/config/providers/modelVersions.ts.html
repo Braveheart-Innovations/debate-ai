@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/27</span>
+                <span class='fraction'>27/27</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">90% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/10</span>
+                <span class='fraction'>9/10</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/6</span>
+                <span class='fraction'>6/6</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/21</span>
+                <span class='fraction'>21/21</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -460,7 +460,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -756,37 +756,37 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">23x</span>
+<span class="cline-any cline-yes">95x</span>
+<span class="cline-any cline-yes">49x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -828,7 +828,7 @@ export interface ProviderVersions {
  * Current model versions by provider and family
  * This makes it easy to update model versions without changing business logic
  */
-export const MODEL_VERSIONS: ProviderVersions = <span class="cstat-no" title="statement not covered" >{</span>
+export const MODEL_VERSIONS: ProviderVersions = {
   claude: {
     premium: [
       {
@@ -1124,37 +1124,37 @@ export const MODEL_VERSIONS: ProviderVersions = <span class="cstat-no" title="st
  * Helper functions for model version management
  */
 &nbsp;
-export const getLatestModelInFamily = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(p</span>roviderId: string, family: string): string | null =&gt; {</span>
-  const providerVersions = <span class="cstat-no" title="statement not covered" >MODEL_VERSIONS[providerId];</span>
-<span class="cstat-no" title="statement not covered" >  if (!providerVersions) <span class="cstat-no" title="statement not covered" >return null;</span></span>
+export const getLatestModelInFamily = (providerId: string, family: string): string | null =&gt; {
+  const providerVersions = MODEL_VERSIONS[providerId];
+  if (!providerVersions) return null;
   
-  const familyVersions = <span class="cstat-no" title="statement not covered" >providerVersions[family];</span>
-<span class="cstat-no" title="statement not covered" >  if (!familyVersions) <span class="cstat-no" title="statement not covered" >return null;</span></span>
+  const familyVersions = providerVersions[family];
+  if (!familyVersions) return null;
   
-  const latestModel = <span class="cstat-no" title="statement not covered" >familyVersions.find(<span class="fstat-no" title="function not covered" >mo</span>del =&gt; <span class="cstat-no" title="statement not covered" >model.isLatest)</span>;</span>
-<span class="cstat-no" title="statement not covered" >  return latestModel ? latestModel.id : null;</span>
+  const latestModel = familyVersions.find(model =&gt; model.isLatest);
+  return latestModel ? latestModel.id : <span class="branch-1 cbranch-no" title="branch not covered" >null;</span>
 };
 &nbsp;
-export const getAllModelsForProvider = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(p</span>roviderId: string): ModelVersionInfo[] =&gt; {</span>
-  const providerVersions = <span class="cstat-no" title="statement not covered" >MODEL_VERSIONS[providerId];</span>
-<span class="cstat-no" title="statement not covered" >  if (!providerVersions) <span class="cstat-no" title="statement not covered" >return [];</span></span>
+export const getAllModelsForProvider = (providerId: string): ModelVersionInfo[] =&gt; {
+  const providerVersions = MODEL_VERSIONS[providerId];
+  if (!providerVersions) return [];
   
-<span class="cstat-no" title="statement not covered" >  return Object.values(providerVersions).flat();</span>
+  return Object.values(providerVersions).flat();
 };
 &nbsp;
-export const getModelInfo = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(m</span>odelId: string): ModelVersionInfo | null =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >  for (const provider of Object.values(MODEL_VERSIONS)) {</span>
-<span class="cstat-no" title="statement not covered" >    for (const family of Object.values(provider)) {</span>
-      const model = <span class="cstat-no" title="statement not covered" >family.find(<span class="fstat-no" title="function not covered" >m </span>=&gt; <span class="cstat-no" title="statement not covered" >m.id === modelId)</span>;</span>
-<span class="cstat-no" title="statement not covered" >      if (model) <span class="cstat-no" title="statement not covered" >return model;</span></span>
+export const getModelInfo = (modelId: string): ModelVersionInfo | null =&gt; {
+  for (const provider of Object.values(MODEL_VERSIONS)) {
+    for (const family of Object.values(provider)) {
+      const model = family.find(m =&gt; m.id === modelId);
+      if (model) return model;
     }
   }
-<span class="cstat-no" title="statement not covered" >  return null;</span>
+  return null;
 };
 &nbsp;
-export const isModelDeprecated = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(m</span>odelId: string): boolean =&gt; {</span>
-  const modelInfo = <span class="cstat-no" title="statement not covered" >getModelInfo(modelId);</span>
-<span class="cstat-no" title="statement not covered" >  return modelInfo?.isDeprecated === true;</span>
+export const isModelDeprecated = (modelId: string): boolean =&gt; {
+  const modelInfo = getModelInfo(modelId);
+  return modelInfo?.isDeprecated === true;
 };
 &nbsp;
 /**
@@ -1174,7 +1174,7 @@ export const isModelDeprecated = <span class="cstat-no" title="statement not cov
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-10-05T03:16:02.057Z
+                at 2025-10-10T05:05:22.629Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

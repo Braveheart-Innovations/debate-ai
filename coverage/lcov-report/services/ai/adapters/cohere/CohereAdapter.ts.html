@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">69.23% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/13</span>
+                <span class='fraction'>9/13</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">53.84% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/13</span>
+                <span class='fraction'>7/13</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">75% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/4</span>
+                <span class='fraction'>3/4</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">66.66% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/12</span>
+                <span class='fraction'>8/12</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line medium'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -158,8 +158,8 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -172,12 +172,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -192,13 +190,15 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -229,25 +229,25 @@ export class CohereAdapter extends BaseAdapter {
     };
   }
   
-<span class="fstat-no" title="function not covered" >  pr</span>ivate formatChatHistory(history: Message[], resumptionContext?: ResumptionContext): Array&lt;{ role: string; message: string }&gt; {
-    const formattedHistory = <span class="cstat-no" title="statement not covered" >this.formatHistory(history, resumptionContext);</span>
-<span class="cstat-no" title="statement not covered" >    return formattedHistory.map(<span class="fstat-no" title="function not covered" >ms</span>g =&gt; (<span class="cstat-no" title="statement not covered" >{</span></span>
+  private formatChatHistory(history: Message[], resumptionContext?: ResumptionContext): Array&lt;{ role: string; message: string }&gt; {
+    const formattedHistory = this.formatHistory(history, resumptionContext);
+    return formattedHistory.map(msg =&gt; ({
       role: msg.role === 'user' ? 'USER' : 'ASSISTANT',
       message: msg.content as string,
     }));
   }
   
-<span class="fstat-no" title="function not covered" >  as</span>ync sendMessage(
+  async sendMessage(
     message: string,
     conversationHistory: Message[] = <span class="branch-0 cbranch-no" title="branch not covered" >[],</span>
     resumptionContext?: ResumptionContext,
     _attachments?: MessageAttachment[],
     _modelOverride?: string
   ): Promise&lt;SendMessageResponse&gt; {
-    const chatHistory = <span class="cstat-no" title="statement not covered" >this.formatChatHistory(conversationHistory, resumptionContext);</span>
+    const chatHistory = this.formatChatHistory(conversationHistory, resumptionContext);
     
-<span class="cstat-no" title="statement not covered" >    try {</span>
-      const response = <span class="cstat-no" title="statement not covered" >await fetch('https://api.cohere.ai/v1/chat', {</span>
+    try {
+      const response = await fetch('https://api.cohere.ai/v1/chat', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${this.config.apiKey}`,
@@ -255,24 +255,24 @@ export class CohereAdapter extends BaseAdapter {
           'Accept': 'application/json',
         },
         body: JSON.stringify({
-          model: this.config.model || 'command-r-plus',
+          model: this.config.model || <span class="branch-1 cbranch-no" title="branch not covered" >'command-r-plus',</span>
           message,
           chat_history: chatHistory,
-          temperature: this.config.parameters?.temperature || 0.7,
-          max_tokens: this.config.parameters?.maxTokens || 2048,
+          temperature: this.config.parameters?.temperature || <span class="branch-1 cbranch-no" title="branch not covered" >0.7,</span>
+          max_tokens: this.config.parameters?.maxTokens || <span class="branch-1 cbranch-no" title="branch not covered" >2048,</span>
           preamble: this.getSystemPrompt(),
         }),
       });
       
-<span class="cstat-no" title="statement not covered" >      if (!response.ok) {</span>
+      <span class="missing-if-branch" title="if path not taken" >I</span>if (!response.ok) {
 <span class="cstat-no" title="statement not covered" >        await this.handleApiError(response, 'Cohere');</span>
       }
       
-      const data = <span class="cstat-no" title="statement not covered" >await response.json();</span>
+      const data = await response.json();
       
-<span class="cstat-no" title="statement not covered" >      return {</span>
+      return {
         response: data.text,
-        modelUsed: this.config.model || 'command-r-plus',
+        modelUsed: this.config.model || <span class="branch-1 cbranch-no" title="branch not covered" >'command-r-plus',</span>
       };
     } catch (error) {
 <span class="cstat-no" title="statement not covered" >      console.error('Error in CohereAdapter:', error);</span>
@@ -286,7 +286,7 @@ export class CohereAdapter extends BaseAdapter {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-10-05T03:16:02.057Z
+                at 2025-10-10T05:05:22.629Z
             </div>
         <script src="../../../../prettify.js"></script>
         <script>

@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">28.57% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>2/7</span>
+                <span class='fraction'>7/7</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/3</span>
+                <span class='fraction'>3/3</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/1</span>
+                <span class='fraction'>1/1</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">28.57% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>2/7</span>
+                <span class='fraction'>7/7</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -131,7 +131,7 @@
 <a name='L66'></a><a href='#L66'>66</a>
 <a name='L67'></a><a href='#L67'>67</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">177x</span>
+<span class="cline-any cline-yes">196x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -170,16 +170,16 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">177x</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">196x</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -187,10 +187,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -236,16 +236,16 @@ export const typography = {
 } as const;
 &nbsp;
 // Get platform-appropriate font family
-export const getFontFamily = <span class="fstat-no" title="function not covered" >(w</span>eight: keyof typeof typography.weights = <span class="branch-0 cbranch-no" title="branch not covered" >'regular')</span> =&gt; {
-  const baseFont = <span class="cstat-no" title="statement not covered" >Platform.select({</span>
+export const getFontFamily = (weight: keyof typeof typography.weights = 'regular') =&gt; {
+  const baseFont = Platform.select({
     ios: typography.fonts.ios,
     android: typography.fonts.android,
     default: typography.fonts.fallback,
   });
   
   // For iOS, we append the weight to the font name
-<span class="cstat-no" title="statement not covered" >  if (Platform.OS === 'ios') {</span>
-    const weightMap = <span class="cstat-no" title="statement not covered" >{</span>
+  if (Platform.OS === 'ios') {
+    const weightMap = {
       light: '-Light',
       regular: '',
       medium: '-Medium',
@@ -253,10 +253,10 @@ export const getFontFamily = <span class="fstat-no" title="function not covered"
       bold: '-Bold',
       heavy: '-Heavy',
     };
-<span class="cstat-no" title="statement not covered" >    return `${baseFont}${weightMap[weight]}`;</span>
+    return `${baseFont}${weightMap[weight]}`;
   }
   
-<span class="cstat-no" title="statement not covered" >  return baseFont;</span>
+  return baseFont;
 };
 &nbsp;
 export type FontSize = keyof typeof typography.sizes;
@@ -268,7 +268,7 @@ export type LineHeight = keyof typeof typography.lineHeights;</pre></td></tr></t
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-10-05T03:16:02.057Z
+                at 2025-10-10T05:05:22.629Z
             </div>
         <script src="../prettify.js"></script>
         <script>

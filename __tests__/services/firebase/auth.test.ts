@@ -23,6 +23,9 @@ import {
   serverTimestamp,
 } from '@react-native-firebase/firestore';
 
+const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
 // Create typed mock references
 const mockGetAuth = getAuth as jest.MockedFunction<typeof getAuth>;
 const mockAuthState = { currentUser: null as { uid: string; isAnonymous?: boolean } | null };
@@ -167,6 +170,11 @@ const setDocData = (data?: Partial<Record<string, unknown>>) => {
 
 describe('firebase auth service', () => {
   beforeEach(resetMocks);
+
+  afterAll(() => {
+    consoleWarnSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
+  });
 
   it('signs in anonymously and returns user', async () => {
     const user = { uid: 'anon' };

@@ -8,6 +8,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import subscriptionService from '@/services/settings/SubscriptionService';
 import { store } from '@/store';
 
+const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
 const storage = AsyncStorage as unknown as {
   getItem: jest.Mock;
   setItem: jest.Mock;
@@ -24,11 +27,18 @@ describe('SubscriptionService', () => {
     storage.setItem.mockResolvedValue(undefined);
     storage.removeItem.mockResolvedValue(undefined);
     (store.getState as jest.Mock).mockReturnValue({ user: { currentUser: null } });
+    consoleErrorSpy.mockImplementation(() => {});
+    consoleWarnSpy.mockImplementation(() => {});
   });
 
   afterEach(() => {
     jest.useRealTimers();
-    jest.restoreAllMocks();
+    jest.clearAllMocks();
+  });
+
+  afterAll(() => {
+    consoleErrorSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
   });
 
   it('returns subscription from Redux store when available', async () => {

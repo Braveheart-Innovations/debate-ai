@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/13</span>
+                <span class='fraction'>13/13</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/2</span>
+                <span class='fraction'>2/2</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/6</span>
+                <span class='fraction'>6/6</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/12</span>
+                <span class='fraction'>12/12</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -145,42 +145,42 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -206,42 +206,42 @@ export interface UsePreDebateValidation {
   checkReadiness: () =&gt; boolean;
 }
 &nbsp;
-export const usePreDebateValidation = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(n</span>avigation: NavigationProp): UsePreDebateValidation =&gt; {</span>
-  const apiKeys = <span class="cstat-no" title="statement not covered" >useSelector(<span class="fstat-no" title="function not covered" >(s</span>tate: RootState) =&gt; <span class="cstat-no" title="statement not covered" >state.settings.apiKeys)</span>;</span>
+export const usePreDebateValidation = (navigation: NavigationProp): UsePreDebateValidation =&gt; {
+  const apiKeys = useSelector((state: RootState) =&gt; state.settings.apiKeys);
   
-  const configuredCount = <span class="cstat-no" title="statement not covered" >useMemo(<span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    return Object.values(apiKeys).filter(Boolean).length;</span>
+  const configuredCount = useMemo(() =&gt; {
+    return Object.values(apiKeys).filter(Boolean).length;
   }, [apiKeys]);
   
-  const checkReadiness = <span class="cstat-no" title="statement not covered" >useCallback(<span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    if (configuredCount &lt; 2) {</span>
-<span class="cstat-no" title="statement not covered" >      Alert.alert(</span>
+  const checkReadiness = useCallback(() =&gt; {
+    if (configuredCount &lt; 2) {
+      Alert.alert(
         "Set Up Your AIs First",
         "You need at least 2 AIs configured to start a debate. Would you like to set them up now?",
         [
           { 
             text: "Cancel", 
             style: "cancel",
-            onPress: <span class="fstat-no" title="function not covered" >()</span> =&gt; {
+            onPress: () =&gt; {
               // Navigate back to Home if they cancel
-<span class="cstat-no" title="statement not covered" >              navigation.navigate('MainTabs', { screen: 'Home' });</span>
+              navigation.navigate('MainTabs', { screen: 'Home' });
             }
           },
           { 
             text: "Set Up AIs", 
-            onPress: <span class="fstat-no" title="function not covered" >()</span> =&gt; {
+            onPress: () =&gt; {
               // Navigate to API configuration
-<span class="cstat-no" title="statement not covered" >              navigation.navigate('APIConfig');</span>
+              navigation.navigate('APIConfig');
             }
           }
         ]
       );
-<span class="cstat-no" title="statement not covered" >      return false;</span>
+      return false;
     }
-<span class="cstat-no" title="statement not covered" >    return true;</span>
+    return true;
   }, [configuredCount, navigation]);
   
-<span class="cstat-no" title="statement not covered" >  return {</span>
+  return {
     isReady: configuredCount &gt;= 2,
     configuredCount,
     checkReadiness,
@@ -253,7 +253,7 @@ export const usePreDebateValidation = <span class="cstat-no" title="statement no
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-10-05T03:16:02.057Z
+                at 2025-10-10T05:05:22.629Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

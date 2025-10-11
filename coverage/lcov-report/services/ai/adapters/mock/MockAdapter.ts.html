@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/7</span>
+                <span class='fraction'>7/7</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">57.14% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/7</span>
+                <span class='fraction'>4/7</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/3</span>
+                <span class='fraction'>3/3</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/6</span>
+                <span class='fraction'>6/6</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -126,7 +126,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -143,23 +143,23 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -178,8 +178,8 @@ import {
 } from '../../types/adapter.types';
 &nbsp;
 export class MockAdapter extends BaseAdapter {
-<span class="fstat-no" title="function not covered" >  ge</span>tCapabilities(): AdapterCapabilities {
-<span class="cstat-no" title="statement not covered" >    return {</span>
+  getCapabilities(): AdapterCapabilities {
+    return {
       streaming: false,
       attachments: false,
       functionCalling: false,
@@ -189,16 +189,16 @@ export class MockAdapter extends BaseAdapter {
     };
   }
   
-<span class="fstat-no" title="function not covered" >  as</span>ync sendMessage(
+  async sendMessage(
     _message: string,
     _conversationHistory: Message[] = <span class="branch-0 cbranch-no" title="branch not covered" >[],</span>
     _resumptionContext?: ResumptionContext,
     attachments?: MessageAttachment[],
     _modelOverride?: string
   ): Promise&lt;SendMessageResponse&gt; {
-<span class="cstat-no" title="statement not covered" >    await new Promise(<span class="fstat-no" title="function not covered" >re</span>solve =&gt; <span class="cstat-no" title="statement not covered" >setTimeout(resolve, 500 + Math.random() * 1000))</span>;</span>
+    await new Promise(resolve =&gt; setTimeout(resolve, 500 + Math.random() * 1000));
     
-    const mockResponses = <span class="cstat-no" title="statement not covered" >[</span>
+    const mockResponses = [
       "I understand your question. Let me provide a thoughtful response.",
       "That's an interesting point. Here's my perspective on it.",
       "Based on what you're asking, I think the key consideration is...",
@@ -206,13 +206,13 @@ export class MockAdapter extends BaseAdapter {
       "That's a great question! Here's what I think about it.",
     ];
     
-    const attachmentNote = <span class="cstat-no" title="statement not covered" >attachments &amp;&amp; attachments.length &gt; 0 </span>
-      ? ` (I see you've attached ${attachments.length} file${attachments.length &gt; 1 ? 's' : ''})` 
-      : '';
+    const attachmentNote = attachments &amp;&amp; attachments.length &gt; 0 
+      ? ` (I see you've attached ${attachments.length} file${attachments.length &gt; 1 ? <span class="branch-0 cbranch-no" title="branch not covered" >'s' </span>: ''})` 
+      : <span class="branch-1 cbranch-no" title="branch not covered" >'';</span>
     
-    const response = <span class="cstat-no" title="statement not covered" >mockResponses[Math.floor(Math.random() * mockResponses.length)] + attachmentNote;</span>
+    const response = mockResponses[Math.floor(Math.random() * mockResponses.length)] + attachmentNote;
     
-<span class="cstat-no" title="statement not covered" >    return {</span>
+    return {
       response,
       modelUsed: 'mock-model',
       usage: {
@@ -229,7 +229,7 @@ export class MockAdapter extends BaseAdapter {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-10-05T03:16:02.057Z
+                at 2025-10-10T05:05:22.629Z
             </div>
         <script src="../../../../prettify.js"></script>
         <script>

@@ -1,6 +1,6 @@
 import React from 'react';
-import { Text } from 'react-native';
-import { fireEvent } from '@testing-library/react-native';
+import { Text, Linking } from 'react-native';
+import { fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '../../test-utils/renderWithProviders';
 
 const mockHeader = jest.fn(({ title, onBack }: { title: string; onBack: () => void }) => (
@@ -15,22 +15,52 @@ jest.mock('@/components/organisms', () => ({
   HeaderActions: () => mockHeaderActions(),
 }));
 
+jest.mock('@/components/molecules', () => {
+  const React = require('react');
+  const { Text } = require('react-native');
+  return {
+    Typography: ({ children }: { children: React.ReactNode }) => React.createElement(Text, null, children),
+    Button: ({ title, onPress }: { title: string; onPress: () => void }) =>
+      React.createElement(
+        Text,
+        { onPress, accessibilityRole: 'button' },
+        title
+      ),
+  };
+});
+
 const PrivacyPolicyScreen = require('@/screens/PrivacyPolicyScreen').default;
 
 describe('PrivacyPolicyScreen', () => {
-  const navigation = { goBack: jest.fn() };
+  let navigation: { goBack: jest.Mock };
+  let canOpenSpy: jest.SpyInstance;
+  let openUrlSpy: jest.SpyInstance;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    navigation = { goBack: jest.fn() };
+    canOpenSpy = jest.spyOn(Linking, 'canOpenURL').mockResolvedValue(true);
+    openUrlSpy = jest.spyOn(Linking, 'openURL').mockResolvedValue();
   });
 
-  it('renders privacy content and triggers navigation back', () => {
+  afterEach(() => {
+    canOpenSpy.mockRestore();
+    openUrlSpy.mockRestore();
+  });
+
+  it('opens privacy policy online and supports manual retry', async () => {
     const { getByText, getByTestId } = renderWithProviders(
       <PrivacyPolicyScreen navigation={navigation} />
     );
 
-    expect(getByText('Privacy Policy')).toBeTruthy();
-    expect(getByText('This is a placeholder Privacy Policy shown locally in the app. Replace with your actual policy text.')).toBeTruthy();
+    await waitFor(() =>
+      expect(openUrlSpy).toHaveBeenCalledWith('https://www.symposiumai.app/privacy')
+    );
+    expect(canOpenSpy).toHaveBeenCalledWith('https://www.symposiumai.app/privacy');
+    expect(getByText('View the Latest Privacy Policy')).toBeTruthy();
+
+    fireEvent.press(getByText('Open Privacy Policy'));
+    await waitFor(() => expect(openUrlSpy).toHaveBeenCalledTimes(2));
 
     fireEvent.press(getByTestId('header'));
     expect(navigation.goBack).toHaveBeenCalledTimes(1);

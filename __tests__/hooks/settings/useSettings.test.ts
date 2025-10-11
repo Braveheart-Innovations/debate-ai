@@ -67,9 +67,13 @@ describe('useSettings', () => {
     mockUpdateSetting.mockRejectedValueOnce(new Error('failed to update'));
     mockLoadSettings.mockResolvedValueOnce(loadedSettings);
 
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
     await act(async () => {
       await expect(result.current.updateSetting('themeMode', 'dark')).rejects.toThrow('failed to update');
     });
+
+    consoleSpy.mockRestore();
 
     expect(result.current.settings.themeMode).toBe('dark');
     expect(mockLoadSettings).toHaveBeenCalledTimes(2); // initial load + revert

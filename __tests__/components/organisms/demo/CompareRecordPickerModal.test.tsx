@@ -87,6 +87,22 @@ jest.mock('@/services/demo/DemoContentService', () => ({
 }));
 
 describe('CompareRecordPickerModal', () => {
+  let consoleErrorSpy: jest.SpyInstance;
+  const originalConsoleError = console.error;
+
+  beforeAll(() => {
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation((...args) => {
+      if (typeof args[0] === 'string' && args[0].includes('not wrapped in act')) {
+        return;
+      }
+      originalConsoleError(...args);
+    });
+  });
+
+  afterAll(() => {
+    consoleErrorSpy.mockRestore();
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
     mockListCompareSamples.mockResolvedValue([

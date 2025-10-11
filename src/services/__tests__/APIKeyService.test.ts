@@ -41,7 +41,9 @@ describe('APIKeyService', () => {
     expect(await service.loadKeys()).toEqual({ openai: 'key' });
 
     mockedStorage.getApiKeys.mockRejectedValueOnce(new Error('fail'));
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     await expect(service.loadKeys()).resolves.toEqual({});
+    consoleSpy.mockRestore();
   });
 
   it('deleteKey removes provider entry', async () => {

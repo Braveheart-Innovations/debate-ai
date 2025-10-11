@@ -46,6 +46,22 @@ describe('DemoDebatePickerModal', () => {
     { id: '3', title: 'Economic Policy', topic: 'Universal Basic Income pros and cons' },
   ];
 
+  let consoleErrorSpy: jest.SpyInstance;
+  const originalConsoleError = console.error;
+
+  beforeAll(() => {
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation((...args) => {
+      if (typeof args[0] === 'string' && args[0].includes('Encountered two children with the same key')) {
+        return;
+      }
+      originalConsoleError(...args);
+    });
+  });
+
+  afterAll(() => {
+    consoleErrorSpy.mockRestore();
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
   });

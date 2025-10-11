@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, waitFor } from '@testing-library/react-native';
+import { fireEvent, waitFor, act } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { ChatTopicPickerModal } from '@/components/organisms/demo/ChatTopicPickerModal';
 
@@ -54,6 +54,24 @@ describe('ChatTopicPickerModal', () => {
   const mockOnSelect = jest.fn();
   const mockOnClose = jest.fn();
   const providers = ['openai', 'anthropic'];
+
+  const flushAsync = () => new Promise(resolve => setImmediate(resolve));
+
+  let consoleErrorSpy: jest.SpyInstance;
+  const originalConsoleError = console.error;
+
+  beforeAll(() => {
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation((...args) => {
+      if (typeof args[0] === 'string' && args[0].includes('not wrapped in act')) {
+        return;
+      }
+      return originalConsoleError(...args);
+    });
+  });
+
+  afterAll(() => {
+    consoleErrorSpy.mockRestore();
+  });
 
   const sampleTopics = [
     { id: 'chat_o_1', title: 'Philosophy Discussion' },
@@ -158,21 +176,39 @@ describe('ChatTopicPickerModal', () => {
 
   describe('Data Loading', () => {
     it('calls DemoContentService.listChatSamples when visible', async () => {
-      renderWithProviders(<ChatTopicPickerModal visible={true} providers={providers} onSelect={mockOnSelect} onClose={mockOnClose} />);
+      renderWithProviders(
+        <ChatTopicPickerModal visible={true} providers={providers} onSelect={mockOnSelect} onClose={mockOnClose} />,
+      );
+      await act(async () => {
+        await flushAsync();
+      });
       await waitFor(() => {
         expect(mockListChatSamples).toHaveBeenCalledWith(providers);
       });
     });
 
-    it('subscribes to DemoContentService updates', () => {
-      renderWithProviders(<ChatTopicPickerModal visible={true} providers={providers} onSelect={mockOnSelect} onClose={mockOnClose} />);
-      expect(mockSubscribe).toHaveBeenCalled();
+    it('subscribes to DemoContentService updates', async () => {
+      renderWithProviders(
+        <ChatTopicPickerModal visible={true} providers={providers} onSelect={mockOnSelect} onClose={mockOnClose} />,
+      );
+      await act(async () => {
+        await flushAsync();
+      });
+      await waitFor(() => {
+        expect(mockSubscribe).toHaveBeenCalled();
+      });
     });
 
-    it('unsubscribes on unmount', () => {
+    it('unsubscribes on unmount', async () => {
       const { unmount } = renderWithProviders(
-        <ChatTopicPickerModal visible={true} providers={providers} onSelect={mockOnSelect} onClose={mockOnClose} />
+        <ChatTopicPickerModal visible={true} providers={providers} onSelect={mockOnSelect} onClose={mockOnClose} />,
       );
+      await act(async () => {
+        await flushAsync();
+      });
+      await waitFor(() => {
+        expect(mockSubscribe).toHaveBeenCalled();
+      });
       unmount();
       expect(mockUnsubscribe).toHaveBeenCalled();
     });

@@ -230,6 +230,8 @@ jest.mock('@/services/streaming/StreamingService', () => ({
 const ChatScreen = require('@/screens/ChatScreen').default;
 
 describe('ChatScreen', () => {
+  let consoleWarnSpy: jest.SpyInstance;
+  let consoleErrorSpy: jest.SpyInstance;
   let navigation: { goBack: jest.Mock; navigate: jest.Mock };
   let route: { params: { sessionId: string; searchTerm?: string } };
   let alertSpy: jest.SpyInstance;
@@ -251,6 +253,16 @@ describe('ChatScreen', () => {
     isDemo: false,
     refresh: jest.fn(),
     ...overrides,
+  });
+
+  beforeAll(() => {
+    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterAll(() => {
+    consoleWarnSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
   });
 
   beforeEach(() => {

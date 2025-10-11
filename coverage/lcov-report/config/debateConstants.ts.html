@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">33.33% </span>
+                <span class="strong">66.66% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>3/9</span>
+                <span class='fraction'>6/9</span>
             </div>
         
             
@@ -37,16 +37,16 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">25% </span>
+                <span class="strong">62.5% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>2/8</span>
+                <span class='fraction'>5/8</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">33.33% </span>
+                <span class="strong">66.66% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>3/9</span>
+                <span class='fraction'>6/9</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line medium'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -131,7 +131,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -149,22 +149,22 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -214,20 +214,20 @@ export const DEBATE_CONSTANTS = {
   MESSAGES: {
     ROUND_START: (round: number) =&gt; `Exchange ${round}`,
     FINAL_ROUND: 'Final Exchange',
-    DEBATE_START: <span class="fstat-no" title="function not covered" >(t</span>opic: string, firstAI: string) =&gt; 
-<span class="cstat-no" title="statement not covered" >      `"${topic}"\n\n${firstAI} opens the debate.`,</span>
+    DEBATE_START: (topic: string, firstAI: string) =&gt; 
+      `"${topic}"\n\n${firstAI} opens the debate.`,
     DEBATE_COMPLETE: 'Debate complete.\n\nVote for the final winner.',
     // Winner messages are now generated per exchange label in VotingService
     ROUND_WINNER: <span class="fstat-no" title="function not covered" >(_</span>round: number, winner: string) =&gt; <span class="cstat-no" title="statement not covered" >`Exchange: ${winner}`,</span>
     FINAL_ROUND_WINNER: <span class="fstat-no" title="function not covered" >(w</span>inner: string) =&gt; <span class="cstat-no" title="statement not covered" >`Final Exchange: ${winner}`,</span>
     OVERALL_WINNER: (winner: string) =&gt; `OVERALL WINNER: ${winner}!\n\n${winner} won the debate.`,
     RATE_LIMIT: <span class="fstat-no" title="function not covered" >(a</span>iName: string) =&gt; <span class="cstat-no" title="statement not covered" >`${aiName} is taking a moment...`,</span>
-    ERROR: <span class="fstat-no" title="function not covered" >(a</span>iName: string) =&gt; <span class="cstat-no" title="statement not covered" >`${aiName} had an error. Continuing...`,</span>
+    ERROR: (aiName: string) =&gt; `${aiName} had an error. Continuing...`,
   },
   
   // Voting configuration
   VOTING: {
-    ROUND_PROMPT: <span class="fstat-no" title="function not covered" >(_</span>round: number) =&gt; <span class="cstat-no" title="statement not covered" >`🏅 Who won this exchange?`,</span>
+    ROUND_PROMPT: (_round: number) =&gt; `🏅 Who won this exchange?`,
     FINAL_ROUND_PROMPT: '🏅 Who won the final exchange?',
     OVERALL_PROMPT: '🏆 Vote for Overall Winner!',
     SCORE_OVERRIDE_TEXT: 'Despite the scores, you can crown any AI as the overall winner!',
@@ -259,7 +259,7 @@ export type DebateConstants = typeof DEBATE_CONSTANTS;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-10-05T03:16:02.057Z
+                at 2025-10-10T05:05:22.629Z
             </div>
         <script src="../prettify.js"></script>
         <script>

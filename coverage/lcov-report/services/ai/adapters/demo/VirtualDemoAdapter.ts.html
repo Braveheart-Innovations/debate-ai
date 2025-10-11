@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">56% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/25</span>
+                <span class='fraction'>14/25</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">52% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/25</span>
+                <span class='fraction'>13/25</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">40% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/5</span>
+                <span class='fraction'>2/5</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">58.33% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/24</span>
+                <span class='fraction'>14/24</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line medium'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -189,10 +189,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -232,31 +232,31 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { BaseAdapter } from '../../../ai/base/BaseAdapter';
@@ -280,19 +280,19 @@ export class VirtualDemoAdapter extends BaseAdapter {
     };
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  as</span>ync sendMessage(
+  async sendMessage(
     message: string,
-    conversationHistory: Message[] = <span class="branch-0 cbranch-no" title="branch not covered" >[],</span>
+    conversationHistory: Message[] = [],
     _resumptionContext?: ResumptionContext,
     attachments?: MessageAttachment[],
     _modelOverride?: string
   ): Promise&lt;SendMessageResponse&gt; {
-    const routed = <span class="cstat-no" title="statement not covered" >nextProviderResponse(String(this.config.provider));</span>
-    const final = <span class="cstat-no" title="statement not covered" >routed || this.composeDemoResponse(message, conversationHistory, attachments);</span>
-<span class="cstat-no" title="statement not covered" >    markProviderComplete(String(this.config.provider));</span>
-<span class="cstat-no" title="statement not covered" >    return {</span>
+    const routed = nextProviderResponse(String(this.config.provider));
+    const final = routed || this.composeDemoResponse(message, conversationHistory, attachments);
+    markProviderComplete(String(this.config.provider));
+    return {
       response: final,
-      modelUsed: this.config.model || 'demo-model',
+      modelUsed: this.config.model || <span class="branch-1 cbranch-no" title="branch not covered" >'demo-model',</span>
       usage: { promptTokens: 120, completionTokens: 180, totalTokens: 300 },
       metadata: {
         providerMetadata: { mode: 'demo', provider: this.config.provider },
@@ -325,27 +325,27 @@ export class VirtualDemoAdapter extends BaseAdapter {
     }
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  pr</span>ivate composeDemoResponse(
+  private composeDemoResponse(
     message: string,
     conversationHistory: Message[],
     attachments?: MessageAttachment[]
   ): string {
-    const persona = <span class="cstat-no" title="statement not covered" >this.config.personality?.name || 'Balanced';</span>
-    const providerName = <span class="cstat-no" title="statement not covered" >String(this.config.provider);</span>
-    const attachNote = <span class="cstat-no" title="statement not covered" >attachments &amp;&amp; attachments.length &gt; 0</span>
-      ? `\n\n[Simulated: noticed ${attachments.length} attachment${attachments.length &gt; 1 ? 's' : ''}]`
-      : '';
+    const persona = this.config.personality?.name || 'Balanced';
+    const providerName = String(this.config.provider);
+    const attachNote = attachments &amp;&amp; attachments.length &gt; 0
+      ? `\n\n[Simulated: noticed ${attachments.length} attachment${attachments.length &gt; 1 ? <span class="branch-0 cbranch-no" title="branch not covered" >'s' </span>: ''}]`
+      : <span class="branch-1 cbranch-no" title="branch not covered" >'';</span>
 &nbsp;
     // Use last user message as context if available
-    const lastUser = <span class="cstat-no" title="statement not covered" >[...conversationHistory].reverse().find(<span class="fstat-no" title="function not covered" >m </span>=&gt; <span class="cstat-no" title="statement not covered" >m.senderType === 'user')</span>;</span>
-    const userPrompt = <span class="cstat-no" title="statement not covered" >(message || lastUser?.content || '').trim();</span>
+    const lastUser = [...conversationHistory].reverse().find(<span class="fstat-no" title="function not covered" >m </span>=&gt; <span class="cstat-no" title="statement not covered" >m.senderType === 'user')</span>;
+    const userPrompt = (message || <span class="branch-1 cbranch-no" title="branch not covered" >lastUser?.content </span>|| <span class="branch-2 cbranch-no" title="branch not covered" >'')</span>.trim();
 &nbsp;
-    const header = <span class="cstat-no" title="statement not covered" >`(${providerName} • ${persona} • Demo)`;</span>
-    const body = <span class="cstat-no" title="statement not covered" >userPrompt</span>
-      ? `Here’s a simulated answer to: "${userPrompt.slice(0, 140)}${userPrompt.length &gt; 140 ? '…' : ''}"\n\n`
-      : `Here’s a simulated response in Demo Mode.\n\n`;
+    const header = `(${providerName} • ${persona} • Demo)`;
+    const body = userPrompt
+      ? `Here’s a simulated answer to: "${userPrompt.slice(0, 140)}${userPrompt.length &gt; 140 ? <span class="branch-0 cbranch-no" title="branch not covered" >'…' </span>: ''}"\n\n`
+      : <span class="branch-1 cbranch-no" title="branch not covered" >`Here’s a simulated response in Demo Mode.\n\n`;</span>
 &nbsp;
-    const sample = <span class="cstat-no" title="statement not covered" >[</span>
+    const sample = [
       'Key points:',
       '• Provide a concise overview first.',
       '• Follow with a few concrete details.',
@@ -353,8 +353,8 @@ export class VirtualDemoAdapter extends BaseAdapter {
       '• End with a brief, actionable suggestion.',
     ].join('\n');
 &nbsp;
-    const footer = <span class="cstat-no" title="statement not covered" >'\n\n[Simulated content. No live API calls performed.]';</span>
-<span class="cstat-no" title="statement not covered" >    return `${header}\n\n${body}${sample}${attachNote}${footer}`;</span>
+    const footer = '\n\n[Simulated content. No live API calls performed.]';
+    return `${header}\n\n${body}${sample}${attachNote}${footer}`;
   }
 }
 &nbsp;</pre></td></tr></table></pre>
@@ -364,7 +364,7 @@ export class VirtualDemoAdapter extends BaseAdapter {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-10-05T03:16:02.057Z
+                at 2025-10-10T05:05:22.629Z
             </div>
         <script src="../../../../prettify.js"></script>
         <script>

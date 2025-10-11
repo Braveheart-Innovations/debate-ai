@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">34.61% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/26</span>
+                <span class='fraction'>9/26</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">19.23% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/26</span>
+                <span class='fraction'>5/26</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">22.22% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/9</span>
+                <span class='fraction'>2/9</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">36% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/25</span>
+                <span class='fraction'>9/25</span>
             </div>
         
             
@@ -214,35 +214,20 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -252,6 +237,21 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -337,32 +337,32 @@ export interface ProcessedResponse {
  * Process Perplexity responses to extract citations
  * Perplexity includes [1], [2] in text and provides citation URLs separately
  */
-export function <span class="fstat-no" title="function not covered" >processPerplexityResponse(</span>
+export function processPerplexityResponse(
   content: string,
   rawCitations?: string[],
   searchResults?: Array&lt;{ url: string; title?: string; snippet?: string }&gt;
 ): ProcessedResponse {
-  const citations: Citation[] = <span class="cstat-no" title="statement not covered" >[];</span>
+  const citations: Citation[] = [];
   
   // Extract citations from either format Perplexity uses
-  const sources = <span class="cstat-no" title="statement not covered" >rawCitations || searchResults?.map(<span class="fstat-no" title="function not covered" >r </span>=&gt; <span class="cstat-no" title="statement not covered" >r.url)</span> || [];</span>
+  const sources = rawCitations || <span class="branch-1 cbranch-no" title="branch not covered" >searchResults?.map(<span class="fstat-no" title="function not covered" >r </span>=&gt; <span class="cstat-no" title="statement not covered" >r.url)</span> </span>|| <span class="branch-2 cbranch-no" title="branch not covered" >[];</span>
   
-<span class="cstat-no" title="statement not covered" >  if (sources.length &gt; 0) {</span>
+  <span class="missing-if-branch" title="else path not taken" >E</span>if (sources.length &gt; 0) {
     // Check if content already has Sources section
-    const hasSourcesSection = <span class="cstat-no" title="statement not covered" >content.includes('\nSources:');</span>
+    const hasSourcesSection = content.includes('\nSources:');
     
-<span class="cstat-no" title="statement not covered" >    if (!hasSourcesSection) {</span>
+    if (!hasSourcesSection) {
       // Build citations array
-<span class="cstat-no" title="statement not covered" >      sources.forEach(<span class="fstat-no" title="function not covered" >(u</span>rl, index) =&gt; {</span>
-        const searchResult = <span class="cstat-no" title="statement not covered" >searchResults?.[index];</span>
-<span class="cstat-no" title="statement not covered" >        citations.push({</span>
+      sources.forEach((url, index) =&gt; {
+        const searchResult = searchResults?.[index];
+        citations.push({
           index: index + 1,
-          url: typeof url === 'string' ? url : (url as Record&lt;string, unknown&gt;).url as string,
+          url: typeof url === 'string' ? url : <span class="branch-1 cbranch-no" title="branch not covered" >(url as Record&lt;string, unknown&gt;).url as string,</span>
           title: searchResult?.title,
           snippet: searchResult?.snippet,
         });
       });
-    } else {
+    } else <span class="missing-if-branch" title="else path not taken" >E</span>{
       // Parse sources from the content
       const sourcesMatch = <span class="cstat-no" title="statement not covered" >content.match(/\[(\d+)\]\s+(.+)/g);</span>
 <span class="cstat-no" title="statement not covered" >      if (sourcesMatch) {</span>
@@ -379,9 +379,9 @@ export function <span class="fstat-no" title="function not covered" >processPerp
     }
   }
   
-<span class="cstat-no" title="statement not covered" >  return {</span>
+  return {
     content,
-    citations: citations.length &gt; 0 ? citations : undefined,
+    citations: citations.length &gt; 0 ? citations : <span class="branch-1 cbranch-no" title="branch not covered" >undefined,</span>
   };
 }
 &nbsp;
@@ -454,7 +454,7 @@ export function <span class="fstat-no" title="function not covered" >processAIRe
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-10-05T03:16:02.057Z
+                at 2025-10-10T05:05:22.629Z
             </div>
         <script src="../prettify.js"></script>
         <script>

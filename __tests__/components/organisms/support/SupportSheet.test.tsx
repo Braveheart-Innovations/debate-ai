@@ -2,6 +2,8 @@ import React from 'react';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import { SupportSheet } from '@/components/organisms/support/SupportSheet';
 
+const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
 const mockTheme = {
   spacing: { xs: 4, sm: 8, md: 12, lg: 16 },
   colors: {
@@ -51,6 +53,14 @@ jest.mock('react-native/Libraries/TurboModule/TurboModuleRegistry', () => ({
   }),
 }));
 
+jest.mock('react-native/Libraries/EventEmitter/NativeEventEmitter', () => {
+  return jest.fn().mockImplementation(() => ({
+    addListener: jest.fn(),
+    removeAllListeners: jest.fn(),
+    removeListener: jest.fn(),
+  }));
+});
+
 jest.mock('@expo/vector-icons', () => {
   const React = require('react');
   const { Text } = require('react-native');
@@ -75,16 +85,20 @@ jest.mock('react-native', () => {
   const React = require('react');
   const RN = jest.requireActual('react-native');
   const { View } = RN;
+  const originalWarn = console.warn;
+  console.warn = jest.fn();
   const linking = {
     ...RN.Linking,
     canOpenURL: jest.fn().mockResolvedValue(true),
     openURL: jest.fn().mockResolvedValue(true),
   };
-  return {
+  const result = {
     ...RN,
     Image: ({ children, ...props }: any) => React.createElement(View, props, children),
     Linking: linking,
   };
+  console.warn = originalWarn;
+  return result;
 });
 
 jest.mock('@/components/molecules', () => {
@@ -97,6 +111,14 @@ jest.mock('@/components/molecules', () => {
 });
 
 describe('SupportSheet', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  afterAll(() => {
+    consoleWarnSpy.mockRestore();
+  });
+
   it('opens support email when Contact Support tapped', async () => {
     const onClose = jest.fn();
     const { getByText } = render(<SupportSheet onClose={onClose} />);
@@ -107,13 +129,29 @@ describe('SupportSheet', () => {
     await waitFor(() => expect(Linking.openURL).toHaveBeenCalled());
   });
 
-  it('navigates between root and FAQ views', () => {
+  it('opens FAQ link in browser', async () => {
     const { getByText } = render(<SupportSheet onClose={jest.fn()} />);
 
     fireEvent.press(getByText('FAQs'));
-    expect(getByText('Expert Mode — Frequently Asked Questions')).toBeTruthy();
 
-    fireEvent.press(getByText('chevron-back'));
-    expect(getByText('Get Help')).toBeTruthy();
+    const { Linking } = require('react-native');
+    await waitFor(() =>
+      expect(Linking.openURL).toHaveBeenCalledWith('https://www.symposiumai.app/faq')
+    );
+  });
+
+  it('opens legal links in browser', async () => {
+    const { getByText } = render(<SupportSheet onClose={jest.fn()} />);
+
+    fireEvent.press(getByText('Privacy Policy'));
+    fireEvent.press(getByText('Terms of Service'));
+
+    const { Linking } = require('react-native');
+    await waitFor(() =>
+      expect(Linking.openURL).toHaveBeenCalledWith('https://www.symposiumai.app/privacy')
+    );
+    await waitFor(() =>
+      expect(Linking.openURL).toHaveBeenCalledWith('https://www.symposiumai.app/terms')
+    );
   });
 });

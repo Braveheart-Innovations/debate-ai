@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">72.72% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/11</span>
+                <span class='fraction'>8/11</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">50% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/6</span>
+                <span class='fraction'>3/6</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/3</span>
+                <span class='fraction'>3/3</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">72.72% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/11</span>
+                <span class='fraction'>8/11</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -118,27 +118,14 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -152,8 +139,21 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -165,11 +165,11 @@
  * @param hour - Optional hour to use for testing, defaults to current hour
  * @returns Time-appropriate greeting string
  */
-export const generateTimeBasedGreeting = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(h</span>our?: number): string =&gt; {</span>
-  const currentHour = <span class="cstat-no" title="statement not covered" >hour ?? new Date().getHours();</span>
+export const generateTimeBasedGreeting = (hour?: number): string =&gt; {
+  const currentHour = hour ?? new Date().getHours();
   
-<span class="cstat-no" title="statement not covered" >  if (currentHour &lt; HOME_CONSTANTS.GREETING_TIMES.MORNING_END) {</span>
-<span class="cstat-no" title="statement not covered" >    return 'Good morning';</span>
+  <span class="missing-if-branch" title="else path not taken" >E</span>if (currentHour &lt; HOME_CONSTANTS.GREETING_TIMES.MORNING_END) {
+    return 'Good morning';
   }
   
 <span class="cstat-no" title="statement not covered" >  if (currentHour &lt; HOME_CONSTANTS.GREETING_TIMES.AFTERNOON_END) {</span>
@@ -186,10 +186,10 @@ export const generateTimeBasedGreeting = <span class="cstat-no" title="statement
  * @param _userEmail - Optional user email (not used in current implementation)
  * @returns Generic welcome message
  */
-export const generateWelcomeMessage = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(_</span>userEmail?: string): string =&gt; {</span>
+export const generateWelcomeMessage = (_userEmail?: string): string =&gt; {
   // Keep generic for now since we don't have authenticated users
   // TODO: Implement personalization when authentication is added
-<span class="cstat-no" title="statement not covered" >  return 'Welcome back!';</span>
+  return 'Welcome back!';
 };
 &nbsp;
 /**
@@ -199,8 +199,8 @@ export const generateWelcomeMessage = <span class="cstat-no" title="statement no
  * @param hour - Optional hour for testing
  * @returns Complete greeting object with time-based and welcome messages
  */
-export const generateCompleteGreeting = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(u</span>serEmail?: string, hour?: number) =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >  return {</span>
+export const generateCompleteGreeting = (userEmail?: string, hour?: number) =&gt; {
+  return {
     timeBasedGreeting: generateTimeBasedGreeting(hour),
     welcomeMessage: generateWelcomeMessage(userEmail),
   };
@@ -211,7 +211,7 @@ export const generateCompleteGreeting = <span class="cstat-no" title="statement 
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-10-05T03:16:02.057Z
+                at 2025-10-10T05:05:22.629Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

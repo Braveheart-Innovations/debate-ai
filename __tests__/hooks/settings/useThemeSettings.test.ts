@@ -93,6 +93,7 @@ describe('useThemeSettings', () => {
   it('reverts theme changes and surfaces errors when updates fail', async () => {
     const error = new Error('boom');
     mockThemeService.setThemeMode.mockRejectedValueOnce(error);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     const { result } = renderHookWithProviders(() => useThemeSettings());
 
@@ -103,6 +104,7 @@ describe('useThemeSettings', () => {
     });
 
     expect(mockThemeService.getThemeMode.mock.calls.length).toBeGreaterThanOrEqual(2);
+    consoleSpy.mockRestore();
   });
 
   it('subscribes to theme changes and updates context accordingly', async () => {

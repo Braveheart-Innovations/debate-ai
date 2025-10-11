@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/7</span>
+                <span class='fraction'>7/7</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/9</span>
+                <span class='fraction'>9/9</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/3</span>
+                <span class='fraction'>3/3</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/6</span>
+                <span class='fraction'>6/6</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -80,39 +80,39 @@
 <a name='L15'></a><a href='#L15'>15</a>
 <a name='L16'></a><a href='#L16'>16</a>
 <a name='L17'></a><a href='#L17'>17</a>
-<a name='L18'></a><a href='#L18'>18</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L18'></a><a href='#L18'>18</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">export const getRealtimeRelayUrl = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >()</span>: string | undefined =&gt; {</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">export const getRealtimeRelayUrl = (): string | undefined =&gt; {
   // Prefer explicit env for relay URL (e.g., wss://your-relay.example.com)
-  const url = <span class="cstat-no" title="statement not covered" >process.env.OPENAI_REALTIME_RELAY_URL || process.env.EXPO_PUBLIC_OPENAI_REALTIME_RELAY_URL;</span>
-<span class="cstat-no" title="statement not covered" >  return url &amp;&amp; url.trim().length &gt; 0 ? url.trim() : undefined;</span>
+  const url = process.env.OPENAI_REALTIME_RELAY_URL || process.env.EXPO_PUBLIC_OPENAI_REALTIME_RELAY_URL;
+  return url &amp;&amp; url.trim().length &gt; 0 ? url.trim() : undefined;
 };
 &nbsp;
-export const getRealtimeModel = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >()</span>: string =&gt; {</span>
+export const getRealtimeModel = (): string =&gt; {
   // Default to a current preview model; allow override via env
-<span class="cstat-no" title="statement not covered" >  return (</span>
+  return (
     process.env.OPENAI_REALTIME_MODEL ||
     process.env.EXPO_PUBLIC_OPENAI_REALTIME_MODEL ||
     'gpt-4o-realtime-preview-2024-10-01'
   );
 };
 &nbsp;
-export const isRealtimeConfigured = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >()</span>: boolean =&gt; <span class="cstat-no" title="statement not covered" >Boolean(getRealtimeRelayUrl());</span></span>
+export const isRealtimeConfigured = (): boolean =&gt; Boolean(getRealtimeRelayUrl());
 &nbsp;
 &nbsp;</pre></td></tr></table></pre>
 
@@ -121,7 +121,7 @@ export const isRealtimeConfigured = <span class="cstat-no" title="statement not 
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-10-05T03:16:02.057Z
+                at 2025-10-10T05:05:22.629Z
             </div>
         <script src="../prettify.js"></script>
         <script>

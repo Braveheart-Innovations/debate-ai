@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">4.34% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>1/23</span>
+                <span class='fraction'>23/23</span>
             </div>
         
             
@@ -37,16 +37,16 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/13</span>
+                <span class='fraction'>13/13</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">7.14% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>1/14</span>
+                <span class='fraction'>14/14</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -119,30 +119,30 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">8x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">8x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">8x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -167,30 +167,30 @@ import { RootState } from '../../store';
  * Custom hook for accessing debate statistics from Redux store
  * Provides memoized selection to prevent unnecessary re-renders
  */
-export const useDebateStats = <span class="fstat-no" title="function not covered" >()</span> =&gt; {
-  const debateStatsState = <span class="cstat-no" title="statement not covered" >useSelector(<span class="fstat-no" title="function not covered" >(s</span>tate: RootState) =&gt; <span class="cstat-no" title="statement not covered" >state.debateStats)</span>;</span>
+export const useDebateStats = () =&gt; {
+  const debateStatsState = useSelector((state: RootState) =&gt; state.debateStats);
   
   // Memoized selectors to prevent unnecessary re-computations
-  const stats = <span class="cstat-no" title="statement not covered" >useMemo(<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >debateStatsState.stats,</span> [debateStatsState.stats]);</span>
-  const history = <span class="cstat-no" title="statement not covered" >useMemo(<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >debateStatsState.history,</span> [debateStatsState.history]);</span>
-  const currentDebate = <span class="cstat-no" title="statement not covered" >useMemo(<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >debateStatsState.currentDebate,</span> [debateStatsState.currentDebate]);</span>
+  const stats = useMemo(() =&gt; debateStatsState.stats, [debateStatsState.stats]);
+  const history = useMemo(() =&gt; debateStatsState.history, [debateStatsState.history]);
+  const currentDebate = useMemo(() =&gt; debateStatsState.currentDebate, [debateStatsState.currentDebate]);
   
   // Derived state
-  const hasStats = <span class="cstat-no" title="statement not covered" >useMemo(<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >Object.keys(stats).length &gt; 0,</span> [stats]);</span>
-  const hasHistory = <span class="cstat-no" title="statement not covered" >useMemo(<span class="fstat-no" title="function not covered" >()</span> =&gt; <span class="cstat-no" title="statement not covered" >history.length &gt; 0,</span> [history]);</span>
-  const totalActiveAIs = <span class="cstat-no" title="statement not covered" >useMemo(<span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    return Object.values(stats).filter(<span class="fstat-no" title="function not covered" >ai</span>Stats =&gt; <span class="cstat-no" title="statement not covered" >aiStats.totalDebates &gt; 0)</span>.length;</span>
+  const hasStats = useMemo(() =&gt; Object.keys(stats).length &gt; 0, [stats]);
+  const hasHistory = useMemo(() =&gt; history.length &gt; 0, [history]);
+  const totalActiveAIs = useMemo(() =&gt; {
+    return Object.values(stats).filter(aiStats =&gt; aiStats.totalDebates &gt; 0).length;
   }, [stats]);
   
-  const totalDebates = <span class="cstat-no" title="statement not covered" >useMemo(<span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    return Object.values(stats).reduce(<span class="fstat-no" title="function not covered" >(t</span>otal, aiStats) =&gt; <span class="cstat-no" title="statement not covered" >total + aiStats.totalDebates,</span> 0) / 2; </span>// Divide by 2 since each debate involves 2 AIs
+  const totalDebates = useMemo(() =&gt; {
+    return Object.values(stats).reduce((total, aiStats) =&gt; total + aiStats.totalDebates, 0) / 2; // Divide by 2 since each debate involves 2 AIs
   }, [stats]);
   
-  const totalRounds = <span class="cstat-no" title="statement not covered" >useMemo(<span class="fstat-no" title="function not covered" >()</span> =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    return Object.values(stats).reduce(<span class="fstat-no" title="function not covered" >(t</span>otal, aiStats) =&gt; <span class="cstat-no" title="statement not covered" >total + aiStats.roundsWon + aiStats.roundsLost,</span> 0) / 2; </span>// Divide by 2 since each round involves 2 AIs
+  const totalRounds = useMemo(() =&gt; {
+    return Object.values(stats).reduce((total, aiStats) =&gt; total + aiStats.roundsWon + aiStats.roundsLost, 0) / 2; // Divide by 2 since each round involves 2 AIs
   }, [stats]);
   
-<span class="cstat-no" title="statement not covered" >  return {</span>
+  return {
     // Raw data
     stats,
     history,
@@ -214,7 +214,7 @@ export const useDebateStats = <span class="fstat-no" title="function not covered
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-10-05T03:16:02.057Z
+                at 2025-10-10T05:05:22.629Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

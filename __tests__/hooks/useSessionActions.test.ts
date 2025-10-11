@@ -86,6 +86,7 @@ describe('useSessionActions', () => {
   it('surfaces deletion errors to the user', async () => {
     mockDeleteSession.mockRejectedValue(new Error('boom'));
     const alertSpy = jest.spyOn(Alert, 'alert');
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     const { result } = renderHookWithProviders(() => useSessionActions(navigation));
 
@@ -103,6 +104,7 @@ describe('useSessionActions', () => {
     expect(alertSpy).toHaveBeenCalledTimes(2);
 
     alertSpy.mockRestore();
+    consoleSpy.mockRestore();
   });
 
   it('gates resume in demo mode', () => {
@@ -284,6 +286,7 @@ describe('useSessionActions', () => {
   it('handles share failures gracefully', async () => {
     const shareSpy = jest.spyOn(Share, 'share').mockRejectedValue(new Error('fail'));
     const alertSpy = jest.spyOn(Alert, 'alert');
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     const session = createMockSession();
 
     const { result } = renderHookWithProviders(() => useSessionActions(navigation));
@@ -298,6 +301,7 @@ describe('useSessionActions', () => {
 
     shareSpy.mockRestore();
     alertSpy.mockRestore();
+    consoleSpy.mockRestore();
   });
 
   it('shows placeholder messaging for archive and resets processing', async () => {
@@ -344,6 +348,7 @@ describe('useSessionActions', () => {
       .mockResolvedValueOnce(undefined)
       .mockRejectedValueOnce(new Error('boom'));
     const alertSpy = jest.spyOn(Alert, 'alert');
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     const { result } = renderHookWithProviders(() => useSessionActions(navigation));
 
@@ -368,5 +373,6 @@ describe('useSessionActions', () => {
     expect(result.current.isProcessing).toBe(false);
 
     alertSpy.mockRestore();
+    consoleSpy.mockRestore();
   });
 });

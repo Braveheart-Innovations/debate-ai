@@ -1,6 +1,6 @@
 import React from 'react';
 import { FlatList } from 'react-native';
-import { render, screen, waitFor } from '@testing-library/react-native';
+import { render, screen, waitFor, act } from '@testing-library/react-native';
 import { ChatMessageList } from '../../../../src/components/organisms/chat/ChatMessageList';
 import { useTheme } from '../../../../src/theme';
 import { Message } from '../../../../src/types';
@@ -109,7 +109,9 @@ describe('ChatMessageList', () => {
   });
 
   afterEach(() => {
-    jest.runOnlyPendingTimers();
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
     jest.useRealTimers();
   });
 

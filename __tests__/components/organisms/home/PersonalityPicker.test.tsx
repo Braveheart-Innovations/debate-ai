@@ -1,6 +1,6 @@
 import React from 'react';
 import { Text, TouchableOpacity } from 'react-native';
-import { fireEvent } from '@testing-library/react-native';
+import { fireEvent, act } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { PersonalityPicker } from '@/components/organisms/home/PersonalityPicker';
 
@@ -41,22 +41,24 @@ describe('PersonalityPicker', () => {
     jest.clearAllMocks();
   });
 
-  it('opens modal and returns selected personality', () => {
+it('opens modal and returns selected personality', async () => {
     const onSelect = jest.fn();
 
-    const { getByTestId } = renderWithProviders(
-      <PersonalityPicker
-        currentPersonalityId="default"
-        onSelectPersonality={onSelect}
-        aiName="Claude"
-      />
-    );
+  const { getByTestId } = renderWithProviders(
+    <PersonalityPicker
+      currentPersonalityId="default"
+      onSelectPersonality={onSelect}
+      aiName="Claude"
+    />,
+  );
 
     fireEvent.press(getByTestId('personality-badge'));
     expect(mockModal).toHaveBeenLastCalledWith(expect.objectContaining({ visible: true }));
 
-    const modalProps = mockModal.mock.calls[mockModal.mock.calls.length - 1][0];
+  const modalProps = mockModal.mock.calls[mockModal.mock.calls.length - 1][0];
+  await act(async () => {
     modalProps.onConfirm('scholar');
+  });
 
     expect(onSelect).toHaveBeenCalledWith('scholar');
     expect(require('expo-haptics').impactAsync).toHaveBeenCalled();
