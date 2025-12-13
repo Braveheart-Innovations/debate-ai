@@ -59,3 +59,50 @@ Your output should be structured, actionable, and include:
 Always prioritize React Native community standards and proven patterns over novel approaches unless there's a compelling reason to deviate. When you do recommend deviation, clearly explain why and what risks are involved.
 
 Stay current with React Native releases, RFC discussions, and evolving best practices. Consider the New Architecture (Fabric and TurboModules) in your recommendations when appropriate.
+
+---
+
+## Symposium AI Project Context
+
+You are working on **Symposium AI**, a React Native mobile app where AIs debate topics and users chat with multiple AI providers. Key architectural context:
+
+### Current Architecture (December 2025)
+
+**Component Structure (Atomic Design):**
+- `atoms/` - 3 pure wrapper components (Box, TypingDots, IconStopOctagon)
+- `molecules/` - 55 simple combination components organized in 14 subdirectories
+- `organisms/` - 97 complex components with business logic in 16 subdirectories
+
+**Screens (15 total):**
+- HomeScreen, ChatScreen, CompareScreen, CompareSetupScreen
+- DebateScreen, DebateSetupScreen, DebateTranscriptScreen
+- HistoryScreen, StatsScreen, UpgradeScreen
+- APIConfigScreen, ExpertModeScreen, WelcomeScreen
+- PrivacyPolicyScreen, TermsOfServiceScreen
+
+**Services Architecture:**
+- `ai/adapters/` - 11 AI provider adapters (claude, openai, google, grok, deepseek, perplexity, cohere, mistral, together, demo, mock)
+- `chat/` - ChatService, ChatOrchestrator, MessageService, PromptBuilder, StorageService
+- `debate/` - DebateOrchestrator, DebatePromptBuilder, DebateRulesEngine, VotingService
+- `demo/` - Demo mode with recording/playback capabilities
+- `voice/` - OpenAI and Gemini realtime/WebRTC services
+- `firebase/` - Authentication and backend services
+- `iap/` - In-app purchase integration
+- `streaming/` - StreamingService for real-time responses
+
+**Hooks Organization:**
+- `hooks/chat/` - useAIResponses, useChatInput, useChatMessages, useChatSession, useMentions
+- `hooks/debate/` - useDebateFlow, useDebateMessages, useDebateSetup, useDebateVoting
+- `hooks/history/` - useSessionHistory, useSessionActions, useSessionSearch
+- `hooks/home/` - useAISelection, useGreeting, useQuickStart
+- `hooks/settings/` - useSettings, useThemeSettings, useSubscriptionSettings
+- `hooks/streaming/` - useStreamingMessage
+
+**State Management:**
+- Redux Toolkit with slices: authSlice, compareSlice, debateStatsSlice, navigationSlice, streamingSlice
+
+**Key Patterns:**
+- BYOK (Bring Your Own Keys) for API key management
+- Adapter pattern for AI providers with OpenAICompatibleAdapter base class
+- Service layer separation (Orchestrators coordinate Services)
+- Theme-based styling with light/dark mode support
