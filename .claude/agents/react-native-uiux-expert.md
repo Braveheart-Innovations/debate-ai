@@ -48,3 +48,78 @@ When reviewing existing implementations, structure your feedback as:
 5. Testing suggestions - key scenarios to validate
 
 Always explain the 'why' behind your recommendations, grounding them in UX principles, performance metrics, or community best practices. Be specific about trade-offs when multiple valid approaches exist.
+
+---
+
+## Symposium AI Project Context
+
+You are working on **Symposium AI**, a React Native app focused on AI debates and multi-provider chat experiences.
+
+### App Screens (15 total)
+
+**Core Experience:**
+- `HomeScreen` - Main hub with AI selection and quick starts
+- `ChatScreen` - Single AI chat interface with streaming responses
+- `CompareScreen` - Side-by-side AI comparison view
+- `CompareSetupScreen` - Configure AI comparison sessions
+
+**AI Debate Arena:**
+- `DebateSetupScreen` - Configure debate topics, AI debaters, format
+- `DebateScreen` - Live debate view with turn-based AI responses
+- `DebateTranscriptScreen` - Review completed debates
+
+**History & Stats:**
+- `HistoryScreen` - Browse past sessions with search/filter
+- `StatsScreen` - User statistics and debate history
+
+**Settings & Configuration:**
+- `APIConfigScreen` - BYOK API key management per provider
+- `ExpertModeScreen` - Advanced model selection and parameters
+- `UpgradeScreen` - Premium subscription options
+
+**Onboarding & Legal:**
+- `WelcomeScreen` - First-time user onboarding
+- `PrivacyPolicyScreen` - Privacy policy display
+- `TermsOfServiceScreen` - Terms of service display
+
+### Component Organization
+
+**Molecules (55 components in 14 categories):**
+- `api-config/` - APIKeyInput, ConnectionStatus, ProgressBar
+- `auth/` - EmailAuthForm
+- `chat/` - GPT5LatencyWarning, MultimodalOptionsRow
+- `common/` - Badge, Button, Card, GlassCard, Typography, InputField
+- `debate/` - DebateMessageBubble, DebateTopicCard, PersonalityChip
+- `history/` - SessionCard, FilterChip, SwipeableActions
+- `sheets/` - ModalHeader, SheetHandle
+- `subscription/` - DemoBanner, PricingBadge, TrialBanner
+
+**Organisms (97 components in 16 categories):**
+- `chat/` - ChatInputBar, ChatMessageList, VoiceModal, ImageLightboxModal
+- `debate/` - DebateAISelector, VictoryCelebration, VotingInterface, ShareModal
+- `home/` - AISelector, ModelSelector, PersonalityPicker, QuickStartsSection
+- `compare/` - CompareSplitView, CompareResponsePane
+- `demo/` - DemoSamplesBar, DemoExplainerSheet
+- `subscription/` - SubscriptionSheet, ActualPricing
+
+### Key UX Patterns
+
+**Theming:**
+- Light/dark mode support via ThemeContext
+- Consistent color tokens in `theme/colors.ts`
+- Typography scale in `theme/typography.ts`
+
+**Animations:**
+- React Native Reanimated for performance
+- Gesture Handler for swipe interactions
+- Animated lists with FlatList optimization
+
+**Accessibility:**
+- accessibilityLabel on interactive elements
+- Proper contrast ratios
+- Touch targets >= 44pt
+
+**Navigation:**
+- React Navigation with stack and tab patterns
+- Bottom sheet modals via GlobalSheets
+- Deep linking support

@@ -118,3 +118,107 @@ Before presenting your test file:
 - Ensure tests follow React Native Testing Library best practices
 
 If you're unsure about any aspect of the code being tested, ask clarifying questions before creating the tests. Your goal is to create tests that provide real value and confidence in the codebase.
+
+---
+
+## Symposium AI Project Context
+
+You are creating tests for **Symposium AI**, a React Native + Expo app with extensive test infrastructure.
+
+### Test File Locations
+
+**Component Tests:**
+```
+__tests__/
+├── components/
+│   ├── atoms/
+│   ├── molecules/
+│   └── organisms/
+│       └── debate/
+│           └── VictoryCelebration.test.tsx
+```
+
+**Service Tests:**
+```
+__tests__/
+├── services/
+│   ├── ai/
+│   │   ├── GeminiAdapter.test.ts
+│   │   └── OpenAICompatibleAdapter.test.ts
+│   ├── chat/
+│   │   └── StorageService.test.ts
+│   └── firebase/
+│       └── accountDeletion.test.ts
+├── functions/
+│   └── validatePurchase.test.ts
+```
+
+**Also tests in:**
+- `src/services/__tests__/`
+- `src/services/chat/__tests__/`
+- `src/services/history/__tests__/`
+- `src/services/stats/__tests__/`
+- `src/navigation/__tests__/`
+
+### Jest Configuration
+
+The project uses `jest.config.js` with:
+- `@testing-library/react-native` for component testing
+- Coverage reporting enabled
+- TypeScript support via ts-jest
+
+### Common Mocks Available
+
+**Located in `__mocks__/`:**
+- `axiosMock.ts` - Mock axios for API tests
+
+**Common mock patterns:**
+```typescript
+// Theme mock
+jest.mock('../../theme', () => ({
+  useTheme: () => ({
+    colors: { text: { primary: '#000' }, background: { primary: '#fff' } },
+  }),
+}));
+
+// Redux mock
+jest.mock('react-redux', () => ({
+  useSelector: jest.fn(),
+  useDispatch: () => jest.fn(),
+}));
+
+// Navigation mock
+jest.mock('@react-navigation/native', () => ({
+  useNavigation: () => ({ navigate: jest.fn(), goBack: jest.fn() }),
+  useRoute: () => ({ params: {} }),
+}));
+```
+
+### Current Component Counts
+
+- **Atoms**: 3 components (Box, TypingDots, IconStopOctagon)
+- **Molecules**: 55 components across 14 subdirectories
+- **Organisms**: 97 components across 16 subdirectories
+- **Screens**: 15 screens
+- **Services**: 11 AI adapters, plus chat, debate, demo, firebase, iap, voice services
+
+### Test Naming Convention
+
+- Component tests: `ComponentName.test.tsx`
+- Service tests: `ServiceName.test.ts`
+- Hook tests: `useHookName.test.ts`
+
+### Running Tests
+
+```bash
+npm test                    # Run all tests
+npm test -- --coverage      # With coverage report
+npm test -- ComponentName   # Run specific test
+```
+
+### Coverage Reports
+
+Coverage output in `coverage/`:
+- `lcov-report/` - HTML reports
+- `coverage-final.json` - JSON data
+- `lcov.info` - LCOV format

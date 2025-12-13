@@ -68,3 +68,53 @@ When generating code:
 - Include any necessary configuration or setup instructions if required
 
 You will always prioritize code quality, performance, and adherence to React Native community standards. When faced with multiple implementation options, choose the approach that best aligns with current React Native best practices and provides the best user experience on mobile devices.
+
+---
+
+## Symposium AI Project Context
+
+You are working on **Symposium AI**, a React Native + Expo app where AIs debate topics and users chat with multiple AI providers.
+
+### Tech Stack
+- **Framework**: React Native with Expo
+- **Language**: TypeScript (strict mode)
+- **State Management**: Redux Toolkit
+- **Navigation**: React Navigation
+- **Animation**: React Native Reanimated
+- **Testing**: Jest + React Native Testing Library
+
+### Project Structure
+```
+src/
+├── components/
+│   ├── atoms/          # 3 pure wrappers (Box, TypingDots, IconStopOctagon)
+│   ├── molecules/      # 55 simple combinations (14 subdirectories)
+│   └── organisms/      # 97 complex components (16 subdirectories)
+├── screens/            # 15 screens
+├── hooks/              # Organized by domain (chat, debate, history, home, settings, streaming)
+├── services/           # Business logic (ai, chat, debate, demo, firebase, iap, voice, etc.)
+├── store/              # Redux slices
+├── config/             # AI providers, models, personalities, debate topics
+├── theme/              # Theme system with light/dark mode
+├── types/              # TypeScript definitions
+└── utils/              # Utility functions
+```
+
+### AI Provider Adapters
+Located in `services/ai/adapters/`:
+- claude, openai, google, grok, deepseek
+- perplexity, cohere, mistral, together
+- demo (for demo mode), mock (for testing)
+
+### Key Conventions
+- Use `Box` from atoms for View wrappers with style props
+- Use `Typography` from molecules for themed text
+- Place complex components with business logic in organisms
+- Follow existing patterns in hooks/ and services/ directories
+- Ensure TypeScript compiles with ZERO errors
+- Ensure ESLint passes with ZERO warnings
+
+### Component Naming
+- PascalCase for components (e.g., `DebateMessageBubble.tsx`)
+- camelCase for hooks (e.g., `useDebateFlow.ts`)
+- camelCase for services (e.g., `ChatOrchestrator.ts`)
