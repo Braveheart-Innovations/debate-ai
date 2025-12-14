@@ -83,6 +83,30 @@ export function hasNextChatTurn(): boolean {
 }
 
 /**
+ * Get total number of chat turns in the loaded script
+ */
+export function getTotalChatTurns(): number {
+  return chatTurns.length;
+}
+
+/**
+ * Get current turn index (0-based, represents the turn that was just primed)
+ * Returns 0 if no turns have been primed yet
+ */
+export function getCurrentChatTurnIndex(): number {
+  // currentTurnIndex is incremented after priming, so we return index - 1
+  // But ensure we don't return negative values
+  return Math.max(0, currentTurnIndex - 1);
+}
+
+/**
+ * Check if the demo script has completed all turns
+ */
+export function isChatScriptComplete(): boolean {
+  return currentTurnIndex >= chatTurns.length && chatTurns.length > 0;
+}
+
+/**
  * Prime provider queues for the next chat turn and return the user prompt for that turn
  */
 export function getCurrentTurnProviders(): ProviderId[] {

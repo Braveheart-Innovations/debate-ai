@@ -56,9 +56,13 @@ export {
 } from './stats/StatsCard';
 export { RankBadge, TopThreeRankBadge, SimpleRankBadge } from './stats/RankBadge';
 export { TopicBadge, TopicBadgeList, TopicPerformance } from './stats/TopicBadge';
-export { 
-  DebateHistoryItem, 
-  CompactDebateHistoryItem, 
-  DebateHistoryList, 
-  DebateHistoryHeader 
+export {
+  DebateHistoryItem,
+  CompactDebateHistoryItem,
+  DebateHistoryList,
+  DebateHistoryHeader
 } from './stats/DebateHistoryItem';
+
+// Demo Molecules
+export { DemoProgressIndicator } from './demo';
+export type { DemoProgressIndicatorProps } from './demo';

@@ -37,11 +37,13 @@ import { cancelAllStreams, selectActiveStreamCount } from '../store';
 import { getStreamingService } from '../services/streaming/StreamingService';
 import { DemoContentService } from '@/services/demo/DemoContentService';
 import { loadChatScript, primeNextChatTurn, hasNextChatTurn, isTurnComplete } from '@/services/demo/DemoPlaybackRouter';
-import { DemoSamplesBar } from '@/components/organisms/demo/DemoSamplesBar';
+import { DemoEmptyState } from '@/components/organisms/demo';
 import { showSheet } from '@/store';
 import useFeatureAccess from '@/hooks/useFeatureAccess';
 import { showTrialCTA } from '@/utils/demoGating';
 import { DemoBanner } from '@/components/molecules/subscription/DemoBanner';
+import { DemoProgressIndicator } from '@/components/molecules';
+import { getTotalChatTurns, getCurrentChatTurnIndex } from '@/services/demo/DemoPlaybackRouter';
 import { ChatTopicPickerModal } from '@/components/organisms/demo/ChatTopicPickerModal';
 import { RecordController } from '@/services/demo/RecordController';
 import * as Clipboard from 'expo-clipboard';
@@ -105,10 +107,13 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
   const [imageModalVisible, setImageModalVisible] = React.useState(false);
   const [imageModalPrompt, setImageModalPrompt] = React.useState('');
   const { isDemo } = useFeatureAccess();
-  const [chatSamples, setChatSamples] = React.useState<Array<{ id: string; title: string }>>([]);
   const recordModeEnabled = useSelector((state: RootState) => state.settings.recordModeEnabled ?? false);
   const [isRecording, setIsRecording] = React.useState(false);
   const [topicPickerVisible, setTopicPickerVisible] = React.useState(false);
+  // Demo progress tracking state
+  const [demoCurrentTurn, setDemoCurrentTurn] = React.useState(0);
+  const [demoTotalTurns, setDemoTotalTurns] = React.useState(0);
+  const [demoComplete, setDemoComplete] = React.useState(false);
   const mapProvidersToMentions = React.useCallback((providers: string[]): string[] => {
     if (!session.currentSession) return [];
     const selected = session.currentSession.selectedAIs || [];
@@ -332,6 +337,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
       const t = setTimeout(async () => {
         try {
           const { user, providers: scriptedProviders = [] } = primeNextChatTurn();
+          setDemoCurrentTurn(getCurrentChatTurnIndex() + 1);
           const content = user || 'OK.';
           // If recording, capture the user message
           try { if (RecordController.isActive()) { RecordController.recordUserMessage(content); } } catch { /* ignore */ }
@@ -340,15 +346,25 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
       }, 250);
       return () => clearTimeout(t);
     }
+    // Check if demo is complete
+    if (prev > 0 && activeStreams === 0 && !hasNextChatTurn() && isTurnComplete() && demoTotalTurns > 0) {
+      setDemoComplete(true);
+    }
     return undefined;
-  }, [activeStreams, dispatchDemoTurn, isDemo, session.currentSession]);
+  }, [activeStreams, dispatchDemoTurn, isDemo, session.currentSession, demoTotalTurns]);
 
   // Fallback: advance multi-turn even for non-streaming responses (no active stream boundary)
   const demoAdvanceGuardRef = React.useRef(false);
   useEffect(() => {
     if (!isDemo) return;
     if (!session.currentSession) return;
-    if (!hasNextChatTurn()) return;
+    if (!hasNextChatTurn()) {
+      // Mark demo as complete if we have turns and no more to play
+      if (demoTotalTurns > 0 && isTurnComplete()) {
+        setDemoComplete(true);
+      }
+      return;
+    }
     if (activeStreams > 0) { demoAdvanceGuardRef.current = false; return; }
     if (!isTurnComplete()) { demoAdvanceGuardRef.current = false; return; }
     const last = messages.messages[messages.messages.length - 1];
@@ -358,6 +374,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
     const t = setTimeout(async () => {
       try {
         const { user, providers: scriptedProviders = [] } = primeNextChatTurn();
+        setDemoCurrentTurn(getCurrentChatTurnIndex() + 1);
         const content = user || 'OK.';
         try { if (RecordController.isActive()) { RecordController.recordUserMessage(content); } } catch { /* ignore */ }
         await dispatchDemoTurn(content, scriptedProviders);
@@ -370,18 +387,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
       clearTimeout(t);
       demoAdvanceGuardRef.current = false;
     };
-  }, [messages.messages, messages.messages.length, activeStreams, dispatchDemoTurn, isDemo, session.currentSession]);
-
-  // Demo Mode: fetch available samples for current selection
-  useEffect(() => {
-    const run = async () => {
-      if (!isDemo || !session.currentSession) { setChatSamples([]); return; }
-      const providers = session.currentSession.selectedAIs.map(ai => ai.provider);
-      const list = await DemoContentService.listChatSamples(providers);
-      setChatSamples(list);
-    };
-    run();
-  }, [isDemo, session.currentSession, messages.messages.length]);
+  }, [messages.messages, messages.messages.length, activeStreams, dispatchDemoTurn, isDemo, session.currentSession, demoTotalTurns]);
 
   // Handle input changes with mention detection
   const handleInputChange = (text: string): void => {
@@ -496,40 +502,58 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
         {/* Warnings (e.g., GPT-5 latency) */}
         <ChatWarnings selectedAIs={session.selectedAIs} />
 
-        {/* Demo Samples picker */}
-        {isDemo && chatSamples.length > 0 && (
-          <DemoSamplesBar
-            label="Demo Samples"
-            samples={chatSamples}
-            onSelect={async (sampleId) => {
-              try {
-                const sample = await DemoContentService.findChatById(sampleId);
-                if (!sample) return;
-                loadChatScript(sample);
-                const { user, providers: scriptedProviders = [] } = primeNextChatTurn();
-                const content = user || 'Let’s chat.';
-                await dispatchDemoTurn(content, scriptedProviders);
-              } catch { /* ignore */ }
-            }}
-          />
-        )}
-
         {/* Demo Banner */}
         <DemoBanner
           subtitle="Simulated chat preview. Start a free trial to chat for real."
           onPress={() => dispatch(showSheet({ sheet: 'subscription' }))}
         />
 
-        {/* Message List */}
-        <ChatMessageList
-          messages={messages.messages}
-          flatListRef={messages.flatListRef}
-          searchTerm={searchTerm}
-          onContentSizeChange={messages.scrollToBottom}
-          onScrollToSearchResult={handleScrollToSearchResult}
-          onCancelImage={handleCancelImage}
-          onRetryImage={handleRetryImage}
-        />
+        {/* Demo Progress Indicator */}
+        {isDemo && demoTotalTurns > 0 && (
+          <DemoProgressIndicator
+            currentTurn={demoCurrentTurn}
+            totalTurns={demoTotalTurns}
+            isComplete={demoComplete}
+            onReplay={() => {
+              // Reset demo state and replay (messages continue in same conversation)
+              const sampleId = route.params?.demoSampleId;
+              if (sampleId) {
+                setDemoCurrentTurn(0);
+                setDemoComplete(false);
+                // Re-select the same sample to replay
+                DemoContentService.findChatById(sampleId).then(sample => {
+                  if (sample) {
+                    loadChatScript(sample);
+                    setDemoTotalTurns(getTotalChatTurns());
+                    const { user, providers: scriptedProviders = [] } = primeNextChatTurn();
+                    setDemoCurrentTurn(getCurrentChatTurnIndex() + 1);
+                    const content = user || 'Let\'s chat.';
+                    dispatchDemoTurn(content, scriptedProviders);
+                  }
+                }).catch(() => { /* ignore */ });
+              }
+            }}
+          />
+        )}
+
+        {/* Message List or Demo Empty State */}
+        {isDemo && messages.messages.length === 0 ? (
+          <DemoEmptyState
+            title="Demo Conversation"
+            subtitle="This is a simulated preview of the AI chat experience"
+            showArrow={false}
+          />
+        ) : (
+          <ChatMessageList
+            messages={messages.messages}
+            flatListRef={messages.flatListRef}
+            searchTerm={searchTerm}
+            onContentSizeChange={messages.scrollToBottom}
+            onScrollToSearchResult={handleScrollToSearchResult}
+            onCancelImage={handleCancelImage}
+            onRetryImage={handleRetryImage}
+          />
+        )}
 
         {/* Typing Indicators */}
         <ChatTypingIndicators typingAIs={aiResponses.typingAIs} />

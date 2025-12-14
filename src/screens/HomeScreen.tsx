@@ -91,21 +91,22 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         rightElement={<HeaderActions variant="gradient" />}
         showDemoBadge={isDemo}
       />
-      
-      <ScrollView 
+
+      {isDemo && (
+        <DemoBanner
+          subtitle="Simulated chat preview. Start a free trial to chat for real."
+          onPress={() => dispatch(showSheet({ sheet: 'subscription' }))}
+        />
+      )}
+
+      <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ 
+        contentContainerStyle={{
           padding: theme.spacing.lg,
           paddingBottom: theme.spacing.xl * 2,
         }}
         showsVerticalScrollIndicator={false}
       >
-        {isDemo && (
-          <DemoBanner
-            subtitle="You’re in Demo Mode. Simulated content — start a trial to go live."
-            onPress={() => dispatch(showSheet({ sheet: 'subscription' }))}
-          />
-        )}
         <TrialBanner />
         {/* Primary: AI Selection & Chat */}
         <View style={{ marginBottom: theme.spacing.xl }}>
@@ -123,11 +124,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           />
         </View>
         
-        {/* Quick Starts - Guided Chat */}
+        {/* Quick Starts - Guided Chat (disabled in demo mode - no scripts available) */}
         <QuickStartsSection
           topics={quickStart.topics}
           onSelectTopic={handleSelectTopic}
-          disabled={!aiSelection.hasSelection}
+          disabled={!aiSelection.hasSelection || isDemo}
         />
       </ScrollView>
       

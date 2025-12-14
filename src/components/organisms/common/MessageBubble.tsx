@@ -244,19 +244,30 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, s
               borderBottomRightRadius: 4,
             } : {
               backgroundColor: (hasError && !isCancelled)
-                ? (isDark ? theme.colors.semantic.error : theme.colors.error[50]) 
+                ? (isDark ? theme.colors.semantic.error : theme.colors.error[50])
                 : (aiColor ? (isDark ? aiColor.dark : aiColor.light) : theme.colors.card),
               borderBottomLeftRadius: 4,
               borderWidth: 1,
               borderColor: (hasError && !isCancelled)
-                ? (isDark ? theme.colors.error[600] : theme.colors.error[500]) 
+                ? (isDark ? theme.colors.error[600] : theme.colors.error[500])
                 : (aiColor?.border || theme.colors.border),
+              // Demo mode: add dashed border and slightly reduced opacity
+              ...(isDemo && !isUser && {
+                borderStyle: 'dashed',
+                borderWidth: 1.5,
+                borderColor: isDark ? theme.colors.glass.border : theme.colors.overlays.strong,
+                opacity: 0.95,
+              }),
             },
           ]}
         >
-        {isDemo && (
-          <View style={{ position: 'absolute', top: 8, left: 8, transform: [{ rotate: '-18deg' }], pointerEvents: 'none' }}>
-            <Text style={{ fontSize: 28, fontWeight: '900', letterSpacing: 2, color: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
+        {/* Demo watermark */}
+        {isDemo && !isUser && (
+          <View style={styles.demoWatermark} pointerEvents="none">
+            <Text style={[
+              styles.demoWatermarkText,
+              { color: isDark ? theme.colors.overlays.medium : theme.colors.overlays.strong }
+            ]}>
               DEMO
             </Text>
           </View>
@@ -522,5 +533,16 @@ const styles = StyleSheet.create({
     bottom: 8,
     borderRadius: 12,
     padding: 6,
+  },
+  demoWatermark: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    transform: [{ rotate: '-18deg' }],
+  },
+  demoWatermarkText: {
+    fontSize: 28,
+    fontWeight: '900',
+    letterSpacing: 2,
   },
 });
