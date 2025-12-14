@@ -5,6 +5,7 @@ import {
   View,
   Dimensions,
   Image,
+  Pressable,
 } from 'react-native';
 import { GradientButton, Typography } from '../components/molecules';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -27,6 +28,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
+
+// Layout constants
+const CONTAINER_PADDING = 24;
+const CARD_GAP = 12;
+const CARD_WIDTH = (width - (CONTAINER_PADDING * 2) - CARD_GAP) / 2;
 
 interface WelcomeScreenProps {
   navigation: {
@@ -70,7 +76,7 @@ const AnimatedGradientBackground: React.FC = () => {
 
 const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
   const dispatch = useDispatch();
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const scale = useSharedValue(0);
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(50);
@@ -111,50 +117,41 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
   };
 
   const features = [
-    // Row 1
     {
       icon: { type: 'material-community', name: 'account-group' },
       gradient: theme.colors.gradients.primary,
       title: 'Group AI Chat',
-      description: 'Collaborate with up to 3 AIs simultaneously as our Chat Orchestrator manages context.',
-      premiumType: 'partial' as const,
+      description: 'Chat with up to 3 AIs at once.',
     },
     {
       icon: { type: 'material-community', name: 'sword-cross' },
       gradient: theme.colors.gradients.sunset,
       title: 'AI Debate Arena',
-      description: 'Watch AIs debate motions in real-time. Select from a list of motions across a broad spectrum of categories, or create your own!',
-      premiumType: 'partial' as const,
+      description: 'Watch AIs debate any topic live.',
     },
-    // Row 2
     {
       icon: { type: 'material', name: 'compare-arrows' },
       gradient: theme.colors.gradients.sunrise,
       title: 'Compare Mode',
-      description: 'See side-by-side AI responses to the same prompt across different providers, models, or personalities. Compare different perspectives instantly.',
-      premiumType: 'full' as const,
+      description: 'See responses side-by-side.',
     },
     {
       icon: { type: 'material', name: 'theater-comedy' },
       gradient: theme.colors.gradients.forest,
-      title: 'Personality System',
-      description: 'Enrich AI responses with personalities including "Bestie", an empathetic companion; "George", a satirist with witty responses; and "Kai" the staff software engineer.',
-      premiumType: 'none' as const,
+      title: 'Personalities',
+      description: 'Give each AI a unique voice.',
     },
-    // Row 3
     {
       icon: { type: 'material-community', name: 'key-variant' },
       gradient: theme.colors.gradients.ocean,
       title: 'BYOK',
-      description: 'Bring Your Own Keys. Use your existing API keys to save vs multiple AI subscriptions.',
-      premiumType: 'none' as const,
+      description: 'Your API keys. Your savings.',
     },
     {
       icon: { type: 'material', name: 'tune' },
       gradient: theme.colors.gradients.forest,
       title: 'Expert Mode',
-      description: 'Set advanced model controls like temperature, max token usage, Top P, and others depending on API availability. Find a combination you like? Set it as your default.',
-      premiumType: 'none' as const,
+      description: 'Fine-tune temperature, tokens & more.',
     },
   ];
 
@@ -202,49 +199,57 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
             <Animated.View
               key={feature.title}
               entering={FadeInDown.delay(200 + index * 100).springify()}
-              style={{ width: (width - 48 - 12) / 2 }} // Card width calculation
+              style={{ width: CARD_WIDTH }}
             >
-              <View
-                style={[
+              <Pressable
+                style={({ pressed }) => [
                   styles.featureCard,
-                  { 
+                  {
                     backgroundColor: theme.colors.card,
-                    borderColor: theme.colors.border,
+                    borderColor: isDark ? theme.colors.gray[700] : theme.colors.border,
                     shadowColor: theme.colors.shadow,
-                  }
+                    shadowOpacity: isDark ? 0.3 : 0.08,
+                  },
+                  pressed && styles.featureCardPressed,
                 ]}
               >
-              {/* Premium badges removed */}
-              
-              <LinearGradient
-                colors={feature.gradient}
-                style={styles.featureIconGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                {feature.icon.type === 'material' ? (
-                  <MaterialIcons name={feature.icon.name as keyof typeof MaterialIcons.glyphMap} size={28} color="#FFFFFF" />
-                ) : feature.icon.type === 'material-community' ? (
-                  <MaterialCommunityIcons name={feature.icon.name as keyof typeof MaterialCommunityIcons.glyphMap} size={28} color="#FFFFFF" />
-                ) : (
-                  <Ionicons name={feature.icon.name as keyof typeof Ionicons.glyphMap} size={28} color="#FFFFFF" />
-                )}
-              </LinearGradient>
-              
-              <Typography 
-                variant="body" 
-                weight="bold"
-                style={{ marginTop: 12, marginBottom: 6 }}
-              >
-                {feature.title}
-              </Typography>
-              <Typography 
-                variant="caption" 
-                style={{ lineHeight: 16, opacity: 0.8, color: theme.colors.text.primary }}
-              >
-                {feature.description}
-              </Typography>
-              </View>
+                <LinearGradient
+                  colors={feature.gradient}
+                  style={[
+                    styles.featureIconGradient,
+                    isDark && {
+                      shadowColor: feature.gradient[0],
+                      shadowOffset: { width: 0, height: 0 },
+                      shadowOpacity: 0.5,
+                      shadowRadius: 12,
+                    }
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  {feature.icon.type === 'material' ? (
+                    <MaterialIcons name={feature.icon.name as keyof typeof MaterialIcons.glyphMap} size={28} color="#FFFFFF" />
+                  ) : feature.icon.type === 'material-community' ? (
+                    <MaterialCommunityIcons name={feature.icon.name as keyof typeof MaterialCommunityIcons.glyphMap} size={28} color="#FFFFFF" />
+                  ) : (
+                    <Ionicons name={feature.icon.name as keyof typeof Ionicons.glyphMap} size={28} color="#FFFFFF" />
+                  )}
+                </LinearGradient>
+
+                <Typography
+                  variant="body"
+                  weight="bold"
+                  style={styles.featureTitle}
+                >
+                  {feature.title}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  style={[styles.featureDescription, { color: theme.colors.text.primary }]}
+                >
+                  {feature.description}
+                </Typography>
+              </Pressable>
             </Animated.View>
           ))}
         </View>
@@ -289,49 +294,37 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
               </View>
             </View>
             
-            <Typography 
-              variant="caption" 
+            <Typography
+              variant="caption"
               align="center"
               style={{ color: theme.colors.text.secondary, marginBottom: 16 }}
             >
-              Get all premium features and save vs multiple AI subscriptions
+              One subscription. Every AI. Huge savings.
             </Typography>
             
             <View style={styles.premiumFeatures}>
               <View style={styles.bulletRow}>
                 <MaterialIcons name="check-circle" size={16} color={theme.colors.success[500]} style={{ marginRight: 8 }} />
                 <Typography variant="caption" color="secondary" style={{ flex: 1 }}>
-                  Collaborate on ideas with multiple AIs at once
+                  Unlimited group chats & debates
                 </Typography>
               </View>
               <View style={styles.bulletRow}>
                 <MaterialIcons name="check-circle" size={16} color={theme.colors.success[500]} style={{ marginRight: 8 }} />
                 <Typography variant="caption" color="secondary" style={{ flex: 1 }}>
-                  Enjoy all features each provider enables over their API, including document attachments, image generation, and live voice mode
+                  Voice, images & document uploads
                 </Typography>
               </View>
               <View style={styles.bulletRow}>
                 <MaterialIcons name="check-circle" size={16} color={theme.colors.success[500]} style={{ marginRight: 8 }} />
                 <Typography variant="caption" color="secondary" style={{ flex: 1 }}>
-                  Create custom Debates or choose from numerous preset motions
+                  Custom topics & all 12 personalities
                 </Typography>
               </View>
               <View style={styles.bulletRow}>
                 <MaterialIcons name="check-circle" size={16} color={theme.colors.success[500]} style={{ marginRight: 8 }} />
                 <Typography variant="caption" color="secondary" style={{ flex: 1 }}>
-                  Utilize the custom personality system to enhance AI responses 
-                </Typography>
-              </View>
-              <View style={styles.bulletRow}>
-                <MaterialIcons name="check-circle" size={16} color={theme.colors.success[500]} style={{ marginRight: 8 }} />
-                <Typography variant="caption" color="secondary" style={{ flex: 1 }}>
-                  Compare AI providers, different models from the same provider, or different custom personality types
-                </Typography>
-              </View>
-              <View style={styles.bulletRow}>
-                <MaterialIcons name="check-circle" size={16} color={theme.colors.success[500]} style={{ marginRight: 8 }} />
-                <Typography variant="caption" color="secondary" style={{ flex: 1 }}>
-                  Seemlessly resume prior conversations and export memorable debate moments
+                  Full history & debate exports
                 </Typography>
               </View>
             </View>
@@ -439,23 +432,21 @@ const styles = StyleSheet.create({
     elevation: 3,
     borderWidth: 1,
     position: 'relative',
-    overflow: 'hidden',  // Keep badge within card boundaries
-    minHeight: 220,  // Reduced slightly for 6 tiles
+    overflow: 'hidden',
+    minHeight: 140,
     justifyContent: 'flex-start',
   },
-  premiumBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    zIndex: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 4,
+  featureCardPressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.98 }],
+  },
+  featureTitle: {
+    marginTop: 12,
+    marginBottom: 6,
+  },
+  featureDescription: {
+    lineHeight: 16,
+    opacity: 0.8,
   },
   featureIconGradient: {
     width: 56,
@@ -479,51 +470,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     marginBottom: 6,
-  },
-  comparisonSection: {
-    marginBottom: 24,
-  },
-  comparisonContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
-  },
-  comparisonCard: {
-    flex: 1,
-    padding: 16,
-    borderRadius: 16,
-    position: 'relative',
-  },
-  comparisonHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  recommendedBadge: {
-    position: 'absolute',
-    top: -10,
-    right: -10,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    zIndex: 10,
-    elevation: 10,
-  },
-  subscriptionList: {
-    marginBottom: 12,
-  },
-  totalRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'center',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0, 0, 0, 0.1)',
-  },
-  priceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 4,
   },
   premiumFeatures: {
     width: '100%',
