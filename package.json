@@ -103,5 +103,8 @@
     "typescript-eslint": "^8.39.0",
     "whatwg-fetch": "^3.6.20"
   },
+  "overrides": {
+    "react-server-dom-webpack": "19.2.3"
+  },
   "private": true
 }
