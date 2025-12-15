@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -62,6 +62,17 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
   const [isEditing, setIsEditing] = useState(!apiKey);
   const [isTesting, setIsTesting] = useState(false);
   const [localKey, setLocalKey] = useState(apiKey);
+
+  // Sync localKey when apiKey prop changes (e.g., from clipboard paste)
+  useEffect(() => {
+    if (apiKey !== localKey) {
+      setLocalKey(apiKey);
+      // If a key was pasted, switch to editing mode to show the full key
+      if (apiKey && !localKey) {
+        setIsEditing(true);
+      }
+    }
+  }, [apiKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleTest = async () => {
     setIsTesting(true);
