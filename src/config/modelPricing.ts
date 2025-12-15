@@ -9,138 +9,157 @@ export interface ProviderPricing {
   [modelId: string]: ModelPricing;
 }
 
-// Pricing as of August 2025
-// Source: Web search results and official API documentation
+// Pricing as of December 2025
+// Source: Official API documentation and web research
 export const MODEL_PRICING: { [provider: string]: ProviderPricing } = {
   claude: {
+    // Claude 4.5 series (latest)
+    'claude-opus-4-5-20251101': {
+      inputPer1M: 5.00,
+      outputPer1M: 25.00,
+    },
+    'claude-sonnet-4-5-20250929': {
+      inputPer1M: 3.00,
+      outputPer1M: 15.00,
+    },
+    'claude-haiku-4-5-20251001': {
+      inputPer1M: 1.00,
+      outputPer1M: 5.00,
+    },
+    // Legacy models
     'claude-opus-4-1-20250805': {
-      inputPer1M: 15.00,  // Claude 4.1 Opus pricing
+      inputPer1M: 15.00,
       outputPer1M: 75.00,
     },
     'claude-sonnet-4-20250514': {
-      inputPer1M: 3.00,   // Claude 4 Sonnet pricing
+      inputPer1M: 3.00,
       outputPer1M: 15.00,
     },
     'claude-3-7-sonnet-20250219': {
-      inputPer1M: 3.00,   // Claude 3.7 Sonnet pricing
-      outputPer1M: 15.00,
-    },
-    'claude-3-5-sonnet-20241022': {
-      inputPer1M: 3.00,   // Claude 3.5 Sonnet pricing
+      inputPer1M: 3.00,
       outputPer1M: 15.00,
     },
     'claude-3-5-haiku-20241022': {
-      inputPer1M: 0.80,   // Claude 3.5 Haiku pricing
+      inputPer1M: 0.80,
       outputPer1M: 4.00,
-    },
-    'claude-3-opus-20240229': {
-      inputPer1M: 15.00,  // Claude 3 Opus pricing
-      outputPer1M: 75.00,
-    },
-    'claude-3-haiku-20240307': {
-      inputPer1M: 0.25,   // Claude 3 Haiku pricing
-      outputPer1M: 1.25,
     },
   },
   openai: {
+    // GPT-5.2 (latest)
+    'gpt-5.2': {
+      inputPer1M: 1.50,
+      outputPer1M: 12.00,
+    },
+    // GPT-5 series
     'gpt-5': {
-      inputPer1M: 1.25,   // Actual GPT-5 pricing from web search
-      outputPer1M: 10.00,  // Plus $0.125 per 1M for cached input
+      inputPer1M: 1.25,
+      outputPer1M: 10.00,
     },
     'gpt-5-mini': {
-      inputPer1M: 0.30,   // Estimated based on typical mini model pricing
+      inputPer1M: 0.30,
       outputPer1M: 1.20,
     },
     'gpt-5-nano': {
-      inputPer1M: 0.15,   // Estimated based on typical nano model pricing
+      inputPer1M: 0.15,
       outputPer1M: 0.60,
     },
+    // GPT-4 series
+    'gpt-4.1': {
+      inputPer1M: 2.00,
+      outputPer1M: 8.00,
+    },
     'gpt-4o': {
-      inputPer1M: 2.50,   // Previous generation pricing
+      inputPer1M: 2.50,
       outputPer1M: 10.00,
     },
-    'o1-2025': {
-      inputPer1M: 15.00,
-      outputPer1M: 60.00,
-    },
-    'o1-mini-2025': {
+    // Reasoning models
+    'o3-mini': {
       inputPer1M: 3.00,
       outputPer1M: 12.00,
     },
+    'o1': {
+      inputPer1M: 15.00,
+      outputPer1M: 60.00,
+    },
+    // Image generation
+    'dall-e-3': {
+      inputPer1M: 0,
+      outputPer1M: 0,
+    },
+    'gpt-image-1': {
+      inputPer1M: 0,
+      outputPer1M: 0,
+    },
   },
   google: {
-    'gemini-2.5-pro': {
-      inputPer1M: 1.25,  // $2.50 for >200K context
-      outputPer1M: 10.00,  // $15.00 for >200K context
-      freeMessages: 30,
+    // Gemini 3 (preview)
+    'gemini-3-pro-preview': {
+      inputPer1M: 2.00,
+      outputPer1M: 10.00,
     },
+    'gemini-3-pro-image-preview': {
+      inputPer1M: 2.00,
+      outputPer1M: 10.00,
+    },
+    // Gemini 2.5 (GA)
     'gemini-2.5-flash': {
       inputPer1M: 0.15,
       outputPer1M: 0.60,
-      freeMessages: 100,
+    },
+    'gemini-2.5-pro': {
+      inputPer1M: 1.25,
+      outputPer1M: 10.00,
     },
     'gemini-2.5-flash-lite': {
       inputPer1M: 0.10,
       outputPer1M: 0.40,
-      freeMessages: 200,
     },
+    // Gemini 2.0
     'gemini-2.0-flash': {
       inputPer1M: 0.075,
       outputPer1M: 0.30,
-      freeMessages: 150,
-    },
-    'gemini-1.5-pro': {
-      inputPer1M: 3.50,
-      outputPer1M: 10.50,
-      freeMessages: 50,
-    },
-    'gemini-1.5-flash': {
-      inputPer1M: 0.075,
-      outputPer1M: 0.30,
-      freeMessages: 1500,
-    },
-    'gemini-1.5-flash-8b': {
-      inputPer1M: 0.0375,
-      outputPer1M: 0.15,
-      freeMessages: 2000,
     },
   },
   perplexity: {
-    'llama-3.1-sonar-large-128k-online': {
+    'sonar-pro': {
+      inputPer1M: 3.00,
+      outputPer1M: 15.00,
+    },
+    'sonar': {
       inputPer1M: 1.00,
       outputPer1M: 1.00,
     },
-    'llama-3.1-sonar-small-128k-online': {
-      inputPer1M: 0.20,
-      outputPer1M: 0.20,
-    },
-    'llama-3.1-sonar-huge-128k-online': {
-      inputPer1M: 5.00,
-      outputPer1M: 5.00,
-    },
   },
   mistral: {
-    'mistral-large-2407': {
+    'mistral-large-latest': {
       inputPer1M: 3.00,
       outputPer1M: 9.00,
     },
-    'mistral-small-2402': {
+    'mistral-medium-latest': {
+      inputPer1M: 2.00,
+      outputPer1M: 6.00,
+    },
+    'mistral-small-latest': {
       inputPer1M: 1.00,
       outputPer1M: 3.00,
     },
-    'mixtral-8x7b-32768': {
-      inputPer1M: 0.70,
-      outputPer1M: 0.70,
+    'pixtral-large-latest': {
+      inputPer1M: 3.00,
+      outputPer1M: 9.00,
     },
-    'mixtral-8x22b-32768': {
-      inputPer1M: 1.20,
-      outputPer1M: 1.20,
+    'codestral-latest': {
+      inputPer1M: 1.00,
+      outputPer1M: 3.00,
     },
   },
   cohere: {
     'command-r-plus-08-2024': {
       inputPer1M: 3.00,
       outputPer1M: 15.00,
+    },
+    'command-r7b-12-2024': {
+      inputPer1M: 0.30,
+      outputPer1M: 0.90,
     },
     'command-r-08-2024': {
       inputPer1M: 0.50,
@@ -170,27 +189,47 @@ export const MODEL_PRICING: { [provider: string]: ProviderPricing } = {
     },
   },
   deepseek: {
+    'deepseek-reasoner': {
+      inputPer1M: 0.55,
+      outputPer1M: 2.19,
+    },
     'deepseek-chat': {
       inputPer1M: 0.14,
       outputPer1M: 0.28,
     },
-    'deepseek-coder': {
-      inputPer1M: 0.14,
-      outputPer1M: 0.28,
-    },
-    'deepseek-reasoning': {
-      inputPer1M: 0.55,
-      outputPer1M: 2.19,
-    },
   },
   grok: {
-    'grok-beta': {
+    'grok-4-0709': {
+      inputPer1M: 10.00,
+      outputPer1M: 30.00,
+    },
+    'grok-4-1-fast-reasoning': {
+      inputPer1M: 8.00,
+      outputPer1M: 24.00,
+    },
+    'grok-4-fast-reasoning': {
+      inputPer1M: 8.00,
+      outputPer1M: 24.00,
+    },
+    'grok-3': {
       inputPer1M: 5.00,
       outputPer1M: 15.00,
     },
-    'grok-vision-beta': {
-      inputPer1M: 10.00,
-      outputPer1M: 30.00,
+    'grok-3-mini': {
+      inputPer1M: 2.00,
+      outputPer1M: 6.00,
+    },
+    'grok-code-fast-1': {
+      inputPer1M: 3.00,
+      outputPer1M: 9.00,
+    },
+    'grok-2-vision-1212': {
+      inputPer1M: 5.00,
+      outputPer1M: 15.00,
+    },
+    'grok-2-image-1212': {
+      inputPer1M: 0,
+      outputPer1M: 0,
     },
   },
 };

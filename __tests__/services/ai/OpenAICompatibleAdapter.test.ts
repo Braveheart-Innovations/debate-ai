@@ -132,7 +132,7 @@ describe('OpenAICompatibleAdapter', () => {
     const [, request] = fetchMock.mock.calls[0];
     const parsedBody = JSON.parse((request?.body as string) ?? '{}');
 
-    expect(parsedBody.model).toBe('gpt-5'); // alias resolved via resolveModelAlias
+    expect(parsedBody.model).toBe('gpt-5.2'); // alias resolved via resolveModelAlias
     expect(parsedBody.temperature).toBe(0.4);
     expect(parsedBody.max_tokens).toBe(256);
     expect(parsedBody.top_p).toBe(0.9);

@@ -41,7 +41,7 @@ describe('ConnectionTestService', () => {
     const result = await service.testProvider('openai', apiKey, { mockMode: true });
 
     expect(result.success).toBe(true);
-    expect(result.model).toBe('gpt-5');
+    expect(result.model).toBe('gpt-5.2');
     expect(result.message).toBe('Verified just now');
     expect(result.responseTime).toBeGreaterThan(0);
   });

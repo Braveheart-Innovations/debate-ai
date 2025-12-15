@@ -30,7 +30,8 @@ describe('Model pricing utilities', () => {
   });
 
   it('returns free message information when defined', () => {
-    expect(getFreeMessageInfo('google', 'gemini-2.5-flash')).toBe('100 free messages/month');
+    // No models currently have free message quotas in the pricing config
+    expect(getFreeMessageInfo('google', 'gemini-2.5-flash')).toBeNull();
     expect(getFreeMessageInfo('openai', 'gpt-5')).toBeNull();
   });
 });

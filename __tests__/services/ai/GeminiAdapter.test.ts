@@ -21,7 +21,7 @@ afterAll(() => {
 const baseConfig: AIAdapterConfig = {
   provider: 'google',
   apiKey: 'test-key',
-  model: 'gemini-1.5-flash-latest',
+  model: 'gemini-2.5-flash',
   parameters: {
     temperature: 0.2,
     topP: 0.8,
@@ -109,7 +109,7 @@ describe('GeminiAdapter sendMessage', () => {
 
     expect(response).toEqual({
       response: 'Gemini reply',
-      modelUsed: 'gemini-1.5-flash-002',
+      modelUsed: 'gemini-2.5-flash',
       usage: {
         promptTokens: 10,
         completionTokens: 5,
@@ -119,7 +119,7 @@ describe('GeminiAdapter sendMessage', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, options] = fetchMock.mock.calls[0];
-    expect(url).toContain('gemini-1.5-flash-002:generateContent');
+    expect(url).toContain('gemini-2.5-flash:generateContent');
     const parsedBody = JSON.parse((options?.body as string) ?? '{}');
     expect(parsedBody.contents.at(-1)?.parts).toHaveLength(3);
     expect(parsedBody.generationConfig).toEqual({

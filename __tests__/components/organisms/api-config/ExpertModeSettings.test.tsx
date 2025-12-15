@@ -77,7 +77,7 @@ describe('ExpertModeSettings', () => {
     );
 
     expect(getByText('Fine-tune model behavior and parameters')).toBeTruthy();
-    expect(getByText('Latest flagship model with advanced reasoning (August 2025)')).toBeTruthy();
+    expect(getByText('Flagship model with advanced reasoning (August 2025)')).toBeTruthy();
 
     const toggle = getByRole('switch');
     fireEvent(toggle, 'valueChange', false);

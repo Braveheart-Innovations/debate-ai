@@ -1,7 +1,6 @@
 import {
   MODEL_ALIASES,
   getDefaultModel,
-  getFreeDefaultModel,
   migrateAIConfig,
   resolveModelAlias,
 } from '@/config/providers/modelRegistry';
@@ -15,9 +14,6 @@ describe('Model registry helpers', () => {
   it('provides defaults for providers and falls back when missing', () => {
     expect(getDefaultModel('claude')).toBeTruthy();
     expect(getDefaultModel('unknown-provider')).toBe('');
-
-    expect(getFreeDefaultModel('perplexity')).toBeDefined();
-    expect(getFreeDefaultModel('unknown-provider')).toBe('');
   });
 
   it('migrates configs by injecting default model when missing', () => {

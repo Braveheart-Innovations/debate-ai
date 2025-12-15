@@ -22,7 +22,11 @@ export function getProviderCapabilities(provider: AIProvider): ProviderCapabilit
       return {
         imageGeneration: {
           supported: true,
-          models: [IMAGE_GENERATION_CONSTANTS.MODELS.OPENAI_IMAGE],
+          models: [
+            IMAGE_GENERATION_CONSTANTS.MODELS.DALLE3,
+            IMAGE_GENERATION_CONSTANTS.MODELS.OPENAI_IMAGE,
+            IMAGE_GENERATION_CONSTANTS.MODELS.DALLE2,
+          ],
           sizes: [
             IMAGE_GENERATION_CONSTANTS.SIZES.AUTO,
             IMAGE_GENERATION_CONSTANTS.SIZES.SQUARE_1024,
@@ -38,8 +42,11 @@ export function getProviderCapabilities(provider: AIProvider): ProviderCapabilit
       return {
         imageGeneration: {
           supported: true,
-          // Imagen models are handled via Google Generative Language API
-          models: ['imagen-3', 'gemini-2.0-flash-image-generation'],
+          models: [
+            'gemini-3-pro-image-preview',
+            'imagen-3',
+            'gemini-2.0-flash-image-generation',
+          ],
           sizes: [
             IMAGE_GENERATION_CONSTANTS.SIZES.SQUARE_1024,
           ],

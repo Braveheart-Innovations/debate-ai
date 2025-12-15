@@ -22,7 +22,11 @@ describe('Provider capability matrix', () => {
     const capabilities = getProviderCapabilities('openai');
     expect(capabilities.imageGeneration).toEqual({
       supported: true,
-      models: [IMAGE_GENERATION_CONSTANTS.MODELS.OPENAI_IMAGE],
+      models: [
+        IMAGE_GENERATION_CONSTANTS.MODELS.DALLE3,
+        IMAGE_GENERATION_CONSTANTS.MODELS.OPENAI_IMAGE,
+        IMAGE_GENERATION_CONSTANTS.MODELS.DALLE2,
+      ],
       sizes: [
         IMAGE_GENERATION_CONSTANTS.SIZES.AUTO,
         IMAGE_GENERATION_CONSTANTS.SIZES.SQUARE_1024,
@@ -39,7 +43,11 @@ describe('Provider capability matrix', () => {
     expect(capabilities).toEqual({
       imageGeneration: {
         supported: true,
-        models: ['imagen-3', 'gemini-2.0-flash-image-generation'],
+        models: [
+          'gemini-3-pro-image-preview',
+          'imagen-3',
+          'gemini-2.0-flash-image-generation',
+        ],
         sizes: [IMAGE_GENERATION_CONSTANTS.SIZES.SQUARE_1024],
         maxPromptLength: 4000,
       },

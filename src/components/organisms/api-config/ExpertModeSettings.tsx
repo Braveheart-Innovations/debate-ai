@@ -264,19 +264,6 @@ export const ExpertModeSettings: React.FC<ExpertModeSettingsProps> = ({
                   >
                     {model.name}
                   </Typography>
-                  {model.isPremium && (
-                    <Typography 
-                      variant="caption"
-                      style={{ 
-                        color: selectedModel === model.id 
-                          ? '#FFFFFF' 
-                          : theme.colors.warning[500],
-                        fontSize: 10,
-                      }}
-                    >
-                      Premium
-                    </Typography>
-                  )}
                 </TouchableOpacity>
               ))}
             </ScrollView>
