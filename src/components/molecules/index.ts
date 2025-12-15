@@ -42,6 +42,7 @@ export { DebatePreviewCard } from './debate/DebatePreviewCard';
 // API Configuration Molecules
 export { APIKeyInput } from './api-config/APIKeyInput';
 export { ConnectionStatus } from './api-config/ConnectionStatus';
+export { FloatingGuidanceCard } from './api-config/FloatingGuidanceCard';
 export { ProgressBar } from './api-config/ProgressBar';
 export { ClearKeysButton } from './api-config/ClearKeysButton';
 export { ProviderFeatures } from './api-config/ProviderFeatures';

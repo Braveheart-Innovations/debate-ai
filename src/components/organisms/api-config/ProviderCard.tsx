@@ -33,6 +33,12 @@ interface ProviderCardProps {
   testStatusMessage?: string;
   selectedModel?: string;
   expertModeEnabled?: boolean;
+  /** Callback when user wants to get an API key. If not provided, opens URL directly. */
+  onGetApiKey?: () => void;
+  /** Whether a key was detected in clipboard. */
+  clipboardKeyDetected?: boolean;
+  /** Callback to use the detected clipboard key. */
+  onUseClipboardKey?: () => void;
 }
 
 export const ProviderCard: React.FC<ProviderCardProps> = ({
@@ -48,6 +54,9 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
   testStatusMessage,
   selectedModel,
   expertModeEnabled = false,
+  onGetApiKey,
+  clipboardKeyDetected = false,
+  onUseClipboardKey,
 }) => {
   const { theme, isDark } = useTheme();
   const [isEditing, setIsEditing] = useState(!apiKey);
@@ -318,9 +327,46 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
             ))}
           </View>
 
+          {/* Clipboard Detection Banner */}
+          {clipboardKeyDetected && onUseClipboardKey && (
+            <TouchableOpacity
+              onPress={onUseClipboardKey}
+              style={{
+                backgroundColor: theme.colors.success[100],
+                padding: 12,
+                borderRadius: 8,
+                marginBottom: 12,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                <Text style={{ marginRight: 8, fontSize: 16 }}>📋</Text>
+                <View style={{ flex: 1 }}>
+                  <Typography variant="body" weight="semibold" style={{ color: theme.colors.success[700] }}>
+                    API key detected!
+                  </Typography>
+                  <Typography variant="caption" style={{ color: theme.colors.success[600] }}>
+                    Tap to paste from clipboard
+                  </Typography>
+                </View>
+              </View>
+              <Typography variant="body" style={{ color: theme.colors.success[600] }}>
+                Use →
+              </Typography>
+            </TouchableOpacity>
+          )}
+
           {/* Get API Key Button */}
           <TouchableOpacity
-            onPress={() => openURL(provider.getKeyUrl)}
+            onPress={() => {
+              if (onGetApiKey) {
+                onGetApiKey();
+              } else {
+                openURL(provider.getKeyUrl);
+              }
+            }}
             style={{
               backgroundColor: theme.colors.primary[100],
               padding: 12,

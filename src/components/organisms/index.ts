@@ -46,12 +46,17 @@ export { APIConfigProgress } from './api-config/APIConfigProgress';
 export { APIProviderList } from './api-config/APIProviderList';
 export { APISecurityNote } from './api-config/APISecurityNote';
 export { APIComingSoon } from './api-config/APIComingSoon';
+export { APIKeyGuidanceModal } from './api-config/APIKeyGuidanceModal';
+export { APIKeyWebViewModal } from './api-config/APIKeyWebViewModal';
 
 // Debate organisms
 export * from './debate';
 
 // Compare organisms  
 export * from './compare';
+
+// Demo Organisms
+export * from './demo';
 
 // Stats Organisms
 export { 

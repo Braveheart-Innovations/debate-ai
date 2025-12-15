@@ -23,6 +23,12 @@ export interface APIProviderListProps {
   expandedProvider: string | null;
   expertModeConfigs: Record<string, { enabled: boolean; selectedModel?: string; parameters?: Record<string, number>; }>;
   testID?: string;
+  /** Callback when user wants to get an API key for a provider. */
+  onGetApiKey?: (providerId: string) => void;
+  /** Provider ID that has a detected clipboard key. */
+  clipboardKeyProviderId?: string | null;
+  /** Callback to use the detected clipboard key for a provider. */
+  onUseClipboardKey?: (providerId: string) => void;
 }
 
 export const APIProviderList: React.FC<APIProviderListProps> = ({
@@ -36,6 +42,9 @@ export const APIProviderList: React.FC<APIProviderListProps> = ({
   expandedProvider,
   expertModeConfigs,
   testID,
+  onGetApiKey,
+  clipboardKeyProviderId,
+  onUseClipboardKey,
 }) => {
   const { theme } = useTheme();
 
@@ -82,6 +91,9 @@ export const APIProviderList: React.FC<APIProviderListProps> = ({
               testStatusMessage={verificationStatus[provider.id]?.message}
               selectedModel={expertConfig.enabled ? expertConfig.selectedModel : undefined}
               expertModeEnabled={expertConfig.enabled === true}
+              onGetApiKey={onGetApiKey ? () => onGetApiKey(provider.id) : undefined}
+              clipboardKeyDetected={clipboardKeyProviderId === provider.id}
+              onUseClipboardKey={onUseClipboardKey ? () => onUseClipboardKey(provider.id) : undefined}
             />
           </Box>
         );
