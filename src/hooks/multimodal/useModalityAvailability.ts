@@ -13,16 +13,14 @@ export interface ModalityFlag {
 export interface ModalityAvailability {
   imageUpload: ModalityFlag;      // Vision input
   documentUpload: ModalityFlag;   // PDF/document input
-  voiceInput: ModalityFlag;       // STT
-  voiceOutput: ModalityFlag;      // TTS
-  realtime: ModalityFlag;         // Realtime API
+  voiceInput: ModalityFlag;       // STT via Whisper
   imageGeneration: ModalityFlag;  // Images output
   videoGeneration: ModalityFlag;  // Videos output (future)
 }
 
 /**
  * Compute modality availability for a single provider/model combination.
- * - Input modalities come from modelConfigs flags (supportsImageInput, supportsDocuments, supportsVoiceInput/Output, supportsRealtime)
+ * - Input modalities come from modelConfigs flags (supportsImageInput, supportsDocuments, supportsVoiceInput)
  * - Generation modalities come from providerCapabilities (imageGeneration, optional videoGeneration)
  */
 export function getModalityAvailability(providerId: string, modelId: string): ModalityAvailability {
@@ -38,8 +36,6 @@ export function getModalityAvailability(providerId: string, modelId: string): Mo
     imageUpload: { supported: Boolean(model?.supportsImageInput || model?.supportsVision) },
     documentUpload: { supported: Boolean(model?.supportsDocuments) },
     voiceInput: { supported: Boolean(model?.supportsVoiceInput || providerSupportsSTT) },
-    voiceOutput: { supported: Boolean(model?.supportsVoiceOutput) },
-    realtime: { supported: Boolean(model?.supportsRealtime) },
     imageGeneration: {
       supported: Boolean(imageGen?.supported),
       models: imageGen?.models,
@@ -61,8 +57,6 @@ export function mergeAvailabilities(items: Array<{ provider: string; model: stri
     imageUpload: { supported: false },
     documentUpload: { supported: false },
     voiceInput: { supported: false },
-    voiceOutput: { supported: false },
-    realtime: { supported: false },
     imageGeneration: { supported: false, models: [], sizes: [] },
     videoGeneration: { supported: false, models: [], resolutions: [] },
   };
@@ -72,8 +66,6 @@ export function mergeAvailabilities(items: Array<{ provider: string; model: stri
     base.imageUpload.supported ||= a.imageUpload.supported;
     base.documentUpload.supported ||= a.documentUpload.supported;
     base.voiceInput.supported ||= a.voiceInput.supported;
-    base.voiceOutput.supported ||= a.voiceOutput.supported;
-    base.realtime.supported ||= a.realtime.supported;
 
     if (a.imageGeneration.supported) {
       base.imageGeneration.supported = true;

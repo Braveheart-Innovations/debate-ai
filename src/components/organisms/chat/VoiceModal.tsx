@@ -12,12 +12,7 @@ import {
   RecordingPresets,
 } from 'expo-audio';
 import TranscriptionService from '../../../services/voice/TranscriptionService';
-import OpenAIRealtimeService from '../../../services/voice/OpenAIRealtimeService';
-import OpenAIWebRTCService from '../../../services/voice/OpenAIWebRTCService';
 import * as ReactRef from 'react';
-import { isRealtimeConfigured } from '../../../config/realtime';
-import { useSelector } from 'react-redux';
-import { RootState } from '../../../store';
 
 interface VoiceModalProps {
   visible: boolean;
@@ -32,13 +27,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ visible, onClose, onStar
   const [recording, setRecording] = useState(false);
   const recordingRef = ReactRef.useRef<{ stop: () => Promise<void>; uri: string | null } | null>(null);
   const [busy, setBusy] = useState(false);
-  const [advanced, setAdvanced] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const hasOpenAIKey = useSelector((state: RootState) => Boolean(state.settings.apiKeys?.openai));
-  const configuredRelay = useSelector((state: RootState) => state.settings.realtimeRelayUrl);
-  const realtimeAvailable = hasOpenAIKey || isRealtimeConfigured();
-  const realtimeRef = ReactRef.useRef<OpenAIRealtimeService | null>(null);
-  const webrtcRef = ReactRef.useRef<OpenAIWebRTCService | null>(null);
 
   // Audio recorder (iOS inline recording)
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
@@ -61,7 +50,6 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ visible, onClose, onStar
   const handleStart = async () => {
     setRecording(true);
     onStart?.();
-    // Use expo-audio recorder for inline recording on both platforms
     try {
       const perm = await requestRecordingPermissionsAsync();
       if (perm.status !== 'granted') {
@@ -80,23 +68,6 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ visible, onClose, onStar
           return recorder.uri;
         },
       } as unknown as { stop: () => Promise<void>; uri: string | null };
-      if (advanced) {
-        try {
-          // Prefer WebRTC path using BYOK ephemeral session
-          const rtc = new OpenAIWebRTCService();
-          webrtcRef.current = rtc;
-          await rtc.startWebRTC();
-        } catch (e) {
-          // Fallback to WS relay if configured
-          if (configuredRelay) {
-            const svc = new OpenAIRealtimeService({ relayUrl: configuredRelay });
-            realtimeRef.current = svc;
-            await svc.connect();
-          } else {
-            throw e;
-          }
-        }
-      }
     } catch {
       Alert.alert('Recording Not Available', 'Recording failed to start. Please check microphone permissions in Settings.');
     }
@@ -112,28 +83,10 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ visible, onClose, onStar
         await rec.stop();
         const uri = rec.uri;
         if (uri) {
-          if (advanced && (webrtcRef.current || realtimeRef.current)) {
-            try {
-              if (realtimeRef.current) {
-                await realtimeRef.current.sendRecordedAudioFile(uri, 'audio/m4a');
-                // Wait briefly and fetch output audio
-                setTimeout(async () => {
-                  // Optional playback skipped cross-platform to avoid build issues
-                  await realtimeRef.current?.disconnect();
-                }, 500);
-              } else if (webrtcRef.current) {
-                // For WebRTC path, audio plays via remote track; nothing to send.
-                // Optionally, we could also record and send via data channel, but not required.
-              }
-            } catch (e) {
-              Alert.alert('Realtime Error', e instanceof Error ? e.message : 'Realtime session failed');
-            }
-          } else {
-            const text = await TranscriptionService.transcribeWithOpenAI(uri, 'audio/m4a', 'recording.m4a');
-            onTranscribed?.(text);
-            Alert.alert('Transcription Complete', text.slice(0, 200));
-            onClose();
-          }
+          const text = await TranscriptionService.transcribeWithOpenAI(uri, 'audio/m4a', 'recording.m4a');
+          onTranscribed?.(text);
+          Alert.alert('Transcription Complete', text.slice(0, 200));
+          onClose();
         }
       }
     } catch (e) {
@@ -143,8 +96,6 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ visible, onClose, onStar
       recordingRef.current = null;
     }
   };
-
-  // Removed pick-file fallback: inline recording is supported on both platforms
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="overFullScreen" transparent onRequestClose={onClose}>
@@ -159,21 +110,9 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ visible, onClose, onStar
                     <Typography variant="body" color="secondary" style={{ marginBottom: 8 }}>
                       Tap and speak to transcribe your prompt.
                     </Typography>
-                  <Typography variant="caption" color="secondary">
-                    Tip: Ensure microphone permissions are granted in system settings.
-                  </Typography>
-                  <Box style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 }}>
-                    <TouchableOpacity onPress={() => setAdvanced(!advanced)} disabled={!realtimeAvailable} style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: theme.colors.surface, opacity: realtimeAvailable ? 1 : 0.6 }}>
-                      <Typography variant="caption" style={{ color: theme.colors.text.primary }}>
-                        {advanced ? 'Advanced (Realtime) On' : 'Advanced (Realtime) Off'}
-                      </Typography>
-                    </TouchableOpacity>
-                    {!realtimeAvailable && (
-                      <Typography variant="caption" color="secondary">
-                        Configure OPENAI_REALTIME_RELAY_URL to enable realtime.
-                      </Typography>
-                    )}
-                  </Box>
+                    <Typography variant="caption" color="secondary">
+                      Tip: Ensure microphone permissions are granted in system settings.
+                    </Typography>
                   </Box>
                 </ScrollView>
                 <Box style={styles.actionsRow}>

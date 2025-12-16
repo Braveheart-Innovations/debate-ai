@@ -4,11 +4,9 @@ import { useSelector, useDispatch } from 'react-redux';
 import { RootState, setGlobalStreaming, setStreamingSpeed, setPremiumStatus, setRecordModeEnabled } from '../../../store';
 import { Typography, SheetHeader, SettingRow, Button } from '@/components/molecules';
 import { useTheme } from '../../../theme';
-import { 
+import {
   useThemeSettings
 } from '../../../hooks/settings';
-import { InputField } from '../../molecules';
-import { setRealtimeRelayUrl } from '../../../store';
 
 interface SettingsContentProps {
   onClose?: () => void;
@@ -25,7 +23,6 @@ export const SettingsContent: React.FC<SettingsContentProps> = ({
   const dispatch = useDispatch();
   const streamingEnabled = useSelector((state: RootState) => state.streaming?.globalStreamingEnabled ?? true);
   const streamingSpeed = useSelector((state: RootState) => state.streaming?.streamingSpeed ?? 'natural');
-  const relayUrl = useSelector((state: RootState) => state.settings.realtimeRelayUrl || '');
   const apiKeys = useSelector((state: RootState) => state.settings.apiKeys || {});
   const hasAnyApiKey = Object.values(apiKeys).some(Boolean);
   const recordModeEnabled = useSelector((state: RootState) => state.settings.recordModeEnabled ?? false);
@@ -85,21 +82,6 @@ export const SettingsContent: React.FC<SettingsContentProps> = ({
           onPress={hasAnyApiKey ? () => { onNavigateToExpertMode?.(); onClose?.(); } : undefined}
           disabled={!hasAnyApiKey}
         />
-        <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
-          <Typography variant="caption" color="secondary" style={{ marginBottom: 6 }}>
-            Realtime Relay URL (OpenAI WS only)
-          </Typography>
-          <InputField
-            placeholder="wss://relay.example.com"
-            value={relayUrl}
-            onChangeText={(text) => dispatch(setRealtimeRelayUrl(text))}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          <Typography variant="caption" color="secondary" style={{ marginTop: 4 }}>
-            Optional. Not required for WebRTC. Used only for WS relay.
-          </Typography>
-        </View>
       </View>
 
       {/* Preferences Section */}
