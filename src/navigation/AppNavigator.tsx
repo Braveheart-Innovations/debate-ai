@@ -11,6 +11,7 @@ import { RootStackParamList } from '../types';
 import { useTheme } from '../theme';
 import { SheetProvider } from '../contexts/SheetContext';
 import { GlobalSheets } from './GlobalSheets';
+import { useFeatureAccess } from '../hooks/useFeatureAccess';
 
 // Import screens
 import WelcomeScreen from '../screens/WelcomeScreen';
@@ -39,7 +40,8 @@ const MainTabs = () => {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const apiKeys = useSelector((state: RootState) => state.settings.apiKeys || {});
-  
+  const { isDemo } = useFeatureAccess();
+
   // Calculate configured AI count for badge
   const configuredCount = useMemo(() => {
     return Object.values(apiKeys).filter(Boolean).length;
@@ -95,7 +97,7 @@ const MainTabs = () => {
               color={color} 
             />
           ),
-          tabBarBadge: configuredCount < 2 ? '!' : undefined,
+          tabBarBadge: !isDemo && configuredCount < 2 ? '!' : undefined,
           tabBarBadgeStyle: {
             backgroundColor: theme.colors.error[500],
             fontSize: 10,
