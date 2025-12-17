@@ -11,26 +11,37 @@ export const SUBSCRIPTION_PRODUCTS = {
     ios: 'com.braveheartinnovations.debateai.premium.annual',
     android: 'premium_annual',
   })!,
+  lifetime: Platform.select({
+    ios: 'com.braveheartinnovations.debateai.premium.lifetime',
+    android: 'premium_lifetime',
+  })!,
 } as const;
 
 export const PRODUCT_DETAILS = {
   monthly: {
     id: SUBSCRIPTION_PRODUCTS.monthly,
-    price: '$7.99',
+    price: '$5.99',
     period: 'month',
     title: 'Symposium AI Premium',
     description: 'Full access to all AI features',
   },
   annual: {
     id: SUBSCRIPTION_PRODUCTS.annual,
-    price: '$59.99',
+    price: '$49.99',
     period: 'year',
     title: 'Symposium AI Premium (Annual)',
-    description: 'Full access - Save $36/year',
-    savings: '$36',
-    percentSaved: '37%',
+    description: 'Full access - Save $22/year',
+    savings: '$22',
+    percentSaved: '30%',
+  },
+  lifetime: {
+    id: SUBSCRIPTION_PRODUCTS.lifetime,
+    price: '$129.99',
+    period: 'lifetime',
+    title: 'Symposium AI Premium (Lifetime)',
+    description: 'One-time purchase, own forever',
   },
 } as const;
 
-export type PlanType = 'monthly' | 'annual';
+export type PlanType = 'monthly' | 'annual' | 'lifetime';
 

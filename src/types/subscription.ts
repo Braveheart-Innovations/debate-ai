@@ -7,7 +7,7 @@ export type MembershipStatus = 'demo' | 'trial' | 'premium';
 export interface UserSubscriptionDoc {
   uid: string;
   membershipStatus: MembershipStatus;
-  productId?: 'monthly' | 'annual';
+  productId?: 'monthly' | 'annual' | 'lifetime';
   subscriptionId?: string;
   paymentPlatform?: 'ios' | 'android';
   autoRenewing?: boolean;

@@ -7,7 +7,9 @@ import {
   purchaseUpdatedListener,
   purchaseErrorListener,
   getSubscriptions,
+  getProducts,
   requestSubscription,
+  requestPurchase,
   getAvailablePurchases,
   finishTransaction,
   type Purchase,
@@ -63,6 +65,11 @@ export class PurchaseService {
   }
 
   static async purchaseSubscription(plan: PlanType) {
+    // Route lifetime purchases to the dedicated method
+    if (plan === 'lifetime') {
+      return this.purchaseLifetime();
+    }
+
     try {
       const user = getAuth().currentUser;
       if (!user) throw new Error('User must be authenticated');
@@ -89,6 +96,33 @@ export class PurchaseService {
         return { success: false, cancelled: true } as const;
       }
       console.error('IAP purchaseSubscription failed', error);
+      return { success: false, error } as const;
+    }
+  }
+
+  static async purchaseLifetime() {
+    try {
+      const user = getAuth().currentUser;
+      if (!user) throw new Error('User must be authenticated');
+
+      const sku = SUBSCRIPTION_PRODUCTS.lifetime;
+
+      if (Platform.OS === 'ios') {
+        const appAccountToken = await this.getOrCreateAppAccountToken(user.uid);
+        await requestPurchase({ sku, andDangerouslyFinishTransactionAutomaticallyIOS: false, appAccountToken });
+      } else {
+        // For Android, verify the product exists before requesting purchase
+        await getProducts({ skus: [sku] });
+        await requestPurchase({ sku });
+      }
+
+      return { success: true } as const;
+    } catch (error: unknown) {
+      const err = error as { code?: string };
+      if (err?.code === 'E_USER_CANCELLED') {
+        return { success: false, cancelled: true } as const;
+      }
+      console.error('IAP purchaseLifetime failed', error);
       return { success: false, error } as const;
     }
   }
@@ -139,9 +173,10 @@ export class PurchaseService {
         trialStartDate?: unknown;
         trialEndDate?: unknown;
         autoRenewing?: boolean;
-        productId?: 'monthly' | 'annual';
+        productId?: 'monthly' | 'annual' | 'lifetime';
         hasUsedTrial?: boolean;
         androidPurchaseToken?: string;
+        isLifetime?: boolean;
       }>;
       if (data.valid) {
         const update: Record<string, unknown> = {
@@ -175,10 +210,19 @@ export class PurchaseService {
     try {
       const purchases = await getAvailablePurchases();
       const ids = Object.values(SUBSCRIPTION_PRODUCTS) as string[];
+
+      // Prioritize lifetime purchases if found
+      const lifetimePurchase = purchases.find((p) => p.productId === SUBSCRIPTION_PRODUCTS.lifetime);
+      if (lifetimePurchase) {
+        await this.validateAndSavePurchase(lifetimePurchase);
+        return { success: true, restored: true, isLifetime: true } as const;
+      }
+
+      // Otherwise look for active subscription
       const active = purchases.find((p) => ids.includes(p.productId));
       if (active) {
         await this.validateAndSavePurchase(active);
-        return { success: true, restored: true } as const;
+        return { success: true, restored: true, isLifetime: false } as const;
       }
       return { success: true, restored: false } as const;
     } catch (error) {

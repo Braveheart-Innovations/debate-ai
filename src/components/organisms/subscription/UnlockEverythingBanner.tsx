@@ -40,7 +40,7 @@ export const UnlockEverythingBanner: React.FC = () => {
               Unlock Everything
             </Typography>
             <Typography variant="body" weight="bold" style={{ color: theme.colors.primary[500] }}>
-              $7.99/month
+              $5.99/month
             </Typography>
           </View>
         </View>

@@ -13,9 +13,15 @@ const PACKAGE_NAME_ANDROID = 'com.braveheartinnovations.debateai';
 type ValidateRequest = {
   receipt?: string; // iOS base64 receipt
   platform: 'ios' | 'android';
-  productId: string; // subscription id
+  productId: string; // subscription or product id
   purchaseToken?: string; // Android purchase token
 };
+
+// Lifetime product IDs
+const LIFETIME_PRODUCT_IDS = [
+  'com.braveheartinnovations.debateai.premium.lifetime', // iOS
+  'premium_lifetime', // Android
+];
 
 /**
  * Callable Function: validatePurchase
@@ -34,58 +40,96 @@ export const validatePurchase = functions.https.onCall(async (data: ValidateRequ
   }
 
   try {
+    const isLifetime = LIFETIME_PRODUCT_IDS.includes(productId);
     let expiresAt: Date | null = null;
     let inTrial = false;
     let trialStart: Date | null = null;
     let trialEnd: Date | null = null;
-    let autoRenewing = true;
+    let autoRenewing = !isLifetime; // Lifetime never auto-renews
 
-    if (platform === 'ios') {
-      if (!receipt) throw new functions.https.HttpsError('invalid-argument', 'Missing iOS receipt');
-      const sharedSecret = functions.config()?.apple?.shared_secret as string | undefined;
-      if (!sharedSecret) {
-        throw new functions.https.HttpsError('failed-precondition', 'Apple shared secret not configured');
-      }
+    if (isLifetime) {
+      // Handle lifetime (one-time) purchase validation
+      if (platform === 'ios') {
+        if (!receipt) throw new functions.https.HttpsError('invalid-argument', 'Missing iOS receipt');
+        const sharedSecret = functions.config()?.apple?.shared_secret as string | undefined;
+        if (!sharedSecret) {
+          throw new functions.https.HttpsError('failed-precondition', 'Apple shared secret not configured');
+        }
 
-      const ios = await validateAppleReceipt(receipt, sharedSecret);
-      // Filter to subscription entries matching productId
-      const items = (ios.latest_receipt_info || []).filter((it: any) => it.product_id === productId);
-      const target = items.length
-        ? items.reduce((a: any, b: any) => (parseInt(a.expires_date_ms) > parseInt(b.expires_date_ms) ? a : b))
-        : null;
-      if (!target) {
-        throw new functions.https.HttpsError('not-found', 'No matching subscription found in receipt');
+        const ios = await validateAppleReceipt(receipt, sharedSecret);
+        // For non-consumables, check receipt.in_app array
+        const inAppPurchases = ios.receipt?.in_app || [];
+        const lifetimePurchase = inAppPurchases.find((item: any) => item.product_id === productId);
+        if (!lifetimePurchase) {
+          throw new functions.https.HttpsError('not-found', 'No matching lifetime purchase found in receipt');
+        }
+        // Lifetime purchases have no expiry
+        expiresAt = null;
+      } else {
+        // Android: Validate one-time product purchase
+        if (!purchaseToken) throw new functions.https.HttpsError('invalid-argument', 'Missing Android purchase token');
+        const android = await validateAndroidProduct(PACKAGE_NAME_ANDROID, productId, purchaseToken);
+        if (!android || android.purchaseState !== 0) {
+          throw new functions.https.HttpsError('invalid-argument', 'Invalid Android product purchase state');
+        }
+        // Lifetime purchases have no expiry
+        expiresAt = null;
       }
-      expiresAt = new Date(parseInt(target.expires_date_ms, 10));
-      inTrial = target.is_trial_period === 'true' || target.is_in_intro_offer_period === 'true';
-      if (inTrial) {
-        // Approximate trial window from purchase to expiry
-        trialStart = new Date(parseInt(target.purchase_date_ms, 10));
-        trialEnd = new Date(parseInt(target.expires_date_ms, 10));
-      }
-      // Determine auto-renew from pending_renewal_info
-      const pending = ios.pending_renewal_info?.find((p: any) => p.product_id === productId);
-      autoRenewing = pending ? pending.auto_renew_status === '1' : true;
     } else {
-      // Android validation via Google Play Developer API
-      if (!purchaseToken) throw new functions.https.HttpsError('invalid-argument', 'Missing Android purchase token');
-      const android = await validateAndroidSubscription(PACKAGE_NAME_ANDROID, productId, purchaseToken);
-      if (!android || !android.expiryTimeMillis) {
-        throw new functions.https.HttpsError('invalid-argument', 'Invalid Android subscription state');
-      }
-      expiresAt = new Date(parseInt(android.expiryTimeMillis, 10));
-      autoRenewing = !!android.autoRenewing;
-      // Attempt trial detection via subscriptionsv2 offerTags (requires offers tagged with 'trial')
-      try {
-        const v2 = await validateAndroidSubscriptionV2(PACKAGE_NAME_ANDROID, productId, purchaseToken);
-        const lineItems = (v2?.lineItems || []) as Array<{ offerDetails?: { offerTags?: string[] } }>;
-        inTrial = lineItems.some((li) => (li.offerDetails?.offerTags || []).includes('trial'));
-      } catch (e) {
-        console.warn('subscriptionsv2 trial detection failed', e);
+      // Handle subscription validation (existing logic)
+      if (platform === 'ios') {
+        if (!receipt) throw new functions.https.HttpsError('invalid-argument', 'Missing iOS receipt');
+        const sharedSecret = functions.config()?.apple?.shared_secret as string | undefined;
+        if (!sharedSecret) {
+          throw new functions.https.HttpsError('failed-precondition', 'Apple shared secret not configured');
+        }
+
+        const ios = await validateAppleReceipt(receipt, sharedSecret);
+        // Filter to subscription entries matching productId
+        const items = (ios.latest_receipt_info || []).filter((it: any) => it.product_id === productId);
+        const target = items.length
+          ? items.reduce((a: any, b: any) => (parseInt(a.expires_date_ms) > parseInt(b.expires_date_ms) ? a : b))
+          : null;
+        if (!target) {
+          throw new functions.https.HttpsError('not-found', 'No matching subscription found in receipt');
+        }
+        expiresAt = new Date(parseInt(target.expires_date_ms, 10));
+        inTrial = target.is_trial_period === 'true' || target.is_in_intro_offer_period === 'true';
+        if (inTrial) {
+          // Approximate trial window from purchase to expiry
+          trialStart = new Date(parseInt(target.purchase_date_ms, 10));
+          trialEnd = new Date(parseInt(target.expires_date_ms, 10));
+        }
+        // Determine auto-renew from pending_renewal_info
+        const pending = ios.pending_renewal_info?.find((p: any) => p.product_id === productId);
+        autoRenewing = pending ? pending.auto_renew_status === '1' : true;
+      } else {
+        // Android validation via Google Play Developer API
+        if (!purchaseToken) throw new functions.https.HttpsError('invalid-argument', 'Missing Android purchase token');
+        const android = await validateAndroidSubscription(PACKAGE_NAME_ANDROID, productId, purchaseToken);
+        if (!android || !android.expiryTimeMillis) {
+          throw new functions.https.HttpsError('invalid-argument', 'Invalid Android subscription state');
+        }
+        expiresAt = new Date(parseInt(android.expiryTimeMillis, 10));
+        autoRenewing = !!android.autoRenewing;
+        // Attempt trial detection via subscriptionsv2 offerTags (requires offers tagged with 'trial')
+        try {
+          const v2 = await validateAndroidSubscriptionV2(PACKAGE_NAME_ANDROID, productId, purchaseToken);
+          const lineItems = (v2?.lineItems || []) as Array<{ offerDetails?: { offerTags?: string[] } }>;
+          inTrial = lineItems.some((li) => (li.offerDetails?.offerTags || []).includes('trial'));
+        } catch (e) {
+          console.warn('subscriptionsv2 trial detection failed', e);
+        }
       }
     }
 
-    const isAnnual = productId.includes('annual');
+    // Determine product type for storage
+    let resolvedProductId: 'monthly' | 'annual' | 'lifetime' = 'monthly';
+    if (isLifetime) {
+      resolvedProductId = 'lifetime';
+    } else if (productId.includes('annual')) {
+      resolvedProductId = 'annual';
+    }
 
     // Persist authoritative state
     await admin.firestore().collection('users').doc(userId).set(
@@ -94,8 +138,9 @@ export const validatePurchase = functions.https.onCall(async (data: ValidateRequ
         subscriptionExpiryDate: expiresAt ? admin.firestore.Timestamp.fromDate(expiresAt) : null,
         trialStartDate: trialStart ? admin.firestore.Timestamp.fromDate(trialStart) : null,
         trialEndDate: trialEnd ? admin.firestore.Timestamp.fromDate(trialEnd) : null,
-        productId: isAnnual ? 'annual' : 'monthly',
+        productId: resolvedProductId,
         autoRenewing,
+        isLifetime,
         lastValidated: admin.firestore.FieldValue.serverTimestamp(),
       },
       { merge: true }
@@ -108,8 +153,9 @@ export const validatePurchase = functions.https.onCall(async (data: ValidateRequ
       trialStartDate: trialStart ? admin.firestore.Timestamp.fromDate(trialStart) : null,
       trialEndDate: trialEnd ? admin.firestore.Timestamp.fromDate(trialEnd) : null,
       autoRenewing,
-      productId: isAnnual ? 'annual' : 'monthly',
+      productId: resolvedProductId,
       hasUsedTrial: inTrial,
+      isLifetime,
     };
   } catch (err) {
     console.error('validatePurchase error', err);
@@ -167,4 +213,20 @@ async function validateAndroidSubscriptionV2(packageName: string, productId: str
     token,
   } as any);
   return res.data as { lineItems?: Array<{ offerDetails?: { offerTags?: string[] } }> };
+}
+
+async function validateAndroidProduct(packageName: string, productId: string, token: string) {
+  const auth = new google.auth.GoogleAuth({
+    scopes: ['https://www.googleapis.com/auth/androidpublisher'],
+  });
+  const authClient = await auth.getClient();
+  google.options({ auth: authClient });
+  const publisher = google.androidpublisher('v3');
+  const res = await publisher.purchases.products.get({
+    packageName,
+    productId,
+    token,
+  });
+  // purchaseState: 0 = Purchased, 1 = Canceled, 2 = Pending
+  return res.data as { purchaseState?: number; consumptionState?: number; purchaseTimeMillis?: string };
 }
