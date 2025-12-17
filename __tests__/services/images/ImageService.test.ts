@@ -138,7 +138,7 @@ describe('ImageService', () => {
       const body = JSON.parse((mockedFetch.mock.calls[0][1] as RequestInit).body as string);
       expect(body.contents[0].parts[0].text).toBe('a sunset');
       // Google uses aspect_ratio instead of pixel size
-      expect(body.generationConfig.aspectRatio).toBe('1:1'); // Default
+      expect(body.generationConfig.imageConfig.aspectRatio).toBe('1:1'); // Default
       expect(result).toEqual([{ url: '/cache/images/google_image.png', mimeType: 'image/png' }]);
     });
 
@@ -159,17 +159,17 @@ describe('ImageService', () => {
       // Test portrait (1024x1536 -> 9:16)
       await ImageService.generateImage({ provider: 'google', apiKey: 'key', prompt: 'test', size: '1024x1536' });
       let body = JSON.parse((mockedFetch.mock.calls[0][1] as RequestInit).body as string);
-      expect(body.generationConfig.aspectRatio).toBe('9:16');
+      expect(body.generationConfig.imageConfig.aspectRatio).toBe('9:16');
 
       // Test landscape (1536x1024 -> 16:9)
       await ImageService.generateImage({ provider: 'google', apiKey: 'key', prompt: 'test', size: '1536x1024' });
       body = JSON.parse((mockedFetch.mock.calls[1][1] as RequestInit).body as string);
-      expect(body.generationConfig.aspectRatio).toBe('16:9');
+      expect(body.generationConfig.imageConfig.aspectRatio).toBe('16:9');
 
       // Test square (1024x1024 -> 1:1)
       await ImageService.generateImage({ provider: 'google', apiKey: 'key', prompt: 'test', size: '1024x1024' });
       body = JSON.parse((mockedFetch.mock.calls[2][1] as RequestInit).body as string);
-      expect(body.generationConfig.aspectRatio).toBe('1:1');
+      expect(body.generationConfig.imageConfig.aspectRatio).toBe('1:1');
     });
 
     it('handles multiple image parts from Google response', async () => {

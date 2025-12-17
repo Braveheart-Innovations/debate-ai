@@ -149,7 +149,9 @@ export class ImageService {
       contents: [{ parts: [{ text: prompt }] }],
       generationConfig: {
         responseModalities: ['IMAGE', 'TEXT'],
-        aspectRatio,
+        imageConfig: {
+          aspectRatio: aspectRatio,
+        },
       },
     };
 
