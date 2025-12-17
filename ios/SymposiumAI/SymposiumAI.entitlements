@@ -12,6 +12,10 @@
       <string>webcredentials:symposium-ai.firebaseapp.com</string>
       <string>applinks:symposium-ai.web.app</string>
       <string>webcredentials:symposium-ai.web.app</string>
+      <string>applinks:www.symposiumai.app</string>
+      <string>applinks:symposiumai.app</string>
+      <string>webcredentials:www.symposiumai.app</string>
+      <string>webcredentials:symposiumai.app</string>
     </array>
   </dict>
 </plist>
