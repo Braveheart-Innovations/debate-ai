@@ -438,7 +438,8 @@ describe('ChatScreen', () => {
 
     expect(mockGetAttachmentSupport).toHaveBeenCalledWith(selectedAIs);
     expect(mockChatInputBarProps.attachmentSupport).toEqual({ images: true, documents: false });
-    expect(mockChatInputBarProps.imageGenerationEnabled).toBe(true);
+    // Multi-AI mode now disables image generation
+    expect(mockChatInputBarProps.imageGenerationEnabled).toBe(false);
 
     act(() => {
       mockMessageListProps.onScrollToSearchResult(2);
@@ -734,6 +735,18 @@ describe('ChatScreen', () => {
     const abortSpy = jest.fn();
     (global as any).AbortController = jest.fn(() => ({ abort: abortSpy, signal: Symbol('signal') })) as unknown as typeof AbortController;
 
+    // Use single AI for image generation to be enabled
+    const singleAI = [selectedAIs[1]]; // OpenAI only
+    const singleAISession = {
+      ...mockSession,
+      selectedAIs: singleAI,
+      currentSession: {
+        ...mockSession.currentSession,
+        selectedAIs: singleAI,
+      },
+    };
+    mockUseChatSession.mockReturnValue(singleAISession);
+
     mockUseFeatureAccess.mockReturnValue(buildFeatureAccess({ isDemo: false }));
     mockGenerateImage.mockResolvedValue([
       { url: 'https://example.com/image.png', mimeType: 'image/png' },
@@ -832,6 +845,18 @@ describe('ChatScreen', () => {
   });
 
   it('surfaces image generation errors when provider fails', async () => {
+    // Use single AI for image generation to be enabled
+    const singleAI = [selectedAIs[1]]; // OpenAI only
+    const singleAISession = {
+      ...mockSession,
+      selectedAIs: singleAI,
+      currentSession: {
+        ...mockSession.currentSession,
+        selectedAIs: singleAI,
+      },
+    };
+    mockUseChatSession.mockReturnValue(singleAISession);
+
     mockUseFeatureAccess.mockReturnValue(buildFeatureAccess({ isDemo: false }));
     mockGenerateImage.mockRejectedValueOnce(new Error('Service down'));
 
@@ -937,4 +962,191 @@ describe('ChatScreen', () => {
   // that is tightly coupled to implementation details. The functionality has been
   // verified manually via the app. These tests can be rewritten when the demo
   // system stabilizes.
+
+  describe('multi-provider image generation', () => {
+    it('disables image generation when multiple AIs are selected', () => {
+      // Multiple AIs selected (default)
+      mockMergedAvailability.mockReturnValue({
+        imageGeneration: { supported: true },
+        imageUpload: { supported: false },
+        documentUpload: { supported: true },
+        videoGeneration: { supported: false },
+        voiceInput: { supported: true },
+      });
+
+      renderWithProviders(
+        <ChatScreen navigation={navigation} route={route} />
+      );
+
+      // Even though merged availability says supported, multi-AI disables it
+      expect(mockChatInputBarProps.imageGenerationEnabled).toBe(false);
+    });
+
+    it('enables image generation for single AI with capability', () => {
+      // Single AI selected
+      const singleAISession = {
+        ...mockSession,
+        selectedAIs: [selectedAIs[1]], // Just GPT-4 (OpenAI)
+        currentSession: {
+          ...mockSession.currentSession,
+          selectedAIs: [selectedAIs[1]],
+        },
+      };
+      mockUseChatSession.mockReturnValue(singleAISession);
+
+      mockMergedAvailability.mockReturnValue({
+        imageGeneration: { supported: true },
+        imageUpload: { supported: false },
+        documentUpload: { supported: true },
+        videoGeneration: { supported: false },
+        voiceInput: { supported: true },
+      });
+
+      renderWithProviders(
+        <ChatScreen navigation={navigation} route={route} />
+      );
+
+      expect(mockChatInputBarProps.imageGenerationEnabled).toBe(true);
+    });
+
+    it('uses selected provider API key for image generation (not hardcoded OpenAI)', async () => {
+      // Single AI - Grok selected
+      const grokAI: AIConfig = {
+        id: 'grok',
+        name: 'Grok',
+        provider: 'grok',
+        model: 'grok-2',
+        color: '#000',
+      };
+
+      const singleGrokSession = {
+        ...mockSession,
+        selectedAIs: [grokAI],
+        currentSession: {
+          ...mockSession.currentSession,
+          selectedAIs: [grokAI],
+        },
+      };
+      mockUseChatSession.mockReturnValue(singleGrokSession);
+
+      mockMergedAvailability.mockReturnValue({
+        imageGeneration: { supported: true },
+        imageUpload: { supported: false },
+        documentUpload: { supported: false },
+        videoGeneration: { supported: false },
+        voiceInput: { supported: false },
+      });
+
+      mockUseFeatureAccess.mockReturnValue(buildFeatureAccess({ isDemo: false }));
+      mockGenerateImage.mockResolvedValue([
+        { url: 'https://grok.ai/image.png', mimeType: 'image/png' },
+      ]);
+
+      renderWithProviders(
+        <ChatScreen navigation={navigation} route={route} />,
+        {
+          preloadedState: {
+            settings: {
+              theme: 'auto',
+              fontSize: 'medium',
+              apiKeys: { grok: 'grok-test-key', openai: 'openai-key' },
+              realtimeRelayUrl: undefined,
+              verifiedProviders: [],
+              verificationTimestamps: {},
+              verificationModels: {},
+              expertMode: {},
+              hasCompletedOnboarding: false,
+              recordModeEnabled: false,
+            },
+          } as Partial<RootState>,
+        }
+      );
+
+      await act(async () => {
+        mockChatInputBarProps.onOpenImageModal();
+      });
+
+      await act(async () => {
+        await mockImageModalProps.onGenerate({ prompt: 'A test image', size: 'square' });
+      });
+
+      // Verify it uses grok provider, not hardcoded openai
+      expect(mockGenerateImage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          provider: 'grok',
+          apiKey: 'grok-test-key',
+        })
+      );
+    });
+
+    it('shows error when provider API key is missing', async () => {
+      const googleAI: AIConfig = {
+        id: 'gemini',
+        name: 'Gemini',
+        provider: 'google',
+        model: 'gemini-pro',
+        color: '#000',
+      };
+
+      const singleGoogleSession = {
+        ...mockSession,
+        selectedAIs: [googleAI],
+        currentSession: {
+          ...mockSession.currentSession,
+          selectedAIs: [googleAI],
+        },
+      };
+      mockUseChatSession.mockReturnValue(singleGoogleSession);
+
+      mockMergedAvailability.mockReturnValue({
+        imageGeneration: { supported: true },
+        imageUpload: { supported: false },
+        documentUpload: { supported: false },
+        videoGeneration: { supported: false },
+        voiceInput: { supported: false },
+      });
+
+      mockUseFeatureAccess.mockReturnValue(buildFeatureAccess({ isDemo: false }));
+
+      const { store } = renderWithProviders(
+        <ChatScreen navigation={navigation} route={route} />,
+        {
+          preloadedState: {
+            settings: {
+              theme: 'auto',
+              fontSize: 'medium',
+              apiKeys: { openai: 'openai-key' }, // No google key!
+              realtimeRelayUrl: undefined,
+              verifiedProviders: [],
+              verificationTimestamps: {},
+              verificationModels: {},
+              expertMode: {},
+              hasCompletedOnboarding: false,
+              recordModeEnabled: false,
+            },
+          } as Partial<RootState>,
+        }
+      );
+
+      const dispatchSpy = jest.spyOn(store, 'dispatch');
+
+      await act(async () => {
+        mockChatInputBarProps.onOpenImageModal();
+      });
+
+      await act(async () => {
+        await mockImageModalProps.onGenerate({ prompt: 'Test', size: 'square' });
+      });
+
+      expect(mockGenerateImage).not.toHaveBeenCalled();
+      expect(dispatchSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: updateMessage.type,
+          payload: expect.objectContaining({
+            content: expect.stringContaining('google API key not configured'),
+          }),
+        })
+      );
+    });
+  });
 });

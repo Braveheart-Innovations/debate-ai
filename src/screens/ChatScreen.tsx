@@ -32,7 +32,7 @@ import {
   ChatMentionSuggestions,
   ChatWarnings,
 } from '../components/organisms/chat';
-import { AIConfig, Message } from '../types';
+import { AIConfig, Message, AIProvider } from '../types';
 import { cancelAllStreams, selectActiveStreamCount } from '../store';
 import { getStreamingService } from '../services/streaming/StreamingService';
 import { DemoContentService } from '@/services/demo/DemoContentService';
@@ -102,7 +102,8 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
   const availability = useMergedModalityAvailability(
     session.selectedAIs.map(ai => ({ provider: ai.provider, model: ai.model }))
   );
-  const imageGenerationEnabled = availability.imageGeneration.supported;
+  // Image generation only enabled for single AI mode (multi-AI round-robin doesn't make sense for images)
+  const imageGenerationEnabled = session.selectedAIs.length === 1 && availability.imageGeneration.supported;
   const controllersRef = React.useRef<Record<string, AbortController>>({});
   const [imageModalVisible, setImageModalVisible] = React.useState(false);
   const [imageModalPrompt, setImageModalPrompt] = React.useState('');
@@ -161,9 +162,11 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
       return;
     }
     try {
-      const providerAI = session.selectedAIs.find(ai => ai.provider === 'openai') || session.selectedAIs[0];
-      const apiKey = apiKeys.openai;
-      if (!apiKey) throw new Error('OpenAI API key not configured');
+      // Use the single selected AI's provider (image gen is disabled for multi-AI)
+      const providerAI = session.selectedAIs[0];
+      const provider = providerAI.provider;
+      const apiKey = apiKeys[provider as keyof typeof apiKeys];
+      if (!apiKey) throw new Error(`${provider} API key not configured`);
       const messageId = reuseMessageId || `msg_${Date.now()}_${providerAI.id}`;
       if (!reuseMessageId) {
         dispatch(addMessage({
@@ -185,7 +188,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
       };
       const controller = new AbortController();
       controllersRef.current[messageId] = controller;
-      const images = await ImageService.generateImage({ provider: 'openai', apiKey, prompt: opts.prompt, size: sizeMap[opts.size], n: 1, signal: controller.signal });
+      const images = await ImageService.generateImage({ provider: provider as AIProvider, apiKey, prompt: opts.prompt, size: sizeMap[opts.size], n: 1, signal: controller.signal });
       const img = images[0];
       const uri = img.url ? img.url : (img.b64 ? `data:${img.mimeType};basee64,${img.b64}` : undefined);
       if (uri) {

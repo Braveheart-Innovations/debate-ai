@@ -23,6 +23,10 @@ export class ImageService {
     switch (provider) {
       case 'openai':
         return await this.generateOpenAI(opts);
+      case 'grok':
+        return await this.generateGrok(opts);
+      case 'google':
+        return await this.generateGoogle(opts);
       default:
         throw new Error(`Image generation not implemented for provider: ${provider}`);
     }
@@ -71,6 +75,114 @@ export class ImageService {
       } else if (item.b64_json) {
         const fileUri = await saveBase64Image(item.b64_json, 'image/png');
         results.push({ url: fileUri, mimeType: 'image/png' });
+      }
+    }
+    return results;
+  }
+
+  /**
+   * Generate images using Grok (xAI) - OpenAI-compatible API
+   */
+  private static async generateGrok(opts: GenerateImageOptions): Promise<GeneratedImage[]> {
+    const { apiKey, prompt, n = 1, signal } = opts;
+    // Grok only supports 1024x1024
+    const body: Record<string, unknown> = {
+      model: 'grok-2-image-1212',
+      prompt,
+      size: '1024x1024',
+    };
+    if (n && n > 1) {
+      body.n = n;
+    }
+    if (process.env.NODE_ENV === 'development') {
+      try { console.warn('[ImageService] Grok images body keys', Object.keys(body)); } catch (e) { void e; }
+    }
+    const res = await fetch('https://api.x.ai/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+      signal,
+    });
+    const text = await res.text();
+    if (!res.ok) {
+      throw new Error(`Grok Images error ${res.status}: ${text}`);
+    }
+    const data = JSON.parse(text) as { data: Array<{ url?: string; b64_json?: string }>; };
+    if (process.env.NODE_ENV === 'development') {
+      try {
+        console.warn('[ImageService] Grok images status', res.status, 'count', data?.data?.length);
+      } catch (e) { void e; }
+    }
+    const results: GeneratedImage[] = [];
+    for (const item of (data.data || [])) {
+      if (item.url) {
+        results.push({ url: item.url, mimeType: 'image/png' });
+      } else if (item.b64_json) {
+        const fileUri = await saveBase64Image(item.b64_json, 'image/png');
+        results.push({ url: fileUri, mimeType: 'image/png' });
+      }
+    }
+    return results;
+  }
+
+  /**
+   * Generate images using Google Gemini
+   */
+  private static async generateGoogle(opts: GenerateImageOptions): Promise<GeneratedImage[]> {
+    const { apiKey, prompt, signal } = opts;
+    const model = 'gemini-2.0-flash-exp-image-generation';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+    const body = {
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: {
+        responseModalities: ['IMAGE', 'TEXT'],
+      },
+    };
+
+    if (process.env.NODE_ENV === 'development') {
+      try { console.warn('[ImageService] Google images model', model); } catch (e) { void e; }
+    }
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal,
+    });
+
+    const text = await res.text();
+    if (!res.ok) {
+      throw new Error(`Google Images error ${res.status}: ${text}`);
+    }
+
+    const data = JSON.parse(text) as {
+      candidates?: Array<{
+        content?: {
+          parts?: Array<{
+            text?: string;
+            inlineData?: { data: string; mimeType: string };
+          }>;
+        };
+      }>;
+    };
+
+    if (process.env.NODE_ENV === 'development') {
+      try {
+        console.warn('[ImageService] Google images status', res.status, 'candidates', data?.candidates?.length);
+      } catch (e) { void e; }
+    }
+
+    const results: GeneratedImage[] = [];
+    for (const candidate of (data.candidates || [])) {
+      for (const part of (candidate.content?.parts || [])) {
+        if (part.inlineData?.data) {
+          const fileUri = await saveBase64Image(part.inlineData.data, part.inlineData.mimeType || 'image/png');
+          results.push({ url: fileUri, mimeType: part.inlineData.mimeType || 'image/png' });
+        }
       }
     }
     return results;

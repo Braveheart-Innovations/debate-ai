@@ -3,8 +3,10 @@ import { getProviderCapabilities } from '@/config/providerCapabilities';
 import {
   getModalityAvailability,
   mergeAvailabilities,
+  mergeAvailabilitiesStrict,
   useModalityAvailability,
   useMergedModalityAvailability,
+  useMergedModalityAvailabilityStrict,
 } from '@/hooks/multimodal/useModalityAvailability';
 import type { AIProvider } from '@/types';
 
@@ -124,5 +126,141 @@ describe('useModalityAvailability', () => {
     ]);
 
     expect(hookMerged).toEqual(merged);
+  });
+
+  describe('mergeAvailabilitiesStrict', () => {
+    it('requires ALL providers to support image generation (AND logic)', () => {
+      type ModelDescriptor = ReturnType<typeof getModelByIdMock>;
+
+      getModelByIdMock.mockImplementation(() => {
+        return { supportsImageInput: true } as ModelDescriptor;
+      });
+
+      getProviderCapabilitiesMock.mockImplementation((provider: AIProvider) => {
+        if (provider === 'openai') {
+          return {
+            imageGeneration: { supported: true, models: ['dalle-3'], sizes: ['1024x1024'] },
+            videoGeneration: { supported: false },
+          };
+        }
+        if (provider === 'google') {
+          return {
+            imageGeneration: { supported: true, models: ['imagen'], sizes: ['1024x1024'] },
+            videoGeneration: { supported: false },
+          };
+        }
+        return { imageGeneration: { supported: false }, videoGeneration: { supported: false } };
+      });
+
+      const merged = mergeAvailabilitiesStrict([
+        { provider: 'openai', model: 'gpt-4o' },
+        { provider: 'google', model: 'gemini-pro' },
+      ]);
+
+      // Both support image generation, so it should be enabled
+      expect(merged.imageGeneration.supported).toBe(true);
+      expect(merged.imageGeneration.models).toContain('dalle-3');
+      expect(merged.imageGeneration.models).toContain('imagen');
+    });
+
+    it('disables image generation if ANY provider does not support it', () => {
+      type ModelDescriptor = ReturnType<typeof getModelByIdMock>;
+
+      getModelByIdMock.mockImplementation(() => {
+        return { supportsImageInput: true } as ModelDescriptor;
+      });
+
+      getProviderCapabilitiesMock.mockImplementation((provider: AIProvider) => {
+        if (provider === 'openai') {
+          return {
+            imageGeneration: { supported: true, models: ['dalle-3'], sizes: ['1024x1024'] },
+            videoGeneration: { supported: false },
+          };
+        }
+        // Claude does not support image generation
+        if (provider === 'claude') {
+          return {
+            imageGeneration: { supported: false },
+            videoGeneration: { supported: false },
+          };
+        }
+        return { imageGeneration: { supported: false }, videoGeneration: { supported: false } };
+      });
+
+      const merged = mergeAvailabilitiesStrict([
+        { provider: 'openai', model: 'gpt-4o' },
+        { provider: 'claude', model: 'claude-3-opus' },
+      ]);
+
+      // OpenAI supports image gen but Claude doesn't, so it should be disabled
+      expect(merged.imageGeneration.supported).toBe(false);
+      expect(merged.imageGeneration.models).toEqual([]);
+    });
+
+    it('still uses OR logic for input modalities', () => {
+      type ModelDescriptor = ReturnType<typeof getModelByIdMock>;
+
+      getModelByIdMock.mockImplementation((providerId: string, modelId: string) => {
+        if (modelId === 'vision-model') {
+          return { supportsImageInput: true, supportsDocuments: false } as ModelDescriptor;
+        }
+        if (modelId === 'doc-model') {
+          return { supportsImageInput: false, supportsDocuments: true } as ModelDescriptor;
+        }
+        return { supportsImageInput: false, supportsDocuments: false } as ModelDescriptor;
+      });
+
+      getProviderCapabilitiesMock.mockReturnValue({
+        imageGeneration: { supported: false },
+        videoGeneration: { supported: false },
+      });
+
+      const merged = mergeAvailabilitiesStrict([
+        { provider: 'openai', model: 'vision-model' },
+        { provider: 'google', model: 'doc-model' },
+      ]);
+
+      // Input modalities should use OR logic
+      expect(merged.imageUpload.supported).toBe(true);
+      expect(merged.documentUpload.supported).toBe(true);
+    });
+
+    it('returns all false for empty array', () => {
+      const merged = mergeAvailabilitiesStrict([]);
+
+      expect(merged.imageUpload.supported).toBe(false);
+      expect(merged.documentUpload.supported).toBe(false);
+      expect(merged.voiceInput.supported).toBe(false);
+      expect(merged.imageGeneration.supported).toBe(false);
+      expect(merged.videoGeneration.supported).toBe(false);
+    });
+
+    it('hook variant returns same result as function', () => {
+      type ModelDescriptor = ReturnType<typeof getModelByIdMock>;
+
+      getModelByIdMock.mockImplementation(() => {
+        return { supportsImageInput: true } as ModelDescriptor;
+      });
+
+      getProviderCapabilitiesMock.mockImplementation((provider: AIProvider) => {
+        if (provider === 'openai' || provider === 'grok') {
+          return {
+            imageGeneration: { supported: true, models: ['model1'], sizes: ['1024x1024'] },
+            videoGeneration: { supported: false },
+          };
+        }
+        return { imageGeneration: { supported: false }, videoGeneration: { supported: false } };
+      });
+
+      const items = [
+        { provider: 'openai', model: 'gpt-4o' },
+        { provider: 'grok', model: 'grok-2' },
+      ];
+
+      const functionResult = mergeAvailabilitiesStrict(items);
+      const hookResult = useMergedModalityAvailabilityStrict(items);
+
+      expect(hookResult).toEqual(functionResult);
+    });
   });
 });

@@ -92,6 +92,48 @@ export function mergeAvailabilities(items: Array<{ provider: string; model: stri
 }
 
 /**
+ * Strict merge: image/video generation requires ALL providers to support it (AND logic instead of OR).
+ * Used for Compare mode where we want to generate from both providers simultaneously.
+ * Input modalities still use OR logic (any supporting is fine for receiving attachments).
+ */
+export function mergeAvailabilitiesStrict(items: Array<{ provider: string; model: string }>): ModalityAvailability {
+  if (items.length === 0) {
+    return {
+      imageUpload: { supported: false },
+      documentUpload: { supported: false },
+      voiceInput: { supported: false },
+      imageGeneration: { supported: false, models: [], sizes: [] },
+      videoGeneration: { supported: false, models: [], resolutions: [] },
+    };
+  }
+
+  const availabilities = items.map(it => getModalityAvailability(it.provider, it.model));
+
+  // Image generation: ALL must support
+  const allSupportImageGen = availabilities.every(a => a.imageGeneration.supported);
+  // Video generation: ALL must support
+  const allSupportVideoGen = availabilities.every(a => a.videoGeneration.supported);
+
+  return {
+    // Input modalities: OR logic (any supporting is fine)
+    imageUpload: { supported: availabilities.some(a => a.imageUpload.supported) },
+    documentUpload: { supported: availabilities.some(a => a.documentUpload.supported) },
+    voiceInput: { supported: availabilities.some(a => a.voiceInput.supported) },
+    // Generation modalities: AND logic (all must support)
+    imageGeneration: {
+      supported: allSupportImageGen,
+      models: allSupportImageGen ? availabilities.flatMap(a => a.imageGeneration.models || []) : [],
+      sizes: allSupportImageGen ? [...new Set(availabilities.flatMap(a => a.imageGeneration.sizes || []))] : [],
+    },
+    videoGeneration: {
+      supported: allSupportVideoGen,
+      models: allSupportVideoGen ? availabilities.flatMap(a => a.videoGeneration.models || []) : [],
+      resolutions: allSupportVideoGen ? [...new Set(availabilities.flatMap(a => a.videoGeneration.resolutions || []))] : [],
+    },
+  };
+}
+
+/**
  * React hook variant for single selection.
  */
 export function useModalityAvailability(providerId: string, modelId: string): ModalityAvailability {
@@ -100,8 +142,16 @@ export function useModalityAvailability(providerId: string, modelId: string): Mo
 }
 
 /**
- * React hook variant for multiple selections.
+ * React hook variant for multiple selections (OR logic for generation).
  */
 export function useMergedModalityAvailability(items: Array<{ provider: string; model: string }>): ModalityAvailability {
   return mergeAvailabilities(items);
+}
+
+/**
+ * React hook variant for strict merge (AND logic for generation).
+ * Used by Compare mode to ensure both providers support image generation.
+ */
+export function useMergedModalityAvailabilityStrict(items: Array<{ provider: string; model: string }>): ModalityAvailability {
+  return mergeAvailabilitiesStrict(items);
 }

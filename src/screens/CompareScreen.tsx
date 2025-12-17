@@ -11,7 +11,10 @@ import {
   CompareUserMessage 
 } from '../components/organisms';
 import { ChatInputBar } from '../components/organisms/chat';
-import { useMergedModalityAvailability } from '../hooks/multimodal/useModalityAvailability';
+import { useMergedModalityAvailabilityStrict } from '../hooks/multimodal/useModalityAvailability';
+import { ImageGenerationModal } from '../components/organisms/chat/ImageGenerationModal';
+import { ImageService } from '../services/images/ImageService';
+import { AIProvider } from '../types';
 
 import { useTheme } from '../theme';
 import { useAIService } from '../providers/AIServiceProvider';
@@ -140,6 +143,13 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [pickerVisible, setPickerVisible] = useState(false);
   const recordModeEnabled = useSelector((state: RootState) => state.settings.recordModeEnabled ?? false);
+
+  // Image generation state
+  const [imageModalVisible, setImageModalVisible] = useState(false);
+  const [imageModalPrompt, setImageModalPrompt] = useState('');
+  const [leftImageGenerating, setLeftImageGenerating] = useState(false);
+  const [rightImageGenerating, setRightImageGenerating] = useState(false);
+  const imageControllersRef = useRef<{ left?: AbortController; right?: AbortController }>({});
   
   const saveComparisonSession = useCallback(async () => {
     if (userMessages.length === 0) return; // Don't save empty sessions
@@ -752,8 +762,111 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
       ]
     );
   }, [saveComparisonSession, navigation]);
-  
-  const isProcessing = leftTyping || rightTyping;
+
+  // Handle parallel image generation from both providers
+  const handleGenerateImage = useCallback(async (opts: { prompt: string; size: 'auto' | 'square' | 'portrait' | 'landscape' }) => {
+    if (!leftAI || !rightAI) return;
+    if (isDemo) {
+      dispatch(showSheet({ sheet: 'subscription' }));
+      return;
+    }
+
+    const sizeMap: Record<typeof opts.size, 'auto' | '1024x1024' | '1024x1536' | '1536x1024'> = {
+      auto: 'auto',
+      square: '1024x1024',
+      portrait: '1024x1536',
+      landscape: '1536x1024',
+    };
+
+    // Create user message for the prompt
+    const userMessage: Message = {
+      id: `msg_img_${Date.now()}`,
+      sender: 'You',
+      senderType: 'user',
+      content: `[Image: ${opts.prompt}]`,
+      timestamp: Date.now(),
+    };
+    setUserMessages(prev => [...prev, userMessage]);
+
+    // Prepare abort controllers
+    const leftController = new AbortController();
+    const rightController = new AbortController();
+    imageControllersRef.current = { left: leftController, right: rightController };
+
+    // Start both generations
+    setLeftImageGenerating(true);
+    setRightImageGenerating(true);
+
+    const leftPromise = ImageService.generateImage({
+      provider: leftAI.provider as AIProvider,
+      apiKey: apiKeys[leftAI.provider] || '',
+      prompt: opts.prompt,
+      size: sizeMap[opts.size],
+      n: 1,
+      signal: leftController.signal,
+    }).then(images => {
+      const img = images[0];
+      const uri = img?.url || (img?.b64 ? `data:${img.mimeType};base64,${img.b64}` : undefined);
+      const leftMessage: Message = {
+        id: `msg_left_img_${Date.now()}`,
+        sender: leftAI.name,
+        senderType: 'ai',
+        content: '',
+        timestamp: Date.now(),
+        attachments: uri ? [{ type: 'image', uri, mimeType: img.mimeType }] : undefined,
+      };
+      setLeftMessages(prev => [...prev, leftMessage]);
+      leftHistoryRef.current.push(leftMessage);
+    }).catch(err => {
+      const leftMessage: Message = {
+        id: `msg_left_img_err_${Date.now()}`,
+        sender: leftAI.name,
+        senderType: 'ai',
+        content: `Image generation failed: ${err.message}`,
+        timestamp: Date.now(),
+      };
+      setLeftMessages(prev => [...prev, leftMessage]);
+    }).finally(() => {
+      setLeftImageGenerating(false);
+    });
+
+    const rightPromise = ImageService.generateImage({
+      provider: rightAI.provider as AIProvider,
+      apiKey: apiKeys[rightAI.provider] || '',
+      prompt: opts.prompt,
+      size: sizeMap[opts.size],
+      n: 1,
+      signal: rightController.signal,
+    }).then(images => {
+      const img = images[0];
+      const uri = img?.url || (img?.b64 ? `data:${img.mimeType};base64,${img.b64}` : undefined);
+      const rightMessage: Message = {
+        id: `msg_right_img_${Date.now()}`,
+        sender: rightAI.name,
+        senderType: 'ai',
+        content: '',
+        timestamp: Date.now(),
+        attachments: uri ? [{ type: 'image', uri, mimeType: img.mimeType }] : undefined,
+      };
+      setRightMessages(prev => [...prev, rightMessage]);
+      rightHistoryRef.current.push(rightMessage);
+    }).catch(err => {
+      const rightMessage: Message = {
+        id: `msg_right_img_err_${Date.now()}`,
+        sender: rightAI.name,
+        senderType: 'ai',
+        content: `Image generation failed: ${err.message}`,
+        timestamp: Date.now(),
+      };
+      setRightMessages(prev => [...prev, rightMessage]);
+    }).finally(() => {
+      setRightImageGenerating(false);
+    });
+
+    await Promise.allSettled([leftPromise, rightPromise]);
+  }, [leftAI, rightAI, isDemo, dispatch, apiKeys]);
+
+  const isProcessing = leftTyping || rightTyping || leftImageGenerating || rightImageGenerating;
   const leftEffectiveModel = leftAI ? (selectedModels[leftAI.id] || leftAI.model) : '';
   const rightEffectiveModel = rightAI ? (selectedModels[rightAI.id] || rightAI.model) : '';
 
@@ -766,7 +879,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
       { provider: rightAI.provider, model: rightEffectiveModel },
     ];
   })();
-  const availability = useMergedModalityAvailability(selectedList);
+  const availability = useMergedModalityAvailabilityStrict(selectedList);
   const imageGenerationEnabled = availability.imageGeneration.supported;
   
   // Navigate back if AIs are not provided (must be after all hooks)
@@ -917,6 +1030,10 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
             }
             disabled={isProcessing}
             imageGenerationEnabled={imageGenerationEnabled}
+            onOpenImageModal={() => {
+              setImageModalPrompt(inputText.trim());
+              setImageModalVisible(true);
+            }}
             modalityAvailability={{
               imageUpload: availability.imageUpload.supported,
               documentUpload: availability.documentUpload.supported,
@@ -927,7 +1044,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
             modalityReasons={{
               imageUpload: availability.imageUpload.supported ? undefined : 'Selected model(s) do not support image input',
               documentUpload: availability.documentUpload.supported ? undefined : 'Selected model(s) do not support document/PDF input',
-              imageGeneration: availability.imageGeneration.supported ? undefined : 'Selected provider(s) do not support image generation',
+              imageGeneration: availability.imageGeneration.supported ? undefined : 'Both providers must support image generation',
               videoGeneration: availability.videoGeneration.supported ? undefined : 'Selected provider(s) do not support video generation',
               voice: availability.voiceInput.supported ? undefined : 'Selected model(s) do not support voice input',
             }}
@@ -964,6 +1081,15 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
           }}
         />
       )}
+      <ImageGenerationModal
+        visible={imageModalVisible}
+        initialPrompt={imageModalPrompt}
+        onClose={() => setImageModalVisible(false)}
+        onGenerate={(opts) => {
+          setImageModalVisible(false);
+          handleGenerateImage(opts);
+        }}
+      />
     </KeyboardAvoidingView>
   );
 };
