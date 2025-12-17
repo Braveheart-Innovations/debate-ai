@@ -1,14 +1,15 @@
-import * as functions from 'firebase-functions';
+import { onMessagePublished } from 'firebase-functions/v2/pubsub';
 import * as admin from 'firebase-admin';
 import { google } from 'googleapis';
 
 const PACKAGE_NAME_ANDROID = 'com.braveheartinnovations.debateai';
 
-export const handlePlayStoreNotification = functions.pubsub
-  .topic('play-store-notifications')
-  .onPublish(async (message) => {
+export const handlePlayStoreNotification = onMessagePublished(
+  'play-store-notifications',
+  async (event) => {
+    const message = event.data;
     try {
-      const data = JSON.parse(Buffer.from(message.data, 'base64').toString());
+      const data = JSON.parse(Buffer.from(message.message.data || '', 'base64').toString());
       const subtype = data?.subscriptionNotification?.notificationType;
       const purchaseToken = data?.subscriptionNotification?.purchaseToken as string | undefined;
       const subscriptionId = data?.subscriptionNotification?.subscriptionId as string | undefined;
@@ -53,7 +54,7 @@ async function validateAndroidSubscription(packageName: string, subscriptionId: 
     scopes: ['https://www.googleapis.com/auth/androidpublisher'],
   });
   const authClient = await auth.getClient();
-  google.options({ auth: authClient });
+  google.options({ auth: authClient as any });
   const publisher = google.androidpublisher('v3');
   const res = await publisher.purchases.subscriptions.get({
     packageName,

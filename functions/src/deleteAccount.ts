@@ -1,13 +1,13 @@
-import * as functions from 'firebase-functions';
+import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import 'firebase-admin/firestore';
 
-export const deleteAccount = functions.https.onCall(async (_data: unknown, context: functions.https.CallableContext) => {
-  if (!context.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated to delete an account.');
+export const deleteAccount = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'User must be authenticated to delete an account.');
   }
 
-  const uid = context.auth.uid;
+  const uid = request.auth.uid;
   const firestore = admin.firestore();
 
   try {
@@ -41,6 +41,6 @@ export const deleteAccount = functions.https.onCall(async (_data: unknown, conte
     return { success: true };
   } catch (error) {
     console.error(`Account deletion failed for user ${uid}`, error);
-    throw new functions.https.HttpsError('internal', 'Failed to delete account');
+    throw new HttpsError('internal', 'Failed to delete account');
   }
 });

@@ -1,10 +1,14 @@
-import * as functions from 'firebase-functions';
+import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { defineString } from 'firebase-functions/params';
 import * as admin from 'firebase-admin';
 import axios from 'axios';
 import { google } from 'googleapis';
 
 // Initialize Admin if not already
 try { admin.app(); } catch { admin.initializeApp(); }
+
+// Define config parameter for Apple shared secret
+const appleSharedSecret = defineString('APPLE_SHARED_SECRET');
 
 const APPLE_PRODUCTION_URL = 'https://buy.itunes.apple.com/verifyReceipt';
 const APPLE_SANDBOX_URL = 'https://sandbox.itunes.apple.com/verifyReceipt';
@@ -28,15 +32,16 @@ const LIFETIME_PRODUCT_IDS = [
  * Validates App Store/Play Store receipts and returns authoritative subscription state.
  * Expected: { receipt (iOS), purchaseToken (Android), platform, productId }
  */
-export const validatePurchase = functions.https.onCall(async (data: ValidateRequest, context) => {
-  if (!context.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+export const validatePurchase = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
 
-  const userId = context.auth.uid;
+  const userId = request.auth.uid;
+  const data = request.data as ValidateRequest;
   const { receipt, platform, productId, purchaseToken } = data;
   if (!platform || !productId) {
-    throw new functions.https.HttpsError('invalid-argument', 'Missing required fields');
+    throw new HttpsError('invalid-argument', 'Missing required fields');
   }
 
   try {
@@ -50,10 +55,10 @@ export const validatePurchase = functions.https.onCall(async (data: ValidateRequ
     if (isLifetime) {
       // Handle lifetime (one-time) purchase validation
       if (platform === 'ios') {
-        if (!receipt) throw new functions.https.HttpsError('invalid-argument', 'Missing iOS receipt');
-        const sharedSecret = functions.config()?.apple?.shared_secret as string | undefined;
+        if (!receipt) throw new HttpsError('invalid-argument', 'Missing iOS receipt');
+        const sharedSecret = appleSharedSecret.value();
         if (!sharedSecret) {
-          throw new functions.https.HttpsError('failed-precondition', 'Apple shared secret not configured');
+          throw new HttpsError('failed-precondition', 'Apple shared secret not configured');
         }
 
         const ios = await validateAppleReceipt(receipt, sharedSecret);
@@ -61,16 +66,16 @@ export const validatePurchase = functions.https.onCall(async (data: ValidateRequ
         const inAppPurchases = ios.receipt?.in_app || [];
         const lifetimePurchase = inAppPurchases.find((item: any) => item.product_id === productId);
         if (!lifetimePurchase) {
-          throw new functions.https.HttpsError('not-found', 'No matching lifetime purchase found in receipt');
+          throw new HttpsError('not-found', 'No matching lifetime purchase found in receipt');
         }
         // Lifetime purchases have no expiry
         expiresAt = null;
       } else {
         // Android: Validate one-time product purchase
-        if (!purchaseToken) throw new functions.https.HttpsError('invalid-argument', 'Missing Android purchase token');
+        if (!purchaseToken) throw new HttpsError('invalid-argument', 'Missing Android purchase token');
         const android = await validateAndroidProduct(PACKAGE_NAME_ANDROID, productId, purchaseToken);
         if (!android || android.purchaseState !== 0) {
-          throw new functions.https.HttpsError('invalid-argument', 'Invalid Android product purchase state');
+          throw new HttpsError('invalid-argument', 'Invalid Android product purchase state');
         }
         // Lifetime purchases have no expiry
         expiresAt = null;
@@ -78,10 +83,10 @@ export const validatePurchase = functions.https.onCall(async (data: ValidateRequ
     } else {
       // Handle subscription validation (existing logic)
       if (platform === 'ios') {
-        if (!receipt) throw new functions.https.HttpsError('invalid-argument', 'Missing iOS receipt');
-        const sharedSecret = functions.config()?.apple?.shared_secret as string | undefined;
+        if (!receipt) throw new HttpsError('invalid-argument', 'Missing iOS receipt');
+        const sharedSecret = appleSharedSecret.value();
         if (!sharedSecret) {
-          throw new functions.https.HttpsError('failed-precondition', 'Apple shared secret not configured');
+          throw new HttpsError('failed-precondition', 'Apple shared secret not configured');
         }
 
         const ios = await validateAppleReceipt(receipt, sharedSecret);
@@ -91,7 +96,7 @@ export const validatePurchase = functions.https.onCall(async (data: ValidateRequ
           ? items.reduce((a: any, b: any) => (parseInt(a.expires_date_ms) > parseInt(b.expires_date_ms) ? a : b))
           : null;
         if (!target) {
-          throw new functions.https.HttpsError('not-found', 'No matching subscription found in receipt');
+          throw new HttpsError('not-found', 'No matching subscription found in receipt');
         }
         expiresAt = new Date(parseInt(target.expires_date_ms, 10));
         inTrial = target.is_trial_period === 'true' || target.is_in_intro_offer_period === 'true';
@@ -105,10 +110,10 @@ export const validatePurchase = functions.https.onCall(async (data: ValidateRequ
         autoRenewing = pending ? pending.auto_renew_status === '1' : true;
       } else {
         // Android validation via Google Play Developer API
-        if (!purchaseToken) throw new functions.https.HttpsError('invalid-argument', 'Missing Android purchase token');
+        if (!purchaseToken) throw new HttpsError('invalid-argument', 'Missing Android purchase token');
         const android = await validateAndroidSubscription(PACKAGE_NAME_ANDROID, productId, purchaseToken);
         if (!android || !android.expiryTimeMillis) {
-          throw new functions.https.HttpsError('invalid-argument', 'Invalid Android subscription state');
+          throw new HttpsError('invalid-argument', 'Invalid Android subscription state');
         }
         expiresAt = new Date(parseInt(android.expiryTimeMillis, 10));
         autoRenewing = !!android.autoRenewing;
@@ -159,7 +164,7 @@ export const validatePurchase = functions.https.onCall(async (data: ValidateRequ
     };
   } catch (err) {
     console.error('validatePurchase error', err);
-    throw new functions.https.HttpsError('internal', 'Validation failed');
+    throw new HttpsError('internal', 'Validation failed');
   }
 });
 
@@ -191,7 +196,7 @@ async function validateAndroidSubscription(packageName: string, subscriptionId: 
     scopes: ['https://www.googleapis.com/auth/androidpublisher'],
   });
   const authClient = await auth.getClient();
-  google.options({ auth: authClient });
+  google.options({ auth: authClient as any });
   const publisher = google.androidpublisher('v3');
   const res = await publisher.purchases.subscriptions.get({
     packageName,
@@ -206,7 +211,7 @@ async function validateAndroidSubscriptionV2(packageName: string, productId: str
     scopes: ['https://www.googleapis.com/auth/androidpublisher'],
   });
   const authClient = await auth.getClient();
-  google.options({ auth: authClient });
+  google.options({ auth: authClient as any });
   const publisher = google.androidpublisher('v3');
   const res = await publisher.purchases.subscriptionsv2.get({
     packageName,
@@ -220,7 +225,7 @@ async function validateAndroidProduct(packageName: string, productId: string, to
     scopes: ['https://www.googleapis.com/auth/androidpublisher'],
   });
   const authClient = await auth.getClient();
-  google.options({ auth: authClient });
+  google.options({ auth: authClient as any });
   const publisher = google.androidpublisher('v3');
   const res = await publisher.purchases.products.get({
     packageName,
