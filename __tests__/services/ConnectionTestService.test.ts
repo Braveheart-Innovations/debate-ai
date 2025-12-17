@@ -12,7 +12,6 @@ describe('ConnectionTestService', () => {
     resetSingleton();
     service = ConnectionTestService.getInstance();
     jest.spyOn(service as unknown as { delay(ms: number): Promise<void> }, 'delay').mockResolvedValue(undefined);
-    jest.spyOn(Math, 'random').mockReturnValue(0.25);
   });
 
   afterEach(() => {
@@ -36,44 +35,30 @@ describe('ConnectionTestService', () => {
     expect(result.message).toContain('OpenAI API keys');
   });
 
-  it('returns success in mock mode for valid key', async () => {
+  it('calls real test for valid key format', async () => {
     const apiKey = 'sk-valid-key-1234567890';
-    const result = await service.testProvider('openai', apiKey, { mockMode: true });
-
-    expect(result.success).toBe(true);
-    expect(result.model).toBe('gpt-5.2');
-    expect(result.message).toBe('Verified just now');
-    expect(result.responseTime).toBeGreaterThan(0);
-  });
-
-  it('delegates to real test when mock mode disabled', async () => {
     const realTestSpy = jest
       .spyOn(service as unknown as { realTest(providerId: string, apiKey: string, timeout: number): Promise<TestResult> }, 'realTest')
-      .mockResolvedValue({ success: true, message: 'ok', model: 'model', responseTime: 10 });
+      .mockResolvedValue({ success: true, message: 'Connection verified', model: 'gpt-5.2', responseTime: 100 });
 
-    const result = await service.testProvider('openai', 'sk-real-key-1234567890', { mockMode: false });
+    const result = await service.testProvider('openai', apiKey);
 
-    expect(realTestSpy).toHaveBeenCalledWith('openai', 'sk-real-key-1234567890', expect.any(Number));
+    expect(realTestSpy).toHaveBeenCalledWith('openai', apiKey, expect.any(Number));
     expect(result.success).toBe(true);
-    expect(result.model).toBe('model');
+    expect(result.model).toBe('gpt-5.2');
   });
 
-  it('stops retrying when error should not retry', async () => {
-    const mockTestSpy = jest
-      .spyOn(service as unknown as { mockTest(providerId: string, apiKey: string, timeout: number): Promise<TestResult> }, 'mockTest')
-      .mockImplementation(() => {
-        throw new Error('invalid');
-      });
-    jest
-      .spyOn(service as unknown as { parseError(error: unknown): { code: string; message: string } }, 'parseError')
-      .mockReturnValue({ code: 'INVALID_KEY', message: 'Invalid key' });
+  it('stops retrying on auth errors', async () => {
+    const realTestSpy = jest
+      .spyOn(service as unknown as { realTest(providerId: string, apiKey: string, timeout: number): Promise<TestResult> }, 'realTest')
+      .mockRejectedValue(Object.assign(new Error('Invalid API key'), { statusCode: 401 }));
 
-    const apiKey = 'c'.repeat(45);
+    const apiKey = 'sk-ant-' + 'c'.repeat(40);
     const result = await service.testProvider('claude', apiKey, { retries: 3 });
 
     expect(result.success).toBe(false);
-    expect(result.error?.code).toBe('INVALID_KEY');
-    expect(mockTestSpy).toHaveBeenCalledTimes(1);
+    // Should only call once - no retries for auth errors
+    expect(realTestSpy).toHaveBeenCalledTimes(1);
   });
 
   it('aggregates results when testing multiple providers', async () => {
@@ -84,7 +69,7 @@ describe('ConnectionTestService', () => {
 
     const results = await service.testMultipleProviders([
       { providerId: 'openai', apiKey: 'sk-valid-key-1234567890' },
-      { providerId: 'claude', apiKey: 'c'.repeat(45) },
+      { providerId: 'claude', apiKey: 'sk-ant-' + 'c'.repeat(40) },
     ]);
 
     expect(results.openai.success).toBe(true);
@@ -94,15 +79,19 @@ describe('ConnectionTestService', () => {
   it('maps error codes to helpful recommendations', () => {
     const success = service.getTestRecommendation({ success: true, message: 'ok' });
     const invalid = service.getTestRecommendation({ success: false, message: 'bad', error: { code: 'INVALID_KEY', message: 'bad' } });
-    const unknown = service.getTestRecommendation({ success: false, message: 'bad', error: { code: 'OTHER', message: 'x' } });
+    const unknown = service.getTestRecommendation({ success: false, message: '', error: { code: 'OTHER', message: '' } });
 
     expect(success).toContain('Connection successful');
     expect(invalid).toContain('API key');
+    // When message is empty and code is unknown, falls back to default message
     expect(unknown).toContain('Connection failed');
   });
 
   it('checks provider support list', () => {
     expect(service.isProviderSupported('openai')).toBe(true);
+    expect(service.isProviderSupported('claude')).toBe(true);
+    expect(service.isProviderSupported('google')).toBe(true);
+    expect(service.isProviderSupported('grok')).toBe(true);
     expect(service.isProviderSupported('nonexistent')).toBe(false);
   });
 });

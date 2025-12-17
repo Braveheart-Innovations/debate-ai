@@ -25,7 +25,7 @@ describe('UnlockEverythingBanner', () => {
     const { getByText } = renderWithProviders(<UnlockEverythingBanner />);
 
     expect(getByText('Unlock Everything')).toBeTruthy();
-    expect(getByText('$7.99/month')).toBeTruthy();
+    expect(getByText('$5.99/month')).toBeTruthy();
     expect(getByText(/Collaborate on ideas/i)).toBeTruthy();
   });
 });

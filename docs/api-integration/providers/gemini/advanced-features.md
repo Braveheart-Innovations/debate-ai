@@ -98,6 +98,68 @@ const audioRequest = {
 // Audio pricing: $1.00 per 1M tokens
 ```
 
+### Image Generation
+
+Gemini supports native image generation through specific image-generation models. Use `responseModalities` to request image output along with text.
+
+```javascript
+// Image generation with Gemini
+const imageGenRequest = await fetch(
+  'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=' + process.env.GEMINI_API_KEY,
+  {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      contents: [
+        {
+          parts: [
+            { text: 'A futuristic city at sunset with flying cars' }
+          ]
+        }
+      ],
+      generationConfig: {
+        responseModalities: ['IMAGE', 'TEXT'],
+        aspectRatio: '16:9'  // Options: '1:1', '16:9', '9:16', '4:3', '3:4'
+      }
+    })
+  }
+);
+
+const result = await imageGenRequest.json();
+
+// Response structure:
+// {
+//   "candidates": [{
+//     "content": {
+//       "parts": [
+//         { "text": "Here's the image..." },
+//         {
+//           "inlineData": {
+//             "data": "base64-encoded-image...",
+//             "mimeType": "image/png"
+//           }
+//         }
+//       ]
+//     }
+//   }]
+// }
+```
+
+**Available Image Generation Models:**
+- `gemini-2.5-flash-image` - Production-ready, fast image generation
+- `gemini-3-pro-image-preview` - Higher quality, preview availability
+
+**Aspect Ratio Options:**
+- `1:1` - Square (default)
+- `16:9` - Landscape (widescreen)
+- `9:16` - Portrait (mobile/stories)
+- `4:3` - Standard landscape
+- `3:4` - Standard portrait
+
+**Note**: Unlike OpenAI's DALL-E, Gemini uses aspect ratios instead of pixel dimensions.
+
 ## Live API (Real-Time Multimodal)
 
 ### WebSocket Connection

@@ -82,14 +82,13 @@ export class ImageService {
 
   /**
    * Generate images using Grok (xAI) - OpenAI-compatible API
+   * Note: Grok's API does not support size, quality, or style parameters
    */
   private static async generateGrok(opts: GenerateImageOptions): Promise<GeneratedImage[]> {
     const { apiKey, prompt, n = 1, signal } = opts;
-    // Grok only supports 1024x1024
     const body: Record<string, unknown> = {
-      model: 'grok-2-image-1212',
+      model: 'grok-2-image',
       prompt,
-      size: '1024x1024',
     };
     if (n && n > 1) {
       body.n = n;
@@ -130,16 +129,27 @@ export class ImageService {
 
   /**
    * Generate images using Google Gemini
+   * Uses gemini-2.5-flash-image model (production) with aspect_ratio support
    */
   private static async generateGoogle(opts: GenerateImageOptions): Promise<GeneratedImage[]> {
-    const { apiKey, prompt, signal } = opts;
-    const model = 'gemini-2.0-flash-exp-image-generation';
+    const { apiKey, prompt, size, signal } = opts;
+    const model = 'gemini-2.5-flash-image';
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+    // Map size to aspect_ratio for Gemini
+    const aspectRatioMap: Record<string, string> = {
+      '1024x1024': '1:1',
+      '1024x1536': '9:16',
+      '1536x1024': '16:9',
+      'auto': '1:1',
+    };
+    const aspectRatio = size ? aspectRatioMap[size] || '1:1' : '1:1';
 
     const body = {
       contents: [{ parts: [{ text: prompt }] }],
       generationConfig: {
         responseModalities: ['IMAGE', 'TEXT'],
+        aspectRatio,
       },
     };
 

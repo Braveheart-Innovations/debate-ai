@@ -1084,6 +1084,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
       <ImageGenerationModal
         visible={imageModalVisible}
         initialPrompt={imageModalPrompt}
+        providers={leftAI && rightAI ? [leftAI.provider, rightAI.provider] : undefined}
         onClose={() => setImageModalVisible(false)}
         onGenerate={(opts) => {
           setImageModalVisible(false);

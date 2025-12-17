@@ -89,6 +89,7 @@ export const APIProviderList: React.FC<APIProviderListProps> = ({
               index={index}
               testStatus={verificationStatus[provider.id]?.status}
               testStatusMessage={verificationStatus[provider.id]?.message}
+              verifiedModel={verificationStatus[provider.id]?.model}
               selectedModel={expertConfig.enabled ? expertConfig.selectedModel : undefined}
               expertModeEnabled={expertConfig.enabled === true}
               onGetApiKey={onGetApiKey ? () => onGetApiKey(provider.id) : undefined}

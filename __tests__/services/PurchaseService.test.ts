@@ -204,7 +204,7 @@ describe('PurchaseService', () => {
 
     const result = await PurchaseService.restorePurchases();
 
-    expect(result).toEqual({ success: true, restored: true });
+    expect(result).toEqual({ success: true, restored: true, isLifetime: false });
     expect(validateSpy).toHaveBeenCalledWith(purchase);
     validateSpy.mockRestore();
   });

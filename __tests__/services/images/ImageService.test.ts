@@ -62,13 +62,14 @@ describe('ImageService', () => {
   });
 
   describe('Grok provider', () => {
-    it('calls Grok API endpoint with correct parameters', async () => {
+    it('calls Grok API endpoint with correct parameters (no size param)', async () => {
       mockedFetch.mockResolvedValue({
         ok: true,
         status: 200,
         text: jest.fn().mockResolvedValue(JSON.stringify({ data: [{ url: 'https://grok.x.ai/image.png' }] })),
       } as any);
 
+      // Note: Grok does NOT support size parameter - it's ignored
       const result = await ImageService.generateImage({ provider: 'grok', apiKey: 'grok-key', prompt: 'a dog', size: '1024x1024' });
 
       expect(mockedFetch).toHaveBeenCalledWith('https://api.x.ai/v1/images/generations', expect.objectContaining({
@@ -76,7 +77,9 @@ describe('ImageService', () => {
         headers: expect.objectContaining({ Authorization: 'Bearer grok-key' }),
       }));
       const body = JSON.parse((mockedFetch.mock.calls[0][1] as RequestInit).body as string);
-      expect(body).toMatchObject({ model: 'grok-2-image-1212', prompt: 'a dog', size: '1024x1024' });
+      // Grok uses grok-2-image model and does NOT include size parameter
+      expect(body).toMatchObject({ model: 'grok-2-image', prompt: 'a dog' });
+      expect(body.size).toBeUndefined(); // Size is NOT supported by Grok
       expect(result).toEqual([{ url: 'https://grok.x.ai/image.png', mimeType: 'image/png' }]);
     });
 
@@ -107,7 +110,7 @@ describe('ImageService', () => {
   });
 
   describe('Google provider', () => {
-    it('calls Google Gemini API endpoint with correct parameters', async () => {
+    it('calls Google Gemini API endpoint with correct model and aspect ratio', async () => {
       mockedFetch.mockResolvedValue({
         ok: true,
         status: 200,
@@ -123,8 +126,9 @@ describe('ImageService', () => {
 
       const result = await ImageService.generateImage({ provider: 'google', apiKey: 'google-key', prompt: 'a sunset' });
 
+      // Verify correct model (gemini-2.5-flash-image) in URL
       expect(mockedFetch).toHaveBeenCalledWith(
-        expect.stringContaining('generativelanguage.googleapis.com'),
+        expect.stringContaining('gemini-2.5-flash-image'),
         expect.objectContaining({ method: 'POST' })
       );
       expect(mockedFetch).toHaveBeenCalledWith(
@@ -133,7 +137,39 @@ describe('ImageService', () => {
       );
       const body = JSON.parse((mockedFetch.mock.calls[0][1] as RequestInit).body as string);
       expect(body.contents[0].parts[0].text).toBe('a sunset');
+      // Google uses aspect_ratio instead of pixel size
+      expect(body.generationConfig.aspectRatio).toBe('1:1'); // Default
       expect(result).toEqual([{ url: '/cache/images/google_image.png', mimeType: 'image/png' }]);
+    });
+
+    it('maps size parameter to correct aspect ratio for Google', async () => {
+      mockedFetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        text: jest.fn().mockResolvedValue(JSON.stringify({
+          candidates: [{
+            content: {
+              parts: [{ inlineData: { data: 'dGVzdA==', mimeType: 'image/png' } }]
+            }
+          }]
+        })),
+      } as any);
+      mockedSaveBase64Image.mockResolvedValue('/cache/images/test.png');
+
+      // Test portrait (1024x1536 -> 9:16)
+      await ImageService.generateImage({ provider: 'google', apiKey: 'key', prompt: 'test', size: '1024x1536' });
+      let body = JSON.parse((mockedFetch.mock.calls[0][1] as RequestInit).body as string);
+      expect(body.generationConfig.aspectRatio).toBe('9:16');
+
+      // Test landscape (1536x1024 -> 16:9)
+      await ImageService.generateImage({ provider: 'google', apiKey: 'key', prompt: 'test', size: '1536x1024' });
+      body = JSON.parse((mockedFetch.mock.calls[1][1] as RequestInit).body as string);
+      expect(body.generationConfig.aspectRatio).toBe('16:9');
+
+      // Test square (1024x1024 -> 1:1)
+      await ImageService.generateImage({ provider: 'google', apiKey: 'key', prompt: 'test', size: '1024x1024' });
+      body = JSON.parse((mockedFetch.mock.calls[2][1] as RequestInit).body as string);
+      expect(body.generationConfig.aspectRatio).toBe('1:1');
     });
 
     it('handles multiple image parts from Google response', async () => {

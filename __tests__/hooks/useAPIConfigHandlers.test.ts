@@ -50,7 +50,7 @@ describe('useAPIConfigHandlers', () => {
 
   const renderHandlers = () => renderHook(() => useAPIConfigHandlers());
 
-  it('handles key change and clears verification when key removed', async () => {
+  it('handles key change and always clears verification', async () => {
     const { result } = renderHandlers();
 
     await act(async () => {
@@ -58,20 +58,22 @@ describe('useAPIConfigHandlers', () => {
     });
 
     expect(updateKey).toHaveBeenCalledWith('claude', 'new-key');
-    expect(removeVerification).not.toHaveBeenCalled();
+    // Verification is now always cleared when key changes (user must re-verify)
+    expect(removeVerification).toHaveBeenCalledWith('claude');
 
     await act(async () => {
       await result.current.handleKeyChange('claude', '');
     });
 
-    expect(removeVerification).toHaveBeenCalledWith('claude');
+    // Should be called twice now (once for each key change)
+    expect(removeVerification).toHaveBeenCalledTimes(2);
   });
 
   it('tests connection and verifies provider on success', async () => {
     const { result } = renderHandlers();
     const outcome = await result.current.handleTestConnection('claude');
 
-    expect(testConnection).toHaveBeenCalledWith('claude', 'anthropic-key', { mockMode: true });
+    expect(testConnection).toHaveBeenCalledWith('claude', 'anthropic-key');
     expect(updateKey).toHaveBeenCalledWith('claude', 'anthropic-key');
     expect(verifyProvider).toHaveBeenCalledWith('claude', expect.objectContaining({ success: true, model: 'gpt' }));
     expect(outcome).toEqual({ success: true, message: 'ok', model: 'gpt' });

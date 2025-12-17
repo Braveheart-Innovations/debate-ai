@@ -20,6 +20,37 @@ import { ActualPricing } from '@/components/organisms/subscription/ActualPricing
 import { getAIProviderIcon } from '@/utils/aiProviderAssets';
 import * as Haptics from 'expo-haptics';
 
+/**
+ * Convert a raw model ID to a friendly display name
+ * e.g., "mistral-medium-2505" → "Mistral Medium"
+ *       "command-a-vision-07-2025" → "Command A Vision"
+ *       "togethercomputer/Refuel-Llama" → "Refuel Llama"
+ */
+const formatModelName = (modelId: string): string => {
+  // Handle Together.ai format: "org/model-name" - extract just the model name
+  if (modelId.includes('/')) {
+    modelId = modelId.split('/').pop() || modelId;
+  }
+
+  // Remove common suffixes (dates, versions) - order matters: specific patterns first
+  const name = modelId
+    .replace(/-\d{2}-\d{4}$/, '')    // Remove month-year like -07-2025 (most specific, check first)
+    .replace(/-\d{8}$/, '')          // Remove date suffixes like -20251001
+    .replace(/-\d{4,}$/, '')         // Remove numeric suffixes like -2505 or -0709
+    .replace(/-latest$/, '')         // Remove -latest suffix
+    .replace(/-preview$/, '')        // Remove -preview suffix
+    .replace(/-Instruct-Turbo$/, '') // Remove Together-specific suffix
+    .replace(/-Instruct$/, '');      // Remove -Instruct suffix
+
+  // Convert to title case and replace dashes/underscores with spaces
+  return name
+    .split(/[-_]/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
 interface ProviderCardProps {
   provider: AIProvider;
   apiKey: string;
@@ -33,6 +64,8 @@ interface ProviderCardProps {
   testStatusMessage?: string;
   selectedModel?: string;
   expertModeEnabled?: boolean;
+  /** Actual model returned by API during verification */
+  verifiedModel?: string;
   /** Callback when user wants to get an API key. If not provided, opens URL directly. */
   onGetApiKey?: () => void;
   /** Whether a key was detected in clipboard. */
@@ -54,6 +87,7 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
   testStatusMessage,
   selectedModel,
   expertModeEnabled = false,
+  verifiedModel,
   onGetApiKey,
   clipboardKeyDetected = false,
   onUseClipboardKey,
@@ -204,20 +238,27 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
                   {/* Model and pricing info */}
                   {(() => {
                     const models = AI_MODELS[provider.id] || [];
-                    const currentModel = selectedModel 
-                      ? models.find(m => m.id === selectedModel)
+                    // Use verifiedModel (actual API response) first, then fall back to selectedModel
+                    const modelToUse = verifiedModel || selectedModel;
+                    const currentModel = modelToUse
+                      ? models.find(m => m.id === modelToUse)
                       : models.find(m => m.isDefault);
-                    
-                    if (currentModel) {
-                      const pricing = MODEL_PRICING[provider.id]?.[currentModel.id];
-                      const freeInfo = getFreeMessageInfo(provider.id, currentModel.id);
-                      
+
+                    // Get display name: try config first, then format raw model ID from API
+                    const displayModelName = currentModel?.name
+                      || (verifiedModel ? formatModelName(verifiedModel) : 'Unknown model');
+                    const modelIdForPricing = currentModel?.id || verifiedModel || 'default';
+
+                    if (currentModel || verifiedModel) {
+                      const pricing = MODEL_PRICING[provider.id]?.[modelIdForPricing];
+                      const freeInfo = getFreeMessageInfo(provider.id, modelIdForPricing);
+
                       return (
                         <>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                            <Typography 
-                              variant="body" 
-                              style={{ 
+                            <Typography
+                              variant="body"
+                              style={{
                                 color: theme.colors.success[600],
                                 fontSize: 14,
                                 fontWeight: '500'
@@ -227,7 +268,7 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
                             </Typography>
                             <Typography variant="caption" color="secondary">•</Typography>
                             <Typography variant="caption" color="secondary">
-                              {currentModel.name}
+                              {displayModelName}
                             </Typography>
                             {/* Expert badge moved to header next to checkmark */}
                           </View>

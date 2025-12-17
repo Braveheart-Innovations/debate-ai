@@ -6,7 +6,7 @@
 Grok 4 currently supports:
 - ✅ **Text**: Full support
 - ✅ **Vision**: Image understanding (in API)
-- 🔜 **Image Generation**: Coming soon via `grok-2-image-1212` endpoint
+- ✅ **Image Generation**: Available via `grok-2-image` model
 - 🔜 **Audio**: Voice capabilities planned
 - 🔜 **Video**: On roadmap
 
@@ -45,10 +45,12 @@ const response = await fetch('https://api.x.ai/v1/chat/completions', {
 });
 ```
 
-### Image Generation (Coming Soon)
+### Image Generation
+
+Grok's image generation API uses the `grok-2-image` model. Note that **size, quality, and style parameters are NOT supported** - the API generates images at a fixed size.
 
 ```javascript
-// Future endpoint for image generation
+// Image generation endpoint
 const imageGeneration = await fetch('https://api.x.ai/v1/images/generations', {
   method: 'POST',
   headers: {
@@ -56,13 +58,27 @@ const imageGeneration = await fetch('https://api.x.ai/v1/images/generations', {
     'Content-Type': 'application/json'
   },
   body: JSON.stringify({
-    model: 'grok-2-image-1212',  // Image generation model
+    model: 'grok-2-image',
     prompt: 'A futuristic city at sunset',
-    n: 1,
-    size: '1024x1024'
+    n: 1,  // Number of images (1-10)
+    response_format: 'url'  // 'url' or 'b64_json'
   })
 });
+
+// Response format
+// {
+//   "data": [
+//     { "url": "https://..." }
+//   ]
+// }
 ```
+
+**Important**: Unlike OpenAI's DALL-E, Grok does not support:
+- `size` parameter (images are generated at a fixed size)
+- `quality` parameter
+- `style` parameter
+
+Style hints should be included directly in your prompt (e.g., "in watercolor style", "photorealistic", etc.).
 
 ## Function Calling / Tool Use
 

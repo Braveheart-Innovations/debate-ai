@@ -131,7 +131,7 @@ describe('ImageGenerationModal', () => {
       expect(screen.getByText('Style')).toBeTruthy();
     });
 
-    it('should render help text about OpenAI support', () => {
+    it('should render default help text when no provider specified', () => {
       render(
         <ImageGenerationModal
           visible={true}
@@ -140,7 +140,7 @@ describe('ImageGenerationModal', () => {
         />
       );
 
-      expect(screen.getByText(/OpenAI supports:/)).toBeTruthy();
+      expect(screen.getByText(/Select size and style options/)).toBeTruthy();
     });
 
     it('should render action buttons', () => {

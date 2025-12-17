@@ -43,13 +43,11 @@ export function getProviderCapabilities(provider: AIProvider): ProviderCapabilit
         imageGeneration: {
           supported: true,
           models: [
+            'gemini-2.5-flash-image',
             'gemini-3-pro-image-preview',
-            'imagen-3',
-            'gemini-2.0-flash-image-generation',
           ],
-          sizes: [
-            IMAGE_GENERATION_CONSTANTS.SIZES.SQUARE_1024,
-          ],
+          // Google uses aspect ratios, not pixel sizes
+          sizes: ['1:1', '16:9', '9:16', '4:3', '3:4'],
           maxPromptLength: 4000,
         },
         videoGeneration: {
@@ -60,8 +58,9 @@ export function getProviderCapabilities(provider: AIProvider): ProviderCapabilit
       return {
         imageGeneration: {
           supported: true,
-          models: ['grok-2-image-1212'],
-          sizes: [IMAGE_GENERATION_CONSTANTS.SIZES.SQUARE_1024],
+          models: ['grok-2-image'],
+          // Grok does not support size parameter - generates at fixed size
+          sizes: [],
           maxPromptLength: 4000,
         },
         videoGeneration: { supported: false },

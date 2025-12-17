@@ -608,6 +608,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
           <ImageGenerationModal
             visible={imageModalVisible}
             initialPrompt={imageModalPrompt}
+            provider={session.selectedAIs.length === 1 ? session.selectedAIs[0].provider : undefined}
             onClose={() => setImageModalVisible(false)}
             onGenerate={(opts) => {
               setImageModalVisible(false);

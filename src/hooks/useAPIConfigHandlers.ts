@@ -18,11 +18,9 @@ export const useAPIConfigHandlers = () => {
 
   const handleKeyChange = useCallback(async (providerId: string, key: string) => {
     await updateKey(providerId, key);
-    
-    // Clear verification when key is cleared
-    if (!key) {
-      await removeVerification(providerId);
-    }
+
+    // Always clear verification when key changes - user must re-verify
+    await removeVerification(providerId);
   }, [updateKey, removeVerification]);
 
   /**
@@ -41,9 +39,9 @@ export const useAPIConfigHandlers = () => {
     if (!key) return { success: false, message: 'No API key provided' };
 
     try {
-      // Test connection with mock mode for safety during development
-      const result = await testConnection(providerId, key, { mockMode: true });
-      
+      // Test connection with real API call
+      const result = await testConnection(providerId, key);
+
       if (result.success) {
         // Atomically save key and mark as verified to maintain data consistency
         await updateKey(providerId, key);
@@ -53,16 +51,21 @@ export const useAPIConfigHandlers = () => {
           model: result.model,
           timestamp: Date.now()
         });
+      } else {
+        // Clear verification on failure - key is invalid
+        await removeVerification(providerId);
       }
       return result;
     } catch (error) {
       console.error('Test connection failed:', error);
-      return { 
-        success: false, 
-        message: error instanceof Error ? error.message : 'Test failed' 
+      // Clear verification on exception too
+      await removeVerification(providerId);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Test failed'
       };
     }
-  }, [apiKeys, testConnection, updateKey, verifyProvider]);
+  }, [apiKeys, testConnection, updateKey, verifyProvider, removeVerification]);
 
   const handleSaveKey = useCallback(async (providerId: string) => {
     const key = apiKeys[providerId];

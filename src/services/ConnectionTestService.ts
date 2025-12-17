@@ -1,6 +1,6 @@
 /**
- * ConnectionTestService - API connection testing logic
- * Extracted from APIConfigScreen for better separation of concerns
+ * ConnectionTestService - Real API connection testing
+ * Tests actual API endpoints to verify keys are valid and working
  */
 
 import { getDefaultModel } from '../config/providers/modelRegistry';
@@ -21,13 +21,12 @@ export interface TestError {
 
 export interface TestOptions {
   timeout?: number;
-  mockMode?: boolean;
   retries?: number;
 }
 
 export class ConnectionTestService {
   private static instance: ConnectionTestService;
-  private readonly DEFAULT_TIMEOUT = 10000; // 10 seconds
+  private readonly DEFAULT_TIMEOUT = 15000; // 15 seconds
   private readonly DEFAULT_RETRIES = 1;
 
   static getInstance(): ConnectionTestService {
@@ -39,16 +38,17 @@ export class ConnectionTestService {
 
   /**
    * Test API connection for a specific provider
-   * Currently implements mock testing, ready for real API integration
+   * Makes real API calls to verify the key works
    */
   async testProvider(
     providerId: string,
     apiKey: string,
     options: TestOptions = {}
   ): Promise<TestResult> {
+    console.warn(`[ConnectionTestService] testProvider called for ${providerId} - REAL MODE (no mock)`);
+
     const {
       timeout = this.DEFAULT_TIMEOUT,
-      mockMode = true, // Default to mock mode for development
       retries = this.DEFAULT_RETRIES
     } = options;
 
@@ -56,7 +56,7 @@ export class ConnectionTestService {
       return this.createErrorResult('INVALID_KEY', 'No API key provided');
     }
 
-    // Basic validation
+    // Basic format validation
     const validationResult = this.validateApiKey(providerId, apiKey);
     if (!validationResult.success) {
       return validationResult;
@@ -67,19 +67,15 @@ export class ConnectionTestService {
     // Retry logic
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
-        if (mockMode) {
-          return await this.mockTest(providerId, apiKey, timeout);
-        } else {
-          return await this.realTest(providerId, apiKey, timeout);
-        }
+        return await this.realTest(providerId, apiKey, timeout);
       } catch (error) {
         lastError = this.parseError(error);
-        
-        // Don't retry on certain errors
+
+        // Don't retry on auth errors
         if (this.shouldNotRetry(lastError)) {
           break;
         }
-        
+
         // Wait before retry (exponential backoff)
         if (attempt < retries) {
           await this.delay(Math.pow(2, attempt) * 1000);
@@ -94,33 +90,7 @@ export class ConnectionTestService {
   }
 
   /**
-   * Mock test implementation for development
-   */
-  private async mockTest(
-    providerId: string,
-    apiKey: string,
-    timeout: number
-  ): Promise<TestResult> {
-    // Simulate network delay
-    await this.delay(Math.min(1500, timeout / 2));
-
-    // Simulate success/failure based on key length (for demo purposes)
-    const success = apiKey.length > 10;
-
-    if (success) {
-      return {
-        success: true,
-        message: 'Verified just now',
-        model: this.getMockModel(providerId),
-        responseTime: 1200 + Math.random() * 800 // 1.2-2.0 seconds
-      };
-    } else {
-      return this.createErrorResult('INVALID_KEY', 'Invalid API key');
-    }
-  }
-
-  /**
-   * Real API test implementation (to be implemented when ready)
+   * Real API test - makes actual HTTP requests to provider endpoints
    */
   private async realTest(
     providerId: string,
@@ -130,27 +100,29 @@ export class ConnectionTestService {
     const startTime = Date.now();
 
     try {
-      // Create timeout promise
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Request timeout')), timeout);
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-      // Create API test promise based on provider
-      const testPromise = this.performProviderSpecificTest(providerId, apiKey);
+      try {
+        const result = await this.performProviderSpecificTest(providerId, apiKey, controller.signal);
+        const responseTime = Date.now() - startTime;
 
-      // Race between test and timeout
-      const result = await Promise.race([testPromise, timeoutPromise]);
-      const responseTime = Date.now() - startTime;
+        console.warn(`[ConnectionTestService] ${providerId} test SUCCESS, model:`, result.model);
 
-      return {
-        success: true,
-        message: 'Connection successful',
-        model: result.model,
-        responseTime
-      };
+        return {
+          success: true,
+          message: 'Connection verified',
+          model: result.model,
+          responseTime
+        };
+      } finally {
+        clearTimeout(timeoutId);
+      }
     } catch (error) {
       const responseTime = Date.now() - startTime;
       const testError = this.parseError(error);
+
+      console.warn(`[ConnectionTestService] ${providerId} test FAILED:`, testError.message);
 
       return {
         success: false,
@@ -166,73 +138,347 @@ export class ConnectionTestService {
    */
   private async performProviderSpecificTest(
     providerId: string,
-    apiKey: string
+    apiKey: string,
+    signal: AbortSignal
   ): Promise<{ model: string }> {
     switch (providerId) {
       case 'openai':
-        return await this.testOpenAI(apiKey);
-      
+        return await this.testOpenAI(apiKey, signal);
+
       case 'claude':
-        return await this.testClaude(apiKey);
-      
+        return await this.testClaude(apiKey, signal);
+
       case 'google':
-        return await this.testGoogle(apiKey);
-      
+        return await this.testGoogle(apiKey, signal);
+
+      case 'grok':
+        return await this.testGrok(apiKey, signal);
+
+      case 'perplexity':
+        return await this.testPerplexity(apiKey, signal);
+
+      case 'mistral':
+        return await this.testMistral(apiKey, signal);
+
+      case 'cohere':
+        return await this.testCohere(apiKey, signal);
+
+      case 'together':
+        return await this.testTogether(apiKey, signal);
+
+      case 'deepseek':
+        return await this.testDeepSeek(apiKey, signal);
+
       default:
-        throw new Error(`Provider ${providerId} testing not implemented`);
+        // For unknown providers, try a generic OpenAI-compatible test
+        return await this.testGenericOpenAICompatible(providerId, apiKey, signal);
     }
   }
 
   /**
-   * Test OpenAI API
+   * Test OpenAI API - uses /v1/models endpoint
    */
-  private async testOpenAI(_apiKey: string): Promise<{ model: string }> {
-    // TODO: Implement actual OpenAI API test
-    // const response = await fetch('https://api.openai.com/v1/models', {
-    //   headers: {
-    //     'Authorization': `Bearer ${apiKey}`,
-    //   },
-    // });
-    
-    // For now, return mock data
-    return { model: 'gpt-4-turbo' };
+  private async testOpenAI(apiKey: string, signal: AbortSignal): Promise<{ model: string }> {
+    const response = await fetch('https://api.openai.com/v1/models', {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      signal,
+    });
+
+    if (!response.ok) {
+      throw await this.createApiError(response, 'OpenAI');
+    }
+
+    const data = await response.json();
+    // Find a good model to report (prefer gpt-4 variants)
+    const models = data.data || [];
+    const preferredModel = models.find((m: { id: string }) => m.id.includes('gpt-4'))
+      || models.find((m: { id: string }) => m.id.includes('gpt-3.5'))
+      || models[0];
+
+    return { model: preferredModel?.id || getDefaultModel('openai') };
   }
 
   /**
-   * Test Claude API
+   * Test Claude API - uses /v1/messages with minimal request
+   * Current models (2025): claude-haiku-4-5, claude-sonnet-4-5, claude-opus-4-5
    */
-  private async testClaude(_apiKey: string): Promise<{ model: string }> {
-    // TODO: Implement actual Claude API test
-    // const response = await fetch('https://api.anthropic.com/v1/messages', {
-    //   method: 'POST',
-    //   headers: {
-    //     'x-api-key': apiKey,
-    //     'Content-Type': 'application/json',
-    //   },
-    //   body: JSON.stringify({
-    //     model: 'claude-3-haiku-20240307',
-    //     max_tokens: 1,
-    //     messages: [{ role: 'user', content: 'test' }]
-    //   }),
-    // });
-    
-    // For now, return mock data
-    return { model: getDefaultModel('claude') };
+  private async testClaude(apiKey: string, signal: AbortSignal): Promise<{ model: string }> {
+    console.warn('[ConnectionTestService] Testing Claude API...');
+    const model = 'claude-haiku-4-5-20251001'; // Use cheapest model for test
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'Content-Type': 'application/json',
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 1,
+        messages: [{ role: 'user', content: 'Hi' }]
+      }),
+      signal,
+    });
+
+    console.warn('[ConnectionTestService] Claude response status:', response.status);
+
+    if (!response.ok) {
+      throw await this.createApiError(response, 'Claude');
+    }
+
+    const data = await response.json();
+    return { model: data.model || model };
   }
 
   /**
-   * Test Google API
+   * Test Google Gemini API - uses /v1/models endpoint
    */
-  private async testGoogle(_apiKey: string): Promise<{ model: string }> {
-    // TODO: Implement actual Google API test
-    // const response = await fetch(`https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`);
-    
-    // For now, return mock data
-    return { model: getDefaultModel('google') };
+  private async testGoogle(apiKey: string, signal: AbortSignal): Promise<{ model: string }> {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`,
+      { signal }
+    );
+
+    if (!response.ok) {
+      throw await this.createApiError(response, 'Google');
+    }
+
+    const data = await response.json();
+    const models = data.models || [];
+    // Find a Gemini model to report
+    const geminiModel = models.find((m: { name: string }) => m.name.includes('gemini'));
+    const modelName = geminiModel?.name?.replace('models/', '') || getDefaultModel('google');
+
+    return { model: modelName };
   }
 
   /**
-   * Validate API key format
+   * Test Grok (xAI) API - uses /v1/models endpoint (OpenAI-compatible)
+   */
+  private async testGrok(apiKey: string, signal: AbortSignal): Promise<{ model: string }> {
+    console.warn('[ConnectionTestService] Testing Grok API with real request...');
+
+    const response = await fetch('https://api.x.ai/v1/models', {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      signal,
+    });
+
+    console.warn('[ConnectionTestService] Grok API response status:', response.status);
+
+    if (!response.ok) {
+      throw await this.createApiError(response, 'Grok');
+    }
+
+    const data = await response.json();
+    const models = data.data || [];
+    // Find a grok model to report
+    const grokModel = models.find((m: { id: string }) => m.id.includes('grok-4'))
+      || models.find((m: { id: string }) => m.id.includes('grok'))
+      || models[0];
+
+    return { model: grokModel?.id || getDefaultModel('grok') };
+  }
+
+  /**
+   * Test Perplexity API - uses /chat/completions with minimal request
+   * Current models (2025): sonar, sonar-pro, sonar-reasoning, sonar-reasoning-pro
+   */
+  private async testPerplexity(apiKey: string, signal: AbortSignal): Promise<{ model: string }> {
+    console.warn('[ConnectionTestService] Testing Perplexity API...');
+    const model = 'sonar-pro'; // Default model per modelRegistry
+
+    try {
+      const response = await fetch('https://api.perplexity.ai/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 1,
+          messages: [{ role: 'user', content: 'Hi' }]
+        }),
+        signal,
+      });
+
+      console.warn('[ConnectionTestService] Perplexity response status:', response.status);
+
+      if (!response.ok) {
+        throw await this.createApiError(response, 'Perplexity');
+      }
+
+      const data = await response.json();
+      return { model: data.model || model };
+    } catch (error) {
+      console.warn('[ConnectionTestService] Perplexity error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Test Mistral API - uses /v1/models endpoint
+   */
+  private async testMistral(apiKey: string, signal: AbortSignal): Promise<{ model: string }> {
+    const response = await fetch('https://api.mistral.ai/v1/models', {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      signal,
+    });
+
+    if (!response.ok) {
+      throw await this.createApiError(response, 'Mistral');
+    }
+
+    const data = await response.json();
+    const models = data.data || [];
+    const mistralModel = models.find((m: { id: string }) => m.id.includes('mistral'))
+      || models[0];
+
+    return { model: mistralModel?.id || getDefaultModel('mistral') };
+  }
+
+  /**
+   * Test Cohere API - uses /v1/models endpoint
+   */
+  private async testCohere(apiKey: string, signal: AbortSignal): Promise<{ model: string }> {
+    const response = await fetch('https://api.cohere.ai/v1/models', {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      signal,
+    });
+
+    if (!response.ok) {
+      throw await this.createApiError(response, 'Cohere');
+    }
+
+    const data = await response.json();
+    const models = data.models || [];
+    const cohereModel = models.find((m: { name: string }) => m.name?.includes('command'))
+      || models[0];
+
+    return { model: cohereModel?.name || getDefaultModel('cohere') };
+  }
+
+  /**
+   * Test Together API - uses /v1/models endpoint
+   */
+  private async testTogether(apiKey: string, signal: AbortSignal): Promise<{ model: string }> {
+    const response = await fetch('https://api.together.xyz/v1/models', {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      signal,
+    });
+
+    if (!response.ok) {
+      throw await this.createApiError(response, 'Together');
+    }
+
+    const data = await response.json();
+    // Together returns array directly
+    const models = Array.isArray(data) ? data : (data.data || []);
+
+    return { model: models[0]?.id || getDefaultModel('together') };
+  }
+
+  /**
+   * Test DeepSeek API - uses /v1/models endpoint (OpenAI-compatible)
+   */
+  private async testDeepSeek(apiKey: string, signal: AbortSignal): Promise<{ model: string }> {
+    const response = await fetch('https://api.deepseek.com/v1/models', {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      signal,
+    });
+
+    if (!response.ok) {
+      throw await this.createApiError(response, 'DeepSeek');
+    }
+
+    const data = await response.json();
+    const models = data.data || [];
+    const deepseekModel = models.find((m: { id: string }) => m.id.includes('deepseek'))
+      || models[0];
+
+    return { model: deepseekModel?.id || getDefaultModel('deepseek') };
+  }
+
+  /**
+   * Generic test for OpenAI-compatible APIs
+   */
+  private async testGenericOpenAICompatible(
+    providerId: string,
+    apiKey: string,
+    signal: AbortSignal
+  ): Promise<{ model: string }> {
+    // Try common endpoints - this is a fallback for unknown providers
+    const endpoints = [
+      `https://api.${providerId}.com/v1/models`,
+      `https://api.${providerId}.ai/v1/models`,
+    ];
+
+    for (const endpoint of endpoints) {
+      try {
+        const response = await fetch(endpoint, {
+          headers: { 'Authorization': `Bearer ${apiKey}` },
+          signal,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const models = data.data || [];
+          return { model: models[0]?.id || getDefaultModel(providerId) };
+        }
+      } catch {
+        // Try next endpoint
+        continue;
+      }
+    }
+
+    throw new Error(`Provider ${providerId} testing not implemented`);
+  }
+
+  /**
+   * Create an error from an API response
+   */
+  private async createApiError(response: Response, provider: string): Promise<Error> {
+    let errorMessage = `${provider} API error (${response.status})`;
+
+    try {
+      const errorData = await response.json();
+      if (errorData.error?.message) {
+        errorMessage = errorData.error.message;
+      } else if (errorData.message) {
+        errorMessage = errorData.message;
+      } else if (typeof errorData.error === 'string') {
+        errorMessage = errorData.error;
+      }
+    } catch {
+      // If we can't parse JSON, try text
+      try {
+        const text = await response.text();
+        if (text) errorMessage = text.slice(0, 200);
+      } catch {
+        // Use default message
+      }
+    }
+
+    const error = new Error(errorMessage);
+    (error as Error & { statusCode: number }).statusCode = response.status;
+    return error;
+  }
+
+  /**
+   * Validate API key format before making requests
    */
   private validateApiKey(providerId: string, apiKey: string): TestResult {
     if (!apiKey || apiKey.trim().length === 0) {
@@ -243,7 +489,7 @@ export class ConnectionTestService {
       return this.createErrorResult('INVALID_KEY', 'API key too short');
     }
 
-    // Provider-specific validation
+    // Provider-specific format validation
     switch (providerId) {
       case 'openai':
         if (!apiKey.startsWith('sk-')) {
@@ -253,35 +499,27 @@ export class ConnectionTestService {
           );
         }
         break;
-      
+
       case 'claude':
-        if (apiKey.length < 40) {
+        if (!apiKey.startsWith('sk-ant-')) {
           return this.createErrorResult(
             'INVALID_FORMAT',
-            'Claude API key appears to be too short'
+            'Claude API keys should start with "sk-ant-"'
           );
         }
         break;
-      
-      case 'google':
-        if (apiKey.length < 20) {
+
+      case 'grok':
+        if (!apiKey.startsWith('xai-')) {
           return this.createErrorResult(
             'INVALID_FORMAT',
-            'Google API key appears to be too short'
+            'Grok API keys should start with "xai-"'
           );
         }
         break;
     }
 
     return { success: true, message: 'Key format valid' };
-  }
-
-  /**
-   * Get mock model name for testing
-   */
-  private getMockModel(providerId: string): string {
-    // Return the actual default model for the provider
-    return getDefaultModel(providerId) || 'unknown-model';
   }
 
   /**
@@ -300,15 +538,34 @@ export class ConnectionTestService {
    */
   private parseError(error: unknown): TestError {
     if (error instanceof Error) {
-      if (error.message.includes('timeout')) {
-        return { code: 'TIMEOUT', message: 'Request timed out' };
+      const statusCode = (error as Error & { statusCode?: number }).statusCode;
+
+      if (error.name === 'AbortError' || error.message.includes('abort')) {
+        return { code: 'TIMEOUT', message: 'Request timed out', statusCode };
       }
-      
-      if (error.message.includes('network')) {
-        return { code: 'NETWORK_ERROR', message: 'Network connection failed' };
+
+      if (error.message.includes('network') || error.message.includes('fetch')) {
+        return { code: 'NETWORK_ERROR', message: 'Network connection failed', statusCode };
       }
-      
-      return { code: 'UNKNOWN_ERROR', message: error.message };
+
+      // Check for auth errors
+      if (statusCode === 401 || statusCode === 403) {
+        return {
+          code: 'UNAUTHORIZED',
+          message: error.message || 'Invalid or expired API key',
+          statusCode
+        };
+      }
+
+      if (statusCode === 429) {
+        return {
+          code: 'RATE_LIMITED',
+          message: 'Rate limited - please try again later',
+          statusCode
+        };
+      }
+
+      return { code: 'API_ERROR', message: error.message, statusCode };
     }
 
     return { code: 'UNKNOWN_ERROR', message: 'An unknown error occurred' };
@@ -318,8 +575,10 @@ export class ConnectionTestService {
    * Check if error should not be retried
    */
   private shouldNotRetry(error: TestError): boolean {
-    const noRetryErrors = ['INVALID_KEY', 'INVALID_FORMAT', 'UNAUTHORIZED'];
-    return noRetryErrors.includes(error.code);
+    const noRetryErrors = ['INVALID_KEY', 'INVALID_FORMAT', 'UNAUTHORIZED', 'EMPTY_KEY'];
+    const noRetryCodes = [401, 403, 404];
+    return noRetryErrors.includes(error.code) ||
+           (error.statusCode !== undefined && noRetryCodes.includes(error.statusCode));
   }
 
   /**
@@ -357,27 +616,37 @@ export class ConnectionTestService {
 
     switch (result.error?.code) {
       case 'INVALID_KEY':
-        return 'Please check your API key format and ensure it\'s correct.';
-      
+      case 'EMPTY_KEY':
+        return 'Please enter a valid API key.';
+
+      case 'INVALID_FORMAT':
+        return result.message || 'API key format is incorrect.';
+
       case 'UNAUTHORIZED':
-        return 'API key appears to be invalid or expired. Please check your provider dashboard.';
-      
+        return 'API key is invalid or expired. Please check your provider dashboard.';
+
+      case 'RATE_LIMITED':
+        return 'Too many requests. Please wait a moment and try again.';
+
       case 'TIMEOUT':
-        return 'Connection timed out. Please check your internet connection and try again.';
-      
+        return 'Request timed out. Please check your internet connection.';
+
       case 'NETWORK_ERROR':
-        return 'Network connection failed. Please check your internet connection.';
-      
+        return 'Network connection failed. Please check your internet.';
+
       default:
-        return 'Connection failed. Please verify your API key and try again.';
+        return result.message || 'Connection failed. Please verify your API key.';
     }
   }
 
   /**
-   * Check if provider supports testing
+   * Check if provider supports testing - now all providers are supported
    */
   isProviderSupported(providerId: string): boolean {
-    const supportedProviders = ['openai', 'claude', 'google'];
+    const supportedProviders = [
+      'openai', 'claude', 'google', 'grok',
+      'perplexity', 'mistral', 'cohere', 'together', 'deepseek'
+    ];
     return supportedProviders.includes(providerId);
   }
 }
