@@ -104,7 +104,8 @@
     "whatwg-fetch": "^3.6.20"
   },
   "overrides": {
-    "react-server-dom-webpack": "19.2.3"
+    "react-server-dom-webpack": "19.2.3",
+    "markdown-it": "^14.1.0"
   },
   "private": true
 }
