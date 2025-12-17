@@ -103,3 +103,6 @@ yarn-error.*
 *.tsbuildinfo
 
 # @end expo-cli
+
+# Test coverage reports
+coverage/
