@@ -1,5 +1,5 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
-import { defineString } from 'firebase-functions/params';
+import { defineSecret } from 'firebase-functions/params';
 import * as admin from 'firebase-admin';
 import axios from 'axios';
 import { google } from 'googleapis';
@@ -7,8 +7,8 @@ import { google } from 'googleapis';
 // Initialize Admin if not already
 try { admin.app(); } catch { admin.initializeApp(); }
 
-// Define config parameter for Apple shared secret
-const appleSharedSecret = defineString('APPLE_SHARED_SECRET');
+// Define secret for Apple shared secret (stored in Firebase Secret Manager)
+const appleSharedSecret = defineSecret('APPLE_SHARED_SECRET');
 
 const APPLE_PRODUCTION_URL = 'https://buy.itunes.apple.com/verifyReceipt';
 const APPLE_SANDBOX_URL = 'https://sandbox.itunes.apple.com/verifyReceipt';
@@ -32,7 +32,7 @@ const LIFETIME_PRODUCT_IDS = [
  * Validates App Store/Play Store receipts and returns authoritative subscription state.
  * Expected: { receipt (iOS), purchaseToken (Android), platform, productId }
  */
-export const validatePurchase = onCall(async (request) => {
+export const validatePurchase = onCall({ secrets: [appleSharedSecret] }, async (request) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
