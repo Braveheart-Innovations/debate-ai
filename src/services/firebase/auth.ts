@@ -1,4 +1,4 @@
-import { 
+import {
   getAuth,
   signInAnonymously as firebaseSignInAnonymously,
   signInWithEmailAndPassword,
@@ -11,7 +11,8 @@ import {
   linkWithCredential,
   AppleAuthProvider,
   updateProfile as fbUpdateProfile,
-  getIdToken as firebaseGetIdToken
+  getIdToken as firebaseGetIdToken,
+  sendPasswordResetEmail as firebaseSendPasswordResetEmail
 } from '@react-native-firebase/auth';
 import { 
   getFirestore,
@@ -158,6 +159,32 @@ export const signOut = async (): Promise<void> => {
     console.warn('User signed out');
   } catch (error) {
     console.error('Sign out error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Send password reset email
+ */
+export const sendPasswordResetEmail = async (email: string): Promise<void> => {
+  try {
+    const auth = getAuth();
+    await firebaseSendPasswordResetEmail(auth, email);
+    console.warn('Password reset email sent to:', email);
+  } catch (error) {
+    const authError = error as { code?: string; message?: string };
+    console.error('Password reset error:', {
+      code: authError?.code,
+      message: authError?.message,
+    });
+
+    if (authError?.code === 'auth/user-not-found') {
+      throw new Error('No account found with this email address');
+    } else if (authError?.code === 'auth/invalid-email') {
+      throw new Error('Invalid email address');
+    } else if (authError?.code === 'auth/network-request-failed') {
+      throw new Error('Network error. Please check your connection');
+    }
     throw error;
   }
 };

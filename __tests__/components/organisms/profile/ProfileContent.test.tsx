@@ -1,9 +1,12 @@
 import React from 'react';
-import { Text, TouchableOpacity } from 'react-native';
-import { fireEvent, waitFor } from '@testing-library/react-native';
+import { Text, TouchableOpacity, Alert } from 'react-native';
+import { fireEvent, waitFor, act } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { ProfileContent } from '@/components/organisms/profile/ProfileContent';
 import type { RootState } from '@/store';
+
+// Mock Alert
+jest.spyOn(Alert, 'alert');
 
 jest.mock('expo-linear-gradient', () => ({
   LinearGradient: ({ children }: any) => <>{children}</>,
@@ -78,6 +81,11 @@ jest.mock('@/services/firebase/auth', () => ({
   toAuthUser: jest.fn(() => ({ uid: 'anon', email: null, isAnonymous: true })),
 }));
 
+const mockDeleteAccount = jest.fn();
+jest.mock('@/services/firebase/accountDeletion', () => ({
+  deleteAccount: () => mockDeleteAccount(),
+}));
+
 jest.mock('@react-native-firebase/firestore', () => ({
   getFirestore: jest.fn(),
   doc: jest.fn(),
@@ -104,6 +112,11 @@ const baseAuthState = {
 };
 
 describe('ProfileContent', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockDeleteAccount.mockReset();
+  });
+
   it('renders signed-out view and opens email auth form', async () => {
     const preloadedState = {
       auth: { ...baseAuthState },
@@ -132,5 +145,161 @@ describe('ProfileContent', () => {
 
     expect(getByText('Guest User')).toBeTruthy();
     expect(getByText('Create Your Account')).toBeTruthy();
+  });
+
+  describe('Delete Account', () => {
+    const authenticatedState = {
+      auth: {
+        ...baseAuthState,
+        isAuthenticated: true,
+        user: { uid: 'test-user-id', email: 'test@example.com' },
+        userProfile: {
+          email: 'test@example.com',
+          displayName: 'Test User',
+          photoURL: null,
+          createdAt: Date.now(),
+          membershipStatus: 'free',
+          preferences: {},
+        },
+      },
+    } as Partial<RootState>;
+
+    it('shows delete account button for authenticated users', () => {
+      const { getByText } = renderWithProviders(
+        <ProfileContent onClose={jest.fn()} />,
+        { preloadedState: authenticatedState as RootState }
+      );
+
+      expect(getByText('Delete Account')).toBeTruthy();
+    });
+
+    it('shows confirmation alert when delete button is pressed', () => {
+      const { getByText } = renderWithProviders(
+        <ProfileContent onClose={jest.fn()} />,
+        { preloadedState: authenticatedState as RootState }
+      );
+
+      fireEvent.press(getByText('Delete Account'));
+
+      expect(Alert.alert).toHaveBeenCalledWith(
+        'Delete Account',
+        expect.stringContaining('permanently delete'),
+        expect.arrayContaining([
+          expect.objectContaining({ text: 'Cancel' }),
+          expect.objectContaining({ text: 'Delete Account', style: 'destructive' }),
+        ])
+      );
+    });
+
+    it('calls deleteAccount service when confirmed', async () => {
+      mockDeleteAccount.mockResolvedValue({ success: true });
+
+      const onClose = jest.fn();
+      const { getByText } = renderWithProviders(
+        <ProfileContent onClose={onClose} />,
+        { preloadedState: authenticatedState as RootState }
+      );
+
+      fireEvent.press(getByText('Delete Account'));
+
+      // Get the confirm callback from the Alert.alert call
+      const alertCall = (Alert.alert as jest.Mock).mock.calls[0];
+      const buttons = alertCall[2];
+      const confirmButton = buttons.find((b: any) => b.text === 'Delete Account');
+
+      await act(async () => {
+        await confirmButton.onPress();
+      });
+
+      expect(mockDeleteAccount).toHaveBeenCalled();
+    });
+
+    it('shows success message on successful deletion', async () => {
+      mockDeleteAccount.mockResolvedValue({ success: true });
+
+      const onClose = jest.fn();
+      const { getByText } = renderWithProviders(
+        <ProfileContent onClose={onClose} />,
+        { preloadedState: authenticatedState as RootState }
+      );
+
+      fireEvent.press(getByText('Delete Account'));
+
+      const alertCall = (Alert.alert as jest.Mock).mock.calls[0];
+      const buttons = alertCall[2];
+      const confirmButton = buttons.find((b: any) => b.text === 'Delete Account');
+
+      await act(async () => {
+        await confirmButton.onPress();
+      });
+
+      await waitFor(() => {
+        expect(Alert.alert).toHaveBeenCalledWith(
+          'Account Deleted',
+          expect.any(String),
+          expect.any(Array)
+        );
+      });
+    });
+
+    it('shows re-authentication message when required', async () => {
+      mockDeleteAccount.mockResolvedValue({
+        success: false,
+        requiresRecentLogin: true,
+        message: 'Re-authentication required'
+      });
+
+      const { getByText } = renderWithProviders(
+        <ProfileContent onClose={jest.fn()} />,
+        { preloadedState: authenticatedState as RootState }
+      );
+
+      fireEvent.press(getByText('Delete Account'));
+
+      const alertCall = (Alert.alert as jest.Mock).mock.calls[0];
+      const buttons = alertCall[2];
+      const confirmButton = buttons.find((b: any) => b.text === 'Delete Account');
+
+      await act(async () => {
+        await confirmButton.onPress();
+      });
+
+      await waitFor(() => {
+        expect(Alert.alert).toHaveBeenCalledWith(
+          'Re-authentication Required',
+          expect.stringContaining('sign out'),
+          expect.any(Array)
+        );
+      });
+    });
+
+    it('shows error message on deletion failure', async () => {
+      mockDeleteAccount.mockResolvedValue({
+        success: false,
+        message: 'Failed to delete'
+      });
+
+      const { getByText } = renderWithProviders(
+        <ProfileContent onClose={jest.fn()} />,
+        { preloadedState: authenticatedState as RootState }
+      );
+
+      fireEvent.press(getByText('Delete Account'));
+
+      const alertCall = (Alert.alert as jest.Mock).mock.calls[0];
+      const buttons = alertCall[2];
+      const confirmButton = buttons.find((b: any) => b.text === 'Delete Account');
+
+      await act(async () => {
+        await confirmButton.onPress();
+      });
+
+      await waitFor(() => {
+        expect(Alert.alert).toHaveBeenCalledWith(
+          'Error',
+          expect.stringContaining('Failed to delete')
+        );
+      });
+    });
   });
 });

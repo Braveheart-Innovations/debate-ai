@@ -10,6 +10,7 @@ import {
   linkWithCredential as mockLinkWithCredential,
   getIdToken as mockFirebaseGetIdToken,
   updateProfile as mockUpdateProfile,
+  sendPasswordResetEmail as mockFirebaseSendPasswordResetEmail,
   GoogleAuthProvider,
   AppleAuthProvider,
 } from '@react-native-firebase/auth';
@@ -44,6 +45,7 @@ const mockAuthModule = {
   linkWithCredential: mockLinkWithCredential as jest.MockedFunction<typeof mockLinkWithCredential>,
   getIdToken: mockFirebaseGetIdToken as jest.MockedFunction<typeof mockFirebaseGetIdToken>,
   updateProfile: mockUpdateProfile as jest.MockedFunction<typeof mockUpdateProfile>,
+  sendPasswordResetEmail: mockFirebaseSendPasswordResetEmail as jest.MockedFunction<typeof mockFirebaseSendPasswordResetEmail>,
   GoogleAuthProvider,
   AppleAuthProvider,
 };
@@ -116,6 +118,7 @@ import {
   signInWithApple,
   signInWithGoogle,
   linkAnonymousAccount,
+  sendPasswordResetEmail,
 } from '@/services/firebase/auth';
 
 import type { MembershipStatus } from '@/types/subscription';
@@ -340,5 +343,34 @@ describe('firebase auth service', () => {
   it('rejects linking when no anonymous user', async () => {
     setUser('user', { isAnonymous: false });
     await expect(linkAnonymousAccount('google')).rejects.toThrow('No anonymous user');
+  });
+
+  describe('sendPasswordResetEmail', () => {
+    it('sends password reset email successfully', async () => {
+      mockAuthModule.sendPasswordResetEmail.mockResolvedValue(undefined);
+      await expect(sendPasswordResetEmail('user@example.com')).resolves.toBeUndefined();
+      expect(mockAuthModule.sendPasswordResetEmail).toHaveBeenCalledWith(mockAuthState, 'user@example.com');
+    });
+
+    it('throws error when user not found', async () => {
+      mockAuthModule.sendPasswordResetEmail.mockRejectedValue({ code: 'auth/user-not-found' });
+      await expect(sendPasswordResetEmail('missing@example.com')).rejects.toThrow('No account found');
+    });
+
+    it('throws error for invalid email', async () => {
+      mockAuthModule.sendPasswordResetEmail.mockRejectedValue({ code: 'auth/invalid-email' });
+      await expect(sendPasswordResetEmail('invalid')).rejects.toThrow('Invalid email address');
+    });
+
+    it('throws error for network failure', async () => {
+      mockAuthModule.sendPasswordResetEmail.mockRejectedValue({ code: 'auth/network-request-failed' });
+      await expect(sendPasswordResetEmail('user@example.com')).rejects.toThrow('Network error');
+    });
+
+    it('propagates unknown errors', async () => {
+      const unknownError = new Error('Unknown error');
+      mockAuthModule.sendPasswordResetEmail.mockRejectedValue(unknownError);
+      await expect(sendPasswordResetEmail('user@example.com')).rejects.toThrow('Unknown error');
+    });
   });
 });

@@ -29,8 +29,6 @@ describe('useModalityAvailability', () => {
       supportsImageInput: true,
       supportsDocuments: true,
       supportsVoiceInput: false,
-      supportsVoiceOutput: true,
-      supportsRealtime: true,
       supportsVision: false,
     } as never);
 
@@ -53,9 +51,8 @@ describe('useModalityAvailability', () => {
     expect(getProviderCapabilitiesMock).toHaveBeenCalledWith('openai');
     expect(availability.imageUpload.supported).toBe(true);
     expect(availability.documentUpload.supported).toBe(true);
+    // voiceInput is true because providerId is 'openai' which supports STT
     expect(availability.voiceInput.supported).toBe(true);
-    expect(availability.voiceOutput.supported).toBe(true);
-    expect(availability.realtime.supported).toBe(true);
     expect(availability.imageGeneration).toEqual({
       supported: true,
       models: ['dalle-3'],
@@ -79,12 +76,10 @@ describe('useModalityAvailability', () => {
         supportsImageInput: false,
         supportsDocuments: false,
         supportsVoiceInput: false,
-        supportsVoiceOutput: false,
-        supportsRealtime: false,
       } as never;
 
       if (modelId === 'vision') {
-        return { ...base, supportsImageInput: true, supportsRealtime: true };
+        return { ...base, supportsImageInput: true };
       }
       if (modelId === 'documents') {
         return { ...base, supportsDocuments: true, supportsVoiceInput: true };
@@ -115,9 +110,8 @@ describe('useModalityAvailability', () => {
 
     expect(merged.imageUpload.supported).toBe(true);
     expect(merged.documentUpload.supported).toBe(true);
+    // voiceInput should be true because openai and google support STT
     expect(merged.voiceInput.supported).toBe(true);
-    expect(merged.voiceOutput.supported).toBe(false);
-    expect(merged.realtime.supported).toBe(true);
     expect(merged.imageGeneration.supported).toBe(true);
     expect(merged.imageGeneration.models).toEqual(['dalle-3']);
     expect(merged.videoGeneration.supported).toBe(true);

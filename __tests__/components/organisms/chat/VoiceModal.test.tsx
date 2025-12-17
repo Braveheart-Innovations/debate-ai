@@ -44,33 +44,12 @@ jest.mock('expo-audio', () => ({
   RecordingPresets: { HIGH_QUALITY: 'high_quality' },
 }));
 
-// Mock Redux
-jest.mock('react-redux', () => ({
-  useSelector: jest.fn(),
-}));
-
 // Mock TranscriptionService
 jest.mock('../../../../src/services/voice/TranscriptionService', () => ({
   __esModule: true,
   default: {
     transcribeWithOpenAI: jest.fn(),
   },
-}));
-
-// Mock realtime config
-jest.mock('../../../../src/config/realtime', () => ({
-  isRealtimeConfigured: jest.fn(),
-}));
-
-// Mock realtime services
-jest.mock('../../../../src/services/voice/OpenAIRealtimeService', () => ({
-  __esModule: true,
-  default: jest.fn(),
-}));
-
-jest.mock('../../../../src/services/voice/OpenAIWebRTCService', () => ({
-  __esModule: true,
-  default: jest.fn(),
 }));
 
 // Mock Alert
@@ -117,20 +96,6 @@ describe('VoiceModal', () => {
     (expoAudio.useAudioRecorder as jest.Mock).mockReturnValue(mockRecorder);
     (expoAudio.requestRecordingPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'granted' });
     (expoAudio.setAudioModeAsync as jest.Mock).mockResolvedValue(undefined);
-
-    const { useSelector } = require('react-redux');
-    (useSelector as jest.Mock).mockImplementation((selector) => {
-      const state = {
-        settings: {
-          apiKeys: { openai: 'test-key' },
-          realtimeRelayUrl: null,
-        },
-      };
-      return selector(state);
-    });
-
-    const { isRealtimeConfigured } = require('../../../../src/config/realtime');
-    (isRealtimeConfigured as jest.Mock).mockReturnValue(false);
   });
 
   describe('Rendering', () => {
@@ -166,17 +131,6 @@ describe('VoiceModal', () => {
       );
 
       expect(screen.getByText('Start Recording')).toBeTruthy();
-    });
-
-    it('should render advanced mode toggle', () => {
-      render(
-        <VoiceModal
-          visible={true}
-          onClose={mockOnClose}
-        />
-      );
-
-      expect(screen.getByText(/Advanced \(Realtime\)/)).toBeTruthy();
     });
 
     it('should render permission tip', () => {
@@ -317,7 +271,7 @@ describe('VoiceModal', () => {
     });
 
     it('should stop recording when stop button is pressed', async () => {
-      const { rerender } = render(
+      render(
         <VoiceModal
           visible={true}
           onClose={mockOnClose}
@@ -493,71 +447,6 @@ describe('VoiceModal', () => {
           'Transcription failed'
         );
       });
-    });
-  });
-
-  describe('Advanced Mode', () => {
-    it('should toggle advanced mode when button is pressed', () => {
-      render(
-        <VoiceModal
-          visible={true}
-          onClose={mockOnClose}
-        />
-      );
-
-      expect(screen.getByText('Advanced (Realtime) Off')).toBeTruthy();
-
-      fireEvent.press(screen.getByText('Advanced (Realtime) Off'));
-
-      expect(screen.getByText('Advanced (Realtime) On')).toBeTruthy();
-    });
-
-    it('should disable advanced mode toggle when realtime is not available', () => {
-      const { useSelector } = require('react-redux');
-      (useSelector as jest.Mock).mockImplementation((selector) => {
-        const state = {
-          settings: {
-            apiKeys: {},
-            realtimeRelayUrl: null,
-          },
-        };
-        return selector(state);
-      });
-
-      const { isRealtimeConfigured } = require('../../../../src/config/realtime');
-      (isRealtimeConfigured as jest.Mock).mockReturnValue(false);
-
-      render(
-        <VoiceModal
-          visible={true}
-          onClose={mockOnClose}
-        />
-      );
-
-      // Toggle button should exist when realtime is not available
-      expect(screen.getByText('Advanced (Realtime) Off')).toBeTruthy();
-    });
-
-    it('should show configuration message when realtime is not available', () => {
-      const { useSelector } = require('react-redux');
-      (useSelector as jest.Mock).mockImplementation((selector) => {
-        const state = {
-          settings: {
-            apiKeys: {},
-            realtimeRelayUrl: null,
-          },
-        };
-        return selector(state);
-      });
-
-      render(
-        <VoiceModal
-          visible={true}
-          onClose={mockOnClose}
-        />
-      );
-
-      expect(screen.getByText(/Configure OPENAI_REALTIME_RELAY_URL/)).toBeTruthy();
     });
   });
 

@@ -1,9 +1,19 @@
 import React from 'react';
+import { Alert } from 'react-native';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 
 jest.mock('@expo/vector-icons', () => ({
   Ionicons: () => null,
+}));
+
+// Mock Alert.prompt (iOS only method)
+jest.spyOn(Alert, 'prompt');
+
+// Mock password reset service
+const mockSendPasswordResetEmail = jest.fn();
+jest.mock('@/services/firebase/auth', () => ({
+  sendPasswordResetEmail: () => mockSendPasswordResetEmail(),
 }));
 
 jest.mock('@/components/molecules', () => {
@@ -28,6 +38,7 @@ describe('EmailAuthForm', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockSendPasswordResetEmail.mockReset();
   });
 
   describe('Sign In Mode', () => {
@@ -198,6 +209,59 @@ describe('EmailAuthForm', () => {
 
       expect(emailInput.props.editable).toBe(false);
       expect(passwordInput.props.editable).toBe(false);
+    });
+  });
+
+  describe('Forgot Password', () => {
+    it('shows Forgot Password link in signin mode', () => {
+      const { getByText } = renderWithProviders(
+        <EmailAuthForm mode="signin" onSubmit={mockOnSubmit} />
+      );
+
+      expect(getByText('Forgot Password?')).toBeTruthy();
+    });
+
+    it('does not show Forgot Password link in signup mode', () => {
+      const { queryByText } = renderWithProviders(
+        <EmailAuthForm mode="signup" onSubmit={mockOnSubmit} />
+      );
+
+      expect(queryByText('Forgot Password?')).toBeNull();
+    });
+
+    it('opens password reset prompt when Forgot Password is pressed', () => {
+      const { getByText } = renderWithProviders(
+        <EmailAuthForm mode="signin" onSubmit={mockOnSubmit} />
+      );
+
+      fireEvent.press(getByText('Forgot Password?'));
+
+      expect(Alert.prompt).toHaveBeenCalledWith(
+        'Reset Password',
+        expect.stringContaining('Enter your email'),
+        expect.any(Array),
+        'plain-text',
+        ''
+      );
+    });
+
+    it('pre-fills email in prompt when email is entered', () => {
+      const { getByText, getByPlaceholderText } = renderWithProviders(
+        <EmailAuthForm mode="signin" onSubmit={mockOnSubmit} />
+      );
+
+      const emailInput = getByPlaceholderText('Email address');
+      fireEvent.changeText(emailInput, 'prefilled@example.com');
+
+      fireEvent.press(getByText('Forgot Password?'));
+
+      expect(Alert.prompt).toHaveBeenCalledWith(
+        'Reset Password',
+        expect.any(String),
+        expect.any(Array),
+        'plain-text',
+        'prefilled@example.com'
+      );
     });
   });
 });

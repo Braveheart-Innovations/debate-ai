@@ -20,6 +20,7 @@ import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from '@react-nativ
 import { TrialBanner } from '@/components/molecules/subscription/TrialBanner';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import PurchaseService from '@/services/iap/PurchaseService';
+import { deleteAccount } from '@/services/firebase/accountDeletion';
 
 interface ProfileContentProps {
   onClose: () => void;
@@ -38,6 +39,7 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
   const [showAuthForm, setShowAuthForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [iapLoading, setIapLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const handleEmailAuth = async (email: string, password: string) => {
     setLoading(true);
@@ -122,6 +124,49 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
     } catch (error) {
       console.error('Error signing out:', error);
     }
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete Account',
+      'This will permanently delete your account and all associated data. This action cannot be undone.\n\nAre you sure you want to continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Account',
+          style: 'destructive',
+          onPress: async () => {
+            setDeleteLoading(true);
+            try {
+              const result = await deleteAccount();
+              if (result.success) {
+                Alert.alert(
+                  'Account Deleted',
+                  'Your account has been permanently deleted.',
+                  [{ text: 'OK', onPress: () => {
+                    dispatch(logout());
+                    onClose();
+                  }}]
+                );
+              } else if (result.requiresRecentLogin) {
+                Alert.alert(
+                  'Re-authentication Required',
+                  'For security, please sign out and sign back in before deleting your account.',
+                  [{ text: 'OK' }]
+                );
+              } else {
+                Alert.alert('Error', result.message || 'Failed to delete account. Please try again.');
+              }
+            } catch (error) {
+              Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+              console.error('Delete account error:', error);
+            } finally {
+              setDeleteLoading(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   // Subscription navigation handled by Account Settings actions; no sheet close side-effects
@@ -592,6 +637,21 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
           fullWidth
         />
       </View>
+
+      {/* Delete Account */}
+      <View style={styles.deleteAccountSection}>
+        <Button
+          title={deleteLoading ? 'Deleting...' : 'Delete Account'}
+          onPress={handleDeleteAccount}
+          variant="ghost"
+          fullWidth
+          disabled={deleteLoading}
+          style={styles.deleteAccountButton}
+        />
+        <Typography variant="caption" color="secondary" style={styles.deleteAccountWarning}>
+          Permanently delete your account and all data
+        </Typography>
+      </View>
     </ScrollView>
   );
 };
@@ -869,5 +929,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
     marginTop: 12,
     marginBottom: 8,
+  },
+  deleteAccountSection: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    alignItems: 'center',
+  },
+  deleteAccountButton: {
+    opacity: 0.7,
+  },
+  deleteAccountWarning: {
+    marginTop: 8,
+    textAlign: 'center',
   },
 });

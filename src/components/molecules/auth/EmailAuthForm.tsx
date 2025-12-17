@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, TextInput, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/theme';
 import { Typography } from '../common/Typography';
 import { Button } from '../common/Button';
+import { sendPasswordResetEmail } from '@/services/firebase/auth';
 
 interface EmailAuthFormProps {
   mode: 'signin' | 'signup';
@@ -59,7 +60,41 @@ export const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
       onSubmit(email, password);
     }
   };
-  
+
+  const handleForgotPassword = () => {
+    Alert.prompt(
+      'Reset Password',
+      'Enter your email address to receive a password reset link.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Send Reset Link',
+          onPress: async (inputEmail?: string) => {
+            const resetEmail = inputEmail?.trim() || email.trim();
+            if (!resetEmail) {
+              Alert.alert('Error', 'Please enter your email address');
+              return;
+            }
+            try {
+              await sendPasswordResetEmail(resetEmail);
+              Alert.alert(
+                'Email Sent',
+                `A password reset link has been sent to ${resetEmail}. Please check your inbox.`
+              );
+            } catch (error) {
+              Alert.alert(
+                'Error',
+                error instanceof Error ? error.message : 'Failed to send reset email'
+              );
+            }
+          },
+        },
+      ],
+      'plain-text',
+      email
+    );
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.inputContainer}>
@@ -123,8 +158,15 @@ export const EmailAuthForm: React.FC<EmailAuthFormProps> = ({
             {errors.password}
           </Typography>
         )}
+        {mode === 'signin' && (
+          <TouchableOpacity onPress={handleForgotPassword} style={styles.forgotPassword}>
+            <Typography variant="caption" color="brand">
+              Forgot Password?
+            </Typography>
+          </TouchableOpacity>
+        )}
       </View>
-      
+
       {mode === 'signup' && (
         <View style={styles.inputContainer}>
           <View style={[
@@ -193,5 +235,10 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     marginTop: 8,
+  },
+  forgotPassword: {
+    alignSelf: 'flex-end',
+    marginTop: 8,
+    paddingVertical: 4,
   },
 });

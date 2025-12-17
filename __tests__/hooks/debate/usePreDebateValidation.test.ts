@@ -4,6 +4,17 @@ import { renderHookWithProviders } from '../../../test-utils/renderHookWithProvi
 import { usePreDebateValidation } from '@/hooks/debate/usePreDebateValidation';
 import type { RootState } from '@/store';
 
+// Mock useFeatureAccess to control isDemo state
+jest.mock('@/hooks/useFeatureAccess', () => ({
+  useFeatureAccess: () => ({
+    isDemo: false,
+    isSubscriber: false,
+    currentTier: 'free',
+    hasAccess: jest.fn().mockReturnValue(true),
+    loading: false,
+  }),
+}));
+
 describe('usePreDebateValidation', () => {
   const baseSettingsState: RootState['settings'] = {
     theme: 'auto',

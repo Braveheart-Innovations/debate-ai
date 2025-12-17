@@ -87,6 +87,8 @@ jest.mock('@/components/organisms', () => ({
   APIProviderList: (props: any) => mockAPIProviderList(props),
   APISecurityNote: () => mockAPISecurityNote(),
   APIComingSoon: (props: any) => mockAPIComingSoon(props),
+  APIKeyGuidanceModal: () => null,
+  APIKeyWebViewModal: () => null,
 }));
 
 const APIConfigScreen = require('@/screens/APIConfigScreen').default;

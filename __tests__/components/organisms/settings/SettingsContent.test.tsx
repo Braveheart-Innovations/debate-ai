@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, TouchableOpacity, TextInput } from 'react-native';
+import { Text, TouchableOpacity } from 'react-native';
 import { act, fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { SettingsContent } from '@/components/organisms/settings/SettingsContent';
@@ -30,20 +30,12 @@ const mockButton = jest.fn(({ title, onPress, disabled }: any) => (
 
 jest.mock('@/components/molecules', () => {
   const React = require('react');
-  const { Text, TextInput } = require('react-native');
+  const { Text } = require('react-native');
   return {
     SheetHeader: ({ title }: any) => React.createElement(Text, null, title),
     Typography: ({ children }: { children: React.ReactNode }) => React.createElement(Text, null, children),
     SettingRow: (props: any) => mockSettingRow(props),
     Button: (props: any) => mockButton(props),
-    InputField: ({ value, onChangeText, placeholder }: any) => (
-      React.createElement(TextInput, {
-        placeholder,
-        value,
-        onChangeText,
-        testID: 'relay-input',
-      })
-    ),
   };
 });
 
@@ -120,11 +112,5 @@ describe('SettingsContent', () => {
       speedRowCall?.[0].onPress();
     });
     expect(store.getState().streaming.streamingSpeed).toBe('slow');
-
-    const relayInput = getByTestId('relay-input');
-    act(() => {
-      fireEvent.changeText(relayInput, 'wss://relay');
-    });
-    expect(store.getState().settings.realtimeRelayUrl).toBe('wss://relay');
   });
 });

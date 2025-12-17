@@ -19,7 +19,10 @@
       "bundleIdentifier": "com.braveheartinnovations.debateai",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "Symposium AI uses the microphone for realtime voice conversations and speech transcription."
+        "NSMicrophoneUsageDescription": "Symposium AI uses the microphone for realtime voice conversations and speech transcription.",
+        "NSCameraUsageDescription": "Symposium AI uses your camera to capture images for AI analysis.",
+        "NSPhotoLibraryUsageDescription": "Symposium AI accesses your photos to share images with AI assistants.",
+        "NSPhotoLibraryAddUsageDescription": "Symposium AI saves generated images to your photo library."
       },
       "associatedDomains": [
         "applinks:symposium-ai.firebaseapp.com",
