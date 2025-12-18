@@ -81,8 +81,8 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({ visibl
                   <TouchableOpacity onPress={onClose} activeOpacity={0.7} style={[styles.actionPill, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
                     <Typography variant="body" style={{ color: theme.colors.text.primary }}>Cancel</Typography>
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={handleConfirm} activeOpacity={0.7} style={[styles.actionPill, { backgroundColor: theme.colors.primary[50], borderColor: theme.colors.primary[500] }]}>
-                    <Typography variant="body" weight="semibold" style={{ color: theme.colors.primary[600] }}>Attach</Typography>
+                  <TouchableOpacity onPress={handleConfirm} activeOpacity={0.7} style={[styles.actionPill, { backgroundColor: theme.colors.primary[500], borderColor: theme.colors.primary[500] }]}>
+                    <Typography variant="body" weight="semibold" style={{ color: '#FFFFFF' }}>Attach</Typography>
                   </TouchableOpacity>
                 </Box>
               </KeyboardAvoidingView>

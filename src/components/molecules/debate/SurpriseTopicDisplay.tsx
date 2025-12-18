@@ -25,7 +25,7 @@ export const SurpriseTopicDisplay: React.FC<SurpriseTopicDisplayProps> = ({
   showRegenerateHint = true,
   disabled = false,
 }) => {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
 
   if (!topic && !isGenerating) {
     return null;
@@ -38,11 +38,11 @@ export const SurpriseTopicDisplay: React.FC<SurpriseTopicDisplayProps> = ({
       style={{ marginBottom: theme.spacing.xl }}
     >
       <View style={{
-        backgroundColor: theme.colors.primary[50],
+        backgroundColor: isDark ? theme.colors.overlays.medium : theme.colors.primary[50],
         borderRadius: theme.borderRadius.lg,
         padding: theme.spacing.lg,
         borderWidth: 2,
-        borderColor: theme.colors.primary[300],
+        borderColor: isDark ? theme.colors.primary[500] : theme.colors.primary[300],
       }}>
         {/* Header */}
         <View style={{
@@ -68,10 +68,10 @@ export const SurpriseTopicDisplay: React.FC<SurpriseTopicDisplayProps> = ({
                 borderRadius: theme.borderRadius.sm,
               }}
             >
-              <Typography 
-                variant="caption" 
-                style={{ 
-                  color: theme.colors.primary[600],
+              <Typography
+                variant="caption"
+                style={{
+                  color: isDark ? theme.colors.primary[400] : theme.colors.primary[600],
                   textDecorationLine: 'underline',
                 }}
               >
@@ -102,11 +102,11 @@ export const SurpriseTopicDisplay: React.FC<SurpriseTopicDisplayProps> = ({
             entering={FadeIn.delay(200)}
             key={topic} // Force re-animation on topic change
           >
-            <Typography 
-              variant="body" 
+            <Typography
+              variant="body"
               weight="semibold"
               style={{
-                color: theme.colors.primary[700],
+                color: isDark ? theme.colors.primary[400] : theme.colors.primary[700],
                 marginBottom: theme.spacing.sm,
                 lineHeight: 22,
               }}
@@ -144,8 +144,8 @@ export const SurpriseTopicDisplay: React.FC<SurpriseTopicDisplayProps> = ({
               size="small"
               disabled={isGenerating}
               style={{
-                backgroundColor: theme.colors.primary[100],
-                borderColor: theme.colors.primary[400],
+                backgroundColor: isDark ? theme.colors.overlays.soft : theme.colors.primary[100],
+                borderColor: isDark ? theme.colors.primary[500] : theme.colors.primary[400],
               }}
             />
           )}

@@ -31,7 +31,7 @@ export function SegmentedControl<T extends string | number>({ options, value, on
               flex: fullWidth ? 1 : undefined,
               paddingVertical: 10,
               paddingHorizontal: 14,
-              backgroundColor: selected ? theme.colors.primary[50] : theme.colors.card,
+              backgroundColor: selected ? theme.colors.primary[500] : theme.colors.card,
               borderRightWidth: idx < count - 1 ? 1 : 0,
               borderRightColor: theme.colors.border,
               alignItems: 'center',
@@ -39,7 +39,7 @@ export function SegmentedControl<T extends string | number>({ options, value, on
             accessibilityRole="button"
             accessibilityState={{ selected }}
           >
-            <Typography variant="body" weight={selected ? 'semibold' : 'medium'} style={{ color: selected ? theme.colors.primary[700] : theme.colors.text.primary }}>
+            <Typography variant="body" weight={selected ? 'semibold' : 'medium'} style={{ color: selected ? '#FFFFFF' : theme.colors.text.primary }}>
               {opt.label}
             </Typography>
           </TouchableOpacity>

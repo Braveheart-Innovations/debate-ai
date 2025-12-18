@@ -33,7 +33,7 @@ export const AIDebaterCard: React.FC<AIDebaterCardProps> = ({
   index = 0,
   maxReached = false,
 }) => {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
 
   const canSelect = isSelected || !maxReached;
   const isDisabled = disabled || !canSelect;
@@ -44,15 +44,15 @@ export const AIDebaterCard: React.FC<AIDebaterCardProps> = ({
         onPress={onToggle}
         disabled={isDisabled}
         style={{
-          backgroundColor: isSelected 
-            ? theme.colors.primary[50] 
+          backgroundColor: isSelected
+            ? (isDark ? theme.colors.overlays.medium : theme.colors.primary[50])
             : theme.colors.surface,
           borderRadius: theme.borderRadius.lg,
           padding: theme.spacing.md,
           marginBottom: theme.spacing.md,
           borderWidth: 2,
-          borderColor: isSelected 
-            ? theme.colors.primary[500] 
+          borderColor: isSelected
+            ? theme.colors.primary[500]
             : theme.colors.border,
           opacity: isDisabled ? 0.6 : 1,
           shadowColor: theme.colors.shadow,
@@ -79,25 +79,25 @@ export const AIDebaterCard: React.FC<AIDebaterCardProps> = ({
           </View>
 
           <View style={{ flex: 1 }}>
-            <Typography 
-              variant="body" 
+            <Typography
+              variant="body"
               weight="semibold"
-              style={{ 
-                color: isSelected 
-                  ? theme.colors.primary[700] 
+              style={{
+                color: isSelected
+                  ? (isDark ? theme.colors.primary[400] : theme.colors.primary[700])
                   : theme.colors.text.primary,
                 marginBottom: 2,
               }}
             >
               {debater.name}
             </Typography>
-            
-            <Typography 
-              variant="caption" 
-              style={{ 
-                color: isSelected 
-                  ? theme.colors.primary[600] 
-                  : theme.colors.text.secondary 
+
+            <Typography
+              variant="caption"
+              style={{
+                color: isSelected
+                  ? (isDark ? theme.colors.primary[300] : theme.colors.primary[600])
+                  : theme.colors.text.secondary
               }}
             >
               {debater.provider.charAt(0).toUpperCase() + debater.provider.slice(1)}
@@ -116,19 +116,19 @@ export const AIDebaterCard: React.FC<AIDebaterCardProps> = ({
                   <View
                     key={idx}
                     style={{
-                      backgroundColor: isSelected 
-                        ? theme.colors.primary[200]
+                      backgroundColor: isSelected
+                        ? (isDark ? theme.colors.primary[900] : theme.colors.primary[200])
                         : theme.colors.background,
                       paddingHorizontal: 6,
                       paddingVertical: 2,
                       borderRadius: theme.borderRadius.sm,
                     }}
                   >
-                    <Typography 
+                    <Typography
                       variant="caption"
                       style={{
-                        color: isSelected 
-                          ? theme.colors.primary[700]
+                        color: isSelected
+                          ? (isDark ? theme.colors.primary[300] : theme.colors.primary[700])
                           : theme.colors.text.secondary,
                         fontSize: 10,
                       }}
@@ -170,13 +170,13 @@ export const AIDebaterCard: React.FC<AIDebaterCardProps> = ({
 
         {/* Personality Chip */}
         {showPersonality && personality && (
-          <View style={{ 
+          <View style={{
             flexDirection: 'row',
             alignItems: 'center',
             paddingTop: theme.spacing.sm,
             borderTopWidth: 1,
-            borderTopColor: isSelected 
-              ? theme.colors.primary[200]
+            borderTopColor: isSelected
+              ? (isDark ? theme.colors.primary[700] : theme.colors.primary[200])
               : theme.colors.border,
           }}>
             <Typography 
