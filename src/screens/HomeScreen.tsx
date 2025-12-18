@@ -3,7 +3,7 @@ import { ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Header, HeaderActions } from '../components/organisms';
-import { DynamicAISelector, QuickStartsSection, PromptWizard } from '../components/organisms';
+import { DynamicAISelector, PromptWizard, QuickStartTopicPicker } from '../components/organisms';
 import { ChatTopicPickerModal } from '@/components/organisms/demo/ChatTopicPickerModal';
 
 import { useTheme } from '../theme';
@@ -53,11 +53,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     navigation.navigate(HOME_CONSTANTS.SCREENS.CHAT, { sessionId });
   };
   
-  const handleSelectTopic = (topic: typeof quickStart.topics[0]) => {
-    if (aiSelection.hasSelection && quickStart.isAvailable(aiSelection.selectionCount)) {
-      quickStart.selectTopic(topic);
-    }
-  };
+  // handleSelectTopic removed - now using FAB + TopicPicker flow
   
   const handleCompleteWizard = (userPrompt: string, enrichedPrompt: string) => {
     if (quickStart.validateCompletion(userPrompt, enrichedPrompt) && aiSelection.hasSelection) {
@@ -114,23 +110,25 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             configuredAIs={aiSelection.configuredAIs}
             selectedAIs={aiSelection.selectedAIs}
             maxAIs={aiSelection.maxAIs}
-          onToggleAI={aiSelection.toggleAI}
-          onStartChat={handleStartChat}
-          onAddAI={handleAddAI}
-          aiPersonalities={aiSelection.aiPersonalities}
-          selectedModels={aiSelection.selectedModels}
+            onToggleAI={aiSelection.toggleAI}
+            onStartChat={handleStartChat}
+            onAddAI={handleAddAI}
+            aiPersonalities={aiSelection.aiPersonalities}
+            selectedModels={aiSelection.selectedModels}
             onPersonalityChange={aiSelection.changePersonality}
             onModelChange={aiSelection.changeModel}
+            onQuickStart={isDemo ? undefined : quickStart.openTopicPicker}
           />
         </View>
-        
-        {/* Quick Starts - Guided Chat (disabled in demo mode - no scripts available) */}
-        <QuickStartsSection
-          topics={quickStart.topics}
-          onSelectTopic={handleSelectTopic}
-          disabled={!aiSelection.hasSelection || isDemo}
-        />
       </ScrollView>
+
+      {/* Topic Picker Modal */}
+      <QuickStartTopicPicker
+        visible={quickStart.showTopicPicker}
+        topics={quickStart.topics}
+        onSelectTopic={quickStart.selectTopicFromPicker}
+        onClose={quickStart.closeTopicPicker}
+      />
       
       {/* Prompt Wizard Modal */}
       <PromptWizard
@@ -138,6 +136,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         topic={quickStart.selectedTopic}
         onClose={quickStart.closeWizard}
         onComplete={handleCompleteWizard}
+        selectedAIs={aiSelection.selectedAIs}
+        aiPersonalities={aiSelection.aiPersonalities}
       />
 
       {/* Demo Mode: Chat Topic Picker */}

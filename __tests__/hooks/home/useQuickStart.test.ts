@@ -142,4 +142,86 @@ describe('useQuickStart', () => {
     expect(result.current.selectedTopic).toBeNull();
     expect(result.current.showWizard).toBe(false);
   });
+
+  describe('topic picker', () => {
+    it('showTopicPicker is initially false', () => {
+      const { result } = renderHookWithProviders(() => useQuickStart());
+
+      expect(result.current.showTopicPicker).toBe(false);
+    });
+
+    it('openTopicPicker sets showTopicPicker to true', () => {
+      const { result } = renderHookWithProviders(() => useQuickStart());
+
+      act(() => {
+        result.current.openTopicPicker();
+      });
+
+      expect(result.current.showTopicPicker).toBe(true);
+    });
+
+    it('closeTopicPicker sets showTopicPicker to false', () => {
+      const { result } = renderHookWithProviders(() => useQuickStart());
+
+      act(() => {
+        result.current.openTopicPicker();
+      });
+      expect(result.current.showTopicPicker).toBe(true);
+
+      act(() => {
+        result.current.closeTopicPicker();
+      });
+      expect(result.current.showTopicPicker).toBe(false);
+    });
+
+    it('selectTopicFromPicker closes picker and opens wizard', () => {
+      const { result } = renderHookWithProviders(() => useQuickStart());
+
+      act(() => {
+        result.current.openTopicPicker();
+      });
+      expect(result.current.showTopicPicker).toBe(true);
+
+      act(() => {
+        result.current.selectTopicFromPicker(mockTopics[0]);
+      });
+
+      expect(result.current.showTopicPicker).toBe(false);
+      expect(result.current.selectedTopic).toEqual(mockTopics[0]);
+      expect(result.current.showWizard).toBe(true);
+    });
+
+    it('selectTopicFromPicker does not open wizard for invalid topic', () => {
+      const { result } = renderHookWithProviders(() => useQuickStart());
+      const invalidTopic = { ...mockTopics[1], id: 'unknown' };
+
+      act(() => {
+        result.current.openTopicPicker();
+        result.current.selectTopicFromPicker(invalidTopic);
+      });
+
+      expect(result.current.showTopicPicker).toBe(false);
+      expect(result.current.selectedTopic).toBeNull();
+      expect(result.current.showWizard).toBe(false);
+    });
+
+    it('reset clears showTopicPicker state', () => {
+      const { result } = renderHookWithProviders(() => useQuickStart());
+
+      act(() => {
+        result.current.openTopicPicker();
+        result.current.selectTopicFromPicker(mockTopics[0]);
+      });
+
+      expect(result.current.showWizard).toBe(true);
+
+      act(() => {
+        result.current.reset();
+      });
+
+      expect(result.current.showTopicPicker).toBe(false);
+      expect(result.current.showWizard).toBe(false);
+      expect(result.current.selectedTopic).toBeNull();
+    });
+  });
 });

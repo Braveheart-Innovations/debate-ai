@@ -15,7 +15,7 @@ const mockUseFeatureAccess = jest.fn();
 let mockHeaderProps: any;
 let mockHeaderActionsProps: any;
 let mockDynamicAISelectorProps: any;
-let mockQuickStartsSectionProps: any;
+let mockQuickStartTopicPickerProps: any;
 let mockPromptWizardProps: any;
 let mockDemoBannerProps: any;
 let mockChatTopicPickerProps: any;
@@ -67,9 +67,9 @@ jest.mock('@/components/organisms', () => {
       mockDynamicAISelectorProps = props;
       return React.createElement(Text, { testID: 'dynamic-ai-selector' }, 'selector');
     },
-    QuickStartsSection: (props: any) => {
-      mockQuickStartsSectionProps = props;
-      return React.createElement(Text, { testID: 'quick-starts' }, 'quick-starts');
+    QuickStartTopicPicker: (props: any) => {
+      mockQuickStartTopicPickerProps = props;
+      return React.createElement(Text, { testID: 'quick-start-topic-picker' }, props.visible ? 'visible' : 'hidden');
     },
     PromptWizard: (props: any) => {
       mockPromptWizardProps = props;
@@ -150,6 +150,7 @@ const createQuickStart = (overrides: Record<string, unknown> = {}) => ({
       id: 'topic-1',
       title: 'Topic One',
       subtitle: 'Discuss topic one',
+      emoji: '💡',
     },
   ],
   selectTopic: jest.fn(),
@@ -157,7 +158,11 @@ const createQuickStart = (overrides: Record<string, unknown> = {}) => ({
   validateCompletion: jest.fn().mockReturnValue(true),
   isAvailable: jest.fn().mockReturnValue(true),
   showWizard: false,
+  showTopicPicker: false,
   selectedTopic: null,
+  openTopicPicker: jest.fn(),
+  closeTopicPicker: jest.fn(),
+  selectTopicFromPicker: jest.fn(),
   ...overrides,
 });
 
@@ -167,7 +172,7 @@ describe('HomeScreen', () => {
     mockHeaderProps = undefined;
     mockHeaderActionsProps = undefined;
     mockDynamicAISelectorProps = undefined;
-    mockQuickStartsSectionProps = undefined;
+    mockQuickStartTopicPickerProps = undefined;
     mockPromptWizardProps = undefined;
     mockDemoBannerProps = undefined;
     mockChatTopicPickerProps = undefined;
@@ -229,7 +234,8 @@ const renderHome = (options?: { aiSelection?: ReturnType<typeof createAISelectio
     expect(mockHeaderActionsProps).toBeDefined();
     expect(mockHeaderActionsProps.variant).toBe('gradient');
     expect(mockDynamicAISelectorProps.maxAIs).toBe(aiSelection.maxAIs);
-    expect(mockQuickStartsSectionProps.disabled).toBe(!aiSelection.hasSelection);
+    // Quick Start is now via onQuickStart callback on DynamicAISelector (not QuickStartsSection)
+    expect(mockDynamicAISelectorProps.onQuickStart).toBeDefined();
   });
 
   it('does not start chat when no AI is selected', async () => {
@@ -324,7 +330,7 @@ const renderHome = (options?: { aiSelection?: ReturnType<typeof createAISelectio
     expect(mockChatTopicPickerProps.personaId).toBeUndefined();
   });
 
-  it('selects quick start topics only when requirements are met', async () => {
+  it('opens topic picker when onQuickStart is called', async () => {
     const selectedAIs = [createAIConfig()];
     const quickStart = createQuickStart();
     const aiSelection = createAISelection({
@@ -335,30 +341,67 @@ const renderHome = (options?: { aiSelection?: ReturnType<typeof createAISelectio
 
     renderHome({ aiSelection, quickStart });
 
-    const topic = quickStart.topics[0];
-
     await act(async () => {
-      mockQuickStartsSectionProps.onSelectTopic(topic);
+      mockDynamicAISelectorProps.onQuickStart();
     });
 
-    expect(quickStart.isAvailable).toHaveBeenCalledWith(aiSelection.selectionCount);
-    expect(quickStart.selectTopic).toHaveBeenCalledWith(topic);
+    expect(quickStart.openTopicPicker).toHaveBeenCalled();
   });
 
-  it('does not select quick start topic when availability check fails', async () => {
+  it('passes topic picker props correctly', () => {
     const quickStart = createQuickStart({
-      isAvailable: jest.fn().mockReturnValue(false),
-      selectTopic: jest.fn(),
+      showTopicPicker: true,
+      topics: [{ id: 'topic-1', title: 'Topic One', subtitle: 'Sub', emoji: '💡' }],
     });
-    const aiSelection = createAISelection({ hasSelection: true, selectionCount: 2, selectedAIs: [createAIConfig()], });
 
-    renderHome({ aiSelection, quickStart });
+    renderHome({ quickStart });
+
+    expect(mockQuickStartTopicPickerProps.visible).toBe(true);
+    expect(mockQuickStartTopicPickerProps.topics).toEqual(quickStart.topics);
+    expect(mockQuickStartTopicPickerProps.onSelectTopic).toBeDefined();
+    expect(mockQuickStartTopicPickerProps.onClose).toBeDefined();
+  });
+
+  it('handles topic selection from picker', async () => {
+    const quickStart = createQuickStart({
+      showTopicPicker: true,
+      selectTopicFromPicker: jest.fn(),
+    });
+
+    renderHome({ quickStart });
+
+    const topic = quickStart.topics[0];
+    await act(async () => {
+      mockQuickStartTopicPickerProps.onSelectTopic(topic);
+    });
+
+    expect(quickStart.selectTopicFromPicker).toHaveBeenCalledWith(topic);
+  });
+
+  it('closes topic picker when onClose is called', async () => {
+    const quickStart = createQuickStart({
+      showTopicPicker: true,
+      closeTopicPicker: jest.fn(),
+    });
+
+    renderHome({ quickStart });
 
     await act(async () => {
-      mockQuickStartsSectionProps.onSelectTopic(quickStart.topics[0]);
+      mockQuickStartTopicPickerProps.onClose();
     });
 
-    expect(quickStart.selectTopic).not.toHaveBeenCalled();
+    expect(quickStart.closeTopicPicker).toHaveBeenCalled();
+  });
+
+  it('does not show onQuickStart in demo mode', () => {
+    const aiSelection = createAISelection({
+      hasSelection: true,
+      selectedAIs: [createAIConfig()],
+    });
+
+    renderHome({ aiSelection, featureAccess: { isDemo: true } });
+
+    expect(mockDynamicAISelectorProps.onQuickStart).toBeUndefined();
   });
 
   it('handles prompt wizard completion when validation succeeds', async () => {

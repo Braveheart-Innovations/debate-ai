@@ -25,6 +25,7 @@ interface DynamicAISelectorProps {
   selectedModels?: { [aiId: string]: string };
   onPersonalityChange?: (aiId: string, personalityId: string) => void;
   onModelChange?: (aiId: string, modelId: string) => void;
+  onQuickStart?: () => void;  // Handler for Quick Start icon tap
 }
 
 export const DynamicAISelector: React.FC<DynamicAISelectorProps> = ({
@@ -43,6 +44,7 @@ export const DynamicAISelector: React.FC<DynamicAISelectorProps> = ({
   selectedModels = {},
   onPersonalityChange,
   onModelChange,
+  onQuickStart,
 }) => {
   const { theme } = useTheme();
   
@@ -146,8 +148,8 @@ export const DynamicAISelector: React.FC<DynamicAISelectorProps> = ({
       {!hideStartButton && (
         configuredAIs.length > 0 ? (
           <GradientButton
-            title={selectedAIs.length === 0 
-              ? "Select AIs to start" 
+            title={selectedAIs.length === 0
+              ? 'Select AIs to start'
               : `Start Chat with ${selectedAIs.length} AI${selectedAIs.length > 1 ? 's' : ''}`
             }
             onPress={onStartChat || (() => {})}
@@ -155,6 +157,9 @@ export const DynamicAISelector: React.FC<DynamicAISelectorProps> = ({
             gradient={theme.colors.gradients.ocean}
             fullWidth
             hapticType="medium"
+            trailingIcon={onQuickStart ? 'bulb-outline' : undefined}
+            onTrailingIconPress={onQuickStart}
+            trailingIconDisabled={selectedAIs.length === 0}
           />
         ) : (
           <GradientButton

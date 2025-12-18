@@ -6,6 +6,15 @@ jest.mock('expo-linear-gradient', () => ({
   LinearGradient: ({ children }: { children: React.ReactNode }) => children,
 }));
 
+jest.mock('expo-haptics', () => ({
+  impactAsync: jest.fn(),
+  ImpactFeedbackStyle: { Light: 'light' },
+}));
+
+jest.mock('@expo/vector-icons', () => ({
+  Ionicons: 'Ionicons',
+}));
+
 jest.mock('@/components/molecules', () => {
   const React = require('react');
   const { Text } = require('react-native');
@@ -127,5 +136,92 @@ describe('GradientButton', () => {
     );
 
     expect(getByText('Custom Gradient')).toBeTruthy();
+  });
+
+  describe('trailing icon', () => {
+    it('renders trailing icon when trailingIcon and onTrailingIconPress provided', () => {
+      const { UNSAFE_getAllByType } = renderWithProviders(
+        <GradientButton
+          title="With Icon"
+          onPress={jest.fn()}
+          trailingIcon="bulb-outline"
+          onTrailingIconPress={jest.fn()}
+        />
+      );
+
+      // Icon should be rendered (Ionicons mock)
+      const icons = UNSAFE_getAllByType('Ionicons' as any);
+      expect(icons.length).toBeGreaterThan(0);
+    });
+
+    it('does not render trailing icon when onTrailingIconPress is undefined', () => {
+      const { UNSAFE_queryAllByType } = renderWithProviders(
+        <GradientButton
+          title="No Icon"
+          onPress={jest.fn()}
+          trailingIcon="bulb-outline"
+        />
+      );
+
+      const icons = UNSAFE_queryAllByType('Ionicons' as any);
+      expect(icons.length).toBe(0);
+    });
+
+    it('calls onTrailingIconPress when trailing icon pressed', () => {
+      const onTrailingIconPress = jest.fn();
+      const { UNSAFE_getAllByType } = renderWithProviders(
+        <GradientButton
+          title="Clickable Icon"
+          onPress={jest.fn()}
+          trailingIcon="bulb-outline"
+          onTrailingIconPress={onTrailingIconPress}
+        />
+      );
+
+      const icons = UNSAFE_getAllByType('Ionicons' as any);
+      const iconTouchable = icons[0].parent;
+      fireEvent.press(iconTouchable);
+
+      expect(onTrailingIconPress).toHaveBeenCalledTimes(1);
+      expect(require('expo-haptics').impactAsync).toHaveBeenCalled();
+    });
+
+    it('does not call onTrailingIconPress when trailingIconDisabled', () => {
+      const onTrailingIconPress = jest.fn();
+      const { UNSAFE_getAllByType } = renderWithProviders(
+        <GradientButton
+          title="Disabled Icon"
+          onPress={jest.fn()}
+          trailingIcon="bulb-outline"
+          onTrailingIconPress={onTrailingIconPress}
+          trailingIconDisabled
+        />
+      );
+
+      const icons = UNSAFE_getAllByType('Ionicons' as any);
+      const iconTouchable = icons[0].parent;
+      fireEvent.press(iconTouchable);
+
+      expect(onTrailingIconPress).not.toHaveBeenCalled();
+    });
+
+    it('does not call onTrailingIconPress when button is disabled', () => {
+      const onTrailingIconPress = jest.fn();
+      const { UNSAFE_getAllByType } = renderWithProviders(
+        <GradientButton
+          title="Disabled Button"
+          onPress={jest.fn()}
+          trailingIcon="bulb-outline"
+          onTrailingIconPress={onTrailingIconPress}
+          disabled
+        />
+      );
+
+      const icons = UNSAFE_getAllByType('Ionicons' as any);
+      const iconTouchable = icons[0].parent;
+      fireEvent.press(iconTouchable);
+
+      expect(onTrailingIconPress).not.toHaveBeenCalled();
+    });
   });
 });

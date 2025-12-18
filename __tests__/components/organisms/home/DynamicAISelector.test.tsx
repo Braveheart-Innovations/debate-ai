@@ -16,10 +16,20 @@ const mockSectionHeader = jest.fn(({ onAction }: any) => (
   </Text>
 ));
 
-const mockGradientButton = jest.fn(({ title, onPress, disabled }: any) => (
-  <Text accessibilityRole="button" onPress={disabled ? undefined : onPress}>
-    {title}
-  </Text>
+const mockGradientButton = jest.fn(({ title, onPress, disabled, trailingIcon, onTrailingIconPress, trailingIconDisabled }: any) => (
+  <>
+    <Text accessibilityRole="button" onPress={disabled ? undefined : onPress}>
+      {title}
+    </Text>
+    {trailingIcon && onTrailingIconPress && (
+      <Text
+        testID="trailing-icon"
+        onPress={trailingIconDisabled || disabled ? undefined : onTrailingIconPress}
+      >
+        {trailingIcon}
+      </Text>
+    )}
+  </>
 ));
 
 const mockAiCard = jest.fn(({ ai, onPress }: any) => (
@@ -98,5 +108,70 @@ describe('DynamicAISelector', () => {
 
     expect(queryByTestId('dynamic-header')).toBeNull();
     expect(queryByText(/Start Chat/)).toBeNull();
+  });
+
+  describe('onQuickStart', () => {
+    it('renders trailing icon on Start Chat button when onQuickStart provided', () => {
+      const { getByTestId } = renderWithProviders(
+        <DynamicAISelector
+          configuredAIs={aiList}
+          selectedAIs={aiList}
+          maxAIs={3}
+          onToggleAI={jest.fn()}
+          onAddAI={jest.fn()}
+          onQuickStart={jest.fn()}
+        />
+      );
+
+      expect(getByTestId('trailing-icon')).toBeTruthy();
+    });
+
+    it('does not render trailing icon when onQuickStart is undefined', () => {
+      const { queryByTestId } = renderWithProviders(
+        <DynamicAISelector
+          configuredAIs={aiList}
+          selectedAIs={aiList}
+          maxAIs={3}
+          onToggleAI={jest.fn()}
+          onAddAI={jest.fn()}
+        />
+      );
+
+      expect(queryByTestId('trailing-icon')).toBeNull();
+    });
+
+    it('calls onQuickStart when trailing icon pressed', () => {
+      const onQuickStart = jest.fn();
+      const { getByTestId } = renderWithProviders(
+        <DynamicAISelector
+          configuredAIs={aiList}
+          selectedAIs={aiList}
+          maxAIs={3}
+          onToggleAI={jest.fn()}
+          onAddAI={jest.fn()}
+          onQuickStart={onQuickStart}
+        />
+      );
+
+      fireEvent.press(getByTestId('trailing-icon'));
+      expect(onQuickStart).toHaveBeenCalledTimes(1);
+    });
+
+    it('trailing icon is disabled when no AIs selected', () => {
+      const onQuickStart = jest.fn();
+      const { getByTestId } = renderWithProviders(
+        <DynamicAISelector
+          configuredAIs={aiList}
+          selectedAIs={[]}
+          maxAIs={3}
+          onToggleAI={jest.fn()}
+          onAddAI={jest.fn()}
+          onQuickStart={onQuickStart}
+        />
+      );
+
+      fireEvent.press(getByTestId('trailing-icon'));
+      expect(onQuickStart).not.toHaveBeenCalled();
+    });
   });
 });

@@ -7,6 +7,7 @@ export { PromptWizard } from './home/PromptWizard';
 export { ProviderExpertSettings } from './api-config/ProviderExpertSettings';
 export { QuickStartsSection } from './home/QuickStartsSection';
 export type { QuickStartTopic } from './home/QuickStartsSection';
+export { QuickStartTopicPicker } from './home/QuickStartTopicPicker';
 export { ActualPricing } from './subscription/ActualPricing';
 export { AIAvatar } from './common/AIAvatar';
 export { AICard } from './home/AICard';

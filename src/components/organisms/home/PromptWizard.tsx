@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { 
-  Modal, 
-  View, 
-  ScrollView, 
-  KeyboardAvoidingView, 
+import {
+  Modal,
+  View,
+  ScrollView,
+  KeyboardAvoidingView,
   Platform,
   TextInput,
   TouchableOpacity,
@@ -13,9 +13,8 @@ import { Box } from '@/components/atoms';
 import { Button, GradientButton, Typography } from '@/components/molecules';
 import { QuickStartTopic } from './QuickStartsSection';
 import { useTheme } from '@/theme';
-import { useSelector } from 'react-redux';
-import { RootState } from '@/store';
 import { getPersonality } from '@/config/personalities';
+import { AIConfig } from '@/types';
 import * as Haptics from 'expo-haptics';
 
 interface PromptWizardProps {
@@ -23,15 +22,9 @@ interface PromptWizardProps {
   topic: QuickStartTopic | null;
   onClose: () => void;
   onComplete: (prompt: string, enrichedPrompt: string) => void;
+  selectedAIs: AIConfig[];
+  aiPersonalities: { [aiId: string]: string };
 }
-
-const TONES = [
-  { id: 'casual', label: 'Casual', emoji: '😊' },
-  { id: 'professional', label: 'Professional', emoji: '💼' },
-  { id: 'creative', label: 'Creative', emoji: '🎨' },
-  { id: 'curious', label: 'Curious', emoji: '🤔' },
-  { id: 'supportive', label: 'Supportive', emoji: '🤗' },
-];
 
 const CONTEXTS_BY_TOPIC: { [key: string]: Array<{ id: string; label: string; emoji: string }> } = {
   morning: [
@@ -77,88 +70,80 @@ export const PromptWizard: React.FC<PromptWizardProps> = ({
   topic,
   onClose,
   onComplete,
+  selectedAIs,
+  aiPersonalities,
 }) => {
   const { theme } = useTheme();
   const [selectedContext, setSelectedContext] = useState('');
-  const [selectedTone, setSelectedTone] = useState('casual');
   const [refinement, setRefinement] = useState('');
-  const aiPersonalities = useSelector((state: RootState) => state.chat.aiPersonalities);
-  const currentSession = useSelector((state: RootState) => state.chat.currentSession);
-  
+
   const handleContextSelect = (contextId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedContext(contextId);
   };
-  
-  const handleToneSelect = (toneId: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSelectedTone(toneId);
-  };
-  
+
   const handleStartChat = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const { userPrompt, enrichedPrompt } = generatePrompts();
     onComplete(userPrompt, enrichedPrompt);
     resetWizard();
   };
-  
+
   const resetWizard = () => {
     setSelectedContext('');
-    setSelectedTone('casual');
     setRefinement('');
   };
   
   const generatePrompts = () => {
     let userPrompt = '';
     let enrichedPrompt = '';
-    
-    const toneText = TONES.find(t => t.id === selectedTone)?.label.toLowerCase() || 'casual';
+
     const contextOption = topic && CONTEXTS_BY_TOPIC[topic.id]?.find(c => c.id === selectedContext);
-    
+
     // Build user-visible prompt (what appears to come from the user)
-    switch(topic?.id) {
+    switch (topic?.id) {
       case 'morning':
-        userPrompt = `Good morning! Let's have a ${toneText} chat. `;
+        userPrompt = 'Good morning! ';
         if (refinement) userPrompt += `${refinement} `;
         if (contextOption) {
           if (selectedContext === 'productive') userPrompt += "I'm planning a productive day ahead.";
           else if (selectedContext === 'relaxed') userPrompt += "I'm looking for a relaxed start to my day.";
-          else if (selectedContext === 'motivated') userPrompt += "I need some motivation to get going.";
-          else if (selectedContext === 'planning') userPrompt += "Help me plan my day effectively.";
+          else if (selectedContext === 'motivated') userPrompt += 'I need some motivation to get going.';
+          else if (selectedContext === 'planning') userPrompt += 'Help me plan my day effectively.';
         }
         break;
       case 'brainstorm':
-        userPrompt = `I need help brainstorming. `;
+        userPrompt = 'I need help brainstorming. ';
         if (refinement) userPrompt += `The topic is: ${refinement}. `;
         if (contextOption) {
           if (selectedContext === 'business') userPrompt += "I'm looking for business ideas.";
           else if (selectedContext === 'creative') userPrompt += "Let's explore creative possibilities.";
-          else if (selectedContext === 'technical') userPrompt += "I need technical solutions.";
-          else if (selectedContext === 'personal') userPrompt += "This is for personal goals.";
+          else if (selectedContext === 'technical') userPrompt += 'I need technical solutions.';
+          else if (selectedContext === 'personal') userPrompt += 'This is for personal goals.';
         }
         break;
       case 'learn':
-        userPrompt = `I'd like to learn something new. `;
+        userPrompt = "I'd like to learn something new. ";
         if (refinement) userPrompt += `I'm interested in ${refinement}. `;
         if (contextOption) {
-          if (selectedContext === 'science') userPrompt += "Tell me about science or technology.";
-          else if (selectedContext === 'history') userPrompt += "Share some history or culture.";
-          else if (selectedContext === 'skills') userPrompt += "Teach me a practical skill.";
-          else if (selectedContext === 'languages') userPrompt += "Help me with languages.";
+          if (selectedContext === 'science') userPrompt += 'Tell me about science or technology.';
+          else if (selectedContext === 'history') userPrompt += 'Share some history or culture.';
+          else if (selectedContext === 'skills') userPrompt += 'Teach me a practical skill.';
+          else if (selectedContext === 'languages') userPrompt += 'Help me with languages.';
         }
         break;
       case 'creative':
-        userPrompt = `Let's do some creative writing together. `;
+        userPrompt = "Let's do some creative writing together. ";
         if (refinement) userPrompt += `The theme is: ${refinement}. `;
         if (contextOption) {
           if (selectedContext === 'story') userPrompt += "Let's create a story.";
-          else if (selectedContext === 'poetry') userPrompt += "Help me write poetry.";
+          else if (selectedContext === 'poetry') userPrompt += 'Help me write poetry.';
           else if (selectedContext === 'worldbuilding') userPrompt += "Let's build an imaginary world.";
-          else if (selectedContext === 'characters') userPrompt += "Help me develop characters.";
+          else if (selectedContext === 'characters') userPrompt += 'Help me develop characters.';
         }
         break;
       case 'problem':
-        userPrompt = `I need help solving a problem. `;
+        userPrompt = 'I need help solving a problem. ';
         if (refinement) userPrompt += `${refinement} `;
         if (contextOption) {
           if (selectedContext === 'technical') userPrompt += "It's a technical issue.";
@@ -168,35 +153,34 @@ export const PromptWizard: React.FC<PromptWizardProps> = ({
         }
         break;
       case 'fun':
-        userPrompt = `Let's have some fun! `;
+        userPrompt = "Let's have some fun! ";
         if (refinement) userPrompt += `${refinement} `;
         if (contextOption) {
           if (selectedContext === 'games') userPrompt += "Let's play word games.";
-          else if (selectedContext === 'trivia') userPrompt += "Share interesting trivia.";
-          else if (selectedContext === 'jokes') userPrompt += "Tell me jokes!";
+          else if (selectedContext === 'trivia') userPrompt += 'Share interesting trivia.';
+          else if (selectedContext === 'jokes') userPrompt += 'Tell me jokes!';
           else if (selectedContext === 'roleplay') userPrompt += "Let's do roleplay.";
         }
         break;
       default:
         userPrompt = `Let's chat! ${refinement}`;
     }
-    
-    // Build enriched prompt with personality injection
-    const selectedAIs = currentSession?.selectedAIs || [];
+
+    // Build enriched prompt with personality injection (using props instead of Redux)
     if (selectedAIs.length > 0) {
       const aiId = selectedAIs[0].id;
       const personalityId = aiPersonalities[aiId] || 'default';
       const personality = personalityId !== 'default' ? getPersonality(personalityId) : undefined;
-      
+
       if (personality) {
-        enrichedPrompt = `[PERSONALITY: ${personality.name}]\n${personality.systemPrompt}\n\n[TONE: ${toneText}]\n\n${userPrompt}`;
+        enrichedPrompt = `[PERSONALITY: ${personality.name}]\n${personality.systemPrompt}\n\n${userPrompt}`;
       } else {
-        enrichedPrompt = `[TONE: ${toneText}]\n\n${userPrompt}`;
+        enrichedPrompt = userPrompt;
       }
     } else {
       enrichedPrompt = userPrompt;
     }
-    
+
     return { userPrompt: userPrompt.trim(), enrichedPrompt: enrichedPrompt.trim() };
   };
   
@@ -298,37 +282,6 @@ export const PromptWizard: React.FC<PromptWizardProps> = ({
                   </View>
                 </View>
               )}
-              
-              {/* Tone Selection */}
-              <View style={{ marginBottom: theme.spacing.lg }}>
-                <Typography variant="subtitle" weight="semibold" style={{ marginBottom: theme.spacing.sm }}>
-                  Conversation tone
-                </Typography>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.xs }}>
-                  {TONES.map(tone => (
-                    <TouchableOpacity
-                      key={tone.id}
-                      onPress={() => handleToneSelect(tone.id)}
-                      style={{
-                        paddingHorizontal: theme.spacing.sm,
-                        paddingVertical: theme.spacing.xs,
-                        borderRadius: theme.borderRadius.md,
-                        backgroundColor: selectedTone === tone.id ? theme.colors.primary[100] : theme.colors.surface,
-                        borderWidth: 1,
-                        borderColor: selectedTone === tone.id ? theme.colors.primary[300] : theme.colors.border,
-                      }}
-                    >
-                      <Typography 
-                        variant="caption" 
-                        weight={selectedTone === tone.id ? 'semibold' : 'medium'}
-                        style={{ color: selectedTone === tone.id ? theme.colors.primary[700] : theme.colors.text.primary }}
-                      >
-                        {tone.emoji} {tone.label}
-                      </Typography>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
               
               {/* Optional Refinement */}
               <View style={{ marginBottom: theme.spacing.md }}>

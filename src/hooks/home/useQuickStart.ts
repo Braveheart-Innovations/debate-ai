@@ -9,6 +9,7 @@ import { QuickStartService } from '../../services/home/QuickStartService';
 export const useQuickStart = () => {
   const [selectedTopic, setSelectedTopic] = useState<QuickStartTopic | null>(null);
   const [showWizard, setShowWizard] = useState(false);
+  const [showTopicPicker, setShowTopicPicker] = useState(false);
 
   // Get all available topics
   const topics = useMemo(() => {
@@ -120,6 +121,34 @@ export const useQuickStart = () => {
   const reset = () => {
     setSelectedTopic(null);
     setShowWizard(false);
+    setShowTopicPicker(false);
+  };
+
+  /**
+   * Opens the topic picker modal.
+   */
+  const openTopicPicker = () => {
+    setShowTopicPicker(true);
+  };
+
+  /**
+   * Closes the topic picker modal.
+   */
+  const closeTopicPicker = () => {
+    setShowTopicPicker(false);
+  };
+
+  /**
+   * Handles topic selection from the picker, then opens the wizard.
+   *
+   * @param topic - Selected Quick Start topic
+   */
+  const selectTopicFromPicker = (topic: QuickStartTopic) => {
+    setShowTopicPicker(false);
+    if (QuickStartService.validateTopicSelection(topic)) {
+      setSelectedTopic(topic);
+      setShowWizard(true);
+    }
   };
 
   /**
@@ -140,27 +169,31 @@ export const useQuickStart = () => {
     // State
     selectedTopic,
     showWizard,
+    showTopicPicker,
     topics,
-    
+
     // Actions
     selectTopic,
     closeWizard,
     reset,
-    
+    openTopicPicker,
+    closeTopicPicker,
+    selectTopicFromPicker,
+
     // Validation
     validateCompletion,
     isAvailable,
-    
+
     // Prompt Handling
     enrichPrompt,
     preparePromptData,
     getCurrentTopicPrompt,
-    
+
     // Data Access
     getTopicById,
     searchTopics,
     getStatus,
-    
+
     // Computed Properties
     hasSelectedTopic: !!selectedTopic,
     topicCount: topics.length,

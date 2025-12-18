@@ -1,6 +1,8 @@
 import React from 'react';
-import { TouchableOpacity, TouchableOpacityProps, StyleSheet, ViewStyle, ActivityIndicator } from 'react-native';
+import { TouchableOpacity, TouchableOpacityProps, StyleSheet, ViewStyle, ActivityIndicator, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { Typography } from './Typography';
 import { useTheme } from '@/theme';
 
@@ -13,6 +15,9 @@ interface GradientButtonProps extends Omit<TouchableOpacityProps, 'style'> {
   hapticType?: string;
   loading?: boolean;
   style?: ViewStyle;
+  trailingIcon?: keyof typeof Ionicons.glyphMap;
+  onTrailingIconPress?: () => void;
+  trailingIconDisabled?: boolean;
 }
 
 export const GradientButton: React.FC<GradientButtonProps> = ({
@@ -26,25 +31,28 @@ export const GradientButton: React.FC<GradientButtonProps> = ({
   disabled = false,
   onPress,
   style,
+  trailingIcon,
+  onTrailingIconPress,
+  trailingIconDisabled = false,
   ...props
 }) => {
   const { theme } = useTheme();
-  
+
   // Support both gradient prop and variant-based gradients
   const getGradientColors = () => {
     if (gradient) return gradient as readonly [string, string, ...string[]];
-    
+
     const variantMap = {
       primary: theme.colors.gradients.primary,
       secondary: theme.colors.gradients.ocean,
       success: theme.colors.gradients.forest,
     };
-    
+
     return variantMap[variant] as readonly [string, string, ...string[]];
   };
-  
+
   const gradientColors = getGradientColors();
-  
+
   const getSizeStyles = () => {
     switch (size) {
       case 'small':
@@ -68,20 +76,24 @@ export const GradientButton: React.FC<GradientButtonProps> = ({
         };
     }
   };
-  
+
   const sizeStyles = getSizeStyles();
   const textVariant = size === 'small' ? 'caption' : size === 'large' ? 'title' : 'button';
-  
+
+  const handleTrailingIconPress = () => {
+    if (!trailingIconDisabled && !disabled && onTrailingIconPress) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      onTrailingIconPress();
+    }
+  };
+
   return (
-    <TouchableOpacity
-      disabled={disabled || loading}
-      onPress={onPress}
+    <View
       style={[
         fullWidth && styles.fullWidth,
         (disabled || loading) && styles.disabled,
         style,
       ]}
-      {...props}
     >
       <LinearGradient
         colors={gradientColors}
@@ -90,22 +102,47 @@ export const GradientButton: React.FC<GradientButtonProps> = ({
         style={[
           styles.gradient,
           sizeStyles,
+          trailingIcon && styles.gradientWithTrailing,
         ]}
       >
-        {loading ? (
-          <ActivityIndicator size="small" color="#FFFFFF" />
-        ) : (
-          <Typography
-            variant={textVariant}
-            weight="semibold"
-            color="inverse"
-            align="center"
+        <TouchableOpacity
+          disabled={disabled || loading}
+          onPress={onPress}
+          style={styles.mainTouchable}
+          activeOpacity={0.8}
+          {...props}
+        >
+          {loading ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Typography
+              variant={textVariant}
+              weight="semibold"
+              color="inverse"
+              align="center"
+            >
+              {title}
+            </Typography>
+          )}
+        </TouchableOpacity>
+
+        {trailingIcon && onTrailingIconPress && (
+          <TouchableOpacity
+            onPress={handleTrailingIconPress}
+            disabled={trailingIconDisabled || disabled}
+            style={[
+              styles.trailingIconContainer,
+              (trailingIconDisabled || disabled) && styles.trailingIconDisabled,
+            ]}
+            activeOpacity={0.6}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            {title}
-          </Typography>
+            <View style={styles.trailingIconSeparator} />
+            <Ionicons name={trailingIcon} size={22} color="#FFFFFF" />
+          </TouchableOpacity>
         )}
       </LinearGradient>
-    </TouchableOpacity>
+    </View>
   );
 };
 
@@ -113,11 +150,35 @@ const styles = StyleSheet.create({
   gradient: {
     alignItems: 'center',
     justifyContent: 'center',
+    flexDirection: 'row',
+  },
+  gradientWithTrailing: {
+    paddingRight: 8,
   },
   fullWidth: {
     width: '100%',
   },
   disabled: {
     opacity: 0.5,
+  },
+  mainTouchable: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  trailingIconContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 8,
+    paddingRight: 8,
+  },
+  trailingIconDisabled: {
+    opacity: 0.5,
+  },
+  trailingIconSeparator: {
+    width: 1,
+    height: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    marginRight: 12,
   },
 });
