@@ -3,8 +3,16 @@ import { View, StyleSheet } from 'react-native';
 import { CompareResponsePane } from './CompareResponsePane';
 import { Message, AIConfig } from '../../../types';
 import { useTheme } from '../../../theme';
+import type { ImagePhase, ImageAspectRatio } from './CompareImageGeneratingPane';
 
 type ViewMode = 'split' | 'left-full' | 'right-full' | 'left-only' | 'right-only';
+
+export interface ImageGenState {
+  isGenerating: boolean;
+  phase: ImagePhase;
+  startTime: number;
+  aspectRatio: ImageAspectRatio;
+}
 
 interface CompareSplitViewProps {
   leftAI: AIConfig;
@@ -21,6 +29,14 @@ interface CompareSplitViewProps {
   continuedSide: 'left' | 'right' | null;
   onExpandLeft: () => void;
   onExpandRight: () => void;
+  // Image generation props
+  leftImageState?: ImageGenState;
+  rightImageState?: ImageGenState;
+  onCancelLeftImage?: () => void;
+  onCancelRightImage?: () => void;
+  onRetryLeftImage?: () => void;
+  onRetryRightImage?: () => void;
+  onOpenLightbox?: (uri: string) => void;
 }
 
 export const CompareSplitView: React.FC<CompareSplitViewProps> = ({
@@ -38,6 +54,13 @@ export const CompareSplitView: React.FC<CompareSplitViewProps> = ({
   continuedSide,
   onExpandLeft,
   onExpandRight,
+  leftImageState,
+  rightImageState,
+  onCancelLeftImage,
+  onCancelRightImage,
+  onRetryLeftImage,
+  onRetryRightImage,
+  onOpenLightbox,
 }) => {
   const { theme } = useTheme();
   
@@ -65,6 +88,10 @@ export const CompareSplitView: React.FC<CompareSplitViewProps> = ({
             isExpanded={leftFullWidth}
             isDisabled={continuedSide === 'right'}
             onExpand={onExpandLeft}
+            imageState={leftImageState}
+            onCancelImage={onCancelLeftImage}
+            onRetryImage={onRetryLeftImage}
+            onOpenLightbox={onOpenLightbox}
           />
         </View>
       )}
@@ -90,6 +117,10 @@ export const CompareSplitView: React.FC<CompareSplitViewProps> = ({
             isExpanded={rightFullWidth}
             isDisabled={continuedSide === 'left'}
             onExpand={onExpandRight}
+            imageState={rightImageState}
+            onCancelImage={onCancelRightImage}
+            onRetryImage={onRetryRightImage}
+            onOpenLightbox={onOpenLightbox}
           />
         </View>
       )}

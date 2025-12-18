@@ -3,7 +3,8 @@ import { View, StyleSheet, TouchableOpacity, Linking } from 'react-native';
 import Markdown from 'react-native-markdown-display';
 import { Typography } from '../../molecules';
 import { LazyMarkdownRenderer, createMarkdownStyles } from '../../molecules/common/LazyMarkdownRenderer';
-import { Message } from '../../../types';
+import { CompareImageDisplay } from './CompareImageDisplay';
+import { Message, AIConfig } from '../../../types';
 import { useTheme } from '../../../theme';
 import { sanitizeMarkdown, shouldLazyRender } from '@/utils/markdown';
 import { selectableMarkdownRules } from '@/utils/markdownSelectable';
@@ -20,6 +21,7 @@ interface CompareMessageBubbleProps {
   side: 'left' | 'right';
   brandPalette?: BrandColor | null;
   providerName?: string;
+  onOpenLightbox?: (uri: string) => void;
 }
 
 export const CompareMessageBubble: React.FC<CompareMessageBubbleProps> = ({
@@ -27,6 +29,7 @@ export const CompareMessageBubble: React.FC<CompareMessageBubbleProps> = ({
   side,
   brandPalette,
   providerName,
+  onOpenLightbox,
 }) => {
   const { theme, isDark } = useTheme();
   const [copied, setCopied] = useState(false);
@@ -90,6 +93,20 @@ export const CompareMessageBubble: React.FC<CompareMessageBubbleProps> = ({
     : 'rgba(0,0,0,0.06)';
 
   const copyIconColor = theme.colors.text.primary;
+
+  // Check for image attachments
+  const imageAttachments = useMemo(() => {
+    return (message.attachments || []).filter(a => a.type === 'image');
+  }, [message.attachments]);
+
+  // Create a mock AI config for CompareImageDisplay
+  const aiConfig: AIConfig = useMemo(() => ({
+    id: message.metadata?.providerId || message.sender,
+    name: providerName || message.sender,
+    provider: (message.metadata?.providerId || 'unknown') as AIConfig['provider'],
+    model: (message.metadata?.modelUsed || 'unknown') as string,
+    color: resolvedPalette ? resolvedPalette[500] : '#666',
+  }), [message, providerName, resolvedPalette]);
 
   return (
     <View style={[
@@ -177,6 +194,23 @@ export const CompareMessageBubble: React.FC<CompareMessageBubbleProps> = ({
             {markdownContent}
           </Markdown>
         )}
+        {/* Image Attachments */}
+        {imageAttachments.length > 0 && onOpenLightbox && (
+          <View style={styles.imageAttachments}>
+            {imageAttachments.map((attachment, idx) => (
+              <CompareImageDisplay
+                key={`${attachment.uri}-${idx}`}
+                ai={aiConfig}
+                side={side}
+                uri={attachment.uri}
+                mimeType={attachment.mimeType}
+                timestamp={message.timestamp}
+                onOpenLightbox={onOpenLightbox}
+                brandPalette={resolvedPalette}
+              />
+            ))}
+          </View>
+        )}
         {/* Copy button */}
         <TouchableOpacity
           onPress={async () => {
@@ -230,6 +264,9 @@ const styles = StyleSheet.create({
   },
   content: {
     lineHeight: 20,
+  },
+  imageAttachments: {
+    marginTop: 8,
   },
   copyButton: {
     position: 'absolute',

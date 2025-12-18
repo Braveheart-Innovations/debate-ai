@@ -4,3 +4,7 @@ export { CompareUserMessage } from './CompareUserMessage';
 export { CompareMessageBubble } from './CompareMessageBubble';
 export { ContinueButton } from './ContinueButton';
 export { CompareTypingIndicator } from './CompareTypingIndicator';
+export { CompareImageGeneratingPane } from './CompareImageGeneratingPane';
+export type { ImagePhase, ImageAspectRatio, CompareImageGeneratingPaneProps } from './CompareImageGeneratingPane';
+export { CompareImageDisplay } from './CompareImageDisplay';
+export type { CompareImageDisplayProps } from './CompareImageDisplay';

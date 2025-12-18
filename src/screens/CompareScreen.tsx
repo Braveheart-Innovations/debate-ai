@@ -13,7 +13,10 @@ import {
 import { ChatInputBar } from '../components/organisms/chat';
 import { useMergedModalityAvailabilityStrict } from '../hooks/multimodal/useModalityAvailability';
 import { ImageGenerationModal } from '../components/organisms/chat/ImageGenerationModal';
+import { ImageLightboxModal } from '../components/organisms/chat/ImageLightboxModal';
 import { ImageService } from '../services/images/ImageService';
+import type { ImageGenState } from '../components/organisms/compare/CompareSplitView';
+import type { ImagePhase, ImageAspectRatio } from '../components/organisms/compare/CompareImageGeneratingPane';
 import { AIProvider } from '../types';
 
 import { useTheme } from '../theme';
@@ -29,6 +32,7 @@ import { DemoContentService } from '@/services/demo/DemoContentService';
 import { loadCompareScript, primeNextCompareTurn, hasNextCompareTurn } from '@/services/demo/DemoPlaybackRouter';
 import { DemoSamplesBar } from '@/components/organisms/demo/DemoSamplesBar';
 import { getStreamingService } from '@/services/streaming/StreamingService';
+import { CompareStreamSynchronizer } from '@/services/streaming/CompareStreamSynchronizer';
 import { PromptBuilder } from '@/services/chat';
 import { RecordController } from '@/services/demo/RecordController';
 import * as Clipboard from 'expo-clipboard';
@@ -147,10 +151,22 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
   // Image generation state
   const [imageModalVisible, setImageModalVisible] = useState(false);
   const [imageModalPrompt, setImageModalPrompt] = useState('');
-  const [leftImageGenerating, setLeftImageGenerating] = useState(false);
-  const [rightImageGenerating, setRightImageGenerating] = useState(false);
+  const [leftImageState, setLeftImageState] = useState<ImageGenState>({
+    isGenerating: false,
+    phase: 'done' as ImagePhase,
+    startTime: 0,
+    aspectRatio: 'square' as ImageAspectRatio,
+  });
+  const [rightImageState, setRightImageState] = useState<ImageGenState>({
+    isGenerating: false,
+    phase: 'done' as ImagePhase,
+    startTime: 0,
+    aspectRatio: 'square' as ImageAspectRatio,
+  });
+  const [lightboxUri, setLightboxUri] = useState<string | null>(null);
   const imageControllersRef = useRef<{ left?: AbortController; right?: AbortController }>({});
-  
+  const synchronizerRef = useRef<CompareStreamSynchronizer | null>(null);
+
   const saveComparisonSession = useCallback(async () => {
     if (userMessages.length === 0) return; // Don't save empty sessions
     
@@ -274,6 +290,56 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
       }
     } catch (_e) { console.warn('compare apply personality failed', _e); }
 
+    // Determine if we should use synchronized streaming (both AIs active and both streaming)
+    const useSynchronizedStreaming = leftActive && rightActive && shouldStreamLeft && shouldStreamRight;
+
+    // Create synchronizer for dual streaming
+    if (useSynchronizedStreaming) {
+      synchronizerRef.current = new CompareStreamSynchronizer(
+        { syncIntervalMs: 80, maxBufferSizeChars: 200, startDelayMs: 150, startTimeoutMs: 500 },
+        {
+          onLeftFlush: (content: string) => {
+            setLeftTyping(false);
+            setLeftStreamingContent(prev => prev + content);
+          },
+          onRightFlush: (content: string) => {
+            setRightTyping(false);
+            setRightStreamingContent(prev => prev + content);
+          },
+          onLeftComplete: (finalContent: string) => {
+            const leftMessage: Message = {
+              id: `msg_left_${Date.now()}`,
+              sender: leftAI.name,
+              senderType: 'ai',
+              content: finalContent,
+              timestamp: Date.now(),
+              metadata: { modelUsed: leftEffModel, providerId: leftAI.provider },
+            };
+            setLeftMessages(prev => [...prev, leftMessage]);
+            leftHistoryRef.current.push(leftMessage);
+            setLeftStreamingContent('');
+            setLeftTyping(false);
+            try { if (RecordController.isActive()) { RecordController.recordAssistantMessage(leftAI.provider, finalContent); } } catch (_e) { console.warn('compare left sync final record failed', _e); }
+          },
+          onRightComplete: (finalContent: string) => {
+            const rightMessage: Message = {
+              id: `msg_right_${Date.now()}`,
+              sender: rightAI.name,
+              senderType: 'ai',
+              content: finalContent,
+              timestamp: Date.now(),
+              metadata: { modelUsed: rightEffModel, providerId: rightAI.provider },
+            };
+            setRightMessages(prev => [...prev, rightMessage]);
+            rightHistoryRef.current.push(rightMessage);
+            setRightStreamingContent('');
+            setRightTyping(false);
+            try { if (RecordController.isActive()) { RecordController.recordAssistantMessage(rightAI.provider, finalContent); } } catch (_e) { console.warn('compare right sync final record failed', _e); }
+          },
+        }
+      );
+    }
+
     // Send to left AI if active
     if (leftActive) {
       setLeftTyping(true);
@@ -303,24 +369,32 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
             speed: streamSpeed,
           },
           (chunk: string) => {
-            setLeftTyping(false);
-            setLeftStreamingContent(prev => prev + chunk);
             try { if (RecordController.isActive()) { RecordController.recordAssistantChunk(leftAI.provider, chunk); } } catch (_e) { console.warn('compare left chunk record failed', _e); }
+            if (useSynchronizedStreaming && synchronizerRef.current) {
+              synchronizerRef.current.appendLeft(chunk);
+            } else {
+              setLeftTyping(false);
+              setLeftStreamingContent(prev => prev + chunk);
+            }
           },
           (finalContent: string) => {
-            const leftMessage: Message = {
-              id: `msg_left_${Date.now()}`,
-              sender: leftAI.name,
-              senderType: 'ai',
-              content: finalContent,
-              timestamp: Date.now(),
-              metadata: { modelUsed: leftEffModel, providerId: leftAI.provider },
-            };
-            setLeftMessages(prev => [...prev, leftMessage]);
-            leftHistoryRef.current.push(leftMessage);
-            setLeftStreamingContent('');
-            setLeftTyping(false);
-            try { if (RecordController.isActive()) { RecordController.recordAssistantMessage(leftAI.provider, finalContent); } } catch (_e) { console.warn('compare left final record failed', _e); }
+            if (useSynchronizedStreaming && synchronizerRef.current) {
+              synchronizerRef.current.completeLeft(finalContent);
+            } else {
+              const leftMessage: Message = {
+                id: `msg_left_${Date.now()}`,
+                sender: leftAI.name,
+                senderType: 'ai',
+                content: finalContent,
+                timestamp: Date.now(),
+                metadata: { modelUsed: leftEffModel, providerId: leftAI.provider },
+              };
+              setLeftMessages(prev => [...prev, leftMessage]);
+              leftHistoryRef.current.push(leftMessage);
+              setLeftStreamingContent('');
+              setLeftTyping(false);
+              try { if (RecordController.isActive()) { RecordController.recordAssistantMessage(leftAI.provider, finalContent); } } catch (_e) { console.warn('compare left final record failed', _e); }
+            }
           },
           async (err: Error) => {
             const msg = err?.message || '';
@@ -436,24 +510,32 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
             speed: streamSpeed,
           },
           (chunk: string) => {
-            setRightTyping(false);
-            setRightStreamingContent(prev => prev + chunk);
             try { if (RecordController.isActive()) { RecordController.recordAssistantChunk(rightAI.provider, chunk); } } catch (_e) { console.warn('compare right chunk record failed', _e); }
+            if (useSynchronizedStreaming && synchronizerRef.current) {
+              synchronizerRef.current.appendRight(chunk);
+            } else {
+              setRightTyping(false);
+              setRightStreamingContent(prev => prev + chunk);
+            }
           },
           (finalContent: string) => {
-            const rightMessage: Message = {
-              id: `msg_right_${Date.now()}`,
-              sender: rightAI.name,
-              senderType: 'ai',
-              content: finalContent,
-              timestamp: Date.now(),
-              metadata: { modelUsed: rightEffModel, providerId: rightAI.provider },
-            };
-            setRightMessages(prev => [...prev, rightMessage]);
-            rightHistoryRef.current.push(rightMessage);
-            setRightStreamingContent('');
-            setRightTyping(false);
-            try { if (RecordController.isActive()) { RecordController.recordAssistantMessage(rightAI.provider, finalContent); } } catch (_e) { console.warn('compare right final record failed', _e); }
+            if (useSynchronizedStreaming && synchronizerRef.current) {
+              synchronizerRef.current.completeRight(finalContent);
+            } else {
+              const rightMessage: Message = {
+                id: `msg_right_${Date.now()}`,
+                sender: rightAI.name,
+                senderType: 'ai',
+                content: finalContent,
+                timestamp: Date.now(),
+                metadata: { modelUsed: rightEffModel, providerId: rightAI.provider },
+              };
+              setRightMessages(prev => [...prev, rightMessage]);
+              rightHistoryRef.current.push(rightMessage);
+              setRightStreamingContent('');
+              setRightTyping(false);
+              try { if (RecordController.isActive()) { RecordController.recordAssistantMessage(rightAI.provider, finalContent); } } catch (_e) { console.warn('compare right final record failed', _e); }
+            }
           },
           async (err: Error) => {
             const msg = err?.message || '';
@@ -763,6 +845,22 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
     );
   }, [saveComparisonSession, navigation]);
 
+  // Image generation cancel handlers
+  const handleCancelLeftImage = useCallback(() => {
+    imageControllersRef.current.left?.abort();
+    setLeftImageState(prev => ({ ...prev, isGenerating: false, phase: 'cancelled' }));
+  }, []);
+
+  const handleCancelRightImage = useCallback(() => {
+    imageControllersRef.current.right?.abort();
+    setRightImageState(prev => ({ ...prev, isGenerating: false, phase: 'cancelled' }));
+  }, []);
+
+  // Lightbox handler
+  const handleOpenLightbox = useCallback((uri: string) => {
+    setLightboxUri(uri);
+  }, []);
+
   // Handle parallel image generation from both providers
   const handleGenerateImage = useCallback(async (opts: { prompt: string; size: 'auto' | 'square' | 'portrait' | 'landscape' }) => {
     if (!leftAI || !rightAI) return;
@@ -793,9 +891,34 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
     const rightController = new AbortController();
     imageControllersRef.current = { left: leftController, right: rightController };
 
-    // Start both generations
-    setLeftImageGenerating(true);
-    setRightImageGenerating(true);
+    const startTime = Date.now();
+    const aspectRatio = opts.size as ImageAspectRatio;
+
+    // Start both generations with phase tracking
+    setLeftImageState({
+      isGenerating: true,
+      phase: 'sending',
+      startTime,
+      aspectRatio,
+    });
+    setRightImageState({
+      isGenerating: true,
+      phase: 'sending',
+      startTime,
+      aspectRatio,
+    });
+
+    // Update to queued phase after brief delay
+    setTimeout(() => {
+      setLeftImageState(prev => prev.isGenerating ? { ...prev, phase: 'queued' } : prev);
+      setRightImageState(prev => prev.isGenerating ? { ...prev, phase: 'queued' } : prev);
+    }, 1000);
+
+    // Update to rendering phase after longer delay
+    setTimeout(() => {
+      setLeftImageState(prev => prev.isGenerating ? { ...prev, phase: 'rendering' } : prev);
+      setRightImageState(prev => prev.isGenerating ? { ...prev, phase: 'rendering' } : prev);
+    }, 5000);
 
     const leftPromise = ImageService.generateImage({
       provider: leftAI.provider as AIProvider,
@@ -818,6 +941,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
       setLeftMessages(prev => [...prev, leftMessage]);
       leftHistoryRef.current.push(leftMessage);
     }).catch(err => {
+      setLeftImageState(prev => ({ ...prev, phase: 'error' }));
       const leftMessage: Message = {
         id: `msg_left_img_err_${Date.now()}`,
         sender: leftAI.name,
@@ -827,7 +951,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
       };
       setLeftMessages(prev => [...prev, leftMessage]);
     }).finally(() => {
-      setLeftImageGenerating(false);
+      setLeftImageState(prev => ({ ...prev, isGenerating: false, phase: 'done' }));
     });
 
     const rightPromise = ImageService.generateImage({
@@ -851,6 +975,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
       setRightMessages(prev => [...prev, rightMessage]);
       rightHistoryRef.current.push(rightMessage);
     }).catch(err => {
+      setRightImageState(prev => ({ ...prev, phase: 'error' }));
       const rightMessage: Message = {
         id: `msg_right_img_err_${Date.now()}`,
         sender: rightAI.name,
@@ -860,13 +985,13 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
       };
       setRightMessages(prev => [...prev, rightMessage]);
     }).finally(() => {
-      setRightImageGenerating(false);
+      setRightImageState(prev => ({ ...prev, isGenerating: false, phase: 'done' }));
     });
 
     await Promise.allSettled([leftPromise, rightPromise]);
   }, [leftAI, rightAI, isDemo, dispatch, apiKeys]);
 
-  const isProcessing = leftTyping || rightTyping || leftImageGenerating || rightImageGenerating;
+  const isProcessing = leftTyping || rightTyping || leftImageState.isGenerating || rightImageState.isGenerating;
   const leftEffectiveModel = leftAI ? (selectedModels[leftAI.id] || leftAI.model) : '';
   const rightEffectiveModel = rightAI ? (selectedModels[rightAI.id] || rightAI.model) : '';
 
@@ -1011,6 +1136,11 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
                   continuedSide={continuedSide}
                   onExpandLeft={handleExpandLeft}
                   onExpandRight={handleExpandRight}
+                  leftImageState={index === userMessages.length - 1 ? leftImageState : undefined}
+                  rightImageState={index === userMessages.length - 1 ? rightImageState : undefined}
+                  onCancelLeftImage={handleCancelLeftImage}
+                  onCancelRightImage={handleCancelRightImage}
+                  onOpenLightbox={handleOpenLightbox}
                 />
               )}
             </React.Fragment>
@@ -1090,6 +1220,11 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
           setImageModalVisible(false);
           handleGenerateImage(opts);
         }}
+      />
+      <ImageLightboxModal
+        visible={!!lightboxUri}
+        uri={lightboxUri || ''}
+        onClose={() => setLightboxUri(null)}
       />
     </KeyboardAvoidingView>
   );

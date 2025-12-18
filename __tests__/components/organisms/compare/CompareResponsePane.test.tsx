@@ -4,6 +4,7 @@ import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { CompareResponsePane } from '@/components/organisms/compare/CompareResponsePane';
 import type { AIConfig, Message } from '@/types';
+import type { ImageGenState } from '@/components/organisms/compare/CompareSplitView';
 
 jest.mock('@expo/vector-icons', () => {
   const { Text } = require('react-native');
@@ -21,6 +22,9 @@ const mockContinueButton = jest.fn((props: any) => (
 const mockTypingIndicator = jest.fn(({ isVisible }: { isVisible: boolean }) => (
   isVisible ? <Text testID="typing-indicator">typing</Text> : null
 ));
+const mockImageGeneratingPane = jest.fn(({ ai }: { ai: AIConfig }) => (
+  <Text testID="image-generating-pane">{ai.name} generating</Text>
+));
 
 jest.mock('@/components/organisms/compare/CompareMessageBubble', () => ({
   CompareMessageBubble: (props: any) => mockCompareMessageBubble(props),
@@ -34,6 +38,10 @@ jest.mock('@/components/organisms/compare/CompareTypingIndicator', () => ({
   CompareTypingIndicator: (props: any) => mockTypingIndicator(props),
 }));
 
+jest.mock('@/components/organisms/compare/CompareImageGeneratingPane', () => ({
+  CompareImageGeneratingPane: (props: any) => mockImageGeneratingPane(props),
+}));
+
 jest.mock('@/utils/aiBrandColors', () => ({
   getBrandPalette: jest.fn(() => ({
     50: '#f5f5f5',
@@ -41,6 +49,20 @@ jest.mock('@/utils/aiBrandColors', () => ({
     500: '#333333',
   })),
 }));
+
+const defaultImageState: ImageGenState = {
+  isGenerating: false,
+  phase: 'done',
+  startTime: 0,
+  aspectRatio: 'square',
+};
+
+const generatingImageState: ImageGenState = {
+  isGenerating: true,
+  phase: 'rendering',
+  startTime: Date.now(),
+  aspectRatio: 'square',
+};
 
 const ai: AIConfig = {
   id: 'ai-1',
@@ -70,6 +92,9 @@ describe('CompareResponsePane', () => {
         onContinueWithAI={jest.fn()}
         side="left"
         onExpand={jest.fn()}
+        imageState={defaultImageState}
+        onCancelImage={jest.fn()}
+        onOpenLightbox={jest.fn()}
       />
     );
 
@@ -94,6 +119,9 @@ describe('CompareResponsePane', () => {
         isExpanded
         isDisabled={false}
         onExpand={onExpand}
+        imageState={defaultImageState}
+        onCancelImage={jest.fn()}
+        onOpenLightbox={jest.fn()}
       />
     );
 
@@ -115,9 +143,62 @@ describe('CompareResponsePane', () => {
         onContinueWithAI={jest.fn()}
         side="left"
         isDisabled
+        imageState={defaultImageState}
+        onCancelImage={jest.fn()}
+        onOpenLightbox={jest.fn()}
       />
     );
 
     expect(mockContinueButton).toHaveBeenCalledWith(expect.objectContaining({ isDisabled: true }));
+  });
+
+  it('renders image generating pane when image is generating', () => {
+    const onCancelImage = jest.fn();
+
+    const { getByTestId } = renderWithProviders(
+      <CompareResponsePane
+        ai={ai}
+        messages={messages}
+        isTyping={false}
+        onContinueWithAI={jest.fn()}
+        side="left"
+        imageState={generatingImageState}
+        onCancelImage={onCancelImage}
+        onOpenLightbox={jest.fn()}
+      />
+    );
+
+    expect(getByTestId('image-generating-pane')).toBeTruthy();
+    expect(mockImageGeneratingPane).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ai: ai,
+        side: 'left',
+        phase: 'rendering',
+        onCancel: expect.any(Function),
+      })
+    );
+  });
+
+  it('passes onOpenLightbox to message bubbles', () => {
+    const onOpenLightbox = jest.fn();
+
+    renderWithProviders(
+      <CompareResponsePane
+        ai={ai}
+        messages={messages}
+        isTyping={false}
+        onContinueWithAI={jest.fn()}
+        side="left"
+        imageState={defaultImageState}
+        onCancelImage={jest.fn()}
+        onOpenLightbox={onOpenLightbox}
+      />
+    );
+
+    expect(mockCompareMessageBubble).toHaveBeenCalledWith(
+      expect.objectContaining({
+        onOpenLightbox: onOpenLightbox,
+      })
+    );
   });
 });

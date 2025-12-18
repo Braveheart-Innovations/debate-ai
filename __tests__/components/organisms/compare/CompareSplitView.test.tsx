@@ -1,7 +1,7 @@
 import React from 'react';
 import { Text } from 'react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
-import { CompareSplitView } from '@/components/organisms/compare/CompareSplitView';
+import { CompareSplitView, ImageGenState } from '@/components/organisms/compare/CompareSplitView';
 import type { AIConfig, Message } from '@/types';
 
 const mockResponsePane = jest.fn((props: any) => (
@@ -26,6 +26,20 @@ const messages: Message[] = [
   { id: 'm1', sender: 'Left', senderType: 'ai', content: 'Hi', timestamp: 1 },
 ];
 
+const defaultImageState: ImageGenState = {
+  isGenerating: false,
+  phase: 'done',
+  startTime: 0,
+  aspectRatio: 'square',
+};
+
+const generatingImageState: ImageGenState = {
+  isGenerating: true,
+  phase: 'rendering',
+  startTime: Date.now(),
+  aspectRatio: 'square',
+};
+
 describe('CompareSplitView', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -46,6 +60,11 @@ describe('CompareSplitView', () => {
         continuedSide={null}
         onExpandLeft={jest.fn()}
         onExpandRight={jest.fn()}
+        leftImageState={defaultImageState}
+        rightImageState={defaultImageState}
+        onCancelLeftImage={jest.fn()}
+        onCancelRightImage={jest.fn()}
+        onOpenLightbox={jest.fn()}
       />
     );
 
@@ -70,6 +89,11 @@ describe('CompareSplitView', () => {
         continuedSide="left"
         onExpandLeft={jest.fn()}
         onExpandRight={jest.fn()}
+        leftImageState={defaultImageState}
+        rightImageState={defaultImageState}
+        onCancelLeftImage={jest.fn()}
+        onCancelRightImage={jest.fn()}
+        onOpenLightbox={jest.fn()}
       />
     );
 
@@ -92,10 +116,63 @@ describe('CompareSplitView', () => {
         continuedSide="left"
         onExpandLeft={jest.fn()}
         onExpandRight={jest.fn()}
+        leftImageState={defaultImageState}
+        rightImageState={defaultImageState}
+        onCancelLeftImage={jest.fn()}
+        onCancelRightImage={jest.fn()}
+        onOpenLightbox={jest.fn()}
       />
     );
 
     const lastCall = mockResponsePane.mock.calls.pop();
     expect(lastCall?.[0]).toEqual(expect.objectContaining({ side: 'right', isExpanded: true, isDisabled: true }));
+  });
+
+  it('passes image state props to response panes', () => {
+    const onCancelLeftImage = jest.fn();
+    const onCancelRightImage = jest.fn();
+    const onOpenLightbox = jest.fn();
+
+    renderWithProviders(
+      <CompareSplitView
+        leftAI={leftAI}
+        rightAI={rightAI}
+        leftMessages={messages}
+        rightMessages={messages}
+        leftTyping={false}
+        rightTyping={false}
+        onContinueWithLeft={jest.fn()}
+        onContinueWithRight={jest.fn()}
+        viewMode="split"
+        continuedSide={null}
+        onExpandLeft={jest.fn()}
+        onExpandRight={jest.fn()}
+        leftImageState={generatingImageState}
+        rightImageState={defaultImageState}
+        onCancelLeftImage={onCancelLeftImage}
+        onCancelRightImage={onCancelRightImage}
+        onOpenLightbox={onOpenLightbox}
+      />
+    );
+
+    expect(mockResponsePane).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        side: 'left',
+        imageState: generatingImageState,
+        onCancelImage: onCancelLeftImage,
+        onOpenLightbox: onOpenLightbox,
+      })
+    );
+
+    expect(mockResponsePane).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        side: 'right',
+        imageState: defaultImageState,
+        onCancelImage: onCancelRightImage,
+        onOpenLightbox: onOpenLightbox,
+      })
+    );
   });
 });

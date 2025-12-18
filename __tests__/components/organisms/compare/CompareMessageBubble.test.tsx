@@ -5,6 +5,22 @@ import { renderWithProviders } from '../../../../test-utils/renderWithProviders'
 import { CompareMessageBubble } from '@/components/organisms/compare/CompareMessageBubble';
 import type { Message } from '@/types';
 
+jest.mock('@/services/media/MediaSaveService', () => ({
+  __esModule: true,
+  default: {
+    saveFileUri: jest.fn(() => Promise.resolve()),
+  },
+}));
+
+jest.mock('expo-sharing', () => ({
+  isAvailableAsync: jest.fn(() => Promise.resolve(true)),
+  shareAsync: jest.fn(() => Promise.resolve()),
+}));
+
+jest.mock('@/components/organisms/compare/CompareImageDisplay', () => ({
+  CompareImageDisplay: () => null,
+}));
+
 jest.mock('@/components/molecules', () => {
   const React = require('react');
   const { Text } = require('react-native');
@@ -93,7 +109,7 @@ describe('CompareMessageBubble', () => {
 
   it('sanitizes content, renders markdown, and copies message text', async () => {
     const { getByTestId, getByLabelText } = renderWithProviders(
-      <CompareMessageBubble message={baseMessage} side="left" />
+      <CompareMessageBubble message={baseMessage} side="left" onOpenLightbox={jest.fn()} />
     );
 
     expect(mockSanitizeMarkdown).toHaveBeenCalledWith('Hello world', { showWarning: false });
@@ -124,10 +140,27 @@ describe('CompareMessageBubble', () => {
       <CompareMessageBubble
         message={{ ...baseMessage, content: 'Original' }}
         side="right"
+        onOpenLightbox={jest.fn()}
       />
     );
 
     expect(mockLazyRenderer).toHaveBeenCalled();
     expect(getByTestId('lazy-markdown').props.children).toBe('sanitized:partial stream');
+  });
+
+  it('accepts onOpenLightbox prop for image attachments', () => {
+    const onOpenLightbox = jest.fn();
+
+    renderWithProviders(
+      <CompareMessageBubble
+        message={baseMessage}
+        side="left"
+        onOpenLightbox={onOpenLightbox}
+      />
+    );
+
+    // The component should accept and handle onOpenLightbox prop
+    // Image attachment rendering is tested separately in CompareImageDisplay tests
+    expect(mockSanitizeMarkdown).toHaveBeenCalled();
   });
 });

@@ -3,12 +3,14 @@ import { View, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { CompareMessageBubble } from './CompareMessageBubble';
 import { ContinueButton } from './ContinueButton';
 import { CompareTypingIndicator } from './CompareTypingIndicator';
+import { CompareImageGeneratingPane } from './CompareImageGeneratingPane';
 import { Box } from '../../atoms';
 import { Message, AIConfig } from '../../../types';
 import { useTheme } from '../../../theme';
 import { Ionicons } from '@expo/vector-icons';
 import type { BrandColor } from '@/constants/aiColors';
 import { getBrandPalette } from '@/utils/aiBrandColors';
+import type { ImageGenState } from './CompareSplitView';
 
 interface CompareResponsePaneProps {
   ai: AIConfig;
@@ -20,6 +22,11 @@ interface CompareResponsePaneProps {
   isExpanded?: boolean;
   isDisabled?: boolean;
   onExpand?: () => void;
+  // Image generation props
+  imageState?: ImageGenState;
+  onCancelImage?: () => void;
+  onRetryImage?: () => void;
+  onOpenLightbox?: (uri: string) => void;
 }
 
 export const CompareResponsePane: React.FC<CompareResponsePaneProps> = ({
@@ -32,6 +39,10 @@ export const CompareResponsePane: React.FC<CompareResponsePaneProps> = ({
   isExpanded = false,
   isDisabled = false,
   onExpand,
+  imageState,
+  onCancelImage,
+  onRetryImage,
+  onOpenLightbox,
 }) => {
   const { theme, isDark } = useTheme();
 
@@ -86,10 +97,11 @@ export const CompareResponsePane: React.FC<CompareResponsePaneProps> = ({
               side={side}
               brandPalette={brandPalette}
               providerName={ai.name}
+              onOpenLightbox={onOpenLightbox}
             />
           </Box>
         ))}
-        
+
         {/* Streaming Content */}
         {streamingContent && (
           <Box style={styles.messageWrapper}>
@@ -105,12 +117,27 @@ export const CompareResponsePane: React.FC<CompareResponsePaneProps> = ({
               side={side}
               brandPalette={brandPalette}
               providerName={ai.name}
+              onOpenLightbox={onOpenLightbox}
             />
           </Box>
         )}
-        
+
+        {/* Image Generation Loading State */}
+        {imageState?.isGenerating && imageState.phase !== 'done' && (
+          <CompareImageGeneratingPane
+            ai={ai}
+            side={side}
+            startTime={imageState.startTime}
+            phase={imageState.phase}
+            aspectRatio={imageState.aspectRatio}
+            onCancel={() => onCancelImage?.()}
+            onRetry={() => onRetryImage?.()}
+            brandPalette={brandPalette}
+          />
+        )}
+
         {/* Typing Indicator */}
-        <CompareTypingIndicator 
+        <CompareTypingIndicator
           isVisible={isTyping && !streamingContent}
           accentColor={accentColor}
         />

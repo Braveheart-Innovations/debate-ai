@@ -196,6 +196,22 @@ jest.mock('@/components/molecules/subscription/DemoBanner', () => {
   };
 });
 
+jest.mock('@/services/media/MediaSaveService', () => ({
+  __esModule: true,
+  default: {
+    saveFileUri: jest.fn(() => Promise.resolve()),
+  },
+}));
+
+jest.mock('expo-sharing', () => ({
+  isAvailableAsync: jest.fn(() => Promise.resolve(true)),
+  shareAsync: jest.fn(() => Promise.resolve()),
+}));
+
+jest.mock('@/components/organisms/chat/ImageLightboxModal', () => ({
+  ImageLightboxModal: () => null,
+}));
+
 const CompareScreen = require('@/screens/CompareScreen').default;
 
 type CompareRouteParams = {
