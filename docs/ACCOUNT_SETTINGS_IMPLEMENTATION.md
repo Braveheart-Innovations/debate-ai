@@ -82,7 +82,7 @@ const ProfileScreen = () => {
 │                                │
 │  ┌──────────────────────────┐ │
 │  │   Current Plan            │ │
-│  │   Monthly - $7.99/mo      │ │
+│  │   Monthly - $5.99/mo      │ │
 │  │   Next billing: Jan 15    │ │
 │  └──────────────────────────┘ │
 │                                │
@@ -92,7 +92,7 @@ const ProfileScreen = () => {
 │                                │
 │  ┌──────────────────────────┐ │
 │  │   Available Plans         │ │
-│  │   ○ Monthly $7.99         │ │
+│  │   ○ Monthly $5.99         │ │
 │  │   ○ Annual $59.99 (-37%)  │ │
 │  └──────────────────────────┘ │
 │                                │
@@ -254,7 +254,7 @@ export const CurrentPlanCard: React.FC<CurrentPlanCardProps> = ({
   const { theme } = useTheme();
   
   const planDetails = {
-    monthly: { price: '$7.99', period: 'month' },
+    monthly: { price: '$5.99', period: 'month' },
     annual: { price: '$59.99', period: 'year', savings: 'Save $36/year' }
   };
   

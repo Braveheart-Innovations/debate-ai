@@ -24,7 +24,7 @@ Symposium AI implements a three-tier subscription model designed to provide a sm
 
 | Feature | Demo (Free) | Trial (7 days) | Premium (Paid) |
 |---------|------------|----------------|----------------|
-| **Price** | Free | Free for 7 days* | $7.99/mo or $59.99/yr |
+| **Price** | Free | Free for 7 days* | $5.99/mo or $59.99/yr |
 | **Authentication** | Optional (Anonymous) | Required | Required |
 | **Payment Method** | Not required | Required upfront | Active subscription |
 | **Pre-recorded Content** | ✅ Full access | ✅ Full access | ✅ Full access |
@@ -149,7 +149,7 @@ Active Subscription → Full Ongoing Access →
 **Purpose:** Sustainable revenue model providing full app value.
 
 **Pricing Structure:**
-- **Monthly**: $7.99/month
+- **Monthly**: $5.99/month
 - **Annual**: $59.99/year (save $36/year - 37% discount)
 - Both include 7-day free trial for new subscribers
 
@@ -177,7 +177,7 @@ Active Subscription → Full Ongoing Access →
 
 ### 4.1 Price Points Rationale
 
-**Monthly: $7.99**
+**Monthly: $5.99**
 - Below psychological $10 barrier
 - Competitive with single AI service subscriptions
 - Fair value for BYOK model
@@ -193,7 +193,7 @@ Active Subscription → Full Ongoing Access →
 
 | Service | Monthly Price | Annual Price | API Keys Required |
 |---------|--------------|--------------|-------------------|
-| **Symposium AI** | $7.99 | $59.99 | Yes (BYOK) |
+| **Symposium AI** | $5.99 | $59.99 | Yes (BYOK) |
 | ChatGPT Plus | $20 | N/A | No |
 | Claude Pro | $20 | N/A | No |
 | Perplexity Pro | $20 | $200 | No |
@@ -361,7 +361,7 @@ and more!"
 **Trial Ending:**
 ```
 "Your trial ends in 2 days. Continue enjoying full access 
-for just $7.99/month or save 37% with annual billing."
+for just $5.99/month or save 37% with annual billing."
 
 [Continue Subscription] [View Plans]
 ```

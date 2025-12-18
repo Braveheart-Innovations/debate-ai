@@ -11,12 +11,12 @@ This guide covers the complete setup of in-app purchases for both iOS (App Store
 
 > Update Note (Sept 2025)
 > - App name: Symposium AI
-> - Subscription: $7.99/month (auto‑renewable)
+> - Subscription: $5.99/month (auto‑renewable)
 > - Free Trial: 7 days
 > - BYOK‑only generation; Demo Mode at install
 
 **Subscription Products**:
-- Monthly: $7.99/month (7‑day free trial)
+- Monthly: $5.99/month (7‑day free trial)
 - Annual: $59.99/year (7‑day free trial; 37% savings)
 
 ---
@@ -47,7 +47,7 @@ This guide covers the complete setup of in-app purchases for both iOS (App Store
 #### Subscription Group Setup
 1. Create Subscription Group: `Premium Access`
 2. Add two products in the group:
-   - Product A (Monthly): Duration 1 Month, Price $7.99 USD, Intro offer: 7‑day free trial
+   - Product A (Monthly): Duration 1 Month, Price $5.99 USD, Intro offer: 7‑day free trial
    - Product B (Annual): Duration 1 Year, Price $59.99 USD, Intro offer: 7‑day free trial
 3. Localizations: Add for all target markets
 
@@ -139,7 +139,7 @@ after purchase.
    - Name: Symposium AI Premium (Monthly)
    - Description: Full premium access with 7-day trial
    - Billing period: 1 month
-   - Default price: $7.99 USD
+   - Default price: $5.99 USD
 3. Create Annual subscription:
    - Product ID: `premium_annual`
    - Name: Symposium AI Premium (Annual)

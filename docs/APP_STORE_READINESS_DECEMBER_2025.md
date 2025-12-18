@@ -83,11 +83,11 @@ Generate production keystore and configure in EAS.
 #### 2.3 Create IAP Products (2-3 hours)
 
 **App Store Connect:**
-- `com.braveheartinnovations.debateai.premium.monthly` - $7.99/month
+- `com.braveheartinnovations.debateai.premium.monthly` - $5.99/month
 - `com.braveheartinnovations.debateai.premium.annual` - $59.99/year
 
 **Google Play Console:**
-- `premium_monthly` - $7.99/month
+- `premium_monthly` - $5.99/month
 - `premium_annual` - $59.99/year
 
 ---

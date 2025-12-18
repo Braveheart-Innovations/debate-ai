@@ -14,7 +14,7 @@ This document provides a comprehensive implementation guide for adding in-app pu
 ### Revenue Model
 
 - Three tiers: Demo (free), Trial (7‑day, requires payment method), Premium (paid)
-- Premium plans: $7.99/month or $59.99/year (37% savings)
+- Premium plans: $5.99/month or $59.99/year (37% savings)
 - Platforms: iOS (App Store) and Android (Google Play)
 
 ### Timeline
@@ -126,7 +126,7 @@ src/
     productId: "com.braveheartinnovations.debateai.premium.monthly",
     type: "Auto-Renewable Subscription",
     referenceName: "Symposium AI Premium (Monthly)",
-    price: "$7.99",
+    price: "$5.99",
     duration: "1 Month",
     introductoryOffer: "7-day free trial"
   },
@@ -179,7 +179,7 @@ func application(_ application: UIApplication,
     basePlanId: "monthly",
     type: "Subscription",
     billingPeriod: "P1M", // 1 month
-    price: "$7.99",
+    price: "$5.99",
     gracePeriod: 7, // days
     offers: [ { trial: "P7D" } ] // 7-day free trial
   },

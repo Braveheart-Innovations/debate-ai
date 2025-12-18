@@ -289,7 +289,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
                   weight="bold"
                   style={{ color: theme.colors.primary[500] }}
                 >
-                  $7.99/month
+                  $5.99/month
                 </Typography>
               </View>
             </View>

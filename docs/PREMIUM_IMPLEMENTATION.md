@@ -13,7 +13,7 @@ This document provides a comprehensive implementation guide for the Demo/Trial/P
 **Subscription Model:**
 - **Demo Mode**: Free, anonymous access to pre-recorded content only
 - **Trial**: 7-day free trial with full access (payment method required)
-- **Premium**: $7.99/month or $59.99/year (save $36)
+- **Premium**: $5.99/month or $59.99/year (save $36)
 
 **Key Principles:**
 - BYOK (Bring Your Own Keys) for all live AI interactions
@@ -56,7 +56,7 @@ This document provides a comprehensive implementation guide for the Demo/Trial/P
 
 ### Premium (Paid)
 - **Pricing**: 
-  - Monthly: $7.99/month
+  - Monthly: $5.99/month
   - Annual: $59.99/year (save $36/year)
 - **Access Level**: Full app access
 - **Features**: Same as Trial, continued indefinitely
@@ -299,7 +299,7 @@ export const SUBSCRIPTION_PRODUCTS = {
 export const PRODUCT_DETAILS = {
   monthly: {
     id: SUBSCRIPTION_PRODUCTS.monthly,
-    price: '$7.99',
+    price: '$5.99',
     period: 'month',
     title: 'Symposium AI Premium',
     description: 'Full access to all AI features',
@@ -1168,7 +1168,7 @@ analytics().logEvent('demo_to_trial_conversion', {
 
 ## Conclusion
 
-This implementation provides a robust three-tier subscription system with Demo Mode for free users, a 7-day trial for new subscribers, and premium tiers at $7.99/month or $59.99/year. The system leverages platform-native IAP for payments, Firebase for authentication and data storage, and provides a seamless upgrade path from demo to premium.
+This implementation provides a robust three-tier subscription system with Demo Mode for free users, a 7-day trial for new subscribers, and premium tiers at $5.99/month or $59.99/year. The system leverages platform-native IAP for payments, Firebase for authentication and data storage, and provides a seamless upgrade path from demo to premium.
 
 **Key Benefits:**
 - Low friction demo access with anonymous auth

@@ -4,7 +4,7 @@
 ---
 
 ## Purpose
-Define the three-tier subscription model: Demo Mode (free), Trial (7 days), and Premium ($7.99/mo or $59.99/yr) with BYOK (Bring Your Own Keys) for all live AI generation.
+Define the three-tier subscription model: Demo Mode (free), Trial (7 days), and Premium ($5.99/mo or $59.99/yr) with BYOK (Bring Your Own Keys) for all live AI generation.
 
 ---
 
@@ -13,7 +13,7 @@ Define the three-tier subscription model: Demo Mode (free), Trial (7 days), and 
 - **Core**: App requires user API keys (BYOK) for all live AI generation
 - **Demo Mode**: Free tier with pre-recorded content only, no live AI access
 - **Trial**: 7-day free trial with full access (payment method required)
-- **Premium**: Full access at $7.99/month or $59.99/year (save $36)
+- **Premium**: Full access at $5.99/month or $59.99/year (save $36)
 - **Authentication**: Anonymous Firebase auth for Demo Mode, full auth for Trial/Premium
 
 ---
@@ -53,7 +53,7 @@ Define the three-tier subscription model: Demo Mode (free), Trial (7 days), and 
 - One trial per user account (tracked)
 
 ### Premium (Paid)
-- **Monthly**: $7.99/month with auto-renewal
+- **Monthly**: $5.99/month with auto-renewal
 - **Annual**: $59.99/year with auto-renewal (save $36 - 37% discount)
 - Continuous full access to all features
 - Same features as Trial tier
@@ -146,7 +146,7 @@ Define the three-tier subscription model: Demo Mode (free), Trial (7 days), and 
 - **Android Annual**: `premium_annual`
 
 ### Pricing Structure
-- **Monthly**: $7.99/month with 7-day free trial
+- **Monthly**: $5.99/month with 7-day free trial
 - **Annual**: $59.99/year with 7-day free trial (save $36/year)
 - **Trial**: 7 days free, payment method required, auto-renews
 
@@ -275,7 +275,7 @@ Account Settings
 
 1. **BYOK Model**: Users control costs by providing their own API keys
 2. **Three-Tier System**: Clear progression from Demo → Trial → Premium
-3. **Fair Pricing**: $7.99/month is much cheaper than individual AI subscriptions
+3. **Fair Pricing**: $5.99/month is much cheaper than individual AI subscriptions
 4. **Annual Savings**: 37% discount encourages long-term commitment
 5. **Platform Native**: Uses App Store/Google Play for all payments
 6. **Demo First**: Risk-free exploration before any commitment

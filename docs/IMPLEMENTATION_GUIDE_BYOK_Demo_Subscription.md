@@ -2,7 +2,7 @@
 - Symposium AI — BYOK, Demo Mode, and Subscription Implementation Guide
 
 **Scope & Goal**
-- Ship an iOS‑first, BYOK‑only app with a truthful Demo Mode and a $7.99/month subscription (7‑day free trial). Keep COGS at zero, minimize ops overhead, and leverage the existing codebase with targeted changes.
+- Ship an iOS‑first, BYOK‑only app with a truthful Demo Mode and a $5.99/month subscription (7‑day free trial). Keep COGS at zero, minimize ops overhead, and leverage the existing codebase with targeted changes.
 
 **Key Decisions**
 - Generation is BYOK‑only. No hosted keys, no proxy, no server spend.
@@ -20,7 +20,7 @@
 **What You’ll Implement**
 - Provider tiering (Recommended vs. Beta) in `aiProviders` and UI sorting in `APIProviderList`.
 - Demo Mode assets and playback screens (Debate, Round‑Robin, Compare) with a Samples library entry point.
-- Subscription: $7.99/month with 7‑day trial using `react-native-iap` (or RevenueCat if you later prefer). Wire real entitlement into `useSubscriptionStatus` and remove the dev override.
+- Subscription: $5.99/month with 7‑day trial using `react-native-iap` (or RevenueCat if you later prefer). Wire real entitlement into `useSubscriptionStatus` and remove the dev override.
 - UX gates: generation requires BYOK; Premium gates advanced features.
 
 **1) Provider Tiering (Recommended vs. Beta)**
@@ -66,7 +66,7 @@ Notes
 - Keep total JSON size under ~2–3 MB across 15–20 samples.
 - For provider names, only show if the sample truly came from that provider; otherwise label speakers “AI A / AI B”.
 
-**4) Subscription ($7.99/mo, 7‑day Trial)**
+**4) Subscription ($5.99/mo, 7‑day Trial)**
 - Library: `react-native-iap` (existing docs already included). RevenueCat remains an option later.
 - Product IDs
   - iOS: `com.yourcompany.symposium.premium.monthly`
@@ -74,7 +74,7 @@ Notes
 - Trial: configure a 7‑day trial in both stores. No server required at v1.
 
 Code changes
-- New module: `src/services/payments/IAPService.ts` (follow `docs/IAP_IMPLEMENTATION_PLAN.md` skeleton but set price and product IDs to $7.99 SKUs, and enable 7‑day trial).
+- New module: `src/services/payments/IAPService.ts` (follow `docs/IAP_IMPLEMENTATION_PLAN.md` skeleton but set price and product IDs to $5.99 SKUs, and enable 7‑day trial).
 - Store wiring: integrate with your Redux store; update subscription in state on successful purchase/restore; persist locally for offline.
 - Hook: update `src/hooks/useSubscriptionStatus.ts`
   - Remove the development override `subscription || 'pro'`.
@@ -114,7 +114,7 @@ Minimal integration points in codebase
 - `src/services/payments/IAPService.ts`
   - New file: connection init, get products, purchase, restore, listeners; update store on entitlement changes; safe teardown on unmount
 - `src/screens/Purchase/Upgrade.tsx`
-  - New screen: feature list, price display ($7.99), “Start 7‑day free trial”, Restore Purchases
+  - New screen: feature list, price display ($5.99), “Start 7‑day free trial”, Restore Purchases
 - `src/screens/Samples/…`
   - New screens (3) + `SamplesHome.tsx` as entry point
 - `src/services/samples/…`
@@ -125,8 +125,8 @@ Minimal integration points in codebase
   - Centralize booleans for demo banners, trial messaging, etc.
 
 **7) Pricing & Config Updates**
-- Update `docs/IAP_IMPLEMENTATION_PLAN.md` to $7.99/month and “7‑day trial”.
-- Update `docs/IAP_CONFIGURATION.md` with a top “Update Note” block reflecting: product renamed to Symposium AI, monthly $7.99, 7‑day trial, BYOK‑only generation.
+- Update `docs/IAP_IMPLEMENTATION_PLAN.md` to $5.99/month and “7‑day trial”.
+- Update `docs/IAP_CONFIGURATION.md` with a top “Update Note” block reflecting: product renamed to Symposium AI, monthly $5.99, 7‑day trial, BYOK‑only generation.
 
 **8) QA Checklist**
 - Fresh install (no keys, no premium): Samples accessible; generation gated; paywall reachable.
