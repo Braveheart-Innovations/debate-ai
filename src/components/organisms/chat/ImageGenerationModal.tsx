@@ -114,12 +114,18 @@ export const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({
         styles.chip,
         {
           borderColor: selected ? theme.colors.primary[500] : theme.colors.border,
-          backgroundColor: selected ? theme.colors.primary[50] : 'transparent',
+          backgroundColor: selected ? theme.colors.primary[500] : theme.colors.surface,
         },
       ]}
       activeOpacity={0.7}
     >
-      <Typography variant="body" weight={selected ? 'semibold' : 'normal'} style={{ color: theme.colors.text.primary }}>{label}</Typography>
+      <Typography
+        variant="body"
+        weight={selected ? 'semibold' : 'normal'}
+        style={{ color: selected ? '#FFFFFF' : theme.colors.text.primary }}
+      >
+        {label}
+      </Typography>
     </TouchableOpacity>
   );
 
@@ -185,9 +191,9 @@ export const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({
                     onPress={() => onGenerate({ prompt: `${prompt.trim()}\n\nStyle: ${styleKey}`, size })}
                     activeOpacity={0.7}
                     disabled={!prompt.trim()}
-                    style={[styles.actionBtn, { backgroundColor: theme.colors.primary[50], borderColor: theme.colors.primary[500], opacity: prompt.trim() ? 1 : 0.6 }]}
+                    style={[styles.actionBtn, { backgroundColor: theme.colors.primary[500], borderColor: theme.colors.primary[500], opacity: prompt.trim() ? 1 : 0.5 }]}
                   >
-                    <Typography variant="body" weight="semibold" style={{ color: theme.colors.primary[600] }}>Generate</Typography>
+                    <Typography variant="body" weight="semibold" style={{ color: '#FFFFFF' }}>Generate</Typography>
                   </TouchableOpacity>
                 </Box>
               </KeyboardAvoidingView>
