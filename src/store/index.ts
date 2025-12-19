@@ -363,6 +363,8 @@ export {
   showSheet,
   hideSheet,
   clearSheet,
+  showHelpWebView,
+  hideHelpWebView,
   setHeaderTitle,
   setHeaderSubtitle,
   setShowHeaderActions,

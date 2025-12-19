@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Dimensions } from 'react-native';
 import { Box } from '@/components/atoms';
-import { GradientButton, SectionHeader } from '@/components/molecules';
+import { GradientButton, SectionHeader, InfoButton, Typography } from '@/components/molecules';
 import { AICard } from './AICard';
 import { AIConfig } from '@/types';
 import { useTheme } from '@/theme';
@@ -145,6 +145,42 @@ export const DynamicAISelector: React.FC<DynamicAISelectorProps> = ({
         ))}
       </View>
       
+      {/* Info row for Quick Start and Multi-AI explanations */}
+      {!hideStartButton && selectedAIs.length > 0 && (
+        <View style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: theme.spacing.sm,
+          gap: theme.spacing.lg,
+        }}>
+          {onQuickStart && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <InfoButton topicId="quick-start-wizard" size="small" />
+              <Typography variant="caption" color="secondary">
+                Quick Start
+              </Typography>
+            </View>
+          )}
+          {selectedAIs.length > 1 && (
+            <>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <InfoButton topicId="round-robin" size="small" />
+                <Typography variant="caption" color="secondary">
+                  Multi-AI
+                </Typography>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <InfoButton topicId="ai-mentions" size="small" />
+                <Typography variant="caption" color="secondary">
+                  @Mentions
+                </Typography>
+              </View>
+            </>
+          )}
+        </View>
+      )}
+
       {!hideStartButton && (
         configuredAIs.length > 0 ? (
           <GradientButton

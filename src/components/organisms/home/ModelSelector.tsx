@@ -1,6 +1,6 @@
 import React from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
-import { Typography } from '@/components/molecules';
+import { Typography, InfoButton } from '@/components/molecules';
 import { ActualPricing } from '@/components/organisms/subscription/ActualPricing';
 import { useTheme } from '@/theme';
 import { ModelConfig } from '@/config/modelConfigs';
@@ -23,9 +23,12 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
   
   return (
     <View>
-      <Typography variant="subtitle" weight="semibold" style={{ marginBottom: theme.spacing.sm }}>
-        Default Model Selection (optional)
-      </Typography>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: theme.spacing.sm }}>
+        <Typography variant="subtitle" weight="semibold">
+          Default Model Selection (optional)
+        </Typography>
+        <InfoButton topicId="expert-mode" size="small" />
+      </View>
       
       <ScrollView 
         horizontal 

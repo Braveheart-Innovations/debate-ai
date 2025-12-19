@@ -18,6 +18,8 @@ jest.mock('@/components/molecules', () => {
         React.createElement(Text, null, title)
       )
     ),
+    InfoButton: ({ topicId }: { topicId: string }) =>
+      React.createElement(Text, { testID: `info-button-${topicId}` }, 'info'),
   };
 });
 

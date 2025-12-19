@@ -4,6 +4,8 @@ import reducer, {
   endStreaming,
   streamingError,
   clearStreamingMessage,
+  clearCompletedStreams,
+  cancelAllStreams,
   setProviderStreamingPreference,
   setGlobalStreaming,
   setProviderVerificationError,
@@ -40,5 +42,47 @@ describe('streamingSlice', () => {
     const rootState = { streaming: state } as RootState;
     expect(selectStreamingMessage('missing')(rootState)).toBeUndefined();
     expect(selectProviderStreamingEnabled('claude')(rootState)).toBe(false);
+  });
+
+  it('clears completed streams only', () => {
+    // Start two streams
+    let state = reducer(initialState, startStreaming({ messageId: 'm1', aiProvider: 'claude' }));
+    state = reducer(state, startStreaming({ messageId: 'm2', aiProvider: 'openai' }));
+
+    // End one stream
+    state = reducer(state, endStreaming({ messageId: 'm1', finalContent: 'Done' }));
+    expect(state.streamingMessages.m1.isStreaming).toBe(false);
+    expect(state.streamingMessages.m2.isStreaming).toBe(true);
+
+    // Clear completed streams - m1 should be removed, m2 should remain
+    state = reducer(state, clearCompletedStreams());
+    expect(state.streamingMessages.m1).toBeUndefined();
+    expect(state.streamingMessages.m2).toBeDefined();
+  });
+
+  it('cancels all active streams', () => {
+    // Start multiple streams
+    let state = reducer(initialState, startStreaming({ messageId: 'm1', aiProvider: 'claude' }));
+    state = reducer(state, startStreaming({ messageId: 'm2', aiProvider: 'openai' }));
+    expect(state.streamingMessages.m1.isStreaming).toBe(true);
+    expect(state.streamingMessages.m2.isStreaming).toBe(true);
+
+    // Cancel all
+    state = reducer(state, cancelAllStreams());
+    expect(state.streamingMessages.m1.isStreaming).toBe(false);
+    expect(state.streamingMessages.m1.error).toBe('Stream cancelled');
+    expect(state.streamingMessages.m2.isStreaming).toBe(false);
+    expect(state.streamingMessages.m2.error).toBe('Stream cancelled');
+    expect(state.activeStreamCount).toBe(0);
+  });
+
+  it('updates existing provider streaming preference', () => {
+    // First set a preference
+    let state = reducer(initialState, setProviderStreamingPreference({ providerId: 'claude', enabled: true }));
+    expect(state.streamingPreferences.claude.enabled).toBe(true);
+
+    // Update the same preference (triggers else branch)
+    state = reducer(state, setProviderStreamingPreference({ providerId: 'claude', enabled: false }));
+    expect(state.streamingPreferences.claude.enabled).toBe(false);
   });
 });

@@ -140,7 +140,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
               showTime={true}
               showDate={true}
               animated={true}
-              rightElement={<HeaderActions variant="gradient" />}
+              rightElement={<HeaderActions variant="gradient" helpTopicId="history" />}
             />
 
             {/* Don't show search bar during loading */}
@@ -207,7 +207,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
             showTime={true}
             showDate={true}
             animated={true}
-            rightElement={<HeaderActions variant="gradient" />}
+            rightElement={<HeaderActions variant="gradient" helpTopicId="history" />}
             showDemoBadge={isDemo}
             actionButton={{
               label: 'Clear All',

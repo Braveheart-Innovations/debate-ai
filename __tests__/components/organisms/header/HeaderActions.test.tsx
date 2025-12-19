@@ -40,14 +40,15 @@ describe('HeaderActions', () => {
     expect(dispatchSpy).not.toHaveBeenCalled();
   });
 
-  it('dispatches showSheet when callbacks omitted', () => {
+  it('dispatches showSheet for help when callbacks omitted', () => {
     const { getByTestId, store } = renderWithProviders(<HeaderActions />);
 
     fireEvent.press(getByTestId('header-support-button'));
 
     const navigationState = store.getState().navigation;
-    expect(navigationState.activeSheet).toBe('support');
+    expect(navigationState.activeSheet).toBe('help');
     expect(navigationState.sheetVisible).toBe(true);
+    expect(navigationState.sheetData).toBeUndefined();
   });
 
   it('passes gradient icon color when variant is gradient', () => {
@@ -56,5 +57,47 @@ describe('HeaderActions', () => {
     expect(mockHeaderIcon).toHaveBeenCalledWith(expect.objectContaining({
       color: expect.stringMatching(/rgba|#|rgb/),
     }));
+  });
+
+  describe('helpTopicId prop', () => {
+    it('passes topicId in sheetData when helpTopicId provided', () => {
+      const { getByTestId, store } = renderWithProviders(
+        <HeaderActions helpTopicId="debate-arena" />
+      );
+
+      fireEvent.press(getByTestId('header-support-button'));
+
+      const navigationState = store.getState().navigation;
+      expect(navigationState.activeSheet).toBe('help');
+      expect(navigationState.sheetData).toEqual({ topicId: 'debate-arena' });
+    });
+  });
+
+  describe('helpCategoryId prop', () => {
+    it('passes categoryId in sheetData when helpCategoryId provided', () => {
+      const { getByTestId, store } = renderWithProviders(
+        <HeaderActions helpCategoryId="chat" />
+      );
+
+      fireEvent.press(getByTestId('header-support-button'));
+
+      const navigationState = store.getState().navigation;
+      expect(navigationState.activeSheet).toBe('help');
+      expect(navigationState.sheetData).toEqual({ categoryId: 'chat' });
+    });
+  });
+
+  describe('prop priority', () => {
+    it('topicId takes precedence when both helpTopicId and helpCategoryId provided', () => {
+      const { getByTestId, store } = renderWithProviders(
+        <HeaderActions helpTopicId="expert-mode" helpCategoryId="chat" />
+      );
+
+      fireEvent.press(getByTestId('header-support-button'));
+
+      const navigationState = store.getState().navigation;
+      expect(navigationState.sheetData).toEqual({ topicId: 'expert-mode' });
+      expect(navigationState.sheetData).not.toHaveProperty('categoryId');
+    });
   });
 });

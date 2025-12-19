@@ -1,19 +1,22 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-export type SheetType = 'profile' | 'settings' | 'support' | 'demo' | 'subscription' | null;
+export type SheetType = 'profile' | 'settings' | 'support' | 'help' | 'demo' | 'subscription' | null;
 
 interface NavigationState {
   // Sheet management
   activeSheet: SheetType;
   sheetVisible: boolean;
   sheetData?: Record<string, unknown>;
-  
+
+  // Help system
+  helpWebViewUrl?: string;
+
   // Header state
   headerTitle?: string;
   headerSubtitle?: string;
   showHeaderActions: boolean;
   showProfileIcon: boolean;
-  
+
   // UI state
   isLoading: boolean;
   lastNavigatedTab?: string;
@@ -47,7 +50,15 @@ const navigationSlice = createSlice({
       state.sheetVisible = false;
       state.sheetData = undefined;
     },
-    
+
+    // Help system actions
+    showHelpWebView: (state, action: PayloadAction<string>) => {
+      state.helpWebViewUrl = action.payload;
+    },
+    hideHelpWebView: (state) => {
+      state.helpWebViewUrl = undefined;
+    },
+
     // Header actions
     setHeaderTitle: (state, action: PayloadAction<string | undefined>) => {
       state.headerTitle = action.payload;
@@ -79,6 +90,8 @@ export const {
   showSheet,
   hideSheet,
   clearSheet,
+  showHelpWebView,
+  hideHelpWebView,
   setHeaderTitle,
   setHeaderSubtitle,
   setShowHeaderActions,

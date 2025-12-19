@@ -1,17 +1,25 @@
 import React from 'react';
 import { View, Switch } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Button, Typography } from '@/components/molecules';
+import { Button, Typography, InfoButton } from '@/components/molecules';
 import { ModelSelector } from '@/components/organisms/home/ModelSelector';
 import { ParameterSlider } from '@/components/organisms/api-config/ParameterSlider';
 import { useTheme } from '@/theme';
-import { 
+import {
   getProviderModels,
   ModelParameters,
   DEFAULT_PARAMETERS,
   PARAMETER_RANGES,
-  PROVIDER_SUPPORTED_PARAMS 
+  PROVIDER_SUPPORTED_PARAMS
 } from '@/config/modelConfigs';
+import { HelpTopicId } from '@/config/help/types';
+
+// Map parameter names to help topic IDs
+const PARAM_HELP_TOPICS: Partial<Record<keyof ModelParameters, HelpTopicId>> = {
+  temperature: 'expert-temperature',
+  maxTokens: 'expert-tokens',
+  topP: 'expert-top-p',
+};
 
 interface ProviderExpertSettingsProps {
   providerId: string;
@@ -53,20 +61,25 @@ export const ProviderExpertSettings: React.FC<ProviderExpertSettingsProps> = ({
   const renderParameter = (param: keyof ModelParameters) => {
     const range = PARAMETER_RANGES[param as keyof typeof PARAMETER_RANGES];
     if (!range || !supportedParams.includes(param)) return null;
-    
+
     const value = parameters[param] ?? DEFAULT_PARAMETERS[param];
-    
+    const helpTopicId = PARAM_HELP_TOPICS[param];
+
     return (
-      <ParameterSlider
-        key={param}
-        name={param}
-        value={Number(value)}
-        min={range.min}
-        max={range.max}
-        step={range.step}
-        description={range.description}
-        onChange={(newValue) => onParameterChange(param, newValue)}
-      />
+      <View key={param}>
+        <ParameterSlider
+          name={param}
+          value={Number(value)}
+          min={range.min}
+          max={range.max}
+          step={range.step}
+          description={range.description}
+          onChange={(newValue) => onParameterChange(param, newValue)}
+          rightElement={
+            helpTopicId ? <InfoButton topicId={helpTopicId} size="small" /> : undefined
+          }
+        />
+      </View>
     );
   };
   
@@ -84,9 +97,12 @@ export const ProviderExpertSettings: React.FC<ProviderExpertSettingsProps> = ({
         borderColor: theme.colors.border,
       }}>
         <View style={{ flex: 1 }}>
-          <Typography variant="subtitle" weight="bold">
-            Expert Mode
-          </Typography>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Typography variant="subtitle" weight="bold">
+              Expert Mode
+            </Typography>
+            <InfoButton topicId="expert-mode" size="small" />
+          </View>
           <Typography variant="caption" color="secondary" style={{ marginTop: 4 }}>
             Fine-tune model behavior and parameters
           </Typography>

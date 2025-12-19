@@ -46,4 +46,36 @@ describe('debateStatsSlice', () => {
     expect(cleared.stats).toEqual({});
     expect(cleared.history).toEqual([]);
   });
+
+  it('preserves existing stats when starting new debate with same participants', () => {
+    // Start first debate and record a win
+    let state = reducer(initialState, startDebate({ debateId: 'debate-1', topic: 'AI', participants: ['claude', 'gpt'] }));
+    state = reducer(state, recordRoundWinner({ round: 1, winnerId: 'claude' }));
+    state = reducer(state, recordOverallWinner({ winnerId: 'claude' }));
+
+    // Stats should be recorded
+    expect(state.stats.claude.overallWins).toBe(1);
+    expect(state.stats.claude.roundsWon).toBe(1);
+
+    // Start a second debate with same participants - stats should persist
+    state = reducer(state, startDebate({ debateId: 'debate-2', topic: 'Climate', participants: ['claude', 'gpt'] }));
+
+    // Stats from previous debate should still be there
+    expect(state.stats.claude.overallWins).toBe(1);
+    expect(state.stats.claude.roundsWon).toBe(1);
+    expect(state.currentDebate?.debateId).toBe('debate-2');
+  });
+
+  it('does not update stats when no current debate exists', () => {
+    // recordRoundWinner without starting debate should be a no-op
+    const state = reducer(initialState, recordRoundWinner({ round: 1, winnerId: 'claude' }));
+    expect(state.currentDebate).toBeUndefined();
+    expect(state.stats).toEqual({});
+  });
+
+  it('handles recordOverallWinner without current debate', () => {
+    const state = reducer(initialState, recordOverallWinner({ winnerId: 'claude' }));
+    expect(state.currentDebate).toBeUndefined();
+    expect(state.stats).toEqual({});
+  });
 });

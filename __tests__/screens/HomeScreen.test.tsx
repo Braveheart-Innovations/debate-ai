@@ -233,6 +233,7 @@ const renderHome = (options?: { aiSelection?: ReturnType<typeof createAISelectio
     expect(mockHeaderProps.showDemoBadge).toBe(false);
     expect(mockHeaderActionsProps).toBeDefined();
     expect(mockHeaderActionsProps.variant).toBe('gradient');
+    expect(mockHeaderActionsProps.helpCategoryId).toBe('chat');
     expect(mockDynamicAISelectorProps.maxAIs).toBe(aiSelection.maxAIs);
     // Quick Start is now via onQuickStart callback on DynamicAISelector (not QuickStartsSection)
     expect(mockDynamicAISelectorProps.onQuickStart).toBeDefined();

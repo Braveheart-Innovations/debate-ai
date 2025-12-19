@@ -4,6 +4,7 @@ import { useDispatch } from 'react-redux';
 import { HeaderIcon } from '@/components/molecules';
 import { showSheet } from '../../../store';
 import { useTheme } from '../../../theme';
+import { HelpTopicId, HelpCategory } from '@/config/help/types';
 
 interface HeaderActionsProps {
   showProfile?: boolean;
@@ -13,6 +14,10 @@ interface HeaderActionsProps {
   onProfilePress?: () => void;
   onSupportPress?: () => void;
   onSettingsPress?: () => void;
+  /** Context-aware help topic to show when "?" is pressed */
+  helpTopicId?: HelpTopicId;
+  /** Context-aware help category to filter when "?" is pressed (alternative to helpTopicId) */
+  helpCategoryId?: HelpCategory;
 }
 
 export const HeaderActions: React.FC<HeaderActionsProps> = ({
@@ -23,6 +28,8 @@ export const HeaderActions: React.FC<HeaderActionsProps> = ({
   onProfilePress,
   onSupportPress,
   onSettingsPress,
+  helpTopicId,
+  helpCategoryId,
 }) => {
   const { theme } = useTheme();
   const dispatch = useDispatch();
@@ -42,7 +49,17 @@ export const HeaderActions: React.FC<HeaderActionsProps> = ({
     if (onSupportPress) {
       onSupportPress();
     } else {
-      dispatch(showSheet({ sheet: 'support' }));
+      // Open unified help sheet with optional context-aware topic or category
+      // topicId takes precedence if both are provided
+      const sheetData = helpTopicId
+        ? { topicId: helpTopicId }
+        : helpCategoryId
+          ? { categoryId: helpCategoryId }
+          : undefined;
+      dispatch(showSheet({
+        sheet: 'help',
+        data: sheetData,
+      }));
     }
   };
 

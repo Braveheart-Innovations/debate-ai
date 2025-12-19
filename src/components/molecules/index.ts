@@ -13,6 +13,7 @@ export { ParameterLabel } from './common/ParameterLabel';
 export { PricingBadge } from './subscription/PricingBadge';
 export { Badge } from './common/Badge';
 export { IconButton } from './common/IconButton';
+export { InfoButton } from './common/InfoButton';
 export { SelectionIndicator } from './common/SelectionIndicator';
 export { SearchHighlight } from './common/SearchHighlight';
 
@@ -67,3 +68,7 @@ export {
 // Demo Molecules
 export { DemoProgressIndicator } from './demo';
 export type { DemoProgressIndicatorProps } from './demo';
+
+// Help Molecules
+export { FAQItem } from './help/FAQItem';
+export { HelpTopicCard } from './help/HelpTopicCard';

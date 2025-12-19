@@ -184,6 +184,8 @@ jest.mock('@/components/molecules', () => {
     Card: ({ children }: { children?: React.ReactNode }) => React.createElement(View, null, children),
     HeaderIcon: ({ onPress, children }: { onPress?: () => void; children?: React.ReactNode }) =>
       React.createElement(Text, { onPress }, children ?? 'icon'),
+    InfoButton: ({ topicId }: { topicId: string }) =>
+      React.createElement(Text, { testID: `info-button-${topicId}` }, 'info'),
   };
 });
 

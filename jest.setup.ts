@@ -111,6 +111,14 @@ jest.mock('expo-crypto', () => ({
   digestStringAsync: jest.fn().mockResolvedValue('hash'),
 }));
 
+jest.mock('expo-media-library', () => ({
+  requestPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),
+  getPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),
+  saveToLibraryAsync: jest.fn().mockResolvedValue(undefined),
+  createAssetAsync: jest.fn().mockResolvedValue({ id: 'mock-asset-id' }),
+  PermissionStatus: { GRANTED: 'granted', DENIED: 'denied', UNDETERMINED: 'undetermined' },
+}));
+
 (globalThis as unknown as { __reanimatedWorkletInit?: () => void }).__reanimatedWorkletInit =
   (globalThis as unknown as { __reanimatedWorkletInit?: () => void }).__reanimatedWorkletInit ||
   (() => {});

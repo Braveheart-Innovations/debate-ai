@@ -448,7 +448,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
           showBackButton={true}
           showTime={true}
           animated={true}
-          rightElement={<HeaderActions variant="gradient" />}
+          rightElement={<HeaderActions variant="gradient" helpTopicId="multi-ai-chat" />}
           actionButton={recordModeEnabled ? {
             label: isRecording ? 'Stop' : 'Record',
             onPress: async () => {

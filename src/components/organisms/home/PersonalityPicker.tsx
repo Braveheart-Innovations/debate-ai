@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Typography } from '@/components/molecules';
+import { Typography, InfoButton } from '@/components/molecules';
 import { UNIVERSAL_PERSONALITIES } from '@/config/personalities';
 import { PersonalityBadge } from './PersonalityBadge';
 import * as Haptics from 'expo-haptics';
@@ -31,10 +31,13 @@ export const PersonalityPicker: React.FC<PersonalityPickerProps> = ({
   
   return (
     <View style={styles.container}>
-      {/* Label */}
-      <Typography variant="caption" color="secondary" style={{ marginBottom: 4 }}>
-        Personality
-      </Typography>
+      {/* Label with InfoButton */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+        <Typography variant="caption" color="secondary">
+          Personality
+        </Typography>
+        <InfoButton topicId="personalities" size="small" />
+      </View>
 
       <PersonalityBadge
         personalityName={currentPersonality.name}

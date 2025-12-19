@@ -1030,7 +1030,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
           showTime={false}
           showDate={false}
           animated={true}
-          rightElement={<HeaderActions variant="gradient" />}
+          rightElement={<HeaderActions variant="gradient" helpTopicId="compare-mode" />}
           actionButton={recordModeEnabled ? {
             label: isRecording ? 'Stop' : 'Record',
             onPress: async () => {

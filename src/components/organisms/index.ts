@@ -41,6 +41,9 @@ export { SettingsContent } from './settings/SettingsContent';
 export { SupportSheet } from './support/SupportSheet';
 export { UnlockEverythingBanner } from './subscription/UnlockEverythingBanner';
 
+// Help Organisms
+export { HelpSheet, HelpWebViewModal } from './help';
+
 // API Configuration Organisms
 export { APIConfigHeader } from './api-config/APIConfigHeader';
 export { APIConfigProgress } from './api-config/APIConfigProgress';

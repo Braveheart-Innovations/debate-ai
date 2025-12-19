@@ -481,7 +481,7 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
           showTime={false}
           showDate={false}
           animated={true}
-          rightElement={<HeaderActions variant="gradient" />}
+          rightElement={<HeaderActions variant="gradient" helpTopicId="debate-arena" />}
           actionButton={recordModeEnabled ? {
             label: isRecording ? 'Stop' : 'Record',
             onPress: async () => {

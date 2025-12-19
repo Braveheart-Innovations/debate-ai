@@ -2,32 +2,50 @@ import React from 'react';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { TouchableOpacity, View } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
-import { RootState, clearSheet } from '../store';
+import { RootState, clearSheet, hideHelpWebView } from '../store';
 import { RootStackParamList } from '../types';
 import { useTheme } from '../theme';
-import { 
-  ProfileSheet, 
+import {
+  ProfileSheet,
   SettingsContent,
   SupportSheet
 } from '../components/organisms';
 import { SubscriptionSheet } from '@/components/organisms/subscription/SubscriptionSheet';
 import { DemoExplainerSheet } from '@/components/organisms/demo/DemoExplainerSheet';
+import { HelpSheet, HelpWebViewModal } from '@/components/organisms/help';
 
 export const GlobalSheets: React.FC = () => {
   const { theme } = useTheme();
   const dispatch = useDispatch();
-  const { activeSheet, sheetVisible } = useSelector((state: RootState) => state.navigation);
+  const { activeSheet, sheetVisible, helpWebViewUrl } = useSelector(
+    (state: RootState) => state.navigation
+  );
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
   const handleSheetClose = () => {
     dispatch(clearSheet());
   };
 
-  if (!sheetVisible || !activeSheet) return null;
+  const handleWebViewClose = () => {
+    dispatch(hideHelpWebView());
+  };
+
+  // Only render sheets if visible, but always render WebView modal
+  const showSheets = sheetVisible && activeSheet;
 
   return (
     <>
-      {activeSheet === 'profile' && (
+      {/* Help WebView Modal - only render when URL is set to avoid WebView overhead */}
+      {helpWebViewUrl && (
+        <HelpWebViewModal
+          visible={true}
+          url={helpWebViewUrl}
+          title="Help"
+          onClose={handleWebViewClose}
+        />
+      )}
+
+      {showSheets && activeSheet === 'profile' && (
         <>
           {/* Backdrop */}
           <TouchableOpacity 
@@ -60,7 +78,7 @@ export const GlobalSheets: React.FC = () => {
         </>
       )}
 
-      {activeSheet === 'settings' && (
+      {showSheets && activeSheet === 'settings' && (
         <>
           {/* Backdrop */}
           <TouchableOpacity 
@@ -103,7 +121,7 @@ export const GlobalSheets: React.FC = () => {
         </>
       )}
 
-      {activeSheet === 'support' && (
+      {showSheets && activeSheet === 'support' && (
         <>
           {/* Dimmed backdrop that closes the sheet when tapped */}
           <TouchableOpacity
@@ -136,7 +154,40 @@ export const GlobalSheets: React.FC = () => {
         </>
       )}
 
-      {activeSheet === 'demo' && (
+      {showSheets && activeSheet === 'help' && (
+        <>
+          {/* Dimmed backdrop that closes the sheet when tapped */}
+          <TouchableOpacity
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              zIndex: 1000,
+            }}
+            activeOpacity={1}
+            onPress={handleSheetClose}
+          />
+          {/* Foreground sheet content */}
+          <View
+            style={{
+              position: 'absolute',
+              top: 100,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: theme.colors.background,
+              zIndex: 1001,
+            }}
+          >
+            <HelpSheet onClose={handleSheetClose} />
+          </View>
+        </>
+      )}
+
+      {showSheets && activeSheet === 'demo' && (
         <>
           <TouchableOpacity
             style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000 }}
@@ -156,7 +207,7 @@ export const GlobalSheets: React.FC = () => {
         </>
       )}
 
-      {activeSheet === 'subscription' && (
+      {showSheets && activeSheet === 'subscription' && (
         <>
           <TouchableOpacity
             style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000 }}

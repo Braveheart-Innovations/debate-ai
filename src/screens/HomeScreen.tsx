@@ -84,7 +84,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         showTime={true}
         showDate={true}
         animated={true}
-        rightElement={<HeaderActions variant="gradient" />}
+        rightElement={<HeaderActions variant="gradient" helpCategoryId="chat" />}
         showDemoBadge={isDemo}
       />
 

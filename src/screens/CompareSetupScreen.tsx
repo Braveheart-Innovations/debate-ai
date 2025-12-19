@@ -150,7 +150,7 @@ const CompareSetupScreen: React.FC<CompareSetupScreenProps> = ({ navigation, rou
         showTime={false}
         showDate={true}
         animated={true}
-        rightElement={<HeaderActions variant="gradient" />}
+        rightElement={<HeaderActions variant="gradient" helpTopicId="compare-mode" />}
         showDemoBadge={access.isDemo}
       />
       {access.isDemo && (

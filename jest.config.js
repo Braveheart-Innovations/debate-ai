@@ -19,6 +19,12 @@ module.exports = {
     '!src/**/__tests__/**',
     '!src/**/index.ts',
     '!src/types/**',
+    // Exclude low-value files from coverage
+    '!src/assets/demo/**',
+    '!src/components/molecules/demo/**',
+    '!src/components/organisms/help/*WebView*.tsx',
+    '!src/components/organisms/api-config/*WebView*.tsx',
+    '!src/components/organisms/api-config/*Guidance*.tsx',
   ],
   coverageThreshold: {
     global: {

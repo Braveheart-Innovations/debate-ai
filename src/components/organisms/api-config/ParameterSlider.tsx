@@ -11,6 +11,8 @@ interface ParameterSliderProps {
   step: number;
   description?: string;
   onChange: (value: number) => void;
+  /** Optional element to render on the right side of the label (e.g., InfoButton) */
+  rightElement?: React.ReactNode;
 }
 
 export const ParameterSlider: React.FC<ParameterSliderProps> = ({
@@ -21,6 +23,7 @@ export const ParameterSlider: React.FC<ParameterSliderProps> = ({
   step,
   description,
   onChange,
+  rightElement,
 }) => {
   const { theme } = useTheme();
   
@@ -43,11 +46,16 @@ export const ParameterSlider: React.FC<ParameterSliderProps> = ({
   
   return (
     <View style={{ marginBottom: theme.spacing.md }}>
-      <ParameterLabel 
-        name={name}
-        value={value}
-        description={description}
-      />
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <View style={{ flex: 1 }}>
+          <ParameterLabel
+            name={name}
+            value={value}
+            description={description}
+          />
+        </View>
+        {rightElement}
+      </View>
       
       <View style={{ 
         flexDirection: 'row', 

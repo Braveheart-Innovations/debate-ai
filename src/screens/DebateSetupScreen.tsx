@@ -6,7 +6,7 @@ import { RootState, setAIPersonality, setAIModel, preserveTopic, clearPreservedT
 import { setProviderStreamingPreference } from '../store/streamingSlice';
 
 import { Box } from '../components/atoms';
-import { Button, Typography, GradientButton } from '../components/molecules';
+import { Button, Typography, GradientButton, InfoButton } from '../components/molecules';
 import { Header, HeaderActions } from '../components/organisms';
 // Legacy premium gating replaced by useFeatureAccess
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
@@ -305,7 +305,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
         showTime={true}
         showDate={true}
         animated={true}
-        rightElement={<HeaderActions variant="gradient" />}
+        rightElement={<HeaderActions variant="gradient" helpTopicId="debate-formats" />}
         showDemoBadge={access.isDemo}
         actionButton={{
           label: '📊 Stats',
@@ -385,7 +385,10 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
               {/* Format row */}
               <Box style={{ marginBottom: theme.spacing.md }}>
                 <Box style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: theme.spacing.xs }}>
-                  <Typography variant="body" weight="semibold">Format</Typography>
+                  <Box style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Typography variant="body" weight="semibold">Format</Typography>
+                    <InfoButton topicId="debate-formats" size="small" />
+                  </Box>
                 </Box>
                 <Box style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
                   <Button
