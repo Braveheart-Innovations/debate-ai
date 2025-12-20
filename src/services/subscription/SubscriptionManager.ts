@@ -58,6 +58,16 @@ export class SubscriptionManager {
     return Math.max(0, days);
   }
 
+  static async hasUserUsedTrial(): Promise<boolean> {
+    const user = getAuth().currentUser;
+    if (!user) return false;
+
+    const db = getFirestore();
+    const snap = await getDoc(doc(collection(db, 'users'), user.uid));
+    const data = snap.data() as Partial<UserSubscriptionDoc> | undefined;
+    return data?.hasUsedTrial === true;
+  }
+
   static onSubscriptionChange(callback: (status: MembershipStatus) => void) {
     const user = getAuth().currentUser;
     if (!user) {

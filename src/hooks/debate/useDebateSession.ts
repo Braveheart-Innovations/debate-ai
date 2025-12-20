@@ -4,11 +4,10 @@
  */
 
 import { useEffect, useState, useCallback } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '../../store';
+import { useDispatch } from 'react-redux';
 import { startSession, startDebate } from '../../store';
 import { DebateOrchestrator, DebateSession, DebateStatus } from '../../services/debate';
-import { AIService } from '../../services/aiAdapter';
+import { useAIService } from '../../providers/AIServiceProvider';
 import { AI } from '../../types';
 
 export interface UseDebateSessionReturn {
@@ -28,23 +27,21 @@ export interface UseDebateSessionReturn {
 
 export const useDebateSession = (_selectedAIs: AI[]): UseDebateSessionReturn => {
   const dispatch = useDispatch();
-  const apiKeys = useSelector((state: RootState) => state.settings.apiKeys);
-  // const _currentSession = useSelector((state: RootState) => state.chat.currentSession);
-  
+  const { aiService, isInitialized: aiServiceReady } = useAIService();
+
   const [orchestrator, setOrchestrator] = useState<DebateOrchestrator | null>(null);
   const [session, setSession] = useState<DebateSession | null>(null);
   const [status, setStatus] = useState<DebateStatus>(DebateStatus.IDLE);
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  // Initialize orchestrator when API keys are available
+
+  // Initialize orchestrator when AI service is ready (uses shared service with demo adapters)
   useEffect(() => {
-    if (apiKeys && !orchestrator) {
-      const aiService = new AIService(apiKeys);
+    if (aiService && aiServiceReady && !orchestrator) {
       const newOrchestrator = new DebateOrchestrator(aiService);
       setOrchestrator(newOrchestrator);
     }
-  }, [apiKeys, orchestrator]);
+  }, [aiService, aiServiceReady, orchestrator]);
   
   // Initialize session
   const initializeSession = useCallback(async (

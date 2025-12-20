@@ -20,6 +20,18 @@ import {
 import { SUBSCRIPTION_PRODUCTS, type PlanType } from '@/services/iap/products';
 import * as Crypto from 'expo-crypto';
 
+/** User-friendly error messages for common IAP error codes */
+const IAP_ERROR_MESSAGES: Record<string, string> = {
+  E_DEVELOPER_ERROR: 'This product is not available yet. Please try again later.',
+  E_ITEM_UNAVAILABLE: 'This subscription is currently unavailable.',
+  E_NETWORK_ERROR: 'Network error. Please check your connection and try again.',
+  E_SERVICE_ERROR: 'Store service error. Please try again later.',
+  E_BILLING_UNAVAILABLE: 'Billing is not available on this device.',
+  E_USER_CANCELLED: 'Purchase was cancelled.',
+  E_ALREADY_OWNED: 'You already own this subscription.',
+  E_NOT_PREPARED: 'Store connection not ready. Please restart the app.',
+};
+
 export class PurchaseService {
   private static purchaseUpdateSub: { remove: () => void } | null = null;
   private static purchaseErrorSub: { remove: () => void } | null = null;
@@ -64,6 +76,61 @@ export class PurchaseService {
     endConnection().catch(() => {});
   }
 
+  /**
+   * Check if IAP products are available in the store.
+   * Useful for diagnosing configuration issues.
+   */
+  static async checkProductsAvailable(): Promise<{
+    available: boolean;
+    products: string[];
+    unavailable: string[];
+  }> {
+    try {
+      const allSkus = Object.values(SUBSCRIPTION_PRODUCTS);
+      const subscriptionSkus = [SUBSCRIPTION_PRODUCTS.monthly, SUBSCRIPTION_PRODUCTS.annual];
+      const productSkus = [SUBSCRIPTION_PRODUCTS.lifetime];
+
+      const [subs, prods] = await Promise.all([
+        getSubscriptions({ skus: subscriptionSkus }),
+        getProducts({ skus: productSkus }),
+      ]);
+
+      const foundIds = [...subs, ...prods].map((p) => p.productId);
+      const unavailable = allSkus.filter((sku) => !foundIds.includes(sku));
+
+      return {
+        available: unavailable.length === 0,
+        products: foundIds,
+        unavailable,
+      };
+    } catch (error) {
+      console.error('IAP checkProductsAvailable failed', error);
+      return { available: false, products: [], unavailable: Object.values(SUBSCRIPTION_PRODUCTS) };
+    }
+  }
+
+  /**
+   * Diagnose IAP setup for debugging store configuration issues.
+   */
+  static async diagnoseIAPSetup(): Promise<{
+    connectionOk: boolean;
+    productsAvailable: string[];
+    productsMissing: string[];
+    platform: string;
+  }> {
+    const connectionOk = await initConnection()
+      .then(() => true)
+      .catch(() => false);
+    const { products, unavailable } = await this.checkProductsAvailable();
+
+    return {
+      connectionOk,
+      productsAvailable: products,
+      productsMissing: unavailable,
+      platform: Platform.OS,
+    };
+  }
+
   static async purchaseSubscription(plan: PlanType) {
     // Route lifetime purchases to the dedicated method
     if (plan === 'lifetime') {
@@ -91,12 +158,13 @@ export class PurchaseService {
 
       return { success: true } as const;
     } catch (error: unknown) {
-      const err = error as { code?: string };
-      if (err?.code === 'E_USER_CANCELLED') {
-        return { success: false, cancelled: true } as const;
+      const errorCode = (error as { code?: string })?.code || 'UNKNOWN';
+      if (errorCode === 'E_USER_CANCELLED') {
+        return { success: false, cancelled: true, errorCode, userMessage: IAP_ERROR_MESSAGES[errorCode] } as const;
       }
       console.error('IAP purchaseSubscription failed', error);
-      return { success: false, error } as const;
+      const userMessage = IAP_ERROR_MESSAGES[errorCode] || 'Purchase failed. Please try again.';
+      return { success: false, error, errorCode, userMessage } as const;
     }
   }
 
@@ -118,12 +186,13 @@ export class PurchaseService {
 
       return { success: true } as const;
     } catch (error: unknown) {
-      const err = error as { code?: string };
-      if (err?.code === 'E_USER_CANCELLED') {
-        return { success: false, cancelled: true } as const;
+      const errorCode = (error as { code?: string })?.code || 'UNKNOWN';
+      if (errorCode === 'E_USER_CANCELLED') {
+        return { success: false, cancelled: true, errorCode, userMessage: IAP_ERROR_MESSAGES[errorCode] } as const;
       }
       console.error('IAP purchaseLifetime failed', error);
-      return { success: false, error } as const;
+      const userMessage = IAP_ERROR_MESSAGES[errorCode] || 'Purchase failed. Please try again.';
+      return { success: false, error, errorCode, userMessage } as const;
     }
   }
 
@@ -227,7 +296,9 @@ export class PurchaseService {
       return { success: true, restored: false } as const;
     } catch (error) {
       console.error('IAP restorePurchases failed', error);
-      return { success: false, error } as const;
+      const errorCode = (error as { code?: string })?.code || 'UNKNOWN';
+      const userMessage = IAP_ERROR_MESSAGES[errorCode] || 'Failed to restore purchases. Please try again.';
+      return { success: false, error, errorCode, userMessage } as const;
     }
   }
 }

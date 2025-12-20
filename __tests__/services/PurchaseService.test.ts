@@ -167,7 +167,8 @@ describe('PurchaseService', () => {
 
     const result = await PurchaseService.purchaseSubscription('monthly');
 
-    expect(result).toEqual({ success: false, cancelled: true });
+    expect(result.success).toBe(false);
+    expect(result.cancelled).toBe(true);
   });
 
   it('returns error when purchase fails for other reasons', async () => {

@@ -19,6 +19,7 @@
       "bundleIdentifier": "com.braveheartinnovations.debateai",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
         "NSMicrophoneUsageDescription": "Symposium AI uses the microphone for realtime voice conversations and speech transcription.",
         "NSCameraUsageDescription": "Symposium AI uses your camera to capture images for AI analysis.",
         "NSPhotoLibraryUsageDescription": "Symposium AI accesses your photos to share images with AI assistants.",
@@ -42,7 +43,8 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.braveheartinnovations.debateai",
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "versionCode": 2
     },
     "web": {
       "favicon": "./assets/favicon.png"

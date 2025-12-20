@@ -171,7 +171,8 @@ exports.validatePurchase = (0, https_1.onCall)({ secrets: [appleSharedSecret] },
             resolvedProductId = 'annual';
         }
         // Persist authoritative state
-        await admin.firestore().collection('users').doc(userId).set({
+        // If starting a trial, mark hasUsedTrial = true so they can't retry later
+        const updateData = {
             membershipStatus: inTrial ? 'trial' : 'premium',
             subscriptionExpiryDate: expiresAt ? admin.firestore.Timestamp.fromDate(expiresAt) : null,
             trialStartDate: trialStart ? admin.firestore.Timestamp.fromDate(trialStart) : null,
@@ -180,7 +181,12 @@ exports.validatePurchase = (0, https_1.onCall)({ secrets: [appleSharedSecret] },
             autoRenewing,
             isLifetime,
             lastValidated: admin.firestore.FieldValue.serverTimestamp(),
-        }, { merge: true });
+        };
+        // Mark hasUsedTrial = true if they're starting a trial
+        if (inTrial) {
+            updateData.hasUsedTrial = true;
+        }
+        await admin.firestore().collection('users').doc(userId).set(updateData, { merge: true });
         return {
             valid: true,
             membershipStatus: inTrial ? 'trial' : 'premium',

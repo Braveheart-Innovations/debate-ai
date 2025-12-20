@@ -6,7 +6,6 @@ import { createAppStore, showSheet } from '../../store';
 import type { SheetType } from '../../store/navigationSlice';
 import { ProfileSheet, SettingsContent } from '../../components/organisms';
 import { DemoExplainerSheet } from '@/components/organisms/demo/DemoExplainerSheet';
-import { SubscriptionSheet } from '@/components/organisms/subscription/SubscriptionSheet';
 
 let mockNavigate: jest.Mock = jest.fn();
 
@@ -34,10 +33,6 @@ jest.mock('../../components/organisms', () => ({
   ProfileSheet: jest.fn(() => null),
   SettingsContent: jest.fn(() => null),
   SupportSheet: jest.fn(() => null),
-}));
-
-jest.mock('@/components/organisms/subscription/SubscriptionSheet', () => ({
-  SubscriptionSheet: jest.fn(() => null),
 }));
 
 jest.mock('@/components/organisms/demo/DemoExplainerSheet', () => ({
@@ -127,13 +122,11 @@ describe('GlobalSheets', () => {
     expect(state.navigation.sheetVisible).toBe(false);
   });
 
-  it('clears the subscription sheet when its onClose handler is called', () => {
+  it('redirects to Subscription screen when subscription sheet is triggered', () => {
     const { store } = renderGlobalSheets('subscription');
-    const subscriptionProps = (SubscriptionSheet as jest.Mock).mock.calls[0][0] as { onClose: () => void };
 
-    act(() => {
-      subscriptionProps.onClose();
-    });
+    // The subscription sheet should immediately redirect to the Subscription screen
+    expect(mockNavigate).toHaveBeenCalledWith('Subscription');
 
     const state = store.getState();
     expect(state.navigation.activeSheet).toBeNull();

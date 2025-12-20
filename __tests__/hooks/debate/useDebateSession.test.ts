@@ -9,6 +9,18 @@ const mockInitializeDebate = jest.fn();
 const mockReset = jest.fn();
 const mockGetSession = jest.fn();
 
+// Mock the AIServiceProvider context hook - must be before debate mock
+const mockAIService = { getAdapter: jest.fn() };
+jest.mock('@/providers/AIServiceProvider', () => ({
+  useAIService: () => ({
+    aiService: mockAIService,
+    isInitialized: true,
+    isLoading: false,
+    error: null,
+    reinitialize: jest.fn(),
+  }),
+}));
+
 jest.mock('@/services/debate', () => {
   const actual = jest.requireActual('@/services/debate');
   return {
@@ -20,10 +32,6 @@ jest.mock('@/services/debate', () => {
     })),
   };
 });
-
-jest.mock('@/services/aiAdapter', () => ({
-  AIService: jest.fn().mockImplementation(() => ({ getAdapter: jest.fn() })),
-}));
 
 describe('useDebateSession', () => {
   const participants: AI[] = [

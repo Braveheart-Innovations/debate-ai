@@ -1,34 +1,99 @@
 import React, { useState } from 'react';
-import { ScrollView, View, StyleSheet, Platform, Alert } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Typography } from '../components/molecules';
-import { GradientButton, Button } from '../components/molecules';
-import { Header, HeaderActions } from '@/components/organisms';
+import { ScrollView, View, StyleSheet, Alert, TouchableOpacity, Linking } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSelector, useDispatch } from 'react-redux';
+import { Box } from '@/components/atoms';
+import { Typography, GradientButton, Button } from '@/components/molecules';
+import { Header, TrialTermsSheet } from '@/components/organisms';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../theme';
 import { PurchaseService } from '@/services/iap/PurchaseService';
 import type { PlanType } from '@/services/iap/products';
+import { useFeatureAccess } from '@/hooks/useFeatureAccess';
+import { RootState, showSheet } from '@/store';
 
 const features = [
-  'All Signature Styles + Seasonal Packs',
-  'Unlimited AI Debates & Custom Motions',
-  'Expert Models & Cost Control',
-  'Faster Streaming & Priority Access',
-  'History, Transcript Export & Sharing',
+  'Collaborate on ideas with multiple AIs at once',
+  'Create custom Debates or choose from preset topics',
+  'Utilize the personality system to enhance responses',
+  'Compare AI providers, models, or personality types',
+  'Resume conversations and export debate moments',
 ];
 
 const plans = [
   { id: 'monthly', title: 'Monthly', price: '$5.99', period: '/mo', highlight: false },
-  { id: 'yearly', title: 'Yearly', price: '$49.99', period: '/yr', highlight: true, badge: 'Save 30%' },
+  { id: 'annual', title: 'Annual', price: '$49.99', period: '/yr', highlight: true, badge: 'Save 30%' },
   { id: 'lifetime', title: 'Lifetime', price: '$129.99', period: '', highlight: false, badge: 'One-Time' },
 ];
 
 export default function UpgradeScreen() {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const navigation = useNavigation();
+  const dispatch = useDispatch();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [showTrialTerms, setShowTrialTerms] = useState(false);
+  const { hasUsedTrial, isInTrial, trialDaysRemaining, isPremium, canStartTrial } = useFeatureAccess();
+  const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
+
+  // Determine header subtitle based on membership status
+  const getHeaderSubtitle = () => {
+    if (isPremium) return 'Manage your subscription';
+    if (isInTrial && trialDaysRemaining !== null) return `${trialDaysRemaining} days left in trial`;
+    if (hasUsedTrial) return 'Your trial has ended';
+    return 'Start your 7‑day free trial';
+  };
+
+  // Determine the title based on membership status
+  const getTitle = () => {
+    if (isPremium) return 'Premium';
+    if (hasUsedTrial) return 'Upgrade to Premium';
+    return 'Unlock Premium';
+  };
+
+  // Handle "Start Trial" button tap - show terms first
+  const handleStartTrialTap = () => {
+    setShowTrialTerms(true);
+  };
+
+  // Handle accepting trial terms
+  const handleAcceptTrialTerms = async () => {
+    if (!isAuthenticated) {
+      // Close terms sheet and open profile sheet for auth
+      setShowTrialTerms(false);
+      dispatch(showSheet({ sheet: 'profile' }));
+      return;
+    }
+
+    // User is authenticated - proceed with trial purchase
+    try {
+      setLoadingPlan('trial');
+      const result = await PurchaseService.purchaseSubscription('monthly');
+      if (result.success) {
+        setShowTrialTerms(false);
+        Alert.alert('Success', 'Your free trial has started!');
+        (navigation as unknown as { goBack: () => void }).goBack();
+      } else if ('cancelled' in result && result.cancelled) {
+        // User cancelled, keep terms sheet open
+      } else {
+        const message = 'userMessage' in result && result.userMessage
+          ? result.userMessage
+          : 'Could not start trial. Please try again.';
+        Alert.alert('Trial Failed', message);
+      }
+    } catch {
+      Alert.alert('Error', 'An unexpected error occurred.');
+    } finally {
+      setLoadingPlan(null);
+    }
+  };
 
   const onSubscribe = async (planId: string) => {
+    // Check authentication first for all purchases
+    if (!isAuthenticated) {
+      dispatch(showSheet({ sheet: 'profile' }));
+      return;
+    }
+
     try {
       setLoadingPlan(planId);
       const result = await PurchaseService.purchaseSubscription(planId as PlanType);
@@ -38,7 +103,10 @@ export default function UpgradeScreen() {
       } else if ('cancelled' in result && result.cancelled) {
         // User cancelled, do nothing
       } else {
-        Alert.alert('Error', 'Purchase could not be completed. Please try again.');
+        const message = 'userMessage' in result && result.userMessage
+          ? result.userMessage
+          : 'Purchase could not be completed. Please try again.';
+        Alert.alert('Purchase Failed', message);
       }
     } catch {
       Alert.alert('Error', 'An unexpected error occurred.');
@@ -48,113 +116,210 @@ export default function UpgradeScreen() {
   };
 
   return (
-    <>
-      <Header
-        variant="gradient"
-        title="Unlock Premium"
-        subtitle="Start your 7‑day free trial"
-        showBackButton
-        onBack={() => {
-          try { (navigation as unknown as { goBack: () => void }).goBack(); } catch { /* noop */ }
-        }}
-        animated
-        rightElement={<HeaderActions variant="gradient" />}
-      />
-      <ScrollView style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      {/* Hero */}
-      <LinearGradient
-        colors={(theme.colors.gradients.premium as unknown as [string, string])}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.hero}
-      >
-        <Typography variant="title" weight="bold" color="inverse" align="center">
-          Unlock Premium
-        </Typography>
-        <Typography variant="body" color="inverse" align="center" style={{ marginTop: 8 }}>
-          All Signature Styles, faster debates, and pro tools.
-        </Typography>
-      </LinearGradient>
-
-      {/* Features */}
-      <View style={{ padding: 20 }}>
-        {features.map((f) => (
-          <View key={f} style={styles.featureRow}>
-            <Typography style={{ fontSize: 18 }}>✨</Typography>
-            <Typography variant="body" style={{ marginLeft: 8 }}>{f}</Typography>
-          </View>
-        ))}
-      </View>
-
-      {/* Pricing */}
-      <View style={{ paddingHorizontal: 20, paddingBottom: 32 }}>
-        {plans.map((p) => (
-          <View
-            key={p.id}
-            style={[styles.planCard, { borderColor: p.highlight ? theme.colors.primary[500] : theme.colors.border }]}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Typography variant="subtitle" weight="bold">{p.title}</Typography>
-              {p.badge && (
-                <View style={[styles.badge, { backgroundColor: theme.colors.primary[500] }]}>
-                  <Typography variant="caption" color="inverse" weight="bold">{p.badge}</Typography>
-                </View>
-              )}
-            </View>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-end', marginTop: 8 }}>
-              <Typography variant="title" weight="bold">{p.price}</Typography>
-              <Typography variant="caption" color="secondary" style={{ marginLeft: 6 }}>{p.period}</Typography>
-            </View>
-            <GradientButton
-              title={loadingPlan === p.id ? 'Processing...' : (p.id === 'lifetime' ? 'Buy Now' : 'Subscribe Now')}
-              onPress={() => onSubscribe(p.id)}
-              gradient={theme.colors.gradients.primary}
-              fullWidth
-              style={{ marginTop: 12 }}
-              disabled={loadingPlan !== null}
-            />
-          </View>
-        ))}
-        <Button
-          title="Restore Purchases"
-          onPress={async () => {
-            try {
-              setLoadingPlan('restore');
-              const result = await PurchaseService.restorePurchases();
-              if (result.success && result.restored) {
-                Alert.alert('Success', 'Your purchases have been restored.');
-                (navigation as unknown as { goBack: () => void }).goBack();
-              } else if (result.success && !result.restored) {
-                Alert.alert('No Purchases', 'No previous purchases were found.');
-              } else {
-                Alert.alert('Error', 'Could not restore purchases. Please try again.');
-              }
-            } catch {
-              Alert.alert('Error', 'An unexpected error occurred.');
-            } finally {
-              setLoadingPlan(null);
-            }
+    <Box style={{ flex: 1 }} backgroundColor="background">
+      <SafeAreaView style={{ flex: 1 }}>
+        <Header
+          variant="gradient"
+          title={getTitle()}
+          subtitle={getHeaderSubtitle()}
+          showBackButton
+          onBack={() => {
+            try { (navigation as unknown as { goBack: () => void }).goBack(); } catch { /* noop */ }
           }}
-          variant="ghost"
-          fullWidth
-          disabled={loadingPlan !== null}
+          animated
         />
-      </View>
-      </ScrollView>
-    </>
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ padding: theme.spacing.lg, paddingBottom: theme.spacing.xl * 2 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Trial ended message */}
+          {hasUsedTrial && !isPremium && !isInTrial && (
+            <View style={[styles.messageCard, { backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: theme.colors.error[300] }]}>
+              <Typography variant="body" weight="semibold" style={{ color: theme.colors.error[600] }}>
+                Your free trial has ended
+              </Typography>
+              <Typography variant="caption" color="secondary" style={{ marginTop: 4 }}>
+                Upgrade to Premium to continue enjoying all features.
+              </Typography>
+            </View>
+          )}
+
+          {/* Features */}
+          <Typography variant="subtitle" weight="bold" style={{ marginBottom: theme.spacing.md }}>
+            Premium Features
+          </Typography>
+          {features.map((f) => (
+            <View key={f} style={styles.featureRow}>
+              <Typography style={{ fontSize: 18 }}>✨</Typography>
+              <Typography variant="body" style={{ marginLeft: 8, flex: 1 }}>{f}</Typography>
+            </View>
+          ))}
+
+          {/* Primary Trial CTA - only show if user can start trial */}
+          {canStartTrial && (
+            <View style={[
+              styles.trialCard,
+              {
+                backgroundColor: isDark ? 'rgba(99, 102, 241, 0.15)' : theme.colors.primary[50] as string,
+                borderColor: isDark ? theme.colors.primary[500] : theme.colors.primary[300]
+              }
+            ]}>
+              <Typography variant="title" weight="bold" color="brand" style={{ textAlign: 'center' }}>
+                Start 7-Day Free Trial
+              </Typography>
+              <Typography variant="body" color="secondary" style={{ textAlign: 'center', marginTop: 4 }}>
+                Then $5.99/month. Cancel anytime.
+              </Typography>
+              <GradientButton
+                title={loadingPlan === 'trial' ? 'Starting...' : 'Start Free Trial'}
+                onPress={handleStartTrialTap}
+                gradient={theme.colors.gradients.primary}
+                fullWidth
+                style={{ marginTop: 16 }}
+                disabled={loadingPlan !== null}
+              />
+            </View>
+          )}
+
+          {/* Separator */}
+          {canStartTrial && (
+            <View style={styles.separatorContainer}>
+              <View style={[styles.separatorLine, { backgroundColor: theme.colors.border }]} />
+              <Typography variant="caption" color="secondary" style={styles.separatorText}>
+                Or choose a plan
+              </Typography>
+              <View style={[styles.separatorLine, { backgroundColor: theme.colors.border }]} />
+            </View>
+          )}
+
+          {/* Pricing */}
+          <Typography variant="subtitle" weight="bold" style={{ marginTop: canStartTrial ? 0 : theme.spacing.xl, marginBottom: theme.spacing.md }}>
+            {canStartTrial ? 'Other Plans' : 'Choose a Plan'}
+          </Typography>
+          {plans.map((p) => (
+            <View
+              key={p.id}
+              style={[styles.planCard, {
+                borderColor: p.highlight ? theme.colors.primary[500] : theme.colors.border,
+                backgroundColor: theme.colors.card,
+              }]}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Typography variant="subtitle" weight="bold">{p.title}</Typography>
+                {p.badge && (
+                  <View style={[styles.badge, { backgroundColor: theme.colors.primary[500] }]}>
+                    <Typography variant="caption" color="inverse" weight="bold">{p.badge}</Typography>
+                  </View>
+                )}
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-end', marginTop: 8 }}>
+                <Typography variant="title" weight="bold">{p.price}</Typography>
+                <Typography variant="caption" color="secondary" style={{ marginLeft: 6 }}>{p.period}</Typography>
+              </View>
+              <GradientButton
+                title={loadingPlan === p.id ? 'Processing...' : (p.id === 'lifetime' ? 'Buy Now' : 'Subscribe Now')}
+                onPress={() => onSubscribe(p.id)}
+                gradient={theme.colors.gradients.primary}
+                fullWidth
+                style={{ marginTop: 12 }}
+                disabled={loadingPlan !== null}
+              />
+            </View>
+          ))}
+          <Button
+            title="Restore Purchases"
+            onPress={async () => {
+              try {
+                setLoadingPlan('restore');
+                const result = await PurchaseService.restorePurchases();
+                if (result.success && result.restored) {
+                  Alert.alert('Success', 'Your purchases have been restored.');
+                  (navigation as unknown as { goBack: () => void }).goBack();
+                } else if (result.success && !result.restored) {
+                  Alert.alert('No Purchases', 'No previous purchases were found.');
+                } else {
+                  const message = 'userMessage' in result && result.userMessage
+                    ? result.userMessage
+                    : 'Could not restore purchases. Please try again.';
+                  Alert.alert('Restore Failed', message);
+                }
+              } catch {
+                Alert.alert('Error', 'An unexpected error occurred.');
+              } finally {
+                setLoadingPlan(null);
+              }
+            }}
+            variant="ghost"
+            fullWidth
+            disabled={loadingPlan !== null}
+          />
+
+          {/* Compliance Disclaimer */}
+          <View style={styles.disclaimerContainer}>
+            <Typography variant="caption" color="secondary" style={styles.disclaimerText}>
+              Subscriptions auto-renew unless canceled at least 24 hours before the end of the current period.
+              Manage subscriptions in your device Settings.
+            </Typography>
+            <View style={styles.legalLinks}>
+              <TouchableOpacity onPress={() => Linking.openURL('https://debateai.app/privacy')}>
+                <Typography variant="caption" color="brand" weight="medium">
+                  Privacy Policy
+                </Typography>
+              </TouchableOpacity>
+              <Typography variant="caption" color="secondary"> | </Typography>
+              <TouchableOpacity onPress={() => Linking.openURL('https://debateai.app/terms')}>
+                <Typography variant="caption" color="brand" weight="medium">
+                  Terms of Service
+                </Typography>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+
+      {/* Trial Terms Modal */}
+      <TrialTermsSheet
+        visible={showTrialTerms}
+        onClose={() => setShowTrialTerms(false)}
+        onAcceptTerms={handleAcceptTrialTerms}
+        isAuthenticated={isAuthenticated}
+        loading={loadingPlan === 'trial'}
+      />
+    </Box>
   );
 }
 
 const styles = StyleSheet.create({
-  hero: {
-    paddingTop: Platform.OS === 'ios' ? 80 : 60,
-    paddingBottom: 32,
-    paddingHorizontal: 20,
+  messageCard: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 20,
   },
   featureRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
+  },
+  trialCard: {
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginTop: 24,
+    marginBottom: 16,
+  },
+  separatorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  separatorLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+  },
+  separatorText: {
+    marginHorizontal: 16,
   },
   planCard: {
     borderWidth: 1,
@@ -166,5 +331,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
+  },
+  disclaimerContainer: {
+    marginTop: 24,
+    paddingHorizontal: 8,
+  },
+  disclaimerText: {
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  legalLinks: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 12,
   },
 });

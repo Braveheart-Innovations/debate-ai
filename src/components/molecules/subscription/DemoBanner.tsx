@@ -11,8 +11,15 @@ interface DemoBannerProps {
 
 export const DemoBanner: React.FC<DemoBannerProps> = ({ onPress, subtitle }) => {
   const { theme, isDark } = useTheme();
-  const { isDemo } = useFeatureAccess();
+  const { isDemo, hasUsedTrial, canStartTrial } = useFeatureAccess();
   if (!isDemo) return null;
+
+  // Determine the CTA text based on trial status
+  const ctaText = canStartTrial ? 'Start 7‑Day Free Trial' : 'Upgrade to Premium';
+  const bannerTitle = hasUsedTrial ? 'Trial Ended' : 'Demo Mode';
+  const defaultSubtitle = hasUsedTrial
+    ? 'Your trial has ended. Upgrade to continue.'
+    : 'Simulated content — no live API calls.';
 
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
@@ -20,20 +27,26 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({ onPress, subtitle }) => 
         style={[
           styles.container,
           {
-            backgroundColor: isDark ? 'rgba(99,102,241,0.12)' : 'rgba(99,102,241,0.10)',
-            borderColor: theme.colors.primary[300],
+            backgroundColor: isDark
+              ? (hasUsedTrial ? 'rgba(239,68,68,0.12)' : 'rgba(99,102,241,0.12)')
+              : (hasUsedTrial ? 'rgba(239,68,68,0.10)' : 'rgba(99,102,241,0.10)'),
+            borderColor: hasUsedTrial ? theme.colors.error[500] : theme.colors.primary[300],
           },
         ]}
       >
-        <Typography variant="caption" weight="bold" style={{ color: theme.colors.primary[700] }}>
-          Demo Mode
+        <Typography
+          variant="caption"
+          weight="bold"
+          style={{ color: hasUsedTrial ? theme.colors.error[600] : theme.colors.primary[700] }}
+        >
+          {bannerTitle}
         </Typography>
         <Typography variant="caption" color="secondary" style={{ marginTop: 2 }}>
-          {subtitle || 'Simulated content — no live API calls.'}
+          {subtitle || defaultSubtitle}
         </Typography>
-        <View style={styles.ctaPill}>
+        <View style={[styles.ctaPill, hasUsedTrial && styles.ctaPillWarning]}>
           <Typography variant="caption" weight="semibold" color="inverse">
-            Start 7‑Day Free Trial
+            {ctaText}
           </Typography>
         </View>
       </View>
@@ -58,6 +71,9 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 999,
     backgroundColor: '#6366F1', // theme.colors.primary[500]
+  },
+  ctaPillWarning: {
+    backgroundColor: '#EF4444', // theme.colors.error
   },
 });
 

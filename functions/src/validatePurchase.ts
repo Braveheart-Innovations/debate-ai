@@ -137,19 +137,24 @@ export const validatePurchase = onCall({ secrets: [appleSharedSecret] }, async (
     }
 
     // Persist authoritative state
-    await admin.firestore().collection('users').doc(userId).set(
-      {
-        membershipStatus: inTrial ? 'trial' : 'premium',
-        subscriptionExpiryDate: expiresAt ? admin.firestore.Timestamp.fromDate(expiresAt) : null,
-        trialStartDate: trialStart ? admin.firestore.Timestamp.fromDate(trialStart) : null,
-        trialEndDate: trialEnd ? admin.firestore.Timestamp.fromDate(trialEnd) : null,
-        productId: resolvedProductId,
-        autoRenewing,
-        isLifetime,
-        lastValidated: admin.firestore.FieldValue.serverTimestamp(),
-      },
-      { merge: true }
-    );
+    // If starting a trial, mark hasUsedTrial = true so they can't retry later
+    const updateData: Record<string, any> = {
+      membershipStatus: inTrial ? 'trial' : 'premium',
+      subscriptionExpiryDate: expiresAt ? admin.firestore.Timestamp.fromDate(expiresAt) : null,
+      trialStartDate: trialStart ? admin.firestore.Timestamp.fromDate(trialStart) : null,
+      trialEndDate: trialEnd ? admin.firestore.Timestamp.fromDate(trialEnd) : null,
+      productId: resolvedProductId,
+      autoRenewing,
+      isLifetime,
+      lastValidated: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    // Mark hasUsedTrial = true if they're starting a trial
+    if (inTrial) {
+      updateData.hasUsedTrial = true;
+    }
+
+    await admin.firestore().collection('users').doc(userId).set(updateData, { merge: true });
 
     return {
       valid: true,

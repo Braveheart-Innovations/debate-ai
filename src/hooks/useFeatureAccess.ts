@@ -9,6 +9,7 @@ import { SubscriptionManager } from '@/services/subscription/SubscriptionManager
 export const useFeatureAccess = () => {
   const [membershipStatus, setMembershipStatus] = useState<MembershipStatus>('demo');
   const [trialDaysRemaining, setTrialDaysRemaining] = useState<number | null>(null);
+  const [hasUsedTrial, setHasUsedTrial] = useState(false);
   const [loading, setLoading] = useState(true);
   // Local premium override from Settings (simulated premium mode)
   const simulatedPremium = useSelector((state: RootState) => state.auth?.isPremium) || false;
@@ -23,6 +24,8 @@ export const useFeatureAccess = () => {
         setMembershipStatus(status);
         const days = await SubscriptionManager.getTrialDaysRemaining();
         setTrialDaysRemaining(days);
+        const usedTrial = await SubscriptionManager.hasUserUsedTrial();
+        setHasUsedTrial(usedTrial);
 
         // Subscribe to auth changes and wire Firestore listener per-user
         authUnsub = onAuthStateChanged((user) => {
@@ -42,6 +45,8 @@ export const useFeatureAccess = () => {
                 setMembershipStatus(s);
                 const d = await SubscriptionManager.getTrialDaysRemaining();
                 setTrialDaysRemaining(d);
+                const t = await SubscriptionManager.hasUserUsedTrial();
+                setHasUsedTrial(t);
               },
               (err: unknown) => {
                 const code = (err as { code?: string } | undefined)?.code;
@@ -49,6 +54,7 @@ export const useFeatureAccess = () => {
                   // Likely signed out or no access; downgrade view state quietly
                   setMembershipStatus('demo');
                   setTrialDaysRemaining(null);
+                  setHasUsedTrial(false);
                   return; // swallow warning
                 }
                 console.error('FeatureAccess onSnapshot error', err);
@@ -58,6 +64,7 @@ export const useFeatureAccess = () => {
             // Signed out: reset state
             setMembershipStatus('demo');
             setTrialDaysRemaining(null);
+            setHasUsedTrial(false);
           }
         });
       } finally {
@@ -84,15 +91,22 @@ export const useFeatureAccess = () => {
       setMembershipStatus(status);
       const days = await SubscriptionManager.getTrialDaysRemaining();
       setTrialDaysRemaining(days);
+      const usedTrial = await SubscriptionManager.hasUserUsedTrial();
+      setHasUsedTrial(usedTrial);
     } finally {
       setLoading(false);
     }
   };
 
+  // User can start trial only if they haven't used it before and are in demo mode
+  const canStartTrial = !hasUsedTrial && isDemo;
+
   return {
     loading,
     membershipStatus,
     trialDaysRemaining,
+    hasUsedTrial,
+    canStartTrial,
     canAccessLiveAI,
     isInTrial,
     isPremium,

@@ -15,6 +15,7 @@ const mockGoBack = jest.fn();
 jest.mock('@/components/organisms', () => ({
   Header: (props: any) => mockHeader(props),
   HeaderActions: () => mockHeaderActions(),
+  TrialTermsSheet: () => null,
 }));
 
 jest.mock('@react-navigation/native', () => ({
@@ -22,7 +23,6 @@ jest.mock('@react-navigation/native', () => ({
 }));
 
 jest.mock('expo-linear-gradient', () => {
-  const React = require('react');
   const { View } = require('react-native');
   return {
     LinearGradient: ({ children }: { children: React.ReactNode }) => <View testID="gradient">{children}</View>,
@@ -41,7 +41,6 @@ const mockButton = jest.fn(({ title, onPress }: { title: string; onPress: () => 
 ));
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
   const { Text } = require('react-native');
   return {
     GradientButton: (props: any) => mockGradientButton(props),
@@ -49,6 +48,19 @@ jest.mock('@/components/molecules', () => {
     Typography: ({ children }: { children: React.ReactNode }) => <Text>{children}</Text>,
   };
 });
+
+// Mock useFeatureAccess hook
+const mockFeatureAccess = {
+  hasUsedTrial: false,
+  isInTrial: false,
+  trialDaysRemaining: null,
+  isPremium: false,
+  canStartTrial: true,
+};
+
+jest.mock('@/hooks/useFeatureAccess', () => ({
+  useFeatureAccess: () => mockFeatureAccess,
+}));
 
 // Mock PurchaseService to avoid actual purchase flow
 const mockPurchaseSubscription = jest.fn();
@@ -69,14 +81,21 @@ describe('UpgradeScreen', () => {
     mockGoBack.mockReset();
     mockPurchaseSubscription.mockResolvedValue({ success: true });
     mockRestorePurchases.mockResolvedValue({ success: true, restored: false });
+    // Reset feature access mock
+    mockFeatureAccess.hasUsedTrial = false;
+    mockFeatureAccess.isInTrial = false;
+    mockFeatureAccess.trialDaysRemaining = null;
+    mockFeatureAccess.isPremium = false;
+    mockFeatureAccess.canStartTrial = true;
   });
 
   it('renders feature list and navigates back via header', () => {
     const { getByText, getByTestId } = renderWithProviders(<UpgradeScreen />);
 
-    expect(getByText('Unlock Premium')).toBeTruthy();
-    expect(getByText('All Signature Styles + Seasonal Packs')).toBeTruthy();
-    expect(getByTestId('gradient')).toBeTruthy();
+    // Header should render with title
+    expect(getByTestId('header')).toBeTruthy();
+    // Check for a premium feature in the list
+    expect(getByText('Collaborate on ideas with multiple AIs at once')).toBeTruthy();
 
     fireEvent.press(getByTestId('header'));
     expect(mockGoBack).toHaveBeenCalledTimes(1);
@@ -84,7 +103,11 @@ describe('UpgradeScreen', () => {
 
   it('calls purchaseSubscription when Subscribe Now is pressed', async () => {
     const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-    const { getAllByText } = renderWithProviders(<UpgradeScreen />);
+    const { getAllByText } = renderWithProviders(<UpgradeScreen />, {
+      preloadedState: {
+        auth: { isAuthenticated: true, user: null, loading: false, error: null },
+      },
+    });
 
     const subscribeButtons = getAllByText('Subscribe Now');
     fireEvent.press(subscribeButtons[0]);
@@ -96,7 +119,7 @@ describe('UpgradeScreen', () => {
     fireEvent.press(subscribeButtons[1]);
 
     await waitFor(() => {
-      expect(mockPurchaseSubscription).toHaveBeenCalledWith('yearly');
+      expect(mockPurchaseSubscription).toHaveBeenCalledWith('annual');
     });
 
     alertSpy.mockRestore();
@@ -120,7 +143,11 @@ describe('UpgradeScreen', () => {
     const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
     mockPurchaseSubscription.mockResolvedValueOnce({ success: true });
 
-    const { getAllByText } = renderWithProviders(<UpgradeScreen />);
+    const { getAllByText } = renderWithProviders(<UpgradeScreen />, {
+      preloadedState: {
+        auth: { isAuthenticated: true, user: null, loading: false, error: null },
+      },
+    });
 
     const subscribeButtons = getAllByText('Subscribe Now');
     fireEvent.press(subscribeButtons[0]);
@@ -136,13 +163,17 @@ describe('UpgradeScreen', () => {
     const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
     mockPurchaseSubscription.mockResolvedValueOnce({ success: false, error: 'Payment failed' });
 
-    const { getAllByText } = renderWithProviders(<UpgradeScreen />);
+    const { getAllByText } = renderWithProviders(<UpgradeScreen />, {
+      preloadedState: {
+        auth: { isAuthenticated: true, user: null, loading: false, error: null },
+      },
+    });
 
     const subscribeButtons = getAllByText('Subscribe Now');
     fireEvent.press(subscribeButtons[0]);
 
     await waitFor(() => {
-      expect(alertSpy).toHaveBeenCalledWith('Error', 'Purchase could not be completed. Please try again.');
+      expect(alertSpy).toHaveBeenCalledWith('Purchase Failed', 'Purchase could not be completed. Please try again.');
     });
 
     alertSpy.mockRestore();

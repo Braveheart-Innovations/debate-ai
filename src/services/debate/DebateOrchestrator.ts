@@ -271,11 +271,11 @@ export class DebateOrchestrator {
       const debateMessages = existingMessages.filter(msg => msg.timestamp >= (this.session?.startTime || 0));
 
       // Prefer streaming if adapter supports it
-      const adapter = this.aiService.getAdapter(currentAI.id);
+      const adapter = this.aiService.getAdapter(currentAI.provider);
       const supportsStreaming = !!adapter?.getCapabilities()?.streaming;
       // Respect global/provider streaming preferences
       const streamingState = store.getState().streaming;
-      const providerId = currentAI.id;
+      const providerId = currentAI.provider;
       const providerEnabled = streamingState?.streamingPreferences?.[providerId]?.enabled ?? true;
       const globalEnabled = streamingState?.globalStreamingEnabled ?? true;
       const providerHasVerificationError = !!streamingState?.providerVerificationErrors?.[providerId];
@@ -552,7 +552,7 @@ export class DebateOrchestrator {
         })();
 
         const response = await this.aiService.sendMessage(
-          currentAI.id,
+          currentAI.provider,
           contextualPrompt,
           debateMessages,
           composedPersonality,
@@ -563,7 +563,7 @@ export class DebateOrchestrator {
 
         // Best-effort debug: log the prompts for non-streaming path too
         try {
-          const adapter = this.aiService.getAdapter(currentAI.id);
+          const adapter = this.aiService.getAdapter(currentAI.provider);
           if (adapter) {
             // Ensure adapter reflects the composed personality for logging
             try {

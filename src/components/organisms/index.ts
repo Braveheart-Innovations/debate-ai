@@ -40,6 +40,7 @@ export { SettingsContent } from './settings/SettingsContent';
 // Support Organisms
 export { SupportSheet } from './support/SupportSheet';
 export { UnlockEverythingBanner } from './subscription/UnlockEverythingBanner';
+export { TrialTermsSheet } from './subscription/TrialTermsSheet';
 
 // Help Organisms
 export { HelpSheet, HelpWebViewModal } from './help';

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { TouchableOpacity, View } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
@@ -10,7 +10,6 @@ import {
   SettingsContent,
   SupportSheet
 } from '../components/organisms';
-import { SubscriptionSheet } from '@/components/organisms/subscription/SubscriptionSheet';
 import { DemoExplainerSheet } from '@/components/organisms/demo/DemoExplainerSheet';
 import { HelpSheet, HelpWebViewModal } from '@/components/organisms/help';
 
@@ -29,6 +28,14 @@ export const GlobalSheets: React.FC = () => {
   const handleWebViewClose = () => {
     dispatch(hideHelpWebView());
   };
+
+  // Redirect subscription sheet to Subscription screen
+  useEffect(() => {
+    if (sheetVisible && activeSheet === 'subscription') {
+      dispatch(clearSheet());
+      navigation.navigate('Subscription');
+    }
+  }, [sheetVisible, activeSheet, dispatch, navigation]);
 
   // Only render sheets if visible, but always render WebView modal
   const showSheets = sheetVisible && activeSheet;
@@ -207,18 +214,7 @@ export const GlobalSheets: React.FC = () => {
         </>
       )}
 
-      {showSheets && activeSheet === 'subscription' && (
-        <>
-          <TouchableOpacity
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000 }}
-            activeOpacity={1}
-            onPress={handleSheetClose}
-          />
-          <View style={{ position: 'absolute', top: 80, left: 0, right: 0, bottom: 0, backgroundColor: theme.colors.background, zIndex: 1001 }}>
-            <SubscriptionSheet onClose={handleSheetClose} />
-          </View>
-        </>
-      )}
+      {/* Subscription sheet now redirects to Subscription screen via useEffect */}
     </>
   );
 };
