@@ -28,7 +28,7 @@ export const FAQ_ITEMS: FAQItem[] = [
     id: 'faq-is-it-free',
     question: 'Is Symposium AI free?',
     answer:
-      'The app offers a free tier with basic features and a demo mode. Premium features like custom debate topics, all personalities, and expert mode require a subscription ($5.99/month, $49.99/year, or $129.99 lifetime). Note that you also need your own API keys from AI providers, which have their own costs.',
+      'The app includes a demo mode with pre-recorded content so you can explore without API keys. Live chats, debates, and comparisons require your own provider API keys plus an active trial or subscription. Provider API usage has its own costs.',
     category: 'getting-started',
     relatedTopic: 'byok-overview',
   },
@@ -64,7 +64,7 @@ export const FAQ_ITEMS: FAQItem[] = [
     id: 'faq-api-key-cost',
     question: 'How much do API keys cost?',
     answer:
-      'API costs vary by provider and model. Typical costs are $0.01-0.03 per message for standard models, more for premium models. Most casual users spend $5-15/month. Set spending limits in each provider\'s dashboard to control costs.',
+      'API costs vary by provider and model. Typical costs are $0.01-0.03 per message for standard models, more for higher-cost models. Most casual users spend $5-15/month. Set spending limits in each provider\'s dashboard to control costs.',
     category: 'byok',
     relatedTopic: 'byok-cost-savings',
   },
@@ -100,7 +100,7 @@ export const FAQ_ITEMS: FAQItem[] = [
     id: 'faq-custom-debate-topic',
     question: 'Can I choose my own debate topic?',
     answer:
-      'Custom debate topics are a Premium feature. Free users can choose from a selection of preset topics. With Premium, you can enter any topic you want the AIs to debate.',
+      'Yes. In live mode you can enter any debate motion (or use presets or Surprise Me). In demo mode, debates are pre-recorded so you pick from the available samples.',
     category: 'debate-arena',
     relatedTopic: 'debate-arena',
   },
@@ -120,7 +120,7 @@ export const FAQ_ITEMS: FAQItem[] = [
     id: 'faq-what-are-personalities',
     question: 'What are AI personalities?',
     answer:
-      'Personalities change how AIs communicate with you. A "Friendly" personality will be warm and conversational, while "Professional" will be formal and business-like. It\'s like giving each AI a communication style that matches your preferences.',
+      'Personalities are style layers that shape tone, structure, and emphasis (for example, Bestie is supportive and Devlin stress-tests ideas). They do not change the underlying model or its knowledge.',
     category: 'getting-started',
     relatedTopic: 'personalities',
   },
@@ -128,7 +128,7 @@ export const FAQ_ITEMS: FAQItem[] = [
     id: 'faq-how-many-personalities',
     question: 'How many personalities are available?',
     answer:
-      'Symposium AI includes 12 core personalities plus seasonal packs. Free users have access to basic personalities, while Premium unlocks all 12 plus any seasonal additions.',
+      'There are 8 personalities: Default, Bestie, Brody, Devlin, George, Kai, Prof. Sage, and Scout. All are available to everyone.',
     category: 'getting-started',
     relatedTopic: 'personalities',
   },
@@ -136,7 +136,7 @@ export const FAQ_ITEMS: FAQItem[] = [
     id: 'faq-personality-affects-accuracy',
     question: 'Do personalities affect AI accuracy?',
     answer:
-      'Personalities affect communication style, not factual accuracy. An AI with a "Creative" personality will express the same information differently than one with an "Analytical" personality, but the underlying knowledge is the same.',
+      'Personalities affect communication style, not factual accuracy. The same model may present information differently (for example, Prof. Sage vs Brody), but its underlying knowledge does not change.',
     category: 'getting-started',
     relatedTopic: 'personalities',
   },
@@ -148,7 +148,7 @@ export const FAQ_ITEMS: FAQItem[] = [
     id: 'faq-what-is-expert-mode',
     question: 'What is Expert Mode?',
     answer:
-      'Expert Mode lets you control AI parameters like temperature (creativity), max tokens (response length), and top-p (diversity). This is for advanced users who want to fine-tune AI behavior for specific use cases.',
+      'Expert Mode lets you set a default model and tune parameters like temperature, max tokens, and top-p per provider. It is available once you add API keys, and parameter availability varies by provider.',
     category: 'expert-mode',
     relatedTopic: 'expert-mode',
   },
@@ -219,7 +219,7 @@ export const FAQ_ITEMS: FAQItem[] = [
     id: 'faq-slow-responses',
     question: 'Why are responses slow?',
     answer:
-      'Response speed depends on the AI model, your internet connection, and provider server load. Premium models (like GPT-4) are slower than standard models (like GPT-4o-mini). Try reducing max tokens for faster responses.',
+      'Response speed depends on the model, your internet connection, and provider server load. Larger models and higher max token settings take longer. Try reducing max tokens for faster responses.',
     category: 'getting-started',
     relatedTopic: 'expert-tokens',
   },

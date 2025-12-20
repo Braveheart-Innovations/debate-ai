@@ -6,50 +6,50 @@
  * web URL for detailed documentation.
  */
 
-import { HelpTopic, HelpCategory, HelpCategoryInfo } from './types';
+import { HelpTopic, HelpCategory, HelpCategoryInfo } from "./types";
 
 export const HELP_CATEGORIES: HelpCategoryInfo[] = [
   {
-    id: 'getting-started',
-    title: 'Getting Started',
-    icon: 'rocket-outline',
-    description: 'Learn the basics of Symposium AI',
+    id: "getting-started",
+    title: "Getting Started",
+    icon: "rocket-outline",
+    description: "Learn the basics of Symposium AI",
   },
   {
-    id: 'chat',
-    title: 'Chat',
-    icon: 'chatbubble-outline',
-    description: 'Chat with multiple AIs',
+    id: "chat",
+    title: "Chat",
+    icon: "chatbubble-outline",
+    description: "Chat with multiple AIs",
   },
   {
-    id: 'debate-arena',
-    title: 'AI Debate Arena',
-    icon: 'chatbubbles-outline',
-    description: 'Watch AIs debate any topic',
+    id: "debate-arena",
+    title: "AI Debate Arena",
+    icon: "chatbubbles-outline",
+    description: "Watch AIs debate any topic",
   },
   {
-    id: 'byok',
-    title: 'Bring Your Own Keys',
-    icon: 'key-outline',
-    description: 'Use your own API keys',
+    id: "byok",
+    title: "Bring Your Own Keys",
+    icon: "key-outline",
+    description: "Use your own API keys",
   },
   {
-    id: 'compare',
-    title: 'Compare',
-    icon: 'git-compare-outline',
-    description: 'Compare AI responses side-by-side',
+    id: "compare",
+    title: "Compare",
+    icon: "git-compare-outline",
+    description: "Compare AI responses side-by-side",
   },
   {
-    id: 'history',
-    title: 'History',
-    icon: 'time-outline',
-    description: 'Manage your conversation history',
+    id: "history",
+    title: "History",
+    icon: "time-outline",
+    description: "Manage your conversation history",
   },
   {
-    id: 'expert-mode',
-    title: 'Expert Mode',
-    icon: 'settings-outline',
-    description: 'Fine-tune AI parameters',
+    id: "expert-mode",
+    title: "Expert Mode",
+    icon: "settings-outline",
+    description: "Fine-tune AI parameters",
   },
 ];
 
@@ -57,32 +57,35 @@ export const HELP_TOPICS: Record<string, HelpTopic> = {
   // ============================================
   // DEBATE ARENA
   // ============================================
-  'debate-arena': {
-    id: 'debate-arena',
-    title: 'AI Debate Arena',
-    icon: 'chatbubbles',
-    category: 'getting-started',
-    shortDescription: 'Watch different AIs debate any topic in real-time',
+  "debate-arena": {
+    id: "debate-arena",
+    title: "AI Debate Arena",
+    icon: "chatbubbles",
+    category: "getting-started",
+    shortDescription: "Watch different AIs debate any topic in real-time",
     content: `The AI Debate Arena is Symposium AI's signature feature where you can watch different AI models debate any topic you choose.
 
 How It Works:
-1. Choose a debate topic (preset topics available, custom topics with Premium)
+1. Choose a motion (preset, custom, or surprise)
 2. Select two AI debaters from your configured providers
-3. Pick a debate format that matches your interests
-4. Set the number of rounds (1-7 exchanges)
-5. Watch the debate unfold in real-time!
+3. Pick a debate format and number of exchanges
+4. Watch the debate unfold in real time
+
+Demo vs Live:
+- Demo mode plays curated, pre-recorded debates
+- Start a trial or subscription to run live debates with your API keys
 
 Each AI will present arguments, respond to their opponent, and try to make the most compelling case. You can vote on who made the better argument after the debate concludes.`,
-    webUrl: 'https://www.symposiumai.app/help/debate-arena',
-    relatedTopics: ['debate-formats', 'debate-voting', 'debate-stats'],
+    webUrl: "https://www.symposiumai.app/help/debate-arena",
+    relatedTopics: ["debate-formats", "debate-voting", "debate-stats"],
   },
 
-  'debate-formats': {
-    id: 'debate-formats',
-    title: 'Debate Formats',
-    icon: 'list',
-    category: 'debate-arena',
-    shortDescription: 'Four distinct debate styles to choose from',
+  "debate-formats": {
+    id: "debate-formats",
+    title: "Debate Formats",
+    icon: "list",
+    category: "debate-arena",
+    shortDescription: "Four distinct debate styles to choose from",
     content: `Symposium AI offers four debate formats, each with a unique style:
 
 Oxford Format:
@@ -96,16 +99,16 @@ Data-driven debate with emphasis on evidence and practical solutions. Includes p
 
 Socratic Method:
 Inquiry-based dialogue through thoughtful questions. AIs challenge each other's assumptions. Best for: Exploring complex ideas and definitions.`,
-    webUrl: 'https://www.symposiumai.app/help/debate-formats',
-    relatedTopics: ['debate-arena', 'debate-voting'],
+    webUrl: "https://www.symposiumai.app/help/debate-formats",
+    relatedTopics: ["debate-arena", "debate-voting"],
   },
 
-  'debate-voting': {
-    id: 'debate-voting',
-    title: 'Voting & Scoring',
-    icon: 'trophy',
-    category: 'debate-arena',
-    shortDescription: 'How to judge and vote on debates',
+  "debate-voting": {
+    id: "debate-voting",
+    title: "Voting & Scoring",
+    icon: "trophy",
+    category: "debate-arena",
+    shortDescription: "How to judge and vote on debates",
     content: `After each debate, you can vote on which AI made the more compelling argument.
 
 Voting Criteria:
@@ -121,45 +124,40 @@ Voting helps you engage critically with the debate content and track which AIs p
 
 Debate History:
 All your debates and votes are saved in your history, so you can review past debates and see patterns in AI performance.`,
-    webUrl: 'https://www.symposiumai.app/help/debate-voting',
-    relatedTopics: ['debate-arena', 'debate-transcripts'],
+    webUrl: "https://www.symposiumai.app/help/debate-voting",
+    relatedTopics: ["debate-arena", "debate-transcripts"],
   },
 
-  'debate-transcripts': {
-    id: 'debate-transcripts',
-    title: 'Debate Transcripts',
-    icon: 'document-text',
-    category: 'debate-arena',
-    shortDescription: 'Save and share debate transcripts',
+  "debate-transcripts": {
+    id: "debate-transcripts",
+    title: "Debate Transcripts",
+    icon: "document-text",
+    category: "debate-arena",
+    shortDescription: "Save and share debate transcripts",
     content: `You can export complete transcripts of any debate for reference or sharing.
 
 Export Options:
-- Copy to clipboard for quick sharing
-- Share directly to other apps
-- Save to your device
+- Share the PDF using your device share sheet
+- Save the PDF to your device for later
 
 Transcript Contents:
-- Debate topic and format
-- AI participants and their models
-- Complete exchange with timestamps
-- Final vote and scores
-- Date and session info
-
-Premium Feature:
-Full transcript export and sharing is a Premium feature. Free users can view debates in-app but cannot export.`,
-    webUrl: 'https://www.symposiumai.app/help/debate-transcripts',
-    relatedTopics: ['debate-arena', 'debate-voting'],
+- Debate motion and date
+- AI participants
+- Full exchange in order
+- Final winner and round scores (if available)`,
+    webUrl: "https://www.symposiumai.app/help/debate-transcripts",
+    relatedTopics: ["debate-arena", "debate-voting"],
   },
 
   // ============================================
   // BYOK (Bring Your Own Keys)
   // ============================================
-  'byok-overview': {
-    id: 'byok-overview',
-    title: 'What is BYOK?',
-    icon: 'key',
-    category: 'getting-started',
-    shortDescription: 'Bring Your Own Keys explained',
+  "byok-overview": {
+    id: "byok-overview",
+    title: "What is BYOK?",
+    icon: "key",
+    category: "getting-started",
+    shortDescription: "Bring Your Own Keys explained",
     content: `BYOK (Bring Your Own Keys) lets you use your own API keys from AI providers like OpenAI, Anthropic, and Google.
 
 Why BYOK?
@@ -174,16 +172,16 @@ Supported Providers:
 - Character.AI
 
 Your keys are stored securely on your device and never sent to our servers.`,
-    webUrl: 'https://www.symposiumai.app/help/byok',
-    relatedTopics: ['byok-getting-keys', 'byok-security', 'byok-cost-savings'],
+    webUrl: "https://www.symposiumai.app/help/byok",
+    relatedTopics: ["byok-getting-keys", "byok-security", "byok-cost-savings"],
   },
 
-  'byok-getting-keys': {
-    id: 'byok-getting-keys',
-    title: 'Getting API Keys',
-    icon: 'download',
-    category: 'byok',
-    shortDescription: 'How to obtain API keys from each provider',
+  "byok-getting-keys": {
+    id: "byok-getting-keys",
+    title: "Getting API Keys",
+    icon: "download",
+    category: "byok",
+    shortDescription: "How to obtain API keys from each provider",
     content: `Each AI provider has a developer portal where you can generate API keys.
 
 General Steps:
@@ -201,16 +199,16 @@ Important:
 - Never share keys publicly
 - Set spending limits in provider dashboards
 - Regenerate keys if compromised`,
-    webUrl: 'https://www.symposiumai.app/help/getting-keys',
-    relatedTopics: ['byok-overview', 'byok-security'],
+    webUrl: "https://www.symposiumai.app/help/getting-keys",
+    relatedTopics: ["byok-overview", "byok-security"],
   },
 
-  'byok-security': {
-    id: 'byok-security',
-    title: 'Key Security',
-    icon: 'shield-checkmark',
-    category: 'byok',
-    shortDescription: 'How your API keys are protected',
+  "byok-security": {
+    id: "byok-security",
+    title: "Key Security",
+    icon: "shield-checkmark",
+    category: "byok",
+    shortDescription: "How your API keys are protected",
     content: `Your API keys are sensitive credentials that grant access to AI services. Here's how we protect them:
 
 Local Storage Only:
@@ -227,16 +225,16 @@ Best Practices:
 
 If You Suspect Compromise:
 Immediately regenerate your API keys in the provider's dashboard and update them in Symposium AI.`,
-    webUrl: 'https://www.symposiumai.app/help/security',
-    relatedTopics: ['byok-overview', 'byok-getting-keys'],
+    webUrl: "https://www.symposiumai.app/help/security",
+    relatedTopics: ["byok-overview", "byok-getting-keys"],
   },
 
-  'byok-cost-savings': {
-    id: 'byok-cost-savings',
-    title: 'Cost Savings',
-    icon: 'cash',
-    category: 'byok',
-    shortDescription: 'How BYOK saves you money',
+  "byok-cost-savings": {
+    id: "byok-cost-savings",
+    title: "Cost Savings",
+    icon: "cash",
+    category: "byok",
+    shortDescription: "How BYOK saves you money",
     content: `BYOK can significantly reduce your AI costs compared to multiple subscriptions.
 
 The Math:
@@ -254,60 +252,59 @@ Pay-Per-Use Benefits:
 - Access to all models from day one
 - No feature restrictions based on tier
 
-Tip: Start with the most affordable models (like GPT-4o-mini or Claude Haiku) and upgrade to premium models only when needed.`,
-    webUrl: 'https://www.symposiumai.app/help/cost-savings',
-    relatedTopics: ['byok-overview', 'expert-mode'],
+Tip: Start with the most affordable models (like GPT-4o-mini or Claude Haiku) and upgrade to higher-cost models only when needed.`,
+    webUrl: "https://www.symposiumai.app/help/cost-savings",
+    relatedTopics: ["byok-overview", "expert-mode"],
   },
 
   // ============================================
   // PERSONALITIES
   // ============================================
-  'personalities': {
-    id: 'personalities',
-    title: 'AI Personalities',
-    icon: 'people',
-    category: 'getting-started',
-    shortDescription: 'Give each AI a unique communication style',
+  personalities: {
+    id: "personalities",
+    title: "AI Personalities",
+    icon: "people",
+    category: "getting-started",
+    shortDescription: "Give each AI a unique communication style",
     content: `Personalities transform how AIs communicate with you, making conversations more engaging and tailored to your preferences.
 
-Available Personalities:
-Symposium AI includes 12 distinct personalities across different categories:
-
-Friendly: Warm, supportive, conversational tone
-Professional: Clear, formal, business-appropriate
-Creative: Imaginative, playful, expressive
-Analytical: Logical, detailed, thorough
-Casual: Relaxed, informal, easygoing
+Available Personalities (8):
+- Default: Use the AI as-is (no added style layer)
+- Bestie: Empathetic co-pilot focused on next steps
+- Brody: High-energy coach with direct, action-first advice
+- Devlin: Respectful devil's advocate who stress-tests ideas
+- George: Satirical mirror with sharp, PG-rated wit
+- Kai: Staff engineer mindset; structured and detail-focused
+- Prof. Sage: Socratic scholar; precise and citation-friendly
+- Scout: Narrative strategist who uses scenes and analogies
 
 How to Use:
-1. Select an AI on the home screen
-2. Tap the personality selector (smiley icon)
-3. Choose a personality that fits your mood or needs
+1. Select an AI card
+2. Tap the Personality badge
+3. Choose a personality for that AI
 
 Mix and Match:
-In multi-AI chats, give each AI a different personality to see varied perspectives and communication styles on the same topic.
-
-Premium Feature:
-All 12 personalities plus seasonal packs are available with Premium.`,
-    webUrl: 'https://www.symposiumai.app/help/personalities',
-    relatedTopics: ['multi-ai-chat', 'dynamic-ai-selector'],
+In multi-AI chats, give each AI a different personality to see varied perspectives and communication styles on the same topic.`,
+    webUrl: "https://www.symposiumai.app/help/personalities",
+    relatedTopics: ["multi-ai-chat", "dynamic-ai-selector"],
   },
 
   // ============================================
   // EXPERT MODE
   // ============================================
-  'expert-mode': {
-    id: 'expert-mode',
-    title: 'Expert Mode',
-    icon: 'settings',
-    category: 'getting-started',
-    shortDescription: 'Fine-tune AI behavior with advanced settings',
+  "expert-mode": {
+    id: "expert-mode",
+    title: "Expert Mode",
+    icon: "settings",
+    category: "getting-started",
+    shortDescription: "Fine-tune AI behavior with advanced settings",
     content: `Expert Mode gives you control over AI model parameters, letting you customize response behavior for different use cases.
 
 What You Can Control:
+- Model selection (per provider)
 - Temperature: Creativity vs consistency
 - Max Tokens: Response length limits
-- Top-P: Response diversity
+- Top-P: Response diversity (where supported)
 
 When to Use Expert Mode:
 - Creative writing: Higher temperature for variety
@@ -315,18 +312,19 @@ When to Use Expert Mode:
 - Long-form content: Increase max tokens
 - Quick answers: Decrease max tokens
 
-Premium Feature:
-Expert Mode is available with Premium subscription. It allows you to select specific models and fine-tune parameters per provider.`,
-    webUrl: 'https://www.symposiumai.app/help/expert-mode',
-    relatedTopics: ['expert-temperature', 'expert-tokens', 'expert-top-p'],
+Notes:
+- Expert Mode is available once you add provider API keys
+- Parameter availability varies by provider`,
+    webUrl: "https://www.symposiumai.app/help/expert-mode",
+    relatedTopics: ["expert-temperature", "expert-tokens", "expert-top-p"],
   },
 
-  'expert-temperature': {
-    id: 'expert-temperature',
-    title: 'Temperature',
-    icon: 'thermometer',
-    category: 'expert-mode',
-    shortDescription: 'Control creativity vs consistency',
+  "expert-temperature": {
+    id: "expert-temperature",
+    title: "Temperature",
+    icon: "thermometer",
+    category: "expert-mode",
+    shortDescription: "Control creativity vs consistency",
     content: `Temperature controls how "creative" or "random" the AI's responses are.
 
 Scale: 0.0 to 2.0 (default usually 1.0)
@@ -346,16 +344,16 @@ High Temperature (1.0-2.0):
 - Best for: Creative writing, brainstorming, storytelling
 
 Tip: Start with the default and adjust based on results. Too high can produce nonsensical output.`,
-    webUrl: 'https://www.symposiumai.app/help/temperature',
-    relatedTopics: ['expert-mode', 'expert-tokens', 'expert-top-p'],
+    webUrl: "https://www.symposiumai.app/help/temperature",
+    relatedTopics: ["expert-mode", "expert-tokens", "expert-top-p"],
   },
 
-  'expert-tokens': {
-    id: 'expert-tokens',
-    title: 'Max Tokens',
-    icon: 'text',
-    category: 'expert-mode',
-    shortDescription: 'Control response length',
+  "expert-tokens": {
+    id: "expert-tokens",
+    title: "Max Tokens",
+    icon: "text",
+    category: "expert-mode",
+    shortDescription: "Control response length",
     content: `Max Tokens limits how long the AI's response can be.
 
 What Are Tokens?
@@ -376,16 +374,16 @@ When to Adjust:
 - Code generation: 2048+ tokens
 
 Note: The AI may stop before reaching max tokens if it completes its thought.`,
-    webUrl: 'https://www.symposiumai.app/help/max-tokens',
-    relatedTopics: ['expert-mode', 'expert-temperature', 'byok-cost-savings'],
+    webUrl: "https://www.symposiumai.app/help/max-tokens",
+    relatedTopics: ["expert-mode", "expert-temperature", "byok-cost-savings"],
   },
 
-  'expert-top-p': {
-    id: 'expert-top-p',
-    title: 'Top-P (Nucleus Sampling)',
-    icon: 'options',
-    category: 'expert-mode',
-    shortDescription: 'Control response diversity',
+  "expert-top-p": {
+    id: "expert-top-p",
+    title: "Top-P (Nucleus Sampling)",
+    icon: "options",
+    category: "expert-mode",
+    shortDescription: "Control response diversity",
     content: `Top-P (also called nucleus sampling) is an alternative way to control response randomness.
 
 Scale: 0.0 to 1.0 (default usually 1.0)
@@ -405,19 +403,19 @@ Temperature vs Top-P:
 Both control randomness but differently. Most users adjust temperature and leave Top-P at default. Adjusting both can produce unexpected results.
 
 Tip: If using Top-P, consider setting temperature to 1.0 and only adjusting Top-P.`,
-    webUrl: 'https://www.symposiumai.app/help/top-p',
-    relatedTopics: ['expert-mode', 'expert-temperature'],
+    webUrl: "https://www.symposiumai.app/help/top-p",
+    relatedTopics: ["expert-mode", "expert-temperature"],
   },
 
   // ============================================
   // FEATURES
   // ============================================
-  'compare-mode': {
-    id: 'compare-mode',
-    title: 'Compare Mode',
-    icon: 'git-compare',
-    category: 'getting-started',
-    shortDescription: 'See AI responses side-by-side',
+  "compare-mode": {
+    id: "compare-mode",
+    title: "Compare Mode",
+    icon: "git-compare",
+    category: "getting-started",
+    shortDescription: "See AI responses side-by-side",
     content: `Compare Mode lets you see how different AIs respond to the same prompt, displayed side-by-side.
 
 How It Works:
@@ -440,16 +438,16 @@ Use Cases:
 - Get diverse perspectives
 - Fact-check between models
 - Find the best explanation`,
-    webUrl: 'https://www.symposiumai.app/help/compare-mode',
-    relatedTopics: ['multi-ai-chat', 'debate-arena'],
+    webUrl: "https://www.symposiumai.app/help/compare-mode",
+    relatedTopics: ["multi-ai-chat", "debate-arena"],
   },
 
-  'multi-ai-chat': {
-    id: 'multi-ai-chat',
-    title: 'Multi-AI Chat',
-    icon: 'people-circle',
-    category: 'getting-started',
-    shortDescription: 'Chat with multiple AIs simultaneously',
+  "multi-ai-chat": {
+    id: "multi-ai-chat",
+    title: "Multi-AI Chat",
+    icon: "people-circle",
+    category: "getting-started",
+    shortDescription: "Chat with multiple AIs simultaneously",
     content: `Multi-AI Chat lets you have conversations with up to 3 different AI providers at once.
 
 How to Set Up:
@@ -469,19 +467,19 @@ Use @Claude, @ChatGPT, etc. to direct a message to a specific AI. Otherwise, all
 
 Hallucination Shield:
 With multiple AIs, they can fact-check each other. If responses differ significantly, investigate further!`,
-    webUrl: 'https://www.symposiumai.app/help/multi-ai-chat',
-    relatedTopics: ['compare-mode', 'personalities'],
+    webUrl: "https://www.symposiumai.app/help/multi-ai-chat",
+    relatedTopics: ["compare-mode", "personalities"],
   },
 
   // ============================================
   // CHAT
   // ============================================
-  'quick-start-wizard': {
-    id: 'quick-start-wizard',
-    title: 'Quick Start Prompts',
-    icon: 'flash',
-    category: 'chat',
-    shortDescription: 'Smart conversation starters that help you begin',
+  "quick-start-wizard": {
+    id: "quick-start-wizard",
+    title: "Quick Start Prompts",
+    icon: "flash",
+    category: "chat",
+    shortDescription: "Smart conversation starters that help you begin",
     content: `The Quick Start system helps you begin meaningful conversations without having to think of a prompt from scratch.
 
 How It Works:
@@ -505,16 +503,16 @@ Available Categories:
 - Creative Writing: Collaborative storytelling
 - Problem Solving: Work through challenges
 - Just for Fun: Games and entertainment`,
-    webUrl: 'https://www.symposiumai.app/help/quick-start',
-    relatedTopics: ['multi-ai-chat', 'round-robin'],
+    webUrl: "https://www.symposiumai.app/help/quick-start",
+    relatedTopics: ["multi-ai-chat", "round-robin"],
   },
 
-  'history': {
-    id: 'history',
-    title: 'Chat History',
-    icon: 'time',
-    category: 'chat',
-    shortDescription: 'View and manage past conversations',
+  history: {
+    id: "history",
+    title: "Chat History",
+    icon: "time",
+    category: "chat",
+    shortDescription: "View and manage past conversations",
     content: `All your conversations are automatically saved and accessible from the History tab.
 
 Features:
@@ -528,20 +526,17 @@ Session Stats:
 See your total sessions, message counts, and breakdown by type.
 
 Privacy:
-All history is stored locally on your device. Clearing the app data or uninstalling will remove history.
-
-Premium:
-Export and share conversation transcripts with Premium subscription.`,
-    webUrl: 'https://www.symposiumai.app/help/history',
-    relatedTopics: ['history-overview', 'history-clear-all'],
+All history is stored locally on your device. Clearing the app data or uninstalling will remove history.`,
+    webUrl: "https://www.symposiumai.app/help/history",
+    relatedTopics: ["history-overview", "history-clear-all"],
   },
 
-  'round-robin': {
-    id: 'round-robin',
-    title: 'Round Robin Format',
-    icon: 'sync',
-    category: 'chat',
-    shortDescription: 'How conversations work with multiple AIs',
+  "round-robin": {
+    id: "round-robin",
+    title: "Round Robin Format",
+    icon: "sync",
+    category: "chat",
+    shortDescription: "How conversations work with multiple AIs",
     content: `When you chat with multiple AIs at once, they respond in a round-robin format.
 
 How Round-Robin Works:
@@ -565,16 +560,16 @@ Tips:
 - AIs can reference and respond to each other's points
 - Use @mentions to direct specific questions to one AI
 - All responses are clearly labeled with which AI wrote them`,
-    webUrl: 'https://www.symposiumai.app/help/multi-ai-chat',
-    relatedTopics: ['multi-ai-chat', 'ai-mentions'],
+    webUrl: "https://www.symposiumai.app/help/multi-ai-chat",
+    relatedTopics: ["multi-ai-chat", "ai-mentions"],
   },
 
-  'ai-mentions': {
-    id: 'ai-mentions',
-    title: '@Mentions',
-    icon: 'at',
-    category: 'chat',
-    shortDescription: 'Direct messages to specific AIs',
+  "ai-mentions": {
+    id: "ai-mentions",
+    title: "@Mentions",
+    icon: "at",
+    category: "chat",
+    shortDescription: "Direct messages to specific AIs",
     content: `Use @mentions to direct your message to a specific AI in a multi-AI chat.
 
 How to Use @Mentions:
@@ -599,19 +594,19 @@ Pro Tips:
 - Great for fact-checking between multiple AIs
 - Helps reduce response volume when you only need one opinion
 - Each AI still sees the full conversation context`,
-    webUrl: 'https://www.symposiumai.app/help/mentions',
-    relatedTopics: ['multi-ai-chat', 'round-robin'],
+    webUrl: "https://www.symposiumai.app/help/mentions",
+    relatedTopics: ["multi-ai-chat", "round-robin"],
   },
 
   // ============================================
   // GETTING STARTED - NEW TOPICS
   // ============================================
-  'dynamic-ai-selector': {
-    id: 'dynamic-ai-selector',
-    title: 'AI Selection',
-    icon: 'apps',
-    category: 'getting-started',
-    shortDescription: 'Choose AIs, personalities, and models',
+  "dynamic-ai-selector": {
+    id: "dynamic-ai-selector",
+    title: "AI Selection",
+    icon: "apps",
+    category: "getting-started",
+    shortDescription: "Choose AIs, personalities, and models",
     content: `The home screen lets you configure which AIs to chat with and how they'll respond.
 
 Selecting AIs:
@@ -625,16 +620,16 @@ With Expert Mode enabled, you can choose specific AI models. This appears as a d
 
 Start Chatting:
 Once you've selected at least one AI, tap "Start Chat" to begin. Use the lightbulb icon for Quick Start prompts.`,
-    webUrl: 'https://www.symposiumai.app/help/ai-selection',
-    relatedTopics: ['personalities', 'expert-mode', 'quick-start-wizard'],
+    webUrl: "https://www.symposiumai.app/help/ai-selection",
+    relatedTopics: ["personalities", "expert-mode", "quick-start-wizard"],
   },
 
-  'history-overview': {
-    id: 'history-overview',
-    title: 'History Overview',
-    icon: 'albums',
-    category: 'getting-started',
-    shortDescription: 'All your conversations in one place',
+  "history-overview": {
+    id: "history-overview",
+    title: "History Overview",
+    icon: "albums",
+    category: "getting-started",
+    shortDescription: "All your conversations in one place",
     content: `The History tab stores all your conversations, debates, and comparisons.
 
 What's Saved:
@@ -650,19 +645,19 @@ Each session shows participants, date, preview, and message count. Tap to contin
 
 Local Storage:
 All history is stored on your device. Clearing app data will remove history.`,
-    webUrl: 'https://www.symposiumai.app/help/history-overview',
-    relatedTopics: ['chat-history', 'debate-history', 'compare-history'],
+    webUrl: "https://www.symposiumai.app/help/history-overview",
+    relatedTopics: ["chat-history", "debate-history", "compare-history"],
   },
 
   // ============================================
   // DEBATE ARENA - NEW TOPICS
   // ============================================
-  'debate-stats': {
-    id: 'debate-stats',
-    title: 'Debate Stats',
-    icon: 'stats-chart',
-    category: 'debate-arena',
-    shortDescription: 'Track AI debate performance',
+  "debate-stats": {
+    id: "debate-stats",
+    title: "Debate Stats",
+    icon: "stats-chart",
+    category: "debate-arena",
+    shortDescription: "Track AI debate performance",
     content: `The Stats screen shows performance metrics for your AI debates.
 
 What's Tracked:
@@ -678,19 +673,19 @@ Accessing Stats:
 Tap the Stats button on the Debate Arena setup screen to view your debate statistics.
 
 Note: Stats are calculated from your local debate history.`,
-    webUrl: 'https://www.symposiumai.app/help/debate-stats',
-    relatedTopics: ['debate-arena', 'debate-voting'],
+    webUrl: "https://www.symposiumai.app/help/debate-stats",
+    relatedTopics: ["debate-arena", "debate-voting"],
   },
 
   // ============================================
   // COMPARE - NEW TOPICS
   // ============================================
-  'compare-bubble': {
-    id: 'compare-bubble',
-    title: 'Expand Responses',
-    icon: 'expand',
-    category: 'compare',
-    shortDescription: 'View full AI responses in Compare mode',
+  "compare-bubble": {
+    id: "compare-bubble",
+    title: "Expand Responses",
+    icon: "expand",
+    category: "compare",
+    shortDescription: "View full AI responses in Compare mode",
     content: `In Compare mode, tap on any response bubble to expand it for easier reading.
 
 Why Expand?
@@ -701,16 +696,16 @@ Tap anywhere on a response bubble to expand it to full width. Tap again or tap o
 
 Comparing Content:
 Use this to carefully read each AI's full response before deciding which answer you prefer.`,
-    webUrl: 'https://www.symposiumai.app/help/compare-bubble',
-    relatedTopics: ['compare-mode', 'compare-continue'],
+    webUrl: "https://www.symposiumai.app/help/compare-bubble",
+    relatedTopics: ["compare-mode", "compare-continue"],
   },
 
-  'compare-continue': {
-    id: 'compare-continue',
-    title: 'Continue with AI',
-    icon: 'arrow-forward',
-    category: 'compare',
-    shortDescription: 'Continue chatting after comparison',
+  "compare-continue": {
+    id: "compare-continue",
+    title: "Continue with AI",
+    icon: "arrow-forward",
+    category: "compare",
+    shortDescription: "Continue chatting after comparison",
     content: `After comparing AI responses, you can continue the conversation with your preferred AI.
 
 How It Works:
@@ -721,19 +716,19 @@ The new chat will include the comparison context, so the AI knows what was discu
 
 Use Case:
 Great for when one AI gives a better answer and you want to explore the topic further with them.`,
-    webUrl: 'https://www.symposiumai.app/help/compare-continue',
-    relatedTopics: ['compare-mode', 'compare-bubble'],
+    webUrl: "https://www.symposiumai.app/help/compare-continue",
+    relatedTopics: ["compare-mode", "compare-bubble"],
   },
 
   // ============================================
   // HISTORY - NEW TOPICS
   // ============================================
-  'chat-history': {
-    id: 'chat-history',
-    title: 'Chat Sessions',
-    icon: 'chatbubble',
-    category: 'history',
-    shortDescription: 'Manage your chat conversations',
+  "chat-history": {
+    id: "chat-history",
+    title: "Chat Sessions",
+    icon: "chatbubble",
+    category: "history",
+    shortDescription: "Manage your chat conversations",
     content: `Your chat sessions are automatically saved to History.
 
 What's Saved:
@@ -749,16 +744,16 @@ Managing Chats:
 
 Filtering:
 Use the "Chat" tab in History to see only chat sessions.`,
-    webUrl: 'https://www.symposiumai.app/help/chat-history',
-    relatedTopics: ['history-overview', 'history-clear-all'],
+    webUrl: "https://www.symposiumai.app/help/chat-history",
+    relatedTopics: ["history-overview", "history-clear-all"],
   },
 
-  'debate-history': {
-    id: 'debate-history',
-    title: 'Debate Sessions',
-    icon: 'trophy',
-    category: 'history',
-    shortDescription: 'Review past AI debates',
+  "debate-history": {
+    id: "debate-history",
+    title: "Debate Sessions",
+    icon: "trophy",
+    category: "history",
+    shortDescription: "Review past AI debates",
     content: `All your AI debates are saved with full transcripts.
 
 What's Saved:
@@ -773,16 +768,16 @@ Tap any debate to read the full transcript and see the arguments each AI made.
 
 Filtering:
 Use the "Debate" tab in History to see only debate sessions.`,
-    webUrl: 'https://www.symposiumai.app/help/debate-history',
-    relatedTopics: ['history-overview', 'debate-arena'],
+    webUrl: "https://www.symposiumai.app/help/debate-history",
+    relatedTopics: ["history-overview", "debate-arena"],
   },
 
-  'compare-history': {
-    id: 'compare-history',
-    title: 'Compare Sessions',
-    icon: 'git-compare',
-    category: 'history',
-    shortDescription: 'Review past AI comparisons',
+  "compare-history": {
+    id: "compare-history",
+    title: "Compare Sessions",
+    icon: "git-compare",
+    category: "history",
+    shortDescription: "Review past AI comparisons",
     content: `Your Compare mode sessions are saved for future reference.
 
 What's Saved:
@@ -796,16 +791,16 @@ Tap any comparison to see the side-by-side responses again.
 
 Filtering:
 Use the "Compare" tab in History to see only comparison sessions.`,
-    webUrl: 'https://www.symposiumai.app/help/compare-history',
-    relatedTopics: ['history-overview', 'compare-mode'],
+    webUrl: "https://www.symposiumai.app/help/compare-history",
+    relatedTopics: ["history-overview", "compare-mode"],
   },
 
-  'history-clear-all': {
-    id: 'history-clear-all',
-    title: 'Clear All History',
-    icon: 'trash',
-    category: 'history',
-    shortDescription: 'Delete all saved sessions',
+  "history-clear-all": {
+    id: "history-clear-all",
+    title: "Clear All History",
+    icon: "trash",
+    category: "history",
+    shortDescription: "Delete all saved sessions",
     content: `You can clear all your history at once from the History screen.
 
 How to Clear:
@@ -822,8 +817,8 @@ This action cannot be undone. All your conversation history will be permanently 
 
 Individual Deletion:
 To delete specific sessions, swipe left on them in the list instead of using Clear All.`,
-    webUrl: 'https://www.symposiumai.app/help/history-clear-all',
-    relatedTopics: ['history-overview', 'chat-history'],
+    webUrl: "https://www.symposiumai.app/help/history-clear-all",
+    relatedTopics: ["history-overview", "chat-history"],
   },
 };
 
@@ -831,7 +826,9 @@ To delete specific sessions, swipe left on them in the list instead of using Cle
  * Get topics by category
  */
 export function getTopicsByCategory(category: HelpCategory): HelpTopic[] {
-  return Object.values(HELP_TOPICS).filter((topic) => topic.category === category);
+  return Object.values(HELP_TOPICS).filter(
+    (topic) => topic.category === category
+  );
 }
 
 /**
