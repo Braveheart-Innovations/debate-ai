@@ -122,11 +122,14 @@ export const DebateMessageList: React.FC<DebateMessageListProps> = ({
   const lastMessageKeyRef = useRef('');
 
   // Auto-scroll to new messages
-  const scrollToEnd = useCallback(() => {
-    setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: true });
-    }, 100);
+  const scrollToEnd = useCallback((animated = true) => {
+    flatListRef.current?.scrollToEnd({ animated });
   }, []);
+
+  // Handle content size changes - unconditionally scroll like Chat mode
+  const handleContentSizeChange = useCallback(() => {
+    scrollToEnd(true);
+  }, [scrollToEnd]);
 
   // Scroll when new messages are added
   const listEmpty = messages.length === 0;
@@ -277,6 +280,7 @@ export const DebateMessageList: React.FC<DebateMessageListProps> = ({
         ]}
         ListFooterComponent={renderTypingIndicator}
         onScroll={handleScroll}
+        onContentSizeChange={handleContentSizeChange}
         scrollEventThrottle={16}
         // Performance optimizations
         removeClippedSubviews={true}

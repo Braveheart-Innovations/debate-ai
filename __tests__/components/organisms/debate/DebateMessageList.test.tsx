@@ -176,6 +176,19 @@ describe('DebateMessageList', () => {
   });
 
   describe('Scroll Behavior', () => {
+    it('has onContentSizeChange handler for auto-scroll during streaming', () => {
+      const { UNSAFE_getByType } = renderWithProviders(
+        <DebateMessageList {...defaultProps} />
+      );
+
+      const FlatList = require('react-native').FlatList;
+      const flatList = UNSAFE_getByType(FlatList);
+
+      // Verify onContentSizeChange is connected (enables auto-scroll during streaming)
+      expect(flatList.props.onContentSizeChange).toBeDefined();
+      expect(typeof flatList.props.onContentSizeChange).toBe('function');
+    });
+
     it('handles scroll events', () => {
       const { UNSAFE_getByType } = renderWithProviders(
         <DebateMessageList {...defaultProps} />
