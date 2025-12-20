@@ -19,6 +19,7 @@ export const SettingsContent: React.FC<SettingsContentProps> = ({
   onNavigateToAPIConfig,
   onNavigateToExpertMode,
 }) => {
+  const showDevSettings = __DEV__;
   const { theme } = useTheme();
   const dispatch = useDispatch();
   const streamingEnabled = useSelector((state: RootState) => state.streaming?.globalStreamingEnabled ?? true);
@@ -92,32 +93,36 @@ export const SettingsContent: React.FC<SettingsContentProps> = ({
       </View>
       
       <View style={[styles.section, { backgroundColor: theme.colors.surface }]}>
-        <SettingRow
-          title="Record Mode"
-          subtitle="Dev-only: show Record/Stop in headers"
-          icon="radio-button-on"
-          rightElement={
-            <Button
-              title={recordModeEnabled ? 'On' : 'Off'}
-              onPress={() => dispatch(setRecordModeEnabled(!recordModeEnabled))}
-              variant={recordModeEnabled ? 'primary' : 'secondary'}
-              size="small"
+        {showDevSettings && (
+          <>
+            <SettingRow
+              title="Record Mode"
+              subtitle="Dev-only: show Record/Stop in headers"
+              icon="radio-button-on"
+              rightElement={
+                <Button
+                  title={recordModeEnabled ? 'On' : 'Off'}
+                  onPress={() => dispatch(setRecordModeEnabled(!recordModeEnabled))}
+                  variant={recordModeEnabled ? 'primary' : 'secondary'}
+                  size="small"
+                />
+              }
             />
-          }
-        />
-        <SettingRow
-          title="Premium Mode"
-          subtitle={hasPremiumAccess ? 'Premium features unlocked' : 'Simulate premium to test UI'}
-          icon="star"
-          rightElement={
-            <Button
-              title={hasPremiumAccess ? 'On' : 'Off'}
-              onPress={() => dispatch(setPremiumStatus(!hasPremiumAccess))}
-              variant={hasPremiumAccess ? 'primary' : 'secondary'}
-              size="small"
+            <SettingRow
+              title="Premium Mode"
+              subtitle={hasPremiumAccess ? 'Premium features unlocked' : 'Simulate premium to test UI'}
+              icon="star"
+              rightElement={
+                <Button
+                  title={hasPremiumAccess ? 'On' : 'Off'}
+                  onPress={() => dispatch(setPremiumStatus(!hasPremiumAccess))}
+                  variant={hasPremiumAccess ? 'primary' : 'secondary'}
+                  size="small"
+                />
+              }
             />
-          }
-        />
+          </>
+        )}
         
         <SettingRow
           title="Dark Mode"

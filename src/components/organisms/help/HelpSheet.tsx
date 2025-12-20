@@ -160,22 +160,6 @@ export const HelpSheet: React.FC<HelpSheetProps> = ({ onClose }) => {
     }
   };
 
-  const openExternalLink = async (url: string, label: string) => {
-    try {
-      const canOpen = await Linking.canOpenURL(url);
-      if (!canOpen) {
-        throw new Error('unsupported');
-      }
-      await Linking.openURL(url);
-    } catch {
-      Alert.alert(
-        'Unable to open link',
-        `Please open ${label} in your browser:\n${url}`,
-        [{ text: 'OK' }]
-      );
-    }
-  };
-
   const renderTabBar = () => (
     <View style={[styles.tabBar, { borderBottomColor: theme.colors.border }]}>
       {[
@@ -367,18 +351,9 @@ export const HelpSheet: React.FC<HelpSheetProps> = ({ onClose }) => {
         >
           Legal &amp; Policies
         </Typography>
-        <Typography
-          variant="caption"
-          color="secondary"
-          style={{ marginBottom: 12, paddingHorizontal: 4 }}
-        >
-          We'll open these in your browser so you always see the current
-          versions.
-        </Typography>
-
         <TouchableOpacity
           style={[styles.listItem, { backgroundColor: theme.colors.surface }]}
-          onPress={() => openExternalLink(PRIVACY_POLICY_URL, 'the Privacy Policy')}
+          onPress={() => handleLearnMore(PRIVACY_POLICY_URL)}
           activeOpacity={0.7}
         >
           <View style={styles.listItemContent}>
@@ -392,7 +367,7 @@ export const HelpSheet: React.FC<HelpSheetProps> = ({ onClose }) => {
                 Privacy Policy
               </Typography>
               <Typography variant="caption" color="secondary">
-                Opens symposiumai.app/privacy
+                View our privacy policy
               </Typography>
             </View>
           </View>
@@ -405,7 +380,7 @@ export const HelpSheet: React.FC<HelpSheetProps> = ({ onClose }) => {
 
         <TouchableOpacity
           style={[styles.listItem, { backgroundColor: theme.colors.surface }]}
-          onPress={() => openExternalLink(TERMS_OF_SERVICE_URL, 'the Terms of Service')}
+          onPress={() => handleLearnMore(TERMS_OF_SERVICE_URL)}
           activeOpacity={0.7}
         >
           <View style={styles.listItemContent}>
@@ -419,7 +394,7 @@ export const HelpSheet: React.FC<HelpSheetProps> = ({ onClose }) => {
                 Terms of Service
               </Typography>
               <Typography variant="caption" color="secondary">
-                Opens symposiumai.app/terms
+                View our terms of service
               </Typography>
             </View>
           </View>

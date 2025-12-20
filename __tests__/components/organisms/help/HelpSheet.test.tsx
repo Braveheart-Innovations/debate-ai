@@ -280,4 +280,79 @@ describe('HelpSheet', () => {
       expect(mockOnClose).toHaveBeenCalled();
     });
   });
+
+  describe('legal links', () => {
+    it('renders Privacy Policy and Terms of Service in Contact tab', async () => {
+      const { getByText } = renderHelpSheet();
+
+      // Switch to Contact tab
+      const contactTab = getByText('Contact');
+      fireEvent.press(contactTab);
+
+      await waitFor(() => {
+        expect(getByText('Privacy Policy')).toBeTruthy();
+        expect(getByText('Terms of Service')).toBeTruthy();
+      });
+    });
+
+    it('dispatches showHelpWebView for Privacy Policy', async () => {
+      const store = createAppStore({
+        navigation: {
+          activeSheet: 'help',
+          sheetVisible: true,
+          sheetData: undefined,
+          helpWebViewUrl: undefined,
+        },
+      });
+
+      const { getByText } = renderWithProviders(<HelpSheet onClose={mockOnClose} />, { store });
+
+      // Switch to Contact tab
+      const contactTab = getByText('Contact');
+      fireEvent.press(contactTab);
+
+      await waitFor(() => {
+        expect(getByText('Privacy Policy')).toBeTruthy();
+      });
+
+      // Press Privacy Policy
+      const privacyPolicy = getByText('Privacy Policy');
+      fireEvent.press(privacyPolicy.parent?.parent as any);
+
+      await waitFor(() => {
+        const state = store.getState().navigation;
+        expect(state.helpWebViewUrl).toBe('https://www.symposiumai.app/privacy');
+      });
+    });
+
+    it('dispatches showHelpWebView for Terms of Service', async () => {
+      const store = createAppStore({
+        navigation: {
+          activeSheet: 'help',
+          sheetVisible: true,
+          sheetData: undefined,
+          helpWebViewUrl: undefined,
+        },
+      });
+
+      const { getByText } = renderWithProviders(<HelpSheet onClose={mockOnClose} />, { store });
+
+      // Switch to Contact tab
+      const contactTab = getByText('Contact');
+      fireEvent.press(contactTab);
+
+      await waitFor(() => {
+        expect(getByText('Terms of Service')).toBeTruthy();
+      });
+
+      // Press Terms of Service
+      const termsOfService = getByText('Terms of Service');
+      fireEvent.press(termsOfService.parent?.parent as any);
+
+      await waitFor(() => {
+        const state = store.getState().navigation;
+        expect(state.helpWebViewUrl).toBe('https://www.symposiumai.app/terms');
+      });
+    });
+  });
 });
