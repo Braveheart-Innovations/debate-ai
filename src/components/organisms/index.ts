@@ -75,9 +75,14 @@ export {
   DebateHistoryStats, 
   DebateTimeline 
 } from './stats/RecentDebatesSection';
-export { 
-  StatsEmptyState, 
-  StatsLoadingState, 
-  StatsErrorState, 
-  WelcomeToStats 
+export {
+  StatsEmptyState,
+  StatsLoadingState,
+  StatsErrorState,
+  WelcomeToStats
 } from './stats/StatsEmptyState';
+
+// Chart Section Organisms
+export { WinRateDonutSection } from './stats/WinRateDonutSection';
+export { PerformanceBarSection } from './stats/PerformanceBarSection';
+export { TrendLineSection } from './stats/TrendLineSection';

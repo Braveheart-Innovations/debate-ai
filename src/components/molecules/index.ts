@@ -72,3 +72,6 @@ export type { DemoProgressIndicatorProps } from './demo';
 // Help Molecules
 export { FAQItem } from './help/FAQItem';
 export { HelpTopicCard } from './help/HelpTopicCard';
+
+// Chart Molecules
+export * from './charts';

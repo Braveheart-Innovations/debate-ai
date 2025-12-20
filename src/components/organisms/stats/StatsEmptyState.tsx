@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
   emoji: { fontSize: 32 },
   title: { marginBottom: 12 },
   subtitle: { marginBottom: 24, lineHeight: 22 },
-  ctaButton: { marginTop: 8, minWidth: 200 },
+  ctaButton: { marginTop: 8, minWidth: 240, paddingHorizontal: 24 },
   helpText: { marginTop: 16, lineHeight: 18 },
   loadingDots: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 16, gap: 4 },
   dot: { width: 6, height: 6, borderRadius: 3 },

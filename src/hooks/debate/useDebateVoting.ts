@@ -26,7 +26,7 @@ export const useDebateVoting = (
   _participants: AI[]
 ): UseDebateVotingReturn => {
   const dispatch = useDispatch();
-  
+
   const [isVoting, setIsVoting] = useState(false);
   const [votingRound, setVotingRound] = useState(0);
   const [isFinalVote, setIsFinalVote] = useState(false);
@@ -60,6 +60,7 @@ export const useDebateVoting = (
         if (event.data.overallWinner) {
           dispatch(recordOverallWinner({ winnerId: event.data.overallWinner as string }));
         }
+        // Note: Stats are persisted in App.tsx which is always mounted
         break;
         
       default:
@@ -110,19 +111,23 @@ export const useDebateVoting = (
     
     try {
       setError(null);
-      
-      // Record vote in orchestrator
-      await orchestrator.recordVote(votingRound, aiId, isOverallVote);
-      
-      // Record vote in Redux store
-      if (isOverallVote) {
-        dispatch(recordOverallWinner({ winnerId: aiId }));
-      } else {
+
+      // Record vote in Redux store FIRST
+      // This must happen before orchestrator.recordVote because on the final round,
+      // the orchestrator will emit debate_ended which triggers recordOverallWinner
+      // and clears currentDebate. If we dispatch after, currentDebate is already gone.
+      if (!isOverallVote) {
         dispatch(recordRoundWinner({ round: votingRound, winnerId: aiId }));
       }
-      
+
+      // Record vote in orchestrator (may trigger debate_ended for final round)
+      await orchestrator.recordVote(votingRound, aiId, isOverallVote);
+
+      // Note: recordOverallWinner is dispatched by the debate_ended event handler,
+      // so we don't need to dispatch it here
+
       // Scores will be updated by the useEffect watching orchestrator
-      
+
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to record vote';
       setError(errorMessage);
@@ -144,7 +149,7 @@ export const useDebateVoting = (
   useEffect(() => {
     updateScores();
   }, [orchestrator, updateScores]);
-  
+
   return {
     isVoting,
     votingRound,

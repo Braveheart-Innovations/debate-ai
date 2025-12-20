@@ -79,24 +79,29 @@ const debateStatsSlice = createSlice({
     
     recordRoundWinner: (state, action: PayloadAction<{ round: number; winnerId: string }>) => {
       const { round, winnerId } = action.payload;
-      
+
       if (state.currentDebate) {
+        // Check if this round was already voted on to prevent double-counting
+        const alreadyVoted = state.currentDebate.roundWinners[round] !== undefined;
+
         state.currentDebate.roundWinners[round] = winnerId;
-        
-        // Update winner stats
-        if (state.stats[winnerId]) {
-          state.stats[winnerId].roundsWon += 1;
-        }
-        
-        // Update loser stats - only count once per round (not per participant)
-        // In a 2-player debate, there's exactly 1 loser per round
-        // This prevents double-counting rounds
-        const losers = state.currentDebate.participants.filter(aiId => aiId !== winnerId);
-        losers.forEach(aiId => {
-          if (state.stats[aiId]) {
-            state.stats[aiId].roundsLost += 1;
+
+        // Only update stats if this is a NEW vote for this round
+        if (!alreadyVoted) {
+          // Update winner stats
+          if (state.stats[winnerId]) {
+            state.stats[winnerId].roundsWon += 1;
           }
-        });
+
+          // Update loser stats - only count once per round (not per participant)
+          // In a 2-player debate, there's exactly 1 loser per round
+          const losers = state.currentDebate.participants.filter(aiId => aiId !== winnerId);
+          losers.forEach(aiId => {
+            if (state.stats[aiId]) {
+              state.stats[aiId].roundsLost += 1;
+            }
+          });
+        }
       }
     },
     
@@ -163,8 +168,13 @@ const debateStatsSlice = createSlice({
       state.preservedTopic = null;
       state.preservedTopicMode = 'preset';
     },
+
+    restoreStats: (state, action: PayloadAction<{ stats: DebateStats; history: DebateRound[] }>) => {
+      state.stats = action.payload.stats;
+      state.history = action.payload.history;
+    },
   },
 });
 
-export const { startDebate, recordRoundWinner, recordOverallWinner, clearStats, preserveTopic, clearPreservedTopic } = debateStatsSlice.actions;
+export const { startDebate, recordRoundWinner, recordOverallWinner, clearStats, preserveTopic, clearPreservedTopic, restoreStats } = debateStatsSlice.actions;
 export default debateStatsSlice.reducer;

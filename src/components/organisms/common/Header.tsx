@@ -652,9 +652,10 @@ export const Header: React.FC<HeaderProps> = ({
       style={[
         styles.container, 
         { backgroundColor: variantStyles.backgroundColor },
-        variant === 'gradient' && { 
-          height: totalHeight, 
-          overflow: 'hidden', 
+        variant === 'gradient' && {
+          minHeight: totalHeight,
+          paddingBottom: 0, // Override base padding, gradientContentContainer handles it
+          overflow: 'hidden',
           borderBottomWidth: 0,
           // Remove drop shadow/elevation to avoid a subtle line under the gradient
           elevation: 0,
@@ -726,8 +727,8 @@ export const Header: React.FC<HeaderProps> = ({
 };
 
 const createStyles = (
-  theme: Theme, 
-  totalHeight: number, 
+  theme: Theme,
+  totalHeight: number,
   headerHeight: number,
   _centered?: boolean
 ) => StyleSheet.create({
@@ -787,10 +788,9 @@ const createStyles = (
   // Gradient variant specific styles (from GradientHeader)
   gradientContentContainer: {
     paddingHorizontal: theme.spacing.lg,
-    paddingBottom: theme.spacing.xs,
+    paddingBottom: theme.spacing.md,
     paddingTop: theme.spacing.sm,
     zIndex: 10,
-    height: '100%',
     justifyContent: 'flex-start',
   },
   geometryContainer: {
@@ -882,7 +882,6 @@ const createStyles = (
     justifyContent: 'flex-start',
     alignItems: 'flex-start',
     zIndex: 15,
-    paddingBottom: theme.spacing.xs,
   },
   gradientMainContent: {
     justifyContent: 'flex-start',

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, View } from 'react-native';
+import { Text, View, TouchableOpacity } from 'react-native';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../test-utils/renderWithProviders';
 
@@ -15,6 +15,19 @@ const mockStatsEmptyState = jest.fn(
 
 const mockStatsLeaderboard = jest.fn(() => <Text testID="stats-leaderboard">Leaderboard</Text>);
 const mockRecentDebatesSection = jest.fn(() => <Text testID="recent-debates">Recent Debates</Text>);
+const mockWinRateDonutSection = jest.fn(() => <Text testID="win-rate-donut">Win Rate Donuts</Text>);
+const mockPerformanceBarSection = jest.fn(() => <Text testID="performance-bar">Performance Bars</Text>);
+const mockTrendLineSection = jest.fn(() => <Text testID="trend-line">Trend Lines</Text>);
+const mockHeader = jest.fn(({ title, onBack }: { title: string; onBack?: () => void }) => (
+  <View>
+    {onBack && (
+      <TouchableOpacity testID="back-button" onPress={onBack}>
+        <Text>Back</Text>
+      </TouchableOpacity>
+    )}
+    <Text>{title}</Text>
+  </View>
+));
 
 jest.mock('react-native-safe-area-context', () => {
   const React = require('react');
@@ -31,25 +44,14 @@ jest.mock('@/hooks/stats', () => ({
   useDebateStats: (...args: unknown[]) => mockUseDebateStats(...args),
 }));
 
-jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
-  return {
-    GradientButton: ({ title, onPress }: { title: string; onPress: () => void }) => (
-      <Text testID="back-button" onPress={onPress}>
-        {title}
-      </Text>
-    ),
-    Typography: ({ children }: { children: React.ReactNode }) => (
-      <Text>{children}</Text>
-    ),
-  };
-});
-
 jest.mock('@/components/organisms', () => ({
+  Header: (props: any) => mockHeader(props),
   StatsEmptyState: (props: any) => mockStatsEmptyState(props),
   StatsLeaderboard: (props: any) => mockStatsLeaderboard(props),
   RecentDebatesSection: (props: any) => mockRecentDebatesSection(props),
+  WinRateDonutSection: (props: any) => mockWinRateDonutSection(props),
+  PerformanceBarSection: (props: any) => mockPerformanceBarSection(props),
+  TrendLineSection: (props: any) => mockTrendLineSection(props),
 }));
 
 const StatsScreen = require('@/screens/StatsScreen').default;
@@ -76,6 +78,7 @@ describe('StatsScreen', () => {
     expect(getByTestId('stats-empty')).toBeTruthy();
     expect(queryByTestId('stats-leaderboard')).toBeNull();
     expect(queryByTestId('recent-debates')).toBeNull();
+    expect(queryByTestId('win-rate-donut')).toBeNull();
 
     fireEvent.press(getByTestId('stats-empty'));
     expect(navigation.goBack).toHaveBeenCalledTimes(1);
@@ -87,7 +90,7 @@ describe('StatsScreen', () => {
     );
   });
 
-  it('renders leaderboard and recent debates when stats exist', () => {
+  it('renders all chart sections and leaderboard when stats exist', () => {
     mockUseDebateStats.mockReturnValue({
       history: [{ debateId: 'd1' }],
       stats: {
@@ -99,8 +102,16 @@ describe('StatsScreen', () => {
       <StatsScreen navigation={navigation} />,
     );
 
+    // Chart sections should be visible
+    expect(getByTestId('win-rate-donut')).toBeTruthy();
+    expect(getByTestId('performance-bar')).toBeTruthy();
+    expect(getByTestId('trend-line')).toBeTruthy();
+
+    // Leaderboard and recent debates should be visible
     expect(getByTestId('stats-leaderboard')).toBeTruthy();
     expect(getByTestId('recent-debates')).toBeTruthy();
+
+    // Empty state should not be visible
     expect(queryByTestId('stats-empty')).toBeNull();
 
     expect(mockStatsLeaderboard).toHaveBeenCalledWith(
@@ -109,9 +120,18 @@ describe('StatsScreen', () => {
     expect(mockRecentDebatesSection).toHaveBeenCalledWith(
       expect.objectContaining({ maxDebates: 5 }),
     );
+    expect(mockWinRateDonutSection).toHaveBeenCalledWith(
+      expect.objectContaining({ animated: true }),
+    );
+    expect(mockPerformanceBarSection).toHaveBeenCalledWith(
+      expect.objectContaining({ animated: true, maxBars: 6 }),
+    );
+    expect(mockTrendLineSection).toHaveBeenCalledWith(
+      expect.objectContaining({ animated: true }),
+    );
   });
 
-  it('shows recent debates without leaderboard when stats inactive but history exists', () => {
+  it('shows chart sections and recent debates without leaderboard when stats inactive but history exists', () => {
     mockUseDebateStats.mockReturnValue({
       history: [{ debateId: 'solo-history' }],
       stats: {
@@ -123,13 +143,23 @@ describe('StatsScreen', () => {
       <StatsScreen navigation={navigation} />,
     );
 
+    // Chart sections should be visible (even with history only)
+    expect(getByTestId('win-rate-donut')).toBeTruthy();
+    expect(getByTestId('performance-bar')).toBeTruthy();
+    expect(getByTestId('trend-line')).toBeTruthy();
+
+    // Recent debates should be visible
     expect(getByTestId('recent-debates')).toBeTruthy();
+
+    // Leaderboard should NOT be visible (no active stats)
     expect(queryByTestId('stats-leaderboard')).toBeNull();
+
+    // Empty state should NOT be visible
     expect(queryByTestId('stats-empty')).toBeNull();
     expect(mockStatsEmptyState).not.toHaveBeenCalled();
   });
 
-  it('invokes navigation goBack via header button', () => {
+  it('invokes navigation goBack via header back button', () => {
     mockUseDebateStats.mockReturnValue({
       history: [],
       stats: {
@@ -143,5 +173,23 @@ describe('StatsScreen', () => {
 
     fireEvent.press(getByTestId('back-button'));
     expect(navigation.goBack).toHaveBeenCalled();
+  });
+
+  it('renders Header with gradient variant and correct title', () => {
+    mockUseDebateStats.mockReturnValue({
+      history: [],
+      stats: {},
+    });
+
+    renderWithProviders(<StatsScreen navigation={navigation} />);
+
+    expect(mockHeader).toHaveBeenCalledWith(
+      expect.objectContaining({
+        variant: 'gradient',
+        title: 'AI Performance Stats',
+        showBackButton: true,
+        onBack: expect.any(Function),
+      }),
+    );
   });
 });

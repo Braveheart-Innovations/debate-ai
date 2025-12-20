@@ -1,15 +1,16 @@
 import React, { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { Provider, useDispatch } from 'react-redux';
+import { Provider, useDispatch, useSelector } from 'react-redux';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { store } from './src/store';
-import { updateApiKeys, restoreVerificationData } from './src/store';
+import { store, RootState } from './src/store';
+import { updateApiKeys, restoreVerificationData, restoreStats } from './src/store';
 import AppNavigator from './src/navigation/AppNavigator';
 import { AIServiceProvider } from './src/providers/AIServiceProvider';
 import { ThemeProvider } from './src/theme';
 import secureStorage from './src/services/secureStorage';
 import VerificationPersistenceService from './src/services/VerificationPersistenceService';
+import { StatsPersistenceService } from './src/services/stats';
 import { initializeFirebase } from './src/services/firebase/config';
 import { getFirestore, doc, getDoc, setDoc } from '@react-native-firebase/firestore';
 import { onAuthStateChanged, toAuthUser } from './src/services/firebase/auth';
@@ -19,6 +20,7 @@ import PurchaseService from './src/services/iap/PurchaseService';
 
 function AppContent() {
   const dispatch = useDispatch();
+  const debateStats = useSelector((state: RootState) => state.debateStats);
 
   useEffect(() => {
     let authUnsubscribe: (() => void) | undefined;
@@ -155,6 +157,15 @@ function AppContent() {
         } else {
           console.log('No verification data found');
         }
+
+        // Load debate stats from storage
+        const statsData = await StatsPersistenceService.loadStats();
+        if (statsData) {
+          dispatch(restoreStats({ stats: statsData.stats, history: statsData.history }));
+          console.log('Loaded debate stats:', Object.keys(statsData.stats).length, 'AIs tracked');
+        } else {
+          console.log('No debate stats found');
+        }
       } catch (error) {
         console.error('Error initializing app:', error);
       }
@@ -172,6 +183,16 @@ function AppContent() {
       } catch {}
     };
   }, [dispatch]);
+
+  // Persist debate stats to AsyncStorage whenever they change
+  // This effect is in App.tsx so it's ALWAYS mounted (unlike useDebateVoting which unmounts)
+  useEffect(() => {
+    // Only save if there's actual data to persist
+    if (Object.keys(debateStats.stats).length > 0 || debateStats.history.length > 0) {
+      StatsPersistenceService.saveStats(debateStats.stats, debateStats.history);
+      console.log('Saved debate stats:', Object.keys(debateStats.stats).length, 'AIs');
+    }
+  }, [debateStats.stats, debateStats.history]);
 
   return (
     <SafeAreaProvider>

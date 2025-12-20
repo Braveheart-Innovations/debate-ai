@@ -6,3 +6,4 @@
 export * from './statsCalculator';
 export * from './statsFormatter';
 export * from './statsTransformer';
+export { default as StatsPersistenceService, type PersistedStatsData } from './StatsPersistenceService';

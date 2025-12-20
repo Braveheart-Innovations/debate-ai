@@ -150,18 +150,11 @@ export const DynamicAISelector: React.FC<DynamicAISelectorProps> = ({
         <View style={{
           flexDirection: 'row',
           alignItems: 'center',
-          justifyContent: 'center',
+          justifyContent: selectedAIs.length > 1 ? 'center' : 'flex-end',
           marginBottom: theme.spacing.sm,
           gap: theme.spacing.lg,
+          paddingRight: selectedAIs.length === 1 && onQuickStart ? theme.spacing.md : 0,
         }}>
-          {onQuickStart && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <InfoButton topicId="quick-start-wizard" size="small" />
-              <Typography variant="caption" color="secondary">
-                Quick Start
-              </Typography>
-            </View>
-          )}
           {selectedAIs.length > 1 && (
             <>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
@@ -177,6 +170,14 @@ export const DynamicAISelector: React.FC<DynamicAISelectorProps> = ({
                 </Typography>
               </View>
             </>
+          )}
+          {onQuickStart && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <InfoButton topicId="quick-start-wizard" size="small" />
+              <Typography variant="caption" color="secondary">
+                Quick Start
+              </Typography>
+            </View>
           )}
         </View>
       )}

@@ -99,15 +99,15 @@ describe('useDebateVoting', () => {
     });
 
     expect(orchestrator.recordVote).toHaveBeenLastCalledWith(3, 'gpt4', true);
-    expect(store.getState().debateStats.history).toHaveLength(1);
-    expect(store.getState().debateStats.history[0]?.overallWinner).toBe('gpt4');
     expect(result.current.getVotingPrompt()).toBe('🏆 Vote for Overall Winner!');
     expect(orchestrator.votingService.getVotingPrompt).toHaveBeenLastCalledWith(3, true, true);
 
+    // History is populated when debate_ended event is emitted (not during recordVote)
     act(() => {
-      orchestrator.emit({ type: 'debate_ended', data: { overallWinner: 'claude' }, timestamp: Date.now() });
+      orchestrator.emit({ type: 'debate_ended', data: { overallWinner: 'gpt4' }, timestamp: Date.now() });
     });
 
+    expect(store.getState().debateStats.history).toHaveLength(1);
     expect(store.getState().debateStats.history[0]?.overallWinner).toBe('gpt4');
     expect(result.current.isVoting).toBe(false);
   });

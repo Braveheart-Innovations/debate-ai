@@ -339,7 +339,7 @@ export {
   logout as authLogout 
 } from './authSlice';
 
-export { startDebate, recordRoundWinner, recordOverallWinner, clearStats, preserveTopic, clearPreservedTopic } from './debateStatsSlice';
+export { startDebate, recordRoundWinner, recordOverallWinner, clearStats, preserveTopic, clearPreservedTopic, restoreStats } from './debateStatsSlice';
 export { 
   startStreaming, 
   updateStreamingContent, 

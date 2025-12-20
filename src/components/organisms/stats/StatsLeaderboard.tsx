@@ -92,7 +92,7 @@ export const StatsLeaderboardItem: React.FC<StatsLeaderboardItemProps> = ({
         <StatItem value={stats.overallLosses} label="Losses" valueColor={theme.colors.error[600]} />
       </StatsCardRow>
       <StatsCardRow showDivider>
-        <StatItem value={stats.totalDebates * 3} label="Rounds Played" valueVariant="body" />
+        <StatItem value={stats.roundsWon + stats.roundsLost} label="Rounds Played" valueVariant="body" />
         <StatItem value={stats.roundsWon} label="Rounds Won" valueColor={theme.colors.success[500]} valueVariant="body" />
         <StatItem value={stats.roundsLost} label="Rounds Lost" valueColor={theme.colors.error[500]} valueVariant="body" />
       </StatsCardRow>
