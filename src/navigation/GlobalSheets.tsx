@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { TouchableOpacity, View } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
@@ -12,6 +12,7 @@ import {
 } from '../components/organisms';
 import { DemoExplainerSheet } from '@/components/organisms/demo/DemoExplainerSheet';
 import { HelpSheet, HelpWebViewModal } from '@/components/organisms/help';
+import { DebugMenu } from '@/components/organisms/debug';
 
 export const GlobalSheets: React.FC = () => {
   const { theme } = useTheme();
@@ -20,6 +21,7 @@ export const GlobalSheets: React.FC = () => {
     (state: RootState) => state.navigation
   );
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const [debugMenuVisible, setDebugMenuVisible] = useState(false);
 
   const handleSheetClose = () => {
     dispatch(clearSheet());
@@ -123,6 +125,10 @@ export const GlobalSheets: React.FC = () => {
                 handleSheetClose();
                 navigation.navigate('ExpertMode');
               }}
+              onOpenDebugMenu={() => {
+                handleSheetClose();
+                setDebugMenuVisible(true);
+              }}
             />
           </View>
         </>
@@ -215,6 +221,14 @@ export const GlobalSheets: React.FC = () => {
       )}
 
       {/* Subscription sheet now redirects to Subscription screen via useEffect */}
+
+      {/* Debug Menu - only in development */}
+      {__DEV__ && (
+        <DebugMenu
+          visible={debugMenuVisible}
+          onClose={() => setDebugMenuVisible(false)}
+        />
+      )}
     </>
   );
 };

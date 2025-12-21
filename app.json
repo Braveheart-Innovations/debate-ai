@@ -68,7 +68,8 @@
       ],
       "expo-dev-client",
       "expo-video",
-      "expo-audio"
+      "expo-audio",
+      "@react-native-firebase/crashlytics"
     ],
     "extra": {
       "eas": {

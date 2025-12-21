@@ -12,6 +12,7 @@ import { useTheme } from '../theme';
 import { SheetProvider } from '../contexts/SheetContext';
 import { GlobalSheets } from './GlobalSheets';
 import { useFeatureAccess } from '../hooks/useFeatureAccess';
+import { ErrorBoundary } from '../components/organisms/common/ErrorBoundary';
 
 // Import screens
 import WelcomeScreen from '../screens/WelcomeScreen';
@@ -179,8 +180,9 @@ export default function AppNavigator() {
 
   return (
     <SheetProvider>
-      <NavigationContainer theme={navigationTheme}>
-        <Stack.Navigator
+      <ErrorBoundary level="recoverable">
+        <NavigationContainer theme={navigationTheme}>
+          <Stack.Navigator
           screenOptions={{
             headerStyle: {
               backgroundColor: isDark ? theme.colors.surface : theme.colors.primary[500],
@@ -258,8 +260,9 @@ export default function AppNavigator() {
         )}
         </Stack.Navigator>
         {/* Global sheets: available on every screen */}
-        <GlobalSheets />
-      </NavigationContainer>
+          <GlobalSheets />
+        </NavigationContainer>
+      </ErrorBoundary>
     </SheetProvider>
   );
 }

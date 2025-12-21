@@ -95,6 +95,22 @@ jest.mock('@react-native-firebase/functions', () => {
   return { getFunctions, httpsCallable };
 });
 
+jest.mock('@react-native-firebase/crashlytics', () => {
+  const crashlyticsInstance = {
+    setCrashlyticsCollectionEnabled: jest.fn().mockResolvedValue(undefined),
+    log: jest.fn(),
+    recordError: jest.fn(),
+    setUserId: jest.fn(),
+    setAttribute: jest.fn(),
+    setAttributes: jest.fn(),
+    crash: jest.fn(),
+  };
+  return {
+    __esModule: true,
+    default: jest.fn(() => crashlyticsInstance),
+  };
+});
+
 jest.mock('react-native-iap', () => ({
   initConnection: jest.fn(),
   endConnection: jest.fn().mockResolvedValue(undefined),

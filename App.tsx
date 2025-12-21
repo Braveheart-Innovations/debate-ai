@@ -17,6 +17,8 @@ import { onAuthStateChanged, toAuthUser } from './src/services/firebase/auth';
 import { reload } from '@react-native-firebase/auth';
 import { setAuthUser, setUserProfile } from './src/store';
 import PurchaseService from './src/services/iap/PurchaseService';
+import { CrashlyticsService } from './src/services/crashlytics';
+import { ErrorBoundary } from './src/components/organisms/common/ErrorBoundary';
 
 function AppContent() {
   const dispatch = useDispatch();
@@ -31,7 +33,10 @@ function AppContent() {
         // Initialize Firebase first
         await initializeFirebase();
         console.log('Firebase initialized');
-        
+
+        // Initialize Crashlytics
+        await CrashlyticsService.initialize();
+
         // Initialize IAP connection
         try {
           await PurchaseService.initialize();
@@ -49,6 +54,9 @@ function AppContent() {
               console.warn('Auth user reload failed, continuing:', e);
             }
             dispatch(setAuthUser(toAuthUser(user)));
+
+            // Set Crashlytics user ID for error tracking
+            CrashlyticsService.setUserId(user.uid);
             
             // Fetch user profile from Firestore
             try {
@@ -77,6 +85,7 @@ function AppContent() {
                 } catch (e) {
                   console.warn('Profile patch skipped:', e);
                 }
+                const membershipStatus = profileData?.membershipStatus || 'free';
                 dispatch(setUserProfile({
                   email: user.email,
                   displayName: profileData?.displayName || user.displayName,
@@ -86,9 +95,14 @@ function AppContent() {
                     : typeof profileData?.createdAt === 'number'
                     ? profileData.createdAt
                     : Date.now(),
-                  membershipStatus: profileData?.membershipStatus || 'free',
+                  membershipStatus,
                   preferences: profileData?.preferences || {},
                 }));
+
+                // Set Crashlytics custom attributes
+                CrashlyticsService.setAttributes({
+                  membershipStatus,
+                });
               } else {
                 // Create a minimal profile document so future loads have a stable source of truth
                 const fallbackName = user.displayName || undefined;
@@ -117,6 +131,11 @@ function AppContent() {
                     preferences: {},
                   })
                 );
+
+                // Set Crashlytics custom attributes for new user
+                CrashlyticsService.setAttributes({
+                  membershipStatus: 'free',
+                });
               }
             } catch (error) {
               console.error('Error fetching user profile:', error);
@@ -129,6 +148,11 @@ function AppContent() {
                 membershipStatus: 'free',
                 preferences: {},
               }));
+
+              // Set Crashlytics custom attributes for fallback
+              CrashlyticsService.setAttributes({
+                membershipStatus: 'free',
+              });
             }
             
             console.log('User authenticated with Firebase:', user.uid);
@@ -136,6 +160,9 @@ function AppContent() {
             // No user signed in, optionally sign in anonymously
             dispatch(setAuthUser(null));
             dispatch(setUserProfile(null));
+
+            // Clear Crashlytics user ID
+            CrashlyticsService.setUserId(null);
           }
         });
         
@@ -208,10 +235,12 @@ function AppContent() {
 
 export default function App() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <Provider store={store}>
-        <AppContent />
-      </Provider>
-    </GestureHandlerRootView>
+    <ErrorBoundary level="fatal" showReportButton={true}>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <Provider store={store}>
+          <AppContent />
+        </Provider>
+      </GestureHandlerRootView>
+    </ErrorBoundary>
   );
 }

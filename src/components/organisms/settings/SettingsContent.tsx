@@ -12,12 +12,14 @@ interface SettingsContentProps {
   onClose?: () => void;
   onNavigateToAPIConfig?: () => void;
   onNavigateToExpertMode?: () => void;
+  onOpenDebugMenu?: () => void;
 }
 
 export const SettingsContent: React.FC<SettingsContentProps> = ({
   onClose,
   onNavigateToAPIConfig,
   onNavigateToExpertMode,
+  onOpenDebugMenu,
 }) => {
   const showDevSettings = __DEV__;
   const { theme } = useTheme();
@@ -95,6 +97,12 @@ export const SettingsContent: React.FC<SettingsContentProps> = ({
       <View style={[styles.section, { backgroundColor: theme.colors.surface }]}>
         {showDevSettings && (
           <>
+            <SettingRow
+              title="Debug Menu"
+              subtitle="View logs, network, state, and feature flags"
+              icon="bug"
+              onPress={onOpenDebugMenu}
+            />
             <SettingRow
               title="Record Mode"
               subtitle="Dev-only: show Record/Stop in headers"

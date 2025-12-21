@@ -39,6 +39,10 @@ jest.mock('@/components/organisms/demo/DemoExplainerSheet', () => ({
   DemoExplainerSheet: jest.fn(() => null),
 }));
 
+jest.mock('@/components/organisms/debug', () => ({
+  DebugMenu: jest.fn(() => null),
+}));
+
 type ActiveSheet = Exclude<SheetType, null>;
 
 type RenderResultWithStore = ReturnType<typeof render> & { store: ReturnType<typeof createAppStore> };

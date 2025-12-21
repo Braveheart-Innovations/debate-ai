@@ -4,6 +4,14 @@ import { Text, TouchableOpacity } from 'react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { ErrorBoundary } from '@/components/organisms/common/ErrorBoundary';
 
+// Mock CrashlyticsService
+const mockRecordError = jest.fn();
+jest.mock('@/services/crashlytics', () => ({
+  CrashlyticsService: {
+    recordError: (...args: unknown[]) => mockRecordError(...args),
+  },
+}));
+
 jest.mock('@/components/molecules', () => {
   const React = require('react');
   const { Text, TouchableOpacity } = require('react-native');
@@ -32,6 +40,7 @@ describe('ErrorBoundary', () => {
 
   beforeEach(() => {
     console.error = jest.fn();
+    mockRecordError.mockClear();
   });
 
   afterEach(() => {
@@ -104,5 +113,73 @@ describe('ErrorBoundary', () => {
     await waitFor(() => {
       expect(queryByText('Recovered content')).toBeTruthy();
     });
+  });
+
+  it('records error to Crashlytics when a child throws', () => {
+    const ProblemChild = () => {
+      throw new Error('Test crash');
+    };
+
+    renderWithProviders(
+      <ErrorBoundary>
+        <ProblemChild />
+      </ErrorBoundary>
+    );
+
+    expect(mockRecordError).toHaveBeenCalledWith(
+      expect.any(Error),
+      expect.objectContaining({
+        type: 'react_error_boundary',
+      })
+    );
+  });
+
+  it('shows fatal error UI when level is fatal', () => {
+    const ProblemChild = () => {
+      throw new Error('Fatal error');
+    };
+
+    const { getByText, queryByTestId } = renderWithProviders(
+      <ErrorBoundary level="fatal">
+        <ProblemChild />
+      </ErrorBoundary>
+    );
+
+    expect(getByText('App Error')).toBeTruthy();
+    // Fatal errors should not show "Try Again" button
+    expect(queryByTestId('button-Try Again')).toBeNull();
+  });
+
+  it('shows Report Issue button when showReportButton is true', () => {
+    const ProblemChild = () => {
+      throw new Error('Error with report');
+    };
+
+    const { getByTestId } = renderWithProviders(
+      <ErrorBoundary showReportButton={true}>
+        <ProblemChild />
+      </ErrorBoundary>
+    );
+
+    expect(getByTestId('button-Report Issue')).toBeTruthy();
+  });
+
+  it('includes level in Crashlytics context', () => {
+    const ProblemChild = () => {
+      throw new Error('Level test');
+    };
+
+    renderWithProviders(
+      <ErrorBoundary level="fatal">
+        <ProblemChild />
+      </ErrorBoundary>
+    );
+
+    expect(mockRecordError).toHaveBeenCalledWith(
+      expect.any(Error),
+      expect.objectContaining({
+        level: 'fatal',
+      })
+    );
   });
 });
