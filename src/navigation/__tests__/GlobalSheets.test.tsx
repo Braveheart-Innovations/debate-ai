@@ -25,7 +25,33 @@ jest.mock('../../theme', () => ({
       colors: {
         background: '#ffffff',
       },
+      borderRadius: {
+        xl: 16,
+      },
     },
+  }),
+}));
+
+jest.mock('@/hooks/useResponsive', () => ({
+  useResponsive: () => ({
+    isTablet: false,
+    isPhone: true,
+    isLandscape: false,
+    isPortrait: true,
+    deviceType: 'phone',
+    orientation: 'portrait',
+    width: 375,
+    height: 812,
+    responsive: <T,>(phone: T) => phone,
+    rs: (key: string) => {
+      const spacing: Record<string, number> = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 };
+      return spacing[key] || 16;
+    },
+    fontSize: (key: string) => {
+      const sizes: Record<string, number> = { xs: 12, sm: 14, base: 16, lg: 18, xl: 20 };
+      return sizes[key] || 16;
+    },
+    gridColumns: (phone: number) => phone,
   }),
 }));
 

@@ -12,6 +12,7 @@ import { useTheme } from '../theme';
 import { SheetProvider } from '../contexts/SheetContext';
 import { GlobalSheets } from './GlobalSheets';
 import { useFeatureAccess } from '../hooks/useFeatureAccess';
+import { useResponsive } from '../hooks/useResponsive';
 import { ErrorBoundary } from '../components/organisms/common/ErrorBoundary';
 
 // Import screens
@@ -42,16 +43,19 @@ const MainTabs = () => {
   const insets = useSafeAreaInsets();
   const apiKeys = useSelector((state: RootState) => state.settings.apiKeys || {});
   const { isDemo } = useFeatureAccess();
+  const { responsive } = useResponsive();
 
   // Calculate configured AI count for badge
   const configuredCount = useMemo(() => {
     return Object.values(apiKeys).filter(Boolean).length;
   }, [apiKeys]);
-  
-  // Calculate tab bar height with safe area
-  const tabBarHeight = 60;
+
+  // Responsive tab bar sizing for iPad
+  const tabBarHeight = responsive(60, 72);
+  const iconSize = responsive(24, 28);
+  const labelFontSize = responsive(12, 14);
   const totalHeight = tabBarHeight + insets.bottom;
-  
+
   return (
     <Tab.Navigator
         screenOptions={{
@@ -63,11 +67,11 @@ const MainTabs = () => {
             borderTopWidth: 1,
             borderTopColor: theme.colors.border,
             paddingBottom: insets.bottom > 0 ? insets.bottom : Platform.OS === 'android' ? 5 : 5,
-            paddingTop: 5,
+            paddingTop: responsive(5, 8),
             height: totalHeight,
           },
           tabBarLabelStyle: {
-            fontSize: 12,
+            fontSize: labelFontSize,
             fontWeight: '500',
           },
         }}
@@ -78,10 +82,10 @@ const MainTabs = () => {
         options={{
           tabBarLabel: 'Chat',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons 
-              name={focused ? 'chatbubbles' : 'chatbubbles-outline'} 
-              size={24} 
-              color={color} 
+            <Ionicons
+              name={focused ? 'chatbubbles' : 'chatbubbles-outline'}
+              size={iconSize}
+              color={color}
             />
           ),
         }}
@@ -92,10 +96,10 @@ const MainTabs = () => {
         options={{
           tabBarLabel: 'Debate',
           tabBarIcon: ({ color }) => (
-            <MaterialCommunityIcons 
-              name="sword-cross" 
-              size={24} 
-              color={color} 
+            <MaterialCommunityIcons
+              name="sword-cross"
+              size={iconSize}
+              color={color}
             />
           ),
           tabBarBadge: !isDemo && configuredCount < 2 ? '!' : undefined,
@@ -114,10 +118,10 @@ const MainTabs = () => {
         options={{
           tabBarLabel: 'Compare',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons 
-              name={focused ? 'git-compare' : 'git-compare-outline'} 
-              size={24} 
-              color={color} 
+            <Ionicons
+              name={focused ? 'git-compare' : 'git-compare-outline'}
+              size={iconSize}
+              color={color}
             />
           ),
         }}
@@ -128,10 +132,10 @@ const MainTabs = () => {
         options={{
           tabBarLabel: 'History',
           tabBarIcon: ({ color }) => (
-            <MaterialIcons 
-              name="history" 
-              size={26} 
-              color={color} 
+            <MaterialIcons
+              name="history"
+              size={responsive(26, 30)}
+              color={color}
             />
           ),
         }}

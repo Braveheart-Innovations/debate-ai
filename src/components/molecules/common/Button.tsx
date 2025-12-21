@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Box } from '@/components/atoms';
 import { Typography } from './Typography';
 import { useTheme } from '@/theme';
+import { useResponsive } from '@/hooks/useResponsive';
 
 interface ButtonProps {
   title: string;
@@ -35,28 +36,31 @@ export const Button: React.FC<ButtonProps> = ({
   rightIcon = 'none',
 }) => {
   const { theme, isDark } = useTheme();
+  const { responsive, rs } = useResponsive();
 
   const getSizeStyles = () => {
     switch (size) {
       case 'small':
         return {
-          paddingHorizontal: 12,
-          paddingVertical: 8,
+          paddingHorizontal: rs('md'),
+          paddingVertical: rs('sm'),
           borderRadius: 6,
-          minHeight: 32,
+          minHeight: responsive(32, 40),
         };
       case 'large':
         return {
-          paddingHorizontal: 24,
-          paddingVertical: 14,
+          paddingHorizontal: rs('lg'),
+          paddingVertical: responsive(14, 18),
           borderRadius: 12,
+          minHeight: responsive(48, 56),
         };
       case 'medium':
       default:
         return {
-          paddingHorizontal: 16,
-          paddingVertical: 10,
+          paddingHorizontal: rs('md'),
+          paddingVertical: responsive(10, 14),
           borderRadius: 8,
+          minHeight: responsive(44, 52),
         };
     }
   };

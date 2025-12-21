@@ -138,3 +138,9 @@ jest.mock('expo-media-library', () => ({
 (globalThis as unknown as { __reanimatedWorkletInit?: () => void }).__reanimatedWorkletInit =
   (globalThis as unknown as { __reanimatedWorkletInit?: () => void }).__reanimatedWorkletInit ||
   (() => {});
+
+// Mock useWindowDimensions - individual tests can override with mockReturnValue
+jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({ width: 375, height: 812 })),
+}));

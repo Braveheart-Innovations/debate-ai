@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, ViewStyle } from 'react-native';
 import { Box } from '@/components/atoms';
 import { useTheme } from '@/theme';
+import { useResponsive } from '@/hooks/useResponsive';
 
 interface CardProps {
   children: React.ReactNode;
@@ -19,18 +20,19 @@ export const Card: React.FC<CardProps> = ({
   style,
 }) => {
   const { theme, isDark } = useTheme();
+  const { rs } = useResponsive();
 
   const getPaddingStyles = () => {
     switch (padding) {
       case 'none':
         return { padding: 0 };
       case 'small':
-        return { padding: theme.spacing.sm };
+        return { padding: rs('sm') };
       case 'large':
-        return { padding: theme.spacing.lg };
+        return { padding: rs('lg') };
       case 'medium':
       default:
-        return { padding: theme.spacing.md };
+        return { padding: rs('md') };
     }
   };
 
@@ -39,12 +41,12 @@ export const Card: React.FC<CardProps> = ({
       case 'none':
         return { margin: 0 };
       case 'small':
-        return { margin: theme.spacing.sm };
+        return { margin: rs('sm') };
       case 'large':
-        return { margin: theme.spacing.lg };
+        return { margin: rs('lg') };
       case 'medium':
       default:
-        return { margin: theme.spacing.md };
+        return { margin: rs('md') };
     }
   };
 

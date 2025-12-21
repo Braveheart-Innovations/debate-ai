@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
-import { TouchableOpacity, View } from 'react-native';
+import { TouchableOpacity, View, ViewStyle } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, clearSheet, hideHelpWebView } from '../store';
 import { RootStackParamList } from '../types';
 import { useTheme } from '../theme';
+import { useResponsive } from '../hooks/useResponsive';
 import {
   ProfileSheet,
   SettingsContent,
@@ -22,6 +23,7 @@ export const GlobalSheets: React.FC = () => {
   );
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const [debugMenuVisible, setDebugMenuVisible] = useState(false);
+  const { isTablet, responsive } = useResponsive();
 
   const handleSheetClose = () => {
     dispatch(clearSheet());
@@ -30,6 +32,41 @@ export const GlobalSheets: React.FC = () => {
   const handleWebViewClose = () => {
     dispatch(hideHelpWebView());
   };
+
+  // Responsive sheet styles: centered on iPad, slide-up on phone
+  const sheetContainerStyle = useMemo((): ViewStyle => {
+    if (isTablet) {
+      return {
+        position: 'absolute',
+        top: '10%',
+        bottom: '10%',
+        left: '15%',
+        right: '15%',
+        backgroundColor: theme.colors.background,
+        borderRadius: theme.borderRadius.xl,
+        zIndex: 1001,
+        overflow: 'hidden',
+        // Shadow for floating effect
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 16,
+        elevation: 10,
+      };
+    }
+    // Phone: slide up from bottom
+    return {
+      position: 'absolute',
+      top: responsive(100, 80),
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: theme.colors.background,
+      borderTopLeftRadius: theme.borderRadius.xl,
+      borderTopRightRadius: theme.borderRadius.xl,
+      zIndex: 1001,
+    };
+  }, [isTablet, responsive, theme]);
 
   // Redirect subscription sheet to Subscription screen
   useEffect(() => {
@@ -57,7 +94,7 @@ export const GlobalSheets: React.FC = () => {
       {showSheets && activeSheet === 'profile' && (
         <>
           {/* Backdrop */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={{
               position: 'absolute',
               top: 0,
@@ -70,18 +107,8 @@ export const GlobalSheets: React.FC = () => {
             activeOpacity={1}
             onPress={handleSheetClose}
           />
-          {/* Foreground as sibling to avoid gesture conflicts */}
-          <View 
-            style={{
-              position: 'absolute',
-              top: 100,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: theme.colors.background,
-              zIndex: 1001,
-            }}
-          >
+          {/* Foreground - responsive: centered on iPad, slide-up on phone */}
+          <View style={sheetContainerStyle}>
             <ProfileSheet onClose={handleSheetClose} />
           </View>
         </>
@@ -90,7 +117,7 @@ export const GlobalSheets: React.FC = () => {
       {showSheets && activeSheet === 'settings' && (
         <>
           {/* Backdrop */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={{
               position: 'absolute',
               top: 0,
@@ -103,18 +130,8 @@ export const GlobalSheets: React.FC = () => {
             activeOpacity={1}
             onPress={handleSheetClose}
           />
-          {/* Foreground as sibling to avoid gesture conflicts */}
-          <View 
-            style={{
-              position: 'absolute',
-              top: 100,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: theme.colors.background,
-              zIndex: 1001,
-            }}
-          >
+          {/* Foreground - responsive: centered on iPad, slide-up on phone */}
+          <View style={sheetContainerStyle}>
             <SettingsContent
               onClose={handleSheetClose}
               onNavigateToAPIConfig={() => {
@@ -150,18 +167,8 @@ export const GlobalSheets: React.FC = () => {
             activeOpacity={1}
             onPress={handleSheetClose}
           />
-          {/* Foreground sheet content as a sibling to avoid gesture conflicts */}
-          <View
-            style={{
-              position: 'absolute',
-              top: 100,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: theme.colors.background,
-              zIndex: 1001,
-            }}
-          >
+          {/* Foreground - responsive: centered on iPad, slide-up on phone */}
+          <View style={sheetContainerStyle}>
             <SupportSheet onClose={handleSheetClose} />
           </View>
         </>
@@ -183,18 +190,8 @@ export const GlobalSheets: React.FC = () => {
             activeOpacity={1}
             onPress={handleSheetClose}
           />
-          {/* Foreground sheet content */}
-          <View
-            style={{
-              position: 'absolute',
-              top: 100,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: theme.colors.background,
-              zIndex: 1001,
-            }}
-          >
+          {/* Foreground - responsive: centered on iPad, slide-up on phone */}
+          <View style={sheetContainerStyle}>
             <HelpSheet onClose={handleSheetClose} />
           </View>
         </>
@@ -203,11 +200,20 @@ export const GlobalSheets: React.FC = () => {
       {showSheets && activeSheet === 'demo' && (
         <>
           <TouchableOpacity
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000 }}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              zIndex: 1000,
+            }}
             activeOpacity={1}
             onPress={handleSheetClose}
           />
-          <View style={{ position: 'absolute', top: 100, left: 0, right: 0, bottom: 0, backgroundColor: theme.colors.background, zIndex: 1001 }}>
+          {/* Foreground - responsive: centered on iPad, slide-up on phone */}
+          <View style={sheetContainerStyle}>
             <DemoExplainerSheet
               onClose={handleSheetClose}
               onStartTrial={() => {

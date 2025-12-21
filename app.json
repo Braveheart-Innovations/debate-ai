@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "description": "Where Ideas Converge. Where Understanding Emerges.",
     "primaryColor": "#0E9594",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
@@ -20,6 +20,15 @@
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
+        "UISupportedInterfaceOrientations": [
+          "UIInterfaceOrientationPortrait"
+        ],
+        "UISupportedInterfaceOrientations~ipad": [
+          "UIInterfaceOrientationPortrait",
+          "UIInterfaceOrientationPortraitUpsideDown",
+          "UIInterfaceOrientationLandscapeLeft",
+          "UIInterfaceOrientationLandscapeRight"
+        ],
         "NSMicrophoneUsageDescription": "Symposium AI uses the microphone for realtime voice conversations and speech transcription.",
         "NSCameraUsageDescription": "Symposium AI uses your camera to capture images for AI analysis.",
         "NSPhotoLibraryUsageDescription": "Symposium AI accesses your photos to share images with AI assistants.",

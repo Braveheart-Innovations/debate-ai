@@ -9,6 +9,7 @@ import { Box } from '../../atoms';
 import IconStopOctagon from '../../atoms/icons/IconStopOctagon';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../../theme';
+import { useResponsive } from '../../../hooks/useResponsive';
 import { MessageAttachment } from '../../../types';
 import { getReadableFileSize } from '../../../utils/imageProcessing';
 import { getDocumentIcon, getFileExtensionFromMimeType } from '../../../utils/documentProcessing';
@@ -49,12 +50,17 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
   modalityReasons,
 }) => {
   const { theme, isDark } = useTheme();
+  const { responsive, isTablet } = useResponsive();
   const [attachments, setAttachments] = useState<MessageAttachment[]>([]);
   const [showImageUpload, setShowImageUpload] = useState(false);
   const [showDocUpload, setShowDocUpload] = useState(false);
   const [showVoice, setShowVoice] = useState(false);
   const [showModalityRow, setShowModalityRow] = useState(false);
   const pulse = React.useRef(new Animated.Value(0)).current;
+
+  // Responsive button sizes for better touch targets on iPad
+  const buttonSize = responsive(36, 44);
+  const stopButtonHeight = responsive(44, 52);
   // keep prompt prefill only in parent modal
   // Image modal state handled inside ImageGenerationModal; keep only prompt prefill here
   const canSend = (inputText.trim().length > 0 || attachments.length > 0) && !disabled;
@@ -189,12 +195,15 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
         />
       )}
 
-      {/* Input row */}
+      {/* Input row - centered with max-width on iPad */}
       <Box style={[
         styles.inputContainer,
         {
           backgroundColor: theme.colors.surface,
           borderTopColor: theme.colors.border,
+          maxWidth: isTablet ? 800 : undefined,
+          alignSelf: isTablet ? 'center' : undefined,
+          width: '100%',
         }
       ]}>
         {/* Plus button to toggle modality row */}
@@ -206,7 +215,16 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
             <TouchableOpacity
               onPress={() => !disabled && setShowModalityRow(prev => !prev)}
               activeOpacity={0.8}
-              style={[styles.attachButton, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}
+              style={[
+                styles.attachButton,
+                {
+                  borderColor: theme.colors.border,
+                  backgroundColor: theme.colors.surface,
+                  width: buttonSize,
+                  height: buttonSize,
+                  borderRadius: buttonSize / 2,
+                }
+              ]}
             >
               <RNText style={[styles.attachButtonText, { color: theme.colors.text.primary }]}>{showModalityRow ? '×' : '+'}</RNText>
             </TouchableOpacity>
@@ -241,6 +259,8 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
                 // danger/tonal appearance
                 backgroundColor: isDark ? theme.colors.semantic.error : theme.colors.error[50],
                 borderColor: isDark ? theme.colors.error[600] : theme.colors.error[300],
+                height: stopButtonHeight,
+                borderRadius: stopButtonHeight / 2,
               }
             ]}
             onPress={() => {
@@ -293,6 +313,9 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
               styles.sendButton,
               {
                 backgroundColor: canSend ? theme.colors.primary[500] : theme.colors.gray[400],
+                width: buttonSize,
+                height: buttonSize,
+                borderRadius: buttonSize / 2,
               }
             ]}
             onPress={handleSend}

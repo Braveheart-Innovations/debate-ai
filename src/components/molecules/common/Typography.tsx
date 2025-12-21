@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Text, TextStyle, StyleProp } from 'react-native';
 import { useTheme } from '@/theme';
+import { useResponsive } from '@/hooks/useResponsive';
 
 interface TypographyProps {
   variant?: 'heading' | 'title' | 'subtitle' | 'body' | 'caption' | 'button' | 'default';
@@ -25,17 +26,18 @@ export const Typography: React.FC<TypographyProps> = ({
   ...props
 }) => {
   const { theme } = useTheme();
-  
-  // Preserve ALL existing variants from ThemedText
-  const variantStyles = {
-    default: { fontSize: 16, lineHeight: 24 },
-    body: { fontSize: 16, lineHeight: 24 },
-    heading: { fontSize: 28, lineHeight: 36, fontWeight: 'bold' as const },
-    title: { fontSize: 24, lineHeight: 32, fontWeight: 'bold' as const },
-    subtitle: { fontSize: 18, lineHeight: 26, fontWeight: '500' as const },
-    caption: { fontSize: 14, lineHeight: 20 },
-    button: { fontSize: 16, lineHeight: 24, fontWeight: '600' as const },
-  };
+  const { fontSize } = useResponsive();
+
+  // Responsive variant styles - scales up on tablet
+  const variantStyles = useMemo(() => ({
+    default: { fontSize: fontSize('base'), lineHeight: fontSize('base') * 1.5 },
+    body: { fontSize: fontSize('base'), lineHeight: fontSize('base') * 1.5 },
+    heading: { fontSize: fontSize('3xl'), lineHeight: fontSize('3xl') * 1.3, fontWeight: 'bold' as const },
+    title: { fontSize: fontSize('2xl'), lineHeight: fontSize('2xl') * 1.33, fontWeight: 'bold' as const },
+    subtitle: { fontSize: fontSize('lg'), lineHeight: fontSize('lg') * 1.44, fontWeight: '500' as const },
+    caption: { fontSize: fontSize('sm'), lineHeight: fontSize('sm') * 1.43 },
+    button: { fontSize: fontSize('base'), lineHeight: fontSize('base') * 1.5, fontWeight: '600' as const },
+  }), [fontSize]);
   
   // Preserve ALL existing colors from ThemedText
   const colorMap = {

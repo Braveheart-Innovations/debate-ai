@@ -1,13 +1,12 @@
 import React from 'react';
-import { View, Dimensions } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 import { Box } from '@/components/atoms';
 import { GradientButton, SectionHeader, InfoButton, Typography } from '@/components/molecules';
 import { AICard } from './AICard';
 import { AIConfig } from '@/types';
 import { useTheme } from '@/theme';
+import { useResponsive } from '@/hooks/useResponsive';
 import * as Haptics from 'expo-haptics';
-
-const { width: screenWidth } = Dimensions.get('window');
 
 interface DynamicAISelectorProps {
   configuredAIs: AIConfig[];
@@ -47,7 +46,9 @@ export const DynamicAISelector: React.FC<DynamicAISelectorProps> = ({
   onQuickStart,
 }) => {
   const { theme } = useTheme();
-  
+  const { width: screenWidth } = useWindowDimensions();
+  const { gridColumns, rs } = useResponsive();
+
   const getSubtitle = () => {
     if (customSubtitle) {
       return customSubtitle;
@@ -61,21 +62,21 @@ export const DynamicAISelector: React.FC<DynamicAISelectorProps> = ({
       : `${configuredAIs.length} AIs configured`;
     return `${countLabel} • Select up to ${maxAIs}`;
   };
-  
+
   const handleAddAI = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onAddAI();
   };
-  
-  // Use provided column count or default to 2 columns for clean, consistent layout
+
+  // Use provided column count or responsive default: 2 on phone, 3 on tablet, 4 on tablet landscape
   const getGridLayout = () => {
-    return columnCount || 2; // Default to 2 columns for optimal spacing and readability
+    return columnCount || gridColumns(2, 3, 4);
   };
-  
+
   const columns = getGridLayout();
   const baseWidth = containerWidth || screenWidth;
-  const containerPadding = containerWidth ? 0 : theme.spacing.lg * 2; // No padding if containerWidth provided
-  const itemGap = theme.spacing.md; // Improved visual separation (12px)
+  const containerPadding = containerWidth ? 0 : rs('lg') * 2; // No padding if containerWidth provided
+  const itemGap = rs('md'); // Responsive visual separation
   const cardWidth = (baseWidth - containerPadding - (itemGap * (columns - 1))) / columns;
   
   return (

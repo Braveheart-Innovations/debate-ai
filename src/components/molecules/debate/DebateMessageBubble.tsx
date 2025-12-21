@@ -19,6 +19,7 @@ import { Box } from '@/components/atoms';
 import { Typography } from '../common/Typography';
 import { StreamingIndicator } from '@/components/organisms/common/StreamingIndicator';
 import { useTheme } from '@/theme';
+import { useResponsive } from '@/hooks/useResponsive';
 import { Message } from '@/types';
 import { AI_BRAND_COLORS } from '@/constants/aiColors';
 import { useStreamingMessage } from '@/hooks/streaming/useStreamingMessage';
@@ -41,7 +42,12 @@ export const DebateMessageBubble: React.FC<DebateMessageBubbleProps> = React.mem
   side = 'left',
 }) => {
   const { theme, isDark } = useTheme();
+  const { responsive } = useResponsive();
   const isHost = message.sender === 'Debate Host';
+
+  // Responsive max width: narrower on larger screens for better readability
+  const messageMaxWidth = responsive('94%', '75%', '60%');
+  const hostMaxWidth = responsive('88%', '70%', '55%');
   const { content: streamingContent, isStreaming, cursorVisible, error: streamingError, chunksReceived } = useStreamingMessage(message.id);
   const [copied, setCopied] = useState(false);
 
@@ -117,7 +123,7 @@ export const DebateMessageBubble: React.FC<DebateMessageBubbleProps> = React.mem
       <Animated.View
         style={[styles.messageRow, styles.rowCenter, animatedStyle]}
       >
-        <Box style={styles.hostStack}>
+        <Box style={[styles.hostStack, { maxWidth: hostMaxWidth }]}>
           <Box style={{
             flexDirection: 'row',
             alignItems: 'center',
@@ -170,7 +176,7 @@ export const DebateMessageBubble: React.FC<DebateMessageBubbleProps> = React.mem
         animatedStyle,
       ]}
     >
-      <Box style={[styles.stack, side === 'right' ? styles.stackRight : styles.stackLeft]}>
+      <Box style={[styles.stack, { maxWidth: messageMaxWidth }, side === 'right' ? styles.stackRight : styles.stackLeft]}>
         <Box style={[styles.aiHeader, side === 'right' ? styles.aiHeaderRight : null]}>
           <Typography 
             variant="subtitle" 
@@ -302,7 +308,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   stack: {
-    maxWidth: '94%',
     flexShrink: 1,
     gap: 8,
   },
@@ -315,7 +320,6 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
   },
   hostStack: {
-    maxWidth: '88%',
     flexShrink: 1,
     alignItems: 'center',
   },
