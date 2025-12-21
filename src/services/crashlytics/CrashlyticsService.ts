@@ -1,4 +1,13 @@
-import crashlytics from '@react-native-firebase/crashlytics';
+import {
+  getCrashlytics,
+  log as crashlyticsLog,
+  recordError as crashlyticsRecordError,
+  setUserId as crashlyticsSetUserId,
+  setAttribute as crashlyticsSetAttribute,
+  setAttributes as crashlyticsSetAttributes,
+  crash as crashlyticsCrash,
+  setCrashlyticsCollectionEnabled,
+} from '@react-native-firebase/crashlytics';
 
 /**
  * CrashlyticsService - Centralized crash and error reporting
@@ -13,6 +22,13 @@ export class CrashlyticsService {
   private static initialized = false;
 
   /**
+   * Get the Crashlytics instance using modular API
+   */
+  private static getCrashlyticsInstance() {
+    return getCrashlytics();
+  }
+
+  /**
    * Initialize Crashlytics
    * Should be called once during app startup after Firebase init
    */
@@ -23,7 +39,7 @@ export class CrashlyticsService {
 
     try {
       // Enable Crashlytics collection
-      await crashlytics().setCrashlyticsCollectionEnabled(true);
+      await setCrashlyticsCollectionEnabled(this.getCrashlyticsInstance(), true);
       this.initialized = true;
 
       if (__DEV__) {
@@ -47,7 +63,7 @@ export class CrashlyticsService {
     }
 
     try {
-      crashlytics().log(message);
+      crashlyticsLog(this.getCrashlyticsInstance(), message);
     } catch (error) {
       console.error('[Crashlytics] Failed to log:', error);
     }
@@ -72,12 +88,12 @@ export class CrashlyticsService {
       // Log context as attributes if provided
       if (context) {
         Object.entries(context).forEach(([key, value]) => {
-          crashlytics().setAttribute(key, value);
+          crashlyticsSetAttribute(this.getCrashlyticsInstance(), key, value);
         });
       }
 
       // Record the error
-      crashlytics().recordError(error);
+      crashlyticsRecordError(this.getCrashlyticsInstance(), error);
 
       if (__DEV__) {
         console.warn('[Crashlytics] Recorded error:', error.message);
@@ -98,10 +114,10 @@ export class CrashlyticsService {
 
     try {
       if (userId) {
-        crashlytics().setUserId(userId);
+        crashlyticsSetUserId(this.getCrashlyticsInstance(), userId);
       } else {
         // Clear user ID on sign out
-        crashlytics().setUserId('');
+        crashlyticsSetUserId(this.getCrashlyticsInstance(), '');
       }
     } catch (error) {
       console.error('[Crashlytics] Failed to set user ID:', error);
@@ -118,7 +134,7 @@ export class CrashlyticsService {
     }
 
     try {
-      crashlytics().setAttributes(attributes);
+      crashlyticsSetAttributes(this.getCrashlyticsInstance(), attributes);
     } catch (error) {
       console.error('[Crashlytics] Failed to set attributes:', error);
     }
@@ -133,7 +149,7 @@ export class CrashlyticsService {
     }
 
     try {
-      crashlytics().setAttribute(key, value);
+      crashlyticsSetAttribute(this.getCrashlyticsInstance(), key, value);
     } catch (error) {
       console.error('[Crashlytics] Failed to set attribute:', error);
     }
@@ -149,7 +165,7 @@ export class CrashlyticsService {
       return;
     }
 
-    crashlytics().crash();
+    crashlyticsCrash(this.getCrashlyticsInstance());
   }
 
   /**

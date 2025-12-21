@@ -15,8 +15,8 @@ export interface DeviceInfo {
   height: number;
 }
 
-// iPad threshold: 768px (standard iPad portrait width)
-const TABLET_BREAKPOINT = 768;
+// Tablet threshold: 700px (includes iPad mini at 744px minimum dimension)
+const TABLET_BREAKPOINT = 700;
 
 /**
  * Hook to detect device type and orientation.
@@ -26,9 +26,10 @@ export function useDeviceType(): DeviceInfo {
   const { width, height } = useWindowDimensions();
 
   return useMemo(() => {
-    // Use the larger dimension to determine if tablet (handles orientation)
-    const maxDimension = Math.max(width, height);
-    const isTablet = maxDimension >= TABLET_BREAKPOINT;
+    // Use the smaller dimension (short side) to determine if tablet
+    // This correctly distinguishes phones (min ~375-430px) from tablets (min ~700+px)
+    const minDimension = Math.min(width, height);
+    const isTablet = minDimension >= TABLET_BREAKPOINT;
     const isLandscape = width > height;
 
     return {

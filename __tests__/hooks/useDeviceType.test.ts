@@ -10,8 +10,8 @@ describe('useDeviceType', () => {
   });
 
   describe('device type detection', () => {
-    it('returns phone when max dimension < 768', () => {
-      // iPhone SE dimensions - max(375, 667) = 667 < 768
+    it('returns phone when min dimension < 700', () => {
+      // iPhone SE dimensions - min(375, 667) = 375 < 700
       mockUseWindowDimensions.mockReturnValue({ width: 375, height: 667 });
 
       const { result } = renderHook(() => useDeviceType());
@@ -50,18 +50,19 @@ describe('useDeviceType', () => {
       expect(result.current.isTablet).toBe(true);
     });
 
-    it('uses max dimension to determine tablet (handles rotated tablets)', () => {
-      // Even with smaller current width, if max dimension >= 768, it's a tablet
-      mockUseWindowDimensions.mockReturnValue({ width: 500, height: 800 });
+    it('uses min dimension to determine tablet (handles rotated tablets)', () => {
+      // iPad in landscape - min(1024, 768) = 768 >= 700, so tablet
+      mockUseWindowDimensions.mockReturnValue({ width: 1024, height: 768 });
 
       const { result } = renderHook(() => useDeviceType());
 
-      // 800 > 768, so this should be considered a tablet
+      // min dimension 768 >= 700, so this should be considered a tablet
       expect(result.current.isTablet).toBe(true);
     });
 
-    it('returns phone for devices with max dimension < 768', () => {
-      mockUseWindowDimensions.mockReturnValue({ width: 375, height: 667 });
+    it('returns phone for devices with min dimension < 700', () => {
+      // iPhone 15 Pro Max - min(430, 932) = 430 < 700
+      mockUseWindowDimensions.mockReturnValue({ width: 430, height: 932 });
 
       const { result } = renderHook(() => useDeviceType());
 
@@ -128,13 +129,14 @@ describe('useDeviceType', () => {
 
       const { result } = renderHook(() => useDeviceType());
 
-      // Max dimension 932 >= 768, so this will be treated as tablet
-      // This is expected behavior - very large phones cross the tablet threshold
-      expect(result.current.isTablet).toBe(true);
+      // Min dimension 430 < 700, so this is correctly identified as phone
+      expect(result.current.isPhone).toBe(true);
+      expect(result.current.isTablet).toBe(false);
     });
 
     it('correctly identifies iPad mini portrait', () => {
-      mockUseWindowDimensions.mockReturnValue({ width: 768, height: 1024 });
+      // iPad mini 6th gen - min(744, 1133) = 744 >= 700
+      mockUseWindowDimensions.mockReturnValue({ width: 744, height: 1133 });
 
       const { result } = renderHook(() => useDeviceType());
 
