@@ -94,6 +94,8 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 5
         versionName "1.2.1"
+        // Fix react-native-iap variant ambiguity - use Google Play store variant
+        missingDimensionStrategy 'store', 'play'
     }
     signingConfigs {
         debug {
