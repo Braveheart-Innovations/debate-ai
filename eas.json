@@ -20,7 +20,7 @@
     },
     "internal-testing": {
       "developmentClient": false,
-      "distribution": "internal",
+      "distribution": "store",
       "env": {
         "EXPO_PUBLIC_RELEASE_CHANNEL": "internal",
         "EXPO_PUBLIC_ENVIRONMENT": "development",
@@ -29,9 +29,6 @@
       },
       "ios": {
         "resourceClass": "m-medium"
-      },
-      "android": {
-        "buildType": "apk"
       }
     },
     "beta": {
