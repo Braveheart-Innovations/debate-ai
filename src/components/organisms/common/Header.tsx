@@ -18,6 +18,7 @@ import { Typography } from '@/components/molecules';
 import { Button } from '@/components/molecules';
 import { Badge } from '@/components/molecules';
 import { useTheme, Theme } from '@/theme';
+import { useDeviceType } from '@/hooks/useDeviceType';
 
 // Use responsive width via useWindowDimensions inside the component
 
@@ -164,8 +165,11 @@ export interface HeaderProps {
   showDemoBadge?: boolean;
 }
 
+// Base header heights - will be scaled for tablets
 export const HEADER_HEIGHT = 65;
 const COMPACT_HEIGHT = 50;
+const TABLET_HEADER_HEIGHT = 85;
+const TABLET_COMPACT_HEIGHT = 60;
 
 // Animated SVG elements
 const AnimatedG = Animated.createAnimatedComponent(G);
@@ -194,6 +198,7 @@ export const Header: React.FC<HeaderProps> = ({
   const insets = useSafeAreaInsets();
   const [currentTime, setCurrentTime] = useState(new Date());
   const { width } = useWindowDimensions();
+  const { isTablet } = useDeviceType();
   const hasSubtitle = Boolean(subtitle);
   // Subtle, battery-friendly accents inside the SVG (no edges move)
   const enableAccents = true;
@@ -272,8 +277,11 @@ export const Header: React.FC<HeaderProps> = ({
   
   // Accents disabled
   
-  // Calculate header height
-  const headerHeight = height || (variant === 'compact' ? COMPACT_HEIGHT : HEADER_HEIGHT);
+  // Calculate header height - use larger heights for tablets
+  const baseHeight = variant === 'compact'
+    ? (isTablet ? TABLET_COMPACT_HEIGHT : COMPACT_HEIGHT)
+    : (isTablet ? TABLET_HEADER_HEIGHT : HEADER_HEIGHT);
+  const headerHeight = height || baseHeight;
   const totalHeight = headerHeight + insets.top;
   
   // Get variant-specific styles
@@ -311,7 +319,7 @@ export const Header: React.FC<HeaderProps> = ({
   };
   
   const variantStyles = getVariantStyles();
-  const styles = createStyles(theme, totalHeight, headerHeight, variant === 'centered');
+  const styles = createStyles(theme, totalHeight, headerHeight, variant === 'centered', isTablet);
   
   // Animated props for subtle accent opacity
   const pulseProps = useAnimatedProps(() => ({
@@ -730,7 +738,8 @@ const createStyles = (
   theme: Theme,
   totalHeight: number,
   headerHeight: number,
-  _centered?: boolean
+  _centered?: boolean,
+  isTablet?: boolean
 ) => StyleSheet.create({
   container: {
     position: 'relative',
@@ -788,8 +797,8 @@ const createStyles = (
   // Gradient variant specific styles (from GradientHeader)
   gradientContentContainer: {
     paddingHorizontal: theme.spacing.lg,
-    paddingBottom: theme.spacing.md,
-    paddingTop: theme.spacing.sm,
+    paddingBottom: isTablet ? theme.spacing.lg : theme.spacing.md,
+    paddingTop: isTablet ? theme.spacing.md : theme.spacing.sm,
     zIndex: 10,
     justifyContent: 'flex-start',
   },
@@ -888,7 +897,7 @@ const createStyles = (
     alignItems: 'flex-start',
     zIndex: 10,  // Lower than headerTopRightContainer
     minHeight: 0,
-    paddingTop: theme.spacing.xs * 0.25,
+    paddingTop: isTablet ? theme.spacing.xs : theme.spacing.xs * 0.25,
   },
   gradientTitleWrapper: {
     width: '100%',

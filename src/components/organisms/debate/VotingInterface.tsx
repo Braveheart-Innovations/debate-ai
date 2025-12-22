@@ -4,8 +4,8 @@
  */
 
 import React, { useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
-import Animated, { 
+import { View, StyleSheet, Platform } from 'react-native';
+import Animated, {
   FadeInDown,
   useAnimatedStyle,
   withSpring,
@@ -111,12 +111,13 @@ export const VotingInterface: React.FC<VotingInterfaceProps> = ({
 
   const dynamicContainerStyles = {
     ...styles.container,
-    ...theme.shadows.lg,
+    // Only apply shadows on iOS - Android elevation creates ugly gray outline artifacts
+    ...(Platform.OS === 'ios' ? theme.shadows.lg : {}),
   };
 
   const dynamicVoteButtonStyles = {
     ...styles.voteButton,
-    ...theme.shadows.md,
+    ...(Platform.OS === 'ios' ? theme.shadows.md : {}),
   };
 
   return (
@@ -125,30 +126,69 @@ export const VotingInterface: React.FC<VotingInterfaceProps> = ({
       style={dynamicContainerStyles}
     >
       <Animated.View style={animatedContainerStyle}>
-        <BlurView 
-          intensity={isDark ? 80 : 40} 
-          style={styles.blurContainer}
-        >
+        {Platform.OS === 'ios' ? (
+          <BlurView
+            intensity={isDark ? 80 : 40}
+            style={styles.blurContainer}
+          >
+            <LinearGradient
+              colors={isDark
+                ? [theme.colors.overlays.soft, theme.colors.overlays.subtle]
+                : [theme.colors.overlays.medium, theme.colors.overlays.subtle]
+              }
+              style={styles.gradientBackground}
+            >
+              <Animated.View style={animatedTitleStyle}>
+                <Typography
+                  variant="title"
+                  weight="bold"
+                  align="center"
+                  style={styles.title}
+                >
+                  {votingPrompt}
+                </Typography>
+              </Animated.View>
+
+              {renderCurrentScores()}
+
+              <View style={styles.votingButtons}>
+                {participants.map((ai) => {
+                  return (
+                    <AIProviderTile
+                      key={ai.id}
+                      ai={ai}
+                      size="large"
+                      tileStyle="gradient"
+                      showName={false}
+                      onPress={() => onVote(ai.id)}
+                      style={dynamicVoteButtonStyles}
+                    />
+                  );
+                })}
+              </View>
+            </LinearGradient>
+          </BlurView>
+        ) : (
           <LinearGradient
-            colors={isDark 
+            colors={isDark
               ? [theme.colors.overlays.soft, theme.colors.overlays.subtle]
               : [theme.colors.overlays.medium, theme.colors.overlays.subtle]
             }
-            style={styles.gradientBackground}
+            style={[styles.gradientBackground, styles.blurContainer]}
           >
             <Animated.View style={animatedTitleStyle}>
-              <Typography 
-                variant="title" 
-                weight="bold" 
-                align="center" 
+              <Typography
+                variant="title"
+                weight="bold"
+                align="center"
                 style={styles.title}
               >
                 {votingPrompt}
               </Typography>
             </Animated.View>
-        
+
             {renderCurrentScores()}
-        
+
             <View style={styles.votingButtons}>
               {participants.map((ai) => {
                 return (
@@ -165,7 +205,7 @@ export const VotingInterface: React.FC<VotingInterfaceProps> = ({
               })}
             </View>
           </LinearGradient>
-        </BlurView>
+        )}
       </Animated.View>
     </Animated.View>
   );
