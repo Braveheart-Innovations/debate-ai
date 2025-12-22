@@ -46,6 +46,12 @@ yarn-error.*
 *.key
 *-api-key*
 
+# Firebase/Google services config (contains API keys)
+google-services.json
+android/app/google-services.json
+GoogleService-Info.plist
+ios/GoogleService-Info.plist
+
 # API discovery scripts with sensitive data
 /scripts/api-discovery/*.js
 /scripts/api-discovery/*.ts
