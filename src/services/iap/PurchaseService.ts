@@ -28,13 +28,69 @@ const IAP_ERROR_MESSAGES: Record<string, string> = {
   E_SERVICE_ERROR: 'Store service error. Please try again later.',
   E_BILLING_UNAVAILABLE: 'Billing is not available on this device.',
   E_USER_CANCELLED: 'Purchase was cancelled.',
-  E_ALREADY_OWNED: 'You already own this subscription.',
+  E_ALREADY_OWNED: 'You already own this subscription. Try "Restore Purchases" below.',
   E_NOT_PREPARED: 'Store connection not ready. Please restart the app.',
 };
+
+/** User-friendly messages for Firebase validation errors */
+const VALIDATION_ERROR_MESSAGES: Record<string, string> = {
+  'unauthenticated': 'Please sign in to complete your purchase.',
+  'invalid-argument': 'Invalid purchase data. Please try again.',
+  'not-found': 'Purchase not found. Please contact support if charged.',
+  'failed-precondition': 'Unable to process this purchase. Please try a different option.',
+  'internal': 'Server error. Please try again in a few moments.',
+};
+
+/** Extract user-friendly message from Firebase function error */
+function extractFirebaseErrorMessage(error: unknown): string {
+  // Check if it's a Firebase HttpsError with a message
+  const firebaseError = error as { code?: string; message?: string; details?: unknown };
+
+  // If the error has a specific message from our backend, use it
+  if (firebaseError.message && !firebaseError.message.includes('INTERNAL')) {
+    // Clean up common prefixes
+    let message = firebaseError.message;
+    if (message.startsWith('functions/')) {
+      message = message.replace(/^functions\/[^:]+:\s*/, '');
+    }
+    return message;
+  }
+
+  // Fall back to code-based message
+  if (firebaseError.code) {
+    const code = firebaseError.code.replace('functions/', '');
+    return VALIDATION_ERROR_MESSAGES[code] || 'Purchase validation failed. Please try again.';
+  }
+
+  return 'Purchase validation failed. Please try again.';
+}
+
+// Event system for surfacing background errors to UI
+type PurchaseErrorListener = (error: { message: string; isRecoverable: boolean }) => void;
+const errorListeners: Set<PurchaseErrorListener> = new Set();
 
 export class PurchaseService {
   private static purchaseUpdateSub: { remove: () => void } | null = null;
   private static purchaseErrorSub: { remove: () => void } | null = null;
+
+  /**
+   * Register a listener for background purchase errors (e.g., validation failures).
+   * Returns an unsubscribe function.
+   */
+  static onPurchaseError(listener: PurchaseErrorListener): () => void {
+    errorListeners.add(listener);
+    return () => errorListeners.delete(listener);
+  }
+
+  private static notifyError(message: string, isRecoverable: boolean = true) {
+    errorListeners.forEach(listener => {
+      try {
+        listener({ message, isRecoverable });
+      } catch (e) {
+        console.warn('Error in purchase error listener', e);
+      }
+    });
+  }
 
   static async initialize() {
     try {
@@ -214,7 +270,10 @@ export class PurchaseService {
       await finishTransaction({ purchase, isConsumable: false });
     } catch (e) {
       console.error('IAP validate/save or finishTransaction failed', e);
-      // Do not finish transaction if validation failed
+      // Extract user-friendly message and notify listeners
+      const message = extractFirebaseErrorMessage(e);
+      this.notifyError(message, true);
+      // Do not finish transaction if validation failed - allows retry
     }
   }
 
@@ -250,6 +309,7 @@ export class PurchaseService {
       if (data.valid) {
         const update: Record<string, unknown> = {
           membershipStatus: data.membershipStatus, // 'trial' | 'premium'
+          isPremium: true, // Both trial and premium users have premium access
           subscriptionId: purchase.transactionId,
           subscriptionExpiryDate: data.expiryDate ?? null,
           trialStartDate: data.trialStartDate ?? null,
@@ -297,7 +357,10 @@ export class PurchaseService {
     } catch (error) {
       console.error('IAP restorePurchases failed', error);
       const errorCode = (error as { code?: string })?.code || 'UNKNOWN';
-      const userMessage = IAP_ERROR_MESSAGES[errorCode] || 'Failed to restore purchases. Please try again.';
+      // Try Firebase error extraction first, then IAP error messages
+      const userMessage = extractFirebaseErrorMessage(error) !== 'Purchase validation failed. Please try again.'
+        ? extractFirebaseErrorMessage(error)
+        : IAP_ERROR_MESSAGES[errorCode] || 'Failed to restore purchases. Please try again.';
       return { success: false, error, errorCode, userMessage } as const;
     }
   }

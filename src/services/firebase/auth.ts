@@ -278,7 +278,7 @@ interface UserProfile {
   displayName: string | null;
   photoURL: string | null;
   createdAt: number | null;
-  membershipStatus: 'free' | 'premium';
+  membershipStatus: 'demo' | 'trial' | 'premium';
   isPremium: boolean;
   authProvider: string;
   preferences: Record<string, unknown>;
@@ -420,7 +420,7 @@ export const signInWithGoogle = async (): Promise<{ user: User; profile: UserPro
         displayName: currentUser?.user.name || userCredential.user.displayName || 'User',
         photoURL: currentUser?.user.photo || userCredential.user.photoURL,
         createdAt: Date.now(),
-        membershipStatus: 'free',
+        membershipStatus: 'demo',
         isPremium: false,
         authProvider: 'google',
         preferences: {},
@@ -490,7 +490,7 @@ const getOrCreateUserProfile = async (
         updates.isPremium = false;
       }
       if (!data?.membershipStatus) {
-        updates.membershipStatus = 'free';
+        updates.membershipStatus = 'demo';
       }
       if (!data?.preferences) {
         updates.preferences = {};
@@ -526,7 +526,7 @@ const getOrCreateUserProfile = async (
     email: string | null | undefined;
     photoURL: string | null | undefined;
     createdAt: unknown;
-    membershipStatus: 'free';
+    membershipStatus: 'demo';
     isPremium: boolean;
     authProvider: string;
     preferences: Record<string, unknown>;
@@ -536,7 +536,7 @@ const getOrCreateUserProfile = async (
     email: additionalData?.email || user.email,
     photoURL: additionalData?.photoURL || user.photoURL,
     createdAt: serverTimestamp(),
-    membershipStatus: 'free' as const,
+    membershipStatus: 'demo' as const,
     isPremium: false,
     authProvider: additionalData?.authProvider || 'unknown',
     preferences: {},

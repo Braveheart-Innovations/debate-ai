@@ -72,8 +72,10 @@ exports.handleAppStoreNotification = functions.https.onRequest(async (req, res) 
                     const userId = await findUserByAppAccountToken(appAccountToken);
                     if (userId) {
                         const expiresAt = expiresMs ? new Date(parseInt(expiresMs, 10)) : null;
+                        const isActive = !!(expiresAt && expiresAt.getTime() > Date.now());
                         await admin.firestore().collection('users').doc(userId).set({
-                            membershipStatus: expiresAt && expiresAt.getTime() > Date.now() ? 'premium' : 'demo',
+                            membershipStatus: isActive ? 'premium' : 'demo',
+                            isPremium: isActive,
                             subscriptionExpiryDate: expiresAt ? admin.firestore.Timestamp.fromDate(expiresAt) : null,
                             productId: productId && productId.includes('annual') ? 'annual' : 'monthly',
                             lastValidated: admin.firestore.FieldValue.serverTimestamp(),

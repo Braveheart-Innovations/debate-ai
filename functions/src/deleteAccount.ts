@@ -1,6 +1,8 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
-import 'firebase-admin/firestore';
+
+// Initialize Admin if not already
+try { admin.app(); } catch { admin.initializeApp(); }
 
 export const deleteAccount = onCall(async (request) => {
   if (!request.auth) {
@@ -11,24 +13,29 @@ export const deleteAccount = onCall(async (request) => {
   const firestore = admin.firestore();
 
   try {
+    // NOTE: The /trialHistory/{uid} collection is intentionally NOT deleted here.
+    // This prevents trial abuse where users delete their account and re-register
+    // to get unlimited free trials. The trialHistory collection tracks email hashes
+    // and UIDs that have used trials, surviving account deletion.
+
+    // Delete Firestore user data
     const userDocRef = firestore.collection('users').doc(uid);
 
-    try {
-      await firestore.recursiveDelete(userDocRef);
-    } catch (recursiveError) {
-      console.warn('recursiveDelete unavailable, falling back to manual cleanup', recursiveError);
-      const subCollections = await userDocRef.listCollections();
-      for (const subCollection of subCollections) {
-        const snapshot = await subCollection.get();
-        const batch = firestore.batch();
-        snapshot.forEach((doc: FirebaseFirestore.QueryDocumentSnapshot<FirebaseFirestore.DocumentData>) => {
-          batch.delete(doc.ref);
-        });
-        await batch.commit();
-      }
-      await userDocRef.delete();
+    // Get and delete subcollections manually
+    const subCollections = await userDocRef.listCollections();
+    for (const subCollection of subCollections) {
+      const snapshot = await subCollection.get();
+      const batch = firestore.batch();
+      snapshot.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
     }
 
+    // Delete the user document
+    await userDocRef.delete();
+
+    // Delete the Auth user
     try {
       await admin.auth().deleteUser(uid);
     } catch (authError) {

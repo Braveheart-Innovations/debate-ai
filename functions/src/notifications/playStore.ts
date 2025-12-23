@@ -27,8 +27,10 @@ export const handlePlayStoreNotification = onMessagePublished(
       const autoRenewing = !!state?.autoRenewing;
 
       // Update user doc
+      const isActive = !!(expiresAt && expiresAt.getTime() > Date.now());
       await admin.firestore().collection('users').doc(userId).set({
-        membershipStatus: expiresAt && expiresAt.getTime() > Date.now() ? 'premium' : 'demo',
+        membershipStatus: isActive ? 'premium' : 'demo',
+        isPremium: isActive,
         subscriptionExpiryDate: expiresAt ? admin.firestore.Timestamp.fromDate(expiresAt) : null,
         autoRenewing,
         productId: subscriptionId.includes('annual') ? 'annual' : 'monthly',

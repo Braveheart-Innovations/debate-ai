@@ -8,13 +8,20 @@ service cloud.firestore {
     
     // Conversations belong to authenticated users
     match /conversations/{conversationId} {
-      allow read, write: if request.auth != null 
+      allow read, write: if request.auth != null
         && request.auth.uid == resource.data.userId;
-        
+
       match /messages/{messageId} {
-        allow read, write: if request.auth != null 
+        allow read, write: if request.auth != null
           && request.auth.uid == get(/databases/$(database)/documents/conversations/$(conversationId)).data.userId;
       }
+    }
+
+    // Trial history - prevents trial abuse after account deletion
+    // Users can read their own trial history, but only cloud functions can write
+    match /trialHistory/{docId} {
+      allow read: if request.auth != null && request.auth.uid == docId;
+      allow write: if false; // Only cloud functions (admin SDK) can write
     }
   }
 }

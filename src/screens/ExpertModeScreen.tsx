@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSelector } from 'react-redux';
 import { Box } from '../components/atoms';
 import { Header } from '../components/organisms';
-import { Typography } from '../components/molecules';
+import { Typography, GradientButton } from '../components/molecules';
 import { AI_PROVIDERS } from '../config/aiProviders';
 import { useTheme } from '../theme';
 import { ProviderExpertSettings } from '../components/organisms';
@@ -15,12 +15,14 @@ import Animated, { FadeInDown, FadeOutUp, Layout } from 'react-native-reanimated
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { getAIProviderIcon } from '../utils/aiProviderAssets';
+import useFeatureAccess from '@/hooks/useFeatureAccess';
 
 const ExpertModeScreen: React.FC<{ navigation: { goBack: () => void } }> = ({ navigation }) => {
   const { theme, isDark } = useTheme();
   const dispatch = useDispatch();
   const apiKeys = useSelector((state: RootState) => state.settings.apiKeys || {});
   const expertMode = useSelector((state: RootState) => state.settings.expertMode || {});
+  const { isDemo } = useFeatureAccess();
 
   const providersWithKeys = AI_PROVIDERS.filter(p => p.enabled && !!apiKeys[p.id]);
   const [expanded, setExpanded] = useState<string | null>(providersWithKeys[0]?.id || null);
@@ -49,7 +51,26 @@ const ExpertModeScreen: React.FC<{ navigation: { goBack: () => void } }> = ({ na
           contentContainerStyle={{ padding: theme.spacing.lg, paddingBottom: theme.spacing.xl * 2 }}
           showsVerticalScrollIndicator={false}
         >
-          {providersWithKeys.length === 0 ? (
+          {isDemo ? (
+            <Box style={{ padding: theme.spacing.xl, alignItems: 'center' }}>
+              <Typography variant="heading" align="center" style={{ marginBottom: theme.spacing.md }}>
+                Premium Feature
+              </Typography>
+              <Typography variant="body" color="secondary" align="center" style={{ marginBottom: theme.spacing.lg }}>
+                Expert Mode lets you fine-tune AI parameters like temperature, max tokens, and choose specific models for each provider.
+              </Typography>
+              <Typography variant="body" color="secondary" align="center" style={{ marginBottom: theme.spacing.xl }}>
+                Start a free trial or subscribe to unlock this feature.
+              </Typography>
+              <GradientButton
+                title="Unlock Expert Mode"
+                onPress={() => dispatch(showSheet({ sheet: 'subscription' }))}
+                gradient={theme.colors.gradients.primary}
+                fullWidth
+                hapticType="medium"
+              />
+            </Box>
+          ) : providersWithKeys.length === 0 ? (
             <Box style={{ padding: theme.spacing.lg }}>
               <Typography variant="body" color="secondary" align="center">
                 Add an API key in Settings → API Configuration to configure Expert Mode.

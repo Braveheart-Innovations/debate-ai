@@ -1,13 +1,12 @@
-import { Alert } from 'react-native';
-import { act } from '@testing-library/react-native';
 import { renderHookWithProviders } from '../../../test-utils/renderHookWithProviders';
 import { usePreDebateValidation } from '@/hooks/debate/usePreDebateValidation';
 import type { RootState } from '@/store';
 
 // Mock useFeatureAccess to control isDemo state
+const mockIsDemo = jest.fn().mockReturnValue(false);
 jest.mock('@/hooks/useFeatureAccess', () => ({
   useFeatureAccess: () => ({
-    isDemo: false,
+    isDemo: mockIsDemo(),
     isSubscriber: false,
     currentTier: 'free',
     hasAccess: jest.fn().mockReturnValue(true),
@@ -29,23 +28,16 @@ describe('usePreDebateValidation', () => {
     recordModeEnabled: false,
   };
 
-  const navigation: { navigate: (screen: string, params?: Record<string, unknown>) => void } = {
-    navigate: jest.fn(),
-  };
-
-  let alertSpy: jest.SpyInstance;
-
   beforeEach(() => {
-    navigation.navigate = jest.fn();
-    alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    mockIsDemo.mockReturnValue(false);
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    jest.clearAllMocks();
   });
 
-  it('blocks navigation when fewer than two providers are configured', () => {
-    const { result } = renderHookWithProviders(() => usePreDebateValidation(navigation), {
+  it('returns isReady false when fewer than two providers are configured', () => {
+    const { result } = renderHookWithProviders(() => usePreDebateValidation(), {
       preloadedState: {
         settings: {
           ...baseSettingsState,
@@ -56,31 +48,11 @@ describe('usePreDebateValidation', () => {
 
     expect(result.current.isReady).toBe(false);
     expect(result.current.configuredCount).toBe(1);
-
-    const readiness = result.current.checkReadiness();
-    expect(readiness).toBe(false);
-    expect(alertSpy).toHaveBeenCalledWith(
-      'Set Up Your AIs First',
-      expect.stringContaining('You need at least 2 AIs configured'),
-      expect.any(Array)
-    );
-
-    const [, , buttons] = alertSpy.mock.calls[0];
-    expect(buttons).toHaveLength(2);
-
-    act(() => {
-      buttons?.[0].onPress?.();
-    });
-    expect(navigation.navigate).toHaveBeenCalledWith('MainTabs', { screen: 'Home' });
-
-    act(() => {
-      buttons?.[1].onPress?.();
-    });
-    expect(navigation.navigate).toHaveBeenCalledWith('APIConfig');
+    expect(result.current.isDemo).toBe(false);
   });
 
-  it('allows navigation when two or more providers are configured', () => {
-    const { result } = renderHookWithProviders(() => usePreDebateValidation(navigation), {
+  it('returns isReady true when two or more providers are configured', () => {
+    const { result } = renderHookWithProviders(() => usePreDebateValidation(), {
       preloadedState: {
         settings: {
           ...baseSettingsState,
@@ -91,9 +63,65 @@ describe('usePreDebateValidation', () => {
 
     expect(result.current.isReady).toBe(true);
     expect(result.current.configuredCount).toBe(2);
+    expect(result.current.isDemo).toBe(false);
+  });
 
-    const readiness = result.current.checkReadiness();
-    expect(readiness).toBe(true);
-    expect(alertSpy).not.toHaveBeenCalled();
+  it('returns isReady true with three providers configured', () => {
+    const { result } = renderHookWithProviders(() => usePreDebateValidation(), {
+      preloadedState: {
+        settings: {
+          ...baseSettingsState,
+          apiKeys: { claude: 'key-1', openai: 'key-2', google: 'key-3' },
+        },
+      },
+    });
+
+    expect(result.current.isReady).toBe(true);
+    expect(result.current.configuredCount).toBe(3);
+  });
+
+  it('returns isReady false when no providers are configured', () => {
+    const { result } = renderHookWithProviders(() => usePreDebateValidation(), {
+      preloadedState: {
+        settings: {
+          ...baseSettingsState,
+          apiKeys: {},
+        },
+      },
+    });
+
+    expect(result.current.isReady).toBe(false);
+    expect(result.current.configuredCount).toBe(0);
+  });
+
+  it('returns isReady true in demo mode regardless of configured providers', () => {
+    mockIsDemo.mockReturnValue(true);
+
+    const { result } = renderHookWithProviders(() => usePreDebateValidation(), {
+      preloadedState: {
+        settings: {
+          ...baseSettingsState,
+          apiKeys: {}, // No API keys
+        },
+      },
+    });
+
+    expect(result.current.isReady).toBe(true);
+    expect(result.current.configuredCount).toBe(0);
+    expect(result.current.isDemo).toBe(true);
+  });
+
+  it('filters out empty/falsy API keys when counting', () => {
+    const { result } = renderHookWithProviders(() => usePreDebateValidation(), {
+      preloadedState: {
+        settings: {
+          ...baseSettingsState,
+          apiKeys: { claude: 'key-1', openai: '', google: null as unknown as string },
+        },
+      },
+    });
+
+    expect(result.current.configuredCount).toBe(1);
+    expect(result.current.isReady).toBe(false);
   });
 });

@@ -63,8 +63,8 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
   const streamingState = useSelector((state: RootState) => state.streaming);
   const recordModeEnabled = useSelector((state: RootState) => state.settings.recordModeEnabled ?? false);
   
-  // Pre-debate validation
-  const validation = usePreDebateValidation(navigation);
+  // Pre-debate validation (no side effects - just state)
+  const validation = usePreDebateValidation();
   
   // Get configured AIs based on which ones have API keys
   const configuredAIs = useMemo(() => {
@@ -132,14 +132,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
   
   // Debate mode always requires exactly 2 AIs
   const maxAIs = 2;
-  
-  // Check validation on mount
-  useEffect(() => {
-    if (!validation.isReady) {
-      validation.checkReadiness();
-    }
-  }, [validation]);
-  
+
   // Save topic when navigating away
   useEffect(() => {
     return () => {
@@ -339,6 +332,28 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
           isPremium={access.isPremium || access.isInTrial}
           showPersonalityStep={!access.isDemo}
         />
+
+        {/* Warning: Insufficient AIs configured (non-blocking inline card) */}
+        {!validation.isReady && (
+          <Box style={{
+            marginTop: theme.spacing.md,
+            marginBottom: theme.spacing.md,
+            padding: theme.spacing.lg,
+            backgroundColor: theme.colors.warning[100],
+            borderRadius: theme.borderRadius.lg,
+          }}>
+            <Typography variant="body" color="primary" style={{ textAlign: 'center' }}>
+              You need at least 2 configured AIs to start a debate.
+            </Typography>
+            <Button
+              title="Add AI Keys"
+              onPress={() => navigation.navigate('APIConfig')}
+              variant="secondary"
+              size="medium"
+              style={{ marginTop: theme.spacing.md }}
+            />
+          </Box>
+        )}
 
         {/* Step 1: Format, Rounds, Topic (clean and minimal) */}
         {currentStep === 'topic' && (

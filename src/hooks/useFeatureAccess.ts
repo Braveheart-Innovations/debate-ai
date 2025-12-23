@@ -78,9 +78,9 @@ export const useFeatureAccess = () => {
     };
   }, []);
 
-  const effectivePremium = simulatedPremium || membershipStatus === 'premium';
   const isInTrial = membershipStatus === 'trial';
-  const isPremium = effectivePremium;
+  // isPremium includes both 'premium' AND 'trial' users (trial = premium access)
+  const isPremium = simulatedPremium || membershipStatus === 'premium' || membershipStatus === 'trial';
   const canAccessLiveAI = isInTrial || isPremium;
   const isDemo = !isInTrial && !isPremium;
 

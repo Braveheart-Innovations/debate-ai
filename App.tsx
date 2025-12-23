@@ -12,7 +12,7 @@ import secureStorage from './src/services/secureStorage';
 import VerificationPersistenceService from './src/services/VerificationPersistenceService';
 import { StatsPersistenceService } from './src/services/stats';
 import { initializeFirebase } from './src/services/firebase/config';
-import { getFirestore, doc, getDoc, setDoc } from '@react-native-firebase/firestore';
+import { getFirestore, doc, onSnapshot, collection } from '@react-native-firebase/firestore';
 import { onAuthStateChanged, toAuthUser } from './src/services/firebase/auth';
 import { reload } from '@react-native-firebase/auth';
 import { setAuthUser, setUserProfile } from './src/store';
@@ -26,6 +26,7 @@ function AppContent() {
 
   useEffect(() => {
     let authUnsubscribe: (() => void) | undefined;
+    let firestoreUnsubscribe: (() => void) | undefined;
     
     // Initialize app on startup
     const initializeApp = async () => {
@@ -47,6 +48,12 @@ function AppContent() {
 
         // Set up auth state listener
         authUnsubscribe = onAuthStateChanged(async (user) => {
+          // Clean up previous Firestore listener when auth changes
+          if (firestoreUnsubscribe) {
+            firestoreUnsubscribe();
+            firestoreUnsubscribe = undefined;
+          }
+
           if (user) {
             try {
               await reload(user);
@@ -57,111 +64,72 @@ function AppContent() {
 
             // Set Crashlytics user ID for error tracking
             CrashlyticsService.setUserId(user.uid);
-            
-            // Fetch user profile from Firestore
-            try {
-              const db = getFirestore();
-              const userDocRef = doc(db, 'users', user.uid);
-              // Try once, and if unavailable, retry once after small delay
-              let profileDoc = await getDoc(userDocRef);
-              if (!profileDoc.exists()) {
-                // No profile yet; allow UI to use fallback below
-              }
-              
-              // If Firestore transient error occurred previously in sign-in flow, this may still fail
-              
-              if (profileDoc.exists()) {
-                const profileData = profileDoc.data();
-                // If the existing document has no displayName or a placeholder, patch it with a better fallback
-                try {
-                  const fallbackName = user.displayName || undefined;
-                  const currentName = (profileData && (profileData as any).displayName) as
-                    | string
-                    | undefined;
-                  if (fallbackName && (!currentName || currentName === 'User')) {
-                    await setDoc(userDocRef, { displayName: fallbackName }, { merge: true });
-                    (profileData as any).displayName = fallbackName;
-                  }
-                } catch (e) {
-                  console.warn('Profile patch skipped:', e);
+
+            const db = getFirestore();
+            const userDocRef = doc(collection(db, 'users'), user.uid);
+
+            // Set up REAL-TIME listener for user profile changes (including subscription status)
+            firestoreUnsubscribe = onSnapshot(
+              userDocRef,
+              async (snapshot) => {
+                if (snapshot.exists()) {
+                  const profileData = snapshot.data();
+                  // Normalize membershipStatus: convert legacy 'free' to 'demo'
+                  let membershipStatus = profileData?.membershipStatus || 'demo';
+                  if (membershipStatus === 'free') membershipStatus = 'demo';
+
+                  dispatch(setUserProfile({
+                    email: user.email,
+                    displayName: profileData?.displayName || user.displayName || 'User',
+                    photoURL: user.photoURL,
+                    createdAt: profileData?.createdAt?.toDate
+                      ? profileData.createdAt.toDate().getTime()
+                      : typeof profileData?.createdAt === 'number'
+                      ? profileData.createdAt
+                      : Date.now(),
+                    membershipStatus,
+                    preferences: profileData?.preferences || {},
+                  }));
+
+                  CrashlyticsService.setAttributes({ membershipStatus });
+                } else {
+                  // Document doesn't exist - user was likely deleted
+                  // Do NOT auto-create documents here; user creation happens in auth flows
+                  console.log('User document does not exist - likely deleted, clearing auth state');
+                  dispatch(setAuthUser(null));
+                  dispatch(setUserProfile(null));
+                  CrashlyticsService.setUserId(null);
                 }
-                const membershipStatus = profileData?.membershipStatus || 'free';
+              },
+              (error) => {
+                const errorCode = (error as { code?: string })?.code;
+                // Permission denied usually means the user was deleted - clear auth state
+                if (errorCode === 'firestore/permission-denied') {
+                  console.log('Firestore permission denied - user likely deleted, clearing auth');
+                  dispatch(setAuthUser(null));
+                  dispatch(setUserProfile(null));
+                  CrashlyticsService.setUserId(null);
+                  return;
+                }
+                console.error('Firestore profile listener error:', error);
+                // Fallback profile so UI has data even if Firestore is unavailable
                 dispatch(setUserProfile({
                   email: user.email,
-                  displayName: profileData?.displayName || user.displayName,
+                  displayName: user.displayName || (user.email ? user.email.split('@')[0] : 'User'),
                   photoURL: user.photoURL,
-                  createdAt: profileData?.createdAt?.toDate
-                    ? profileData.createdAt.toDate().getTime()
-                    : typeof profileData?.createdAt === 'number'
-                    ? profileData.createdAt
-                    : Date.now(),
-                  membershipStatus,
-                  preferences: profileData?.preferences || {},
+                  createdAt: Date.now(),
+                  membershipStatus: 'demo',
+                  preferences: {},
                 }));
-
-                // Set Crashlytics custom attributes
-                CrashlyticsService.setAttributes({
-                  membershipStatus,
-                });
-              } else {
-                // Create a minimal profile document so future loads have a stable source of truth
-                const fallbackName = user.displayName || undefined;
-                try {
-                  await setDoc(
-                    userDocRef,
-                    {
-                      email: user.email,
-                      ...(fallbackName ? { displayName: fallbackName } : {}),
-                      createdAt: new Date(),
-                      membershipStatus: 'free',
-                      preferences: {},
-                    },
-                    { merge: true }
-                  );
-                } catch (e) {
-                  console.warn('Initial profile create skipped:', e);
-                }
-                dispatch(
-                  setUserProfile({
-                    email: user.email,
-                    displayName: fallbackName || 'User',
-                    photoURL: user.photoURL,
-                    createdAt: Date.now(),
-                    membershipStatus: 'free',
-                    preferences: {},
-                  })
-                );
-
-                // Set Crashlytics custom attributes for new user
-                CrashlyticsService.setAttributes({
-                  membershipStatus: 'free',
-                });
+                CrashlyticsService.setAttributes({ membershipStatus: 'demo' });
               }
-            } catch (error) {
-              console.error('Error fetching user profile:', error);
-              // Fallback profile so UI has data even if Firestore is unavailable
-              dispatch(setUserProfile({
-                email: user.email,
-                displayName: user.displayName || (user.email ? user.email.split('@')[0] : 'User'),
-                photoURL: user.photoURL,
-                createdAt: Date.now(),
-                membershipStatus: 'free',
-                preferences: {},
-              }));
+            );
 
-              // Set Crashlytics custom attributes for fallback
-              CrashlyticsService.setAttributes({
-                membershipStatus: 'free',
-              });
-            }
-            
             console.log('User authenticated with Firebase:', user.uid);
           } else {
-            // No user signed in, optionally sign in anonymously
+            // User signed out - clear all auth state
             dispatch(setAuthUser(null));
             dispatch(setUserProfile(null));
-
-            // Clear Crashlytics user ID
             CrashlyticsService.setUserId(null);
           }
         });
@@ -202,6 +170,9 @@ function AppContent() {
     
     // Cleanup function
     return () => {
+      if (firestoreUnsubscribe) {
+        firestoreUnsubscribe();
+      }
       if (authUnsubscribe) {
         authUnsubscribe();
       }

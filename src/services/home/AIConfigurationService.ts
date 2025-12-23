@@ -12,42 +12,46 @@ import { isDemoModeEnabled } from '@/services/demo/demoMode';
 export class AIConfigurationService {
   /**
    * Gets all configured AIs based on available API keys.
-   * 
+   *
    * @param apiKeys - Object containing API keys for different providers
+   * @param isDemo - Whether user is in demo mode (optional, falls back to global)
    * @returns Array of configured AI configurations
    */
-  static getConfiguredAIs(apiKeys: Record<string, unknown>): AIConfig[] {
+  static getConfiguredAIs(apiKeys: Record<string, unknown>, isDemo?: boolean): AIConfig[] {
     const DEMO_ALLOWED = new Set(['claude', 'openai', 'google']);
-    const providers = isDemoModeEnabled()
+    const inDemoMode = isDemo !== undefined ? isDemo : isDemoModeEnabled();
+    const providers = inDemoMode
       ? AI_PROVIDERS.filter(p => p.enabled && DEMO_ALLOWED.has(p.id))
       : AI_PROVIDERS.filter(provider => this.isProviderAvailable(provider, apiKeys));
-    return providers.map(provider => this.transformProviderToConfig(provider));
+    return providers.map(provider => this.transformProviderToConfig(provider, inDemoMode));
   }
 
   /**
    * Checks if a provider is available based on enabled status and API key presence.
-   * 
+   * Note: Demo mode filtering is handled by getConfiguredAIs, not here.
+   *
    * @param provider - AI provider configuration
    * @param apiKeys - Object containing API keys
    * @returns True if provider is available, false otherwise
    */
   static isProviderAvailable(
-    provider: typeof AI_PROVIDERS[0], 
+    provider: typeof AI_PROVIDERS[0],
     apiKeys: Record<string, unknown>
   ): boolean {
-    if (isDemoModeEnabled()) return provider.enabled;
     return provider.enabled && !!apiKeys[provider.id];
   }
 
   /**
    * Transforms an AI provider configuration into an AIConfig object.
-   * 
+   *
    * @param provider - AI provider configuration from AI_PROVIDERS
+   * @param isDemo - Whether user is in demo mode (optional, falls back to global)
    * @returns AIConfig object ready for use in the application
    */
-  static transformProviderToConfig(provider: typeof AI_PROVIDERS[0]): AIConfig {
+  static transformProviderToConfig(provider: typeof AI_PROVIDERS[0], isDemo?: boolean): AIConfig {
     const iconData = getAIProviderIcon(provider.id);
-    
+    const inDemoMode = isDemo !== undefined ? isDemo : isDemoModeEnabled();
+
     // Find the default model for this provider
     const providerModels = AI_MODELS[provider.id];
     // Demo-specific default models
@@ -56,7 +60,7 @@ export class AIConfigurationService {
       openai: 'gpt-5',
       claude: 'opus-4.1',
     };
-    const defaultModel = isDemoModeEnabled() && DEMO_MODEL_OVERRIDES[provider.id]
+    const defaultModel = inDemoMode && DEMO_MODEL_OVERRIDES[provider.id]
       ? DEMO_MODEL_OVERRIDES[provider.id]
       : (providerModels?.find(m => m.isDefault)?.id || providerModels?.[0]?.id || '');
     

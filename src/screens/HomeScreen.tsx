@@ -113,6 +113,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             onToggleAI={aiSelection.toggleAI}
             onStartChat={handleStartChat}
             onAddAI={handleAddAI}
+            hideAddAI={isDemo}
             aiPersonalities={aiSelection.aiPersonalities}
             selectedModels={aiSelection.selectedModels}
             onPersonalityChange={aiSelection.changePersonality}

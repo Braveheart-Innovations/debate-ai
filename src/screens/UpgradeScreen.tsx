@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ScrollView, View, StyleSheet, Alert, TouchableOpacity, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSelector, useDispatch } from 'react-redux';
@@ -32,8 +32,31 @@ export default function UpgradeScreen() {
   const dispatch = useDispatch();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [showTrialTerms, setShowTrialTerms] = useState(false);
-  const { hasUsedTrial, isInTrial, trialDaysRemaining, isPremium, canStartTrial } = useFeatureAccess();
+  const { hasUsedTrial, isInTrial, trialDaysRemaining, isPremium, canStartTrial, refresh } = useFeatureAccess();
   const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
+
+  // Listen for background purchase errors and show to user
+  useEffect(() => {
+    const unsubscribe = PurchaseService.onPurchaseError(({ message, isRecoverable }) => {
+      // Refresh subscription status in case it actually succeeded
+      refresh();
+
+      if (isRecoverable) {
+        Alert.alert(
+          'Purchase Issue',
+          `${message}\n\nYour payment may still be processing. Please wait a moment and check your subscription status.`,
+          [
+            { text: 'OK', style: 'default' },
+            { text: 'Restore Purchases', onPress: () => PurchaseService.restorePurchases() },
+          ]
+        );
+      } else {
+        Alert.alert('Purchase Failed', message);
+      }
+    });
+
+    return unsubscribe;
+  }, [refresh]);
 
   // Determine header subtitle based on membership status
   const getHeaderSubtitle = () => {

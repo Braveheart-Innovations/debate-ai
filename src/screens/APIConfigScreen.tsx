@@ -13,6 +13,7 @@ import {
   APIKeyGuidanceModal,
   APIKeyWebViewModal,
 } from '../components/organisms';
+import { Typography, GradientButton } from '../components/molecules';
 import { useAPIKeys } from '../hooks/useAPIKeys';
 import { useProviderVerification } from '../hooks/useProviderVerification';
 import { useAPIConfigHandlers } from '../hooks/useAPIConfigHandlers';
@@ -21,6 +22,8 @@ import { useAPIKeyClipboardDetection } from '../hooks/apiKeyAcquisition/useAPIKe
 import { useAPIKeyFlowState } from '../hooks/apiKeyAcquisition/useAPIKeyFlowState';
 import { AIProvider, getProviderById } from '../config/aiProviders';
 import { ProviderId } from '../services/apiKeyAcquisition';
+import { useTheme } from '../theme';
+import useFeatureAccess from '@/hooks/useFeatureAccess';
 
 interface APIConfigScreenProps {
   navigation: {
@@ -30,6 +33,8 @@ interface APIConfigScreenProps {
 
 const APIConfigScreen: React.FC<APIConfigScreenProps> = ({ navigation }) => {
   const dispatch = useDispatch();
+  const { theme } = useTheme();
+  const { isDemo } = useFeatureAccess();
   // Custom hooks
   const { apiKeys, clearAll } = useAPIKeys();
   const { clearAllVerifications } = useProviderVerification();
@@ -154,33 +159,56 @@ const APIConfigScreen: React.FC<APIConfigScreenProps> = ({ navigation }) => {
             contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
             showsVerticalScrollIndicator={false}
           >
-            <APIConfigProgress
-              configuredCount={configuredCount}
-              totalCount={enabledProviders.length}
-              onClearAll={async () => {
-                await clearAll();
-                await clearAllVerifications();
-              }}
-            />
-            
-            <APIProviderList
-              providers={enabledProviders}
-              apiKeys={apiKeys}
-              verificationStatus={verificationStatus}
-              onKeyChange={handleKeyChange}
-              onTest={handleTestConnection}
-              onSave={handleSaveKey}
-              onToggleExpand={onToggleExpand}
-              expandedProvider={expandedProvider}
-              expertModeConfigs={expertModeConfigs}
-              onGetApiKey={handleGetApiKey}
-              clipboardKeyProviderId={clipboardKeyProviderId}
-              onUseClipboardKey={handleUseClipboardKey}
-            />
-            
-            <APIComingSoon providers={disabledProviders} />
-            
-            <APISecurityNote />
+            {isDemo ? (
+              <Box style={{ padding: theme.spacing.xl, alignItems: 'center' }}>
+                <Typography variant="heading" align="center" style={{ marginBottom: theme.spacing.md }}>
+                  Premium Feature
+                </Typography>
+                <Typography variant="body" color="secondary" align="center" style={{ marginBottom: theme.spacing.lg }}>
+                  API Configuration lets you use your own API keys with Claude, ChatGPT, Gemini, and other AI providers. This means you pay only for what you use and get access to the latest models.
+                </Typography>
+                <Typography variant="body" color="secondary" align="center" style={{ marginBottom: theme.spacing.xl }}>
+                  Start a free trial or subscribe to unlock this feature.
+                </Typography>
+                <GradientButton
+                  title="Unlock API Configuration"
+                  onPress={() => dispatch(showSheet({ sheet: 'subscription' }))}
+                  gradient={theme.colors.gradients.primary}
+                  fullWidth
+                  hapticType="medium"
+                />
+              </Box>
+            ) : (
+              <>
+                <APIConfigProgress
+                  configuredCount={configuredCount}
+                  totalCount={enabledProviders.length}
+                  onClearAll={async () => {
+                    await clearAll();
+                    await clearAllVerifications();
+                  }}
+                />
+
+                <APIProviderList
+                  providers={enabledProviders}
+                  apiKeys={apiKeys}
+                  verificationStatus={verificationStatus}
+                  onKeyChange={handleKeyChange}
+                  onTest={handleTestConnection}
+                  onSave={handleSaveKey}
+                  onToggleExpand={onToggleExpand}
+                  expandedProvider={expandedProvider}
+                  expertModeConfigs={expertModeConfigs}
+                  onGetApiKey={handleGetApiKey}
+                  clipboardKeyProviderId={clipboardKeyProviderId}
+                  onUseClipboardKey={handleUseClipboardKey}
+                />
+
+                <APIComingSoon providers={disabledProviders} />
+
+                <APISecurityNote />
+              </>
+            )}
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>

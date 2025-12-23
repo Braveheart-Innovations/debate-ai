@@ -650,8 +650,18 @@ describe('PurchaseService', () => {
       expect(result.userMessage).toBe('Store connection not ready. Please restart the app.');
     });
 
-    it('should provide generic error message for unknown errors', async () => {
-      mockGetAvailablePurchases.mockRejectedValue(new Error('Unknown error'));
+    it('should extract and show actual error message when available', async () => {
+      mockGetAvailablePurchases.mockRejectedValue(new Error('Network connection lost'));
+
+      const result = await PurchaseService.restorePurchases();
+
+      expect(result.success).toBe(false);
+      // Now extracts actual error message instead of generic one
+      expect(result.userMessage).toBe('Network connection lost');
+    });
+
+    it('should fall back to IAP error message when no message available', async () => {
+      mockGetAvailablePurchases.mockRejectedValue({ code: 'E_SOME_UNKNOWN_CODE' });
 
       const result = await PurchaseService.restorePurchases();
 
@@ -786,6 +796,104 @@ describe('PurchaseService', () => {
     });
   });
 
+  describe('onPurchaseError listener', () => {
+    it('should register and call error listeners', async () => {
+      const listener = jest.fn();
+      const unsubscribe = PurchaseService.onPurchaseError(listener);
+
+      await PurchaseService.initialize();
+
+      // Trigger a purchase update with validation failure
+      const purchaseUpdateHandler = mockPurchaseUpdatedListener.mock.calls[0][0];
+      const purchase = {
+        productId: SUBSCRIPTION_PRODUCTS.monthly,
+        transactionReceipt: 'test-receipt',
+        transactionId: 'test-tx',
+      };
+
+      await purchaseUpdateHandler(purchase);
+
+      // Listener should be called with error info
+      expect(listener).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: expect.any(String),
+          isRecoverable: true,
+        })
+      );
+
+      unsubscribe();
+    });
+
+    it('should allow unsubscribing from error notifications', async () => {
+      const listener = jest.fn();
+      const unsubscribe = PurchaseService.onPurchaseError(listener);
+
+      unsubscribe();
+
+      await PurchaseService.initialize();
+
+      const purchaseUpdateHandler = mockPurchaseUpdatedListener.mock.calls[0][0];
+      const purchase = {
+        productId: SUBSCRIPTION_PRODUCTS.monthly,
+        transactionReceipt: 'test-receipt',
+        transactionId: 'test-tx',
+      };
+
+      await purchaseUpdateHandler(purchase);
+
+      // Listener should NOT be called after unsubscribe
+      expect(listener).not.toHaveBeenCalled();
+    });
+
+    it('should handle multiple listeners', async () => {
+      const listener1 = jest.fn();
+      const listener2 = jest.fn();
+
+      PurchaseService.onPurchaseError(listener1);
+      PurchaseService.onPurchaseError(listener2);
+
+      await PurchaseService.initialize();
+
+      const purchaseUpdateHandler = mockPurchaseUpdatedListener.mock.calls[0][0];
+      const purchase = {
+        productId: SUBSCRIPTION_PRODUCTS.monthly,
+        transactionReceipt: 'test-receipt',
+        transactionId: 'test-tx',
+      };
+
+      await purchaseUpdateHandler(purchase);
+
+      // Both listeners should be called
+      expect(listener1).toHaveBeenCalled();
+      expect(listener2).toHaveBeenCalled();
+    });
+
+    it('should handle listener errors gracefully', async () => {
+      const errorListener = jest.fn(() => {
+        throw new Error('Listener error');
+      });
+      const normalListener = jest.fn();
+
+      PurchaseService.onPurchaseError(errorListener);
+      PurchaseService.onPurchaseError(normalListener);
+
+      await PurchaseService.initialize();
+
+      const purchaseUpdateHandler = mockPurchaseUpdatedListener.mock.calls[0][0];
+      const purchase = {
+        productId: SUBSCRIPTION_PRODUCTS.monthly,
+        transactionReceipt: 'test-receipt',
+        transactionId: 'test-tx',
+      };
+
+      // Should not throw even if one listener errors
+      await expect(purchaseUpdateHandler(purchase)).resolves.not.toThrow();
+
+      // Second listener should still be called
+      expect(normalListener).toHaveBeenCalled();
+    });
+  });
+
   describe('Error handling', () => {
     it('should map E_DEVELOPER_ERROR to user-friendly message', async () => {
       mockRequestSubscription.mockRejectedValue({ code: 'E_DEVELOPER_ERROR' });
@@ -795,12 +903,12 @@ describe('PurchaseService', () => {
       expect(result.userMessage).toBe('This product is not available yet. Please try again later.');
     });
 
-    it('should map E_ALREADY_OWNED to user-friendly message', async () => {
+    it('should map E_ALREADY_OWNED to user-friendly message with restore suggestion', async () => {
       mockRequestPurchase.mockRejectedValue({ code: 'E_ALREADY_OWNED' });
 
       const result = await PurchaseService.purchaseLifetime();
 
-      expect(result.userMessage).toBe('You already own this subscription.');
+      expect(result.userMessage).toBe('You already own this subscription. Try "Restore Purchases" below.');
     });
 
     it('should map E_BILLING_UNAVAILABLE to user-friendly message', async () => {

@@ -25,7 +25,7 @@ export class SubscriptionManager {
     if (data.membershipStatus === 'trial') {
       const trialEndMs = this.toMillis(data.trialEndDate);
       if (trialEndMs && now > trialEndMs) {
-        await setDoc(doc(collection(db, 'users'), user.uid), { membershipStatus: 'demo' }, { merge: true });
+        await setDoc(doc(collection(db, 'users'), user.uid), { membershipStatus: 'demo', isPremium: false }, { merge: true });
         return 'demo';
       }
       return 'trial';
@@ -34,7 +34,7 @@ export class SubscriptionManager {
     if (data.membershipStatus === 'premium') {
       const expiryMs = this.toMillis(data.subscriptionExpiryDate);
       if (expiryMs && now > expiryMs && !data.autoRenewing) {
-        await setDoc(doc(collection(db, 'users'), user.uid), { membershipStatus: 'demo' }, { merge: true });
+        await setDoc(doc(collection(db, 'users'), user.uid), { membershipStatus: 'demo', isPremium: false }, { merge: true });
         return 'demo';
       }
       return 'premium';

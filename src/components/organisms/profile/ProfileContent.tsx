@@ -104,7 +104,7 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
         displayName: 'Guest User',
         photoURL: null,
         createdAt: Date.now(),
-        membershipStatus: 'free',
+        membershipStatus: 'demo',
         preferences: {},
         authProvider: 'anonymous',
       }));
@@ -521,8 +521,8 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
         </LinearGradient>
       </View>
 
-      {/* Premium CTA for free users */}
-      {!(access.isPremium || access.isInTrial) && (
+      {/* Premium CTA for demo users who haven't used trial */}
+      {access.canStartTrial && (
         <>
           {/* Start Trial button first */}
           <View style={styles.ctaSection}>
@@ -558,6 +558,13 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
 
       {/* Trial banner */}
       {access.isInTrial && <TrialBanner />}
+
+      {/* Upgrade CTA for demo users who have already used trial */}
+      {access.isDemo && access.hasUsedTrial && (
+        <View style={styles.ctaSection}>
+          <UnlockEverythingBanner />
+        </View>
+      )}
 
       {/* Account Settings Section */}
       <View style={styles.settingsContainer}>

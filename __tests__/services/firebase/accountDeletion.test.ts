@@ -15,13 +15,13 @@ const mockStorageService = {
 };
 
 const mockAuthInstance = {
-  currentUser: { uid: 'user-123' },
-  signOut: mockSignOut,
+  currentUser: { uid: 'user-123' } as { uid: string } | null,
 };
 
 jest.mock('@react-native-firebase/auth', () => ({
   __esModule: true,
   getAuth: () => mockAuthInstance,
+  signOut: mockSignOut,
 }));
 
 jest.mock('@react-native-firebase/functions', () => ({

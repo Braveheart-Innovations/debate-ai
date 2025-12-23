@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getAuth } from '@react-native-firebase/auth';
+import { getAuth, signOut } from '@react-native-firebase/auth';
 import { StorageService } from '@/services/chat/StorageService';
 import secureStorage from '@/services/secureStorage';
 import verificationPersistence from '@/services/VerificationPersistenceService';
@@ -91,7 +91,7 @@ export const deleteAccount = async (): Promise<DeleteAccountResult> => {
     await clearLocalCaches();
 
     try {
-      await auth.signOut();
+      await signOut(auth);
     } catch (signOutError) {
       console.warn('Auth signOut failed after account deletion, continuing', signOutError);
     }

@@ -18,6 +18,7 @@ interface DynamicAISelectorProps {
   customSubtitle?: string;
   hideStartButton?: boolean;  // New prop to hide the start button
   hideHeader?: boolean;  // New prop to hide the section header
+  hideAddAI?: boolean;  // Hide "+ Add AI" button (for demo mode)
   columnCount?: number;  // New prop to override column count
   containerWidth?: number;  // New prop to override container width calculation
   aiPersonalities?: { [aiId: string]: string };
@@ -37,6 +38,7 @@ export const DynamicAISelector: React.FC<DynamicAISelectorProps> = ({
   customSubtitle,
   hideStartButton = false,
   hideHeader = false,
+  hideAddAI = false,
   columnCount,
   containerWidth,
   aiPersonalities = {},
@@ -86,8 +88,8 @@ export const DynamicAISelector: React.FC<DynamicAISelectorProps> = ({
           title="Choose Your AIs"
           subtitle={getSubtitle()}
           icon="🤖"
-          onAction={handleAddAI}
-          actionLabel="+ Add AI"
+          onAction={hideAddAI ? undefined : handleAddAI}
+          actionLabel={hideAddAI ? undefined : "+ Add AI"}
         />
       )}
       
@@ -199,7 +201,7 @@ export const DynamicAISelector: React.FC<DynamicAISelectorProps> = ({
             onTrailingIconPress={onQuickStart}
             trailingIconDisabled={selectedAIs.length === 0}
           />
-        ) : (
+        ) : !hideAddAI ? (
           <GradientButton
             title="Configure Your First AI"
             onPress={onAddAI}
@@ -207,7 +209,7 @@ export const DynamicAISelector: React.FC<DynamicAISelectorProps> = ({
             fullWidth
             hapticType="medium"
           />
-        )
+        ) : null
       )}
     </Box>
   );

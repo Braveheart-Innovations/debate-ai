@@ -1,6 +1,7 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { defineSecret } from 'firebase-functions/params';
 import * as admin from 'firebase-admin';
+import * as crypto from 'crypto';
 import axios from 'axios';
 import { google } from 'googleapis';
 
@@ -28,6 +29,51 @@ const LIFETIME_PRODUCT_IDS = [
 ];
 
 /**
+ * Hash email for privacy-preserving trial tracking
+ */
+const hashEmail = (email: string): string => {
+  return crypto.createHash('sha256').update(email.toLowerCase().trim()).digest('hex');
+};
+
+/**
+ * Check if user has already used a trial (survives account deletion)
+ * Checks both by UID and by email hash to prevent abuse
+ */
+const checkTrialHistory = async (uid: string, email: string | undefined): Promise<boolean> => {
+  const firestore = admin.firestore();
+
+  // Check by UID first
+  const uidDoc = await firestore.collection('trialHistory').doc(uid).get();
+  if (uidDoc.exists) return true;
+
+  // Check by email hash if email is available
+  if (email) {
+    const emailHash = hashEmail(email);
+    const emailQuery = await firestore
+      .collection('trialHistory')
+      .where('emailHash', '==', emailHash)
+      .limit(1)
+      .get();
+    if (!emailQuery.empty) return true;
+  }
+
+  return false;
+};
+
+/**
+ * Record trial usage to prevent future abuse after account deletion
+ */
+const recordTrialUsage = async (uid: string, email: string | undefined): Promise<void> => {
+  const firestore = admin.firestore();
+  await firestore.collection('trialHistory').doc(uid).set({
+    uid,
+    emailHash: email ? hashEmail(email) : null,
+    firstTrialDate: admin.firestore.FieldValue.serverTimestamp(),
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+};
+
+/**
  * Callable Function: validatePurchase
  * Validates App Store/Play Store receipts and returns authoritative subscription state.
  * Expected: { receipt (iOS), purchaseToken (Android), platform, productId }
@@ -38,10 +84,40 @@ export const validatePurchase = onCall({ secrets: [appleSharedSecret] }, async (
   }
 
   const userId = request.auth.uid;
+  const userEmail = request.auth.token?.email;
   const data = request.data as ValidateRequest;
   const { receipt, platform, productId, purchaseToken } = data;
   if (!platform || !productId) {
     throw new HttpsError('invalid-argument', 'Missing required fields');
+  }
+
+  // Idempotency check: if user already has active trial/premium, return success
+  // This handles IAP retries without failing on trialHistory check
+  const userDoc = await admin.firestore().collection('users').doc(userId).get();
+  const userData = userDoc.data();
+  if (userData) {
+    const status = userData.membershipStatus;
+    const expiry = userData.subscriptionExpiryDate?.toDate?.() || null;
+    const isLifetimeUser = userData.isLifetime === true;
+
+    // If user already has active subscription, return current state
+    if (status === 'trial' || status === 'premium') {
+      const isExpired = expiry && new Date() > expiry;
+      if (isLifetimeUser || !isExpired) {
+        console.log(`User ${userId} already has active ${status} - returning cached state`);
+        return {
+          valid: true,
+          membershipStatus: status,
+          expiryDate: expiry ? admin.firestore.Timestamp.fromDate(expiry) : null,
+          trialStartDate: userData.trialStartDate || null,
+          trialEndDate: userData.trialEndDate || null,
+          autoRenewing: userData.autoRenewing ?? true,
+          productId: userData.productId || 'monthly',
+          hasUsedTrial: userData.hasUsedTrial ?? false,
+          isLifetime: isLifetimeUser,
+        };
+      }
+    }
   }
 
   try {
@@ -117,13 +193,14 @@ export const validatePurchase = onCall({ secrets: [appleSharedSecret] }, async (
         }
         expiresAt = new Date(parseInt(android.expiryTimeMillis, 10));
         autoRenewing = !!android.autoRenewing;
-        // Attempt trial detection via subscriptionsv2 offerTags (requires offers tagged with 'trial')
-        try {
-          const v2 = await validateAndroidSubscriptionV2(PACKAGE_NAME_ANDROID, productId, purchaseToken);
-          const lineItems = (v2?.lineItems || []) as Array<{ offerDetails?: { offerTags?: string[] } }>;
-          inTrial = lineItems.some((li) => (li.offerDetails?.offerTags || []).includes('trial'));
-        } catch (e) {
-          console.warn('subscriptionsv2 trial detection failed', e);
+        // Trial detection via paymentState (2 = Free trial)
+        // This is more reliable than offerTags which indicates offer TYPE, not user's current state
+        inTrial = android.paymentState === 2;
+        if (inTrial) {
+          trialStart = android.startTimeMillis
+            ? new Date(parseInt(android.startTimeMillis, 10))
+            : new Date();
+          trialEnd = expiresAt;
         }
       }
     }
@@ -140,6 +217,7 @@ export const validatePurchase = onCall({ secrets: [appleSharedSecret] }, async (
     // If starting a trial, mark hasUsedTrial = true so they can't retry later
     const updateData: Record<string, any> = {
       membershipStatus: inTrial ? 'trial' : 'premium',
+      isPremium: true, // Both trial and premium users have premium access
       subscriptionExpiryDate: expiresAt ? admin.firestore.Timestamp.fromDate(expiresAt) : null,
       trialStartDate: trialStart ? admin.firestore.Timestamp.fromDate(trialStart) : null,
       trialEndDate: trialEnd ? admin.firestore.Timestamp.fromDate(trialEnd) : null,
@@ -149,26 +227,42 @@ export const validatePurchase = onCall({ secrets: [appleSharedSecret] }, async (
       lastValidated: admin.firestore.FieldValue.serverTimestamp(),
     };
 
-    // Mark hasUsedTrial = true if they're starting a trial
+    // Check and record trial usage to prevent abuse after account deletion
     if (inTrial) {
-      updateData.hasUsedTrial = true;
+      // Check persistent trial history (survives account deletion)
+      const hasUsedTrialBefore = await checkTrialHistory(userId, userEmail);
+      if (hasUsedTrialBefore) {
+        // User already used a trial but Google gave them another one (dev settings or re-subscription)
+        // Don't reject - just treat them as premium (they're paying anyway after the trial)
+        console.log(`User ${userId} got trial from store but already used one - treating as premium`);
+        updateData.membershipStatus = 'premium';
+        // Keep inTrial dates for reference but status is premium
+      } else {
+        // First time using trial - record it for future tracking
+        await recordTrialUsage(userId, userEmail);
+        updateData.hasUsedTrial = true;
+      }
     }
 
     await admin.firestore().collection('users').doc(userId).set(updateData, { merge: true });
 
     return {
       valid: true,
-      membershipStatus: inTrial ? 'trial' : 'premium',
+      membershipStatus: updateData.membershipStatus, // Use the actual status we saved
       expiryDate: expiresAt ? admin.firestore.Timestamp.fromDate(expiresAt) : null,
       trialStartDate: trialStart ? admin.firestore.Timestamp.fromDate(trialStart) : null,
       trialEndDate: trialEnd ? admin.firestore.Timestamp.fromDate(trialEnd) : null,
       autoRenewing,
       productId: resolvedProductId,
-      hasUsedTrial: inTrial,
+      hasUsedTrial: updateData.hasUsedTrial ?? false,
       isLifetime,
     };
   } catch (err) {
     console.error('validatePurchase error', err);
+    // Re-throw HttpsError as-is (e.g., "Trial already used" message)
+    if (err instanceof HttpsError) {
+      throw err;
+    }
     throw new HttpsError('internal', 'Validation failed');
   }
 });
@@ -208,7 +302,8 @@ async function validateAndroidSubscription(packageName: string, subscriptionId: 
     subscriptionId,
     token,
   });
-  return res.data as { expiryTimeMillis?: string; autoRenewing?: boolean };
+  // paymentState: 0 = Payment pending, 1 = Payment received, 2 = Free trial, 3 = Pending deferred upgrade/downgrade
+  return res.data as { expiryTimeMillis?: string; startTimeMillis?: string; autoRenewing?: boolean; paymentState?: number };
 }
 
 async function validateAndroidSubscriptionV2(packageName: string, productId: string, token: string) {

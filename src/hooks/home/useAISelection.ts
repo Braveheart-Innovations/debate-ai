@@ -2,8 +2,7 @@ import { useState, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, setAIPersonality, setAIModel } from '../../store';
 import { AIConfigurationService } from '../../services/home/AIConfigurationService';
-import { isDemoModeEnabled } from '@/services/demo/demoMode';
-// import useFeatureAccess from '@/hooks/useFeatureAccess';
+import useFeatureAccess from '@/hooks/useFeatureAccess';
 import { AIConfig } from '../../types';
 
 /**
@@ -16,26 +15,22 @@ export const useAISelection = (maxAIs: number) => {
   const expertMode = useSelector((state: RootState) => state.settings.expertMode || {});
   const aiPersonalities = useSelector((state: RootState) => state.chat.aiPersonalities);
   const selectedModels = useSelector((state: RootState) => state.chat.selectedModels);
-  
+  const { isDemo } = useFeatureAccess();
+
   const [selectedAIs, setSelectedAIs] = useState<AIConfig[]>([]);
 
-  // Get configured AIs based on API keys
-  // Removed isDemo dependency to avoid unnecessary recompute and lint warnings
-
-  const demoModeKey = isDemoModeEnabled();
-
+  // Get configured AIs based on API keys and demo mode status
   const configuredAIs = useMemo(() => {
-    const base = AIConfigurationService.getConfiguredAIs(apiKeys);
-    const modeScopedBase = demoModeKey ? base : base;
+    const base = AIConfigurationService.getConfiguredAIs(apiKeys, isDemo);
     // Apply expert default models (if enabled and set) as the default for each provider
-    return modeScopedBase.map(ai => {
+    return base.map(ai => {
       const cfg = (expertMode as Record<string, { enabled?: boolean; selectedModel?: string }>)[ai.id];
       if (cfg?.enabled && cfg.selectedModel) {
         return { ...ai, model: cfg.selectedModel } as AIConfig;
       }
       return ai;
     });
-  }, [apiKeys, expertMode, demoModeKey]);
+  }, [apiKeys, expertMode, isDemo]);
 
   /**
    * Toggles AI selection (add/remove from selected list).

@@ -96,7 +96,8 @@ describe('useFeatureAccess', () => {
     expect(trialDaysSpy).toHaveBeenCalledTimes(2);
     expect(result.current.membershipStatus).toBe('trial');
     expect(result.current.isInTrial).toBe(true);
-    expect(result.current.isPremium).toBe(false);
+    // Trial users have premium access (isPremium includes trial status)
+    expect(result.current.isPremium).toBe(true);
     expect(result.current.canAccessLiveAI).toBe(true);
     expect(result.current.trialDaysRemaining).toBe(2);
   });

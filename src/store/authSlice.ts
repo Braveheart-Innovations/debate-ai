@@ -12,7 +12,7 @@ interface AuthState {
     displayName: string | null;
     photoURL: string | null;
     createdAt: number | null;
-    membershipStatus: 'free' | 'premium';
+    membershipStatus: 'demo' | 'trial' | 'premium';
     preferences?: Record<string, unknown>;
     authProvider?: 'email' | 'apple' | 'google' | 'anonymous';
   } | null;
@@ -47,12 +47,13 @@ const authSlice = createSlice({
     },
     setUserProfile: (state, action: PayloadAction<AuthState['userProfile']>) => {
       state.userProfile = action.payload;
-      state.isPremium = action.payload?.membershipStatus === 'premium';
+      // Premium access includes both 'premium' and 'trial' status
+      state.isPremium = action.payload?.membershipStatus === 'premium' || action.payload?.membershipStatus === 'trial';
     },
     setPremiumStatus: (state, action: PayloadAction<boolean>) => {
       state.isPremium = action.payload;
       if (state.userProfile) {
-        state.userProfile.membershipStatus = action.payload ? 'premium' : 'free';
+        state.userProfile.membershipStatus = action.payload ? 'premium' : 'demo';
       }
     },
     setAuthLoading: (state, action: PayloadAction<boolean>) => {
