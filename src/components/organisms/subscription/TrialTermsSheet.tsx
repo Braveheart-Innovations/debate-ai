@@ -36,11 +36,11 @@ export const TrialTermsSheet: React.FC<TrialTermsSheetProps> = ({
 
   const handlePrivacyPolicy = () => {
     // Use in-app navigation if available, otherwise fallback to URL
-    Linking.openURL('https://debateai.app/privacy');
+    Linking.openURL('https://www.symposiumai.app/privacy');
   };
 
   const handleTermsOfService = () => {
-    Linking.openURL('https://debateai.app/terms');
+    Linking.openURL('https://www.symposiumai.app/terms');
   };
 
   const ctaText = isAuthenticated

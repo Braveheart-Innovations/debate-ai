@@ -285,13 +285,13 @@ export default function UpgradeScreen() {
               Manage subscriptions in your device Settings.
             </Typography>
             <View style={styles.legalLinks}>
-              <TouchableOpacity onPress={() => Linking.openURL('https://debateai.app/privacy')}>
+              <TouchableOpacity onPress={() => Linking.openURL('https://www.symposiumai.app/privacy')}>
                 <Typography variant="caption" color="brand" weight="medium">
                   Privacy Policy
                 </Typography>
               </TouchableOpacity>
               <Typography variant="caption" color="secondary"> | </Typography>
-              <TouchableOpacity onPress={() => Linking.openURL('https://debateai.app/terms')}>
+              <TouchableOpacity onPress={() => Linking.openURL('https://www.symposiumai.app/terms')}>
                 <Typography variant="caption" color="brand" weight="medium">
                   Terms of Service
                 </Typography>
