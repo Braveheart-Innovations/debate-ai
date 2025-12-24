@@ -109,7 +109,8 @@
   },
   "overrides": {
     "react-server-dom-webpack": "19.2.3",
-    "markdown-it": "^14.1.0"
+    "markdown-it": "^14.1.0",
+    "prismjs": "^1.30.0"
   },
   "private": true
 }
