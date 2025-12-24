@@ -33,12 +33,19 @@
       .badge { display:inline-flex; align-items:center; gap:10px; padding:12px 16px; border-radius:12px; background:#0f1115; border:1px solid #22252b; color:#cfd3d8; text-decoration:none; font-weight:600; }
       .badge:hover { border-color:#2a2f36; }
       .card { background:var(--card); border:1px solid #202328; border-radius:16px; padding:18px; }
-      .preview { aspect-ratio:16/10; background:radial-gradient(60% 80% at 50% 30%, rgba(14,149,148,.25), transparent), linear-gradient(180deg,#0d0f14, #11131a); border-radius:14px; border:1px solid #1f2330; display:flex; align-items:center; justify-content:center; }
-      .preview img { width:70%; height:auto; filter: drop-shadow(0 10px 32px rgba(14,149,148,.25)) drop-shadow(0 4px 12px rgba(0,0,0,.35)); }
+      .preview { width:100%; max-width:300px; margin:0 auto; aspect-ratio:9/16; max-height:520px; background:radial-gradient(60% 80% at 50% 30%, rgba(14,149,148,.25), transparent), linear-gradient(180deg,#0d0f14, #11131a); border-radius:14px; border:1px solid #1f2330; position:relative; overflow:hidden; }
+      .carousel-track { display:flex; transition:transform 0.5s ease; width:100%; height:100%; }
+      .carousel-slide { min-width:100%; width:100%; flex-shrink:0; height:100%; object-fit:contain; padding:16px; filter: drop-shadow(0 10px 32px rgba(14,149,148,.25)) drop-shadow(0 4px 12px rgba(0,0,0,.35)); }
+      .carousel-dots { position:absolute; bottom:12px; left:50%; transform:translateX(-50%); display:flex; gap:8px; z-index:10; }
+      .dot { width:8px; height:8px; border-radius:50%; background:rgba(255,255,255,0.4); border:none; cursor:pointer; padding:0; transition:background 0.3s; }
+      .dot.active { background:var(--brand); }
+      .dot:hover { background:rgba(255,255,255,0.7); }
       .features { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; margin:28px 0 8px; }
       .feature h3 { margin:0 0 6px; font-size:18px; }
       .feature p { margin:0; color:var(--muted); font-size:15px; }
       .muted { color:var(--muted); }
+      .feature.has-screenshot { display:flex; flex-direction:column; align-items:center; text-align:center; }
+      .feature-screenshot { width:100%; max-width:180px; margin:0 auto 14px; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.3); }
       footer { margin:36px 0 12px; border-top:1px solid #202328; padding-top:18px; color:var(--muted); font-size:14px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
       footer a { color:var(--muted); text-decoration:none; margin-right:14px; }
       footer a:hover { color:var(--text); }
@@ -56,9 +63,11 @@
         nav a { margin-left:12px; font-size:15px; }
         .hero h1 { font-size:34px; }
         .sub { font-size:16px; }
-        .preview img { width:64%; }
+        .preview { max-width:260px; max-height:460px; }
+        .carousel-slide { padding:10px; }
         .features { grid-template-columns:1fr; gap:14px; }
         .card { padding:16px; }
+        .feature-screenshot { max-width:140px; }
       }
       /* Small phones */
       @media (max-width: 480px) {
@@ -66,6 +75,8 @@
         .cta { gap:10px; }
         .badge { width:100%; justify-content:center; padding:12px 14px; }
         nav a { margin-left:10px; font-size:14px; }
+        .preview { max-width:220px; max-height:400px; }
+        .carousel-slide { padding:8px; }
       }
     </style>
   </head>
@@ -98,32 +109,47 @@
           <p class="muted" style="margin-top:10px">Coming soon to iOS and Android.</p>
         </div>
         <div class="card preview" aria-label="Symposium AI app preview">
-          <img src="/assets/app-logo.png" alt="Symposium AI App Logo" />
+          <div class="carousel-track">
+            <img src="/assets/screenshots/debate-vote.png" alt="AI Debate with voting between Claude and Perplexity" class="carousel-slide" />
+            <img src="/assets/screenshots/chat-selection.png" alt="Choose your AIs - Claude, OpenAI, Gemini, and more" class="carousel-slide" />
+            <img src="/assets/screenshots/conversation.png" alt="Multi-AI conversation interface" class="carousel-slide" />
+          </div>
+          <div class="carousel-dots">
+            <button class="dot active" aria-label="Slide 1"></button>
+            <button class="dot" aria-label="Slide 2"></button>
+            <button class="dot" aria-label="Slide 3"></button>
+          </div>
         </div>
       </section>
 
       <section id="features" class="features">
-        <div class="card feature">
+        <div class="card feature has-screenshot">
+          <img src="/assets/screenshots/debate-vote.png" alt="AI Debates screenshot" class="feature-screenshot" loading="lazy" />
           <h3>AI Debates</h3>
           <p>Spin up structured debates between multiple top‑tier models to compare reasoning and uncover insight.</p>
         </div>
-        <div class="card feature">
+        <div class="card feature has-screenshot">
+          <img src="/assets/screenshots/chat-selection.png" alt="Multi-AI Chat screenshot" class="feature-screenshot" loading="lazy" />
           <h3>Multi‑AI Chat</h3>
           <p>Bring several models into one conversation to iterate faster and stress‑test ideas.</p>
         </div>
-        <div class="card feature">
+        <div class="card feature has-screenshot">
+          <img src="/assets/screenshots/personality-system.png" alt="Personality System screenshot" class="feature-screenshot" loading="lazy" />
           <h3>Personality System</h3>
-          <p>Optional, pre‑built personalities — like Prof. Sage, Brody, and Quinn — that you can infuse into chats, debates, and comparisons to shape tone and style. Coming soon: build your own personalities to tailor interactions to your preferences.</p>
+          <p>Shape AI tone with 8 distinct personalities: Bestie (empathetic co‑pilot), Brody (high‑energy coach), Devlin (devil's advocate), George (satirical wit), Kai (staff engineer), Prof. Sage (Socratic scholar), and Scout (narrative strategist).</p>
         </div>
-        <div class="card feature">
+        <div class="card feature has-screenshot">
+          <img src="/assets/screenshots/compare-mode.png" alt="Compare Mode screenshot" class="feature-screenshot" loading="lazy" />
           <h3>Compare Mode</h3>
           <p>See side‑by‑side answers from different models or providers with synchronized prompts and live streaming.</p>
         </div>
-        <div class="card feature">
+        <div class="card feature has-screenshot">
+          <img src="/assets/screenshots/continue-mode.png" alt="Continue Mode screenshot" class="feature-screenshot" loading="lazy" />
           <h3>Continue Mode</h3>
           <p>Resume any chat or comparison from History. We rehydrate context by re‑injecting recent messages so the conversation picks up naturally.</p>
         </div>
-        <div class="card feature">
+        <div class="card feature has-screenshot">
+          <img src="/assets/screenshots/expert-mode.png" alt="Expert Mode screenshot" class="feature-screenshot" loading="lazy" />
           <h3>Expert Mode</h3>
           <p>Set per‑provider defaults and advanced parameters (temperature, max tokens), then override per session when needed.</p>
         </div>
@@ -150,6 +176,30 @@
         </div>
       </footer>
     </div>
-    <script>document.getElementById('y').textContent = new Date().getFullYear();</script>
+    <script>
+      // Carousel auto-rotation
+      (function() {
+        let currentSlide = 0;
+        const track = document.querySelector('.carousel-track');
+        const slides = document.querySelectorAll('.carousel-slide');
+        const dots = document.querySelectorAll('.dot');
+
+        function showSlide(n) {
+          currentSlide = ((n % slides.length) + slides.length) % slides.length;
+          track.style.transform = 'translateX(-' + (currentSlide * 100) + '%)';
+          dots.forEach(function(dot, i) {
+            dot.classList.toggle('active', i === currentSlide);
+          });
+        }
+
+        // Auto-rotate every 4 seconds
+        setInterval(function() { showSlide(currentSlide + 1); }, 4000);
+
+        // Click on dots to navigate
+        dots.forEach(function(dot, i) {
+          dot.addEventListener('click', function() { showSlide(i); });
+        });
+      })();
+    </script>
   </body>
   </html>

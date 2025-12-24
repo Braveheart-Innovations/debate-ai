@@ -1,15 +1,20 @@
-import React, { useMemo } from 'react';
-import { View, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
-import { CompareMessageBubble } from './CompareMessageBubble';
+import React, { useMemo, useState } from 'react';
+import { View, ScrollView, StyleSheet, TouchableOpacity, Linking, Image } from 'react-native';
+import Markdown from 'react-native-markdown-display';
 import { ContinueButton } from './ContinueButton';
 import { CompareTypingIndicator } from './CompareTypingIndicator';
 import { CompareImageGeneratingPane } from './CompareImageGeneratingPane';
-import { Box } from '../../atoms';
+import { CompareImageDisplay } from './CompareImageDisplay';
+import { Typography } from '../../molecules';
+import { LazyMarkdownRenderer, createMarkdownStyles } from '../../molecules/common/LazyMarkdownRenderer';
 import { Message, AIConfig } from '../../../types';
 import { useTheme } from '../../../theme';
 import { Ionicons } from '@expo/vector-icons';
 import type { BrandColor } from '@/constants/aiColors';
 import { getBrandPalette } from '@/utils/aiBrandColors';
+import { sanitizeMarkdown, shouldLazyRender } from '@/utils/markdown';
+import { selectableMarkdownRules } from '@/utils/markdownSelectable';
+import * as Clipboard from 'expo-clipboard';
 import type { ImageGenState } from './CompareSplitView';
 
 interface CompareResponsePaneProps {
@@ -45,6 +50,7 @@ export const CompareResponsePane: React.FC<CompareResponsePaneProps> = ({
   onOpenLightbox,
 }) => {
   const { theme, isDark } = useTheme();
+  const [copied, setCopied] = useState(false);
 
   const brandPalette: BrandColor | null = useMemo(
     () => getBrandPalette(ai.provider, ai.name),
@@ -67,60 +73,156 @@ export const CompareResponsePane: React.FC<CompareResponsePaneProps> = ({
     opacity: isDisabled ? 0.5 : 1,
   } as const;
 
+  // Create markdown styles
+  const markdownStyles = useMemo(() => createMarkdownStyles(theme, isDark), [theme, isDark]);
+
+  // Get all content for copy functionality
+  const allContent = useMemo(() => {
+    const messageContent = messages.map(m => m.content).join('\n\n');
+    return streamingContent ? `${messageContent}\n\n${streamingContent}` : messageContent;
+  }, [messages, streamingContent]);
+
+  // Handle copy
+  const handleCopy = async () => {
+    try {
+      await Clipboard.setStringAsync(allContent);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      void 0;
+    }
+  };
+
+  // Render a single message's content
+  const renderMessageContent = (message: Message, index: number) => {
+    const content = sanitizeMarkdown(message.content, { showWarning: false });
+    const isLong = shouldLazyRender(content);
+    const imageAttachments = (message.attachments || []).filter(a => a.type === 'image');
+
+    const imageRule = {
+      image: (node: { key?: string; attributes?: { src?: string; href?: string; alt?: string } }) => {
+        const src: string | undefined = node?.attributes?.src || node?.attributes?.href;
+        const alt: string | undefined = node?.attributes?.alt;
+        if (!src) return null;
+        return (
+          <View key={node?.key || `img_${Math.random()}`} style={{ marginVertical: 8 }}>
+            <Image
+              source={{ uri: src }}
+              style={{ width: '100%', height: 180, borderRadius: 8 }}
+              resizeMode="cover"
+              accessible
+              accessibilityLabel={alt || 'image'}
+            />
+          </View>
+        );
+      },
+    };
+
+    return (
+      <View key={message.id} style={index > 0 ? styles.messageSpacing : undefined}>
+        {isLong ? (
+          <LazyMarkdownRenderer
+            content={content}
+            style={markdownStyles}
+            onLinkPress={(url: string) => {
+              Linking.openURL(url).catch(err => console.error('Failed to open URL:', err));
+              return false;
+            }}
+            rules={{ ...selectableMarkdownRules, ...imageRule }}
+          />
+        ) : (
+          <Markdown
+            style={markdownStyles}
+            onLinkPress={(url: string) => {
+              Linking.openURL(url).catch(err => console.error('Failed to open URL:', err));
+              return false;
+            }}
+            rules={{ ...selectableMarkdownRules, ...imageRule }}
+          >
+            {content}
+          </Markdown>
+        )}
+        {/* Image Attachments */}
+        {imageAttachments.length > 0 && onOpenLightbox && (
+          <View style={styles.imageAttachments}>
+            {imageAttachments.map((attachment, idx) => (
+              <CompareImageDisplay
+                key={`${attachment.uri}-${idx}`}
+                ai={ai}
+                side={side}
+                uri={attachment.uri}
+                mimeType={attachment.mimeType}
+                timestamp={message.timestamp}
+                onOpenLightbox={onOpenLightbox}
+                brandPalette={brandPalette}
+              />
+            ))}
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  // Render streaming content
+  const renderStreamingContent = () => {
+    if (!streamingContent) return null;
+    const content = sanitizeMarkdown(streamingContent, { showWarning: false });
+
+    return (
+      <View style={messages.length > 0 ? styles.messageSpacing : undefined}>
+        <Markdown
+          style={markdownStyles}
+          onLinkPress={(url: string) => {
+            Linking.openURL(url).catch(err => console.error('Failed to open URL:', err));
+            return false;
+          }}
+          rules={selectableMarkdownRules}
+        >
+          {content}
+        </Markdown>
+      </View>
+    );
+  };
+
   return (
     <View style={[styles.pane, paneStyle]}>
+      {/* AI Header */}
+      <View style={styles.header}>
+        <Typography
+          variant="caption"
+          weight="semibold"
+          style={{ color: accentColor }}
+        >
+          {ai.name}
+        </Typography>
+      </View>
+
       {/* Expand Button - Floating in top-right corner */}
       {onExpand && (
-        <TouchableOpacity 
-          onPress={onExpand} 
+        <TouchableOpacity
+          onPress={onExpand}
           disabled={isDisabled}
           style={styles.expandButton}
         >
-          <Ionicons 
-            name={isExpanded ? 'contract-outline' : 'expand-outline'} 
-            size={20} 
+          <Ionicons
+            name={isExpanded ? 'contract-outline' : 'expand-outline'}
+            size={20}
             color={isDisabled ? theme.colors.text.disabled : theme.colors.text.primary}
           />
         </TouchableOpacity>
       )}
-      
+
       {/* Scrollable Response Area */}
-      <ScrollView 
+      <ScrollView
         style={styles.scrollArea}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {messages.map((message) => (
-          <Box key={message.id} style={styles.messageWrapper}>
-            <CompareMessageBubble
-              message={message}
-              side={side}
-              brandPalette={brandPalette}
-              providerName={ai.name}
-              onOpenLightbox={onOpenLightbox}
-            />
-          </Box>
-        ))}
+        {/* Render all messages directly */}
+        {messages.map((message, index) => renderMessageContent(message, index))}
 
         {/* Streaming Content */}
-        {streamingContent && (
-          <Box style={styles.messageWrapper}>
-            <CompareMessageBubble
-              message={{
-                id: `streaming_${side}`,
-                sender: ai.name,
-                senderType: 'ai',
-                content: streamingContent,
-                timestamp: Date.now(),
-                metadata: { providerId: ai.provider },
-              }}
-              side={side}
-              brandPalette={brandPalette}
-              providerName={ai.name}
-              onOpenLightbox={onOpenLightbox}
-            />
-          </Box>
-        )}
+        {renderStreamingContent()}
 
         {/* Image Generation Loading State */}
         {imageState?.isGenerating && imageState.phase !== 'done' && (
@@ -141,8 +243,27 @@ export const CompareResponsePane: React.FC<CompareResponsePaneProps> = ({
           isVisible={isTyping && !streamingContent}
           accentColor={accentColor}
         />
+
+        {/* Copy Button - inside scroll content */}
+        {(messages.length > 0 || streamingContent) && (
+          <TouchableOpacity
+            onPress={handleCopy}
+            accessibilityLabel="Copy all content"
+            hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+            style={[
+              styles.copyButton,
+              { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' },
+            ]}
+          >
+            <Ionicons
+              name={copied ? 'checkmark-outline' : 'copy-outline'}
+              size={16}
+              color={theme.colors.text.primary}
+            />
+          </TouchableOpacity>
+        )}
       </ScrollView>
-      
+
       {/* Continue Button */}
       <ContinueButton
         onPress={onContinueWithAI}
@@ -160,6 +281,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 8,
     overflow: 'hidden',
+    position: 'relative',
+  },
+  header: {
+    paddingHorizontal: 10,
+    paddingTop: 10,
+    paddingBottom: 4,
   },
   expandButton: {
     position: 'absolute',
@@ -172,9 +299,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 6, // Reduced from 12
+    paddingHorizontal: 10,
+    paddingBottom: 10,
   },
-  messageWrapper: {
-    marginBottom: 6, // Reduced from 8
+  messageSpacing: {
+    marginTop: 12,
+  },
+  imageAttachments: {
+    marginTop: 8,
+  },
+  copyButton: {
+    alignSelf: 'flex-end',
+    marginTop: 12,
+    borderRadius: 12,
+    padding: 6,
   },
 });

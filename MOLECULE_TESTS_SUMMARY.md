@@ -34,8 +34,7 @@ Created comprehensive test files for **52 molecule components** in the Symposium
 #### Auth Components (1 file - 100% coverage)
 - ✅ EmailAuthForm.tsx - 10 tests (sign in/up modes, validation, loading)
 
-#### Chat Components (2 files - partial coverage)
-- ✅ GPT5LatencyWarning.tsx - 6 tests (dismissal, storage, alternatives)
+#### Chat Components (1 file - partial coverage)
 - ⚠️ MultimodalOptionsRow.tsx - 2 basic tests (needs props for full testing)
 
 #### Header Components (2 files - 100% coverage)
@@ -139,7 +138,6 @@ __tests__/components/molecules/
 ├── auth/
 │   └── EmailAuthForm.test.tsx (10 tests) ✅
 ├── chat/
-│   ├── GPT5LatencyWarning.test.tsx (6 tests) ✅
 │   └── MultimodalOptionsRow.test.tsx (2 tests) ⚠️
 ├── common/
 │   ├── Badge.test.tsx (7 tests) ✅

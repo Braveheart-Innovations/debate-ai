@@ -479,7 +479,9 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   messageBubble: {
-    padding: 12,
+    paddingTop: 12,
+    paddingHorizontal: 12,
+    paddingBottom: 28, // Extra space for copy button
     borderRadius: 16,
     position: 'relative',
   },

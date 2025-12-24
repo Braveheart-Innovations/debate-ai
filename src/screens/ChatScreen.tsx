@@ -30,7 +30,6 @@ import {
   ChatInputBar,
   ChatTypingIndicators,
   ChatMentionSuggestions,
-  ChatWarnings,
 } from '../components/organisms/chat';
 import { AIConfig, Message, AIProvider } from '../types';
 import { cancelAllStreams, selectActiveStreamCount } from '../store';
@@ -501,9 +500,6 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
           } : undefined}
           showDemoBadge={isDemo}
         />
-
-        {/* Warnings (e.g., GPT-5 latency) */}
-        <ChatWarnings selectedAIs={session.selectedAIs} />
 
         {/* Demo Banner */}
         <DemoBanner

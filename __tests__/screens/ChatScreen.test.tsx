@@ -91,7 +91,6 @@ jest.mock('@/components/organisms/chat', () => {
       mockMentionSuggestionsProps = props;
       return React.createElement(Text, { testID: 'mention-suggestions' }, 'mentions');
     },
-    ChatWarnings: () => React.createElement(Text, { testID: 'chat-warnings' }, 'warnings'),
   };
 });
 
