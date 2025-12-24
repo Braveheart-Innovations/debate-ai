@@ -25,7 +25,8 @@
     "demo:bridge": "node scripts/demo/dev-bridge.mjs",
     "test": "jest --watch=false",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "eas-build-post-install": "bash scripts/eas-prebuild.sh"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.63.0",
