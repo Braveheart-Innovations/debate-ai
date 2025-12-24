@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { View, StyleSheet, TouchableOpacity, Linking } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Linking, Image } from 'react-native';
+import Animated from 'react-native-reanimated';
 import Markdown from 'react-native-markdown-display';
 import { Typography } from '../../molecules';
 import { LazyMarkdownRenderer, createMarkdownStyles } from '../../molecules/common/LazyMarkdownRenderer';
@@ -9,10 +10,10 @@ import { useTheme } from '../../../theme';
 import { sanitizeMarkdown, shouldLazyRender } from '@/utils/markdown';
 import { selectableMarkdownRules } from '@/utils/markdownSelectable';
 import { useStreamingMessage } from '@/hooks/streaming';
+import { useMessageBubbleAnimation } from '@/hooks/useMessageBubbleAnimation';
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 import useFeatureAccess from '@/hooks/useFeatureAccess';
-import { Image } from 'react-native';
 import type { BrandColor } from '@/constants/aiColors';
 import { getBrandPalette } from '@/utils/aiBrandColors';
 
@@ -34,6 +35,12 @@ export const CompareMessageBubble: React.FC<CompareMessageBubbleProps> = ({
   const { theme, isDark } = useTheme();
   const [copied, setCopied] = useState(false);
   const { isDemo } = useFeatureAccess();
+
+  // Unified animation hook - fade-in for Compare mode
+  const { animatedStyle } = useMessageBubbleAnimation({
+    type: 'fade-in',
+    isNew: true,
+  });
 
   // Hook for streaming messages
   const {
@@ -109,9 +116,10 @@ export const CompareMessageBubble: React.FC<CompareMessageBubbleProps> = ({
   }), [message, providerName, resolvedPalette]);
 
   return (
-    <View style={[
+    <Animated.View style={[
       styles.row,
       side === 'left' ? styles.alignStart : styles.alignEnd,
+      animatedStyle,
     ]}>
       <View style={[styles.container, bubbleStyle]}>
         {isDemo && (
@@ -236,7 +244,7 @@ export const CompareMessageBubble: React.FC<CompareMessageBubbleProps> = ({
           />
         </TouchableOpacity>
       </View>
-    </View>
+    </Animated.View>
   );
 };
 

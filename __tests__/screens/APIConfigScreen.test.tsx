@@ -91,6 +91,20 @@ jest.mock('@/components/organisms', () => ({
   APIKeyWebViewModal: () => null,
 }));
 
+// Mock useFeatureAccess to allow premium features
+jest.mock('@/hooks/useFeatureAccess', () => ({
+  __esModule: true,
+  default: () => ({
+    isDemo: false,
+    isPremium: true,
+    isInTrial: false,
+    canStartTrial: false,
+    hasUsedTrial: true,
+    trialDaysRemaining: null,
+    refresh: jest.fn(),
+  }),
+}));
+
 const APIConfigScreen = require('@/screens/APIConfigScreen').default;
 
 describe('APIConfigScreen', () => {

@@ -134,11 +134,10 @@ export const createMarkdownStyles = (theme: any, isDark: boolean): MarkdownStyle
     color: theme.colors.text.primary,
   },
   link: {
-    color: theme.colors.primary[600],
-    textDecorationLine: 'none' as const,
-    fontSize: 15,
-    fontWeight: '600' as const,
-    paddingHorizontal: 2,
+    color: isDark ? theme.colors.primary[400] : theme.colors.primary[600],
+    textDecorationLine: 'underline' as const,
+    fontSize: 16,
+    fontWeight: '500' as const,
   },
   code_inline: {
     backgroundColor: isDark ? theme.colors.gray[800] : theme.colors.gray[100],
@@ -171,5 +170,61 @@ export const createMarkdownStyles = (theme: any, isDark: boolean): MarkdownStyle
     paddingLeft: 12,
     paddingVertical: 8,
     marginVertical: 8,
+  },
+  // Fenced code blocks (triple backticks) - CRITICAL: was missing, causing dark mode issues
+  fence: {
+    backgroundColor: isDark ? theme.colors.gray[800] : theme.colors.gray[100],
+    padding: 12,
+    borderRadius: 8,
+    marginVertical: 8,
+    fontFamily: 'monospace',
+    fontSize: 14,
+    color: theme.colors.text.primary,
+    overflow: 'hidden' as const,
+  },
+  // Strikethrough text
+  s: {
+    textDecorationLine: 'line-through' as const,
+    color: theme.colors.text.secondary,
+  },
+  // Horizontal rule
+  hr: {
+    backgroundColor: theme.colors.border,
+    height: 1,
+    marginVertical: 16,
+  },
+  // Paragraph spacing
+  paragraph: {
+    marginVertical: 4,
+    flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
+  },
+  // Table styles
+  table: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 8,
+    marginVertical: 8,
+    overflow: 'hidden' as const,
+  },
+  thead: {
+    backgroundColor: isDark ? theme.colors.gray[700] : theme.colors.gray[100],
+  },
+  tbody: {},
+  tr: {
+    borderBottomWidth: 0.5,
+    borderBottomColor: theme.colors.border,
+    flexDirection: 'row' as const,
+  },
+  th: {
+    padding: 8,
+    fontWeight: 'bold' as const,
+    color: theme.colors.text.primary,
+    flex: 1,
+  },
+  td: {
+    padding: 8,
+    color: theme.colors.text.primary,
+    flex: 1,
   },
 });

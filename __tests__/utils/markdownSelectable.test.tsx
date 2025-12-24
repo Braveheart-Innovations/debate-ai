@@ -1,7 +1,22 @@
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
-import { TextStyle } from 'react-native';
+import { TextStyle, Text, View } from 'react-native';
 import Linking from 'react-native/Libraries/Linking/Linking';
+
+// Mock CodeBlock to avoid ThemeProvider dependency
+jest.mock('@/components/molecules/common/CodeBlock', () => ({
+  CodeBlock: ({ code, language }: { code: string; language?: string }) => {
+    const React = require('react');
+    const { Text, View } = require('react-native');
+    return React.createElement(
+      View,
+      { testID: 'code-block' },
+      React.createElement(Text, { testID: 'code-content' }, code),
+      language && React.createElement(Text, { testID: 'code-language' }, language)
+    );
+  },
+}));
+
 import selectableMarkdownRules from '@/utils/markdownSelectable';
 
 const styles = {
@@ -68,8 +83,11 @@ describe('selectableMarkdownRules', () => {
     const { getByText: getBlock } = renderRule('code_block', { content: 'const x = 1;\n' });
     expect(getBlock('const x = 1;').props.style).toEqual([{}, styles.code_block]);
 
-    const { getByText: getFence } = renderRule('fence', { content: 'fn foo()\n' });
-    expect(getFence('fn foo()').props.style).toEqual([{}, styles.fence]);
+    // fence now uses CodeBlock component which handles its own styling
+    const { getByTestId } = renderRule('fence', { content: 'fn foo()\n' });
+    const codeContent = getByTestId('code-content');
+    // CodeBlock trims trailing newlines internally
+    expect(codeContent.props.children).toBe('fn foo()');
   });
 
   it('renders hard and soft breaks as newline characters', () => {

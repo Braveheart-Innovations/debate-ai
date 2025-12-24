@@ -165,7 +165,7 @@ describe('TrialTermsSheet', () => {
       fireEvent.press(getByText('Privacy Policy'));
       await waitFor(() => {
         expect(Linking.openURL).toHaveBeenCalledWith(
-          'https://debateai.app/privacy'
+          'https://www.symposiumai.app/privacy'
         );
       });
     });
@@ -182,7 +182,7 @@ describe('TrialTermsSheet', () => {
       fireEvent.press(getByText('Terms of Service'));
       await waitFor(() => {
         expect(Linking.openURL).toHaveBeenCalledWith(
-          'https://debateai.app/terms'
+          'https://www.symposiumai.app/terms'
         );
       });
     });

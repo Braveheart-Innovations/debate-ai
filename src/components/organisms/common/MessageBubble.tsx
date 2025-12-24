@@ -1,11 +1,7 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Text, StyleSheet, Linking, TouchableOpacity } from 'react-native';
 import type { TextStyle } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  withSpring,
-  useSharedValue,
-} from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import Markdown from 'react-native-markdown-display';
 import { sanitizeMarkdown, shouldLazyRender } from '@/utils/markdown';
 import { Image, View } from 'react-native';
@@ -19,6 +15,7 @@ import { useTheme } from '@/theme';
 import { Message } from '@/types';
 import { AI_BRAND_COLORS } from '@/constants/aiColors';
 import { useStreamingMessage } from '@/hooks/streaming';
+import { useMessageBubbleAnimation } from '@/hooks/useMessageBubbleAnimation';
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 import { selectableMarkdownRules } from '@/utils/markdownSelectable';
@@ -101,10 +98,15 @@ const processMessageContent = (message: Message): string => {
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, searchTerm }) => {
   const isUser = message.senderType === 'user';
-  const scale = useSharedValue(isLast ? 0 : 1);
   const { theme, isDark } = useTheme();
   const [copied, setCopied] = useState(false);
   const { isDemo } = useFeatureAccess();
+
+  // Unified animation hook - spring-scale for Chat mode
+  const { animatedStyle } = useMessageBubbleAnimation({
+    type: 'spring-scale',
+    isNew: isLast,
+  });
   
   // Hook for streaming messages
   const { 
@@ -149,19 +151,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, s
     // Use streaming content while streaming
     displayContent = streamingContent;
   }
-
-  useEffect(() => {
-    if (isLast) {
-      scale.value = withSpring(1, {
-        damping: 15,
-        stiffness: 150,
-      });
-    }
-  }, [isLast, scale]);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
 
   // Get AI-specific color from the message sender
   const getAIColor = () => {

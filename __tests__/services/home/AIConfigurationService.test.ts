@@ -56,13 +56,13 @@ describe('AIConfigurationService', () => {
     expect(configs.find(c => c.id === 'claude')?.model).toBe('opus-4.1');
   });
 
-  it('evaluates provider availability with and without demo mode', () => {
+  it('evaluates provider availability based on enabled status and API keys', () => {
     const provider = AI_PROVIDERS[1]; // openai
     expect(AIConfigurationService.isProviderAvailable(provider, { openai: 'key' })).toBe(true);
     expect(AIConfigurationService.isProviderAvailable(provider, {})).toBe(false);
 
-    demoModeMock.mockReturnValue(true);
-    expect(AIConfigurationService.isProviderAvailable(provider, {})).toBe(true);
+    // Note: isProviderAvailable does NOT check demo mode - demo mode filtering
+    // is handled by getConfiguredAIs, which uses the demo whitelist directly
   });
 
   it('transforms providers into AI configs with icon metadata', () => {

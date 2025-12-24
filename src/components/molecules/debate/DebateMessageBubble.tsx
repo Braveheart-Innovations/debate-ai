@@ -4,13 +4,8 @@
  * Extends the base MessageBubble functionality for debate-specific features
  */
 
-import React, { useEffect, useState, useMemo } from 'react';
-import Animated, {
-  useAnimatedStyle,
-  withTiming,
-  useSharedValue,
-  Easing,
-} from 'react-native-reanimated';
+import React, { useState, useMemo } from 'react';
+import Animated from 'react-native-reanimated';
 import { StyleSheet, Linking, TouchableOpacity } from 'react-native';
 import Markdown from 'react-native-markdown-display';
 import { sanitizeMarkdown, shouldLazyRender } from '@/utils/markdown';
@@ -20,6 +15,7 @@ import { Typography } from '../common/Typography';
 import { StreamingIndicator } from '@/components/organisms/common/StreamingIndicator';
 import { useTheme } from '@/theme';
 import { useResponsive } from '@/hooks/useResponsive';
+import { useMessageBubbleAnimation } from '@/hooks/useMessageBubbleAnimation';
 import { Message } from '@/types';
 import { AI_BRAND_COLORS } from '@/constants/aiColors';
 import { useStreamingMessage } from '@/hooks/streaming/useStreamingMessage';
@@ -99,21 +95,12 @@ export const DebateMessageBubble: React.FC<DebateMessageBubbleProps> = React.mem
   };
   
   const aiColor = getAIColor();
-  
-  // Simple fade-in animation
-  const opacity = useSharedValue(0);
 
-  useEffect(() => {
-    opacity.value = withTiming(1, {
-      duration: 300,
-      easing: Easing.out(Easing.ease),
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-  }));
+  // Unified animation hook - fade-in for Debate mode
+  const { animatedStyle } = useMessageBubbleAnimation({
+    type: 'fade-in',
+    isNew: true,
+  });
 
   // This component now ONLY handles AI messages - host messages are handled by SystemMessageCard
   

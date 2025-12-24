@@ -125,11 +125,12 @@ describe('LazyMarkdownRenderer', () => {
 describe('createMarkdownStyles', () => {
   const mockTheme = {
     colors: {
-      text: { primary: '#000000' },
-      primary: { 500: '#0066CC', 600: '#0052A3', 700: '#003D7A' },
-      gray: { 50: '#F7F7F7', 100: '#E1E1E1', 800: '#424242' },
+      text: { primary: '#000000', secondary: '#666666' },
+      primary: { 400: '#3D9FFF', 500: '#0066CC', 600: '#0052A3', 700: '#003D7A' },
+      gray: { 50: '#F7F7F7', 100: '#E1E1E1', 700: '#616161', 800: '#424242' },
       warning: { 50: '#FFF8E1' },
       success: { 500: '#4CAF50' },
+      border: '#EEEEEE',
     },
   };
 
@@ -154,5 +155,157 @@ describe('createMarkdownStyles', () => {
     expect(styles.body).toHaveProperty('fontSize');
     expect(styles.heading1).toHaveProperty('fontWeight');
     expect(styles.code_inline).toHaveProperty('fontFamily');
+  });
+
+  describe('fence style (fenced code blocks)', () => {
+    it('includes fence style', () => {
+      const styles = createMarkdownStyles(mockTheme, false);
+
+      expect(styles.fence).toBeDefined();
+    });
+
+    it('uses light background in light mode', () => {
+      const styles = createMarkdownStyles(mockTheme, false);
+
+      expect(styles.fence).toHaveProperty('backgroundColor', mockTheme.colors.gray[100]);
+    });
+
+    it('uses dark background in dark mode', () => {
+      const styles = createMarkdownStyles(mockTheme, true);
+
+      expect(styles.fence).toHaveProperty('backgroundColor', mockTheme.colors.gray[800]);
+    });
+
+    it('includes required fence properties', () => {
+      const styles = createMarkdownStyles(mockTheme, false);
+
+      expect(styles.fence).toHaveProperty('padding');
+      expect(styles.fence).toHaveProperty('borderRadius');
+      expect(styles.fence).toHaveProperty('fontFamily', 'monospace');
+      expect(styles.fence).toHaveProperty('fontSize');
+    });
+  });
+
+  describe('strikethrough style', () => {
+    it('includes strikethrough (s) style', () => {
+      const styles = createMarkdownStyles(mockTheme, false);
+
+      expect(styles.s).toBeDefined();
+    });
+
+    it('uses line-through text decoration', () => {
+      const styles = createMarkdownStyles(mockTheme, false);
+
+      expect(styles.s).toHaveProperty('textDecorationLine', 'line-through');
+    });
+
+    it('uses secondary text color', () => {
+      const styles = createMarkdownStyles(mockTheme, false);
+
+      expect(styles.s).toHaveProperty('color', mockTheme.colors.text.secondary);
+    });
+  });
+
+  describe('horizontal rule style', () => {
+    it('includes hr style', () => {
+      const styles = createMarkdownStyles(mockTheme, false);
+
+      expect(styles.hr).toBeDefined();
+    });
+
+    it('has proper height and margin', () => {
+      const styles = createMarkdownStyles(mockTheme, false);
+
+      expect(styles.hr).toHaveProperty('height', 1);
+      expect(styles.hr).toHaveProperty('marginVertical');
+    });
+
+    it('uses border color for background', () => {
+      const styles = createMarkdownStyles(mockTheme, false);
+
+      expect(styles.hr).toHaveProperty('backgroundColor', mockTheme.colors.border);
+    });
+  });
+
+  describe('paragraph style', () => {
+    it('includes paragraph style', () => {
+      const styles = createMarkdownStyles(mockTheme, false);
+
+      expect(styles.paragraph).toBeDefined();
+    });
+
+    it('has vertical margin', () => {
+      const styles = createMarkdownStyles(mockTheme, false);
+
+      expect(styles.paragraph).toHaveProperty('marginVertical');
+    });
+  });
+
+  describe('table styles', () => {
+    it('includes table style', () => {
+      const styles = createMarkdownStyles(mockTheme, false);
+
+      expect(styles.table).toBeDefined();
+    });
+
+    it('includes thead style', () => {
+      const styles = createMarkdownStyles(mockTheme, false);
+
+      expect(styles.thead).toBeDefined();
+    });
+
+    it('includes tbody style', () => {
+      const styles = createMarkdownStyles(mockTheme, false);
+
+      expect(styles.tbody).toBeDefined();
+    });
+
+    it('includes tr style', () => {
+      const styles = createMarkdownStyles(mockTheme, false);
+
+      expect(styles.tr).toBeDefined();
+    });
+
+    it('includes th style', () => {
+      const styles = createMarkdownStyles(mockTheme, false);
+
+      expect(styles.th).toBeDefined();
+      expect(styles.th).toHaveProperty('fontWeight', 'bold');
+    });
+
+    it('includes td style', () => {
+      const styles = createMarkdownStyles(mockTheme, false);
+
+      expect(styles.td).toBeDefined();
+      expect(styles.td).toHaveProperty('padding');
+    });
+
+    it('uses different header background in dark mode', () => {
+      const darkStyles = createMarkdownStyles(mockTheme, true);
+      const lightStyles = createMarkdownStyles(mockTheme, false);
+
+      expect(darkStyles.thead.backgroundColor).toBe(mockTheme.colors.gray[700]);
+      expect(lightStyles.thead.backgroundColor).toBe(mockTheme.colors.gray[100]);
+    });
+  });
+
+  describe('link style with underlines', () => {
+    it('uses underline text decoration', () => {
+      const styles = createMarkdownStyles(mockTheme, false);
+
+      expect(styles.link).toHaveProperty('textDecorationLine', 'underline');
+    });
+
+    it('uses primary[600] color in light mode', () => {
+      const styles = createMarkdownStyles(mockTheme, false);
+
+      expect(styles.link).toHaveProperty('color', mockTheme.colors.primary[600]);
+    });
+
+    it('uses primary[400] color in dark mode for better contrast', () => {
+      const styles = createMarkdownStyles(mockTheme, true);
+
+      expect(styles.link).toHaveProperty('color', mockTheme.colors.primary[400]);
+    });
   });
 });

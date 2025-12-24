@@ -65,11 +65,13 @@ jest.mock('@/hooks/useFeatureAccess', () => ({
 // Mock PurchaseService to avoid actual purchase flow
 const mockPurchaseSubscription = jest.fn();
 const mockRestorePurchases = jest.fn();
+const mockOnPurchaseError = jest.fn(() => jest.fn()); // Returns unsubscribe function
 
 jest.mock('@/services/iap/PurchaseService', () => ({
   PurchaseService: {
     purchaseSubscription: (...args: unknown[]) => mockPurchaseSubscription(...args),
     restorePurchases: () => mockRestorePurchases(),
+    onPurchaseError: (callback: unknown) => mockOnPurchaseError(callback),
   },
 }));
 

@@ -70,7 +70,7 @@ describe('SubscriptionManager', () => {
     expect(status).toBe('demo');
     expect(setDocMock).toHaveBeenCalledWith(
       'userDoc',
-      { membershipStatus: 'demo' },
+      { membershipStatus: 'demo', isPremium: false },
       { merge: true }
     );
   });
@@ -125,7 +125,7 @@ describe('SubscriptionManager', () => {
     expect(status).toBe('demo');
     expect(setDocMock).toHaveBeenCalledWith(
       'userDoc',
-      { membershipStatus: 'demo' },
+      { membershipStatus: 'demo', isPremium: false },
       { merge: true }
     );
   });

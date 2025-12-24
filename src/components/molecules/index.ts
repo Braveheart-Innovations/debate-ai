@@ -16,6 +16,7 @@ export { IconButton } from './common/IconButton';
 export { InfoButton } from './common/InfoButton';
 export { SelectionIndicator } from './common/SelectionIndicator';
 export { SearchHighlight } from './common/SearchHighlight';
+export { CopyButton } from './common/CopyButton';
 
 // Header and Navigation Molecules
 export { HeaderIcon } from './header/HeaderIcon';

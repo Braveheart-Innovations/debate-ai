@@ -79,7 +79,7 @@ describe('SubscriptionManager', () => {
 
     setDocData({ membershipStatus: 'trial', trialEndDate: pastTs(1) });
     await expect(SubscriptionManager.checkSubscriptionStatus()).resolves.toBe<'demo'>('demo');
-    expect(setDoc).toHaveBeenCalledWith(expect.anything(), { membershipStatus: 'demo' }, { merge: true });
+    expect(setDoc).toHaveBeenCalledWith(expect.anything(), { membershipStatus: 'demo', isPremium: false }, { merge: true });
   });
 
   it('handles premium expirations based on autoRenewing flag', async () => {
@@ -90,7 +90,7 @@ describe('SubscriptionManager', () => {
 
     setDocData({ membershipStatus: 'premium', subscriptionExpiryDate: pastTs(2), autoRenewing: false });
     await expect(SubscriptionManager.checkSubscriptionStatus()).resolves.toBe<'demo'>('demo');
-    expect(setDoc).toHaveBeenCalledWith(expect.anything(), { membershipStatus: 'demo' }, { merge: true });
+    expect(setDoc).toHaveBeenCalledWith(expect.anything(), { membershipStatus: 'demo', isPremium: false }, { merge: true });
 
     setDoc.mockClear();
     setDocData({ membershipStatus: 'premium', subscriptionExpiryDate: pastTs(2), autoRenewing: true });

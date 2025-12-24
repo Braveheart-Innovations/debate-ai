@@ -56,6 +56,20 @@ jest.mock('@/components/organisms', () => ({
   ProviderExpertSettings: (props: any) => mockProviderExpertSettings(props),
 }));
 
+// Mock useFeatureAccess to allow premium features
+jest.mock('@/hooks/useFeatureAccess', () => ({
+  __esModule: true,
+  default: () => ({
+    isDemo: false,
+    isPremium: true,
+    isInTrial: false,
+    canStartTrial: false,
+    hasUsedTrial: true,
+    trialDaysRemaining: null,
+    refresh: jest.fn(),
+  }),
+}));
+
 const ExpertModeScreen = require('@/screens/ExpertModeScreen').default;
 
 describe('ExpertModeScreen', () => {
