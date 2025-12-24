@@ -21,6 +21,7 @@
     "internal-testing": {
       "developmentClient": false,
       "distribution": "store",
+      "prebuildCommand": "bash scripts/eas-prebuild.sh",
       "env": {
         "EXPO_PUBLIC_RELEASE_CHANNEL": "internal",
         "EXPO_PUBLIC_ENVIRONMENT": "development",
@@ -34,6 +35,7 @@
     "beta": {
       "developmentClient": false,
       "distribution": "store",
+      "prebuildCommand": "bash scripts/eas-prebuild.sh",
       "env": {
         "EXPO_PUBLIC_RELEASE_CHANNEL": "beta",
         "EXPO_PUBLIC_ENVIRONMENT": "staging",
@@ -64,6 +66,7 @@
     "production": {
       "developmentClient": false,
       "distribution": "store",
+      "prebuildCommand": "bash scripts/eas-prebuild.sh",
       "env": {
         "EXPO_PUBLIC_RELEASE_CHANNEL": "production",
         "EXPO_PUBLIC_ENVIRONMENT": "production",
