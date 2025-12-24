@@ -5,8 +5,9 @@ import { useSelector, useDispatch } from 'react-redux';
 import { RootState, setAIPersonality, setAIModel, preserveTopic, clearPreservedTopic, setGlobalStreaming, setStreamingSpeed } from '../store';
 import { setProviderStreamingPreference } from '../store/streamingSlice';
 
-import { Box } from '../components/atoms';
+import { Box, ResponsiveContainer } from '../components/atoms';
 import { Button, Typography, GradientButton, InfoButton } from '../components/molecules';
+import { useResponsive } from '../hooks/useResponsive';
 import { Header, HeaderActions } from '../components/organisms';
 // Legacy premium gating replaced by useFeatureAccess
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
@@ -53,6 +54,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
   const { theme } = useTheme();
   const dispatch = useDispatch();
   const scrollViewRef = useRef<ScrollView>(null);
+  const { rs } = useResponsive();
   const apiKeys = useSelector((state: RootState) => state.settings.apiKeys || {});
   const expertMode = useSelector((state: RootState) => state.settings.expertMode || {});
   const aiPersonalities = useSelector((state: RootState) => state.chat.aiPersonalities);
@@ -316,17 +318,18 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
       
       {/* Stats Button now provided via Header.actionButton to avoid overlay collisions */}
       
-      <ScrollView 
+      <ScrollView
         ref={scrollViewRef}
         style={{ flex: 1 }}
-        contentContainerStyle={{ 
-          padding: theme.spacing.lg,
-          paddingBottom: theme.spacing.xl * 2,
+        contentContainerStyle={{
+          padding: rs('lg'),
+          paddingBottom: rs('xl') * 2,
         }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Step Indicator */}
-        <DebateStepIndicator
+        <ResponsiveContainer maxWidth="lg" center>
+          {/* Step Indicator */}
+          <DebateStepIndicator
           currentStep={currentStep}
           completedSteps={currentStep === 'ai' ? ['topic'] : currentStep === 'personality' ? ['topic', 'ai'] : []}
           isPremium={access.isPremium || access.isInTrial}
@@ -574,6 +577,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
             onChangeCivility={(v)=>setCivility(v)}
           />
         )}
+        </ResponsiveContainer>
       </ScrollView>
 
       {recordModeEnabled && recordMeta && (

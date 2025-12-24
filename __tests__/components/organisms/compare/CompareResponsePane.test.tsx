@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, TouchableOpacity } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { CompareResponsePane } from '@/components/organisms/compare/CompareResponsePane';
@@ -13,9 +13,6 @@ jest.mock('@expo/vector-icons', () => {
   };
 });
 
-const mockCompareMessageBubble = jest.fn(({ message }: { message: Message }) => (
-  <Text testID={`bubble-${message.id}`}>{message.content}</Text>
-));
 const mockContinueButton = jest.fn((props: any) => (
   <TouchableOpacity testID="continue-button" onPress={props.onPress} disabled={props.isDisabled} />
 ));
@@ -25,10 +22,9 @@ const mockTypingIndicator = jest.fn(({ isVisible }: { isVisible: boolean }) => (
 const mockImageGeneratingPane = jest.fn(({ ai }: { ai: AIConfig }) => (
   <Text testID="image-generating-pane">{ai.name} generating</Text>
 ));
-
-jest.mock('@/components/organisms/compare/CompareMessageBubble', () => ({
-  CompareMessageBubble: (props: any) => mockCompareMessageBubble(props),
-}));
+const mockCompareImageDisplay = jest.fn(({ uri }: { uri: string }) => (
+  <Text testID={`image-display-${uri}`}>Image</Text>
+));
 
 jest.mock('@/components/organisms/compare/ContinueButton', () => ({
   ContinueButton: (props: any) => mockContinueButton(props),
@@ -42,12 +38,48 @@ jest.mock('@/components/organisms/compare/CompareImageGeneratingPane', () => ({
   CompareImageGeneratingPane: (props: any) => mockImageGeneratingPane(props),
 }));
 
+jest.mock('@/components/organisms/compare/CompareImageDisplay', () => ({
+  CompareImageDisplay: (props: any) => mockCompareImageDisplay(props),
+}));
+
+jest.mock('react-native-markdown-display', () => {
+  const React = require('react');
+  const { Text } = require('react-native');
+  return {
+    __esModule: true,
+    default: ({ children }: { children: string }) =>
+      React.createElement(Text, { testID: 'markdown' }, children),
+  };
+});
+
+jest.mock('@/components/molecules/common/LazyMarkdownRenderer', () => ({
+  LazyMarkdownRenderer: ({ content }: { content: string }) => {
+    const React = require('react');
+    const { Text } = require('react-native');
+    return React.createElement(Text, { testID: 'lazy-markdown' }, content);
+  },
+  createMarkdownStyles: () => ({}),
+}));
+
 jest.mock('@/utils/aiBrandColors', () => ({
   getBrandPalette: jest.fn(() => ({
     50: '#f5f5f5',
     300: '#999999',
     500: '#333333',
   })),
+}));
+
+jest.mock('@/utils/markdown', () => ({
+  sanitizeMarkdown: (content: string) => content,
+  shouldLazyRender: () => false,
+}));
+
+jest.mock('@/utils/markdownSelectable', () => ({
+  selectableMarkdownRules: {},
+}));
+
+jest.mock('expo-clipboard', () => ({
+  setStringAsync: jest.fn(),
 }));
 
 const defaultImageState: ImageGenState = {
@@ -83,7 +115,7 @@ describe('CompareResponsePane', () => {
   });
 
   it('renders messages and streaming content when provided', () => {
-    const { getByTestId } = renderWithProviders(
+    const { getByText, getAllByTestId } = renderWithProviders(
       <CompareResponsePane
         ai={ai}
         messages={messages}
@@ -98,10 +130,12 @@ describe('CompareResponsePane', () => {
       />
     );
 
-    expect(mockCompareMessageBubble).toHaveBeenCalledTimes(3);
-    expect(getByTestId('bubble-m1')).toBeTruthy();
-    expect(getByTestId('bubble-m2')).toBeTruthy();
-    expect(getByTestId('bubble-streaming_left')).toBeTruthy();
+    // Messages are rendered via markdown
+    const markdowns = getAllByTestId('markdown');
+    expect(markdowns.length).toBeGreaterThanOrEqual(2); // At least 2 messages + streaming content
+    expect(getByText('Hello')).toBeTruthy();
+    expect(getByText('How can I assist?')).toBeTruthy();
+    expect(getByText('Streaming')).toBeTruthy();
     expect(mockTypingIndicator).toHaveBeenCalledWith(expect.objectContaining({ isVisible: false }));
   });
 
@@ -179,13 +213,23 @@ describe('CompareResponsePane', () => {
     );
   });
 
-  it('passes onOpenLightbox to message bubbles', () => {
+  it('passes onOpenLightbox to image display when message has image attachments', () => {
     const onOpenLightbox = jest.fn();
+    const messagesWithImage: Message[] = [
+      {
+        id: 'm1',
+        sender: 'Claude',
+        senderType: 'ai',
+        content: 'Here is an image',
+        timestamp: 1,
+        attachments: [{ type: 'image', uri: 'https://example.com/image.jpg' }],
+      },
+    ];
 
     renderWithProviders(
       <CompareResponsePane
         ai={ai}
-        messages={messages}
+        messages={messagesWithImage}
         isTyping={false}
         onContinueWithAI={jest.fn()}
         side="left"
@@ -195,7 +239,7 @@ describe('CompareResponsePane', () => {
       />
     );
 
-    expect(mockCompareMessageBubble).toHaveBeenCalledWith(
+    expect(mockCompareImageDisplay).toHaveBeenCalledWith(
       expect.objectContaining({
         onOpenLightbox: onOpenLightbox,
       })

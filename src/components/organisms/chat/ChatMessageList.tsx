@@ -1,12 +1,13 @@
-import React, { useEffect } from 'react';
-import { FlatList, StyleSheet } from 'react-native';
-import { Box } from '../../atoms';
+import React, { useEffect, useMemo } from 'react';
+import { FlatList, StyleSheet, View } from 'react-native';
+import { Box, ResponsiveContainer } from '../../atoms';
 import { Typography } from '../../molecules';
 import { MessageBubble } from '@/components/organisms/common/MessageBubble';
 import { ImageMessageRow } from './ImageMessageRow';
 import { VideoMessageRow } from './VideoMessageRow';
 import { ImageGeneratingRow } from './ImageGeneratingRow';
 import { useTheme } from '../../../theme';
+import { useResponsive } from '../../../hooks/useResponsive';
 import { Message } from '../../../types';
 
 export interface ChatMessageListProps {
@@ -29,6 +30,13 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
   onRetryImage,
 }) => {
   const { theme } = useTheme();
+  const { responsive, rs } = useResponsive();
+
+  // Responsive padding for iPad
+  const contentPadding = useMemo(() => ({
+    paddingHorizontal: responsive(16, 32),
+    paddingVertical: rs('md'),
+  }), [responsive, rs]);
 
   // Auto-scroll to search result when searchTerm changes
   useEffect(() => {
@@ -92,22 +100,26 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
   );
 
   return (
-    <FlatList
-      ref={flatListRef}
-      data={messages}
-      keyExtractor={(item) => item.id}
-      renderItem={renderMessage}
-      contentContainerStyle={styles.messagesList}
-      onContentSizeChange={handleContentSizeChange}
-      style={{ backgroundColor: theme.colors.background }}
-      ListEmptyComponent={renderEmptyState}
-      showsVerticalScrollIndicator={false}
-      removeClippedSubviews={true}
-      maxToRenderPerBatch={10}
-      windowSize={10}
-      initialNumToRender={10}
-      getItemLayout={undefined} // Let FlatList handle dynamic heights
-    />
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <ResponsiveContainer maxWidth="lg" center>
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          keyExtractor={(item) => item.id}
+          renderItem={renderMessage}
+          contentContainerStyle={[styles.messagesList, contentPadding]}
+          onContentSizeChange={handleContentSizeChange}
+          style={{ backgroundColor: theme.colors.background }}
+          ListEmptyComponent={renderEmptyState}
+          showsVerticalScrollIndicator={false}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={10}
+          initialNumToRender={10}
+          getItemLayout={undefined} // Let FlatList handle dynamic heights
+        />
+      </ResponsiveContainer>
+    </View>
   );
 };
 

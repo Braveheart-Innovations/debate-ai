@@ -24,8 +24,24 @@ jest.mock('../../../../src/components/atoms', () => {
   const { View } = require('react-native');
   return {
     Box: ({ children, style }: any) => React.createElement(View, { style }, children),
+    ResponsiveContainer: ({ children }: any) => React.createElement(View, null, children),
   };
 });
+
+jest.mock('../../../../src/hooks/useResponsive', () => ({
+  useResponsive: () => ({
+    isTablet: false,
+    isLandscape: false,
+    isPhone: true,
+    isPortrait: true,
+    width: 375,
+    height: 812,
+    responsive: (phone: any) => phone,
+    rs: () => 16,
+    fontSize: () => 16,
+    gridColumns: (phone: number) => phone,
+  }),
+}));
 
 jest.mock('@/components/organisms/common/MessageBubble', () => ({
   MessageBubble: ({ message }: { message: Message }) => {

@@ -2,11 +2,13 @@ import React from 'react';
 import { ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ResponsiveContainer } from '../components/atoms';
 import { Header, HeaderActions } from '../components/organisms';
 import { DynamicAISelector, PromptWizard, QuickStartTopicPicker } from '../components/organisms';
 import { ChatTopicPickerModal } from '@/components/organisms/demo/ChatTopicPickerModal';
 
 import { useTheme } from '../theme';
+import { useResponsive } from '../hooks/useResponsive';
 import { HOME_CONSTANTS } from '../config/homeConstants';
 import { TrialBanner } from '@/components/molecules/subscription/TrialBanner';
 import { DemoBanner } from '@/components/molecules/subscription/DemoBanner';
@@ -31,7 +33,8 @@ interface HomeScreenProps {
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const { theme } = useTheme();
-  
+  const { rs } = useResponsive();
+
   // Compose hooks for clean separation of concerns
   const greeting = useGreeting();
   const premium = usePremiumFeatures();
@@ -98,29 +101,31 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          padding: theme.spacing.lg,
-          paddingBottom: theme.spacing.xl * 2,
+          padding: rs('lg'),
+          paddingBottom: rs('xl') * 2,
         }}
         showsVerticalScrollIndicator={false}
       >
-        <TrialBanner />
-        {/* Primary: AI Selection & Chat */}
-        <View style={{ marginBottom: theme.spacing.xl }}>
-          <DynamicAISelector
-            configuredAIs={aiSelection.configuredAIs}
-            selectedAIs={aiSelection.selectedAIs}
-            maxAIs={aiSelection.maxAIs}
-            onToggleAI={aiSelection.toggleAI}
-            onStartChat={handleStartChat}
-            onAddAI={handleAddAI}
-            hideAddAI={isDemo}
-            aiPersonalities={aiSelection.aiPersonalities}
-            selectedModels={aiSelection.selectedModels}
-            onPersonalityChange={aiSelection.changePersonality}
-            onModelChange={aiSelection.changeModel}
-            onQuickStart={isDemo ? undefined : quickStart.openTopicPicker}
-          />
-        </View>
+        <ResponsiveContainer maxWidth="xl" center>
+          <TrialBanner />
+          {/* Primary: AI Selection & Chat */}
+          <View style={{ marginBottom: rs('xl') }}>
+            <DynamicAISelector
+              configuredAIs={aiSelection.configuredAIs}
+              selectedAIs={aiSelection.selectedAIs}
+              maxAIs={aiSelection.maxAIs}
+              onToggleAI={aiSelection.toggleAI}
+              onStartChat={handleStartChat}
+              onAddAI={handleAddAI}
+              hideAddAI={isDemo}
+              aiPersonalities={aiSelection.aiPersonalities}
+              selectedModels={aiSelection.selectedModels}
+              onPersonalityChange={aiSelection.changePersonality}
+              onModelChange={aiSelection.changeModel}
+              onQuickStart={isDemo ? undefined : quickStart.openTopicPicker}
+            />
+          </View>
+        </ResponsiveContainer>
       </ScrollView>
 
       {/* Topic Picker Modal */}

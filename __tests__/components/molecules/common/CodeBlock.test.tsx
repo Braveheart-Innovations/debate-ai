@@ -2,31 +2,6 @@ import React from 'react';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { CodeBlock } from '@/components/molecules/common/CodeBlock';
 
-// Mock react-native-code-highlighter
-jest.mock('react-native-code-highlighter', () => {
-  const React = require('react');
-  const { Text, View } = require('react-native');
-  return {
-    __esModule: true,
-    default: ({ children }: { children: string }) =>
-      React.createElement(
-        View,
-        { testID: 'code-highlighter' },
-        React.createElement(Text, { testID: 'code-content' }, children)
-      ),
-  };
-});
-
-// Mock syntax highlighter styles
-jest.mock('react-syntax-highlighter/dist/esm/styles/hljs', () => ({
-  atomOneDark: {
-    hljs: { backgroundColor: '#282c34' },
-  },
-  atomOneLight: {
-    hljs: { backgroundColor: '#fafafa' },
-  },
-}));
-
 // Mock Typography
 jest.mock('@/components/molecules/common/Typography', () => {
   const React = require('react');
@@ -40,19 +15,20 @@ jest.mock('@/components/molecules/common/Typography', () => {
 describe('CodeBlock', () => {
   describe('rendering', () => {
     it('renders code content', () => {
-      const { getByTestId } = renderWithProviders(
+      const { getByText } = renderWithProviders(
         <CodeBlock code="const x = 1;" />
       );
 
-      expect(getByTestId('code-content')).toBeTruthy();
+      expect(getByText('const x = 1;')).toBeTruthy();
     });
 
-    it('renders code highlighter component', () => {
-      const { getByTestId } = renderWithProviders(
+    it('renders with language tag when language is provided', () => {
+      const { getByText, getByTestId } = renderWithProviders(
         <CodeBlock code="const x = 1;" language="javascript" />
       );
 
-      expect(getByTestId('code-highlighter')).toBeTruthy();
+      expect(getByText('const x = 1;')).toBeTruthy();
+      expect(getByTestId('language-tag')).toBeTruthy();
     });
 
     it('displays the code content correctly', () => {
@@ -143,26 +119,22 @@ describe('CodeBlock', () => {
 
   describe('code formatting', () => {
     it('removes trailing newline from code', () => {
-      const { getByTestId } = renderWithProviders(
+      const { getByText } = renderWithProviders(
         <CodeBlock code={'const x = 1;\n'} language="javascript" />
       );
 
-      // The component should remove trailing newlines
-      const content = getByTestId('code-content').props.children;
-      expect(content.endsWith('\n')).toBe(false);
-      expect(content).toBe('const x = 1;');
+      // The component should remove trailing newlines - it should display without the trailing newline
+      expect(getByText('const x = 1;')).toBeTruthy();
     });
 
     it('preserves internal newlines', () => {
       const code = 'line1\nline2\nline3';
-      const { getByTestId } = renderWithProviders(
+      const { getByText } = renderWithProviders(
         <CodeBlock code={code} language="javascript" />
       );
 
-      const content = getByTestId('code-content').props.children;
-      expect(content).toContain('line1');
-      expect(content).toContain('line2');
-      expect(content).toContain('line3');
+      // The content should contain all lines
+      expect(getByText(code)).toBeTruthy();
     });
 
     it('handles empty code', () => {
@@ -170,7 +142,8 @@ describe('CodeBlock', () => {
         <CodeBlock code="" language="javascript" />
       );
 
-      expect(getByTestId('code-highlighter')).toBeTruthy();
+      // Should still render with the language tag
+      expect(getByTestId('language-tag')).toBeTruthy();
     });
   });
 

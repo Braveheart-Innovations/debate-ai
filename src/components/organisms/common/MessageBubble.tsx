@@ -20,6 +20,7 @@ import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 import { selectableMarkdownRules } from '@/utils/markdownSelectable';
 import useFeatureAccess from '@/hooks/useFeatureAccess';
+import { useResponsive } from '@/hooks/useResponsive';
 
 interface MessageBubbleProps {
   message: Message;
@@ -101,6 +102,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, s
   const { theme, isDark } = useTheme();
   const [copied, setCopied] = useState(false);
   const { isDemo } = useFeatureAccess();
+  const { responsive } = useResponsive();
+
+  // Narrower bubbles on tablet for better readability
+  const bubbleMaxWidth = responsive('88%', '70%');
 
   // Unified animation hook - spring-scale for Chat mode
   const { animatedStyle } = useMessageBubbleAnimation({
@@ -211,6 +216,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, s
       <Box
         style={[
           styles.stack,
+          { maxWidth: bubbleMaxWidth },
           isUser ? styles.stackRight : styles.stackLeft,
         ]}
       >
@@ -464,7 +470,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   stack: {
-    maxWidth: '88%',
     flexShrink: 1,
   },
   stackLeft: {

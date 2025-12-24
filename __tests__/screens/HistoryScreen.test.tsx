@@ -127,6 +127,21 @@ jest.mock('@/hooks/useFeatureAccess', () => ({
   useFeatureAccess: (...args: unknown[]) => mockUseFeatureAccess(...args),
 }));
 
+jest.mock('@/hooks/useResponsive', () => ({
+  useResponsive: () => ({
+    isTablet: false,
+    isLandscape: false,
+    isPhone: true,
+    isPortrait: true,
+    width: 375,
+    height: 812,
+    responsive: (phone: any) => phone,
+    rs: () => 16,
+    fontSize: () => 16,
+    gridColumns: (phone: number) => phone,
+  }),
+}));
+
 const mockClearAllSessions = jest.fn();
 
 jest.mock('@/services/chat', () => ({
@@ -179,6 +194,7 @@ jest.mock('@/components/organisms/history', () => {
       return React.createElement(Text, { testID: 'history-empty' }, 'empty');
     },
     HistoryListSkeleton: () => React.createElement(Text, { testID: 'history-skeleton' }, 'skeleton'),
+    SessionDetailPane: (props: any) => React.createElement(Text, { testID: 'session-detail-pane' }, 'detail-pane'),
   };
 });
 

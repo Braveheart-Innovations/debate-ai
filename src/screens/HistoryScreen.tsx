@@ -1,31 +1,34 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ScrollView, View, Alert } from 'react-native';
+import { ScrollView, View, Alert, StyleSheet } from 'react-native';
 import { Box } from '../components/atoms';
 import { Button } from '../components/molecules';
 import { useTheme } from '../theme';
 import { useFocusEffect } from '@react-navigation/native';
 import { StorageService } from '../services/chat';
-import { 
-  HistorySearchBar, 
-  HistoryList, 
-  HistoryStats, 
+import {
+  HistorySearchBar,
+  HistoryList,
+  HistoryStats,
   EmptyHistoryState,
-  HistoryListSkeleton 
+  HistoryListSkeleton,
+  SessionDetailPane
 } from '../components/organisms/history';
 import { ErrorBoundary, Header, HeaderActions } from '../components/organisms';
-import { 
-  useSessionHistory, 
-  useSessionSearch, 
-  useSessionActions, 
-  useSessionStats, 
-  useSessionPagination 
+import {
+  useSessionHistory,
+  useSessionSearch,
+  useSessionActions,
+  useSessionStats,
+  useSessionPagination
 } from '../hooks/history';
 import { HistoryScreenNavigationProps } from '../types/history';
+import { ChatSession } from '../types';
 import { DemoBanner } from '@/components/molecules/subscription/DemoBanner';
 import { useDispatch } from 'react-redux';
 import { showSheet } from '@/store';
 import useFeatureAccess from '@/hooks/useFeatureAccess';
+import { useResponsive } from '../hooks/useResponsive';
 
 interface HistoryScreenProps {
   navigation: HistoryScreenNavigationProps;
@@ -35,7 +38,12 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
   const { theme } = useTheme();
   const dispatch = useDispatch();
   const { isDemo } = useFeatureAccess();
+  const { isTablet, isLandscape, width } = useResponsive();
   const [activeTab, setActiveTab] = useState<'all' | 'chat' | 'comparison' | 'debate'>('all');
+  const [selectedSession, setSelectedSession] = useState<ChatSession | null>(null);
+
+  // Show split view on iPad landscape with sufficient width
+  const showSplitView = isTablet && isLandscape && width > 1024;
   
   // Compose hooks for different concerns
   const { sessions, isLoading, error, refresh } = useSessionHistory();
@@ -195,6 +203,75 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
     clearSearch();
   };
 
+  // Handle session press - preview in split view, navigate otherwise
+  const handleSessionPress = (session: ChatSession) => {
+    if (showSplitView) {
+      setSelectedSession(session);
+    } else {
+      resumeSession(session);
+    }
+  };
+
+  // Handle opening session from detail pane
+  const handleOpenSession = (session: ChatSession) => {
+    resumeSession(session);
+  };
+
+  // Render the session list content (used in both layouts)
+  const renderSessionList = () => (
+    <>
+      <HistoryList
+        sessions={displaySessions}
+        onSessionPress={handleSessionPress}
+        onSessionDelete={deleteSession}
+        searchTerm={searchQuery}
+        refreshing={isLoading}
+        onRefresh={refresh}
+        testID="history-session-list"
+        onLoadMore={shouldUsePagination ? loadMore : undefined}
+        hasMorePages={shouldUsePagination ? hasMorePages : false}
+        isLoadingMore={shouldUsePagination ? isLoadingMore : false}
+        totalSessions={shouldUsePagination ? filteredSessions.length : undefined}
+        ListEmptyComponent={
+          <EmptyHistoryState
+            type={getEmptyStateType()}
+            searchTerm={searchQuery}
+            onStartChat={handleStartNew}
+            onRetry={refresh}
+            onClearSearch={handleClearSearch}
+            emptyStateConfig={
+              activeTab === 'debate' ? {
+                icon: 'sword-cross',
+                iconLibrary: 'material-community',
+                title: 'No debates yet',
+                message: 'Start a debate to see it here',
+                actionText: 'Start Debating'
+              } : activeTab === 'comparison' ? {
+                icon: 'git-compare-outline',
+                iconLibrary: 'ionicons',
+                title: 'No comparisons yet',
+                message: 'Compare AI responses to see them here',
+                actionText: 'Start Comparing'
+              } : activeTab === 'chat' ? {
+                icon: 'chatbubbles-outline',
+                iconLibrary: 'ionicons',
+                title: 'No chats yet',
+                message: 'Start a conversation to see it here',
+                actionText: 'Start Chatting'
+              } : undefined
+            }
+          />
+        }
+      />
+      {/* Stats bar - only show when there are sessions and no search */}
+      <HistoryStats
+        sessionCount={sessions.length}
+        messageCount={totalMessageCount}
+        visible={!searchQuery && sessions.length > 0}
+      />
+    </>
+  );
+
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <ErrorBoundary>
@@ -231,85 +308,68 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
 
           {/* Type filter tabs */}
           <View style={{ height: 50 }}>
-            <ScrollView 
-              horizontal 
+            <ScrollView
+              horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8, gap: 8 }}
             >
               {(['all', 'chat', 'comparison', 'debate'] as const).map(tab => {
-              const label = tab === 'comparison' ? 'Compare' : tab.charAt(0).toUpperCase() + tab.slice(1);
-              const count = sessionCounts[tab];
-              const isActive = activeTab === tab;
-              
-              return (
-                <Button
-                  key={tab}
-                  title={`${label}${count > 0 ? ` (${count})` : ''}`}
-                  onPress={() => setActiveTab(tab)}
-                  variant={isActive ? 'primary' : 'ghost'}
-                  size="small"
-                  style={{ minWidth: 100, paddingHorizontal: 16 }}
-                />
-              );
-            })}
+                const label = tab === 'comparison' ? 'Compare' : tab.charAt(0).toUpperCase() + tab.slice(1);
+                const count = sessionCounts[tab];
+                const isActive = activeTab === tab;
+
+                return (
+                  <Button
+                    key={tab}
+                    title={`${label}${count > 0 ? ` (${count})` : ''}`}
+                    onPress={() => setActiveTab(tab)}
+                    variant={isActive ? 'primary' : 'ghost'}
+                    size="small"
+                    style={{ minWidth: 100, paddingHorizontal: 16 }}
+                  />
+                );
+              })}
             </ScrollView>
           </View>
 
-          {/* Session list */}
-          <HistoryList
-            sessions={displaySessions}
-            onSessionPress={resumeSession}
-            onSessionDelete={deleteSession}
-            searchTerm={searchQuery}
-            refreshing={isLoading}
-            onRefresh={refresh}
-            testID="history-session-list"
-            onLoadMore={shouldUsePagination ? loadMore : undefined}
-            hasMorePages={shouldUsePagination ? hasMorePages : false}
-            isLoadingMore={shouldUsePagination ? isLoadingMore : false}
-            totalSessions={shouldUsePagination ? filteredSessions.length : undefined}
-            ListEmptyComponent={
-              <EmptyHistoryState
-                type={getEmptyStateType()}
-                searchTerm={searchQuery}
-                onStartChat={handleStartNew}
-                onRetry={refresh}
-                onClearSearch={handleClearSearch}
-                emptyStateConfig={
-                  activeTab === 'debate' ? {
-                    icon: 'sword-cross',
-                    iconLibrary: 'material-community',
-                    title: 'No debates yet',
-                    message: 'Start a debate to see it here',
-                    actionText: 'Start Debating'
-                  } : activeTab === 'comparison' ? {
-                    icon: 'git-compare-outline',
-                    iconLibrary: 'ionicons',
-                    title: 'No comparisons yet',
-                    message: 'Compare AI responses to see them here',
-                    actionText: 'Start Comparing'
-                  } : activeTab === 'chat' ? {
-                    icon: 'chatbubbles-outline',
-                    iconLibrary: 'ionicons',
-                    title: 'No chats yet',
-                    message: 'Start a conversation to see it here',
-                    actionText: 'Start Chatting'
-                  } : undefined
-                }
-              />
-            }
-          />
-
-          {/* Stats bar - only show when there are sessions and no search */}
-          <HistoryStats
-            sessionCount={sessions.length}
-            messageCount={totalMessageCount}
-            visible={!searchQuery && sessions.length > 0}
-          />
+          {/* Main content area - split view on iPad landscape */}
+          {showSplitView ? (
+            <View style={iPadStyles.splitContainer}>
+              {/* Left pane: Session list */}
+              <View style={[iPadStyles.masterPane, { borderRightColor: theme.colors.border }]}>
+                {renderSessionList()}
+              </View>
+              {/* Right pane: Session detail */}
+              <View style={iPadStyles.detailPane}>
+                <SessionDetailPane
+                  session={selectedSession}
+                  onOpenSession={handleOpenSession}
+                />
+              </View>
+            </View>
+          ) : (
+            // Phone/tablet portrait: standard single-column layout
+            renderSessionList()
+          )}
         </Box>
       </ErrorBoundary>
     </SafeAreaView>
   );
 };
+
+// iPad-specific styles for split view layout
+const iPadStyles = StyleSheet.create({
+  splitContainer: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  masterPane: {
+    width: '35%',
+    borderRightWidth: 1,
+  },
+  detailPane: {
+    flex: 1,
+  },
+});
 
 export default HistoryScreen;
