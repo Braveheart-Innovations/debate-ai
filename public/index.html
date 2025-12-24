@@ -32,6 +32,8 @@
       .cta { display:flex; gap:12px; flex-wrap:wrap; }
       .badge { display:inline-flex; align-items:center; gap:10px; padding:12px 16px; border-radius:12px; background:#0f1115; border:1px solid #22252b; color:#cfd3d8; text-decoration:none; font-weight:600; }
       .badge:hover { border-color:#2a2f36; }
+      .badge-primary { background:var(--brand); border-color:var(--brand); color:#fff; }
+      .badge-primary:hover { background:#0ca8a6; border-color:#0ca8a6; }
       .card { background:var(--card); border:1px solid #202328; border-radius:16px; padding:18px; }
       .preview { width:100%; max-width:300px; margin:0 auto; aspect-ratio:9/16; max-height:520px; background:radial-gradient(60% 80% at 50% 30%, rgba(14,149,148,.25), transparent), linear-gradient(180deg,#0d0f14, #11131a); border-radius:14px; border:1px solid #1f2330; position:relative; overflow:hidden; }
       .carousel-track { display:flex; transition:transform 0.5s ease; width:100%; height:100%; }
@@ -46,6 +48,18 @@
       .muted { color:var(--muted); }
       .feature.has-screenshot { display:flex; flex-direction:column; align-items:center; text-align:center; }
       .feature-screenshot { width:100%; max-width:180px; margin:0 auto 14px; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.3); }
+      .use-cases { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin:20px 0; }
+      .use-case { text-align:center; padding:16px 12px; }
+      .use-case-icon { font-size:28px; margin-bottom:8px; }
+      .use-case h4 { margin:0 0 4px; font-size:15px; }
+      .use-case p { margin:0; font-size:13px; color:var(--muted); }
+      .pricing { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin:20px 0; }
+      .price-card { text-align:center; padding:20px 16px; }
+      .price-card h4 { margin:0 0 6px; font-size:17px; }
+      .price-card .price { font-size:24px; font-weight:700; color:var(--brand); margin:8px 0; }
+      .price-card .price-note { font-size:13px; color:var(--muted); }
+      .price-card ul { text-align:left; margin:12px 0 0; padding-left:18px; font-size:14px; color:var(--muted); }
+      .price-card li { margin:4px 0; }
       footer { margin:36px 0 12px; border-top:1px solid #202328; padding-top:18px; color:var(--muted); font-size:14px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
       footer a { color:var(--muted); text-decoration:none; margin-right:14px; }
       footer a:hover { color:var(--text); }
@@ -54,6 +68,8 @@
         .container { padding:20px; }
         .hero{ grid-template-columns:1fr; gap:20px; }
         .features { grid-template-columns:repeat(2,1fr); }
+        .use-cases { grid-template-columns:repeat(2,1fr); }
+        .pricing { grid-template-columns:1fr; max-width:400px; margin:20px auto; }
       }
       /* Mobile */
       @media (max-width: 720px) {
@@ -68,6 +84,7 @@
         .features { grid-template-columns:1fr; gap:14px; }
         .card { padding:16px; }
         .feature-screenshot { max-width:140px; }
+        .use-cases { grid-template-columns:1fr 1fr; }
       }
       /* Small phones */
       @media (max-width: 480px) {
@@ -77,6 +94,13 @@
         nav a { margin-left:10px; font-size:14px; }
         .preview { max-width:220px; max-height:400px; }
         .carousel-slide { padding:8px; }
+        .use-cases { grid-template-columns:1fr 1fr; gap:8px; }
+        .use-case { padding:12px 8px; }
+        .use-case-icon { font-size:24px; }
+        .use-case h4 { font-size:14px; }
+        .use-case p { font-size:12px; }
+        .price-card { padding:16px 12px; }
+        .price-card .price { font-size:22px; }
       }
     </style>
   </head>
@@ -89,6 +113,7 @@
         </div>
         <nav>
           <a href="#features">Features</a>
+          <a href="#pricing">Pricing</a>
           <a href="/faqs.html">FAQs</a>
           <a href="/support/index.html">Support</a>
         </nav>
@@ -97,16 +122,16 @@
       <section class="hero">
         <div>
           <h1>Where Ideas Converge. Where Understanding Emerges.</h1>
-          <p class="sub">Host intelligent debates between multiple AI models, run rich multi‑AI chats, and Bring Your Own Keys (BYOK) for maximum privacy and control.</p>
+          <p class="sub">Host intelligent debates between multiple AI models, run rich multi-AI chats, and Bring Your Own Keys (BYOK) for privacy and control.</p>
           <div class="cta">
-            <a class="badge" href="#app-store" aria-label="Download on the App Store">
-              <span> App Store</span>
+            <a class="badge badge-primary" href="/faqs.html" aria-label="Learn about the free trial">
+              <span>Try 7 Days Free</span>
             </a>
-            <a class="badge" href="#play-store" aria-label="Get it on Google Play">
-              <span>Google Play</span>
+            <a class="badge" href="#features" aria-label="See features">
+              <span>See Features</span>
             </a>
           </div>
-          <p class="muted" style="margin-top:10px">Coming soon to iOS and Android.</p>
+          <p class="muted" style="margin-top:10px">Coming soon to iOS and Android. No credit card for demo mode.</p>
         </div>
         <div class="card preview" aria-label="Symposium AI app preview">
           <div class="carousel-track">
@@ -122,42 +147,111 @@
         </div>
       </section>
 
+      <!-- Use Cases -->
+      <section class="card" style="margin:24px 0;">
+        <h3 style="margin:0 0 14px; text-align:center;">Who is Symposium AI for?</h3>
+        <div class="use-cases">
+          <div class="use-case">
+            <div class="use-case-icon">🔬</div>
+            <h4>Researchers</h4>
+            <p>Compare AI reasoning on complex topics</p>
+          </div>
+          <div class="use-case">
+            <div class="use-case-icon">✍️</div>
+            <h4>Writers</h4>
+            <p>Get diverse perspectives on your drafts</p>
+          </div>
+          <div class="use-case">
+            <div class="use-case-icon">💻</div>
+            <h4>Developers</h4>
+            <p>Test prompts across multiple models</p>
+          </div>
+          <div class="use-case">
+            <div class="use-case-icon">📊</div>
+            <h4>Decision Makers</h4>
+            <p>See balanced arguments before choosing</p>
+          </div>
+        </div>
+      </section>
+
       <section id="features" class="features">
         <div class="card feature has-screenshot">
           <img src="/assets/screenshots/debate-vote.png" alt="AI Debates screenshot" class="feature-screenshot" loading="lazy" />
           <h3>AI Debates</h3>
-          <p>Spin up structured debates between multiple top‑tier models to compare reasoning and uncover insight.</p>
+          <p>Spin up structured debates between multiple top-tier models to compare reasoning and uncover insight.</p>
         </div>
         <div class="card feature has-screenshot">
           <img src="/assets/screenshots/chat-selection.png" alt="Multi-AI Chat screenshot" class="feature-screenshot" loading="lazy" />
-          <h3>Multi‑AI Chat</h3>
-          <p>Bring several models into one conversation to iterate faster and stress‑test ideas.</p>
+          <h3>Multi-AI Chat</h3>
+          <p>Bring several models into one conversation to iterate faster and stress-test ideas.</p>
         </div>
         <div class="card feature has-screenshot">
           <img src="/assets/screenshots/personality-system.png" alt="Personality System screenshot" class="feature-screenshot" loading="lazy" />
           <h3>Personality System</h3>
-          <p>Shape AI tone with 8 distinct personalities: Bestie (empathetic co‑pilot), Brody (high‑energy coach), Devlin (devil's advocate), George (satirical wit), Kai (staff engineer), Prof. Sage (Socratic scholar), and Scout (narrative strategist).</p>
+          <p>Shape AI tone with 8 distinct personalities: Bestie (empathetic co-pilot), Brody (high-energy coach), Devlin (devil's advocate), George (satirical wit), Kai (staff engineer), Prof. Sage (Socratic scholar), and Scout (narrative strategist).</p>
         </div>
         <div class="card feature has-screenshot">
           <img src="/assets/screenshots/compare-mode.png" alt="Compare Mode screenshot" class="feature-screenshot" loading="lazy" />
           <h3>Compare Mode</h3>
-          <p>See side‑by‑side answers from different models or providers with synchronized prompts and live streaming.</p>
+          <p>See side-by-side answers from different models or providers with synchronized prompts and live streaming.</p>
         </div>
         <div class="card feature has-screenshot">
           <img src="/assets/screenshots/continue-mode.png" alt="Continue Mode screenshot" class="feature-screenshot" loading="lazy" />
           <h3>Continue Mode</h3>
-          <p>Resume any chat or comparison from History. We rehydrate context by re‑injecting recent messages so the conversation picks up naturally.</p>
+          <p>Resume any chat or comparison from History. We rehydrate context by re-injecting recent messages so the conversation picks up naturally.</p>
         </div>
         <div class="card feature has-screenshot">
           <img src="/assets/screenshots/expert-mode.png" alt="Expert Mode screenshot" class="feature-screenshot" loading="lazy" />
           <h3>Expert Mode</h3>
-          <p>Set per‑provider defaults and advanced parameters (temperature, max tokens), then override per session when needed.</p>
+          <p>Set per-provider defaults and advanced parameters (temperature, max tokens), then override per session when needed.</p>
         </div>
       </section>
 
+      <!-- Pricing -->
+      <section id="pricing" style="margin:28px 0;">
+        <h2 style="text-align:center; margin:0 0 6px;">Simple, transparent pricing</h2>
+        <p class="muted" style="text-align:center; margin:0 0 16px;">Try everything free for 7 days. Cancel anytime.</p>
+        <div class="pricing">
+          <div class="card price-card">
+            <h4>Demo</h4>
+            <div class="price">Free</div>
+            <div class="price-note">No account required</div>
+            <ul>
+              <li>Explore the full UI</li>
+              <li>Watch sample debates</li>
+              <li>Try pre-recorded sessions</li>
+            </ul>
+          </div>
+          <div class="card price-card" style="border-color:var(--brand);">
+            <h4>Premium</h4>
+            <div class="price">$5.99<span style="font-size:14px;font-weight:400;">/month</span></div>
+            <div class="price-note">After 7-day free trial</div>
+            <ul>
+              <li>Unlimited debates &amp; chats</li>
+              <li>All 8 AI personalities</li>
+              <li>Compare &amp; Expert modes</li>
+              <li>Full conversation history</li>
+            </ul>
+          </div>
+          <div class="card price-card">
+            <h4>API Costs</h4>
+            <div class="price">Pay as you go</div>
+            <div class="price-note">Billed by each provider</div>
+            <ul>
+              <li>Use your own API keys</li>
+              <li>OpenAI, Anthropic, Google</li>
+              <li>Only pay for what you use</li>
+              <li>Often 90% less than subscriptions</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Trust / BYOK -->
       <section class="card" style="margin:24px 0;">
-        <h3 style="margin:0 0 8px">Built for trust</h3>
-        <p class="muted" style="margin:0">BYOK privacy: use your own API keys — stored securely on‑device, never on our servers. Backed by Firebase for auth and encrypted data at rest. Read our <a href="/privacy-policy.html">Privacy Policy</a> and <a href="/terms-of-service.html">Terms of Service</a>.</p>
+        <h3 style="margin:0 0 8px">Built for trust — and your wallet</h3>
+        <p class="muted" style="margin:0 0 10px"><strong style="color:var(--text);">BYOK (Bring Your Own Keys)</strong> means your API keys stay on your device, never touch our servers. You control your data and your costs.</p>
+        <p class="muted" style="margin:0"><strong style="color:var(--text);">Save money:</strong> Instead of paying $20/month for ChatGPT Plus <em>and</em> $20 for Claude Pro, use your own API keys and pay only for what you use — typically a fraction of the cost for casual users.</p>
       </section>
 
       <footer>
