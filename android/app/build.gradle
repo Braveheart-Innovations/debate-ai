@@ -92,9 +92,9 @@ android {
         applicationId 'com.braveheartinnovations.debateai'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 5
-        versionName "1.2.1"
-        // Fix react-native-iap variant ambiguity - use Google Play store variant
+        versionCode 6
+        versionName "1.2.2"
+        // Required for react-native-iap to resolve store flavor ambiguity
         missingDimensionStrategy 'store', 'play'
     }
     signingConfigs {
