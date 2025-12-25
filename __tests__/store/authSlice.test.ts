@@ -8,7 +8,6 @@ import reducer, {
   setSocialAuthLoading,
   setSocialAuthError,
   setLastAuthMethod,
-  setIsAnonymous,
   setAuthUser,
 } from '@/store/authSlice';
 
@@ -16,7 +15,7 @@ const initialState = reducer(undefined, { type: 'init' });
 
 describe('authSlice', () => {
   it('sets user and authentication state', () => {
-    const user = { uid: '123', email: 'user@example.com', isAnonymous: false } as never;
+    const user = { uid: '123', email: 'user@example.com' } as never;
     const state = reducer(initialState, setUser(user));
     expect(state.user).toEqual(user);
     expect(state.isAuthenticated).toBe(true);
@@ -79,43 +78,15 @@ describe('authSlice', () => {
     expect(state.lastAuthMethod).toBe('google');
   });
 
-  it('sets isAnonymous and updates lastAuthMethod when true', () => {
-    // Test setting anonymous to true - should also set lastAuthMethod
-    const state = reducer(initialState, setIsAnonymous(true));
-    expect(state.isAnonymous).toBe(true);
-    expect(state.lastAuthMethod).toBe('anonymous');
-  });
-
-  it('sets isAnonymous without changing lastAuthMethod when false', () => {
-    // First set to true, then to false
-    let state = reducer(initialState, setIsAnonymous(true));
-    expect(state.isAnonymous).toBe(true);
-    expect(state.lastAuthMethod).toBe('anonymous');
-
-    // Setting to false should not change lastAuthMethod
-    state = reducer(state, setIsAnonymous(false));
-    expect(state.isAnonymous).toBe(false);
-    expect(state.lastAuthMethod).toBe('anonymous'); // Still anonymous from before
-  });
-
   it('sets auth user and derived states', () => {
-    const user = { uid: '456', email: 'test@test.com', isAnonymous: false };
+    const user = { uid: '456', email: 'test@test.com' };
     const state = reducer(initialState, setAuthUser(user as never));
     expect(state.user).toEqual(user);
     expect(state.isAuthenticated).toBe(true);
-    expect(state.isAnonymous).toBe(false);
-  });
-
-  it('handles anonymous user with setAuthUser', () => {
-    const user = { uid: '789', email: null, isAnonymous: true };
-    const state = reducer(initialState, setAuthUser(user as never));
-    expect(state.user).toEqual(user);
-    expect(state.isAuthenticated).toBe(true);
-    expect(state.isAnonymous).toBe(true);
   });
 
   it('clears user with setAuthUser null', () => {
-    const user = { uid: '123', email: 'test@test.com', isAnonymous: false };
+    const user = { uid: '123', email: 'test@test.com' };
     let state = reducer(initialState, setAuthUser(user as never));
     expect(state.isAuthenticated).toBe(true);
 

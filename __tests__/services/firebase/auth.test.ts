@@ -1,13 +1,11 @@
 // Use mocks from jest.setup.ts and override as needed
 import {
   getAuth,
-  signInAnonymously as mockSignInAnonymously,
   signInWithEmailAndPassword as mockSignInWithEmailAndPassword,
   createUserWithEmailAndPassword as mockCreateUserWithEmailAndPassword,
   signOut as mockSignOut,
   onAuthStateChanged as mockOnAuthStateChanged,
   signInWithCredential as mockSignInWithCredential,
-  linkWithCredential as mockLinkWithCredential,
   getIdToken as mockFirebaseGetIdToken,
   updateProfile as mockUpdateProfile,
   sendPasswordResetEmail as mockFirebaseSendPasswordResetEmail,
@@ -29,20 +27,18 @@ const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {}
 
 // Create typed mock references
 const mockGetAuth = getAuth as jest.MockedFunction<typeof getAuth>;
-const mockAuthState = { currentUser: null as { uid: string; isAnonymous?: boolean } | null };
+const mockAuthState = { currentUser: null as { uid: string } | null };
 
 // Set up mockGetAuth to return mockAuthState
 mockGetAuth.mockReturnValue(mockAuthState as never);
 
 const mockAuthModule = {
   getAuth: mockGetAuth,
-  signInAnonymously: mockSignInAnonymously as jest.MockedFunction<typeof mockSignInAnonymously>,
   signInWithEmailAndPassword: mockSignInWithEmailAndPassword as jest.MockedFunction<typeof mockSignInWithEmailAndPassword>,
   createUserWithEmailAndPassword: mockCreateUserWithEmailAndPassword as jest.MockedFunction<typeof mockCreateUserWithEmailAndPassword>,
   signOut: mockSignOut as jest.MockedFunction<typeof mockSignOut>,
   onAuthStateChanged: mockOnAuthStateChanged as jest.MockedFunction<typeof mockOnAuthStateChanged>,
   signInWithCredential: mockSignInWithCredential as jest.MockedFunction<typeof mockSignInWithCredential>,
-  linkWithCredential: mockLinkWithCredential as jest.MockedFunction<typeof mockLinkWithCredential>,
   getIdToken: mockFirebaseGetIdToken as jest.MockedFunction<typeof mockFirebaseGetIdToken>,
   updateProfile: mockUpdateProfile as jest.MockedFunction<typeof mockUpdateProfile>,
   sendPasswordResetEmail: mockFirebaseSendPasswordResetEmail as jest.MockedFunction<typeof mockFirebaseSendPasswordResetEmail>,
@@ -106,7 +102,6 @@ const mockAppleAuthModule = AppleAuthentication as jest.Mocked<typeof AppleAuthe
 const mockGoogleSignin = GoogleSignin as jest.Mocked<typeof GoogleSignin>;
 
 import {
-  signInAnonymously,
   signInWithEmail,
   signUpWithEmail,
   signOut,
@@ -117,7 +112,6 @@ import {
   configureGoogleSignIn,
   signInWithApple,
   signInWithGoogle,
-  linkAnonymousAccount,
   sendPasswordResetEmail,
 } from '@/services/firebase/auth';
 
@@ -160,8 +154,8 @@ const resetMocks = () => {
 const futureTs = (days: number) => ({ toMillis: () => Date.now() + days * 24 * 60 * 60 * 1000 });
 const pastTs = (days: number) => ({ toMillis: () => Date.now() - days * 24 * 60 * 60 * 1000 });
 
-const setUser = (uid: string | null, options: { isAnonymous?: boolean } = {}) => {
-  mockAuthState.currentUser = uid ? { uid, isAnonymous: options.isAnonymous } : null;
+const setUser = (uid: string | null) => {
+  mockAuthState.currentUser = uid ? { uid } : null;
 };
 
 const setDocData = (data?: Partial<Record<string, unknown>>) => {
@@ -177,18 +171,6 @@ describe('firebase auth service', () => {
   afterAll(() => {
     consoleWarnSpy.mockRestore();
     consoleErrorSpy.mockRestore();
-  });
-
-  it('signs in anonymously and returns user', async () => {
-    const user = { uid: 'anon' };
-    mockAuthModule.signInAnonymously.mockResolvedValue({ user });
-    await expect(signInAnonymously()).resolves.toBe(user);
-    expect(mockAuthModule.signInAnonymously).toHaveBeenCalledWith(mockAuthState);
-  });
-
-  it('propagates anonymous sign-in errors', async () => {
-    mockAuthModule.signInAnonymously.mockRejectedValue(new Error('fail'));
-    await expect(signInAnonymously()).rejects.toThrow('fail');
   });
 
   it('handles email sign-in success and specific errors', async () => {
@@ -223,7 +205,7 @@ describe('firebase auth service', () => {
 
   it('returns current user and ID tokens', async () => {
     setUser('user');
-    expect(getCurrentUser()).toEqual({ uid: 'user', isAnonymous: undefined });
+    expect(getCurrentUser()).toEqual({ uid: 'user' });
 
     mockAuthModule.getIdToken.mockResolvedValue('token');
     await expect(getIdToken()).resolves.toBe('token');
@@ -325,24 +307,6 @@ describe('firebase auth service', () => {
     });
     await expect(signInWithGoogle()).rejects.toThrow('configuration error');
     mockGoogleSignin.configure.mockImplementation(() => {});
-  });
-
-  it('links anonymous account with Google credential', async () => {
-    Platform.OS = 'android';
-    setUser('anon', { isAnonymous: true });
-    mockGoogleSignin.getTokens.mockResolvedValue({ idToken: 'token' });
-    mockAuthModule.linkWithCredential.mockResolvedValue({ user: { uid: 'linked' } });
-    setDocData(undefined);
-    mockFirestoreModule.setDoc.mockResolvedValue(undefined);
-
-    const result = await linkAnonymousAccount('google');
-    expect(mockAuthModule.linkWithCredential).toHaveBeenCalled();
-    expect(result.user.uid).toBe('linked');
-  });
-
-  it('rejects linking when no anonymous user', async () => {
-    setUser('user', { isAnonymous: false });
-    await expect(linkAnonymousAccount('google')).rejects.toThrow('No anonymous user');
   });
 
   describe('sendPasswordResetEmail', () => {

@@ -77,8 +77,7 @@ jest.mock('@/services/firebase/auth', () => ({
   signOut: jest.fn(),
   signInWithEmail: jest.fn(),
   signUpWithEmail: jest.fn(),
-  signInAnonymously: jest.fn().mockResolvedValue({ uid: 'anon', email: null, displayName: 'Guest', isAnonymous: true }),
-  toAuthUser: jest.fn(() => ({ uid: 'anon', email: null, isAnonymous: true })),
+  toAuthUser: jest.fn((user) => ({ uid: user.uid, email: user.email })),
 }));
 
 const mockDeleteAccount = jest.fn();
@@ -105,7 +104,6 @@ const baseAuthState = {
   authLoading: false,
   authModalVisible: false,
   userProfile: null,
-  isAnonymous: false,
   lastAuthMethod: null,
   socialAuthLoading: false,
   socialAuthError: null,
@@ -131,20 +129,6 @@ describe('ProfileContent', () => {
     fireEvent.press(getByText('Sign in with Email'));
 
     await waitFor(() => expect(queryByTestId('email-auth-form')).toBeTruthy());
-  });
-
-  it('shows anonymous guest view when user is anonymous', () => {
-    const preloadedState = {
-      auth: { ...baseAuthState, isAnonymous: true },
-    } as Partial<RootState>;
-
-    const { getByText } = renderWithProviders(
-      <ProfileContent onClose={jest.fn()} />,
-      { preloadedState: preloadedState as RootState }
-    );
-
-    expect(getByText('Guest User')).toBeTruthy();
-    expect(getByText('Create Your Account')).toBeTruthy();
   });
 
   describe('Delete Account', () => {

@@ -14,11 +14,10 @@ interface AuthState {
     createdAt: number | null;
     membershipStatus: 'demo' | 'trial' | 'premium';
     preferences?: Record<string, unknown>;
-    authProvider?: 'email' | 'apple' | 'google' | 'anonymous';
+    authProvider?: 'email' | 'apple' | 'google';
   } | null;
   // Social auth state
-  isAnonymous: boolean;
-  lastAuthMethod: 'email' | 'apple' | 'google' | 'anonymous' | null;
+  lastAuthMethod: 'email' | 'apple' | 'google' | null;
   socialAuthLoading: boolean;
   socialAuthError: string | null;
 }
@@ -31,7 +30,6 @@ const initialState: AuthState = {
   authModalVisible: false,
   userProfile: null,
   // Social auth state
-  isAnonymous: false,
   lastAuthMethod: null,
   socialAuthLoading: false,
   socialAuthError: null,
@@ -68,7 +66,6 @@ const authSlice = createSlice({
       state.isPremium = false;
       state.userProfile = null;
       state.authModalVisible = false;
-      state.isAnonymous = false;
       state.lastAuthMethod = null;
       state.socialAuthLoading = false;
       state.socialAuthError = null;
@@ -83,16 +80,9 @@ const authSlice = createSlice({
     setLastAuthMethod: (state, action: PayloadAction<AuthState['lastAuthMethod']>) => {
       state.lastAuthMethod = action.payload;
     },
-    setIsAnonymous: (state, action: PayloadAction<boolean>) => {
-      state.isAnonymous = action.payload;
-      if (action.payload) {
-        state.lastAuthMethod = 'anonymous';
-      }
-    },
     setAuthUser: (state, action: PayloadAction<AuthUser | null>) => {
       state.user = action.payload;
       state.isAuthenticated = !!action.payload;
-      state.isAnonymous = action.payload?.isAnonymous || false;
     },
   },
 });
@@ -108,7 +98,6 @@ export const {
   setSocialAuthLoading,
   setSocialAuthError,
   setLastAuthMethod,
-  setIsAnonymous,
   setAuthUser,
 } = authSlice.actions;
 

@@ -3,17 +3,16 @@ import { View, StyleSheet, ScrollView, Alert, Linking, Platform } from 'react-na
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../../store';
-import { logout, setAuthUser, setUserProfile, setIsAnonymous } from '../../../store/authSlice';
+import { logout, setAuthUser, setUserProfile } from '../../../store/authSlice';
 import { ProfileAvatar, Typography, Button, SettingRow } from '@/components/molecules';
 import { EmailAuthForm } from '@/components/molecules/auth/EmailAuthForm';
 import { SocialAuthProviders } from '../auth/SocialAuthProviders';
 import { UnlockEverythingBanner } from '@/components/organisms/subscription/UnlockEverythingBanner';
 import { useTheme } from '../../../theme';
-import { 
-  signOut, 
-  signInWithEmail, 
-  signUpWithEmail, 
-  signInAnonymously,
+import {
+  signOut,
+  signInWithEmail,
+  signUpWithEmail,
   toAuthUser
 } from '../../../services/firebase/auth';
 import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from '@react-native-firebase/firestore';
@@ -31,7 +30,7 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
 }) => {
   const { theme, isDark } = useTheme();
   const dispatch = useDispatch();
-  const { userProfile, isAuthenticated, isAnonymous } = useSelector((state: RootState) => state.auth);
+  const { userProfile, isAuthenticated } = useSelector((state: RootState) => state.auth);
   const access = useFeatureAccess();
   
   // Auth state
@@ -94,28 +93,6 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
     }
   };
 
-  const handleAnonymousSignIn = async () => {
-    setLoading(true);
-    try {
-      const user = await signInAnonymously();
-      dispatch(setAuthUser(toAuthUser(user)));
-      dispatch(setUserProfile({
-        email: null,
-        displayName: 'Guest User',
-        photoURL: null,
-        createdAt: Date.now(),
-        membershipStatus: 'demo',
-        preferences: {},
-        authProvider: 'anonymous',
-      }));
-      dispatch(setIsAnonymous(true));
-    } catch {
-      Alert.alert('Error', 'Failed to sign in anonymously');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -172,109 +149,6 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
   // Subscription navigation handled by Account Settings actions; no sheet close side-effects
 
   // App Settings link removed
-
-  // Handle anonymous users - show upgrade options
-  if (isAnonymous) {
-    return (
-      <ScrollView 
-        style={[styles.container, { backgroundColor: theme.colors.background }]}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.guestProfileSection}>
-          <ProfileAvatar size={64} />
-          <Typography 
-            variant="title" 
-            weight="semibold" 
-            color="primary"
-            style={styles.displayName}
-          >
-            Guest User
-          </Typography>
-          <Typography 
-            variant="body" 
-            color="secondary"
-            style={styles.email}
-          >
-            Limited access - Sign in for full features
-          </Typography>
-        </View>
-
-        {/* Upgrade CTA */}
-        <View style={styles.upgradeSection}>
-          <Typography 
-            variant="heading" 
-            weight="semibold" 
-            color="primary"
-            style={styles.upgradeTitle}
-          >
-            Create Your Account
-          </Typography>
-          <Typography 
-            variant="body" 
-            color="secondary"
-            style={styles.upgradeSubtitle}
-          >
-            Sign in to save your debates, unlock all AI personalities, and access premium features
-          </Typography>
-        </View>
-
-        {/* Social Auth Providers for upgrade */}
-        <View style={styles.authProviders}>
-          <SocialAuthProviders 
-            onSuccess={onClose}
-            onError={(error) => {
-              Alert.alert('Upgrade Failed', error.message);
-            }}
-          />
-        </View>
-
-        {/* Email Sign Up Option */}
-        <View style={styles.guestActions}>
-          <Button
-            title="Sign up with Email"
-            onPress={() => {
-              setAuthMode('signup');
-              setShowAuthForm(true);
-            }}
-            variant="secondary"
-            fullWidth
-          />
-        </View>
-
-        {/* Account Settings (guest view) */}
-        <View style={styles.settingsContainer}>
-          <Typography 
-            variant="heading" 
-            weight="semibold" 
-            color="primary"
-            style={styles.sectionTitle}
-          >
-            Account Settings
-          </Typography>
-          <View style={[styles.settingsCard, { backgroundColor: theme.colors.surface }]}>
-            <SettingRow
-              title="Membership"
-              subtitle={'Demo — Limited access'}
-              icon="card-outline"
-            />
-            <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
-              <Button
-                title="Sign in to start trial"
-                onPress={() => {
-                  setAuthMode('signup');
-                  setShowAuthForm(true);
-                }}
-                variant="primary"
-              />
-            </View>
-            {/* App Settings link removed */}
-          </View>
-        </View>
-
-        {/* App Settings quick access removed */}
-      </ScrollView>
-    );
-  }
 
   if (!isAuthenticated) {
     if (showAuthForm) {
@@ -390,16 +264,6 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
               variant="secondary"
               fullWidth
               style={styles.emailButton}
-            />
-
-            {/* Guest Option */}
-            <Button
-              title="Continue as Guest"
-              onPress={handleAnonymousSignIn}
-              variant="ghost"
-              fullWidth
-              loading={loading}
-              style={styles.guestButton}
             />
           </View>
         </View>
@@ -845,37 +709,6 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
     marginLeft: 60, // Align with setting text
   },
-  
-  // Legacy styles for guest/anonymous users
-  guestProfileSection: {
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 24,
-  },
-  guestActions: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  guestSettingsSection: {
-    marginHorizontal: 16,
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 20,
-  },
-  upgradeSection: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  upgradeTitle: {
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  upgradeSubtitle: {
-    textAlign: 'center',
-  },
-  authProviders: {
-    paddingHorizontal: 20,
-  },
   ctaSection: {
     paddingHorizontal: 20,
     marginBottom: 16,
@@ -905,9 +738,6 @@ const styles = StyleSheet.create({
   },
   signOutButton: {
     // No additional styles needed
-  },
-  guestButton: {
-    marginTop: 4,
   },
   authHeader: {
     flexDirection: 'row',

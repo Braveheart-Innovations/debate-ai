@@ -1,6 +1,5 @@
 import {
   getAuth,
-  signInAnonymously as firebaseSignInAnonymously,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
@@ -8,7 +7,6 @@ import {
   FirebaseAuthTypes,
   signInWithCredential,
   GoogleAuthProvider,
-  linkWithCredential,
   AppleAuthProvider,
   updateProfile as fbUpdateProfile,
   getIdToken as firebaseGetIdToken,
@@ -33,7 +31,6 @@ export type AuthUser = {
   email: string | null;
   displayName: string | null;
   photoURL: string | null;
-  isAnonymous: boolean;
   emailVerified: boolean;
   providerId?: string | null;
 };
@@ -43,25 +40,9 @@ export const toAuthUser = (user: FirebaseAuthTypes.User): AuthUser => ({
   email: user.email ?? null,
   displayName: user.displayName ?? null,
   photoURL: user.photoURL ?? null,
-  isAnonymous: !!user.isAnonymous,
   emailVerified: !!user.emailVerified,
   providerId: user.providerId ?? null,
 });
-
-/**
- * Sign in anonymously for users without accounts
- */
-export const signInAnonymously = async (): Promise<FirebaseAuthTypes.User> => {
-  try {
-    const auth = getAuth();
-    const credential = await firebaseSignInAnonymously(auth);
-    console.warn('User signed in anonymously:', credential.user.uid);
-    return credential.user;
-  } catch (error) {
-    console.error('Anonymous sign in error:', error);
-    throw error;
-  }
-};
 
 /**
  * Sign in with email and password
@@ -553,58 +534,3 @@ const getOrCreateUserProfile = async (
   } as unknown as UserProfile;
 };
 
-/**
- * Link anonymous account to social account
- */
-export const linkAnonymousAccount = async (
-  method: 'apple' | 'google'
-): Promise<{ user: User; profile: UserProfile }> => {
-  const auth = getAuth();
-  const currentUser = auth.currentUser;
-  
-  if (!currentUser || !currentUser.isAnonymous) {
-    throw new Error('No anonymous user to link');
-  }
-  
-  try {
-    let credential;
-    
-    if (method === 'apple' && Platform.OS === 'ios') {
-      const appleCredential = await AppleAuthentication.signInAsync({
-        requestedScopes: [
-          AppleAuthentication.AppleAuthenticationScope.EMAIL,
-          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-        ],
-      });
-      
-      credential = AppleAuthProvider.credential(
-        appleCredential.identityToken as string,
-        undefined as unknown as string
-      );
-    } else if (method === 'google') {
-      configureGoogleSignIn();
-      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-      await GoogleSignin.signIn();
-      const tokens = await GoogleSignin.getTokens();
-      credential = GoogleAuthProvider.credential(tokens.idToken);
-    } else {
-      throw new Error('Invalid authentication method');
-    }
-    
-    // Link the anonymous account with the social credential
-    const linkedUser = await linkWithCredential(currentUser, credential);
-    
-    // Update user profile
-    const profile = await getOrCreateUserProfile(linkedUser.user, {
-      authProvider: method,
-    });
-    
-    return {
-      user: linkedUser.user,
-      profile,
-    };
-  } catch (error) {
-    console.error('Account linking error:', error);
-    throw error;
-  }
-};
