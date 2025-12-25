@@ -15,6 +15,7 @@
       "backgroundColor": "#1A1A1A"
     },
     "ios": {
+      "buildNumber": "2",
       "supportsTablet": true,
       "bundleIdentifier": "com.braveheartinnovations.debateai",
       "googleServicesFile": "./GoogleService-Info.plist",

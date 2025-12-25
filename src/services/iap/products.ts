@@ -4,15 +4,15 @@ import { Platform } from 'react-native';
 // Bundle/package IDs remain DebateAI.
 export const SUBSCRIPTION_PRODUCTS = {
   monthly: Platform.select({
-    ios: 'com.braveheartinnovations.debateai.premium.monthly',
+    ios: 'com.braveheartinnovations.debateai.premium.monthly.v2',
     android: 'premium_monthly',
   })!,
   annual: Platform.select({
-    ios: 'com.braveheartinnovations.debateai.premium.annual',
+    ios: 'com.braveheartinnovations.debateai.premium.annual.v2',
     android: 'premium_annual',
   })!,
   lifetime: Platform.select({
-    ios: 'com.braveheartinnovations.debateai.premium.lifetime',
+    ios: 'com.braveheartinnovations.debateai.premium.lifetime.v2',
     android: 'premium_lifetime',
   })!,
 } as const;
