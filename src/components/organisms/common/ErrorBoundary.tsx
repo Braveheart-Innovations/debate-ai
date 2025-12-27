@@ -3,7 +3,7 @@ import { StyleSheet, Linking } from 'react-native';
 import { Box } from '@/components/atoms';
 import { Typography, Button } from '@/components/molecules';
 import { useTheme } from '@/theme';
-import { CrashlyticsService } from '@/services/crashlytics';
+import { ErrorService } from '@/services/errors/ErrorService';
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -119,13 +119,16 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
-
-    // Record error to Crashlytics
-    CrashlyticsService.recordError(error, {
-      componentStack: errorInfo.componentStack || 'unknown',
-      level: this.props.level || 'recoverable',
-      type: 'react_error_boundary',
+    // Use ErrorService for centralized error handling
+    // showToast: false since ErrorBoundary already shows a fallback UI
+    ErrorService.handleError(error, {
+      feature: 'react_boundary',
+      showToast: false,
+      context: {
+        componentStack: errorInfo.componentStack || 'unknown',
+        level: this.props.level || 'recoverable',
+        type: 'react_error_boundary',
+      },
     });
 
     if (this.props.onError) {

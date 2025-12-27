@@ -2,6 +2,9 @@ import { BaseAdapter } from '../ai/base/BaseAdapter';
 import { Message, MessageAttachment, AIProvider, PersonalityConfig, ModelParameters } from '../../types';
 import { ResumptionContext, AIAdapterConfig } from '../ai/types/adapter.types';
 import { AdapterFactory } from '../ai/factory/AdapterFactory';
+import { ErrorService } from '@/services/errors/ErrorService';
+import { AppError } from '@/errors/types/AppError';
+import { ErrorCode } from '@/errors/codes/ErrorCodes';
 
 // Chunk buffer configuration
 interface BufferConfig {
@@ -167,8 +170,13 @@ export class StreamingService {
       // Backward compatibility: use provided adapter
       adapter = config.adapter;
     } else {
-      const error = new Error('Either adapter or adapterConfig must be provided');
-      console.error(`[StreamingService] Error:`, error.message);
+      const error = new AppError({
+        code: ErrorCode.VALIDATION_REQUIRED,
+        message: 'Either adapter or adapterConfig must be provided',
+        userMessage: 'Streaming configuration error. Please try again.',
+        context: { messageId },
+      });
+      ErrorService.handleSilent(error);
       onError(error);
       return;
     }
@@ -177,8 +185,13 @@ export class StreamingService {
 
     // Check if stream already exists
     if (this.activeStreams.has(messageId)) {
-      const error = new Error(`Stream already active for message ${messageId}`);
-      console.error(`[StreamingService] Error:`, error.message);
+      const error = new AppError({
+        code: ErrorCode.UNKNOWN,
+        message: `Stream already active for message ${messageId}`,
+        userMessage: 'A response is already in progress.',
+        context: { messageId },
+      });
+      ErrorService.handleSilent(error);
       onError(error);
       return;
     }
@@ -186,8 +199,13 @@ export class StreamingService {
     // Check if adapter supports streaming
     const capabilities = adapter.getCapabilities();
     if (!capabilities.streaming) {
-      const error = new Error(`Adapter does not support streaming`);
-      console.error(`[StreamingService] Error:`, error.message);
+      const error = new AppError({
+        code: ErrorCode.APP_FEATURE_NOT_AVAILABLE,
+        message: 'Adapter does not support streaming',
+        userMessage: 'Streaming is not available for this AI provider.',
+        context: { messageId, provider: config.adapterConfig?.provider },
+      });
+      ErrorService.handleSilent(error);
       onError(error);
       return;
     }
@@ -240,9 +258,12 @@ export class StreamingService {
       };
       
       if (!('streamMessage' in adapter) || typeof (adapter as StreamingAdapter).streamMessage !== 'function') {
-        const error = new Error('Adapter does not implement streamMessage method');
-        console.error(`[StreamingService] Error:`, error.message);
-        throw error;
+        throw new AppError({
+          code: ErrorCode.APP_ADAPTER_NOT_FOUND,
+          message: 'Adapter does not implement streamMessage method',
+          userMessage: 'This AI provider is not properly configured for streaming.',
+          context: { messageId, provider: config.adapterConfig?.provider },
+        });
       }
 
       // Calling adapter.streamMessage...
@@ -309,24 +330,17 @@ export class StreamingService {
       onComplete(fullContent);
 
     } catch (error) {
-      // Handle errors
-      
+      // Handle errors through ErrorService (silent - no toast, let caller handle UI)
       streamState.isActive = false;
       buffer.clear();
       this.activeStreams.delete(messageId);
 
-      if (error instanceof Error) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error(`[StreamingService] Error for ${messageId}:`, error.message);
-        }
-        onError(error);
-      } else {
-        const err = new Error(String(error));
-        if (process.env.NODE_ENV === 'development') {
-          console.error(`[StreamingService] Error for ${messageId}:`, err.message);
-        }
-        onError(err);
-      }
+      const appError = ErrorService.handleError(error, {
+        feature: 'streaming',
+        showToast: false,
+        context: { messageId, provider: config.adapterConfig?.provider },
+      });
+      onError(appError);
     }
   }
 

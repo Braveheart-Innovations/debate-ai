@@ -17,6 +17,9 @@ import { getStreamingService } from '../streaming/StreamingService';
 import { setProviderVerificationError } from '../../store/streamingSlice';
 import { getFormat, type DebateFormatId, type FormatSpec } from '../../config/debate/formats';
 import { getExpertOverrides } from '../../utils/expertMode';
+import { ErrorService } from '@/services/errors/ErrorService';
+import { AppError } from '@/errors/types/AppError';
+import { ErrorCode } from '@/errors/codes/ErrorCodes';
 
 export interface DebateSession {
   id: string;
@@ -105,7 +108,12 @@ export class DebateOrchestrator {
     // Validate debate setup
     const validation = this.rulesEngine.validateDebateSetup(participants, topic);
     if (!validation.valid) {
-      throw new Error(`Invalid debate setup: ${validation.errors.join(', ')}`);
+      throw new AppError({
+        code: ErrorCode.VALIDATION_REQUIRED,
+        message: `Invalid debate setup: ${validation.errors.join(', ')}`,
+        userMessage: validation.errors.join('. '),
+        recoverable: true,
+      });
     }
     
     // Resolve configuration
@@ -159,7 +167,12 @@ export class DebateOrchestrator {
    */
   async startDebate(existingMessages: Message[]): Promise<void> {
     if (!this.session) {
-      throw new Error('No active debate session');
+      throw new AppError({
+        code: ErrorCode.APP_SESSION_NOT_FOUND,
+        message: 'No active debate session',
+        userMessage: 'No active debate session. Please start a new debate.',
+        recoverable: true,
+      });
     }
     
     // Enforce storage limits BEFORE starting the debate
@@ -204,7 +217,12 @@ export class DebateOrchestrator {
     existingMessages: Message[]
   ): Promise<void> {
     if (!this.session || !this.votingService) {
-      throw new Error('No active debate session');
+      throw new AppError({
+        code: ErrorCode.APP_SESSION_NOT_FOUND,
+        message: 'No active debate session or voting service',
+        userMessage: 'The debate session has ended or was interrupted.',
+        recoverable: true,
+      });
     }
     
     const { participants, personalities, topic, format, totalRounds, civility } = this.session;
@@ -617,7 +635,13 @@ export class DebateOrchestrator {
       }
 
     } catch (error) {
-      await this.handleDebateError(error as Error, currentAI, aiIndex, messageCount, existingMessages);
+      // Use ErrorService for centralized error handling
+      const appError = ErrorService.handleError(error, {
+        feature: 'debate',
+        showToast: false, // We show errors in the debate UI
+        context: { provider: currentAI.provider, aiName: currentAI.name, round: this.session?.currentRound },
+      });
+      await this.handleDebateError(appError, currentAI, aiIndex, messageCount, existingMessages);
     }
   }
   
@@ -625,19 +649,24 @@ export class DebateOrchestrator {
    * Handle errors during debate execution
    */
   private async handleDebateError(
-    error: Error,
+    error: AppError | Error,
     currentAI: AI,
     aiIndex: number,
     messageCount: number,
     existingMessages: Message[]
   ): Promise<void> {
     if (!this.session) return;
-    
+
+    // Determine error type from AppError code or error message
+    const isRateLimit = error instanceof AppError
+      ? error.code === ErrorCode.API_RATE_LIMITED
+      : error.message?.includes('429');
+
     const debateError: DebateError = {
-      type: error.message?.includes('429') ? 'rate_limit' : 'ai_error',
-      message: error.message,
+      type: isRateLimit ? 'rate_limit' : 'ai_error',
+      message: error instanceof AppError ? error.userMessage : error.message,
       aiId: currentAI.id,
-      retryable: true,
+      retryable: error instanceof AppError ? error.retryable : true,
     };
     
     // Emit typing stopped
@@ -757,7 +786,12 @@ export class DebateOrchestrator {
    */
   async recordVote(round: number, winnerId: string, _isOverallVote: boolean = false): Promise<void> {
     if (!this.votingService || !this.session) {
-      throw new Error('No active voting session');
+      throw new AppError({
+        code: ErrorCode.APP_SESSION_NOT_FOUND,
+        message: 'No active voting session',
+        userMessage: 'Voting is not available. Please restart the debate.',
+        recoverable: true,
+      });
     }
     
     // Record round vote

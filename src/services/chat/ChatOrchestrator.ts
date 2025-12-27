@@ -15,6 +15,9 @@ import { getExpertOverrides } from '@/utils/expertMode';
 import { getStreamingService } from '@/services/streaming/StreamingService';
 import { RecordController } from '@/services/demo/RecordController';
 import { getCurrentTurnProviders, markProviderComplete } from '@/services/demo/DemoPlaybackRouter';
+import { ErrorService } from '@/services/errors/ErrorService';
+import { AppError } from '@/errors/types/AppError';
+import { ErrorCode } from '@/errors/codes/ErrorCodes';
 import type { AIService, ResumptionContext } from '@/services/aiAdapter';
 import type { AI, ChatSession, Message, MessageAttachment, ModelParameters, PersonalityConfig } from '@/types';
 
@@ -73,7 +76,12 @@ export class ChatOrchestrator {
 
   async processUserMessage(params: ProcessUserMessageParams): Promise<void> {
     if (!this.session) {
-      throw new Error('ChatOrchestrator: no active session');
+      throw new AppError({
+        code: ErrorCode.APP_SESSION_NOT_FOUND,
+        message: 'ChatOrchestrator: no active session',
+        userMessage: 'No active chat session. Please start a new chat.',
+        recoverable: true,
+      });
     }
 
     const {
@@ -184,7 +192,13 @@ export class ChatOrchestrator {
         );
         resumptionContext = undefined;
       } catch (error) {
-        const errorMessage = ChatService.createErrorMessage(ai, error as Error);
+        // Use ErrorService for centralized error handling
+        const appError = ErrorService.handleError(error, {
+          feature: 'chat',
+          showToast: true,
+          context: { provider: ai.provider, aiName: ai.name },
+        });
+        const errorMessage = ChatService.createErrorMessage(ai, appError);
         this.dispatch(addMessage(errorMessage));
         conversationContext = ChatService.buildRoundRobinContext(
           conversationContext.messages,
@@ -225,7 +239,13 @@ export class ChatOrchestrator {
     } = options;
 
     if (!apiKey) {
-      throw new Error(`No API key configured for ${ai.provider}`);
+      throw new AppError({
+        code: ErrorCode.VALIDATION_API_KEY_INVALID,
+        message: `No API key configured for ${ai.provider}`,
+        userMessage: `Please add your API key for ${ai.provider} in Settings.`,
+        recoverable: true,
+        context: { provider: ai.provider },
+      });
     }
 
     const aiMessage = ChatService.createAIMessage(ai, '', {
@@ -465,10 +485,13 @@ export class ChatOrchestrator {
       }
       return response;
     } catch (fallbackError) {
-      const errorMsg = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
-      const userMessage = errorMsg.includes('Overloaded') || errorMsg.includes('overload')
-        ? `${ai.name} is currently overloaded. Please try again in a few moments.`
-        : `Failed to get response from ${ai.name}: ${errorMsg}`;
+      // Use ErrorService for centralized error handling (silent - no toast since we're already showing message in chat)
+      const appError = ErrorService.handleError(fallbackError, {
+        feature: 'chat',
+        showToast: false,
+        context: { provider: ai.provider, aiName: ai.name, isFallback: true },
+      });
+      const userMessage = appError.userMessage || `Failed to get response from ${ai.name}`;
 
       this.dispatch(updateMessage({ id: aiMessageId, content: userMessage }));
       this.dispatch(streamingError({ messageId: aiMessageId, error: userMessage }));
@@ -527,7 +550,15 @@ export class ChatOrchestrator {
   }
 
   private handleAdapterError(ai: AI): void {
-    const errorMessage = ChatService.createErrorMessage(ai, `No adapter found for ${ai.name}`);
+    const appError = new AppError({
+      code: ErrorCode.APP_ADAPTER_NOT_FOUND,
+      message: `No adapter found for ${ai.name}`,
+      userMessage: `Unable to connect to ${ai.name}. The provider may not be configured properly.`,
+      context: { provider: ai.provider, aiName: ai.name },
+    });
+    // Log via ErrorService (silent - we show in chat instead)
+    ErrorService.handleSilent(appError, { provider: ai.provider });
+    const errorMessage = ChatService.createErrorMessage(ai, appError);
     this.dispatch(addMessage(errorMessage));
   }
 
