@@ -1,12 +1,13 @@
 import { Message, MessageAttachment, PersonalityConfig } from '../../../types';
 import { PersonalityOption } from '../../../config/personalities';
-import { 
-  AIAdapterConfig, 
-  ResumptionContext, 
+import {
+  AIAdapterConfig,
+  ResumptionContext,
   SendMessageResponse,
   FormattedMessage,
-  AdapterCapabilities 
+  AdapterCapabilities
 } from '../types/adapter.types';
+import { APIError } from '../../../errors/types/APIError';
 
 export abstract class BaseAdapter {
   public config: AIAdapterConfig;
@@ -148,11 +149,11 @@ export abstract class BaseAdapter {
   
   protected async handleApiError(response: Response, provider: string): Promise<never> {
     const errorData = await response.json().catch(() => ({}));
-    const errorMessage = errorData.error?.message || 
-                        errorData.message || 
-                        response.statusText || 
+    const errorMessage = errorData.error?.message ||
+                        errorData.message ||
+                        response.statusText ||
                         'Unknown error';
-    
-    throw new Error(`${provider} API error (${response.status}): ${errorMessage}`);
+
+    throw APIError.fromHttpStatus(response.status, provider, errorMessage);
   }
 }

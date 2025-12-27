@@ -6,6 +6,7 @@ import streamingReducer from './streamingSlice';
 import authReducer from './authSlice';
 import navigationReducer from './navigationSlice';
 import compareReducer from './compareSlice';
+import errorReducer from './errorSlice';
 
 // User slice
 interface UserState {
@@ -297,6 +298,7 @@ const rootReducer = combineReducers({
   auth: authReducer,
   navigation: navigationReducer,
   compare: compareReducer,
+  errors: errorReducer,
 });
 
 export type RootState = ReturnType<typeof rootReducer>;
@@ -393,3 +395,22 @@ export {
   selectIsComparing,
   selectCompareStreamingStates,
 } from './compareSlice';
+
+// Error handling exports
+export {
+  addError,
+  dismissError,
+  clearActiveToast,
+  showNextError,
+  clearErrors,
+  clearFeatureError,
+  clearAllFeatureErrors,
+  setToastDuration,
+  selectActiveToast,
+  selectErrorQueue,
+  selectFeatureError,
+  selectHasErrors,
+  selectToastDuration,
+  selectUndismissedErrorCount,
+} from './errorSlice';
+export type { ErrorEntry, ErrorState } from './errorSlice';

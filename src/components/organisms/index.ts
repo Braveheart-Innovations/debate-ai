@@ -25,6 +25,7 @@ export { ProviderCard } from './api-config/ProviderCard';
 export { ErrorBoundary } from './common/ErrorBoundary';
 export { StreamingIndicator } from './common/StreamingIndicator';
 export { MessageBubble } from './common/MessageBubble';
+export { ToastContainer } from './common/ToastContainer';
 
 // Header Organisms
 export { HeaderActions } from './header/HeaderActions';

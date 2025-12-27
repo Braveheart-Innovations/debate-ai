@@ -19,6 +19,7 @@ import { setAuthUser, setUserProfile } from './src/store';
 import PurchaseService from './src/services/iap/PurchaseService';
 import { CrashlyticsService } from './src/services/crashlytics';
 import { ErrorBoundary } from './src/components/organisms/common/ErrorBoundary';
+import { ToastContainer } from './src/components/organisms/common/ToastContainer';
 
 function AppContent() {
   const dispatch = useDispatch();
@@ -197,6 +198,7 @@ function AppContent() {
       <ThemeProvider>
         <AIServiceProvider>
           <AppNavigator />
+          <ToastContainer />
           <StatusBar style="auto" />
         </AIServiceProvider>
       </ThemeProvider>

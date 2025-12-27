@@ -76,3 +76,6 @@ export { HelpTopicCard } from './help/HelpTopicCard';
 
 // Chart Molecules
 export * from './charts';
+
+// Feedback Molecules
+export * from './feedback';
