@@ -4,16 +4,39 @@ service cloud.firestore {
     // Users can only read/write their own data
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // API Keys - ONLY accessible via Cloud Functions (admin SDK)
+      match /apiKeys/{providerId} {
+        allow read, write: if false;
+      }
+
+      // Allow all other subcollections (billing, sessions, etc.) EXCEPT apiKeys
+      match /{subcollection}/{docId} {
+        allow read, write: if request.auth != null
+          && request.auth.uid == userId
+          && subcollection != 'apiKeys';
+
+        // Nested subcollections (e.g., sessions/messages)
+        match /{nestedDoc=**} {
+          allow read, write: if request.auth != null && request.auth.uid == userId;
+        }
+      }
     }
     
     // Conversations belong to authenticated users
     match /conversations/{conversationId} {
-      allow read, write: if request.auth != null
-        && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid;
+
+      allow read, update, delete: if request.auth != null
+        && resource.data.userId == request.auth.uid;
 
       match /messages/{messageId} {
-        allow read, write: if request.auth != null
-          && request.auth.uid == get(/databases/$(database)/documents/conversations/$(conversationId)).data.userId;
+        allow create: if request.auth != null
+          && get(/databases/$(database)/documents/conversations/$(conversationId)).data.userId == request.auth.uid;
+
+        allow read, update, delete: if request.auth != null
+          && get(/databases/$(database)/documents/conversations/$(conversationId)).data.userId == request.auth.uid;
       }
     }
 

@@ -46,8 +46,17 @@ yarn-error.*
 *.key
 *-api-key*
 
-# Firebase/Google services config - kept in git for EAS builds
-# These are client-side configs, not server secrets
+# Firebase/Google services config files
+# EXCLUDED from public repo - API keys get flagged by GitHub/Google security scanners
+# These files are required locally for EAS builds but must not be committed
+# Developers must download these from Firebase Console
+GoogleService-Info.plist
+google-services.json
+ios/SymposiumAI/GoogleService-Info.plist
+android/app/google-services.json
+
+# Firebase Cloud Functions compiled output
+functions/lib/
 
 # API discovery scripts with sensitive data
 /scripts/api-discovery/*.js

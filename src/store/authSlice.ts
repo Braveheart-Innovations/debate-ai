@@ -12,7 +12,7 @@ interface AuthState {
     displayName: string | null;
     photoURL: string | null;
     createdAt: number | null;
-    membershipStatus: 'demo' | 'trial' | 'premium';
+    membershipStatus: 'demo' | 'free' | 'trial' | 'premium' | 'canceled' | 'past_due';
     preferences?: Record<string, unknown>;
     authProvider?: 'email' | 'apple' | 'google';
   } | null;
