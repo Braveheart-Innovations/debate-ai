@@ -1,5 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ChatSession, Message } from '../../types';
+import { ErrorService } from '@/services/errors/ErrorService';
+import { AppError } from '@/errors/types/AppError';
+import { ErrorCode } from '@/errors/codes/ErrorCodes';
 
 export interface StorageKeys {
   SESSION_INDEX: 'sessionIndex';
@@ -51,7 +54,7 @@ export class StorageService {
       }
       return { sessions: [], lastUpdated: Date.now() };
     } catch (error) {
-      console.error('Error getting session index:', error);
+      ErrorService.handleSilent(error, { action: 'getSessionIndex' });
       return { sessions: [], lastUpdated: Date.now() };
     }
   }
@@ -67,7 +70,7 @@ export class StorageService {
         JSON.stringify(index)
       );
     } catch (error) {
-      console.error('Error updating session index:', error);
+      ErrorService.handleSilent(error, { action: 'updateSessionIndex' });
     }
   }
 
@@ -110,8 +113,13 @@ export class StorageService {
       await this.updateSessionIndex(index);
 
     } catch (error) {
-      console.error('Error saving session:', error);
-      throw new Error('Failed to save session to storage');
+      ErrorService.handleSilent(error, { action: 'saveSession', sessionId: session.id });
+      throw new AppError({
+        code: ErrorCode.UNKNOWN,
+        message: 'Failed to save session to storage',
+        userMessage: 'Unable to save your conversation. Please try again.',
+        context: { sessionId: session.id },
+      });
     }
   }
 
@@ -124,7 +132,7 @@ export class StorageService {
       const stored = await AsyncStorage.getItem(sessionKey);
       return stored ? JSON.parse(stored) : null;
     } catch (error) {
-      console.error('Error loading session:', error);
+      ErrorService.handleSilent(error, { action: 'loadSession', sessionId });
       return null;
     }
   }
@@ -148,7 +156,7 @@ export class StorageService {
       
       return validSessions;
     } catch (error) {
-      console.error('Error getting all sessions:', error);
+      ErrorService.handleSilent(error, { action: 'getAllSessions' });
       return [];
     }
   }
@@ -168,8 +176,13 @@ export class StorageService {
       await this.updateSessionIndex(index);
 
     } catch (error) {
-      console.error('Error deleting session:', error);
-      throw new Error('Failed to delete session from storage');
+      ErrorService.handleSilent(error, { action: 'deleteSession', sessionId });
+      throw new AppError({
+        code: ErrorCode.UNKNOWN,
+        message: 'Failed to delete session from storage',
+        userMessage: 'Unable to delete this conversation. Please try again.',
+        context: { sessionId },
+      });
     }
   }
 
@@ -198,7 +211,7 @@ export class StorageService {
       await this.saveSession(mergedSession);
       return mergedSession;
     } catch (error) {
-      console.error('Error merging session:', error);
+      ErrorService.handleSilent(error, { action: 'mergeSession', sessionId });
       return null;
     }
   }
@@ -223,7 +236,7 @@ export class StorageService {
         lastMessageAt: message.timestamp
       });
     } catch (error) {
-      console.error('Error adding message to session:', error);
+      ErrorService.handleSilent(error, { action: 'addMessageToSession', sessionId });
       throw error;
     }
   }
@@ -236,7 +249,7 @@ export class StorageService {
       const index = await this.getSessionIndex();
       return index.sessions;
     } catch (error) {
-      console.error('Error getting session metadata:', error);
+      ErrorService.handleSilent(error, { action: 'getSessionMetadata' });
       return [];
     }
   }
@@ -265,8 +278,12 @@ export class StorageService {
       // Create empty index
       await this.updateSessionIndex({ sessions: [], lastUpdated: Date.now() });
     } catch (error) {
-      console.error('Error clearing all sessions:', error);
-      throw new Error('Failed to clear sessions from storage');
+      ErrorService.handleSilent(error, { action: 'clearAllSessions' });
+      throw new AppError({
+        code: ErrorCode.UNKNOWN,
+        message: 'Failed to clear sessions from storage',
+        userMessage: 'Unable to clear conversations. Please try again.',
+      });
     }
   }
 
@@ -301,7 +318,7 @@ export class StorageService {
         storageSize
       };
     } catch (error) {
-      console.error('Error getting storage stats:', error);
+      ErrorService.handleSilent(error, { action: 'getStorageStats' });
       return {
         totalSessions: 0,
         totalMessages: 0,
@@ -333,7 +350,7 @@ export class StorageService {
 
       return sessionsToRemove.length;
     } catch (error) {
-      console.error('Error cleaning up old sessions:', error);
+      ErrorService.handleSilent(error, { action: 'cleanupOldSessions', retentionDays });
       return 0;
     }
   }
@@ -362,7 +379,7 @@ export class StorageService {
 
       return sessions.length;
     } catch (error) {
-      console.error('Error migrating from old format:', error);
+      ErrorService.handleSilent(error, { action: 'migrateFromOldFormat' });
       return 0;
     }
   }
@@ -384,8 +401,12 @@ export class StorageService {
 
       return JSON.stringify(exportData, null, 2);
     } catch (error) {
-      console.error('Error exporting sessions:', error);
-      throw new Error('Failed to export session data');
+      ErrorService.handleSilent(error, { action: 'exportSessions' });
+      throw new AppError({
+        code: ErrorCode.UNKNOWN,
+        message: 'Failed to export session data',
+        userMessage: 'Unable to export your data. Please try again.',
+      });
     }
   }
 
@@ -407,8 +428,12 @@ export class StorageService {
 
       return exportData.sessions.length;
     } catch (error) {
-      console.error('Error importing sessions:', error);
-      throw new Error('Failed to import session data');
+      ErrorService.handleSilent(error, { action: 'importSessions' });
+      throw new AppError({
+        code: ErrorCode.UNKNOWN,
+        message: 'Failed to import session data',
+        userMessage: 'Unable to import your data. The file may be corrupted.',
+      });
     }
   }
 

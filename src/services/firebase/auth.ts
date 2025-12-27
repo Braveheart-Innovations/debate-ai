@@ -12,7 +12,7 @@ import {
   getIdToken as firebaseGetIdToken,
   sendPasswordResetEmail as firebaseSendPasswordResetEmail
 } from '@react-native-firebase/auth';
-import { 
+import {
   getFirestore,
   collection,
   doc,
@@ -24,6 +24,8 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { Platform } from 'react-native';
 import * as Device from 'expo-device';
+import { ErrorService } from '@/services/errors/ErrorService';
+import { AuthError } from '@/errors/types/AuthError';
 
 // Minimal serializable user shape for Redux
 export type AuthUser = {
@@ -45,6 +47,112 @@ export const toAuthUser = (user: FirebaseAuthTypes.User): AuthUser => ({
 });
 
 /**
+ * Unified User Document Schema
+ * Used across web and mobile platforms for consistency
+ *
+ * Membership Lifecycles:
+ * - Mobile: demo → trial → premium (canceled reverts to demo)
+ * - Web: free → trial → premium (canceled reverts to free with remaining limits)
+ */
+export interface UserDocument {
+  // === Identity ===
+  email: string | null;
+  emailVerified: boolean;
+
+  // === Profile ===
+  displayName: string | null;
+  photoURL: string | null;
+  phoneNumber: string | null;
+
+  // === Authentication ===
+  authProvider: 'google' | 'apple' | 'email';
+  authProviderUid: string | null;
+  createdOnPlatform: 'web' | 'ios' | 'android';
+
+  // === Subscription/Membership ===
+  // demo = mobile only (pre-recorded content)
+  // free = web only (limited usage: 5 debates/compares/chats)
+  membershipStatus: 'demo' | 'free' | 'trial' | 'premium' | 'canceled' | 'past_due';
+  isPremium: boolean;
+  hasUsedTrial: boolean;
+  trialStartedAt: ReturnType<typeof serverTimestamp> | null;
+  trialEndsAt: ReturnType<typeof serverTimestamp> | null;
+  subscriptionStartedAt: ReturnType<typeof serverTimestamp> | null;
+  subscriptionEndsAt: ReturnType<typeof serverTimestamp> | null;
+  subscriptionPlan: 'monthly' | 'annual' | null;
+  subscriptionSource: 'stripe' | 'apple_iap' | 'google_play' | null;
+
+  // === Free Tier Limits (web only, null for mobile) ===
+  freeDebatesRemaining: number | null;
+  freeComparesRemaining: number | null;
+  freeChatsRemaining: number | null;
+
+  // === User Preferences ===
+  preferences: Record<string, unknown>;
+
+  // === Timestamps ===
+  createdAt: ReturnType<typeof serverTimestamp>;
+  lastSignInAt: ReturnType<typeof serverTimestamp>;
+  updatedAt: ReturnType<typeof serverTimestamp>;
+}
+
+/**
+ * Build a new user document with all required fields
+ * Mobile users start in 'demo' status with pre-recorded content access
+ */
+function buildNewUserDocument(
+  user: FirebaseAuthTypes.User,
+  authProvider: 'google' | 'apple' | 'email',
+  additionalData?: {
+    displayName?: string | null;
+    email?: string | null;
+    photoURL?: string | null;
+  }
+): Record<string, unknown> {
+  const platform = Platform.OS === 'ios' ? 'ios' : 'android';
+
+  return {
+    // Identity
+    email: additionalData?.email || user.email || null,
+    emailVerified: user.emailVerified || false,
+
+    // Profile
+    displayName: additionalData?.displayName || user.displayName || null,
+    photoURL: additionalData?.photoURL || user.photoURL || null,
+    phoneNumber: user.phoneNumber || null,
+
+    // Authentication
+    authProvider,
+    authProviderUid: user.providerData?.[0]?.uid || null,
+    createdOnPlatform: platform,
+
+    // Subscription - mobile users start in 'demo' status
+    membershipStatus: 'demo',
+    isPremium: false,
+    hasUsedTrial: false,
+    trialStartedAt: null,
+    trialEndsAt: null,
+    subscriptionStartedAt: null,
+    subscriptionEndsAt: null,
+    subscriptionPlan: null,
+    subscriptionSource: null,
+
+    // Free tier limits - null for mobile (not applicable)
+    freeDebatesRemaining: null,
+    freeComparesRemaining: null,
+    freeChatsRemaining: null,
+
+    // Preferences
+    preferences: {},
+
+    // Timestamps
+    createdAt: serverTimestamp(),
+    lastSignInAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
+}
+
+/**
  * Sign in with email and password
  */
 export const signInWithEmail = async (
@@ -53,30 +161,21 @@ export const signInWithEmail = async (
 ): Promise<FirebaseAuthTypes.User> => {
   try {
     const auth = getAuth();
-    console.warn('Attempting email sign in for:', email);
     const credential = await signInWithEmailAndPassword(auth, email, password);
-    console.warn('User signed in successfully:', credential.user.uid);
     return credential.user;
   } catch (error) {
     const authError = error as { code?: string; message?: string };
-    console.error('Email sign in error:', {
-      code: authError?.code,
-      message: authError?.message,
-      email,
-      fullError: error
+    // Use AuthError.fromFirebaseCode for consistent error handling
+    const appError = AuthError.fromFirebaseCode(
+      authError?.code || 'unknown',
+      authError?.message || 'Sign in failed'
+    );
+    ErrorService.handleError(appError, {
+      feature: 'auth',
+      showToast: false, // Let the UI handle displaying errors
+      context: { action: 'signInWithEmail', email },
     });
-    
-    // Provide more specific error messages
-    if (authError?.code === 'auth/user-not-found') {
-      throw new Error('No account found with this email address');
-    } else if (authError?.code === 'auth/wrong-password') {
-      throw new Error('Incorrect password');
-    } else if (authError?.code === 'auth/invalid-email') {
-      throw new Error('Invalid email address');
-    } else if (authError?.code === 'auth/network-request-failed') {
-      throw new Error('Network error. Please check your connection');
-    }
-    throw error;
+    throw appError;
   }
 };
 
@@ -89,44 +188,31 @@ export const signUpWithEmail = async (
 ): Promise<FirebaseAuthTypes.User> => {
   try {
     const auth = getAuth();
-    console.warn('Attempting to create account for:', email);
     const credential = await createUserWithEmailAndPassword(auth, email, password);
     const user = credential.user;
-    
-    console.warn('Auth user created, creating Firestore document...');
-    // Create user document in Firestore
+
+    // Create user document in Firestore with unified schema
     const db = getFirestore();
     const usersCollection = collection(db, 'users');
-    const userDoc = doc(usersCollection, user.uid);
-    
-    await setDoc(userDoc, {
-      email: user.email,
-      createdAt: serverTimestamp(),
-      isPremium: false,
-    });
-    
-    console.warn('User created successfully:', user.uid);
+    const userDocRef = doc(usersCollection, user.uid);
+
+    const newUserData = buildNewUserDocument(user, 'email');
+    await setDoc(userDocRef, newUserData);
+
     return user;
   } catch (error) {
     const authError = error as { code?: string; message?: string };
-    console.error('Sign up error:', {
-      code: authError?.code,
-      message: authError?.message,
-      email,
-      fullError: error
+    // Use AuthError.fromFirebaseCode for consistent error handling
+    const appError = AuthError.fromFirebaseCode(
+      authError?.code || 'unknown',
+      authError?.message || 'Sign up failed'
+    );
+    ErrorService.handleError(appError, {
+      feature: 'auth',
+      showToast: false,
+      context: { action: 'signUpWithEmail', email },
     });
-    
-    // Provide more specific error messages
-    if (authError?.code === 'auth/email-already-in-use') {
-      throw new Error('An account already exists with this email address');
-    } else if (authError?.code === 'auth/weak-password') {
-      throw new Error('Password should be at least 6 characters');
-    } else if (authError?.code === 'auth/invalid-email') {
-      throw new Error('Invalid email address');
-    } else if (authError?.code === 'auth/network-request-failed') {
-      throw new Error('Network error. Please check your connection');
-    }
-    throw error;
+    throw appError;
   }
 };
 
@@ -137,10 +223,18 @@ export const signOut = async (): Promise<void> => {
   try {
     const auth = getAuth();
     await firebaseSignOut(auth);
-    console.warn('User signed out');
   } catch (error) {
-    console.error('Sign out error:', error);
-    throw error;
+    const authError = error as { code?: string; message?: string };
+    const appError = AuthError.fromFirebaseCode(
+      authError?.code || 'unknown',
+      authError?.message || 'Sign out failed'
+    );
+    ErrorService.handleError(appError, {
+      feature: 'auth',
+      showToast: true,
+      context: { action: 'signOut' },
+    });
+    throw appError;
   }
 };
 
@@ -151,22 +245,18 @@ export const sendPasswordResetEmail = async (email: string): Promise<void> => {
   try {
     const auth = getAuth();
     await firebaseSendPasswordResetEmail(auth, email);
-    console.warn('Password reset email sent to:', email);
   } catch (error) {
     const authError = error as { code?: string; message?: string };
-    console.error('Password reset error:', {
-      code: authError?.code,
-      message: authError?.message,
+    const appError = AuthError.fromFirebaseCode(
+      authError?.code || 'unknown',
+      authError?.message || 'Password reset failed'
+    );
+    ErrorService.handleError(appError, {
+      feature: 'auth',
+      showToast: false,
+      context: { action: 'sendPasswordResetEmail', email },
     });
-
-    if (authError?.code === 'auth/user-not-found') {
-      throw new Error('No account found with this email address');
-    } else if (authError?.code === 'auth/invalid-email') {
-      throw new Error('Invalid email address');
-    } else if (authError?.code === 'auth/network-request-failed') {
-      throw new Error('Network error. Please check your connection');
-    }
-    throw error;
+    throw appError;
   }
 };
 
@@ -184,11 +274,12 @@ export const getCurrentUser = (): FirebaseAuthTypes.User | null => {
 export const getIdToken = async (): Promise<string | null> => {
   const user = getCurrentUser();
   if (!user) return null;
-  
+
   try {
     return await firebaseGetIdToken(user);
   } catch (error) {
-    console.error('Error getting ID token:', error);
+    // Silent error - don't show toast, just log
+    ErrorService.handleSilent(error, { action: 'getIdToken' });
     return null;
   }
 };
@@ -209,18 +300,19 @@ export const onAuthStateChanged = (
 export const checkPremiumAccess = async (): Promise<boolean> => {
   const user = getCurrentUser();
   if (!user) return false;
-  
+
   try {
     const db = getFirestore();
     const userDocRef = doc(db, 'users', user.uid);
     const userDoc = await getDoc(userDocRef);
-    
+
     if (!userDoc.exists()) return false;
-    
+
     const userData = userDoc.data();
     return userData?.isPremium === true;
   } catch (error) {
-    console.error('Error checking premium access:', error);
+    // Silent error - don't block app functionality
+    ErrorService.handleSilent(error, { action: 'checkPremiumAccess' });
     return false;
   }
 };
@@ -251,7 +343,8 @@ export const configureGoogleSignIn = () => {
 };
 
 /**
- * Sign in with Apple
+ * User profile returned from auth functions
+ * Subset of UserDocument for immediate use after auth
  */
 interface UserProfile {
   uid: string;
@@ -259,11 +352,15 @@ interface UserProfile {
   displayName: string | null;
   photoURL: string | null;
   createdAt: number | null;
-  membershipStatus: 'demo' | 'trial' | 'premium';
+  membershipStatus: 'demo' | 'free' | 'trial' | 'premium' | 'canceled' | 'past_due';
   isPremium: boolean;
   authProvider: string;
   preferences: Record<string, unknown>;
 }
+
+/**
+ * Sign in with Apple
+ */
 
 export const signInWithApple = async (): Promise<{ user: User; profile: UserProfile }> => {
   if (Platform.OS !== 'ios') {
@@ -332,15 +429,22 @@ export const signInWithApple = async (): Promise<{ user: User; profile: UserProf
     };
   } catch (error) {
     const err = error as { code?: string; message?: string };
+    // Handle user cancellation separately (not an error)
     if (err?.code === 'ERR_REQUEST_CANCELED' || err?.code === 'ERR_CANCELED') {
       throw new Error('User cancelled');
     }
-    // Improve messaging on simulator/unknown
+    // Use AuthError for consistent error handling
+    const appError = AuthError.socialAuthFailed('apple', err?.message);
+    // Add simulator context if applicable
     if (Platform.OS === 'ios' && !Device.isDevice) {
-      throw new Error('Apple Sign-In is not supported in the iOS Simulator. Please test on a real device.');
+      appError.context.isSimulator = true;
     }
-    console.error('Apple Sign In error:', error);
-    throw new Error(err?.message || 'Apple Sign-In failed. Please try again or use another method.');
+    ErrorService.handleError(appError, {
+      feature: 'auth',
+      showToast: false,
+      context: { action: 'signInWithApple', isSimulator: !Device.isDevice },
+    });
+    throw appError;
   }
 };
 
@@ -415,30 +519,32 @@ export const signInWithGoogle = async (): Promise<{ user: User; profile: UserPro
     };
   } catch (error) {
     const authError = error as { code?: string; message?: string; statusCode?: number };
-    console.error('Google Sign In error:', {
-      code: authError?.code,
-      message: authError?.message,
-      statusCode: authError?.statusCode,
-      fullError: error
-    });
-    
+    // Handle user cancellation separately (not an error)
     if (authError?.code === 'SIGN_IN_CANCELLED' || authError?.code === '12501') {
       throw new Error('User cancelled');
-    } else if (authError?.code === 'DEVELOPER_ERROR' || authError?.code === '10') {
-      console.error('Google Sign In Developer Error - Check configuration:');
-      console.error('1. Ensure SHA-1 fingerprint is added to Firebase Console');
-      console.error('2. Download and update google-services.json/GoogleService-Info.plist');
-      console.error('3. Verify bundle ID matches Firebase configuration');
-      throw new Error('Google Sign In configuration error. Please contact support.');
-    } else if (authError?.code === 'NETWORK_ERROR' || authError?.code === '7') {
-      throw new Error('Network error. Please check your connection.');
     }
-    throw new Error(authError?.message || 'Google Sign-In failed. Please try again.');
+    // Use AuthError for consistent error handling
+    const appError = AuthError.socialAuthFailed('google', authError?.message);
+    // Add specific context for configuration errors
+    if (authError?.code === 'DEVELOPER_ERROR' || authError?.code === '10') {
+      appError.context.isDeveloperError = true;
+    }
+    ErrorService.handleError(appError, {
+      feature: 'auth',
+      showToast: false,
+      context: {
+        action: 'signInWithGoogle',
+        errorCode: authError?.code,
+        statusCode: authError?.statusCode,
+      },
+    });
+    throw appError;
   }
 };
 
 /**
  * Helper to get or create user profile in Firestore
+ * Uses unified schema for consistency across platforms
  */
 const getOrCreateUserProfile = async (
   user: User,
@@ -446,91 +552,68 @@ const getOrCreateUserProfile = async (
     displayName?: string | null;
     email?: string | null;
     photoURL?: string | null;
-    authProvider?: string;
+    authProvider?: 'google' | 'apple' | 'email';
   }
 ): Promise<UserProfile> => {
   const db = getFirestore();
   const userDocRef = doc(db, 'users', user.uid);
   const userDoc = await getDoc(userDocRef);
-  
+
   if (userDoc.exists()) {
     const data = userDoc.data();
-    // Optionally merge in improved displayName/email on first successful sign-in
-    if (additionalData) {
-      const updates: Record<string, unknown> = {};
-      if (additionalData.displayName && (!data?.displayName || data.displayName === 'User')) {
-        updates.displayName = additionalData.displayName;
-      }
-      if (additionalData.email && !data?.email) {
-        updates.email = additionalData.email;
-      }
-      if (additionalData.authProvider && !data?.authProvider) {
-        updates.authProvider = additionalData.authProvider;
-      }
-      if (data?.isPremium === undefined) {
-        updates.isPremium = false;
-      }
-      if (!data?.membershipStatus) {
-        updates.membershipStatus = 'demo';
-      }
-      if (!data?.preferences) {
-        updates.preferences = {};
-      }
-      if (!data?.uid) {
-        updates.uid = user.uid;
-      }
-      if (Object.keys(updates).length > 0) {
-        await setDoc(userDocRef, updates, { merge: true });
-      }
+    // Update profile fields that may have changed
+    const updates: Record<string, unknown> = {
+      lastSignInAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+
+    // Update profile if we have better data
+    if (additionalData?.displayName && (!data?.displayName || data.displayName === 'User')) {
+      updates.displayName = additionalData.displayName;
     }
+    if (additionalData?.photoURL && !data?.photoURL) {
+      updates.photoURL = additionalData.photoURL;
+    }
+    if (user.emailVerified && !data?.emailVerified) {
+      updates.emailVerified = true;
+    }
+
+    await setDoc(userDocRef, updates, { merge: true });
+
     const createdAtMs = data?.createdAt?.toDate
       ? data.createdAt.toDate().getTime()
       : typeof data?.createdAt === 'number'
-      ? data.createdAt
-      : Date.now();
-    return {
-      ...data,
-      ...(additionalData?.displayName ? { displayName: additionalData.displayName } : {}),
-      ...(additionalData?.email ? { email: additionalData.email } : {}),
-      createdAt: createdAtMs,
-    } as UserProfile;
-  }
-  
-  // Create new user profile; avoid writing literal 'User' as displayName
-  const computedDisplayName =
-    additionalData?.displayName ||
-    user.displayName ||
-    (additionalData?.email ? additionalData.email.split('@')[0] : undefined);
+        ? data.createdAt
+        : Date.now();
 
-  const newProfile: {
-    uid: string;
-    email: string | null | undefined;
-    photoURL: string | null | undefined;
-    createdAt: unknown;
-    membershipStatus: 'demo';
-    isPremium: boolean;
-    authProvider: string;
-    preferences: Record<string, unknown>;
-    displayName?: string;
-  } = {
+    return {
+      uid: user.uid,
+      email: data?.email || additionalData?.email || user.email,
+      displayName: updates.displayName as string || data?.displayName || 'User',
+      photoURL: updates.photoURL as string || data?.photoURL || null,
+      createdAt: createdAtMs,
+      membershipStatus: data?.membershipStatus || 'free',
+      isPremium: data?.isPremium || false,
+      authProvider: data?.authProvider || additionalData?.authProvider || 'unknown',
+      preferences: data?.preferences || {},
+    };
+  }
+
+  // Create new user document with unified schema
+  const authProvider = additionalData?.authProvider || 'email';
+  const newUserData = buildNewUserDocument(user, authProvider, additionalData);
+  await setDoc(userDocRef, newUserData);
+
+  return {
     uid: user.uid,
-    email: additionalData?.email || user.email,
-    photoURL: additionalData?.photoURL || user.photoURL,
-    createdAt: serverTimestamp(),
-    membershipStatus: 'demo' as const,
+    email: additionalData?.email || user.email || null,
+    displayName: additionalData?.displayName || user.displayName || 'User',
+    photoURL: additionalData?.photoURL || user.photoURL || null,
+    createdAt: Date.now(),
+    membershipStatus: 'free',
     isPremium: false,
-    authProvider: additionalData?.authProvider || 'unknown',
+    authProvider,
     preferences: {},
   };
-  if (computedDisplayName) {
-    newProfile.displayName = computedDisplayName;
-  }
-  
-  await setDoc(userDocRef, newProfile);
-  return {
-    ...(newProfile as unknown as Omit<UserProfile, 'createdAt'>),
-    displayName: (computedDisplayName as string) || 'User',
-    createdAt: Date.now(),
-  } as unknown as UserProfile;
 };
 

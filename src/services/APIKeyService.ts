@@ -4,6 +4,7 @@
  */
 
 import secureStorage from './secureStorage';
+import { ErrorService } from '@/services/errors/ErrorService';
 
 export interface APIKeyValidationResult {
   isValid: boolean;
@@ -43,7 +44,7 @@ export class APIKeyService {
 
       await secureStorage.saveApiKeys(cleanedKeys);
     } catch (error) {
-      console.error(`Error saving API key for ${providerId}:`, error);
+      ErrorService.handleSilent(error, { action: 'saveKey', providerId });
       throw error;
     }
   }
@@ -56,7 +57,7 @@ export class APIKeyService {
       const keys = await secureStorage.getApiKeys();
       return keys || {};
     } catch (error) {
-      console.error('Error loading API keys:', error);
+      ErrorService.handleSilent(error, { action: 'loadKeys' });
       return {};
     }
   }
@@ -78,7 +79,7 @@ export class APIKeyService {
 
       await secureStorage.saveApiKeys(cleanedKeys);
     } catch (error) {
-      console.error(`Error deleting API key for ${providerId}:`, error);
+      ErrorService.handleSilent(error, { action: 'deleteKey', providerId });
       throw error;
     }
   }
@@ -90,7 +91,7 @@ export class APIKeyService {
     try {
       await secureStorage.clearApiKeys();
     } catch (error) {
-      console.error('Error clearing all API keys:', error);
+      ErrorService.handleSilent(error, { action: 'clearAllKeys' });
       throw error;
     }
   }
@@ -103,7 +104,7 @@ export class APIKeyService {
       const keys = await this.loadKeys();
       return !!keys[providerId];
     } catch (error) {
-      console.error(`Error checking API key for ${providerId}:`, error);
+      ErrorService.handleSilent(error, { action: 'hasKey', providerId });
       return false;
     }
   }
@@ -116,7 +117,7 @@ export class APIKeyService {
       const keys = await this.loadKeys();
       return keys[providerId] || null;
     } catch (error) {
-      console.error(`Error getting API key for ${providerId}:`, error);
+      ErrorService.handleSilent(error, { action: 'getKey', providerId });
       return null;
     }
   }
@@ -128,7 +129,7 @@ export class APIKeyService {
     try {
       return await secureStorage.hasApiKeys();
     } catch (error) {
-      console.error('Error checking for any API keys:', error);
+      ErrorService.handleSilent(error, { action: 'hasAnyKeys' });
       return false;
     }
   }
@@ -141,7 +142,7 @@ export class APIKeyService {
       const keys = await this.loadKeys();
       return Object.keys(keys).length;
     } catch (error) {
-      console.error('Error getting API key count:', error);
+      ErrorService.handleSilent(error, { action: 'getKeyCount' });
       return 0;
     }
   }
@@ -224,7 +225,7 @@ export class APIKeyService {
       const keys = await this.loadKeys();
       return Object.keys(keys).filter(providerId => !!keys[providerId]);
     } catch (error) {
-      console.error('Error getting providers with keys:', error);
+      ErrorService.handleSilent(error, { action: 'getProvidersWithKeys' });
       return [];
     }
   }
@@ -247,7 +248,7 @@ export class APIKeyService {
 
       await secureStorage.saveApiKeys(cleanedKeys);
     } catch (error) {
-      console.error('Error updating multiple API keys:', error);
+      ErrorService.handleSilent(error, { action: 'updateMultipleKeys' });
       throw error;
     }
   }

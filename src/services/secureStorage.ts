@@ -1,4 +1,5 @@
 import * as SecureStore from 'expo-secure-store';
+import { ErrorService } from '@/services/errors/ErrorService';
 
 const API_KEYS_STORAGE_KEY = 'my_ai_friends_api_keys';
 
@@ -13,7 +14,7 @@ class SecureStorageService {
       await SecureStore.setItemAsync(API_KEYS_STORAGE_KEY, jsonValue);
       // API keys saved securely
     } catch (error) {
-      console.error('Error saving API keys:', error);
+      ErrorService.handleSilent(error, { action: 'saveApiKeys' });
       throw error;
     }
   }
@@ -27,7 +28,7 @@ class SecureStorageService {
       }
       return null;
     } catch (error) {
-      console.error('Error retrieving API keys:', error);
+      ErrorService.handleSilent(error, { action: 'getApiKeys' });
       return null;
     }
   }
@@ -39,7 +40,7 @@ class SecureStorageService {
       currentKeys[provider] = key;
       await this.saveApiKeys(currentKeys);
     } catch (error) {
-      console.error('Error updating API key:', error);
+      ErrorService.handleSilent(error, { action: 'updateApiKey', provider });
       throw error;
     }
   }
@@ -50,7 +51,7 @@ class SecureStorageService {
       await SecureStore.deleteItemAsync(API_KEYS_STORAGE_KEY);
       // API keys cleared
     } catch (error) {
-      console.error('Error clearing API keys:', error);
+      ErrorService.handleSilent(error, { action: 'clearApiKeys' });
     }
   }
 

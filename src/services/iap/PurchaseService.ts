@@ -19,6 +19,7 @@ import {
 } from 'react-native-iap';
 import { SUBSCRIPTION_PRODUCTS, type PlanType } from '@/services/iap/products';
 import * as Crypto from 'expo-crypto';
+import { ErrorService } from '@/services/errors/ErrorService';
 
 /** User-friendly error messages for common IAP error codes */
 const IAP_ERROR_MESSAGES: Record<string, string> = {
@@ -98,7 +99,8 @@ export class PurchaseService {
       this.setupListeners();
       return { success: true };
     } catch (error) {
-      console.error('IAP init failed', error);
+      // Log via ErrorService but don't show toast (initialization is background)
+      ErrorService.handleSilent(error, { action: 'iap_initialize' });
       return { success: false, error } as const;
     }
   }
@@ -109,13 +111,13 @@ export class PurchaseService {
         try {
           await this.handlePurchaseUpdate(purchase);
         } catch (e) {
-          console.error('IAP purchase update handling failed', e);
+          ErrorService.handleSilent(e, { action: 'iap_purchase_update', productId: purchase.productId });
         }
       });
     }
     if (!this.purchaseErrorSub) {
       this.purchaseErrorSub = purchaseErrorListener((error: unknown) => {
-        console.warn('IAP purchase error', error);
+        ErrorService.handleSilent(error, { action: 'iap_purchase_error' });
       });
     }
   }
@@ -160,7 +162,7 @@ export class PurchaseService {
         unavailable,
       };
     } catch (error) {
-      console.error('IAP checkProductsAvailable failed', error);
+      ErrorService.handleSilent(error, { action: 'iap_check_products' });
       return { available: false, products: [], unavailable: Object.values(SUBSCRIPTION_PRODUCTS) };
     }
   }
@@ -218,7 +220,12 @@ export class PurchaseService {
       if (errorCode === 'E_USER_CANCELLED') {
         return { success: false, cancelled: true, errorCode, userMessage: IAP_ERROR_MESSAGES[errorCode] } as const;
       }
-      console.error('IAP purchaseSubscription failed', error);
+      // Log via ErrorService for centralized tracking
+      ErrorService.handleError(error, {
+        feature: 'purchase',
+        showToast: false, // UI handles displaying error
+        context: { action: 'purchaseSubscription', plan, errorCode },
+      });
       const userMessage = IAP_ERROR_MESSAGES[errorCode] || 'Purchase failed. Please try again.';
       return { success: false, error, errorCode, userMessage } as const;
     }
@@ -246,7 +253,12 @@ export class PurchaseService {
       if (errorCode === 'E_USER_CANCELLED') {
         return { success: false, cancelled: true, errorCode, userMessage: IAP_ERROR_MESSAGES[errorCode] } as const;
       }
-      console.error('IAP purchaseLifetime failed', error);
+      // Log via ErrorService for centralized tracking
+      ErrorService.handleError(error, {
+        feature: 'purchase',
+        showToast: false,
+        context: { action: 'purchaseLifetime', errorCode },
+      });
       const userMessage = IAP_ERROR_MESSAGES[errorCode] || 'Purchase failed. Please try again.';
       return { success: false, error, errorCode, userMessage } as const;
     }
@@ -269,7 +281,12 @@ export class PurchaseService {
       await this.validateAndSavePurchase(purchase);
       await finishTransaction({ purchase, isConsumable: false });
     } catch (e) {
-      console.error('IAP validate/save or finishTransaction failed', e);
+      // Log via ErrorService for centralized tracking
+      ErrorService.handleError(e, {
+        feature: 'purchase',
+        showToast: false,
+        context: { action: 'handlePurchaseUpdate', productId: purchase.productId },
+      });
       // Extract user-friendly message and notify listeners
       const message = extractFirebaseErrorMessage(e);
       this.notifyError(message, true);
@@ -330,7 +347,8 @@ export class PurchaseService {
         throw new Error('Invalid receipt');
       }
     } catch (e) {
-      console.error('IAP validateAndSavePurchase error', e);
+      // Log but don't handle here - let caller decide how to handle
+      ErrorService.handleSilent(e, { action: 'validateAndSavePurchase', productId: purchase.productId });
       throw e;
     }
   }
@@ -355,8 +373,13 @@ export class PurchaseService {
       }
       return { success: true, restored: false } as const;
     } catch (error) {
-      console.error('IAP restorePurchases failed', error);
       const errorCode = (error as { code?: string })?.code || 'UNKNOWN';
+      // Log via ErrorService for centralized tracking
+      ErrorService.handleError(error, {
+        feature: 'purchase',
+        showToast: false,
+        context: { action: 'restorePurchases', errorCode },
+      });
       // Try Firebase error extraction first, then IAP error messages
       const userMessage = extractFirebaseErrorMessage(error) !== 'Purchase validation failed. Please try again.'
         ? extractFirebaseErrorMessage(error)
