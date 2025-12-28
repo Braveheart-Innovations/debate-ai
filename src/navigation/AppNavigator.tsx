@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Platform } from 'react-native';
+import { Platform, View, ActivityIndicator } from 'react-native';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -159,6 +159,14 @@ export default function AppNavigator() {
     (state: RootState) => state.settings.hasCompletedOnboarding
   );
 
+  // Get subscription status to determine if we should skip Welcome
+  const { membershipStatus, loading: subscriptionLoading } = useFeatureAccess();
+
+  // Premium subscribers skip Welcome entirely
+  // Trial and demo users follow the normal onboarding flow
+  const isPremiumSubscriber = membershipStatus === 'premium';
+  const shouldShowMainApp = isPremiumSubscriber || hasCompletedOnboarding;
+
   // Custom navigation theme
   const navigationTheme = isDark ? {
     ...DarkTheme,
@@ -182,6 +190,21 @@ export default function AppNavigator() {
     },
   };
 
+  // Show loading screen while determining subscription status
+  // This prevents flash of wrong screen
+  if (subscriptionLoading) {
+    return (
+      <View style={{
+        flex: 1,
+        backgroundColor: theme.colors.background,
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}>
+        <ActivityIndicator size="large" color={theme.colors.primary[500]} />
+      </View>
+    );
+  }
+
   return (
     <SheetProvider>
       <ErrorBoundary level="recoverable">
@@ -197,7 +220,7 @@ export default function AppNavigator() {
             },
           }}
         >
-        {!hasCompletedOnboarding ? (
+        {!shouldShowMainApp ? (
           <Stack.Screen
             name="Welcome"
             component={WelcomeScreen}
