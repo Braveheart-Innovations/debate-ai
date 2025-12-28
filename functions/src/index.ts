@@ -9,6 +9,9 @@ export { saveApiKey, deleteApiKey, getConfiguredProviders } from './apiKeys';
 // AI Proxy
 export { proxyAIRequest } from './aiProxy';
 
+// Image Generation Proxy
+export { proxyImageGeneration } from './imageProxy';
+
 // Stripe (Web Subscriptions)
 export {
   createStripeCheckoutSession,
