@@ -39,6 +39,7 @@ interface ImageProxyRequest {
   prompt: string;
   n?: number;              // Number of images (usually 1)
   sourceImage?: string;    // Base64 image for img2img
+  responseFormat?: 'url' | 'b64_json'; // Always returns b64_json regardless
 }
 
 interface GeneratedImage {
@@ -54,7 +55,7 @@ interface GeneratedImage {
  */
 export const proxyImageGeneration = onCall(
   {
-    timeoutSeconds: 120,  // 2 minutes for image generation
+    timeoutSeconds: 300,  // 5 minutes for image generation
     memory: '512MiB',     // More memory for image processing
     secrets: [encryptionKey],
   },
@@ -98,6 +99,14 @@ export const proxyImageGeneration = onCall(
     const providerConfig = IMAGE_PROVIDERS[providerId];
     const resolvedModel = model || providerConfig.defaultModel;
 
+    // Log img2img request info for debugging
+    if (sourceImage) {
+      console.log(`[ImageProxy] img2img request for ${providerId}/${resolvedModel}, sourceImage length: ${sourceImage.length}`);
+      if (!providerConfig.supportsImageInput) {
+        console.warn(`[ImageProxy] ${providerId} does not support img2img - sourceImage will be ignored`);
+      }
+    }
+
     // Validate model
     if (!providerConfig.models.includes(resolvedModel)) {
       throw new HttpsError(
@@ -135,6 +144,9 @@ export const proxyImageGeneration = onCall(
         b64_json: img.base64,
         revised_prompt: img.revisedPrompt,
       }));
+
+      // Log success with base64 availability for debugging
+      console.log(`[ImageProxy] ${providerId} generated ${data.length} image(s), has base64: ${data.every(d => !!d.b64_json)}`);
 
       return {
         success: true,
@@ -335,6 +347,9 @@ async function generateGemini(
   }
 
   const data = await response.json();
+
+  // Log Gemini response structure for debugging
+  console.log(`[Gemini] Response structure: candidates=${data.candidates?.length || 0}, promptFeedback=${JSON.stringify(data.promptFeedback || {})}`);
 
   // Extract images from Gemini response
   const images: GeneratedImage[] = [];
