@@ -1,4 +1,5 @@
 import React from 'react';
+import { waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '../../test-utils/renderWithProviders';
 import type { RootState } from '@/store';
 
@@ -77,24 +78,28 @@ describe('AppNavigator', () => {
     recordModeEnabled: false,
   };
 
-  it('shows welcome flow when onboarding incomplete', () => {
+  it('shows welcome flow when onboarding incomplete', async () => {
     const { getByText } = renderWithProviders(<AppNavigator />, {
       preloadedState: {
         settings: { ...baseSettings, hasCompletedOnboarding: false },
       },
     });
 
-    expect(getByText('Welcome Screen')).toBeTruthy();
+    await waitFor(() => {
+      expect(getByText('Welcome Screen')).toBeTruthy();
+    });
   });
 
-  it('renders main tabs after onboarding completes', () => {
+  it('renders main tabs after onboarding completes', async () => {
     const { getByText, queryByText } = renderWithProviders(<AppNavigator />, {
       preloadedState: {
         settings: { ...baseSettings, hasCompletedOnboarding: true },
       },
     });
 
-    expect(getByText('Home Screen')).toBeTruthy();
+    await waitFor(() => {
+      expect(getByText('Home Screen')).toBeTruthy();
+    });
     expect(queryByText('Welcome Screen')).toBeNull();
   });
 });

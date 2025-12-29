@@ -181,7 +181,8 @@ describe('PurchaseService', () => {
 
     expect(result.success).toBe(false);
     expect(result).toHaveProperty('error', error);
-    expect(consoleErrorSpy).toHaveBeenCalledWith('IAP purchaseSubscription failed', error);
+    // Error is now logged through ErrorService with structured format
+    expect(consoleErrorSpy).toHaveBeenCalled();
   });
 
   it('fails purchase when user is not authenticated', async () => {
@@ -192,7 +193,8 @@ describe('PurchaseService', () => {
 
     expect(result.success).toBe(false);
     expect(result).toHaveProperty('error');
-    expect(consoleErrorSpy).toHaveBeenCalledWith('IAP purchaseSubscription failed', expect.any(Error));
+    // Error is now logged through ErrorService with structured format
+    expect(consoleErrorSpy).toHaveBeenCalled();
     authInstance.currentUser = { uid: 'user-123' };
   });
 

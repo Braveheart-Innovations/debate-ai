@@ -7,17 +7,31 @@ import { ImageBubble } from './ImageBubble';
 import * as Sharing from 'expo-sharing';
 import MediaSaveService from '../../../services/media/MediaSaveService';
 import { ImageLightboxModal } from './ImageLightboxModal';
-import { Message } from '../../../types';
+import { Message, AIProvider } from '../../../types';
 
 export interface ImageMessageRowProps {
   message: Message;
+  /** Whether refinement is available */
+  canRefine?: boolean;
+  /** Called when user wants to refine an image */
+  onRefine?: (imageUri: string, originalPrompt: string, originalProvider: AIProvider, messageId?: string) => void;
 }
 
-export const ImageMessageRow: React.FC<ImageMessageRowProps> = ({ message }) => {
+export const ImageMessageRow: React.FC<ImageMessageRowProps> = ({ message, canRefine, onRefine }) => {
   const { theme } = useTheme();
   const [lightboxUri, setLightboxUri] = useState<string | null>(null);
   const uris = (message.attachments || []).filter(a => a.type === 'image').map(a => a.uri);
   if (uris.length === 0) return null;
+
+  // Extract image generation metadata for refinement
+  const generatedImage = (message.metadata as { generatedImage?: { prompt: string; providerId: string } } | undefined)?.generatedImage;
+  const originalPrompt = generatedImage?.prompt || '';
+  const originalProvider = (generatedImage?.providerId || 'openai') as AIProvider;
+
+  // Only create handler if onRefine is provided
+  const handleRefine = onRefine ? (uri: string) => {
+    onRefine(uri, originalPrompt, originalProvider, message.id);
+  } : undefined;
 
   return (
     <Box style={styles.container}>
@@ -26,7 +40,12 @@ export const ImageMessageRow: React.FC<ImageMessageRowProps> = ({ message }) => 
           {message.sender}
         </Typography>
       </Box>
-      <ImageBubble uris={uris} onPressImage={(uri) => setLightboxUri(uri)} />
+      <ImageBubble
+        uris={uris}
+        onPressImage={(uri) => setLightboxUri(uri)}
+        canRefine={canRefine}
+        onRefine={handleRefine}
+      />
       <Box style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
         <TouchableOpacity onPress={async () => {
           try { await MediaSaveService.saveFileUri(uris[0], { album: 'Symposium AI' }); } catch (e) { void e; }

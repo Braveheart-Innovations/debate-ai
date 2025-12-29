@@ -7,6 +7,7 @@ import {
   useModalityAvailability,
   useMergedModalityAvailability,
   useMergedModalityAvailabilityStrict,
+  useImageGenerationAvailability,
 } from '@/hooks/multimodal/useModalityAvailability';
 import type { AIProvider } from '@/types';
 
@@ -55,11 +56,9 @@ describe('useModalityAvailability', () => {
     expect(availability.documentUpload.supported).toBe(true);
     // voiceInput is true because providerId is 'openai' which supports STT
     expect(availability.voiceInput.supported).toBe(true);
-    expect(availability.imageGeneration).toEqual({
-      supported: true,
-      models: ['dalle-3'],
-      sizes: ['1024x1024'],
-    });
+    expect(availability.imageGeneration.supported).toBe(true);
+    expect(availability.imageGeneration.models).toEqual(['dalle-3']);
+    expect(availability.imageGeneration.sizes).toEqual(['1024x1024']);
     expect(availability.videoGeneration).toEqual({
       supported: true,
       models: ['sora'],
@@ -261,6 +260,195 @@ describe('useModalityAvailability', () => {
       const hookResult = useMergedModalityAvailabilityStrict(items);
 
       expect(hookResult).toEqual(functionResult);
+    });
+  });
+
+  describe('useImageGenerationAvailability', () => {
+    it('returns unavailable when no AIs selected', () => {
+      const result = useImageGenerationAvailability([], 'chat');
+
+      expect(result.isAvailable).toBe(false);
+      expect(result.mode).toBe('single');
+      expect(result.reason).toBe('No AI selected');
+    });
+
+    it('returns single mode for single AI with image generation support', () => {
+      getProviderCapabilitiesMock.mockReturnValue({
+        imageGeneration: { supported: true, supportsImageInput: true },
+        videoGeneration: { supported: false },
+      });
+
+      const result = useImageGenerationAvailability(
+        [{ provider: 'openai', model: 'gpt-4o' }],
+        'chat'
+      );
+
+      expect(result.isAvailable).toBe(true);
+      expect(result.mode).toBe('single');
+    });
+
+    it('returns unavailable for single AI without image generation support', () => {
+      getProviderCapabilitiesMock.mockReturnValue({
+        imageGeneration: { supported: false },
+        videoGeneration: { supported: false },
+      });
+
+      const result = useImageGenerationAvailability(
+        [{ provider: 'claude', model: 'claude-3-opus' }],
+        'chat'
+      );
+
+      expect(result.isAvailable).toBe(false);
+      expect(result.mode).toBe('single');
+      expect(result.reason).toContain('does not support image generation');
+    });
+
+    it('returns single mode for multi-AI chat using first AI for generation', () => {
+      getProviderCapabilitiesMock.mockImplementation((provider: AIProvider) => {
+        if (provider === 'openai') {
+          return {
+            imageGeneration: { supported: true, supportsImageInput: true },
+            videoGeneration: { supported: false },
+          };
+        }
+        if (provider === 'google') {
+          return {
+            imageGeneration: { supported: true, supportsImageInput: true },
+            videoGeneration: { supported: false },
+          };
+        }
+        return { imageGeneration: { supported: false }, videoGeneration: { supported: false } };
+      });
+
+      const result = useImageGenerationAvailability(
+        [
+          { provider: 'openai', model: 'gpt-4o' },
+          { provider: 'google', model: 'gemini-pro' },
+        ],
+        'chat'
+      );
+
+      // Multi-AI chat now uses single mode (first AI generates, user refines via Refine button)
+      expect(result.isAvailable).toBe(true);
+      expect(result.mode).toBe('single');
+    });
+
+    it('returns available when multi-AI chat first provider supports image gen', () => {
+      getProviderCapabilitiesMock.mockImplementation((provider: AIProvider) => {
+        if (provider === 'openai') {
+          return {
+            imageGeneration: { supported: true, supportsImageInput: true },
+            videoGeneration: { supported: false },
+          };
+        }
+        if (provider === 'grok') {
+          // Grok supports image gen but NOT img2img - doesn't matter for initial gen
+          return {
+            imageGeneration: { supported: true, supportsImageInput: false },
+            videoGeneration: { supported: false },
+          };
+        }
+        return { imageGeneration: { supported: false }, videoGeneration: { supported: false } };
+      });
+
+      const result = useImageGenerationAvailability(
+        [
+          { provider: 'openai', model: 'gpt-4o' },
+          { provider: 'grok', model: 'grok-2-image' },
+        ],
+        'chat'
+      );
+
+      // First provider (openai) supports image gen, so it's available
+      expect(result.isAvailable).toBe(true);
+      expect(result.mode).toBe('single');
+    });
+
+    it('returns compare mode for compare screen when all support image gen', () => {
+      getProviderCapabilitiesMock.mockImplementation((provider: AIProvider) => {
+        if (provider === 'openai' || provider === 'grok') {
+          return {
+            imageGeneration: { supported: true, supportsImageInput: provider === 'openai' },
+            videoGeneration: { supported: false },
+          };
+        }
+        return { imageGeneration: { supported: false }, videoGeneration: { supported: false } };
+      });
+
+      const result = useImageGenerationAvailability(
+        [
+          { provider: 'openai', model: 'gpt-4o' },
+          { provider: 'grok', model: 'grok-2-image' },
+        ],
+        'compare'
+      );
+
+      // Compare mode requires ALL to support image gen
+      expect(result.isAvailable).toBe(true);
+      expect(result.mode).toBe('compare');
+    });
+
+    it('returns unavailable for compare mode when any provider lacks image gen', () => {
+      getProviderCapabilitiesMock.mockImplementation((provider: AIProvider) => {
+        if (provider === 'openai') {
+          return {
+            imageGeneration: { supported: true, supportsImageInput: true },
+            videoGeneration: { supported: false },
+          };
+        }
+        // Claude does not support image generation
+        return { imageGeneration: { supported: false }, videoGeneration: { supported: false } };
+      });
+
+      const result = useImageGenerationAvailability(
+        [
+          { provider: 'openai', model: 'gpt-4o' },
+          { provider: 'claude', model: 'claude-3-opus' },
+        ],
+        'compare'
+      );
+
+      expect(result.isAvailable).toBe(false);
+      expect(result.mode).toBe('compare');
+      expect(result.reason).toContain('claude');
+    });
+
+    it('includes provider info in result', () => {
+      getProviderCapabilitiesMock.mockImplementation((provider: AIProvider) => {
+        if (provider === 'openai') {
+          return {
+            imageGeneration: { supported: true, supportsImageInput: true },
+            videoGeneration: { supported: false },
+          };
+        }
+        if (provider === 'google') {
+          return {
+            imageGeneration: { supported: true, supportsImageInput: true },
+            videoGeneration: { supported: false },
+          };
+        }
+        return { imageGeneration: { supported: false }, videoGeneration: { supported: false } };
+      });
+
+      const result = useImageGenerationAvailability(
+        [
+          { provider: 'openai', model: 'gpt-4o' },
+          { provider: 'google', model: 'gemini-pro' },
+        ],
+        'chat'
+      );
+
+      expect(result.providers).toHaveLength(2);
+      expect(result.providers[0]).toEqual({
+        provider: 'openai',
+        supportsImageGen: true,
+        supportsImg2Img: true,
+      });
+      expect(result.providers[1]).toEqual({
+        provider: 'google',
+        supportsImageGen: true,
+        supportsImg2Img: true,
+      });
     });
   });
 });

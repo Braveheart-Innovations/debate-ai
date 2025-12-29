@@ -1,14 +1,19 @@
 import React, { useMemo, useState } from 'react';
-import { Image, StyleSheet, TouchableOpacity, Text, Dimensions } from 'react-native';
+import { Image, StyleSheet, TouchableOpacity, Text, Dimensions, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Box } from '../../atoms';
 import { useTheme } from '../../../theme';
 
 export interface ImageBubbleProps {
   uris: string[];
   onPressImage?: (uri: string) => void;
+  /** Called when user taps Refine button - receives the image URI */
+  onRefine?: (uri: string) => void;
+  /** Whether refinement is available (at least one provider supports img2img) */
+  canRefine?: boolean;
 }
 
-export const ImageBubble: React.FC<ImageBubbleProps> = ({ uris, onPressImage }) => {
+export const ImageBubble: React.FC<ImageBubbleProps> = ({ uris, onPressImage, onRefine, canRefine }) => {
   const { theme } = useTheme();
   const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [, setSizes] = useState<Record<string, { w: number; h: number }>>({});
@@ -26,7 +31,7 @@ export const ImageBubble: React.FC<ImageBubbleProps> = ({ uris, onPressImage }) 
           key={`${uri}-${idx}`}
           onPress={() => onPressImage?.(uri)}
           activeOpacity={0.8}
-          style={{ marginBottom: 8 }}
+          style={{ marginBottom: 8, position: 'relative' }}
         >
           <Image
             source={{ uri }}
@@ -41,6 +46,24 @@ export const ImageBubble: React.FC<ImageBubbleProps> = ({ uris, onPressImage }) 
               setSizes(prev => ({ ...prev, [uri]: { w, h } }));
             }}
           />
+          {/* Expand icon - top right */}
+          <View style={styles.expandIconContainer}>
+            <Ionicons name="expand-outline" size={16} color="#FFFFFF" />
+          </View>
+          {/* Refine button - bottom right */}
+          {canRefine && onRefine && (
+            <TouchableOpacity
+              style={[styles.refineButton, { backgroundColor: theme.colors.primary[500] }]}
+              onPress={(e) => {
+                e?.stopPropagation?.();
+                onRefine(uri);
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="color-wand-outline" size={14} color="#FFFFFF" />
+              <Text style={styles.refineButtonText}>Refine</Text>
+            </TouchableOpacity>
+          )}
           {errors[uri] && (
             <Text style={{ color: theme.colors.error[500], marginTop: 4 }}>Failed to load image</Text>
           )}
@@ -59,6 +82,30 @@ const styles = StyleSheet.create({
     height: 220,
     borderRadius: 8,
     borderWidth: StyleSheet.hairlineWidth,
+  },
+  expandIconContainer: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  refineButton: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 4,
+  },
+  refineButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
   },
 });
 

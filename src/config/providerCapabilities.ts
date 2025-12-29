@@ -4,6 +4,7 @@ import { IMAGE_GENERATION_CONSTANTS } from '../constants/imageGeneration';
 export interface ProviderCapabilities {
   imageGeneration?: {
     supported: boolean;
+    supportsImageInput?: boolean;  // img2img capability for round-robin
     models?: string[];
     sizes?: string[];
     maxPromptLength?: number;
@@ -22,6 +23,7 @@ export function getProviderCapabilities(provider: AIProvider): ProviderCapabilit
       return {
         imageGeneration: {
           supported: true,
+          supportsImageInput: true,  // gpt-image-1 supports img2img
           models: [
             IMAGE_GENERATION_CONSTANTS.MODELS.DALLE3,
             IMAGE_GENERATION_CONSTANTS.MODELS.OPENAI_IMAGE,
@@ -42,6 +44,7 @@ export function getProviderCapabilities(provider: AIProvider): ProviderCapabilit
       return {
         imageGeneration: {
           supported: true,
+          supportsImageInput: true,  // Gemini supports img2img
           models: [
             'gemini-2.5-flash-image',
             'gemini-3-pro-image-preview',
@@ -58,6 +61,7 @@ export function getProviderCapabilities(provider: AIProvider): ProviderCapabilit
       return {
         imageGeneration: {
           supported: true,
+          supportsImageInput: false,  // Grok does NOT support img2img
           models: ['grok-2-image'],
           // Grok does not support size parameter - generates at fixed size
           sizes: [],

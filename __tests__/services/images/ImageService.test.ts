@@ -48,7 +48,7 @@ describe('ImageService', () => {
     const result = await ImageService.generateImage({ provider: 'openai', apiKey: 'key', prompt: 'a tree' });
 
     expect(mockedSaveBase64Image).toHaveBeenCalledWith('YmFzZTY0', 'image/png');
-    expect(result).toEqual([{ url: '/cache/images/file.png', mimeType: 'image/png' }]);
+    expect(result).toEqual([{ url: '/cache/images/file.png', mimeType: 'image/png', b64: 'YmFzZTY0' }]);
   });
 
   it('passes abort signal and propagates errors', async () => {
@@ -59,6 +59,84 @@ describe('ImageService', () => {
     await expect(ImageService.generateImage({ provider: 'openai', apiKey: 'key', prompt: 'fail', signal: controller.signal })).rejects.toThrow('OpenAI Images error 500: bad');
 
     expect(mockedFetch.mock.calls[0][1]?.signal).toBe(controller.signal);
+  });
+
+  describe('OpenAI img2img (sourceImage)', () => {
+    it('calls /v1/images/edits endpoint when sourceImage is provided', async () => {
+      mockedFetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        text: jest.fn().mockResolvedValue(JSON.stringify({ data: [{ b64_json: 'ZWRpdGVk' }] })),
+      } as any);
+      mockedSaveBase64Image.mockResolvedValue('/cache/images/edited.png');
+
+      const result = await ImageService.generateImage({
+        provider: 'openai',
+        apiKey: 'key',
+        prompt: 'Improve this image',
+        sourceImage: 'c291cmNlX2ltYWdl', // base64 encoded source image
+      });
+
+      // Should call edits endpoint
+      expect(mockedFetch).toHaveBeenCalledWith(
+        'https://api.openai.com/v1/images/edits',
+        expect.objectContaining({ method: 'POST' })
+      );
+      expect(result).toEqual([{ url: '/cache/images/edited.png', mimeType: 'image/png', b64: 'ZWRpdGVk' }]);
+    });
+
+    it('includes image field in form data for img2img', async () => {
+      mockedFetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        text: jest.fn().mockResolvedValue(JSON.stringify({ data: [{ b64_json: 'cmVzdWx0' }] })),
+      } as any);
+      mockedSaveBase64Image.mockResolvedValue('/cache/images/result.png');
+
+      await ImageService.generateImage({
+        provider: 'openai',
+        apiKey: 'key',
+        prompt: 'Make it better',
+        sourceImage: 'dGVzdF9pbWFnZQ==',
+      });
+
+      const callArgs = mockedFetch.mock.calls[0];
+      const body = callArgs[1]?.body;
+      // For FormData, we just verify the call was made
+      expect(body).toBeDefined();
+    });
+  });
+
+  describe('Google img2img (sourceImage)', () => {
+    it('includes inlineData in contents when sourceImage is provided', async () => {
+      mockedFetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        text: jest.fn().mockResolvedValue(JSON.stringify({
+          candidates: [{
+            content: {
+              parts: [{ inlineData: { data: 'Z29vZ2xlX2VkaXQ=', mimeType: 'image/png' } }]
+            }
+          }]
+        })),
+      } as any);
+      mockedSaveBase64Image.mockResolvedValue('/cache/images/google_edit.png');
+
+      await ImageService.generateImage({
+        provider: 'google',
+        apiKey: 'key',
+        prompt: 'Improve this image',
+        sourceImage: 'c291cmNlX2RhdGE=',
+      });
+
+      const body = JSON.parse((mockedFetch.mock.calls[0][1] as RequestInit).body as string);
+      // Should have 2 parts: the source image and the prompt
+      expect(body.contents[0].parts).toHaveLength(2);
+      expect(body.contents[0].parts[0].inlineData).toBeDefined();
+      expect(body.contents[0].parts[0].inlineData.data).toBe('c291cmNlX2RhdGE=');
+      // Prompt is prefixed with context for img2img
+      expect(body.contents[0].parts[1].text).toContain('Improve this image');
+    });
   });
 
   describe('Grok provider', () => {
@@ -139,7 +217,7 @@ describe('ImageService', () => {
       expect(body.contents[0].parts[0].text).toBe('a sunset');
       // Google uses aspect_ratio instead of pixel size
       expect(body.generationConfig.imageConfig.aspectRatio).toBe('1:1'); // Default
-      expect(result).toEqual([{ url: '/cache/images/google_image.png', mimeType: 'image/png' }]);
+      expect(result).toEqual([{ url: '/cache/images/google_image.png', mimeType: 'image/png', b64: 'Z29vZ2xlX2ltYWdl' }]);
     });
 
     it('maps size parameter to correct aspect ratio for Google', async () => {

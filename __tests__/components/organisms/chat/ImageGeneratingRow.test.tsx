@@ -177,4 +177,87 @@ describe('ImageGeneratingRow', () => {
 
     expect(view).toBeTruthy();
   });
+
+  describe('Round-Robin Iteration Display', () => {
+    it('displays iteration info when totalIterations > 1', () => {
+      const roundRobinMessage: Message = {
+        ...baseMessage,
+        metadata: {
+          providerMetadata: {
+            iterationNumber: 1,
+            totalIterations: 3,
+          },
+        },
+      };
+
+      const { getByText } = renderWithProviders(
+        <ImageGeneratingRow message={roundRobinMessage} onCancel={mockOnCancel} />
+      );
+
+      expect(getByText(/Iteration 1\/3/)).toBeTruthy();
+    });
+
+    it('displays iteration 2/3 for second AI in round-robin', () => {
+      const roundRobinMessage: Message = {
+        ...baseMessage,
+        metadata: {
+          providerMetadata: {
+            iterationNumber: 2,
+            totalIterations: 3,
+          },
+        },
+      };
+
+      const { getByText } = renderWithProviders(
+        <ImageGeneratingRow message={roundRobinMessage} onCancel={mockOnCancel} />
+      );
+
+      expect(getByText(/Iteration 2\/3/)).toBeTruthy();
+    });
+
+    it('does not display iteration info for single AI generation', () => {
+      const singleAIMessage: Message = {
+        ...baseMessage,
+        metadata: {
+          providerMetadata: {
+            iterationNumber: 1,
+            totalIterations: 1,
+          },
+        },
+      };
+
+      const { queryByText } = renderWithProviders(
+        <ImageGeneratingRow message={singleAIMessage} onCancel={mockOnCancel} />
+      );
+
+      // Should not show iteration info for single AI (totalIterations = 1)
+      expect(queryByText(/Iteration/)).toBeFalsy();
+    });
+
+    it('does not display iteration info when metadata is missing', () => {
+      const { queryByText } = renderWithProviders(
+        <ImageGeneratingRow message={baseMessage} onCancel={mockOnCancel} />
+      );
+
+      expect(queryByText(/Iteration/)).toBeFalsy();
+    });
+
+    it('handles undefined iterationNumber gracefully', () => {
+      const partialMessage: Message = {
+        ...baseMessage,
+        metadata: {
+          providerMetadata: {
+            totalIterations: 2,
+          },
+        },
+      };
+
+      const { queryByText } = renderWithProviders(
+        <ImageGeneratingRow message={partialMessage} onCancel={mockOnCancel} />
+      );
+
+      // Should not crash, iteration info may or may not show depending on implementation
+      expect(queryByText(/Claude/)).toBeTruthy();
+    });
+  });
 });

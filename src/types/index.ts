@@ -54,6 +54,22 @@ export interface Citation {
   snippet?: string;
 }
 
+// Image generation types
+export type ImageGenerationMode = 'single' | 'compare';
+
+export interface GeneratedImageMetadata {
+  url: string;
+  // NOTE: base64 is intentionally NOT stored - it bloats AsyncStorage/SQLite
+  // For refinement, base64 is loaded from file when needed
+  revisedPrompt?: string;
+  prompt: string;
+  model: string;
+  providerId: string;
+  // For refinement tracking
+  isRefinement?: boolean;
+  refinementOf?: string; // Message ID of the original image
+}
+
 export interface MessageMetadata {
   sessionId?: string;
   conversationTurn?: number;
@@ -62,16 +78,21 @@ export interface MessageMetadata {
   modelUsed?: string; // Track which AI model actually responded
   // Which provider generated this AI message (used for debate role mapping)
   providerId?: string;
-  
+
   // Rich content support
   citations?: Citation[];  // For Perplexity and other providers with sources
   providerMetadata?: Record<string, unknown>; // Flexible field for provider-specific data
+
+  // Image generation metadata
+  generatedImage?: GeneratedImageMetadata;
 }
 
 export interface MessageAttachment {
   type: 'image' | 'document' | 'video';
   uri: string;
   mimeType: string;
+  // NOTE: base64 should only be set for user-uploaded images (temporary, for API calls)
+  // Do NOT set base64 for generated images - they're saved to disk via fileCache
   base64?: string;
   fileName?: string;
   fileSize?: number; // in bytes

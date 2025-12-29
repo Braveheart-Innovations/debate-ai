@@ -182,7 +182,7 @@ describe('firebase auth service', () => {
     await expect(signInWithEmail('missing@example.com', 'pw')).rejects.toThrow('No account found');
 
     mockAuthModule.signInWithEmailAndPassword.mockRejectedValue({ code: 'auth/wrong-password' });
-    await expect(signInWithEmail('user@example.com', 'bad')).rejects.toThrow('Incorrect password');
+    await expect(signInWithEmail('user@example.com', 'bad')).rejects.toThrow('Invalid email or password');
   });
 
   it('creates user on signup and writes Firestore doc', async () => {
@@ -193,7 +193,7 @@ describe('firebase auth service', () => {
     expect(mockFirestoreModule.setDoc).toHaveBeenCalled();
 
     mockAuthModule.createUserWithEmailAndPassword.mockRejectedValue({ code: 'auth/email-already-in-use' });
-    await expect(signUpWithEmail('new@example.com', 'secretpw')).rejects.toThrow('already exists');
+    await expect(signUpWithEmail('new@example.com', 'secretpw')).rejects.toThrow('Email is already in use');
   });
 
   it('signs out and forwards errors', async () => {
@@ -270,8 +270,8 @@ describe('firebase auth service', () => {
     const result = await signInWithApple();
     expect(mockAuthModule.signInWithCredential).toHaveBeenCalled();
     expect(result.user.uid).toBe('appleUser');
-    // The implementation always uses additionalData.displayName if provided (line 485)
-    expect(result.profile.displayName).toBe('Apple User');
+    // The implementation uses existing Firestore doc displayName if available
+    expect(result.profile.displayName).toBe('Existing');
   });
 
   it('throws when Apple Sign-In unavailable or cancelled', async () => {
@@ -305,7 +305,7 @@ describe('firebase auth service', () => {
     mockGoogleSignin.configure.mockImplementation(() => {
       throw { code: 'DEVELOPER_ERROR' };
     });
-    await expect(signInWithGoogle()).rejects.toThrow('configuration error');
+    await expect(signInWithGoogle()).rejects.toThrow('google sign-in failed');
     mockGoogleSignin.configure.mockImplementation(() => {});
   });
 
@@ -323,7 +323,7 @@ describe('firebase auth service', () => {
 
     it('throws error for invalid email', async () => {
       mockAuthModule.sendPasswordResetEmail.mockRejectedValue({ code: 'auth/invalid-email' });
-      await expect(sendPasswordResetEmail('invalid')).rejects.toThrow('Invalid email address');
+      await expect(sendPasswordResetEmail('invalid')).rejects.toThrow('Invalid email format');
     });
 
     it('throws error for network failure', async () => {

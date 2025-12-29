@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { StyleSheet, TextInput, TouchableOpacity, Modal, KeyboardAvoidingView, Platform, ScrollView, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { Box } from '../../atoms';
 import { useTheme } from '../../../theme';
 import { Typography, SheetHeader } from '@/components/molecules';
-import type { AIProvider } from '@/types';
+import type { AIProvider, ImageGenerationMode } from '@/types';
 
 export interface ImageGenerationModalProps {
   visible: boolean;
@@ -14,6 +14,8 @@ export interface ImageGenerationModalProps {
   provider?: AIProvider;
   /** Multiple providers for Compare mode */
   providers?: AIProvider[];
+  /** Generation mode: single or compare */
+  mode?: ImageGenerationMode;
   onClose: () => void;
   onGenerate: (opts: { prompt: string; size: 'auto' | 'square' | 'portrait' | 'landscape' }) => void;
 }
@@ -56,56 +58,98 @@ export const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({
   initialPrompt,
   provider,
   providers,
+  mode = 'single',
   onClose,
   onGenerate,
 }) => {
   const { theme } = useTheme();
   const [prompt, setPrompt] = useState(initialPrompt || '');
   const [size, setSize] = useState<'auto' | 'square' | 'portrait' | 'landscape'>('square');
-  const [styleKey, setStyleKey] = useState<'photo' | 'anime' | 'watercolor' | 'sketch' | 'cinematic' | '3d'>('photo');
+  const [styleKey, setStyleKey] = useState<'photo' | 'anime' | 'watercolor' | 'sketch' | 'cinematic' | '3d' | 'none'>('photo');
 
   useEffect(() => {
     setPrompt(initialPrompt || '');
   }, [initialPrompt]);
 
   // Determine if we're in Compare mode (multiple providers) or single provider mode
-  const isCompareMode = providers && providers.length > 1;
+  const isCompareMode = mode === 'compare';
+  const isMultiProvider = providers && providers.length > 1;
   const activeProvider = provider || (providers && providers.length === 1 ? providers[0] : undefined);
 
   // Compute modal title based on mode
   const modalTitle = useMemo(() => {
-    if (isCompareMode && providers) {
-      const names = providers.map(getProviderDisplayName).join(' & ');
-      return `Generate with ${names}`;
+    if (mode === 'compare') {
+      return 'Generate Image (Compare)';
     }
     if (activeProvider) {
       return `Generate with ${getProviderDisplayName(activeProvider)}`;
     }
     return 'Generate Image';
-  }, [isCompareMode, providers, activeProvider]);
+  }, [mode, activeProvider]);
+
+  // Build enhanced prompt with size and style specifications
+  const buildEnhancedPrompt = useCallback((basePrompt: string): string => {
+    const specs: string[] = [];
+
+    // Add size/orientation hint
+    if (size === 'portrait') {
+      specs.push('Portrait orientation, vertical format');
+    } else if (size === 'landscape') {
+      specs.push('Landscape orientation, horizontal format');
+    }
+    // Square and auto don't need specification
+
+    // Add style
+    if (styleKey && styleKey !== 'none') {
+      const styleDescriptions: Record<string, string> = {
+        photo: 'Photorealistic style, like a photograph',
+        anime: 'Anime style, Japanese animation aesthetic',
+        watercolor: 'Watercolor painting style',
+        sketch: 'Pencil sketch style, hand-drawn',
+        cinematic: 'Cinematic style, dramatic lighting, movie-like',
+        '3d': '3D rendered style, CGI quality',
+      };
+      if (styleDescriptions[styleKey]) {
+        specs.push(styleDescriptions[styleKey]);
+      }
+    }
+
+    if (specs.length === 0) return basePrompt.trim();
+    return `${basePrompt.trim()}\n\nImage specifications: ${specs.join('. ')}.`;
+  }, [size, styleKey]);
 
   // Determine if size options should be shown
   const showSizeOptions = useMemo(() => {
-    if (isCompareMode) {
-      // In Compare mode, show size options (providers that don't support it will ignore)
+    if (isMultiProvider) {
+      // In multi-provider modes, show size options (providers that don't support it will ignore)
       return true;
     }
     if (activeProvider) {
       return providerSupportsSize(activeProvider);
     }
     return true; // Default to showing
-  }, [isCompareMode, activeProvider]);
+  }, [isMultiProvider, activeProvider]);
 
   // Get appropriate helper text
   const helperText = useMemo(() => {
     if (isCompareMode) {
-      return 'Note: Some options may not apply to all providers. Each AI will use its best interpretation.';
+      return 'Each AI will generate independently for side-by-side comparison.';
     }
     if (activeProvider) {
       return getProviderHelperText(activeProvider);
     }
     return 'Select size and style options for your generated image.';
   }, [isCompareMode, activeProvider]);
+
+  // Build AI list display for multi-provider modes
+  const aiListDisplay = useMemo(() => {
+    if (!providers || providers.length <= 1) return null;
+    const names = providers.map(getProviderDisplayName);
+    if (isCompareMode) {
+      return `Comparing: ${names.join(', ')}`;
+    }
+    return null;
+  }, [providers, isCompareMode]);
 
   const Chip: React.FC<{ label: string; selected: boolean; onPress: () => void }> = ({ label, selected, onPress }) => (
     <TouchableOpacity
@@ -144,8 +188,16 @@ export const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({
               <SheetHeader title={modalTitle} onClose={onClose} showHandle />
               <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
                 <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+                  {/* AI List Display for multi-provider modes */}
+                  {aiListDisplay && (
+                    <Box style={[styles.section, { paddingBottom: 0 }]}>
+                      <Typography variant="caption" color="secondary" style={{ fontStyle: 'italic' }}>
+                        {aiListDisplay}
+                      </Typography>
+                    </Box>
+                  )}
                   <Box style={styles.section}>
-          <Typography variant="body" weight="semibold" color="secondary" style={styles.label}>Prompt</Typography>
+                    <Typography variant="body" weight="semibold" color="secondary" style={styles.label}>Prompt</Typography>
                     <TextInput
                       style={[styles.input, { borderColor: theme.colors.border, color: theme.colors.text.primary }]}
                       placeholder="Describe the image you want"
@@ -169,6 +221,7 @@ export const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({
                 <Box style={styles.section}>
                   <Typography variant="body" weight="semibold" color="secondary" style={styles.label}>Style</Typography>
                   <Box style={styles.rowWrap}>
+                    <Chip label="None" selected={styleKey==='none'} onPress={() => setStyleKey('none')} />
                     <Chip label="Photo Realistic" selected={styleKey==='photo'} onPress={() => setStyleKey('photo')} />
                     <Chip label="Anime" selected={styleKey==='anime'} onPress={() => setStyleKey('anime')} />
                     <Chip label="Watercolor" selected={styleKey==='watercolor'} onPress={() => setStyleKey('watercolor')} />
@@ -188,7 +241,7 @@ export const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({
                     <Typography variant="body" style={{ color: theme.colors.text.primary }}>Cancel</Typography>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    onPress={() => onGenerate({ prompt: `${prompt.trim()}\n\nStyle: ${styleKey}`, size })}
+                    onPress={() => onGenerate({ prompt: buildEnhancedPrompt(prompt), size })}
                     activeOpacity={0.7}
                     disabled={!prompt.trim()}
                     style={[styles.actionBtn, { backgroundColor: theme.colors.primary[500], borderColor: theme.colors.primary[500], opacity: prompt.trim() ? 1 : 0.5 }]}

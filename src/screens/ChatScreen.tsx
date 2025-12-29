@@ -8,9 +8,11 @@ import { getAttachmentSupport } from '../utils/attachmentUtils';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, addMessage, updateMessage } from '../store';
 import { ImageService } from '../services/images/ImageService';
-// import { getProviderCapabilities } from '../config/providerCapabilities';
-import { useMergedModalityAvailability } from '../hooks/multimodal/useModalityAvailability';
+import { useMergedModalityAvailability, useImageGenerationAvailability } from '../hooks/multimodal/useModalityAvailability';
 import { ImageGenerationModal } from '../components/organisms/chat/ImageGenerationModal';
+import { ImageRefinementModal, RefinementProvider } from '../components/organisms/chat/ImageRefinementModal';
+import { getProviderCapabilities } from '../config/providerCapabilities';
+import { loadBase64FromFileUri } from '../services/images/fileCache';
 // import APIKeyService from '../services/APIKeyService';
 // import VideoService from '../services/videos/VideoService';
 
@@ -101,11 +103,22 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
   const availability = useMergedModalityAvailability(
     session.selectedAIs.map(ai => ({ provider: ai.provider, model: ai.model }))
   );
-  // Image generation only enabled for single AI mode (multi-AI round-robin doesn't make sense for images)
-  const imageGenerationEnabled = session.selectedAIs.length === 1 && availability.imageGeneration.supported;
+  // Image generation availability with mode detection (single, roundRobin based on img2img support)
+  const imageAvailability = useImageGenerationAvailability(
+    session.selectedAIs.map(ai => ({ provider: ai.provider, model: ai.model })),
+    'chat'
+  );
+  const imageGenerationEnabled = imageAvailability.isAvailable;
+  const imageGenerationMode = imageAvailability.mode;
   const controllersRef = React.useRef<Record<string, AbortController>>({});
   const [imageModalVisible, setImageModalVisible] = React.useState(false);
   const [imageModalPrompt, setImageModalPrompt] = React.useState('');
+  // Refinement modal state
+  const [refinementModalVisible, setRefinementModalVisible] = React.useState(false);
+  const [refinementImageUri, setRefinementImageUri] = React.useState('');
+  const [refinementOriginalPrompt, setRefinementOriginalPrompt] = React.useState('');
+  const [refinementOriginalProvider, setRefinementOriginalProvider] = React.useState<AIProvider>('openai');
+  const [refinementMessageId, setRefinementMessageId] = React.useState<string | undefined>();
   const { isDemo } = useFeatureAccess();
   const recordModeEnabled = useSelector((state: RootState) => state.settings.recordModeEnabled ?? false);
   const [isRecording, setIsRecording] = React.useState(false);
@@ -153,15 +166,135 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
       try { (navigation as unknown as { navigate: (s: string, p?: Record<string, unknown>) => void }).navigate(screen, params); } catch { /* no-op */ }
     }
   ), [navigation]);
-  // Video generation is out of scope for v1; remove UI
+
+  // Build list of providers available for refinement (those that support img2img)
+  const refinementProviders = React.useMemo((): RefinementProvider[] => {
+    const allProviders: AIProvider[] = ['openai', 'google', 'grok', 'claude'];
+    return allProviders.map(provider => {
+      const caps = getProviderCapabilities(provider);
+      const hasApiKey = Boolean(apiKeys[provider as keyof typeof apiKeys]);
+      return {
+        provider,
+        name: provider === 'openai' ? 'ChatGPT (DALL-E)' : provider === 'google' ? 'Gemini' : provider === 'grok' ? 'Grok' : 'Claude',
+        supportsImg2Img: caps.imageGeneration?.supportsImageInput || false,
+        hasApiKey,
+      };
+    });
+  }, [apiKeys]);
+
+  // Check if any provider supports refinement (img2img)
+  const canRefineImages = React.useMemo(() => {
+    return refinementProviders.some(p => p.supportsImg2Img && p.hasApiKey);
+  }, [refinementProviders]);
+
+  // Handler for opening the refinement modal from an image
+  const handleOpenRefinement = React.useCallback((imageUri: string, originalPrompt: string, originalProvider: AIProvider, messageId?: string) => {
+    setRefinementImageUri(imageUri);
+    setRefinementOriginalPrompt(originalPrompt);
+    setRefinementOriginalProvider(originalProvider);
+    setRefinementMessageId(messageId);
+    setRefinementModalVisible(true);
+  }, []);
+
+  // Handler for executing refinement
+  const handleRefineImage = React.useCallback(async (opts: { instructions: string; provider: AIProvider }) => {
+    setRefinementModalVisible(false);
+
+    const apiKey = apiKeys[opts.provider as keyof typeof apiKeys];
+    if (!apiKey) {
+      Alert.alert('Error', `${opts.provider} API key not configured`);
+      return;
+    }
+
+    const providerName = opts.provider === 'openai' ? 'ChatGPT' : opts.provider === 'google' ? 'Gemini' : opts.provider === 'grok' ? 'Grok' : opts.provider;
+    const messageId = `msg_${Date.now()}_refine`;
+
+    dispatch(addMessage({
+      id: messageId,
+      sender: providerName,
+      senderType: 'ai',
+      content: 'Refining image…',
+      timestamp: Date.now(),
+      metadata: {
+        providerMetadata: { imageGenerating: true, imagePhase: 'rendering', imageStartTime: Date.now() },
+        generatedImage: { url: '', prompt: opts.instructions, providerId: opts.provider, model: '', isRefinement: true, refinementOf: refinementMessageId },
+      },
+    }));
+
+    try {
+      // Load base64 from file for img2img
+      const base64 = await loadBase64FromFileUri(refinementImageUri);
+      if (!base64) {
+        throw new Error('Could not load image data for refinement');
+      }
+
+      const controller = new AbortController();
+      controllersRef.current[messageId] = controller;
+
+      // Build refinement prompt combining original context + user instructions
+      const refinementPrompt = `Original image prompt: "${refinementOriginalPrompt}"\n\nUser refinement instructions: ${opts.instructions}`;
+
+      const images = await ImageService.generateImage({
+        provider: opts.provider,
+        apiKey,
+        prompt: refinementPrompt,
+        n: 1,
+        signal: controller.signal,
+        sourceImage: base64,
+      });
+
+      const img = images[0];
+      const uri = img?.url || (img?.b64 ? `data:${img.mimeType};base64,${img.b64}` : undefined);
+
+      if (uri) {
+        dispatch(updateMessage({
+          id: messageId,
+          content: '',
+          attachments: [{ type: 'image', uri, mimeType: img.mimeType }],
+          metadata: {
+            providerMetadata: { imageGenerating: false, imagePhase: 'done' },
+            generatedImage: {
+              url: uri,
+              prompt: opts.instructions,
+              providerId: opts.provider,
+              model: '',
+              isRefinement: true,
+              refinementOf: refinementMessageId,
+            },
+          },
+        }));
+      } else {
+        dispatch(updateMessage({
+          id: messageId,
+          content: 'No image returned from refinement',
+          metadata: { providerMetadata: { imageGenerating: false, imagePhase: 'error' } },
+        }));
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      dispatch(updateMessage({
+        id: messageId,
+        content: `Refinement failed: ${errorMsg}`,
+        metadata: { providerMetadata: { imageGenerating: false, imagePhase: 'error' } },
+      }));
+    }
+  }, [apiKeys, dispatch, refinementImageUri, refinementOriginalPrompt, refinementMessageId]);
 
   const handleGenerateImage = async (opts: { prompt: string; size: 'auto' | 'square' | 'portrait' | 'landscape' }, reuseMessageId?: string) => {
     if (isDemo) {
       showTrialCTA(navTo, { message: 'Image generation requires a Free Trial.' });
       return;
     }
+
+    const sizeMap: Record<typeof opts.size, 'auto' | '1024x1024' | '1024x1536' | '1536x1024'> = {
+      auto: 'auto',
+      square: '1024x1024',
+      portrait: '1024x1536',
+      landscape: '1536x1024',
+    };
+
+    // Standard generation (user can refine via Refine button after initial generation)
     try {
-      // Use the single selected AI's provider (image gen is disabled for multi-AI)
       const providerAI = session.selectedAIs[0];
       const provider = providerAI.provider;
       const apiKey = apiKeys[provider as keyof typeof apiKeys];
@@ -179,19 +312,23 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
       } else {
         dispatch(updateMessage({ id: messageId, content: 'Generating image…', attachments: [], metadata: { providerMetadata: { imageGenerating: true, imagePhase: 'sending', imageStartTime: Date.now(), imageParams: { size: opts.size, prompt: opts.prompt } } } }));
       }
-      const sizeMap: Record<typeof opts.size, 'auto' | '1024x1024' | '1024x1536' | '1536x1024'> = {
-        auto: 'auto',
-        square: '1024x1024',
-        portrait: '1024x1536',
-        landscape: '1536x1024',
-      };
       const controller = new AbortController();
       controllersRef.current[messageId] = controller;
       const images = await ImageService.generateImage({ provider: provider as AIProvider, apiKey, prompt: opts.prompt, size: sizeMap[opts.size], n: 1, signal: controller.signal });
       const img = images[0];
-      const uri = img.url ? img.url : (img.b64 ? `data:${img.mimeType};basee64,${img.b64}` : undefined);
+      const uri = img.url ? img.url : (img.b64 ? `data:${img.mimeType};base64,${img.b64}` : undefined);
       if (uri) {
-        dispatch(updateMessage({ id: messageId, content: '', attachments: [{ type: 'image', uri, mimeType: img.mimeType }], metadata: { providerMetadata: { imageGenerating: false, imagePhase: 'done' } } }));
+        dispatch(updateMessage({
+          id: messageId,
+          content: '',
+          // NOTE: Do NOT store base64 in attachments or metadata - it bloats AsyncStorage
+          // The file URI is sufficient for display, and base64 is only needed transiently for img2img
+          attachments: [{ type: 'image', uri, mimeType: img.mimeType }],
+          metadata: {
+            providerMetadata: { imageGenerating: false, imagePhase: 'done' },
+            generatedImage: { url: uri, prompt: opts.prompt, providerId: provider, model: providerAI.model },
+          },
+        }));
       } else {
         dispatch(updateMessage({ id: messageId, content: 'Image generated.', metadata: { providerMetadata: { imageGenerating: false, imagePhase: 'done' } } }));
       }
@@ -551,6 +688,8 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
             onScrollToSearchResult={handleScrollToSearchResult}
             onCancelImage={handleCancelImage}
             onRetryImage={handleRetryImage}
+            canRefineImages={canRefineImages}
+            onRefineImage={handleOpenRefinement}
           />
         )}
 
@@ -604,12 +743,22 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
           <ImageGenerationModal
             visible={imageModalVisible}
             initialPrompt={imageModalPrompt}
-            provider={session.selectedAIs.length === 1 ? session.selectedAIs[0].provider : undefined}
+            provider={session.selectedAIs[0]?.provider}
+            mode={imageGenerationMode}
             onClose={() => setImageModalVisible(false)}
             onGenerate={(opts) => {
               setImageModalVisible(false);
               handleGenerateImage(opts);
             }}
+          />
+          <ImageRefinementModal
+            visible={refinementModalVisible}
+            imageUri={refinementImageUri}
+            originalPrompt={refinementOriginalPrompt}
+            originalProvider={refinementOriginalProvider}
+            availableProviders={refinementProviders}
+            onClose={() => setRefinementModalVisible(false)}
+            onRefine={handleRefineImage}
           />
         </View>
       </KeyboardAvoidingView>

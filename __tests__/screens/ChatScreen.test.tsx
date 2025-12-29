@@ -29,9 +29,11 @@ jest.mock('@/hooks/chat', () => ({
 }));
 
 const mockMergedAvailability = jest.fn();
+const mockImageGenerationAvailability = jest.fn();
 
 jest.mock('@/hooks/multimodal/useModalityAvailability', () => ({
   useMergedModalityAvailability: (...args: unknown[]) => mockMergedAvailability(...args),
+  useImageGenerationAvailability: (...args: unknown[]) => mockImageGenerationAvailability(...args),
 }));
 
 const mockUseFeatureAccess = jest.fn();
@@ -367,6 +369,14 @@ describe('ChatScreen', () => {
       documentUpload: { supported: true },
       videoGeneration: { supported: false },
       voiceInput: { supported: true },
+    });
+
+    // Default: multi-AI mode (2 AIs) - image generation disabled
+    mockImageGenerationAvailability.mockReturnValue({
+      isAvailable: false,
+      mode: 'single',
+      reason: 'Image generation only available with single AI',
+      providers: [],
     });
 
     mockGetAttachmentSupport.mockReturnValue({ images: true, documents: false });
@@ -973,11 +983,19 @@ describe('ChatScreen', () => {
         voiceInput: { supported: true },
       });
 
+      // Multi-AI image generation is disabled (only single AI mode supported)
+      mockImageGenerationAvailability.mockReturnValue({
+        isAvailable: false,
+        mode: 'single',
+        reason: 'Image generation only available with single AI',
+        providers: [],
+      });
+
       renderWithProviders(
         <ChatScreen navigation={navigation} route={route} />
       );
 
-      // Even though merged availability says supported, multi-AI disables it
+      // Multi-AI mode disables image generation
       expect(mockChatInputBarProps.imageGenerationEnabled).toBe(false);
     });
 
@@ -999,6 +1017,15 @@ describe('ChatScreen', () => {
         documentUpload: { supported: true },
         videoGeneration: { supported: false },
         voiceInput: { supported: true },
+      });
+
+      // Single AI - image generation enabled
+      mockImageGenerationAvailability.mockReturnValue({
+        isAvailable: true,
+        mode: 'single',
+        providers: [
+          { provider: 'openai', supportsImageGen: true, supportsImg2Img: true },
+        ],
       });
 
       renderWithProviders(
@@ -1034,6 +1061,15 @@ describe('ChatScreen', () => {
         documentUpload: { supported: false },
         videoGeneration: { supported: false },
         voiceInput: { supported: false },
+      });
+
+      // Single AI - image generation enabled
+      mockImageGenerationAvailability.mockReturnValue({
+        isAvailable: true,
+        mode: 'single',
+        providers: [
+          { provider: 'grok', supportsImageGen: true, supportsImg2Img: false },
+        ],
       });
 
       mockUseFeatureAccess.mockReturnValue(buildFeatureAccess({ isDemo: false }));
@@ -1103,6 +1139,15 @@ describe('ChatScreen', () => {
         documentUpload: { supported: false },
         videoGeneration: { supported: false },
         voiceInput: { supported: false },
+      });
+
+      // Single AI - image generation enabled (but API key missing)
+      mockImageGenerationAvailability.mockReturnValue({
+        isAvailable: true,
+        mode: 'single',
+        providers: [
+          { provider: 'google', supportsImageGen: true, supportsImg2Img: true },
+        ],
       });
 
       mockUseFeatureAccess.mockReturnValue(buildFeatureAccess({ isDemo: false }));

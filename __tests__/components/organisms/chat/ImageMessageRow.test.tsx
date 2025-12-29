@@ -2,7 +2,7 @@ import React from 'react';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { ImageMessageRow } from '@/components/organisms/chat/ImageMessageRow';
-import type { Message } from '@/types';
+import type { Message, AIProvider } from '@/types';
 
 jest.mock('expo-sharing', () => ({
   isAvailableAsync: jest.fn(() => Promise.resolve(true)),
@@ -17,10 +17,17 @@ jest.mock('@/services/media/MediaSaveService', () => ({
 }));
 
 jest.mock('@/components/organisms/chat/ImageBubble', () => ({
-  ImageBubble: ({ uris, onPressImage }: any) => {
+  ImageBubble: ({ uris, onPressImage, canRefine, onRefine }: any) => {
     const React = require('react');
-    const { TouchableOpacity, Text } = require('react-native');
-    return React.createElement(TouchableOpacity, { onPress: () => onPressImage?.(uris[0]), testID: 'image-bubble' }, React.createElement(Text, null, 'Image'));
+    const { TouchableOpacity, Text, View } = require('react-native');
+    const children = [
+      React.createElement(TouchableOpacity, { key: 'image', onPress: () => onPressImage?.(uris[0]), testID: 'image-bubble' }, React.createElement(Text, null, 'Image')),
+    ];
+    // Only add refine button when both canRefine is true AND onRefine is a function
+    if (canRefine === true && typeof onRefine === 'function') {
+      children.push(React.createElement(TouchableOpacity, { key: 'refine', onPress: () => onRefine(uris[0]), testID: 'refine-button' }, React.createElement(Text, null, 'Refine')));
+    }
+    return React.createElement(View, { testID: 'image-bubble-container' }, children);
   },
 }));
 
@@ -39,13 +46,21 @@ jest.mock('@/components/molecules', () => {
 describe('ImageMessageRow', () => {
   const mockMessage: Message = {
     id: 'msg1',
-    text: 'Here is your image',
+    content: '',
     sender: 'Claude',
-    senderId: 'claude',
+    senderType: 'ai',
     timestamp: Date.now(),
     attachments: [
-      { type: 'image', uri: 'https://example.com/image.jpg' },
+      { type: 'image', uri: 'https://example.com/image.jpg', mimeType: 'image/jpeg' },
     ],
+    metadata: {
+      generatedImage: {
+        prompt: 'A beautiful sunset',
+        providerId: 'openai',
+        model: 'gpt-image-1',
+        url: 'https://example.com/image.jpg',
+      },
+    },
   };
 
   it('renders null when no image attachments', () => {
@@ -126,12 +141,77 @@ describe('ImageMessageRow', () => {
     const multiImageMessage: Message = {
       ...mockMessage,
       attachments: [
-        { type: 'image', uri: 'https://example.com/image1.jpg' },
-        { type: 'image', uri: 'https://example.com/image2.jpg' },
+        { type: 'image', uri: 'https://example.com/image1.jpg', mimeType: 'image/jpeg' },
+        { type: 'image', uri: 'https://example.com/image2.jpg', mimeType: 'image/jpeg' },
       ],
     };
 
     const { getByTestId } = renderWithProviders(<ImageMessageRow message={multiImageMessage} />);
     expect(getByTestId('image-bubble')).toBeTruthy();
+  });
+
+  describe('refinement', () => {
+    it('shows refine button when canRefine is true', () => {
+      const mockOnRefine = jest.fn();
+      const { getByTestId } = renderWithProviders(
+        <ImageMessageRow message={mockMessage} canRefine={true} onRefine={mockOnRefine} />
+      );
+
+      expect(getByTestId('refine-button')).toBeTruthy();
+    });
+
+    it('hides refine button when canRefine is false', () => {
+      const mockOnRefine = jest.fn();
+      const { queryByTestId } = renderWithProviders(
+        <ImageMessageRow message={mockMessage} canRefine={false} onRefine={mockOnRefine} />
+      );
+
+      expect(queryByTestId('refine-button')).toBeNull();
+    });
+
+    it('hides refine button when onRefine is not provided', () => {
+      const { queryByTestId } = renderWithProviders(
+        <ImageMessageRow message={mockMessage} canRefine={true} />
+      );
+
+      expect(queryByTestId('refine-button')).toBeNull();
+    });
+
+    it('calls onRefine with correct params when refine button pressed', () => {
+      const mockOnRefine = jest.fn();
+      const { getByTestId } = renderWithProviders(
+        <ImageMessageRow message={mockMessage} canRefine={true} onRefine={mockOnRefine} />
+      );
+
+      fireEvent.press(getByTestId('refine-button'));
+
+      expect(mockOnRefine).toHaveBeenCalledWith(
+        'https://example.com/image.jpg',
+        'A beautiful sunset',
+        'openai',
+        'msg1'
+      );
+    });
+
+    it('uses default values when metadata is missing', () => {
+      const mockOnRefine = jest.fn();
+      const messageWithoutMetadata: Message = {
+        ...mockMessage,
+        metadata: undefined,
+      };
+
+      const { getByTestId } = renderWithProviders(
+        <ImageMessageRow message={messageWithoutMetadata} canRefine={true} onRefine={mockOnRefine} />
+      );
+
+      fireEvent.press(getByTestId('refine-button'));
+
+      expect(mockOnRefine).toHaveBeenCalledWith(
+        'https://example.com/image.jpg',
+        '',          // empty prompt when metadata missing
+        'openai',    // default provider
+        'msg1'
+      );
+    });
   });
 });

@@ -1,9 +1,10 @@
 import { getModelById } from '../../config/modelConfigs';
-import { AIProvider } from '../../types';
+import { AIProvider, ImageGenerationMode } from '../../types';
 import { getProviderCapabilities } from '../../config/providerCapabilities';
 
 export interface ModalityFlag {
   supported: boolean;
+  supportsImageInput?: boolean;  // img2img capability for refinement
   reason?: string;
   models?: string[];
   sizes?: string[];
@@ -38,6 +39,7 @@ export function getModalityAvailability(providerId: string, modelId: string): Mo
     voiceInput: { supported: Boolean(model?.supportsVoiceInput || providerSupportsSTT) },
     imageGeneration: {
       supported: Boolean(imageGen?.supported),
+      supportsImageInput: Boolean(imageGen?.supportsImageInput),
       models: imageGen?.models,
       sizes: imageGen?.sizes,
     },
@@ -154,4 +156,69 @@ export function useMergedModalityAvailability(items: Array<{ provider: string; m
  */
 export function useMergedModalityAvailabilityStrict(items: Array<{ provider: string; model: string }>): ModalityAvailability {
   return mergeAvailabilitiesStrict(items);
+}
+
+/**
+ * Result type for image generation availability check.
+ */
+export interface ImageGenerationAvailabilityResult {
+  isAvailable: boolean;
+  mode: ImageGenerationMode;
+  reason?: string;
+  providers: Array<{ provider: string; supportsImageGen: boolean; supportsImg2Img: boolean }>;
+}
+
+/**
+ * Determine image generation availability and mode based on selected providers.
+ *
+ * Logic:
+ * - Chat mode (single or multi-AI): mode='single', uses first AI for generation
+ *   User can refine images afterward via the Refine button (user-driven refinement)
+ * - Compare mode: mode='compare' if ALL AIs support image generation
+ */
+export function useImageGenerationAvailability(
+  items: Array<{ provider: string; model: string }>,
+  screenMode: 'chat' | 'compare'
+): ImageGenerationAvailabilityResult {
+  if (items.length === 0) {
+    return {
+      isAvailable: false,
+      mode: 'single',
+      reason: 'No AI selected',
+      providers: [],
+    };
+  }
+
+  // Get capabilities for each provider
+  const providerInfo = items.map(item => {
+    const caps = getProviderCapabilities(item.provider as AIProvider);
+    return {
+      provider: item.provider,
+      supportsImageGen: Boolean(caps.imageGeneration?.supported),
+      supportsImg2Img: Boolean(caps.imageGeneration?.supportsImageInput),
+    };
+  });
+
+  const allSupportImageGen = providerInfo.every(p => p.supportsImageGen);
+  const firstSupportsImageGen = providerInfo[0]?.supportsImageGen ?? false;
+
+  // Compare mode: ALL must support image generation
+  if (screenMode === 'compare') {
+    return {
+      isAvailable: allSupportImageGen,
+      mode: 'compare',
+      reason: allSupportImageGen
+        ? undefined
+        : `${providerInfo.filter(p => !p.supportsImageGen).map(p => p.provider).join(', ')} does not support image generation`,
+      providers: providerInfo,
+    };
+  }
+
+  // Chat mode: use first AI for generation, user can refine via Refine button
+  return {
+    isAvailable: firstSupportsImageGen,
+    mode: 'single',
+    reason: firstSupportsImageGen ? undefined : `${providerInfo[0]?.provider} does not support image generation`,
+    providers: providerInfo,
+  };
 }

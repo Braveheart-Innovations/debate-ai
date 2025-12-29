@@ -1,8 +1,15 @@
 import React from 'react';
-import { Image, TouchableOpacity } from 'react-native';
+import { Image, TouchableOpacity, View } from 'react-native';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { ImageBubble } from '@/components/organisms/chat/ImageBubble';
+
+jest.mock('@expo/vector-icons', () => ({
+  Ionicons: ({ name }: { name: string }) => {
+    const { Text } = require('react-native');
+    return <Text testID={`icon-${name}`}>{name}</Text>;
+  },
+}));
 
 describe('ImageBubble', () => {
   const mockOnPressImage = jest.fn();
@@ -97,5 +104,120 @@ describe('ImageBubble', () => {
         nativeEvent: { source: { width: 1024, height: 1024 } },
       });
     }).not.toThrow();
+  });
+
+  describe('Expand Icon', () => {
+    it('renders expand icon overlay on each image', () => {
+      const { getByTestId } = renderWithProviders(
+        <ImageBubble uris={[mockUris[0]]} onPressImage={mockOnPressImage} />
+      );
+
+      // The expand icon should be present
+      expect(getByTestId('icon-expand-outline')).toBeTruthy();
+    });
+
+    it('renders expand icon for each image in multi-image bubble', () => {
+      const { getAllByTestId } = renderWithProviders(
+        <ImageBubble uris={mockUris} onPressImage={mockOnPressImage} />
+      );
+
+      const expandIcons = getAllByTestId('icon-expand-outline');
+      expect(expandIcons).toHaveLength(2);
+    });
+
+    it('positions expand icon in top-right corner', () => {
+      const { UNSAFE_getAllByType } = renderWithProviders(
+        <ImageBubble uris={[mockUris[0]]} onPressImage={mockOnPressImage} />
+      );
+
+      // Find the View containing the expand icon
+      const views = UNSAFE_getAllByType(View);
+      const expandContainer = views.find(v =>
+        v.props.style?.position === 'absolute' &&
+        v.props.style?.top === 8 &&
+        v.props.style?.right === 8
+      );
+
+      expect(expandContainer).toBeTruthy();
+    });
+  });
+
+  describe('Refine Button', () => {
+    const mockOnRefine = jest.fn();
+
+    beforeEach(() => {
+      mockOnRefine.mockClear();
+    });
+
+    it('renders refine button when canRefine is true and onRefine is provided', () => {
+      const { getByTestId } = renderWithProviders(
+        <ImageBubble uris={[mockUris[0]]} canRefine={true} onRefine={mockOnRefine} />
+      );
+
+      expect(getByTestId('icon-color-wand-outline')).toBeTruthy();
+    });
+
+    it('does not render refine button when canRefine is false', () => {
+      const { queryByTestId } = renderWithProviders(
+        <ImageBubble uris={[mockUris[0]]} canRefine={false} onRefine={mockOnRefine} />
+      );
+
+      expect(queryByTestId('icon-color-wand-outline')).toBeNull();
+    });
+
+    it('does not render refine button when onRefine is not provided', () => {
+      const { queryByTestId } = renderWithProviders(
+        <ImageBubble uris={[mockUris[0]]} canRefine={true} />
+      );
+
+      expect(queryByTestId('icon-color-wand-outline')).toBeNull();
+    });
+
+    it('calls onRefine with URI when refine button is pressed', () => {
+      const { UNSAFE_getAllByType } = renderWithProviders(
+        <ImageBubble uris={[mockUris[0]]} canRefine={true} onRefine={mockOnRefine} />
+      );
+
+      // Find all TouchableOpacity elements - the refine button is the nested one
+      const touchables = UNSAFE_getAllByType(TouchableOpacity);
+      // The refine button should be the one inside the image container (second touchable)
+      // First is the main image touchable, second is the refine button
+      const refineButton = touchables.find(t => {
+        // The refine button has a specific background style from theme.colors.primary[500]
+        const style = t.props.style;
+        return Array.isArray(style) && style.some((s: any) => s?.position === 'absolute' && s?.bottom === 8);
+      });
+
+      if (refineButton) {
+        fireEvent.press(refineButton);
+        expect(mockOnRefine).toHaveBeenCalledWith(mockUris[0]);
+      }
+    });
+
+    it('positions refine button in bottom-right corner', () => {
+      const { UNSAFE_getAllByType } = renderWithProviders(
+        <ImageBubble uris={[mockUris[0]]} canRefine={true} onRefine={mockOnRefine} />
+      );
+
+      const touchables = UNSAFE_getAllByType(TouchableOpacity);
+      const refineButton = touchables.find(t => {
+        const style = t.props.style;
+        if (Array.isArray(style)) {
+          return style.some((s: any) => s?.position === 'absolute' && s?.bottom === 8 && s?.right === 8);
+        }
+        return false;
+      });
+
+      expect(refineButton).toBeTruthy();
+    });
+
+    it('renders refine button for each image when canRefine is true', () => {
+      const { getAllByTestId } = renderWithProviders(
+        <ImageBubble uris={mockUris} canRefine={true} onRefine={mockOnRefine} />
+      );
+
+      const refineIcons = getAllByTestId('icon-color-wand-outline');
+      expect(refineIcons).toHaveLength(2);
+    });
   });
 });

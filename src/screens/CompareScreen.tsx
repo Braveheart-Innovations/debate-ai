@@ -936,7 +936,16 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
         senderType: 'ai',
         content: '',
         timestamp: Date.now(),
+        // NOTE: Do NOT store base64 in attachments or metadata - it bloats AsyncStorage
         attachments: uri ? [{ type: 'image', uri, mimeType: img.mimeType }] : undefined,
+        metadata: {
+          generatedImage: {
+            url: uri || '',
+            prompt: opts.prompt,
+            providerId: leftAI.provider,
+            model: leftAI.model,
+          },
+        },
       };
       setLeftMessages(prev => [...prev, leftMessage]);
       leftHistoryRef.current.push(leftMessage);
@@ -970,7 +979,16 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
         senderType: 'ai',
         content: '',
         timestamp: Date.now(),
+        // NOTE: Do NOT store base64 in attachments or metadata - it bloats AsyncStorage
         attachments: uri ? [{ type: 'image', uri, mimeType: img.mimeType }] : undefined,
+        metadata: {
+          generatedImage: {
+            url: uri || '',
+            prompt: opts.prompt,
+            providerId: rightAI.provider,
+            model: rightAI.model,
+          },
+        },
       };
       setRightMessages(prev => [...prev, rightMessage]);
       rightHistoryRef.current.push(rightMessage);
@@ -1215,6 +1233,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
         visible={imageModalVisible}
         initialPrompt={imageModalPrompt}
         providers={leftAI && rightAI ? [leftAI.provider, rightAI.provider] : undefined}
+        mode="compare"
         onClose={() => setImageModalVisible(false)}
         onGenerate={(opts) => {
           setImageModalVisible(false);

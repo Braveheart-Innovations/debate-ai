@@ -187,6 +187,6 @@ describe('OpenAICompatibleAdapter', () => {
 
     const adapter = new TestOpenAIAdapter(baseConfig);
 
-    await expect(adapter.sendMessage('broken')).rejects.toThrow('openai API error (500): Rate limit');
+    await expect(adapter.sendMessage('broken')).rejects.toThrow('openai error (500): Rate limit');
   });
 });

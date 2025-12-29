@@ -22,6 +22,7 @@ describe('Provider capability matrix', () => {
     const capabilities = getProviderCapabilities('openai');
     expect(capabilities.imageGeneration).toEqual({
       supported: true,
+      supportsImageInput: true,
       models: [
         IMAGE_GENERATION_CONSTANTS.MODELS.DALLE3,
         IMAGE_GENERATION_CONSTANTS.MODELS.OPENAI_IMAGE,
@@ -43,6 +44,7 @@ describe('Provider capability matrix', () => {
     expect(capabilities).toEqual({
       imageGeneration: {
         supported: true,
+        supportsImageInput: true,
         models: [
           'gemini-2.5-flash-image',
           'gemini-3-pro-image-preview',
@@ -62,6 +64,7 @@ describe('Provider capability matrix', () => {
     expect(capabilities).toEqual({
       imageGeneration: {
         supported: true,
+        supportsImageInput: false,
         models: ['grok-2-image'],
         // Grok does not support size parameter - generates at fixed size
         sizes: [],

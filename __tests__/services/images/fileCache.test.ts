@@ -3,15 +3,17 @@ jest.mock('expo-file-system', () => ({
   getInfoAsync: jest.fn(),
   makeDirectoryAsync: jest.fn(),
   writeAsStringAsync: jest.fn(),
+  readAsStringAsync: jest.fn(),
   EncodingType: { Base64: 'base64' },
 }));
 
 import * as FileSystem from 'expo-file-system';
-import { saveBase64Image } from '@/services/images/fileCache';
+import { saveBase64Image, loadBase64FromFileUri } from '@/services/images/fileCache';
 
 const mockGetInfoAsync = FileSystem.getInfoAsync as jest.Mock;
 const mockMakeDirectoryAsync = FileSystem.makeDirectoryAsync as jest.Mock;
 const mockWriteAsStringAsync = FileSystem.writeAsStringAsync as jest.Mock;
+const mockReadAsStringAsync = FileSystem.readAsStringAsync as jest.Mock;
 
 describe('fileCache.saveBase64Image', () => {
   beforeEach(() => {
@@ -58,5 +60,87 @@ describe('fileCache.saveBase64Image', () => {
 
     expect(mockWriteAsStringAsync).toHaveBeenCalled();
     expect(path).toContain('/cache/images/');
+  });
+});
+
+describe('fileCache.loadBase64FromFileUri', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockGetInfoAsync.mockResolvedValue({ exists: true });
+    mockReadAsStringAsync.mockResolvedValue('aGVsbG8gd29ybGQ=');
+  });
+
+  it('extracts base64 from data URI directly', async () => {
+    const dataUri = 'data:image/png;base64,aGVsbG8gd29ybGQ=';
+
+    const result = await loadBase64FromFileUri(dataUri);
+
+    expect(result).toBe('aGVsbG8gd29ybGQ=');
+    expect(mockGetInfoAsync).not.toHaveBeenCalled();
+    expect(mockReadAsStringAsync).not.toHaveBeenCalled();
+  });
+
+  it('returns null for malformed data URI', async () => {
+    const badDataUri = 'data:image/png,notbase64';
+
+    const result = await loadBase64FromFileUri(badDataUri);
+
+    expect(result).toBeNull();
+  });
+
+  it('reads file and returns base64 for file URI', async () => {
+    const fileUri = '/cache/images/test.png';
+    mockGetInfoAsync.mockResolvedValueOnce({ exists: true });
+    mockReadAsStringAsync.mockResolvedValueOnce('YmFzZTY0ZGF0YQ==');
+
+    const result = await loadBase64FromFileUri(fileUri);
+
+    expect(mockGetInfoAsync).toHaveBeenCalledWith(fileUri);
+    expect(mockReadAsStringAsync).toHaveBeenCalledWith(fileUri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    expect(result).toBe('YmFzZTY0ZGF0YQ==');
+  });
+
+  it('returns null when file does not exist', async () => {
+    const fileUri = '/cache/images/nonexistent.png';
+    mockGetInfoAsync.mockResolvedValueOnce({ exists: false });
+
+    const result = await loadBase64FromFileUri(fileUri);
+
+    expect(result).toBeNull();
+    expect(mockReadAsStringAsync).not.toHaveBeenCalled();
+  });
+
+  it('returns null and logs warning when read fails', async () => {
+    const fileUri = '/cache/images/test.png';
+    mockGetInfoAsync.mockResolvedValueOnce({ exists: true });
+    mockReadAsStringAsync.mockRejectedValueOnce(new Error('Read error'));
+
+    const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+    const result = await loadBase64FromFileUri(fileUri);
+
+    expect(result).toBeNull();
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      '[fileCache] Failed to load base64 from file:',
+      expect.any(Error)
+    );
+
+    consoleWarnSpy.mockRestore();
+  });
+
+  it('returns null and logs warning when getInfoAsync fails', async () => {
+    const fileUri = '/cache/images/test.png';
+    mockGetInfoAsync.mockRejectedValueOnce(new Error('Info error'));
+
+    const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+    const result = await loadBase64FromFileUri(fileUri);
+
+    expect(result).toBeNull();
+    expect(consoleWarnSpy).toHaveBeenCalled();
+
+    consoleWarnSpy.mockRestore();
   });
 });

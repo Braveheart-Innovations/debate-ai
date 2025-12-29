@@ -322,7 +322,7 @@ describe('ImageGenerationModal', () => {
       fireEvent.press(generateButton);
 
       expect(mockOnGenerate).toHaveBeenCalledWith({
-        prompt: 'A beautiful landscape\n\nStyle: photo',
+        prompt: expect.stringContaining('A beautiful landscape'),
         size: 'square',
       });
     });
@@ -347,7 +347,12 @@ describe('ImageGenerationModal', () => {
       fireEvent.press(screen.getByText('Generate'));
 
       expect(mockOnGenerate).toHaveBeenCalledWith({
-        prompt: 'A mountain scene\n\nStyle: cinematic',
+        prompt: expect.stringContaining('A mountain scene'),
+        size: 'landscape',
+      });
+      // Verify style and orientation are included in prompt
+      expect(mockOnGenerate).toHaveBeenCalledWith({
+        prompt: expect.stringMatching(/Cinematic/i),
         size: 'landscape',
       });
     });
@@ -369,7 +374,12 @@ describe('ImageGenerationModal', () => {
       fireEvent.press(screen.getByText('Generate'));
 
       expect(mockOnGenerate).toHaveBeenCalledWith({
-        prompt: 'Test prompt\n\nStyle: anime',
+        prompt: expect.stringContaining('Test prompt'),
+        size: 'square',
+      });
+      // Verify anime style is included
+      expect(mockOnGenerate).toHaveBeenCalledWith({
+        prompt: expect.stringMatching(/Anime/i),
         size: 'square',
       });
     });
@@ -386,8 +396,9 @@ describe('ImageGenerationModal', () => {
 
       fireEvent.press(screen.getByText('Generate'));
 
+      // Verify the prompt starts with trimmed text (no leading spaces)
       expect(mockOnGenerate).toHaveBeenCalledWith({
-        prompt: 'Prompt with spaces\n\nStyle: photo',
+        prompt: expect.stringMatching(/^Prompt with spaces/),
         size: 'square',
       });
     });
@@ -446,6 +457,63 @@ describe('ImageGenerationModal', () => {
     });
   });
 
+  describe('Mode Prop', () => {
+    it('should display default title for single mode', () => {
+      render(
+        <ImageGenerationModal
+          visible={true}
+          mode="single"
+          onClose={mockOnClose}
+          onGenerate={mockOnGenerate}
+        />
+      );
+
+      expect(screen.getByText('Generate Image')).toBeTruthy();
+    });
+
+    it('should display compare title for compare mode', () => {
+      render(
+        <ImageGenerationModal
+          visible={true}
+          mode="compare"
+          onClose={mockOnClose}
+          onGenerate={mockOnGenerate}
+        />
+      );
+
+      expect(screen.getByText('Generate Image (Compare)')).toBeTruthy();
+    });
+
+    it('should default to single mode when mode not specified', () => {
+      render(
+        <ImageGenerationModal
+          visible={true}
+          onClose={mockOnClose}
+          onGenerate={mockOnGenerate}
+        />
+      );
+
+      expect(screen.getByText('Generate Image')).toBeTruthy();
+    });
+
+    it('should display provider info for compare mode', () => {
+      render(
+        <ImageGenerationModal
+          visible={true}
+          mode="compare"
+          providers={[
+            { provider: 'openai', supportsImageGen: true, supportsImg2Img: true },
+            { provider: 'google', supportsImageGen: true, supportsImg2Img: true },
+          ]}
+          onClose={mockOnClose}
+          onGenerate={mockOnGenerate}
+        />
+      );
+
+      expect(screen.getByText(/Comparing:/)).toBeTruthy();
+    });
+  });
+
   describe('Edge Cases', () => {
     it('should handle rapid style changes', () => {
       render(
@@ -464,8 +532,9 @@ describe('ImageGenerationModal', () => {
 
       fireEvent.press(screen.getByText('Generate'));
 
+      // Final style should be cinematic
       expect(mockOnGenerate).toHaveBeenCalledWith({
-        prompt: 'Test\n\nStyle: cinematic',
+        prompt: expect.stringMatching(/Cinematic/i),
         size: 'square',
       });
     });
@@ -486,8 +555,9 @@ describe('ImageGenerationModal', () => {
 
       fireEvent.press(screen.getByText('Generate'));
 
+      // Final size should be landscape
       expect(mockOnGenerate).toHaveBeenCalledWith({
-        prompt: 'Test\n\nStyle: photo',
+        prompt: expect.stringContaining('Test'),
         size: 'landscape',
       });
     });

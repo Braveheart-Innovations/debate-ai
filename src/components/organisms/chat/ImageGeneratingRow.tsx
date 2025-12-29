@@ -49,9 +49,12 @@ export const ImageGeneratingRow: React.FC<ImageGeneratingRowProps> = ({ message,
   });
 
   const dots = '.'.repeat(dotStep);
-  const meta = message.metadata as { providerMetadata?: { imageStartTime?: number; imagePhase?: string } } | undefined;
+  const meta = message.metadata as { providerMetadata?: { imageStartTime?: number; imagePhase?: string; iterationNumber?: number; totalIterations?: number } } | undefined;
   const startedAt = meta?.providerMetadata?.imageStartTime || message.timestamp;
   const elapsedSec = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+  const iterationNumber = meta?.providerMetadata?.iterationNumber;
+  const totalIterations = meta?.providerMetadata?.totalIterations;
+  const isRoundRobin = totalIterations && totalIterations > 1;
   const phase = (() => {
     if (meta?.providerMetadata?.imagePhase === 'error') return 'Error';
     if (meta?.providerMetadata?.imagePhase === 'cancelled') return 'Cancelled';
@@ -102,7 +105,14 @@ export const ImageGeneratingRow: React.FC<ImageGeneratingRowProps> = ({ message,
         )}
       </View>
       <Box style={[styles.metaRow, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}>
-        <Typography variant="caption" color="secondary">{phase} • {elapsedSec}s {dots}</Typography>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Typography variant="caption" color="secondary">{phase} • {elapsedSec}s {dots}</Typography>
+          {isRoundRobin && (
+            <Typography variant="caption" color="secondary" style={{ opacity: 0.7 }}>
+              (Iteration {iterationNumber}/{totalIterations})
+            </Typography>
+          )}
+        </View>
         <Box style={{ flexDirection: 'row' }}>
           <View style={{ paddingHorizontal: 8 }}>
             <Typography variant="caption" color="secondary"> </Typography>

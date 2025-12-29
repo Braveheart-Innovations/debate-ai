@@ -25,7 +25,6 @@ const MultimodalOptionsRow: React.FC<MultimodalOptionsRowProps> = ({ availabilit
   const { theme } = useTheme();
   const { width } = useWindowDimensions();
   const compact = width < 360;
-  const showReasons = width >= 420;
 
   const items = useMemo(() => ([
     { key: 'imageUpload' as const, icon: 'image-outline' as const, label: 'Image', enabled: availability.imageUpload },
@@ -59,13 +58,6 @@ const MultimodalOptionsRow: React.FC<MultimodalOptionsRowProps> = ({ availabilit
             {!compact && (
               <Typography variant="caption" color={item.enabled ? 'primary' : 'secondary'}>
                 {item.label}
-              </Typography>
-            )}
-            {!compact && showReasons && !item.enabled && availabilityReasons?.[item.key] && (
-              <Typography variant="caption" color="secondary" style={styles.reason}>
-                {(availabilityReasons[item.key] as string).length > 22
-                  ? `${(availabilityReasons[item.key] as string).slice(0, 22)}…`
-                  : availabilityReasons[item.key]}
               </Typography>
             )}
           </View>
@@ -102,7 +94,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  reason: { maxWidth: 64, textAlign: 'center' },
   close: {
     width: 32,
     height: 32,

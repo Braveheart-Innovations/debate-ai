@@ -8,7 +8,7 @@ import { VideoMessageRow } from './VideoMessageRow';
 import { ImageGeneratingRow } from './ImageGeneratingRow';
 import { useTheme } from '../../../theme';
 import { useResponsive } from '../../../hooks/useResponsive';
-import { Message } from '../../../types';
+import { Message, AIProvider } from '../../../types';
 
 export interface ChatMessageListProps {
   messages: Message[];
@@ -18,6 +18,10 @@ export interface ChatMessageListProps {
   onScrollToSearchResult?: (messageIndex: number) => void;
   onCancelImage?: (message: Message) => void;
   onRetryImage?: (message: Message) => void;
+  /** Whether any provider supports image refinement (img2img) */
+  canRefineImages?: boolean;
+  /** Called when user taps Refine on an image */
+  onRefineImage?: (imageUri: string, originalPrompt: string, originalProvider: AIProvider, messageId?: string) => void;
 }
 
 export const ChatMessageList: React.FC<ChatMessageListProps> = ({
@@ -28,6 +32,8 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
   onScrollToSearchResult,
   onCancelImage,
   onRetryImage,
+  canRefineImages,
+  onRefineImage,
 }) => {
   const { theme } = useTheme();
   const { responsive, rs } = useResponsive();
@@ -73,7 +79,7 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
     const hasImageOnly = (item.attachments && item.attachments.length > 0 && item.attachments.some(a => a.type === 'image')) && (!item.content || item.content.trim() === '');
     const hasVideoOnly = (item.attachments && item.attachments.length > 0 && item.attachments.some(a => a.type === 'video')) && (!item.content || item.content.trim() === '');
     if (!isUserMessage(item) && hasImageOnly) {
-      return <ImageMessageRow message={item} />;
+      return <ImageMessageRow message={item} canRefine={canRefineImages} onRefine={onRefineImage} />;
     }
     if (!isUserMessage(item) && hasVideoOnly) {
       return <VideoMessageRow message={item} />;

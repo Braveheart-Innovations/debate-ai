@@ -139,7 +139,7 @@ describe('GeminiAdapter sendMessage', () => {
 
     const adapter = new GeminiAdapter(baseConfig);
 
-    await expect(adapter.sendMessage('fail please')).rejects.toThrow('Gemini API error (503): Unavailable');
+    await expect(adapter.sendMessage('fail please')).rejects.toThrow('Gemini error (503): Unavailable');
   });
 });
 

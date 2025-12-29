@@ -169,7 +169,7 @@ describe('ChatGPTAdapter', () => {
     } as unknown as Response);
     const adapter = new ChatGPTAdapter(baseConfig);
 
-    await expect(adapter.sendMessage('Hello')).rejects.toThrow('OpenAI API error (429): Too many requests');
+    await expect(adapter.sendMessage('Hello')).rejects.toThrow('OpenAI error (429): Too many requests');
   });
 
   it('streams SSE deltas and completion events', async () => {
