@@ -24,9 +24,8 @@ describe('Provider capability matrix', () => {
       supported: true,
       supportsImageInput: true,
       models: [
-        IMAGE_GENERATION_CONSTANTS.MODELS.DALLE3,
         IMAGE_GENERATION_CONSTANTS.MODELS.OPENAI_IMAGE,
-        IMAGE_GENERATION_CONSTANTS.MODELS.DALLE2,
+        IMAGE_GENERATION_CONSTANTS.MODELS.DALLE3,
       ],
       sizes: [
         IMAGE_GENERATION_CONSTANTS.SIZES.AUTO,
@@ -65,7 +64,7 @@ describe('Provider capability matrix', () => {
       imageGeneration: {
         supported: true,
         supportsImageInput: false,
-        models: ['grok-2-image'],
+        models: ['grok-2-image-1212'],
         // Grok does not support size parameter - generates at fixed size
         sizes: [],
         maxPromptLength: 4000,

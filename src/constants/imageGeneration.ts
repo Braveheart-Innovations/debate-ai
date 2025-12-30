@@ -12,7 +12,6 @@ export const IMAGE_GENERATION_CONSTANTS = {
   MODELS: {
     OPENAI_IMAGE: 'gpt-image-1',
     DALLE3: 'dall-e-3',
-    DALLE2: 'dall-e-2',
   },
 } as const;
 

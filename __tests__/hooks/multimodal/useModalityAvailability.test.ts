@@ -354,7 +354,7 @@ describe('useModalityAvailability', () => {
       const result = useImageGenerationAvailability(
         [
           { provider: 'openai', model: 'gpt-4o' },
-          { provider: 'grok', model: 'grok-2-image' },
+          { provider: 'grok', model: 'grok-2-image-1212' },
         ],
         'chat'
       );
@@ -378,7 +378,7 @@ describe('useModalityAvailability', () => {
       const result = useImageGenerationAvailability(
         [
           { provider: 'openai', model: 'gpt-4o' },
-          { provider: 'grok', model: 'grok-2-image' },
+          { provider: 'grok', model: 'grok-2-image-1212' },
         ],
         'compare'
       );

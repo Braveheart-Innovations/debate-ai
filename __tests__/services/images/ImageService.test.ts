@@ -155,8 +155,8 @@ describe('ImageService', () => {
         headers: expect.objectContaining({ Authorization: 'Bearer grok-key' }),
       }));
       const body = JSON.parse((mockedFetch.mock.calls[0][1] as RequestInit).body as string);
-      // Grok uses grok-2-image model and does NOT include size parameter
-      expect(body).toMatchObject({ model: 'grok-2-image', prompt: 'a dog' });
+      // Grok uses grok-2-image-1212 model and does NOT include size parameter
+      expect(body).toMatchObject({ model: 'grok-2-image-1212', prompt: 'a dog' });
       expect(body.size).toBeUndefined(); // Size is NOT supported by Grok
       expect(result).toEqual([{ url: 'https://grok.x.ai/image.png', mimeType: 'image/png' }]);
     });

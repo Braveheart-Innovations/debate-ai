@@ -10,15 +10,7 @@ jest.mock('expo-blur', () => ({
   },
 }));
 
-jest.mock('@expo/vector-icons', () => ({
-  Ionicons: ({ name }: { name: string }) => {
-    const { Text } = require('react-native');
-    return <Text testID={`icon-${name}`}>{name}</Text>;
-  },
-}));
-
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
   const { Text, View, TouchableOpacity } = require('react-native');
   return {
     Typography: ({ children }: { children: React.ReactNode }) => <Text>{children}</Text>,
@@ -44,7 +36,6 @@ describe('ImageRefinementModal', () => {
   const defaultProps = {
     visible: true,
     imageUri: 'https://example.com/image.jpg',
-    originalPrompt: 'A beautiful sunset over the ocean',
     originalProvider: 'openai' as const,
     availableProviders: mockProviders,
     onClose: jest.fn(),
@@ -59,11 +50,6 @@ describe('ImageRefinementModal', () => {
     const { getAllByText } = renderWithProviders(<ImageRefinementModal {...defaultProps} />);
     // Both header and button have "Refine Image" text
     expect(getAllByText('Refine Image').length).toBeGreaterThanOrEqual(1);
-  });
-
-  it('renders original prompt (truncated if long)', () => {
-    const { getByText } = renderWithProviders(<ImageRefinementModal {...defaultProps} />);
-    expect(getByText(/Original: "A beautiful sunset/)).toBeTruthy();
   });
 
   it('renders text input for instructions', () => {
@@ -99,29 +85,25 @@ describe('ImageRefinementModal', () => {
   });
 
   describe('Provider Selection', () => {
-    it('renders all available providers', () => {
-      const { getByText } = renderWithProviders(<ImageRefinementModal {...defaultProps} />);
-      // Original provider (openai) has "(same)" appended, so use regex
-      expect(getByText(/ChatGPT \(DALL-E\)/)).toBeTruthy();
+    it('renders only eligible providers as chips', () => {
+      const { getByText, queryByText } = renderWithProviders(<ImageRefinementModal {...defaultProps} />);
+      // Only providers with supportsImg2Img=true and hasApiKey=true should appear
+      expect(getByText('ChatGPT (DALL-E)')).toBeTruthy();
       expect(getByText('Gemini')).toBeTruthy();
-      expect(getByText('Grok')).toBeTruthy();
-      expect(getByText('Claude')).toBeTruthy();
+      // Ineligible providers should not appear
+      expect(queryByText('Grok')).toBeNull();
+      expect(queryByText('Claude')).toBeNull();
     });
 
-    it('shows "(same)" indicator for original provider', () => {
-      const { getByText } = renderWithProviders(<ImageRefinementModal {...defaultProps} />);
-      expect(getByText(/ChatGPT \(DALL-E\).*\(same\)/)).toBeTruthy();
-    });
-
-    it('shows "No API key configured" for providers without keys', () => {
-      const { getByText } = renderWithProviders(<ImageRefinementModal {...defaultProps} />);
-      expect(getByText('No API key configured')).toBeTruthy();
-    });
-
-    it('shows "Does not support image editing" for non-img2img providers', () => {
-      const { getAllByText } = renderWithProviders(<ImageRefinementModal {...defaultProps} />);
-      const messages = getAllByText('Does not support image editing');
-      expect(messages.length).toBeGreaterThan(0);
+    it('hides provider selection when only one eligible provider', () => {
+      const singleProviderList: RefinementProvider[] = [
+        { provider: 'openai', name: 'ChatGPT (DALL-E)', supportsImg2Img: true, hasApiKey: true },
+        { provider: 'grok', name: 'Grok', supportsImg2Img: false, hasApiKey: true },
+      ];
+      const props = { ...defaultProps, availableProviders: singleProviderList };
+      const { queryByText } = renderWithProviders(<ImageRefinementModal {...props} />);
+      // Provider section label should not appear when only one eligible
+      expect(queryByText('Generate with')).toBeNull();
     });
 
     it('auto-selects first eligible provider if original is not eligible', () => {
@@ -222,7 +204,7 @@ describe('ImageRefinementModal', () => {
         availableProviders: noEligibleProviders,
       };
 
-      const { getAllByText, getByPlaceholderText } = renderWithProviders(<ImageRefinementModal {...props} />);
+      const { getAllByText } = renderWithProviders(<ImageRefinementModal {...props} />);
 
       // Should still render
       expect(getAllByText('Refine Image').length).toBeGreaterThanOrEqual(1);

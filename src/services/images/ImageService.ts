@@ -100,24 +100,22 @@ export class ImageService {
       throw new Error('sourceImage is required for img2img');
     }
 
-    // Convert base64 to Blob for FormData
+    // Save base64 to a file, then use file URI in FormData (React Native approach)
     const base64Data = sourceImage.includes(',') ? sourceImage.split(',')[1] : sourceImage;
+    const fileUri = await saveBase64Image(base64Data, 'image/png');
 
-    console.warn('[ImageService] OpenAI img2img via /v1/images/edits, sourceImage length:', base64Data.length);
+    console.warn('[ImageService] OpenAI img2img via /v1/images/edits, file:', fileUri);
 
-    const byteCharacters = atob(base64Data);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
-    }
-    const byteArray = new Uint8Array(byteNumbers);
-    const imageBlob = new Blob([byteArray], { type: 'image/png' });
-
+    // React Native FormData accepts file URIs with this object format
     const formData = new FormData();
     formData.append('model', 'gpt-image-1');
     formData.append('prompt', prompt);
     formData.append('n', String(n));
-    formData.append('image', imageBlob, 'image.png');
+    formData.append('image', {
+      uri: fileUri,
+      type: 'image/png',
+      name: 'image.png',
+    } as unknown as Blob);
 
     const res = await fetch('https://api.openai.com/v1/images/edits', {
       method: 'POST',
@@ -142,8 +140,8 @@ export class ImageService {
     const results: GeneratedImage[] = [];
     for (const item of (data.data || [])) {
       if (item.b64_json) {
-        const fileUri = await saveBase64Image(item.b64_json, 'image/png');
-        results.push({ url: fileUri, b64: item.b64_json, mimeType: 'image/png' });
+        const resultFileUri = await saveBase64Image(item.b64_json, 'image/png');
+        results.push({ url: resultFileUri, b64: item.b64_json, mimeType: 'image/png' });
       } else if (item.url) {
         results.push({ url: item.url, mimeType: 'image/png' });
       }
@@ -158,7 +156,7 @@ export class ImageService {
   private static async generateGrok(opts: GenerateImageOptions): Promise<GeneratedImage[]> {
     const { apiKey, prompt, n = 1, signal } = opts;
     const body: Record<string, unknown> = {
-      model: 'grok-2-image',
+      model: 'grok-2-image-1212',
       prompt,
     };
     if (n && n > 1) {

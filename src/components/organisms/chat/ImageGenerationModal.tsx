@@ -5,6 +5,7 @@ import { BlurView } from 'expo-blur';
 import { Box } from '../../atoms';
 import { useTheme } from '../../../theme';
 import { Typography, SheetHeader } from '@/components/molecules';
+import { getImageProviderDisplayName, getDefaultImageModel } from '@/config/imageGenerationModels';
 import type { AIProvider, ImageGenerationMode } from '@/types';
 
 export interface ImageGenerationModalProps {
@@ -20,17 +21,6 @@ export interface ImageGenerationModalProps {
   onGenerate: (opts: { prompt: string; size: 'auto' | 'square' | 'portrait' | 'landscape' }) => void;
 }
 
-/** Get display name for a provider */
-const getProviderDisplayName = (provider: AIProvider): string => {
-  const names: Record<string, string> = {
-    openai: 'DALL-E',
-    grok: 'Grok',
-    google: 'Gemini',
-    claude: 'Claude',
-  };
-  return names[provider] || provider;
-};
-
 /** Check if provider supports size/aspect ratio options */
 const providerSupportsSize = (provider: AIProvider): boolean => {
   // Grok does not support size parameter
@@ -39,13 +29,15 @@ const providerSupportsSize = (provider: AIProvider): boolean => {
 
 /** Get helper text for a provider */
 const getProviderHelperText = (provider: AIProvider): string => {
+  const model = getDefaultImageModel(provider);
+  const modelName = model?.displayName || provider;
   switch (provider) {
     case 'openai':
-      return 'DALL-E supports Square (1024×1024), Portrait (1024×1536), and Landscape (1536×1024).';
+      return `${modelName} supports Square (1024×1024), Portrait (1024×1536), and Landscape (1536×1024).`;
     case 'grok':
-      return 'Grok generates images at a fixed size. Style hints are included in your prompt.';
+      return `${modelName} generates images at a fixed size. Style hints are included in your prompt.`;
     case 'google':
-      return 'Gemini supports various aspect ratios: Square (1:1), Portrait (9:16), and Landscape (16:9).';
+      return `${modelName} supports various aspect ratios: Square (1:1), Portrait (9:16), and Landscape (16:9).`;
     default:
       return 'Select size and style options for your generated image.';
   }
@@ -82,7 +74,7 @@ export const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({
       return 'Generate Image (Compare)';
     }
     if (activeProvider) {
-      return `Generate with ${getProviderDisplayName(activeProvider)}`;
+      return `Generate with ${getImageProviderDisplayName(activeProvider, { includeModel: true })}`;
     }
     return 'Generate Image';
   }, [mode, activeProvider]);
@@ -144,7 +136,7 @@ export const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({
   // Build AI list display for multi-provider modes
   const aiListDisplay = useMemo(() => {
     if (!providers || providers.length <= 1) return null;
-    const names = providers.map(getProviderDisplayName);
+    const names = providers.map(p => getImageProviderDisplayName(p, { includeModel: true }));
     if (isCompareMode) {
       return `Comparing: ${names.join(', ')}`;
     }

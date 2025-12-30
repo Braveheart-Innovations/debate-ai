@@ -8,11 +8,9 @@ import {
   Platform,
   ScrollView,
   Image,
-  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
-import { Ionicons } from '@expo/vector-icons';
 import { Box } from '../../atoms';
 import { useTheme } from '../../../theme';
 import { Typography, SheetHeader } from '@/components/molecules';
@@ -28,7 +26,6 @@ export interface RefinementProvider {
 export interface ImageRefinementModalProps {
   visible: boolean;
   imageUri: string;
-  originalPrompt: string;
   originalProvider: AIProvider;
   availableProviders: RefinementProvider[];
   onClose: () => void;
@@ -50,7 +47,6 @@ const QUICK_SUGGESTIONS = [
 export const ImageRefinementModal: React.FC<ImageRefinementModalProps> = ({
   visible,
   imageUri,
-  originalPrompt,
   originalProvider,
   availableProviders,
   onClose,
@@ -121,13 +117,6 @@ export const ImageRefinementModal: React.FC<ImageRefinementModalProps> = ({
                     />
                   </Box>
 
-                  {/* Original prompt info - strip Image specifications suffix for cleaner display */}
-                  <Box style={styles.section}>
-                    <Typography variant="caption" color="secondary" numberOfLines={2}>
-                      Original: "{originalPrompt.split('\n\nImage specifications:')[0]}"
-                    </Typography>
-                  </Box>
-
                   {/* Instructions input */}
                   <Box style={styles.section}>
                     <Typography variant="body" weight="semibold" color="secondary" style={styles.label}>
@@ -169,69 +158,43 @@ export const ImageRefinementModal: React.FC<ImageRefinementModalProps> = ({
                     </Box>
                   </Box>
 
-                  {/* Provider selection */}
-                  <Box style={styles.section}>
-                    <Typography variant="body" weight="semibold" color="secondary" style={styles.label}>
-                      Generate with
-                    </Typography>
-                    {availableProviders.map(providerInfo => {
-                      const isEligible = providerInfo.supportsImg2Img && providerInfo.hasApiKey;
-                      const isSelected = selectedProvider === providerInfo.provider;
-                      const isSameAsOriginal = providerInfo.provider === originalProvider;
+                  {/* Provider selection - only show eligible providers */}
+                  {eligibleProviders.length > 1 && (
+                    <Box style={styles.section}>
+                      <Typography variant="body" weight="semibold" color="secondary" style={styles.label}>
+                        Generate with
+                      </Typography>
+                      <Box style={styles.providerChips}>
+                        {eligibleProviders.map(providerInfo => {
+                          const isSelected = selectedProvider === providerInfo.provider;
 
-                      return (
-                        <TouchableOpacity
-                          key={providerInfo.provider}
-                          onPress={() => isEligible && setSelectedProvider(providerInfo.provider)}
-                          style={[
-                            styles.providerOption,
-                            {
-                              borderColor: isSelected ? theme.colors.primary[500] : theme.colors.border,
-                              backgroundColor: theme.colors.surface,
-                              borderWidth: isSelected ? 2 : 1,
-                              opacity: isEligible ? 1 : 0.5,
-                            },
-                          ]}
-                          activeOpacity={isEligible ? 0.7 : 1}
-                          disabled={!isEligible}
-                        >
-                          <View style={styles.providerRow}>
-                            <View style={[styles.radioOuter, { borderColor: isSelected ? theme.colors.primary[500] : theme.colors.text.secondary }]}>
-                              {isSelected && <View style={[styles.radioInner, { backgroundColor: theme.colors.primary[500] }]} />}
-                            </View>
-                            <View style={styles.providerInfo}>
+                          return (
+                            <TouchableOpacity
+                              key={providerInfo.provider}
+                              onPress={() => setSelectedProvider(providerInfo.provider)}
+                              style={[
+                                styles.providerChip,
+                                {
+                                  borderColor: isSelected ? theme.colors.primary[500] : theme.colors.border,
+                                  backgroundColor: isSelected ? theme.colors.primary[500] + '20' : theme.colors.surface,
+                                  borderWidth: isSelected ? 2 : 1,
+                                },
+                              ]}
+                              activeOpacity={0.7}
+                            >
                               <Typography
                                 variant="body"
                                 weight={isSelected ? 'semibold' : 'normal'}
-                                style={{ color: isEligible ? theme.colors.text.primary : theme.colors.text.secondary }}
+                                style={{ color: isSelected ? theme.colors.primary[500] : theme.colors.text.primary }}
                               >
                                 {providerInfo.name}
-                                {isSameAsOriginal && ' (same)'}
                               </Typography>
-                              {!providerInfo.hasApiKey && (
-                                <Typography variant="caption" color="secondary">
-                                  No API key configured
-                                </Typography>
-                              )}
-                              {providerInfo.hasApiKey && !providerInfo.supportsImg2Img && (
-                                <Typography variant="caption" color="secondary">
-                                  Does not support image editing
-                                </Typography>
-                              )}
-                            </View>
-                            {isEligible && (
-                              <Ionicons
-                                name="checkmark-circle"
-                                size={18}
-                                color={theme.colors.success?.[500] || '#22c55e'}
-                                style={{ marginLeft: 'auto' }}
-                              />
-                            )}
-                          </View>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </Box>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </Box>
+                    </Box>
+                  )}
                 </ScrollView>
 
                 {/* Action buttons */}
@@ -282,7 +245,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     maxHeight: '90%',
-    minHeight: '60%',
+    minHeight: '80%',
   },
   content: {
     paddingHorizontal: 16,
@@ -322,33 +285,16 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
   },
-  providerOption: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
-  },
-  providerRow: {
+  providerChips: {
     flexDirection: 'row',
-    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
   },
-  radioOuter: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#999',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  radioInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  providerInfo: {
-    flex: 1,
+  providerChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
   },
   actions: {
     flexDirection: 'row',

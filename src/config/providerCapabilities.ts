@@ -25,9 +25,8 @@ export function getProviderCapabilities(provider: AIProvider): ProviderCapabilit
           supported: true,
           supportsImageInput: true,  // gpt-image-1 supports img2img
           models: [
-            IMAGE_GENERATION_CONSTANTS.MODELS.DALLE3,
             IMAGE_GENERATION_CONSTANTS.MODELS.OPENAI_IMAGE,
-            IMAGE_GENERATION_CONSTANTS.MODELS.DALLE2,
+            IMAGE_GENERATION_CONSTANTS.MODELS.DALLE3,
           ],
           sizes: [
             IMAGE_GENERATION_CONSTANTS.SIZES.AUTO,
@@ -62,7 +61,7 @@ export function getProviderCapabilities(provider: AIProvider): ProviderCapabilit
         imageGeneration: {
           supported: true,
           supportsImageInput: false,  // Grok does NOT support img2img
-          models: ['grok-2-image'],
+          models: ['grok-2-image-1212'],
           // Grok does not support size parameter - generates at fixed size
           sizes: [],
           maxPromptLength: 4000,

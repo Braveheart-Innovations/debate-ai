@@ -3,7 +3,7 @@ import { getDecryptedApiKey, encryptionKey } from './apiKeys';
 
 /**
  * Image Generation Proxy
- * Supports OpenAI (DALL-E), Google Gemini, and Grok (xAI)
+ * Supports OpenAI (gpt-image-1), Google Gemini, and Grok (xAI)
  *
  * All styling/sizing is done via natural language in the prompt.
  * This simplifies the API and ensures universal compatibility.
@@ -16,13 +16,13 @@ const IMAGE_PROVIDERS: Record<string, {
   supportsImageInput: boolean;
 }> = {
   openai: {
-    models: ['gpt-image-1', 'dall-e-3', 'dall-e-2'],
+    models: ['gpt-image-1', 'dall-e-3'],
     defaultModel: 'gpt-image-1',
     supportsImageInput: true,
   },
   google: {
-    models: ['gemini-2.0-flash-exp'],
-    defaultModel: 'gemini-2.0-flash-exp',
+    models: ['gemini-2.5-flash-image', 'gemini-3-pro-image-preview'],
+    defaultModel: 'gemini-2.5-flash-image',
     supportsImageInput: true,
   },
   grok: {
@@ -192,7 +192,7 @@ export const proxyImageGeneration = onCall(
 );
 
 /**
- * OpenAI Image Generation (DALL-E)
+ * OpenAI Image Generation (gpt-image-1, dall-e-3)
  * Uses default API settings - all styling is in the prompt
  */
 async function generateOpenAI(
@@ -216,7 +216,7 @@ async function generateOpenAI(
   };
 
   // GPT image models don't support response_format - they always return base64
-  // DALL-E models need response_format to get base64
+  // Legacy models (dall-e-3) need response_format to get base64
   if (!model.startsWith('gpt-image')) {
     body.response_format = 'b64_json';
   }

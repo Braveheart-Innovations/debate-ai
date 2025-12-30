@@ -12,6 +12,7 @@ import { useMergedModalityAvailability, useImageGenerationAvailability } from '.
 import { ImageGenerationModal } from '../components/organisms/chat/ImageGenerationModal';
 import { ImageRefinementModal, RefinementProvider } from '../components/organisms/chat/ImageRefinementModal';
 import { getProviderCapabilities } from '../config/providerCapabilities';
+import { getImageProviderDisplayName } from '../config/imageGenerationModels';
 import { loadBase64FromFileUri } from '../services/images/fileCache';
 // import APIKeyService from '../services/APIKeyService';
 // import VideoService from '../services/videos/VideoService';
@@ -175,7 +176,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
       const hasApiKey = Boolean(apiKeys[provider as keyof typeof apiKeys]);
       return {
         provider,
-        name: provider === 'openai' ? 'ChatGPT (DALL-E)' : provider === 'google' ? 'Gemini' : provider === 'grok' ? 'Grok' : 'Claude',
+        name: getImageProviderDisplayName(provider, { includeModel: true }),
         supportsImg2Img: caps.imageGeneration?.supportsImageInput || false,
         hasApiKey,
       };
@@ -206,7 +207,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
       return;
     }
 
-    const providerName = opts.provider === 'openai' ? 'ChatGPT' : opts.provider === 'google' ? 'Gemini' : opts.provider === 'grok' ? 'Grok' : opts.provider;
+    const providerName = getImageProviderDisplayName(opts.provider);
     const messageId = `msg_${Date.now()}_refine`;
 
     dispatch(addMessage({
@@ -754,7 +755,6 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
           <ImageRefinementModal
             visible={refinementModalVisible}
             imageUri={refinementImageUri}
-            originalPrompt={refinementOriginalPrompt}
             originalProvider={refinementOriginalProvider}
             availableProviders={refinementProviders}
             onClose={() => setRefinementModalVisible(false)}
