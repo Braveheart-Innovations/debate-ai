@@ -1,5 +1,6 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getDecryptedApiKey, encryptionKey } from './apiKeys';
+import { recordUsageInternal } from './usageTracking';
 
 // Provider API endpoints
 const PROVIDER_CONFIGS: Record<string, {
@@ -47,6 +48,21 @@ const PROVIDER_CONFIGS: Record<string, {
 interface Message {
   role: 'user' | 'assistant' | 'system';
   content: string;
+}
+
+interface SearchOptions {
+  enabled: boolean;
+  recencyFilter?: 'hour' | 'day' | 'week' | 'month' | 'year';
+  domainFilter?: string[];
+  domainExclude?: string[];
+}
+
+interface Citation {
+  index: number;
+  url: string;
+  title?: string;
+  snippet?: string;
+  domain?: string;
 }
 
 // Provider display names for user-friendly error messages
@@ -162,6 +178,11 @@ interface ProxyRequest {
   systemPrompt?: string;
   maxTokens?: number;
   temperature?: number;
+  // Usage tracking fields (optional for backwards compatibility)
+  sessionId?: string;
+  sessionType?: 'chat' | 'debate' | 'comparison';
+  // Web search options for providers that support it
+  searchOptions?: SearchOptions;
 }
 
 /**
@@ -185,7 +206,7 @@ export const proxyAIRequest = onCall(
       throw new HttpsError('internal', 'Encryption not configured');
     }
 
-    const { providerId, model, messages, systemPrompt, maxTokens, temperature } = request.data as ProxyRequest;
+    const { providerId, model, messages, systemPrompt, maxTokens, temperature, sessionId, sessionType, searchOptions } = request.data as ProxyRequest;
 
     // Ensure maxTokens and temperature are valid numbers
     const resolvedMaxTokens = typeof maxTokens === 'number' && maxTokens > 0 ? Math.floor(maxTokens) : 2048;
@@ -212,17 +233,47 @@ export const proxyAIRequest = onCall(
     const config = PROVIDER_CONFIGS[providerId];
 
     try {
-      let result: { content: string; usage?: { inputTokens: number; outputTokens: number } };
+      let result: {
+        content: string;
+        usage?: { inputTokens: number; outputTokens: number };
+        citations?: Citation[];
+        searchPerformed?: boolean;
+      };
 
       if (providerId === 'claude') {
         result = await callClaude(apiKey, model, messages, systemPrompt, resolvedMaxTokens, resolvedTemperature);
       } else if (providerId === 'google') {
-        result = await callGemini(apiKey, model, messages, systemPrompt, resolvedMaxTokens, resolvedTemperature);
+        result = await callGemini(apiKey, model, messages, systemPrompt, resolvedMaxTokens, resolvedTemperature, searchOptions);
       } else if (providerId === 'cohere') {
         result = await callCohere(apiKey, model, messages, systemPrompt, resolvedMaxTokens, resolvedTemperature);
+      } else if (providerId === 'perplexity') {
+        // Perplexity has built-in web search with citations
+        result = await callPerplexity(apiKey, model, messages, systemPrompt, resolvedMaxTokens, resolvedTemperature, searchOptions);
       } else {
-        // OpenAI-compatible providers
-        result = await callOpenAICompatible(apiKey, config.baseUrl, model, messages, systemPrompt, resolvedMaxTokens, resolvedTemperature, providerId);
+        // OpenAI-compatible providers (OpenAI, Mistral, Together, DeepSeek, Grok)
+        result = await callOpenAICompatible(apiKey, config.baseUrl, model, messages, systemPrompt, resolvedMaxTokens, resolvedTemperature, providerId, searchOptions);
+      }
+
+      // Record usage for tracking (non-blocking)
+      if (result.usage && (result.usage.inputTokens > 0 || result.usage.outputTokens > 0)) {
+        const inputTokens = result.usage.inputTokens || 0;
+        const outputTokens = result.usage.outputTokens || 0;
+        const totalTokens = inputTokens + outputTokens;
+
+        // Fire and forget - don't block the response
+        recordUsageInternal(uid, {
+          messageId: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          sessionId: sessionId || 'unknown',
+          providerId,
+          modelId: model,
+          inputTokens,
+          outputTokens,
+          totalTokens,
+          sessionType: sessionType || 'chat',
+          timestamp: Date.now(),
+        }).catch((err) => {
+          console.error('Failed to record usage:', err);
+        });
       }
 
       return {
@@ -231,6 +282,8 @@ export const proxyAIRequest = onCall(
         usage: result.usage,
         providerId,
         model,
+        citations: result.citations,
+        searchPerformed: result.searchPerformed,
       };
     } catch (error: any) {
       console.error(`Error calling ${providerId}:`, error);
@@ -312,14 +365,24 @@ async function callClaude(
   };
 }
 
+/**
+ * Google Gemini API with optional Google Search grounding
+ * Docs: https://ai.google.dev/gemini-api/docs/grounding
+ */
 async function callGemini(
   apiKey: string,
   model: string,
   messages: Message[],
   systemPrompt: string | undefined,
   maxTokens: number,
-  temperature: number
-) {
+  temperature: number,
+  searchOptions?: SearchOptions
+): Promise<{
+  content: string;
+  usage?: { inputTokens: number; outputTokens: number };
+  citations?: Citation[];
+  searchPerformed?: boolean;
+}> {
   const modelId = model || 'gemini-1.5-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
 
@@ -330,17 +393,27 @@ async function callGemini(
       parts: [{ text: m.content }],
     }));
 
+  // Build request body
+  const requestBody: Record<string, unknown> = {
+    contents,
+    systemInstruction: systemPrompt ? { parts: [{ text: systemPrompt }] } : undefined,
+    generationConfig: {
+      maxOutputTokens: maxTokens,
+      temperature,
+    },
+  };
+
+  // Add Google Search grounding tool when search is enabled
+  if (searchOptions?.enabled) {
+    requestBody.tools = [{
+      google_search: {},
+    }];
+  }
+
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents,
-      systemInstruction: systemPrompt ? { parts: [{ text: systemPrompt }] } : undefined,
-      generationConfig: {
-        maxOutputTokens: maxTokens,
-        temperature,
-      },
-    }),
+    body: JSON.stringify(requestBody),
   });
 
   if (!response.ok) {
@@ -349,12 +422,51 @@ async function callGemini(
   }
 
   const data = await response.json();
+  const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+  // Extract citations from grounding metadata if present
+  let citations: Citation[] | undefined;
+  let searchPerformed = false;
+
+  const groundingMetadata = data.candidates?.[0]?.groundingMetadata;
+  if (groundingMetadata) {
+    searchPerformed = true;
+
+    // Extract grounding chunks (sources used)
+    // Gemini returns vertexaisearch redirect URLs, but includes titles
+    const groundingChunks = groundingMetadata.groundingChunks || [];
+    const extractedCitations: Citation[] = groundingChunks
+      .filter((chunk: { web?: { uri: string; title?: string } }) => chunk.web?.uri)
+      .map((chunk: { web: { uri: string; title?: string } }, index: number) => {
+        const url = chunk.web.uri;
+        const title = chunk.web.title;
+
+        // For Gemini, the URL is a redirect URL through vertexaisearch
+        // Use the title as the domain display since it contains the actual source name
+        // If no title, show "Source N"
+        const domain = title || `Source ${index + 1}`;
+
+        return {
+          index: index + 1,
+          url,
+          title,
+          domain,
+        };
+      });
+
+    if (extractedCitations.length > 0) {
+      citations = extractedCitations;
+    }
+  }
+
   return {
-    content: data.candidates?.[0]?.content?.parts?.[0]?.text || '',
+    content,
     usage: {
       inputTokens: data.usageMetadata?.promptTokenCount || 0,
       outputTokens: data.usageMetadata?.candidatesTokenCount || 0,
     },
+    citations,
+    searchPerformed,
   };
 }
 
@@ -407,6 +519,206 @@ async function callCohere(
   };
 }
 
+/**
+ * Perplexity API with built-in web search and citations
+ * Docs: https://docs.perplexity.ai/api-reference/chat-completions
+ */
+async function callPerplexity(
+  apiKey: string,
+  model: string,
+  messages: Message[],
+  systemPrompt: string | undefined,
+  maxTokens: number,
+  temperature: number,
+  searchOptions?: SearchOptions
+): Promise<{
+  content: string;
+  usage?: { inputTokens: number; outputTokens: number };
+  citations?: Citation[];
+  searchPerformed?: boolean;
+}> {
+  const formattedMessages = [...messages];
+  if (systemPrompt && !messages.some(m => m.role === 'system')) {
+    formattedMessages.unshift({ role: 'system', content: systemPrompt });
+  }
+
+  // Build request body with Perplexity-specific options
+  const requestBody: Record<string, unknown> = {
+    model: model || 'sonar',
+    messages: formattedMessages,
+    max_tokens: maxTokens,
+    temperature,
+    // Always request citations - Perplexity's key feature
+    return_citations: true,
+    return_related_questions: false,
+  };
+
+  // Add search recency filter if specified
+  if (searchOptions?.recencyFilter) {
+    requestBody.search_recency_filter = searchOptions.recencyFilter;
+  }
+
+  // Add domain filters if specified
+  if (searchOptions?.domainFilter && searchOptions.domainFilter.length > 0) {
+    requestBody.search_domain_filter = searchOptions.domainFilter;
+  }
+
+  const response = await fetch('https://api.perplexity.ai/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw { status: response.status, message: error };
+  }
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content || '';
+
+  // Extract citations from Perplexity's response
+  // Perplexity returns citations as an array of URLs in the response
+  const rawCitations: string[] = data.citations || [];
+  const citations: Citation[] = rawCitations.map((url: string, index: number) => {
+    // Extract domain from URL
+    let domain = '';
+    try {
+      domain = new URL(url).hostname.replace(/^www\./, '');
+    } catch {
+      domain = url;
+    }
+
+    return {
+      index: index + 1, // 1-indexed to match [1], [2] in text
+      url,
+      domain,
+    };
+  });
+
+  return {
+    content,
+    usage: {
+      inputTokens: data.usage?.prompt_tokens || 0,
+      outputTokens: data.usage?.completion_tokens || 0,
+    },
+    citations: citations.length > 0 ? citations : undefined,
+    searchPerformed: true, // Perplexity always performs search
+  };
+}
+
+/**
+ * OpenAI Responses API with web search
+ * Docs: https://platform.openai.com/docs/guides/tools-web-search
+ * Note: Web search requires the Responses API, not Chat Completions
+ */
+async function callOpenAIWithSearch(
+  apiKey: string,
+  model: string,
+  messages: Message[],
+  systemPrompt: string | undefined,
+  maxTokens: number,
+  temperature: number
+): Promise<{
+  content: string;
+  usage?: { inputTokens: number; outputTokens: number };
+  citations?: Citation[];
+  searchPerformed?: boolean;
+}> {
+  // Convert messages to a single input string for Responses API
+  // Include system prompt and conversation history
+  let input = '';
+  if (systemPrompt) {
+    input += `System: ${systemPrompt}\n\n`;
+  }
+  for (const msg of messages) {
+    if (msg.role === 'system') continue; // Already added
+    const role = msg.role === 'assistant' ? 'Assistant' : 'User';
+    input += `${role}: ${msg.content}\n\n`;
+  }
+
+  const response = await fetch('https://api.openai.com/v1/responses', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      tools: [{ type: 'web_search' }],
+      input: input.trim(),
+      max_output_tokens: maxTokens,
+      temperature,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw { status: response.status, message: error };
+  }
+
+  const data = await response.json();
+
+  // Extract content from Responses API format
+  // The response has an 'output' array with items
+  let content = '';
+  let citations: Citation[] | undefined;
+  const searchPerformed = true;
+
+  const output = data.output || [];
+  for (const item of output) {
+    if (item.type === 'message' && item.content) {
+      for (const contentItem of item.content) {
+        if (contentItem.type === 'output_text') {
+          content = contentItem.text || '';
+
+          // Extract citations from annotations
+          const annotations = contentItem.annotations || [];
+          const urlCitations = annotations.filter((a: { type: string }) => a.type === 'url_citation');
+
+          if (urlCitations.length > 0) {
+            citations = urlCitations.map((annotation: {
+              url: string;
+              title?: string;
+            }, index: number) => {
+              let domain = '';
+              try {
+                domain = new URL(annotation.url).hostname.replace(/^www\./, '');
+              } catch {
+                domain = annotation.url;
+              }
+
+              return {
+                index: index + 1,
+                url: annotation.url,
+                title: annotation.title,
+                domain,
+              };
+            });
+          }
+        }
+      }
+    }
+  }
+
+  return {
+    content,
+    usage: {
+      inputTokens: data.usage?.input_tokens || 0,
+      outputTokens: data.usage?.output_tokens || 0,
+    },
+    citations: citations && citations.length > 0 ? citations : undefined,
+    searchPerformed,
+  };
+}
+
+/**
+ * OpenAI-compatible API handler for various providers
+ * Supports: OpenAI, Mistral, Together, DeepSeek, Grok
+ */
 async function callOpenAICompatible(
   apiKey: string,
   baseUrl: string,
@@ -415,8 +727,19 @@ async function callOpenAICompatible(
   systemPrompt: string | undefined,
   maxTokens: number,
   temperature: number,
-  providerId: string
-) {
+  providerId: string,
+  searchOptions?: SearchOptions
+): Promise<{
+  content: string;
+  usage?: { inputTokens: number; outputTokens: number };
+  citations?: Citation[];
+  searchPerformed?: boolean;
+}> {
+  // OpenAI with web search uses a different API (Responses API)
+  if (providerId === 'openai' && searchOptions?.enabled) {
+    return callOpenAIWithSearch(apiKey, model, messages, systemPrompt, maxTokens, temperature);
+  }
+
   const formattedMessages = [...messages];
   if (systemPrompt && !messages.some(m => m.role === 'system')) {
     formattedMessages.unshift({ role: 'system', content: systemPrompt });
@@ -427,18 +750,21 @@ async function callOpenAICompatible(
   const isOpenAI = providerId === 'openai';
   const tokenParam = isOpenAI ? { max_completion_tokens: maxTokens } : { max_tokens: maxTokens };
 
+  // Build base request body
+  const requestBody: Record<string, unknown> = {
+    model,
+    messages: formattedMessages,
+    ...tokenParam,
+    temperature,
+  };
+
   const response = await fetch(baseUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({
-      model,
-      messages: formattedMessages,
-      ...tokenParam,
-      temperature,
-    }),
+    body: JSON.stringify(requestBody),
   });
 
   if (!response.ok) {
