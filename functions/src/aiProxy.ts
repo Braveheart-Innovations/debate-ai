@@ -65,6 +65,56 @@ interface Citation {
   domain?: string;
 }
 
+interface MessageAttachment {
+  type: 'image' | 'document';
+  uri: string;           // Data URL (data:image/jpeg;base64,...)
+  mimeType: string;
+  base64?: string;       // Pure base64 data
+  fileName?: string;
+  fileSize?: number;
+}
+
+/**
+ * Extract base64 data from attachment
+ * Prefers the base64 field, falls back to extracting from uri
+ */
+function getBase64Data(attachment: MessageAttachment): string {
+  if (attachment.base64) {
+    return attachment.base64;
+  }
+  // Extract base64 from data URL (data:image/jpeg;base64,xxxxx)
+  const base64Index = attachment.uri.indexOf('base64,');
+  if (base64Index >= 0) {
+    return attachment.uri.slice(base64Index + 7);
+  }
+  return '';
+}
+
+/**
+ * Format file size for display (e.g., "1.5 MB")
+ */
+function formatFileSize(bytes?: number): string {
+  if (!bytes) return '';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/**
+ * Create fallback text description for attachments when model doesn't support vision
+ */
+function createAttachmentFallbackText(attachments?: MessageAttachment[]): string {
+  if (!attachments || attachments.length === 0) return '';
+
+  const descriptions = attachments.map((att, idx) => {
+    const name = att.fileName ? att.fileName : `${att.type} ${idx + 1}`;
+    const size = att.fileSize ? ` (${formatFileSize(att.fileSize)})` : '';
+    return `[User attached ${att.type}: ${name}${size}]`;
+  });
+
+  return descriptions.join('\n');
+}
+
 // Provider display names for user-friendly error messages
 const PROVIDER_NAMES: Record<string, string> = {
   claude: 'Claude',
@@ -183,6 +233,8 @@ interface ProxyRequest {
   sessionType?: 'chat' | 'debate' | 'comparison';
   // Web search options for providers that support it
   searchOptions?: SearchOptions;
+  // Image/document attachments
+  attachments?: MessageAttachment[];
 }
 
 /**
@@ -192,7 +244,7 @@ interface ProxyRequest {
 export const proxyAIRequest = onCall(
   {
     timeoutSeconds: 300,  // 5 minutes for long responses
-    memory: '256MiB',
+    memory: '512MiB',     // Increased for base64 image processing
     secrets: [encryptionKey],
   },
   async (request) => {
@@ -206,7 +258,7 @@ export const proxyAIRequest = onCall(
       throw new HttpsError('internal', 'Encryption not configured');
     }
 
-    const { providerId, model, messages, systemPrompt, maxTokens, temperature, sessionId, sessionType, searchOptions } = request.data as ProxyRequest;
+    const { providerId, model, messages, systemPrompt, maxTokens, temperature, sessionId, sessionType, searchOptions, attachments } = request.data as ProxyRequest;
 
     // Ensure maxTokens and temperature are valid numbers
     const resolvedMaxTokens = typeof maxTokens === 'number' && maxTokens > 0 ? Math.floor(maxTokens) : 2048;
@@ -241,17 +293,17 @@ export const proxyAIRequest = onCall(
       };
 
       if (providerId === 'claude') {
-        result = await callClaude(apiKey, model, messages, systemPrompt, resolvedMaxTokens, resolvedTemperature);
+        result = await callClaude(apiKey, model, messages, systemPrompt, resolvedMaxTokens, resolvedTemperature, attachments);
       } else if (providerId === 'google') {
-        result = await callGemini(apiKey, model, messages, systemPrompt, resolvedMaxTokens, resolvedTemperature, searchOptions);
+        result = await callGemini(apiKey, model, messages, systemPrompt, resolvedMaxTokens, resolvedTemperature, searchOptions, attachments);
       } else if (providerId === 'cohere') {
-        result = await callCohere(apiKey, model, messages, systemPrompt, resolvedMaxTokens, resolvedTemperature);
+        result = await callCohere(apiKey, model, messages, systemPrompt, resolvedMaxTokens, resolvedTemperature, attachments);
       } else if (providerId === 'perplexity') {
         // Perplexity has built-in web search with citations
-        result = await callPerplexity(apiKey, model, messages, systemPrompt, resolvedMaxTokens, resolvedTemperature, searchOptions);
+        result = await callPerplexity(apiKey, model, messages, systemPrompt, resolvedMaxTokens, resolvedTemperature, searchOptions, attachments);
       } else {
         // OpenAI-compatible providers (OpenAI, Mistral, Together, DeepSeek, Grok)
-        result = await callOpenAICompatible(apiKey, config.baseUrl, model, messages, systemPrompt, resolvedMaxTokens, resolvedTemperature, providerId, searchOptions);
+        result = await callOpenAICompatible(apiKey, config.baseUrl, model, messages, systemPrompt, resolvedMaxTokens, resolvedTemperature, providerId, searchOptions, attachments);
       }
 
       // Record usage for tracking (non-blocking)
@@ -325,14 +377,67 @@ async function callClaude(
   messages: Message[],
   systemPrompt: string | undefined,
   maxTokens: number,
-  temperature: number
+  temperature: number,
+  attachments?: MessageAttachment[]
 ) {
+  // Build messages, adding attachments to the last user message if present
   const anthropicMessages = messages
     .filter(m => m.role !== 'system')
-    .map(m => ({
-      role: m.role as 'user' | 'assistant',
-      content: m.content,
-    }));
+    .map((m, idx, arr) => {
+      const isLastUserMessage = m.role === 'user' && idx === arr.length - 1;
+
+      // If this is the last user message and we have attachments, create multi-part content
+      if (isLastUserMessage && attachments && attachments.length > 0) {
+        // Claude supports both images and documents (PDFs)
+        // All claude-3-* and claude-sonnet-4-* models support vision
+        type ContentPart =
+          | { type: 'text'; text: string }
+          | { type: 'image'; source: { type: 'base64'; media_type: string; data: string } }
+          | { type: 'document'; source: { type: 'base64'; media_type: string; data: string } };
+
+        const contentParts: ContentPart[] = [];
+
+        // Add attachments first
+        for (const att of attachments) {
+          const base64 = getBase64Data(att);
+          if (!base64) continue;
+
+          if (att.type === 'image') {
+            contentParts.push({
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: att.mimeType || 'image/jpeg',
+                data: base64,
+              },
+            });
+          } else if (att.type === 'document') {
+            contentParts.push({
+              type: 'document',
+              source: {
+                type: 'base64',
+                media_type: att.mimeType || 'application/pdf',
+                data: base64,
+              },
+            });
+          }
+        }
+
+        // Add the text content
+        contentParts.push({ type: 'text', text: m.content });
+
+        return {
+          role: m.role as 'user' | 'assistant',
+          content: contentParts,
+        };
+      }
+
+      // Regular text-only message
+      return {
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      };
+    });
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -376,7 +481,8 @@ async function callGemini(
   systemPrompt: string | undefined,
   maxTokens: number,
   temperature: number,
-  searchOptions?: SearchOptions
+  searchOptions?: SearchOptions,
+  attachments?: MessageAttachment[]
 ): Promise<{
   content: string;
   usage?: { inputTokens: number; outputTokens: number };
@@ -386,12 +492,49 @@ async function callGemini(
   const modelId = model || 'gemini-1.5-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
 
+  // Build contents with attachments in the last user message
   const contents = messages
     .filter(m => m.role !== 'system')
-    .map(m => ({
-      role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: m.content }],
-    }));
+    .map((m, idx, arr) => {
+      const isLastUserMessage = m.role === 'user' && idx === arr.length - 1;
+
+      // If this is the last user message and we have attachments, create multi-part content
+      if (isLastUserMessage && attachments && attachments.length > 0) {
+        type GeminiPart =
+          | { text: string }
+          | { inline_data: { mime_type: string; data: string } };
+
+        const parts: GeminiPart[] = [];
+
+        // Add attachments first (images and documents)
+        // Gemini 1.5+ supports both images and PDFs
+        for (const att of attachments) {
+          const base64 = getBase64Data(att);
+          if (!base64) continue;
+
+          parts.push({
+            inline_data: {
+              mime_type: att.mimeType || (att.type === 'image' ? 'image/jpeg' : 'application/pdf'),
+              data: base64,
+            },
+          });
+        }
+
+        // Add the text content
+        parts.push({ text: m.content });
+
+        return {
+          role: 'user',
+          parts,
+        };
+      }
+
+      // Regular text-only message
+      return {
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }],
+      };
+    });
 
   // Build request body
   const requestBody: Record<string, unknown> = {
@@ -476,19 +619,77 @@ async function callCohere(
   messages: Message[],
   systemPrompt: string | undefined,
   maxTokens: number,
-  temperature: number
+  temperature: number,
+  attachments?: MessageAttachment[]
 ) {
-  const chatHistory = messages
-    .filter(m => m.role !== 'system')
-    .slice(0, -1)
-    .map(m => ({
-      role: m.role === 'assistant' ? 'CHATBOT' : 'USER',
-      message: m.content,
-    }));
+  const supportsVision = modelSupportsVision('cohere', model);
 
-  const lastMessage = messages[messages.length - 1];
+  // Cohere v2 Chat API with vision support
+  // Format: { type: "image", url: "data:..." } or { type: "text", text: "..." }
+  type CohereContentPart =
+    | { type: 'text'; text: string }
+    | { type: 'image'; url: string };
 
-  const response = await fetch('https://api.cohere.ai/v1/chat', {
+  type CohereMessage = {
+    role: 'user' | 'assistant' | 'system';
+    content: string | CohereContentPart[];
+  };
+
+  const formattedMessages: CohereMessage[] = messages.map((m, idx, arr) => {
+    const isLastUserMessage = m.role === 'user' && idx === arr.length - 1;
+
+    // If this is the last user message and we have attachments
+    if (isLastUserMessage && supportsVision && attachments && attachments.length > 0) {
+      const imageAttachments = attachments.filter(att => att.type === 'image');
+      const documentAttachments = attachments.filter(att => att.type === 'document');
+
+      if (imageAttachments.length > 0 || documentAttachments.length > 0) {
+        const contentParts: CohereContentPart[] = [];
+
+        // Add images
+        for (const att of imageAttachments) {
+          const base64 = getBase64Data(att);
+          if (!base64) continue;
+
+          contentParts.push({
+            type: 'image',
+            url: `data:${att.mimeType || 'image/jpeg'};base64,${base64}`,
+          });
+        }
+
+        // Add documents (Command A Vision supports PDFs as images)
+        for (const att of documentAttachments) {
+          const base64 = getBase64Data(att);
+          if (!base64) continue;
+
+          contentParts.push({
+            type: 'image',
+            url: `data:${att.mimeType || 'application/pdf'};base64,${base64}`,
+          });
+        }
+
+        // Add text content
+        contentParts.push({ type: 'text', text: m.content });
+
+        return {
+          role: m.role as 'user' | 'assistant' | 'system',
+          content: contentParts,
+        };
+      }
+    }
+
+    return {
+      role: m.role as 'user' | 'assistant' | 'system',
+      content: m.content,
+    };
+  });
+
+  // Add system prompt if present
+  if (systemPrompt && !messages.some(m => m.role === 'system')) {
+    formattedMessages.unshift({ role: 'system', content: systemPrompt });
+  }
+
+  const response = await fetch('https://api.cohere.ai/v2/chat', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -496,9 +697,7 @@ async function callCohere(
     },
     body: JSON.stringify({
       model: model || 'command-r-plus',
-      message: lastMessage?.content || '',
-      chat_history: chatHistory,
-      preamble: systemPrompt || messages.find(m => m.role === 'system')?.content,
+      messages: formattedMessages,
       max_tokens: maxTokens,
       temperature,
     }),
@@ -510,11 +709,13 @@ async function callCohere(
   }
 
   const data = await response.json();
+  // v2 API returns message.content array
+  const content = data.message?.content?.[0]?.text || data.text || '';
   return {
-    content: data.text || '',
+    content,
     usage: {
-      inputTokens: data.meta?.tokens?.input_tokens || 0,
-      outputTokens: data.meta?.tokens?.output_tokens || 0,
+      inputTokens: data.usage?.billed_units?.input_tokens || data.meta?.tokens?.input_tokens || 0,
+      outputTokens: data.usage?.billed_units?.output_tokens || data.meta?.tokens?.output_tokens || 0,
     },
   };
 }
@@ -530,14 +731,79 @@ async function callPerplexity(
   systemPrompt: string | undefined,
   maxTokens: number,
   temperature: number,
-  searchOptions?: SearchOptions
+  searchOptions?: SearchOptions,
+  attachments?: MessageAttachment[]
 ): Promise<{
   content: string;
   usage?: { inputTokens: number; outputTokens: number };
   citations?: Citation[];
   searchPerformed?: boolean;
 }> {
-  const formattedMessages = [...messages];
+  // Perplexity sonar models support vision AND file attachments
+  type PerplexityContentPart =
+    | { type: 'text'; text: string }
+    | { type: 'image_url'; image_url: { url: string } }
+    | { type: 'file_url'; file_url: { url: string }; file_name?: string };
+
+  type PerplexityMessage = {
+    role: 'user' | 'assistant' | 'system';
+    content: string | PerplexityContentPart[];
+  };
+
+  const formattedMessages: PerplexityMessage[] = messages.map((m, idx, arr) => {
+    const isLastUserMessage = m.role === 'user' && idx === arr.length - 1;
+
+    // If this is the last user message and we have attachments
+    if (isLastUserMessage && attachments && attachments.length > 0) {
+      const imageAttachments = attachments.filter(att => att.type === 'image');
+      const documentAttachments = attachments.filter(att => att.type === 'document');
+
+      if (imageAttachments.length > 0 || documentAttachments.length > 0) {
+        const contentParts: PerplexityContentPart[] = [];
+
+        // Add images (use data URL format with base64)
+        for (const att of imageAttachments) {
+          const base64 = getBase64Data(att);
+          if (!base64) continue;
+
+          contentParts.push({
+            type: 'image_url',
+            image_url: {
+              url: `data:${att.mimeType || 'image/jpeg'};base64,${base64}`,
+            },
+          });
+        }
+
+        // Add documents (use raw base64 without data: prefix per Perplexity docs)
+        for (const att of documentAttachments) {
+          const base64 = getBase64Data(att);
+          if (!base64) continue;
+
+          contentParts.push({
+            type: 'file_url',
+            file_url: {
+              url: base64, // Raw base64, no data: prefix
+            },
+            file_name: att.fileName || 'document.pdf',
+          });
+        }
+
+        // Add text content
+        contentParts.push({ type: 'text', text: m.content });
+
+        return {
+          role: m.role as 'user' | 'assistant' | 'system',
+          content: contentParts,
+        };
+      }
+    }
+
+    return {
+      role: m.role as 'user' | 'assistant' | 'system',
+      content: m.content,
+    };
+  });
+
   if (systemPrompt && !messages.some(m => m.role === 'system')) {
     formattedMessages.unshift({ role: 'system', content: systemPrompt });
   }
@@ -716,6 +982,53 @@ async function callOpenAIWithSearch(
 }
 
 /**
+ * Check if a model supports vision based on provider and model name
+ * Updated January 2026 with accurate API capabilities
+ */
+function modelSupportsVision(providerId: string, model: string): boolean {
+  const modelLower = model.toLowerCase();
+
+  switch (providerId) {
+    case 'openai':
+      // OpenAI vision models: gpt-4o, gpt-4.1, gpt-4-vision, gpt-4-turbo, gpt-5 series, o1, o3
+      return modelLower.includes('gpt-4o') ||
+             modelLower.includes('gpt-4.1') ||
+             modelLower.includes('gpt-4-vision') ||
+             modelLower.includes('gpt-4-turbo') ||
+             modelLower.includes('gpt-5') ||
+             modelLower.includes('o1') ||
+             modelLower.includes('o3');
+    case 'grok':
+      // Grok 3, Grok 4, and grok-2-vision models support vision
+      return modelLower.includes('grok-4') ||
+             modelLower.includes('grok-3') ||
+             modelLower.includes('vision');
+    case 'mistral':
+      // Pixtral models and latest Mistral models support vision
+      return modelLower.includes('pixtral') ||
+             modelLower.includes('mistral-large') ||
+             modelLower.includes('mistral-medium') ||
+             modelLower.includes('mistral-small');
+    case 'together':
+      // Llama Vision models (3.2, 4) and other vision models
+      return modelLower.includes('vision') ||
+             modelLower.includes('llama-4') ||
+             modelLower.includes('llava') ||
+             modelLower.includes('qwen-vl');
+    case 'perplexity':
+      // Sonar and sonar-pro support vision
+      return modelLower.includes('sonar');
+    case 'cohere':
+      // Command A Vision model supports vision
+      return modelLower.includes('vision') ||
+             modelLower.includes('command-a');
+    default:
+      // DeepSeek doesn't support vision via their chat API
+      return false;
+  }
+}
+
+/**
  * OpenAI-compatible API handler for various providers
  * Supports: OpenAI, Mistral, Together, DeepSeek, Grok
  */
@@ -728,7 +1041,8 @@ async function callOpenAICompatible(
   maxTokens: number,
   temperature: number,
   providerId: string,
-  searchOptions?: SearchOptions
+  searchOptions?: SearchOptions,
+  attachments?: MessageAttachment[]
 ): Promise<{
   content: string;
   usage?: { inputTokens: number; outputTokens: number };
@@ -740,7 +1054,93 @@ async function callOpenAICompatible(
     return callOpenAIWithSearch(apiKey, model, messages, systemPrompt, maxTokens, temperature);
   }
 
-  const formattedMessages = [...messages];
+  const supportsVision = modelSupportsVision(providerId, model);
+
+  // OpenAI supports documents natively (as of March 2025), other providers may not
+  const supportsDocuments = providerId === 'openai' && supportsVision;
+
+  // Build messages, potentially with attachments
+  type OpenAIContentPart =
+    | { type: 'text'; text: string }
+    | { type: 'image_url'; image_url: { url: string } }
+    | { type: 'file'; file: { filename: string; file_data: string } };
+
+  type OpenAIMessage = {
+    role: 'user' | 'assistant' | 'system';
+    content: string | OpenAIContentPart[];
+  };
+
+  const formattedMessages: OpenAIMessage[] = messages.map((m, idx, arr) => {
+    const isLastUserMessage = m.role === 'user' && idx === arr.length - 1;
+
+    // If this is the last user message and we have attachments
+    if (isLastUserMessage && attachments && attachments.length > 0) {
+      const imageAttachments = attachments.filter(att => att.type === 'image');
+      const documentAttachments = attachments.filter(att => att.type === 'document');
+
+      // Check if we have any attachments to process
+      const hasProcessableImages = supportsVision && imageAttachments.length > 0;
+      const hasProcessableDocs = supportsDocuments && documentAttachments.length > 0;
+
+      if (hasProcessableImages || hasProcessableDocs) {
+        const contentParts: OpenAIContentPart[] = [];
+
+        // Add images (if vision supported)
+        if (hasProcessableImages) {
+          for (const att of imageAttachments) {
+            const base64 = getBase64Data(att);
+            if (!base64) continue;
+
+            contentParts.push({
+              type: 'image_url',
+              image_url: {
+                url: `data:${att.mimeType || 'image/jpeg'};base64,${base64}`,
+              },
+            });
+          }
+        }
+
+        // Add documents (OpenAI uses type: "file" format as of March 2025)
+        if (hasProcessableDocs) {
+          for (const att of documentAttachments) {
+            const base64 = getBase64Data(att);
+            if (!base64) continue;
+
+            contentParts.push({
+              type: 'file',
+              file: {
+                filename: att.fileName || 'document.pdf',
+                file_data: `data:${att.mimeType || 'application/pdf'};base64,${base64}`,
+              },
+            });
+          }
+        }
+
+        // Add text content
+        contentParts.push({ type: 'text', text: m.content });
+
+        return {
+          role: m.role as 'user' | 'assistant' | 'system',
+          content: contentParts,
+        };
+      }
+
+      // Model doesn't support vision/documents - don't mention attachments at all
+      // (fallback text confuses models into thinking they should see something)
+      return {
+        role: m.role as 'user' | 'assistant' | 'system',
+        content: m.content,
+      };
+    }
+
+    // Regular text-only message
+    return {
+      role: m.role as 'user' | 'assistant' | 'system',
+      content: m.content,
+    };
+  });
+
+  // Add system prompt if not already present
   if (systemPrompt && !messages.some(m => m.role === 'system')) {
     formattedMessages.unshift({ role: 'system', content: systemPrompt });
   }
