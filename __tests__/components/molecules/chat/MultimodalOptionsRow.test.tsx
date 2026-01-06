@@ -22,7 +22,6 @@ describe('MultimodalOptionsRow', () => {
     documentUpload: true,
     imageGeneration: false,
     videoGeneration: false,
-    voice: true,
   };
 
   it('renders all modality options', () => {

@@ -14,14 +14,13 @@ export interface ModalityFlag {
 export interface ModalityAvailability {
   imageUpload: ModalityFlag;      // Vision input
   documentUpload: ModalityFlag;   // PDF/document input
-  voiceInput: ModalityFlag;       // STT via Whisper
   imageGeneration: ModalityFlag;  // Images output
   videoGeneration: ModalityFlag;  // Videos output (future)
 }
 
 /**
  * Compute modality availability for a single provider/model combination.
- * - Input modalities come from modelConfigs flags (supportsImageInput, supportsDocuments, supportsVoiceInput)
+ * - Input modalities come from modelConfigs flags (supportsImageInput, supportsDocuments)
  * - Generation modalities come from providerCapabilities (imageGeneration, optional videoGeneration)
  */
 export function getModalityAvailability(providerId: string, modelId: string): ModalityAvailability {
@@ -30,13 +29,10 @@ export function getModalityAvailability(providerId: string, modelId: string): Mo
 
   const imageGen = caps.imageGeneration;
   const videoGen = caps.videoGeneration as { supported?: boolean; models?: string[]; resolutions?: string[] } | undefined;
-  // Provider-level fallbacks: enable basic voice input via STT even if model doesn't advertise realtime voice
-  const providerSupportsSTT = providerId === 'openai' || providerId === 'google';
 
   return {
     imageUpload: { supported: Boolean(model?.supportsImageInput || model?.supportsVision) },
     documentUpload: { supported: Boolean(model?.supportsDocuments) },
-    voiceInput: { supported: Boolean(model?.supportsVoiceInput || providerSupportsSTT) },
     imageGeneration: {
       supported: Boolean(imageGen?.supported),
       supportsImageInput: Boolean(imageGen?.supportsImageInput),
@@ -58,7 +54,6 @@ export function mergeAvailabilities(items: Array<{ provider: string; model: stri
   const base: ModalityAvailability = {
     imageUpload: { supported: false },
     documentUpload: { supported: false },
-    voiceInput: { supported: false },
     imageGeneration: { supported: false, models: [], sizes: [] },
     videoGeneration: { supported: false, models: [], resolutions: [] },
   };
@@ -67,7 +62,6 @@ export function mergeAvailabilities(items: Array<{ provider: string; model: stri
     const a = getModalityAvailability(it.provider, it.model);
     base.imageUpload.supported ||= a.imageUpload.supported;
     base.documentUpload.supported ||= a.documentUpload.supported;
-    base.voiceInput.supported ||= a.voiceInput.supported;
 
     if (a.imageGeneration.supported) {
       base.imageGeneration.supported = true;
@@ -103,7 +97,6 @@ export function mergeAvailabilitiesStrict(items: Array<{ provider: string; model
     return {
       imageUpload: { supported: false },
       documentUpload: { supported: false },
-      voiceInput: { supported: false },
       imageGeneration: { supported: false, models: [], sizes: [] },
       videoGeneration: { supported: false, models: [], resolutions: [] },
     };
@@ -120,7 +113,6 @@ export function mergeAvailabilitiesStrict(items: Array<{ provider: string; model
     // Input modalities: OR logic (any supporting is fine)
     imageUpload: { supported: availabilities.some(a => a.imageUpload.supported) },
     documentUpload: { supported: availabilities.some(a => a.documentUpload.supported) },
-    voiceInput: { supported: availabilities.some(a => a.voiceInput.supported) },
     // Generation modalities: AND logic (all must support)
     imageGeneration: {
       supported: allSupportImageGen,

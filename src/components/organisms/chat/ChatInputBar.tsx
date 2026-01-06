@@ -4,7 +4,6 @@ import { StyleSheet, TextInput, TouchableOpacity, Text as RNText, ScrollView, Im
 import MultimodalOptionsRow from '@/components/molecules/chat/MultimodalOptionsRow';
 import { ImageUploadModal } from './ImageUploadModal';
 import { DocumentUploadModal } from './DocumentUploadModal';
-import { VoiceModal } from './VoiceModal';
 import { Box } from '../../atoms';
 import IconStopOctagon from '../../atoms/icons/IconStopOctagon';
 import * as Haptics from 'expo-haptics';
@@ -28,8 +27,8 @@ export interface ChatInputBarProps {
   attachmentSupport?: { images: boolean; documents: boolean };
   maxAttachments?: number;
   imageGenerationEnabled?: boolean;
-  modalityAvailability?: { imageUpload: boolean; documentUpload: boolean; imageGeneration: boolean; videoGeneration: boolean; voice: boolean };
-  modalityReasons?: { imageUpload?: string; documentUpload?: string; imageGeneration?: string; videoGeneration?: string; voice?: string };
+  modalityAvailability?: { imageUpload: boolean; documentUpload: boolean; imageGeneration: boolean; videoGeneration: boolean };
+  modalityReasons?: { imageUpload?: string; documentUpload?: string; imageGeneration?: string; videoGeneration?: string };
 }
 
 export const ChatInputBar: React.FC<ChatInputBarProps> = ({
@@ -54,7 +53,6 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
   const [attachments, setAttachments] = useState<MessageAttachment[]>([]);
   const [showImageUpload, setShowImageUpload] = useState(false);
   const [showDocUpload, setShowDocUpload] = useState(false);
-  const [showVoice, setShowVoice] = useState(false);
   const [showModalityRow, setShowModalityRow] = useState(false);
   const pulse = React.useRef(new Animated.Value(0)).current;
 
@@ -173,15 +171,13 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
       {(((modalityAvailability?.imageUpload ?? attachmentSupport.images)
         || (modalityAvailability?.documentUpload ?? attachmentSupport.documents)
         || (modalityAvailability?.imageGeneration ?? imageGenerationEnabled)
-        || (modalityAvailability?.videoGeneration ?? false)
-        || (modalityAvailability?.voice ?? false)) && showModalityRow) && (
+        || (modalityAvailability?.videoGeneration ?? false)) && showModalityRow) && (
         <MultimodalOptionsRow
           availability={{
             imageUpload: modalityAvailability?.imageUpload ?? attachmentSupport.images,
             documentUpload: modalityAvailability?.documentUpload ?? attachmentSupport.documents,
             imageGeneration: modalityAvailability?.imageGeneration ?? imageGenerationEnabled,
             videoGeneration: modalityAvailability?.videoGeneration ?? false,
-            voice: modalityAvailability?.voice ?? false,
           }}
           availabilityReasons={modalityReasons}
           onSelect={(key) => {
@@ -189,7 +185,6 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
             else if (key === 'documentUpload') setShowDocUpload(true);
             else if (key === 'imageGeneration') onOpenImageModal?.();
             else if (key === 'videoGeneration') onOpenVideoModal?.();
-            else if (key === 'voice') setShowVoice(true);
           }}
           onClose={() => setShowModalityRow(false)}
         />
@@ -210,8 +205,7 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
         {(((modalityAvailability?.imageUpload ?? attachmentSupport.images)
           || (modalityAvailability?.documentUpload ?? attachmentSupport.documents)
           || (modalityAvailability?.imageGeneration ?? imageGenerationEnabled)
-          || (modalityAvailability?.videoGeneration ?? false)
-          || (modalityAvailability?.voice ?? false))) && (
+          || (modalityAvailability?.videoGeneration ?? false))) && (
             <TouchableOpacity
               onPress={() => !disabled && setShowModalityRow(prev => !prev)}
               activeOpacity={0.8}
@@ -337,14 +331,6 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
         visible={showDocUpload}
         onClose={() => setShowDocUpload(false)}
         onUpload={(atts) => setAttachments(prev => { const combined = [...prev, ...atts]; return combined.slice(0, maxAttachments); })}
-      />
-      <VoiceModal
-        visible={showVoice}
-        onClose={() => setShowVoice(false)}
-        onTranscribed={(text) => {
-          onInputChange(text);
-          setShowVoice(false);
-        }}
       />
     </Box>
   );

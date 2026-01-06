@@ -368,7 +368,6 @@ describe('ChatScreen', () => {
       imageUpload: { supported: false },
       documentUpload: { supported: true },
       videoGeneration: { supported: false },
-      voiceInput: { supported: true },
     });
 
     // Default: multi-AI mode (2 AIs) - image generation disabled
@@ -980,7 +979,6 @@ describe('ChatScreen', () => {
         imageUpload: { supported: false },
         documentUpload: { supported: true },
         videoGeneration: { supported: false },
-        voiceInput: { supported: true },
       });
 
       // Multi-AI image generation is disabled (only single AI mode supported)
@@ -1016,7 +1014,6 @@ describe('ChatScreen', () => {
         imageUpload: { supported: false },
         documentUpload: { supported: true },
         videoGeneration: { supported: false },
-        voiceInput: { supported: true },
       });
 
       // Single AI - image generation enabled
@@ -1060,7 +1057,6 @@ describe('ChatScreen', () => {
         imageUpload: { supported: false },
         documentUpload: { supported: false },
         videoGeneration: { supported: false },
-        voiceInput: { supported: false },
       });
 
       // Single AI - image generation enabled
@@ -1138,7 +1134,6 @@ describe('ChatScreen', () => {
         imageUpload: { supported: false },
         documentUpload: { supported: false },
         videoGeneration: { supported: false },
-        voiceInput: { supported: false },
       });
 
       // Single AI - image generation enabled (but API key missing)

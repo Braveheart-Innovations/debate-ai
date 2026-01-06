@@ -4,14 +4,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/theme';
 import { Typography } from '../common/Typography';
 
-export type ModalityKey = 'imageUpload' | 'documentUpload' | 'imageGeneration' | 'videoGeneration' | 'voice';
+export type ModalityKey = 'imageUpload' | 'documentUpload' | 'imageGeneration' | 'videoGeneration';
 
 export interface MultimodalAvailability {
   imageUpload: boolean;
   documentUpload: boolean;
   imageGeneration: boolean;
   videoGeneration: boolean;
-  voice: boolean;
 }
 
 interface MultimodalOptionsRowProps {
@@ -31,7 +30,6 @@ const MultimodalOptionsRow: React.FC<MultimodalOptionsRowProps> = ({ availabilit
     { key: 'documentUpload' as const, icon: 'document-text-outline' as const, label: 'Doc', enabled: availability.documentUpload },
     { key: 'imageGeneration' as const, icon: 'color-palette-outline' as const, label: 'Gen', enabled: availability.imageGeneration },
     // Video removed for v1
-    { key: 'voice' as const, icon: 'mic-outline' as const, label: 'Voice', enabled: availability.voice },
   ]), [availability]);
 
   return (

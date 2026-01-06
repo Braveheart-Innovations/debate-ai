@@ -1187,14 +1187,12 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
               documentUpload: availability.documentUpload.supported,
               imageGeneration: availability.imageGeneration.supported,
               videoGeneration: availability.videoGeneration.supported,
-              voice: availability.voiceInput.supported,
             }}
             modalityReasons={{
               imageUpload: availability.imageUpload.supported ? undefined : 'Selected model(s) do not support image input',
               documentUpload: availability.documentUpload.supported ? undefined : 'Selected model(s) do not support document/PDF input',
               imageGeneration: availability.imageGeneration.supported ? undefined : 'Both providers must support image generation',
               videoGeneration: availability.videoGeneration.supported ? undefined : 'Selected provider(s) do not support video generation',
-              voice: availability.voiceInput.supported ? undefined : 'Selected model(s) do not support voice input',
             }}
           />
         </SafeAreaView>

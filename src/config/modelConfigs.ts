@@ -13,7 +13,6 @@ export interface ModelConfig {
   // Extended capability flags:
   supportsImageInput?: boolean; // Alias of supportsVision (explicit)
   supportsImageGeneration?: boolean; // Can generate images (e.g., gpt-image-1, dall-e-3)
-  supportsVoiceInput?: boolean; // Voice-to-text via Whisper API
 }
 
 export interface ProviderModels {
@@ -162,7 +161,6 @@ export const AI_MODELS: ProviderModels = {
       supportsImageInput: true,
       supportsDocuments: false,
       supportsFunctions: true,
-      supportsVoiceInput: true,
     },
     // Reasoning models (O-series)
     {

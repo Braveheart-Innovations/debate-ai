@@ -17,10 +17,6 @@ jest.mock('@/components/organisms/chat/DocumentUploadModal', () => ({
   DocumentUploadModal: () => null,
 }));
 
-jest.mock('@/components/organisms/chat/VoiceModal', () => ({
-  VoiceModal: () => null,
-}));
-
 jest.mock('@/components/atoms/icons/IconStopOctagon', () => ({
   __esModule: true,
   default: () => null,
@@ -202,6 +198,5 @@ describe('ChatInputBar', () => {
   // TODO: Add tests for attachment handling
   // TODO: Add tests for image generation modal
   // TODO: Add tests for document upload modal
-  // TODO: Add tests for voice modal
   // TODO: Add tests for attachment preview and removal
 });

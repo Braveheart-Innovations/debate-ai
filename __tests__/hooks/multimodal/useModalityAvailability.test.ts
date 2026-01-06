@@ -31,7 +31,6 @@ describe('useModalityAvailability', () => {
     getModelByIdMock.mockReturnValue({
       supportsImageInput: true,
       supportsDocuments: true,
-      supportsVoiceInput: false,
       supportsVision: false,
     } as never);
 
@@ -54,8 +53,6 @@ describe('useModalityAvailability', () => {
     expect(getProviderCapabilitiesMock).toHaveBeenCalledWith('openai');
     expect(availability.imageUpload.supported).toBe(true);
     expect(availability.documentUpload.supported).toBe(true);
-    // voiceInput is true because providerId is 'openai' which supports STT
-    expect(availability.voiceInput.supported).toBe(true);
     expect(availability.imageGeneration.supported).toBe(true);
     expect(availability.imageGeneration.models).toEqual(['dalle-3']);
     expect(availability.imageGeneration.sizes).toEqual(['1024x1024']);
@@ -76,14 +73,13 @@ describe('useModalityAvailability', () => {
       const base: ModelDescriptor = {
         supportsImageInput: false,
         supportsDocuments: false,
-        supportsVoiceInput: false,
       } as never;
 
       if (modelId === 'vision') {
         return { ...base, supportsImageInput: true };
       }
       if (modelId === 'documents') {
-        return { ...base, supportsDocuments: true, supportsVoiceInput: true };
+        return { ...base, supportsDocuments: true };
       }
       return base;
     });
@@ -111,8 +107,6 @@ describe('useModalityAvailability', () => {
 
     expect(merged.imageUpload.supported).toBe(true);
     expect(merged.documentUpload.supported).toBe(true);
-    // voiceInput should be true because openai and google support STT
-    expect(merged.voiceInput.supported).toBe(true);
     expect(merged.imageGeneration.supported).toBe(true);
     expect(merged.imageGeneration.models).toEqual(['dalle-3']);
     expect(merged.videoGeneration.supported).toBe(true);
@@ -229,7 +223,6 @@ describe('useModalityAvailability', () => {
 
       expect(merged.imageUpload.supported).toBe(false);
       expect(merged.documentUpload.supported).toBe(false);
-      expect(merged.voiceInput.supported).toBe(false);
       expect(merged.imageGeneration.supported).toBe(false);
       expect(merged.videoGeneration.supported).toBe(false);
     });

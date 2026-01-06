@@ -46,7 +46,6 @@
     "axios": "^1.11.0",
     "expo": "~53.0.25",
     "expo-apple-authentication": "~7.2.4",
-    "expo-audio": "~0.4.9",
     "expo-auth-session": "~6.2.1",
     "expo-blur": "^14.1.5",
     "expo-build-properties": "~0.14.8",

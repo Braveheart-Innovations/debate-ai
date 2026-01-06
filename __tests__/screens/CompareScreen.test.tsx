@@ -330,18 +330,12 @@ beforeEach(() => {
   mockUseMergedAvailability.mockImplementation(() => ({
     imageUpload: { supported: true },
     documentUpload: { supported: false },
-    voiceInput: { supported: false },
-    voiceOutput: { supported: false },
-    realtime: { supported: false },
     imageGeneration: { supported: true },
     videoGeneration: { supported: false },
   }));
   mockUseMergedAvailabilityStrict.mockImplementation(() => ({
     imageUpload: { supported: true },
     documentUpload: { supported: false },
-    voiceInput: { supported: false },
-    voiceOutput: { supported: false },
-    realtime: { supported: false },
     imageGeneration: { supported: true },
     videoGeneration: { supported: false },
   }));
@@ -434,7 +428,6 @@ describe('CompareScreen', () => {
       mockUseMergedAvailabilityStrict.mockReturnValue({
         imageUpload: { supported: true },
         documentUpload: { supported: false },
-        voiceInput: { supported: false },
         imageGeneration: { supported: true },
         videoGeneration: { supported: false },
       });
@@ -448,7 +441,6 @@ describe('CompareScreen', () => {
       mockUseMergedAvailabilityStrict.mockReturnValue({
         imageUpload: { supported: true },
         documentUpload: { supported: false },
-        voiceInput: { supported: false },
         imageGeneration: { supported: false }, // Strict merge returns false
         videoGeneration: { supported: false },
       });
