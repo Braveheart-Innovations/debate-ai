@@ -35,14 +35,19 @@ export class ChatGPTAdapter extends OpenAICompatibleAdapter {
   }
   
   protected getProviderConfig(): ProviderConfig {
-    // Check if the model supports vision (images only, not PDFs)
+    // Check if the model supports vision
     const model = this.config.model || 'gpt-5';
-    const supportsImages = model.startsWith('gpt-4o') || 
+    const supportsImages = model.startsWith('gpt-4o') ||
                           model.startsWith('gpt-4-turbo') ||
                           model.startsWith('gpt-4-vision') ||
-                          model.startsWith('gpt-5') || 
-                          model.startsWith('o1');
-    
+                          model.startsWith('gpt-4.1') ||
+                          model.startsWith('gpt-5') ||
+                          model.startsWith('o1') ||
+                          model.startsWith('o3');
+
+    // OpenAI now supports documents natively (as of March 2025)
+    const supportsDocuments = supportsImages;
+
     return {
       baseUrl: 'https://api.openai.com/v1',
       defaultModel: 'gpt-5',  // Updated to GPT-5 as default
@@ -54,7 +59,7 @@ export class ChatGPTAdapter extends OpenAICompatibleAdapter {
         streaming: true,
         attachments: supportsImages,  // Only if model supports vision
         supportsImages,  // Supported via multimodal models
-        supportsDocuments: false,  // Chat Completions API doesn't support PDFs
+        supportsDocuments,  // Native file support as of March 2025
         functionCalling: true,
         systemPrompt: true,
         maxTokens: 128000,  // GPT-5 max output
@@ -64,53 +69,53 @@ export class ChatGPTAdapter extends OpenAICompatibleAdapter {
   }
   
   /**
-   * Override formatUserMessage to handle images for OpenAI
-   * Note: PDFs are not supported by Chat Completions API
+   * Override formatUserMessage to handle images and documents for OpenAI
+   * Documents are supported natively via type: "file" as of March 2025
    */
   protected formatUserMessage(
     message: string,
     attachments?: MessageAttachment[]
-  ): string | Array<{ type: string; text?: string; image_url?: { url: string } }> {
+  ): string | Array<{ type: string; text?: string; image_url?: { url: string }; file?: { file_name: string; file_data: string } }> {
     if (!attachments || attachments.length === 0) {
       return message;
     }
-    
+
     const capabilities = this.getCapabilities();
     if (!capabilities.attachments) {
       return message;
     }
-    
-    const contentParts: Array<{ type: string; text?: string; image_url?: { url: string } }> = [
+
+    const contentParts: Array<{ type: string; text?: string; image_url?: { url: string }; file?: { file_name: string; file_data: string } }> = [
       { type: 'text', text: message }
     ];
-    
-    let hasUnsupportedDocs = false;
-    
+
     for (const attachment of attachments) {
       if (attachment.type === 'image') {
         // Images are supported via vision API
         contentParts.push({
           type: 'image_url',
           image_url: {
-            url: attachment.uri.startsWith('data:') 
-              ? attachment.uri 
+            url: attachment.uri.startsWith('data:')
+              ? attachment.uri
               : `data:${attachment.mimeType || 'image/jpeg'};base64,${attachment.base64}`
           }
         });
-      } else if (attachment.type === 'document') {
-        // PDFs are not supported by Chat Completions API
-        hasUnsupportedDocs = true;
+      } else if (attachment.type === 'document' && capabilities.supportsDocuments) {
+        // Documents supported natively via type: "file" as of March 2025
+        const base64Data = attachment.base64 || '';
+        const mimeType = attachment.mimeType || 'application/pdf';
+        contentParts.push({
+          type: 'file',
+          file: {
+            file_name: attachment.fileName || 'document.pdf',
+            file_data: attachment.uri.startsWith('data:')
+              ? attachment.uri
+              : `data:${mimeType};base64,${base64Data}`
+          }
+        });
       }
     }
-    
-    // Add a note about unsupported documents
-    if (hasUnsupportedDocs) {
-      contentParts.push({
-        type: 'text',
-        text: '\n\n[Note: PDF documents cannot be processed via the API. Please copy and paste the text content instead, or use the ChatGPT web interface which supports PDF uploads.]'
-      });
-    }
-    
+
     return contentParts;
   }
   
@@ -131,7 +136,7 @@ export class ChatGPTAdapter extends OpenAICompatibleAdapter {
     // O1 models don't support system messages
     const isO1Model = resolvedModel.startsWith('o1');
     
-    // Format user message (images only, PDFs not supported)
+    // Format user message with attachments (images and documents supported)
     const userContent = this.formatUserMessage(message, attachments);
     
     const messages = isO1Model ? [
@@ -239,19 +244,23 @@ export class ChatGPTAdapter extends OpenAICompatibleAdapter {
         return { role: m.role, content: [{ type: isAssistant ? 'output_text' : 'input_text', text: m.content }] };
       }
       // m.content is an array of chat parts
-      const parts = (m.content as Array<{ type: string; text?: string; image_url?: { url: string } }>).
+      type ContentPart = { type: string; text?: string; image_url?: { url: string }; file?: { file_name: string; file_data: string } };
+      const parts = (m.content as Array<ContentPart>).
         map(p => {
           if (isAssistant) {
             // Assistant history must use output_text/refusal content types
             if (p.type === 'text' && p.text) return { type: 'output_text', text: p.text } as const;
-            return undefined; // ignore images in assistant history
+            return undefined; // ignore images/files in assistant history
           } else {
             if (p.type === 'text' && p.text) return { type: 'input_text', text: p.text } as const;
-            if (p.type === 'image_url' && p.image_url) return { type: 'input_image', image: p.image_url } as const;
+            // Responses API expects image_url as direct string, not object
+            if (p.type === 'image_url' && p.image_url) return { type: 'input_image', image_url: p.image_url.url } as const;
+            // Files use input_file format in Responses API
+            if (p.type === 'file' && p.file) return { type: 'input_file', filename: p.file.file_name, file_data: p.file.file_data } as const;
             return undefined;
           }
         }).
-        filter(Boolean) as Array<{ type: 'input_text' | 'input_image' | 'output_text'; text?: string; image?: { url: string } }>;
+        filter(Boolean) as Array<{ type: 'input_text' | 'input_image' | 'input_file' | 'output_text'; text?: string; image_url?: string; filename?: string; file_data?: string }>;
       return { role: m.role, content: parts };
     });
 

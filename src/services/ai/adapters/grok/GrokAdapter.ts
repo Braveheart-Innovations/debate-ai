@@ -13,8 +13,8 @@ export class GrokAdapter extends OpenAICompatibleAdapter {
       capabilities: {
         streaming: true,
         attachments: true,  // Supports vision models
-        supportsImages: true,  // Enabled for testing
-        supportsDocuments: true,  // Enabled for testing
+        supportsImages: true,  // Vision supported via grok-2-vision and grok-3+
+        supportsDocuments: false,  // PDFs require separate Files API
         functionCalling: false,
         systemPrompt: true,
         maxTokens: 4096,

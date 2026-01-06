@@ -99,7 +99,7 @@ export const AI_MODELS: ProviderModels = {
       isDefault: true,
       supportsVision: true,
       supportsImageInput: true,
-      supportsDocuments: false,
+      supportsDocuments: true, // Native file support as of March 2025
       supportsFunctions: true,
       requiresTemperature1: true,
       useMaxCompletionTokens: true,
@@ -112,7 +112,7 @@ export const AI_MODELS: ProviderModels = {
       contextLength: 272000,
       supportsVision: true,
       supportsImageInput: true,
-      supportsDocuments: false,
+      supportsDocuments: true,
       supportsFunctions: true,
       requiresTemperature1: true,
       useMaxCompletionTokens: true,
@@ -124,7 +124,7 @@ export const AI_MODELS: ProviderModels = {
       contextLength: 272000,
       supportsVision: true,
       supportsImageInput: true,
-      supportsDocuments: false,
+      supportsDocuments: true,
       supportsFunctions: true,
       requiresTemperature1: true,
       useMaxCompletionTokens: true,
@@ -136,7 +136,7 @@ export const AI_MODELS: ProviderModels = {
       contextLength: 272000,
       supportsVision: true,
       supportsImageInput: true,
-      supportsDocuments: false,
+      supportsDocuments: true,
       supportsFunctions: true,
       requiresTemperature1: true,
       useMaxCompletionTokens: true,
@@ -149,7 +149,7 @@ export const AI_MODELS: ProviderModels = {
       contextLength: 128000,
       supportsVision: true,
       supportsImageInput: true,
-      supportsDocuments: false,
+      supportsDocuments: true,
       supportsFunctions: true,
     },
     {
@@ -159,7 +159,7 @@ export const AI_MODELS: ProviderModels = {
       contextLength: 128000,
       supportsVision: true,
       supportsImageInput: true,
-      supportsDocuments: false,
+      supportsDocuments: true,
       supportsFunctions: true,
     },
     // Reasoning models (O-series)
@@ -172,7 +172,7 @@ export const AI_MODELS: ProviderModels = {
       useMaxCompletionTokens: true,
       supportsVision: true,
       supportsImageInput: true,
-      supportsDocuments: false,
+      supportsDocuments: true,
     },
     {
       id: "o1",
@@ -183,7 +183,7 @@ export const AI_MODELS: ProviderModels = {
       useMaxCompletionTokens: true,
       supportsVision: true,
       supportsImageInput: true,
-      supportsDocuments: false,
+      supportsDocuments: true,
     },
     // Image generation models
     {
@@ -211,6 +211,7 @@ export const AI_MODELS: ProviderModels = {
       supportsVision: true,
       supportsDocuments: true,
       supportsFunctions: true,
+      supportsWebSearch: true,
     },
     {
       id: "gemini-3-pro-image-preview",
@@ -230,6 +231,7 @@ export const AI_MODELS: ProviderModels = {
       supportsVision: true,
       supportsDocuments: true,
       supportsFunctions: true,
+      supportsWebSearch: true,
     },
     {
       id: "gemini-2.5-pro",
@@ -239,6 +241,7 @@ export const AI_MODELS: ProviderModels = {
       supportsVision: true,
       supportsDocuments: true,
       supportsFunctions: true,
+      supportsWebSearch: true,
     },
     {
       id: "gemini-2.5-flash-lite",
@@ -248,6 +251,7 @@ export const AI_MODELS: ProviderModels = {
       supportsVision: true,
       supportsDocuments: true,
       supportsFunctions: true,
+      supportsWebSearch: true,
     },
     // Gemini 2.0
     {
@@ -258,6 +262,7 @@ export const AI_MODELS: ProviderModels = {
       supportsVision: true,
       supportsDocuments: true,
       supportsFunctions: true,
+      supportsWebSearch: true,
     },
   ],
   perplexity: [
@@ -269,7 +274,7 @@ export const AI_MODELS: ProviderModels = {
       isDefault: true,
       supportsWebSearch: true,
       supportsVision: true,
-      supportsDocuments: true,
+      supportsDocuments: true, // Uses file_url with raw base64
     },
     {
       id: "sonar",
@@ -289,7 +294,7 @@ export const AI_MODELS: ProviderModels = {
       contextLength: 128000,
       isDefault: true,
       supportsVision: true,
-      supportsDocuments: true,
+      supportsDocuments: false, // PDFs require separate OCR API
       supportsFunctions: true,
     },
     {
@@ -298,7 +303,7 @@ export const AI_MODELS: ProviderModels = {
       description: "Multimodal flagship model",
       contextLength: 128000,
       supportsVision: true,
-      supportsDocuments: true,
+      supportsDocuments: false,
       supportsFunctions: true,
     },
     {
@@ -307,7 +312,7 @@ export const AI_MODELS: ProviderModels = {
       description: "Enterprise-grade with vision",
       contextLength: 32768,
       supportsVision: true,
-      supportsDocuments: true,
+      supportsDocuments: false,
       supportsFunctions: true,
     },
     {
@@ -316,7 +321,7 @@ export const AI_MODELS: ProviderModels = {
       description: "Advanced vision model",
       contextLength: 128000,
       supportsVision: true,
-      supportsDocuments: true,
+      supportsDocuments: false,
       supportsFunctions: true,
     },
     {
@@ -326,7 +331,7 @@ export const AI_MODELS: ProviderModels = {
       contextLength: 128000,
       supportsFunctions: true,
       supportsVision: true,
-      supportsDocuments: true,
+      supportsDocuments: false,
     },
   ],
   cohere: [
@@ -337,8 +342,8 @@ export const AI_MODELS: ProviderModels = {
       contextLength: 128000,
       isDefault: true,
       supportsFunctions: true,
-      supportsVision: true,
-      supportsDocuments: true,
+      supportsVision: false, // Vision not working via API
+      supportsDocuments: false,
     },
     {
       id: "command-r7b-12-2024",
@@ -346,8 +351,8 @@ export const AI_MODELS: ProviderModels = {
       description: "Efficient model for retrieval tasks",
       contextLength: 128000,
       supportsFunctions: true,
-      supportsVision: true,
-      supportsDocuments: true,
+      supportsVision: false,
+      supportsDocuments: false,
     },
     {
       id: "command-r-08-2024",
@@ -355,8 +360,8 @@ export const AI_MODELS: ProviderModels = {
       description: "Optimized for retrieval tasks",
       contextLength: 128000,
       supportsFunctions: true,
-      supportsVision: true,
-      supportsDocuments: true,
+      supportsVision: false,
+      supportsDocuments: false,
     },
     {
       id: "command-light",
@@ -364,8 +369,8 @@ export const AI_MODELS: ProviderModels = {
       description: "Fast and cost-effective",
       contextLength: 4096,
       supportsFunctions: true,
-      supportsVision: true,
-      supportsDocuments: true,
+      supportsVision: false,
+      supportsDocuments: false,
     },
   ],
   together: [
@@ -374,8 +379,8 @@ export const AI_MODELS: ProviderModels = {
       name: "Llama 3.1 405B",
       description: "Most capable open-source model",
       contextLength: 130000,
-      supportsVision: true,
-      supportsDocuments: true,
+      supportsVision: false, // Vision not working via API
+      supportsDocuments: false,
     },
     {
       id: "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
@@ -383,24 +388,24 @@ export const AI_MODELS: ProviderModels = {
       description: "Powerful and efficient",
       contextLength: 130000,
       isDefault: true,
-      supportsVision: true,
-      supportsDocuments: true,
+      supportsVision: false,
+      supportsDocuments: false,
     },
     {
       id: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
       name: "Llama 3.1 8B",
       description: "Fast and lightweight",
       contextLength: 130000,
-      supportsVision: true,
-      supportsDocuments: true,
+      supportsVision: false,
+      supportsDocuments: false,
     },
     {
       id: "Qwen/Qwen2.5-72B-Instruct-Turbo",
       name: "Qwen 2.5 72B",
       description: "Strong multilingual capabilities",
       contextLength: 32768,
-      supportsVision: true,
-      supportsDocuments: true,
+      supportsVision: false,
+      supportsDocuments: false,
     },
   ],
   deepseek: [
@@ -409,8 +414,8 @@ export const AI_MODELS: ProviderModels = {
       name: "DeepSeek Reasoner",
       description: "Advanced reasoning capabilities",
       contextLength: 128000,
-      supportsVision: true,
-      supportsDocuments: true,
+      supportsVision: false, // Chat API doesn't support vision
+      supportsDocuments: false,
     },
     {
       id: "deepseek-chat",
@@ -418,8 +423,8 @@ export const AI_MODELS: ProviderModels = {
       description: "General purpose conversation",
       contextLength: 128000,
       isDefault: true,
-      supportsVision: true,
-      supportsDocuments: true,
+      supportsVision: false,
+      supportsDocuments: false,
     },
   ],
   grok: [
@@ -431,7 +436,7 @@ export const AI_MODELS: ProviderModels = {
       contextLength: 256000,
       isDefault: true,
       supportsVision: true,
-      supportsDocuments: true,
+      supportsDocuments: false, // PDFs require separate Files API
     },
     {
       id: "grok-4-1-fast-reasoning",
@@ -439,7 +444,7 @@ export const AI_MODELS: ProviderModels = {
       description: "Fast reasoning with Grok 4.1",
       contextLength: 256000,
       supportsVision: true,
-      supportsDocuments: true,
+      supportsDocuments: false,
     },
     {
       id: "grok-4-fast-reasoning",
@@ -447,7 +452,7 @@ export const AI_MODELS: ProviderModels = {
       description: "Fast reasoning model",
       contextLength: 256000,
       supportsVision: true,
-      supportsDocuments: true,
+      supportsDocuments: false,
     },
     // Grok 3 series
     {
@@ -456,7 +461,7 @@ export const AI_MODELS: ProviderModels = {
       description: "Enhanced capabilities model",
       contextLength: 131072,
       supportsVision: true,
-      supportsDocuments: true,
+      supportsDocuments: false,
     },
     {
       id: "grok-3-mini",
@@ -464,7 +469,7 @@ export const AI_MODELS: ProviderModels = {
       description: "Lightweight and cost-effective",
       contextLength: 131072,
       supportsVision: true,
-      supportsDocuments: true,
+      supportsDocuments: false,
     },
     // Specialized models
     {
@@ -473,7 +478,7 @@ export const AI_MODELS: ProviderModels = {
       description: "Optimized for coding tasks",
       contextLength: 131072,
       supportsVision: true,
-      supportsDocuments: true,
+      supportsDocuments: false,
     },
     {
       id: "grok-2-vision-1212",
@@ -481,7 +486,7 @@ export const AI_MODELS: ProviderModels = {
       description: "Vision-focused model",
       contextLength: 131072,
       supportsVision: true,
-      supportsDocuments: true,
+      supportsDocuments: false,
     },
     {
       id: "grok-2-image-1212",

@@ -12,9 +12,9 @@ export class TogetherAdapter extends OpenAICompatibleAdapter {
       }),
       capabilities: {
         streaming: true,
-        attachments: true,  // Enabled for testing
-        supportsImages: true,  // Enabled for testing
-        supportsDocuments: true,  // Enabled for testing
+        attachments: false,  // Llama 3.1 models don't support vision via API
+        supportsImages: false,  // Llama 3.1 models don't support vision via API
+        supportsDocuments: false,  // No document support via API
         functionCalling: false,
         systemPrompt: true,
         maxTokens: 4096,

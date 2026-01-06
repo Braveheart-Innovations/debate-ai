@@ -68,7 +68,7 @@ afterEach(() => {
 });
 
 describe('ChatGPTAdapter', () => {
-  it('formats attachments using image parts and adds note for unsupported documents', async () => {
+  it('formats attachments using image parts and file parts for documents', async () => {
     const adapter = new ChatGPTAdapter(baseConfig);
     const attachments: MessageAttachment[] = [
       {
@@ -82,6 +82,7 @@ describe('ChatGPTAdapter', () => {
         uri: 'file:///notes.pdf',
         mimeType: 'application/pdf',
         base64: 'pdfpayload',
+        fileName: 'notes.pdf',
       },
     ];
 
@@ -103,8 +104,11 @@ describe('ChatGPTAdapter', () => {
           image_url: expect.objectContaining({ url: expect.stringContaining('data:image/png;base64,imagepayload') }),
         }),
         expect.objectContaining({
-          type: 'text',
-          text: expect.stringContaining('PDF documents cannot be processed'),
+          type: 'file',
+          file: expect.objectContaining({
+            file_name: 'notes.pdf',
+            file_data: expect.stringContaining('data:application/pdf;base64,pdfpayload'),
+          }),
         }),
       ])
     );

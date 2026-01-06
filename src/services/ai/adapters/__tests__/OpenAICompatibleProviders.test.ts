@@ -41,9 +41,9 @@ const ADAPTER_MATRIX: AdapterEntry[] = [
     defaultModel: 'deepseek-chat',
     capabilities: {
       streaming: true,
-      attachments: true,
-      supportsImages: true,
-      supportsDocuments: true,
+      attachments: false,  // Chat API doesn't support vision
+      supportsImages: false,
+      supportsDocuments: false,
       functionCalling: true,
       systemPrompt: true,
       maxTokens: 4096,
@@ -58,9 +58,9 @@ const ADAPTER_MATRIX: AdapterEntry[] = [
     defaultModel: 'grok-2-1212',
     capabilities: {
       streaming: true,
-      attachments: true,
+      attachments: true,  // Supports vision
       supportsImages: true,
-      supportsDocuments: true,
+      supportsDocuments: false,  // PDFs require separate Files API
       functionCalling: false,
       systemPrompt: true,
       maxTokens: 4096,
@@ -75,9 +75,9 @@ const ADAPTER_MATRIX: AdapterEntry[] = [
     defaultModel: 'mistral-medium-latest',
     capabilities: {
       streaming: true,
-      attachments: true,
+      attachments: true,  // Supports images only
       supportsImages: true,
-      supportsDocuments: true,
+      supportsDocuments: false,  // PDFs require separate OCR API
       functionCalling: true,
       systemPrompt: true,
       maxTokens: 32768,
@@ -92,9 +92,9 @@ const ADAPTER_MATRIX: AdapterEntry[] = [
     defaultModel: 'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo',
     capabilities: {
       streaming: true,
-      attachments: true,
-      supportsImages: true,
-      supportsDocuments: true,
+      attachments: false,  // Llama 3.1 models don't support vision
+      supportsImages: false,
+      supportsDocuments: false,
       functionCalling: false,
       systemPrompt: true,
       maxTokens: 4096,
@@ -165,7 +165,7 @@ describe.each(ADAPTER_MATRIX)('$name adapter', ({
     });
   });
 
-  it('embeds image attachments into the user message payload when supported', async () => {
+  it('handles image attachments based on adapter capabilities', async () => {
     const adapter = new AdapterCtor(makeConfig(provider, defaultModel));
 
     const attachments: MessageAttachment[] = [
@@ -186,9 +186,16 @@ describe.each(ADAPTER_MATRIX)('$name adapter', ({
 
     const userMessage = body.messages.find((msg: { role: string }) => msg.role === 'user');
     expect(userMessage).toBeDefined();
-    expect(userMessage.content).toEqual([
-      { type: 'text', text: 'Describe the image' },
-      { type: 'image_url', image_url: { url: 'data:image/png;base64,abc123' } },
-    ]);
+
+    if (capabilities.attachments && capabilities.supportsImages) {
+      // Adapters that support images should embed them in the message
+      expect(userMessage.content).toEqual([
+        { type: 'text', text: 'Describe the image' },
+        { type: 'image_url', image_url: { url: 'data:image/png;base64,abc123' } },
+      ]);
+    } else {
+      // Adapters without image support should pass through as plain text
+      expect(userMessage.content).toBe('Describe the image');
+    }
   });
 });
