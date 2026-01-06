@@ -273,6 +273,8 @@ describe('PurchaseService', () => {
 
   describe('purchaseSubscription()', () => {
     it('should route lifetime plan to purchaseLifetime', async () => {
+      mockGetProducts.mockResolvedValue([{ productId: SUBSCRIPTION_PRODUCTS.lifetime }]);
+
       const result = await PurchaseService.purchaseSubscription('lifetime');
 
       expect(mockRequestPurchase).toHaveBeenCalled();
@@ -294,34 +296,25 @@ describe('PurchaseService', () => {
         Platform.OS = 'ios';
       });
 
-      it('should request subscription with app account token on iOS', async () => {
-        mockGetDoc.mockResolvedValue({ data: () => ({ appAccountToken: 'existing-token' }) });
+      it('should fetch subscriptions and request subscription on iOS', async () => {
+        mockGetSubscriptions.mockResolvedValue([{ productId: SUBSCRIPTION_PRODUCTS.monthly }]);
 
         await PurchaseService.purchaseSubscription('monthly');
 
+        expect(mockGetSubscriptions).toHaveBeenCalledWith({ skus: [SUBSCRIPTION_PRODUCTS.monthly] });
         expect(mockRequestSubscription).toHaveBeenCalledWith({
           sku: SUBSCRIPTION_PRODUCTS.monthly,
-          andDangerouslyFinishTransactionAutomaticallyIOS: false,
-          appAccountToken: 'existing-token',
         });
       });
 
-      it('should create new app account token if not exists', async () => {
-        mockGetDoc.mockResolvedValue({ data: () => ({}) });
-        mockDigestStringAsync.mockResolvedValue('new-hashed-token');
+      it('should fetch subscriptions before requesting', async () => {
+        mockGetSubscriptions.mockResolvedValue([{ productId: SUBSCRIPTION_PRODUCTS.annual }]);
 
         await PurchaseService.purchaseSubscription('annual');
 
-        expect(mockDigestStringAsync).toHaveBeenCalledWith('SHA-256', 'test-user-123');
-        expect(mockSetDoc).toHaveBeenCalledWith(
-          'doc-ref',
-          { appAccountToken: 'new-hashed-token' },
-          { merge: true }
-        );
+        expect(mockGetSubscriptions).toHaveBeenCalledWith({ skus: [SUBSCRIPTION_PRODUCTS.annual] });
         expect(mockRequestSubscription).toHaveBeenCalledWith({
           sku: SUBSCRIPTION_PRODUCTS.annual,
-          andDangerouslyFinishTransactionAutomaticallyIOS: false,
-          appAccountToken: 'new-hashed-token',
         });
       });
     });
@@ -482,11 +475,13 @@ describe('PurchaseService', () => {
         Platform.OS = 'ios';
       });
 
-      it('should use requestPurchase instead of requestSubscription on iOS', async () => {
+      it('should fetch products and use requestPurchase on iOS', async () => {
         mockGetDoc.mockResolvedValue({ data: () => ({ appAccountToken: 'existing-token' }) });
+        mockGetProducts.mockResolvedValue([{ productId: SUBSCRIPTION_PRODUCTS.lifetime }]);
 
         await PurchaseService.purchaseLifetime();
 
+        expect(mockGetProducts).toHaveBeenCalledWith({ skus: [SUBSCRIPTION_PRODUCTS.lifetime] });
         expect(mockRequestPurchase).toHaveBeenCalledWith({
           sku: SUBSCRIPTION_PRODUCTS.lifetime,
           andDangerouslyFinishTransactionAutomaticallyIOS: false,
@@ -498,9 +493,11 @@ describe('PurchaseService', () => {
       it('should create app account token if needed', async () => {
         mockGetDoc.mockResolvedValue({ data: () => ({}) });
         mockDigestStringAsync.mockResolvedValue('new-token-hash');
+        mockGetProducts.mockResolvedValue([{ productId: SUBSCRIPTION_PRODUCTS.lifetime }]);
 
         await PurchaseService.purchaseLifetime();
 
+        expect(mockGetProducts).toHaveBeenCalledWith({ skus: [SUBSCRIPTION_PRODUCTS.lifetime] });
         expect(mockDigestStringAsync).toHaveBeenCalled();
         expect(mockSetDoc).toHaveBeenCalled();
       });
@@ -718,13 +715,13 @@ describe('PurchaseService', () => {
       // Should not throw even if validation fails
       await expect(purchaseUpdateHandler(purchase)).resolves.not.toThrow();
 
-      // Transaction should not finish if validation fails
-      expect(mockFinishTransaction).not.toHaveBeenCalled();
+      // Transaction SHOULD finish even if validation fails (new behavior to prevent loops)
+      expect(mockFinishTransaction).toHaveBeenCalled();
     });
   });
 
   describe('validateAndSavePurchase behavior', () => {
-    it('should require user authentication for validation', async () => {
+    it('should finish transaction even when validation fails due to auth', async () => {
       mockAuthInstance.currentUser = null;
 
       await PurchaseService.initialize();
@@ -738,8 +735,8 @@ describe('PurchaseService', () => {
 
       await purchaseUpdateHandler(purchase);
 
-      // Should not finish transaction when user is not authenticated
-      expect(mockFinishTransaction).not.toHaveBeenCalled();
+      // ALWAYS finishes transaction to prevent infinite loop (new behavior)
+      expect(mockFinishTransaction).toHaveBeenCalled();
     });
 
     // Note: Full integration tests for validateAndSavePurchase with Firebase Functions
@@ -748,31 +745,33 @@ describe('PurchaseService', () => {
     // module can be properly loaded. The tests above verify the error handling paths.
   });
 
-  describe('getOrCreateAppAccountToken (iOS)', () => {
+  describe('getOrCreateAppAccountToken (iOS - for lifetime purchases)', () => {
     beforeEach(() => {
       Platform.OS = 'ios';
     });
 
-    it('should return existing token from Firestore', async () => {
+    it('should return existing token from Firestore for lifetime purchases', async () => {
       mockGetDoc.mockResolvedValue({
         data: () => ({ appAccountToken: 'existing-token-xyz' })
       });
+      mockGetProducts.mockResolvedValue([{ productId: SUBSCRIPTION_PRODUCTS.lifetime }]);
 
-      await PurchaseService.purchaseSubscription('monthly');
+      await PurchaseService.purchaseLifetime();
 
       expect(mockDigestStringAsync).not.toHaveBeenCalled();
-      expect(mockRequestSubscription).toHaveBeenCalledWith(
+      expect(mockRequestPurchase).toHaveBeenCalledWith(
         expect.objectContaining({
           appAccountToken: 'existing-token-xyz',
         })
       );
     });
 
-    it('should create and save new token if not exists', async () => {
+    it('should create and save new token if not exists for lifetime', async () => {
       mockGetDoc.mockResolvedValue({ data: () => ({}) });
       mockDigestStringAsync.mockResolvedValue('new-hashed-token-abc');
+      mockGetProducts.mockResolvedValue([{ productId: SUBSCRIPTION_PRODUCTS.lifetime }]);
 
-      await PurchaseService.purchaseSubscription('annual');
+      await PurchaseService.purchaseLifetime();
 
       expect(mockDigestStringAsync).toHaveBeenCalledWith('SHA-256', 'test-user-123');
       expect(mockSetDoc).toHaveBeenCalledWith(
@@ -780,7 +779,7 @@ describe('PurchaseService', () => {
         { appAccountToken: 'new-hashed-token-abc' },
         { merge: true }
       );
-      expect(mockRequestSubscription).toHaveBeenCalledWith(
+      expect(mockRequestPurchase).toHaveBeenCalledWith(
         expect.objectContaining({
           appAccountToken: 'new-hashed-token-abc',
         })
@@ -789,6 +788,7 @@ describe('PurchaseService', () => {
 
     it('should use SHA256 algorithm for token generation', async () => {
       mockGetDoc.mockResolvedValue({ data: () => ({}) });
+      mockGetProducts.mockResolvedValue([{ productId: SUBSCRIPTION_PRODUCTS.lifetime }]);
 
       await PurchaseService.purchaseLifetime();
 
@@ -896,6 +896,7 @@ describe('PurchaseService', () => {
 
   describe('Error handling', () => {
     it('should map E_DEVELOPER_ERROR to user-friendly message', async () => {
+      mockGetSubscriptions.mockResolvedValue([{ productId: SUBSCRIPTION_PRODUCTS.monthly }]);
       mockRequestSubscription.mockRejectedValue({ code: 'E_DEVELOPER_ERROR' });
 
       const result = await PurchaseService.purchaseSubscription('monthly');
@@ -904,6 +905,7 @@ describe('PurchaseService', () => {
     });
 
     it('should map E_ALREADY_OWNED to user-friendly message with restore suggestion', async () => {
+      mockGetProducts.mockResolvedValue([{ productId: SUBSCRIPTION_PRODUCTS.lifetime }]);
       mockRequestPurchase.mockRejectedValue({ code: 'E_ALREADY_OWNED' });
 
       const result = await PurchaseService.purchaseLifetime();
@@ -912,6 +914,7 @@ describe('PurchaseService', () => {
     });
 
     it('should map E_BILLING_UNAVAILABLE to user-friendly message', async () => {
+      mockGetSubscriptions.mockResolvedValue([{ productId: SUBSCRIPTION_PRODUCTS.annual }]);
       mockRequestSubscription.mockRejectedValue({ code: 'E_BILLING_UNAVAILABLE' });
 
       const result = await PurchaseService.purchaseSubscription('annual');
@@ -920,6 +923,7 @@ describe('PurchaseService', () => {
     });
 
     it('should map E_SERVICE_ERROR to user-friendly message', async () => {
+      mockGetSubscriptions.mockResolvedValue([{ productId: SUBSCRIPTION_PRODUCTS.monthly }]);
       mockRequestSubscription.mockRejectedValue({ code: 'E_SERVICE_ERROR' });
 
       const result = await PurchaseService.purchaseSubscription('monthly');
