@@ -57,7 +57,7 @@ const APPLE_SANDBOX_URL = 'https://sandbox.itunes.apple.com/verifyReceipt';
 const PACKAGE_NAME_ANDROID = 'com.braveheartinnovations.debateai';
 // Lifetime product IDs
 const LIFETIME_PRODUCT_IDS = [
-    'com.braveheartinnovations.debateai.premium.lifetime', // iOS
+    'com.braveheartinnovations.debateai.premium.lifetime.v2', // iOS
     'premium_lifetime', // Android
 ];
 /**

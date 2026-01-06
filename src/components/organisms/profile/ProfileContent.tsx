@@ -15,7 +15,7 @@ import {
   signUpWithEmail,
   toAuthUser
 } from '../../../services/firebase/auth';
-import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from '@react-native-firebase/firestore';
+import { getFirestore, doc, getDoc } from '@react-native-firebase/firestore';
 import { TrialBanner } from '@/components/molecules/subscription/TrialBanner';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import PurchaseService from '@/services/iap/PurchaseService';
@@ -45,43 +45,33 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
     try {
       let user;
       if (authMode === 'signup') {
+        // signUpWithEmail already creates the user document in Firestore
         user = await signUpWithEmail(email, password);
-        
-        // Create user profile in Firestore
-        const db = getFirestore();
-        const userDocRef = doc(db, 'users', user.uid);
-        await setDoc(userDocRef, {
-          email: user.email,
-          displayName: user.displayName || email.split('@')[0],
-          createdAt: serverTimestamp(),
-          membershipStatus: 'free',
-          preferences: {},
-        });
       } else {
         user = await signInWithEmail(email, password);
       }
-      
+
       // Fetch user profile
       const db = getFirestore();
       const userDocRef = doc(db, 'users', user.uid);
       const profileDoc = await getDoc(userDocRef);
-      
+
       const profileData = profileDoc.data();
-      
+
       dispatch(setAuthUser(toAuthUser(user)));
       dispatch(setUserProfile({
         email: user.email,
-        displayName: profileData?.displayName || user.displayName,
+        displayName: profileData?.displayName || user.displayName || email.split('@')[0],
         photoURL: user.photoURL,
         createdAt: profileData?.createdAt?.toDate
           ? profileData.createdAt.toDate().getTime()
           : typeof profileData?.createdAt === 'number'
           ? profileData.createdAt
           : Date.now(),
-        membershipStatus: profileData?.membershipStatus || 'free',
+        membershipStatus: profileData?.membershipStatus || 'demo',
         preferences: profileData?.preferences || {},
       }));
-      
+
       setShowAuthForm(false);
     } catch (error) {
       Alert.alert(

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.stripeWebhook = exports.cancelStripeSubscription = exports.createStripeBillingPortal = exports.createStripeCheckoutSession = exports.proxyImageGeneration = exports.proxyAIRequest = exports.getConfiguredProviders = exports.deleteApiKey = exports.saveApiKey = exports.deleteAccount = exports.handleAppStoreNotification = exports.handlePlayStoreNotification = exports.validatePurchase = void 0;
+exports.exportUserData = exports.recordImageGeneration = exports.getUsageStats = exports.getProviderBalances = exports.stripeWebhook = exports.cancelStripeSubscription = exports.createStripeBillingPortal = exports.createStripeCheckoutSession = exports.proxyImageGeneration = exports.proxyAIRequest = exports.getConfiguredProviders = exports.deleteApiKey = exports.saveApiKey = exports.deleteAccount = exports.handleAppStoreNotification = exports.handlePlayStoreNotification = exports.validatePurchase = void 0;
 var validatePurchase_1 = require("./validatePurchase");
 Object.defineProperty(exports, "validatePurchase", { enumerable: true, get: function () { return validatePurchase_1.validatePurchase; } });
 var playStore_1 = require("./notifications/playStore");
@@ -26,3 +26,11 @@ Object.defineProperty(exports, "createStripeCheckoutSession", { enumerable: true
 Object.defineProperty(exports, "createStripeBillingPortal", { enumerable: true, get: function () { return stripe_1.createStripeBillingPortal; } });
 Object.defineProperty(exports, "cancelStripeSubscription", { enumerable: true, get: function () { return stripe_1.cancelStripeSubscription; } });
 Object.defineProperty(exports, "stripeWebhook", { enumerable: true, get: function () { return stripe_1.stripeWebhook; } });
+// Usage Tracking
+var usageTracking_1 = require("./usageTracking");
+Object.defineProperty(exports, "getProviderBalances", { enumerable: true, get: function () { return usageTracking_1.getProviderBalances; } });
+Object.defineProperty(exports, "getUsageStats", { enumerable: true, get: function () { return usageTracking_1.getUsageStats; } });
+Object.defineProperty(exports, "recordImageGeneration", { enumerable: true, get: function () { return usageTracking_1.recordImageGeneration; } });
+// GDPR User Data Export
+var userData_1 = require("./userData");
+Object.defineProperty(exports, "exportUserData", { enumerable: true, get: function () { return userData_1.exportUserData; } });

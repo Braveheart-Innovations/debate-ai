@@ -19,3 +19,9 @@ export {
   cancelStripeSubscription,
   stripeWebhook,
 } from './stripe';
+
+// Usage Tracking
+export { getProviderBalances, getUsageStats, recordImageGeneration } from './usageTracking';
+
+// GDPR User Data Export
+export { exportUserData } from './userData';

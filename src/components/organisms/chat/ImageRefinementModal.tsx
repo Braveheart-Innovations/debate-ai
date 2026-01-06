@@ -107,7 +107,7 @@ export const ImageRefinementModal: React.FC<ImageRefinementModalProps> = ({
             <SafeAreaView style={{ flex: 1 }}>
               <SheetHeader title="Refine Image" onClose={onClose} showHandle />
               <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-                <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+                <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
                   {/* Image Preview */}
                   <Box style={styles.imagePreviewContainer}>
                     <Image

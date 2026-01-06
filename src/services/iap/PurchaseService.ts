@@ -21,6 +21,16 @@ import { SUBSCRIPTION_PRODUCTS, type PlanType } from '@/services/iap/products';
 import * as Crypto from 'expo-crypto';
 import { ErrorService } from '@/services/errors/ErrorService';
 
+/** Timeout helper for promises */
+function withTimeout<T>(promise: Promise<T>, ms: number, errorMessage: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(errorMessage)), ms)
+    ),
+  ]);
+}
+
 /** User-friendly error messages for common IAP error codes */
 const IAP_ERROR_MESSAGES: Record<string, string> = {
   E_DEVELOPER_ERROR: 'This product is not available yet. Please try again later.',
@@ -73,6 +83,7 @@ const errorListeners: Set<PurchaseErrorListener> = new Set();
 export class PurchaseService {
   private static purchaseUpdateSub: { remove: () => void } | null = null;
   private static purchaseErrorSub: { remove: () => void } | null = null;
+  private static isInitialized = false;
 
   /**
    * Register a listener for background purchase errors (e.g., validation failures).
@@ -97,11 +108,26 @@ export class PurchaseService {
     try {
       await initConnection();
       this.setupListeners();
+      this.isInitialized = true;
       return { success: true };
     } catch (error) {
       // Log via ErrorService but don't show toast (initialization is background)
       ErrorService.handleSilent(error, { action: 'iap_initialize' });
+      this.isInitialized = false;
       return { success: false, error } as const;
+    }
+  }
+
+  /**
+   * Ensure IAP is initialized before making purchases.
+   * Re-initializes if needed (e.g., after hot reload).
+   */
+  private static async ensureInitialized(): Promise<void> {
+    if (!this.isInitialized) {
+      const result = await this.initialize();
+      if (!result.success) {
+        throw { code: 'E_NOT_PREPARED', message: 'Failed to connect to store. Please restart the app.' };
+      }
     }
   }
 
@@ -196,14 +222,36 @@ export class PurchaseService {
     }
 
     try {
+      console.warn('[IAP] purchaseSubscription starting for plan:', plan);
+
+      // Ensure IAP is initialized (handles hot reload scenarios)
+      console.warn('[IAP] Ensuring initialized...');
+      await withTimeout(this.ensureInitialized(), 5000, 'IAP initialization timed out');
+      console.warn('[IAP] Initialized OK');
+
       const user = getAuth().currentUser;
       if (!user) throw new Error('User must be authenticated');
+      console.warn('[IAP] User authenticated:', user.uid);
 
       const sku = SUBSCRIPTION_PRODUCTS[plan];
+      console.warn('[IAP] SKU:', sku);
 
       if (Platform.OS === 'ios') {
-        const appAccountToken = await this.getOrCreateAppAccountToken(user.uid);
-        await requestSubscription({ sku, andDangerouslyFinishTransactionAutomaticallyIOS: false, appAccountToken });
+        // Fetch subscription info (with timeout)
+        console.warn('[IAP] Fetching subscriptions...');
+        const subs = await withTimeout(
+          getSubscriptions({ skus: [sku] }),
+          10000,
+          'Store connection timed out. Please try again.'
+        );
+        console.warn('[IAP] Got subscriptions:', subs?.length);
+        if (!subs || subs.length === 0) {
+          throw { code: 'E_ITEM_UNAVAILABLE', message: 'Subscription not found in store' };
+        }
+        console.warn('[IAP] Requesting subscription (no appAccountToken)...');
+        // Try without appAccountToken to see if that's causing the hang
+        await requestSubscription({ sku });
+        console.warn('[IAP] requestSubscription returned');
       } else {
         const subs = await getSubscriptions({ skus: [sku] });
         const product = subs?.[0] as SubscriptionAndroid | undefined;
@@ -233,12 +281,24 @@ export class PurchaseService {
 
   static async purchaseLifetime() {
     try {
+      // Ensure IAP is initialized (handles hot reload scenarios)
+      await this.ensureInitialized();
+
       const user = getAuth().currentUser;
       if (!user) throw new Error('User must be authenticated');
 
       const sku = SUBSCRIPTION_PRODUCTS.lifetime;
 
       if (Platform.OS === 'ios') {
+        // Must fetch product first before purchasing (with timeout)
+        const prods = await withTimeout(
+          getProducts({ skus: [sku] }),
+          10000,
+          'Store connection timed out. Please try again.'
+        );
+        if (!prods || prods.length === 0) {
+          throw { code: 'E_ITEM_UNAVAILABLE', message: 'Product not found in store' };
+        }
         const appAccountToken = await this.getOrCreateAppAccountToken(user.uid);
         await requestPurchase({ sku, andDangerouslyFinishTransactionAutomaticallyIOS: false, appAccountToken });
       } else {
@@ -277,20 +337,32 @@ export class PurchaseService {
 
   private static async handlePurchaseUpdate(purchase: Purchase) {
     if (!purchase.transactionReceipt) return;
+
+    let validationError: unknown = null;
+
+    // Try to validate
     try {
       await this.validateAndSavePurchase(purchase);
-      await finishTransaction({ purchase, isConsumable: false });
     } catch (e) {
-      // Log via ErrorService for centralized tracking
+      validationError = e;
       ErrorService.handleError(e, {
         feature: 'purchase',
         showToast: false,
         context: { action: 'handlePurchaseUpdate', productId: purchase.productId },
       });
-      // Extract user-friendly message and notify listeners
-      const message = extractFirebaseErrorMessage(e);
+    }
+
+    // ALWAYS finish transaction - prevents infinite loop
+    try {
+      await finishTransaction({ purchase, isConsumable: false });
+    } catch {
+      // Ignore finish errors
+    }
+
+    // Notify user of validation error after finishing
+    if (validationError) {
+      const message = extractFirebaseErrorMessage(validationError);
       this.notifyError(message, true);
-      // Do not finish transaction if validation failed - allows retry
     }
   }
 
@@ -355,6 +427,9 @@ export class PurchaseService {
 
   static async restorePurchases() {
     try {
+      // Ensure IAP is initialized
+      await this.ensureInitialized();
+
       const purchases = await getAvailablePurchases();
       const ids = Object.values(SUBSCRIPTION_PRODUCTS) as string[];
 

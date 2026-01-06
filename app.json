@@ -2,7 +2,7 @@
   "expo": {
     "name": "Symposium AI",
     "slug": "symposium-ai",
-    "version": "1.2.3",
+    "version": "1.2.5",
     "description": "Where Ideas Converge. Where Understanding Emerges.",
     "primaryColor": "#0E9594",
     "orientation": "default",
@@ -15,7 +15,7 @@
       "backgroundColor": "#1A1A1A"
     },
     "ios": {
-      "buildNumber": "2",
+      "buildNumber": "1",
       "supportsTablet": true,
       "bundleIdentifier": "com.braveheartinnovations.debateai",
       "googleServicesFile": "./GoogleService-Info.plist",

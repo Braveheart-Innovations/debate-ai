@@ -1,26 +1,26 @@
 # Store Submission Checklist
-## MyAIFriends React Native App
+## Symposium AI React Native App
 
-*Last Updated: August 2025*
+*Last Updated: December 2025*
 
 ---
 
 ## Pre-Submission Requirements
 
 ### Business Requirements
-- [ ] Apple Developer Account ($99/year) - Active
-- [ ] Google Play Developer Account ($25 one-time) - Active  
+- [x] Apple Developer Account ($99/year) - Active
+- [ ] Google Play Developer Account ($25 one-time) - Active
 - [ ] D-U-N-S Number (for organization accounts)
-- [ ] Business verification completed
-- [ ] Tax information submitted
-- [ ] Banking information configured
+- [x] Business verification completed
+- [x] Tax information submitted
+- [x] Banking information configured
 
 ### Legal Documents
-- [ ] Privacy Policy URL: `https://myaifriends.app/privacy`
-- [ ] Terms of Service URL: `https://myaifriends.app/terms`
+- [x] Privacy Policy URL: `https://symposiumai.app/privacy`
+- [x] Terms of Service URL: `https://symposiumai.app/terms`
 - [ ] EULA (if different from Apple's standard)
-- [ ] Copyright documentation
-- [ ] Third-party licenses documented
+- [x] Copyright documentation
+- [x] Third-party licenses documented
 
 ---
 
@@ -29,50 +29,50 @@
 ### 1. App Information
 
 #### Basic Information
-- [ ] App Name: `MyAIFriends` (30 characters max)
-- [ ] Subtitle: `Your AI Conversation Hub` (30 characters max)
-- [ ] Primary Category: `Productivity`
-- [ ] Secondary Category: `Utilities`
-- [ ] Bundle ID: `com.braveheart.myaifriends`
+- [x] App Name: `Symposium AI` (30 characters max)
+- [x] Subtitle: `Where Ideas Converge` (30 characters max)
+- [x] Primary Category: `Productivity`
+- [x] Secondary Category: `Utilities`
+- [x] Bundle ID: `com.braveheartinnovations.debateai`
 
 #### Age Rating
-- [ ] Complete age rating questionnaire
-- [ ] Expected rating: 12+ (Infrequent/Mild Profanity or Crude Humor)
-- [ ] No gambling content
-- [ ] No unrestricted web access
+- [x] Complete age rating questionnaire
+- [x] Expected rating: 12+ (Infrequent/Mild Profanity or Crude Humor)
+- [x] No gambling content
+- [x] No unrestricted web access
 
 ### 2. Version Information
 
-#### What's New (Version 1.0.0)
+#### What's New (Version 1.2.3)
 ```
-Welcome to MyAIFriends!
+Welcome to Symposium AI - Where Ideas Converge!
 
+• AI Debate Arena: Watch different AIs debate any topic
 • Chat with multiple AI providers simultaneously
 • BYOK: Use your own API keys securely
 • Hallucination Shield: AIs fact-check each other
-• AI Debate Arena: Watch AIs debate topics
 • 12 unique personalities per AI
 • Expert Mode for advanced users
 • Beautiful light/dark themes
-• Premium features with subscription
+• Premium features with subscription or lifetime purchase
 
 Your API keys stay private and secure on your device.
 ```
 
 #### Version Details
-- [ ] Version Number: `1.0.0`
-- [ ] Build Number: `1`
-- [ ] Copyright: `© 2025 Braveheart Innovations LLC`
+- [x] Version Number: `1.2.3`
+- [x] Build Number: `2`
+- [x] Copyright: `© 2025 Braveheart Innovations LLC`
 
 ### 3. App Preview and Screenshots
 
 #### Screenshots Required (6.7", 6.5", 5.5")
-1. [ ] Welcome screen showing key features
-2. [ ] Chat interface with multiple AIs
-3. [ ] AI Debate in action
-4. [ ] Personality selection screen
-5. [ ] Expert mode with model selection
-6. [ ] Premium upgrade screen
+1. [x] Welcome screen showing key features
+2. [x] Chat interface with multiple AIs
+3. [x] AI Debate in action
+4. [x] Personality selection screen
+5. [x] Expert mode with model selection
+6. [x] Premium upgrade screen
 
 #### App Preview Video (Optional but Recommended)
 - [ ] 15-30 seconds
@@ -83,24 +83,33 @@ Your API keys stay private and secure on your device.
 ### 4. In-App Purchases
 
 #### Subscription Configuration
-- [ ] Product approved: `Premium Monthly ($9.99)`
-- [ ] Subscription group configured
-- [ ] Localized descriptions added
-- [ ] Screenshot of purchase screen uploaded
-- [ ] Auto-renewal disclosure included
+- [x] Product approved: `Premium Monthly ($5.99/month)`
+- [ ] Product ready: `Premium Annual ($49.99/year)`
+- [ ] Product ready: `Premium Lifetime ($129.99 one-time)`
+- [x] Subscription group configured
+- [x] Localized descriptions added
+- [x] Screenshot of purchase screen uploaded
+- [x] Auto-renewal disclosure included
 
-#### Required Text
+#### Product IDs
+| Product | iOS Product ID |
+|---------|---------------|
+| Monthly | `com.braveheartinnovations.debateai.premium.monthly.v2` |
+| Annual | `com.braveheartinnovations.debateai.premium.annual.v2` |
+| Lifetime | `com.braveheartinnovations.debateai.premium.lifetime.v2` |
+
+#### Required Subscription Text
 ```
-MyAIFriends Premium - $9.99/month
+Symposium AI Premium - $5.99/month or $49.99/year
 
-Payment will be charged to your Apple ID account at confirmation of purchase. 
-Subscription automatically renews unless it is canceled at least 24 hours before 
-the end of the current period. Your account will be charged for renewal within 
-24 hours prior to the end of the current period. You can manage and cancel your 
+Payment will be charged to your Apple ID account at confirmation of purchase.
+Subscription automatically renews unless it is canceled at least 24 hours before
+the end of the current period. Your account will be charged for renewal within
+24 hours prior to the end of the current period. You can manage and cancel your
 subscriptions by going to your account settings on the App Store after purchase.
 
-Privacy Policy: https://myaifriends.app/privacy
-Terms of Service: https://myaifriends.app/terms
+Privacy Policy: https://symposiumai.app/privacy
+Terms of Service: https://symposiumai.app/terms
 ```
 
 ### 5. App Review Information
@@ -108,7 +117,7 @@ Terms of Service: https://myaifriends.app/terms
 #### Review Notes
 ```
 Test Account Credentials:
-Email: reviewer@myaifriends.app
+Email: reviewer@symposiumai.app
 Password: ReviewTest2025!
 
 To test premium features:
@@ -117,8 +126,8 @@ To test premium features:
 3. Use sandbox account for purchase testing
 
 API Keys for Testing:
-The app uses BYOK (Bring Your Own Keys). Test API keys are pre-configured 
-in the test account. Users normally add their own API keys from providers 
+The app uses BYOK (Bring Your Own Keys). Test API keys are pre-configured
+in the test account. Users normally add their own API keys from providers
 like OpenAI, Anthropic, or Google.
 
 Key Features to Review:
@@ -129,38 +138,47 @@ Key Features to Review:
 ```
 
 #### Contact Information
-- [ ] First Name: `Michael`
-- [ ] Last Name: `Spencer`
-- [ ] Phone: `+1 (555) 123-4567`
-- [ ] Email: `support@braveheart-innovations.com`
+- [x] First Name: `Michael`
+- [x] Last Name: `Spencer`
+- [x] Phone: `+1 (555) 123-4567`
+- [x] Email: `support@braveheart-innovations.com`
 
 #### Demo Account
-- [ ] Username: `reviewer@myaifriends.app`
-- [ ] Password: `ReviewTest2025!`
-- [ ] Notes: Explain BYOK concept and test keys
+- [x] Username: `reviewer@symposiumai.app`
+- [x] Password: `ReviewTest2025!`
+- [x] Notes: Explain BYOK concept and test keys
 
 ### 6. Build Preparation
 
-#### Xcode Configuration
-- [ ] Bundle ID matches App Store Connect
-- [ ] Version and build number updated
-- [ ] Deployment target: iOS 13.0+
-- [ ] Device support: iPhone only (initially)
-- [ ] Architectures: arm64
+#### EAS Build Configuration
+- [x] Bundle ID matches App Store Connect
+- [x] Version and build number updated
+- [x] Deployment target: iOS 12.0+
+- [x] Device support: iPhone and iPad
+- [x] Architectures: arm64
 
 #### Capabilities
-- [ ] Sign in with Apple enabled
+- [x] Sign in with Apple enabled
 - [ ] Push Notifications (for future)
-- [ ] In-App Purchase enabled
+- [x] In-App Purchase enabled
 
 #### Code Signing
-- [ ] Distribution certificate valid
-- [ ] Provisioning profile: App Store Distribution
-- [ ] Entitlements file configured correctly
+- [x] Distribution certificate valid
+- [x] Provisioning profile: App Store Distribution
+- [x] Entitlements file configured correctly
 
 ### 7. Build Upload
 
-#### Archive Creation
+#### Using EAS Build
+```bash
+# Build production iOS app
+eas build --platform ios --profile production
+
+# Submit to App Store (after build completes)
+eas submit --platform ios
+```
+
+#### Manual Archive (Alternative)
 ```bash
 # Clean build folder
 rm -rf ~/Library/Developer/Xcode/DerivedData
@@ -169,26 +187,20 @@ rm -rf ~/Library/Developer/Xcode/DerivedData
 Product → Archive
 
 # Or via command line
-xcodebuild -workspace ios/MyAIFriends.xcworkspace \
-  -scheme MyAIFriends \
+xcodebuild -workspace ios/SymposiumAI.xcworkspace \
+  -scheme SymposiumAI \
   -configuration Release \
-  -archivePath build/MyAIFriends.xcarchive \
+  -archivePath build/SymposiumAI.xcarchive \
   archive
 ```
-
-#### Upload to App Store Connect
-- [ ] Validate archive first
-- [ ] Upload with Xcode or Transporter
-- [ ] Wait for processing (5-10 minutes)
-- [ ] Check for any warnings/errors
 
 ### 8. TestFlight
 
 #### Internal Testing
-- [ ] Add internal testers (up to 100)
-- [ ] No review required
-- [ ] Test core functionality
-- [ ] Test IAP with sandbox accounts
+- [x] Add internal testers (up to 100)
+- [x] No review required
+- [x] Test core functionality
+- [x] Test IAP with sandbox accounts
 
 #### External Testing (Beta)
 - [ ] Add external testers (up to 10,000)
@@ -200,23 +212,23 @@ xcodebuild -workspace ios/MyAIFriends.xcworkspace \
 
 #### Keywords (100 characters)
 ```
-ai,chat,gpt,claude,gemini,chatbot,conversation,debate,api,keys,byok,multi,premium
+ai,chat,gpt,claude,gemini,chatbot,debate,arena,conversation,api,keys,byok,premium,symposium
 ```
 
 #### Promotional Text (170 characters)
 ```
-Special Launch Offer! Get 7 days free trial of Premium. Chat with multiple AIs at once, watch them debate, and unlock 12 personalities. Your API keys stay secure!
+Watch AIs debate any topic! Chat with Claude, ChatGPT, and Gemini simultaneously. Use your own API keys for maximum savings. Premium unlocks custom debates and more.
 ```
 
 ### 10. Final Submission
 
 #### Submission Checklist
-- [ ] All metadata complete
-- [ ] Screenshots uploaded for all sizes
-- [ ] Build selected and attached
-- [ ] Pricing and availability configured
-- [ ] App review information complete
-- [ ] Export compliance info provided
+- [x] All metadata complete
+- [x] Screenshots uploaded for all sizes
+- [x] Build selected and attached
+- [x] Pricing and availability configured
+- [x] App review information complete
+- [x] Export compliance info provided
 - [ ] Submit for review
 
 #### Expected Review Time
@@ -225,48 +237,33 @@ Special Launch Offer! Get 7 days free trial of Premium. Chat with multiple AIs a
 
 ---
 
-## Google Play Submission (Android)
+## Firebase Backend Configuration
+
+### Functions Deployed
+- [x] `validatePurchase` - Receipt validation for iOS/Android
+- [x] `handleAppStoreNotification` - App Store Server Notifications v2
+- [x] `handlePlayStoreNotification` - Google Play RTDN
+- [x] `deleteAccount` - GDPR/account deletion
+- [x] `saveApiKey` / `deleteApiKey` / `getConfiguredProviders` - API key management
+- [x] `proxyAIRequest` - AI API proxy
+- [x] `proxyImageGeneration` - Image generation proxy
+
+### Secrets Configured
+- [x] `APPLE_SHARED_SECRET` - For iOS receipt validation
+
+### Webhooks
+- [x] App Store Server Notifications URL: `https://us-central1-symposium-ai.cloudfunctions.net/handleAppStoreNotification`
+
+---
+
+## Google Play Submission (Android) - Future
 
 ### 1. Store Listing
 
 #### Product Details
-- [ ] App name: `MyAIFriends`
-- [ ] Short description (80 chars): `Chat with multiple AIs simultaneously using your own API keys`
-- [ ] Full description (4000 chars max):
-```
-MyAIFriends is the ultimate AI conversation platform that lets you chat with 
-multiple AI providers at once using your own API keys.
-
-KEY FEATURES:
-🔑 BYOK (Bring Your Own Keys) - Use your existing API keys from OpenAI, 
-   Anthropic, Google, and more
-🛡️ Hallucination Shield - Multiple AIs fact-check each other in real-time
-⚔️ AI Debate Arena - Watch different AIs debate topics
-👥 Group Chat - Talk with multiple AIs simultaneously
-🎭 12 Personalities - From Comedian to Philosopher
-⚙️ Expert Mode - Choose specific models and parameters
-
-PREMIUM FEATURES ($9.99/month):
-• Unlimited AIs in group chats
-• Create debates on any topic
-• All personalities unlocked
-• Expert mode with full control
-• Priority support
-
-WHY MYAIFRIENDS?
-- Save money: Use API pricing instead of multiple $20/month subscriptions
-- Privacy first: Your API keys never leave your device
-- Flexibility: Switch between AIs mid-conversation
-- Comparison: See how different AIs respond to the same prompt
-
-SUPPORTED PROVIDERS:
-• OpenAI (ChatGPT)
-• Anthropic (Claude)
-• Google (Gemini)
-• And more coming soon!
-
-Download now and experience the future of AI conversations!
-```
+- [ ] App name: `Symposium AI`
+- [ ] Short description (80 chars): `AI Debate Arena - Watch AIs debate, chat with multiple providers`
+- [ ] Full description (4000 chars max)
 
 #### Categorization
 - [ ] Category: `Productivity`
@@ -275,138 +272,12 @@ Download now and experience the future of AI conversations!
 - [ ] Contains ads: `No`
 - [ ] In-app purchases: `Yes`
 
-### 2. Graphics Assets
-
-#### Required Images
-- [ ] App icon: 512x512px PNG
-- [ ] Feature graphic: 1024x500px
-- [ ] Phone screenshots: 2-8 images (1080x1920 or similar)
-- [ ] Tablet screenshots: Optional (if supporting tablets)
-
-#### Screenshot Requirements
-1. [ ] Welcome/onboarding screen
-2. [ ] Multi-AI chat interface
-3. [ ] AI Debate feature
-4. [ ] Personality selection
-5. [ ] Premium features overview
-6. [ ] Settings/API configuration
-
-### 3. Content Rating
-
-#### Questionnaire Answers
-- [ ] Violence: None
-- [ ] Sexual content: None
-- [ ] Profanity: Mild (AI responses may vary)
-- [ ] Controlled substance: None
-- [ ] User interaction: Yes (AI chat)
-- [ ] Personal info sharing: No
-- [ ] Location sharing: No
-
-Expected Rating: `Everyone 10+`
-
-### 4. Pricing & Distribution
-
-#### Countries
-- [ ] Available in all countries except embargoed
-- [ ] Specific exclusions: None
-
-#### Pricing
-- [ ] App: Free
-- [ ] In-app purchases: Yes
-- [ ] Premium subscription: $9.99/month
-
-#### Device Categories
-- [ ] Phone: Yes
-- [ ] Tablet: Yes (responsive)
-- [ ] Wear OS: No
-- [ ] Android TV: No
-- [ ] Android Auto: No
-
-### 5. Build Preparation
-
-#### Android Configuration
-```gradle
-// android/app/build.gradle
-android {
-    defaultConfig {
-        applicationId "com.braveheart.myaifriends"
-        minSdkVersion 23
-        targetSdkVersion 35
-        versionCode 1
-        versionName "1.0.0"
-    }
-    
-    signingConfigs {
-        release {
-            storeFile file('myaifriends-release.keystore')
-            storePassword System.getenv("KEYSTORE_PASSWORD")
-            keyAlias System.getenv("KEY_ALIAS")
-            keyPassword System.getenv("KEY_PASSWORD")
-        }
-    }
-}
-```
-
-#### Generate Signed Bundle
-```bash
-# Clean build
-cd android && ./gradlew clean
-
-# Generate AAB (Android App Bundle)
-./gradlew bundleRelease
-
-# Output: android/app/build/outputs/bundle/release/app-release.aab
-```
-
-### 6. Release Management
-
-#### Production Release
-- [ ] Upload AAB file
-- [ ] Release name: `Version 1.0.0`
-- [ ] Release notes (same as What's New)
-- [ ] Rollout percentage: Start at 10%
-
-#### Staged Rollout
-1. [ ] 10% for 24 hours
-2. [ ] 25% for 24 hours
-3. [ ] 50% for 24 hours
-4. [ ] 100% if no issues
-
-### 7. Google Play Console Settings
-
-#### Store Settings
-- [ ] Developer account verified
-- [ ] Developer email public
-- [ ] Support email configured
-- [ ] Privacy policy URL added
-- [ ] Terms of service URL added
-
-#### Advanced Settings
-- [ ] Managed publishing: Off (initially)
-- [ ] App signing by Google Play: Enabled
-- [ ] Android App Bundle: Required
-
-### 8. Pre-Launch Report
-
-#### Automated Testing
-- [ ] Review pre-launch report
-- [ ] Fix any crashes detected
-- [ ] Address accessibility issues
-- [ ] Resolve performance warnings
-- [ ] Check screenshot issues
-
-### 9. Review Process
-
-#### Expected Timeline
-- Initial review: 2-3 hours (as of 2025)
-- Updates: Usually within 1 hour
-
-#### Common Rejection Reasons
-- Missing privacy policy
-- Incorrect permissions usage
-- Subscription terms not clear
-- Misleading claims
-- Policy violations
+### 2. Product IDs (Android)
+| Product | Android Product ID |
+|---------|-------------------|
+| Monthly | `premium_monthly` |
+| Annual | `premium_annual` |
+| Lifetime | `premium_lifetime` |
 
 ---
 
@@ -437,27 +308,6 @@ cd android && ./gradlew clean
 - [ ] Product Hunt submission
 - [ ] Reddit announcements
 
-#### App Store Features
-- [ ] Request featuring (App Store)
-- [ ] Apply for Editor's Choice
-- [ ] Submit for collections
-- [ ] Seasonal promotions
-
-### Updates
-
-#### Version 1.0.1 Planning
-- [ ] Bug fixes from user feedback
-- [ ] Performance improvements
-- [ ] Minor UI enhancements
-- [ ] Additional error handling
-
-#### Review Response Template
-```
-Thank you for your feedback! We're constantly working to improve MyAIFriends. 
-If you have specific issues or suggestions, please email us at 
-support@myaifriends.app. We'd love to help!
-```
-
 ---
 
 ## Emergency Procedures
@@ -480,15 +330,15 @@ support@myaifriends.app. We'd love to help!
 
 1. **User Can't Purchase**
    - Check store configuration
-   - Verify product IDs
+   - Verify product IDs match code
    - Test with new account
    - Contact store support
 
 2. **Receipt Validation Failing**
-   - Check server logs
-   - Verify certificates/keys
+   - Check Firebase Functions logs
+   - Verify APPLE_SHARED_SECRET
    - Test with sandbox
-   - Implement fallback
+   - Check validatePurchase function
 
 ---
 
@@ -501,36 +351,36 @@ support@myaifriends.app. We'd love to help!
 ### Internal Contacts
 - **Technical Lead**: tech@braveheart-innovations.com
 - **Marketing**: marketing@braveheart-innovations.com
-- **Support**: support@myaifriends.app
+- **Support**: support@symposiumai.app
 
 ---
 
 ## Final Pre-Submission Verification
 
 ### Technical Checklist
-- [ ] No debug code in production
-- [ ] API endpoints pointing to production
-- [ ] Analytics configured correctly
-- [ ] Crash reporting enabled
-- [ ] All console.logs removed
-- [ ] Performance optimized
+- [x] No debug code in production
+- [x] API endpoints pointing to production
+- [x] Analytics configured correctly
+- [x] Crash reporting enabled
+- [x] Console.logs minimized
+- [x] Performance optimized
 
 ### Legal Checklist
-- [ ] All licenses documented
-- [ ] No copyright violations
-- [ ] GDPR compliant
-- [ ] CCPA compliant
+- [x] All licenses documented
+- [x] No copyright violations
+- [x] GDPR compliant
+- [x] CCPA compliant
 - [ ] COPPA compliant (if applicable)
 
 ### Business Checklist
-- [ ] Support system ready
-- [ ] Documentation complete
-- [ ] Team briefed on launch
-- [ ] Monitoring tools configured
-- [ ] Backup plans in place
+- [x] Support system ready
+- [x] Documentation complete
+- [x] Team briefed on launch
+- [x] Monitoring tools configured
+- [x] Backup plans in place
 
 ---
 
-*Ready for submission? Take a deep breath and hit that submit button! 🚀*
+*Ready for submission? Take a deep breath and hit that submit button!*
 
 *For urgent support during submission: team@braveheart-innovations.com*

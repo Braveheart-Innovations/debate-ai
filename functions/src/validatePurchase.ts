@@ -24,7 +24,7 @@ type ValidateRequest = {
 
 // Lifetime product IDs
 const LIFETIME_PRODUCT_IDS = [
-  'com.braveheartinnovations.debateai.premium.lifetime', // iOS
+  'com.braveheartinnovations.debateai.premium.lifetime.v2', // iOS
   'premium_lifetime', // Android
 ];
 

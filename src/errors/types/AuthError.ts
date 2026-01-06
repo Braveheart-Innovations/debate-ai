@@ -126,6 +126,7 @@ export class AuthError extends AppError {
     const firebaseErrorMap: Record<string, () => AuthError> = {
       'auth/user-not-found': () => AuthError.userNotFound(),
       'auth/wrong-password': () => AuthError.invalidCredentials(),
+      'auth/invalid-credential': () => AuthError.invalidCredentials(), // Firebase v9+ unified error
       'auth/invalid-email': () => new AuthError({
         code: ErrorCode.AUTH_INVALID_CREDENTIALS,
         message: 'Invalid email format',

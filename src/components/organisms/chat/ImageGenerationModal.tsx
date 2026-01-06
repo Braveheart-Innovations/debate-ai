@@ -179,7 +179,7 @@ export const ImageGenerationModal: React.FC<ImageGenerationModalProps> = ({
             <SafeAreaView style={{ flex: 1 }}>
               <SheetHeader title={modalTitle} onClose={onClose} showHandle />
               <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-                <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+                <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
                   {/* AI List Display for multi-provider modes */}
                   {aiListDisplay && (
                     <Box style={[styles.section, { paddingBottom: 0 }]}>
