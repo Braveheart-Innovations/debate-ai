@@ -162,7 +162,8 @@ export class ChatOrchestrator {
           ai.provider
         ) as { enabled?: boolean; parameters?: ModelParameters; model?: string } | undefined;
 
-        const aiAttachments = promptContext.isFirstAI ? attachments : undefined;
+        // Send attachments to ALL AIs so each has full context
+        const aiAttachments = attachments;
 
         const aiMessage = shouldStream
           ? await this.handleStreamingResponse({

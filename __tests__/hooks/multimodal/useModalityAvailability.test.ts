@@ -66,22 +66,15 @@ describe('useModalityAvailability', () => {
     expect(hookAvailability).toEqual(availability);
   });
 
-  it('merges availability across multiple selections and deduplicates metadata', () => {
+  it('merges availability across multiple selections using AND logic for inputs', () => {
     type ModelDescriptor = ReturnType<typeof getModelByIdMock>;
 
-    getModelByIdMock.mockImplementation((providerId: string, modelId: string) => {
-      const base: ModelDescriptor = {
-        supportsImageInput: false,
-        supportsDocuments: false,
-      } as never;
-
-      if (modelId === 'vision') {
-        return { ...base, supportsImageInput: true };
-      }
-      if (modelId === 'documents') {
-        return { ...base, supportsDocuments: true };
-      }
-      return base;
+    // Both models support both input modalities
+    getModelByIdMock.mockImplementation(() => {
+      return {
+        supportsImageInput: true,
+        supportsDocuments: true,
+      } as ModelDescriptor;
     });
 
     getProviderCapabilitiesMock.mockImplementation((provider: AIProvider) => {
@@ -101,12 +94,14 @@ describe('useModalityAvailability', () => {
     });
 
     const merged = mergeAvailabilities([
-      { provider: 'openai', model: 'vision' },
-      { provider: 'google', model: 'documents' },
+      { provider: 'openai', model: 'gpt-4o' },
+      { provider: 'google', model: 'gemini-pro' },
     ]);
 
+    // Input modalities use AND logic - both support, so enabled
     expect(merged.imageUpload.supported).toBe(true);
     expect(merged.documentUpload.supported).toBe(true);
+    // Generation modalities use OR logic
     expect(merged.imageGeneration.supported).toBe(true);
     expect(merged.imageGeneration.models).toEqual(['dalle-3']);
     expect(merged.videoGeneration.supported).toBe(true);
@@ -114,11 +109,44 @@ describe('useModalityAvailability', () => {
     expect(merged.videoGeneration.resolutions).toEqual(['1080p']);
 
     const hookMerged = useMergedModalityAvailability([
+      { provider: 'openai', model: 'gpt-4o' },
+      { provider: 'google', model: 'gemini-pro' },
+    ]);
+
+    expect(hookMerged).toEqual(merged);
+  });
+
+  it('disables input modalities when ANY provider lacks support (AND logic)', () => {
+    type ModelDescriptor = ReturnType<typeof getModelByIdMock>;
+
+    getModelByIdMock.mockImplementation((providerId: string, modelId: string) => {
+      const base: ModelDescriptor = {
+        supportsImageInput: false,
+        supportsDocuments: false,
+      } as never;
+
+      if (modelId === 'vision') {
+        return { ...base, supportsImageInput: true };
+      }
+      if (modelId === 'documents') {
+        return { ...base, supportsDocuments: true };
+      }
+      return base;
+    });
+
+    getProviderCapabilitiesMock.mockReturnValue({
+      imageGeneration: { supported: false },
+      videoGeneration: { supported: false },
+    });
+
+    const merged = mergeAvailabilities([
       { provider: 'openai', model: 'vision' },
       { provider: 'google', model: 'documents' },
     ]);
 
-    expect(hookMerged).toEqual(merged);
+    // Input modalities use AND logic - one supports vision, other supports documents, neither supports both
+    expect(merged.imageUpload.supported).toBe(false);
+    expect(merged.documentUpload.supported).toBe(false);
   });
 
   describe('mergeAvailabilitiesStrict', () => {
@@ -190,7 +218,7 @@ describe('useModalityAvailability', () => {
       expect(merged.imageGeneration.models).toEqual([]);
     });
 
-    it('still uses OR logic for input modalities', () => {
+    it('uses AND logic for input modalities (all must support)', () => {
       type ModelDescriptor = ReturnType<typeof getModelByIdMock>;
 
       getModelByIdMock.mockImplementation((providerId: string, modelId: string) => {
@@ -213,7 +241,29 @@ describe('useModalityAvailability', () => {
         { provider: 'google', model: 'doc-model' },
       ]);
 
-      // Input modalities should use OR logic
+      // Input modalities use AND logic - one has vision, other has documents, neither has both
+      expect(merged.imageUpload.supported).toBe(false);
+      expect(merged.documentUpload.supported).toBe(false);
+    });
+
+    it('enables input modalities when ALL providers support them', () => {
+      type ModelDescriptor = ReturnType<typeof getModelByIdMock>;
+
+      getModelByIdMock.mockImplementation(() => {
+        return { supportsImageInput: true, supportsDocuments: true } as ModelDescriptor;
+      });
+
+      getProviderCapabilitiesMock.mockReturnValue({
+        imageGeneration: { supported: false },
+        videoGeneration: { supported: false },
+      });
+
+      const merged = mergeAvailabilitiesStrict([
+        { provider: 'openai', model: 'gpt-4o' },
+        { provider: 'google', model: 'gemini-pro' },
+      ]);
+
+      // Both support both input modalities, so enabled
       expect(merged.imageUpload.supported).toBe(true);
       expect(merged.documentUpload.supported).toBe(true);
     });

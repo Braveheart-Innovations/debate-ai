@@ -21,7 +21,7 @@ import { AIProvider } from '../types';
 
 import { useTheme } from '../theme';
 import { useAIService } from '../providers/AIServiceProvider';
-import { AIConfig, Message, ChatSession } from '../types';
+import { AIConfig, Message, ChatSession, MessageAttachment } from '../types';
 import { StorageService } from '../services/chat/StorageService';
 import { getExpertOverrides } from '../utils/expertMode';
 import useFeatureAccess from '@/hooks/useFeatureAccess';
@@ -215,13 +215,14 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
     }
   }, [userMessages, leftMessages, rightMessages, leftAI, rightAI, currentUser, continuedSide, sessionId, hasBeenSaved]);
   
-  const handleSend = useCallback(async () => {
+  const handleSend = useCallback(async (text?: string, attachments?: MessageAttachment[]) => {
     if (isDemo) { dispatch(showSheet({ sheet: 'subscription' })); return; }
-    if (!inputText.trim() || !aiService || !isInitialized || !leftAI || !rightAI) return;
+    const messageContent = text?.trim() || inputText.trim();
+    if (!messageContent || !aiService || !isInitialized || !leftAI || !rightAI) return;
 
-    const messageText = inputText.trim();
+    const messageText = messageContent;
     setInputText('');
-    
+
     // Create user message
     const userMessage: Message = {
       id: `msg_${Date.now()}`,
@@ -229,6 +230,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
       senderType: 'user',
       content: messageText,
       timestamp: Date.now(),
+      attachments,
     };
     // If recording, capture the user message
     try { if (RecordController.isActive()) { RecordController.recordUserMessage(messageText); } } catch (_e) { console.warn('compare record user msg failed', _e); }
@@ -365,6 +367,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
             },
             message: leftPromptBody,
             conversationHistory: leftHistoryRef.current,
+            attachments,
             modelOverride: leftEffModel,
             speed: streamSpeed,
           },
@@ -401,7 +404,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
             const isVerification = msg.toLowerCase().includes('verification');
             const isOverload = msg.toLowerCase().includes('overload') || msg.toLowerCase().includes('rate limit');
             try {
-              const response = await aiService.sendMessage(leftAI.provider, leftPromptBody, leftHistoryRef.current, false, undefined, undefined, leftEffModel);
+              const response = await aiService.sendMessage(leftAI.provider, leftPromptBody, leftHistoryRef.current, false, undefined, attachments, leftEffModel);
               const leftMessage: Message = {
                 id: `msg_left_${Date.now()}`,
                 sender: leftAI.name,
@@ -453,7 +456,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
         pendingPromises.push(leftStreamPromise);
       } else {
         const leftCompletion = aiService
-          .sendMessage(leftAI.provider, leftPromptBody, leftHistoryRef.current, false, undefined, undefined, leftEffModel)
+          .sendMessage(leftAI.provider, leftPromptBody, leftHistoryRef.current, false, undefined, attachments, leftEffModel)
           .then(response => {
             const leftMessage: Message = {
               id: `msg_left_${Date.now()}`,
@@ -506,6 +509,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
             },
             message: rightPromptBody,
             conversationHistory: rightHistoryRef.current,
+            attachments,
             modelOverride: rightEffModel,
             speed: streamSpeed,
           },
@@ -542,7 +546,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
             const isVerification = msg.toLowerCase().includes('verification');
             const isOverload = msg.toLowerCase().includes('overload') || msg.toLowerCase().includes('rate limit');
             try {
-              const response = await aiService.sendMessage(rightAI.provider, rightPromptBody, rightHistoryRef.current, false, undefined, undefined, rightEffModel);
+              const response = await aiService.sendMessage(rightAI.provider, rightPromptBody, rightHistoryRef.current, false, undefined, attachments, rightEffModel);
               const rightMessage: Message = {
                 id: `msg_right_${Date.now()}`,
                 sender: rightAI.name,
@@ -594,7 +598,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
         pendingPromises.push(rightStreamPromise);
       } else {
         const rightCompletion = aiService
-          .sendMessage(rightAI.provider, rightPromptBody, rightHistoryRef.current, false, undefined, undefined, rightEffModel)
+          .sendMessage(rightAI.provider, rightPromptBody, rightHistoryRef.current, false, undefined, attachments, rightEffModel)
           .then(response => {
             const rightMessage: Message = {
               id: `msg_right_${Date.now()}`,

@@ -48,21 +48,35 @@ export function getModalityAvailability(providerId: string, modelId: string): Mo
 }
 
 /**
- * Merge availability across multiple selections by unioning support flags and concatenating models/sizes/resolutions.
+ * Merge availability across multiple selections.
+ * - Input modalities (imageUpload, documentUpload): AND logic - ALL must support
+ * - Generation modalities: OR logic - any supporting enables the feature
  */
 export function mergeAvailabilities(items: Array<{ provider: string; model: string }>): ModalityAvailability {
+  if (items.length === 0) {
+    return {
+      imageUpload: { supported: false },
+      documentUpload: { supported: false },
+      imageGeneration: { supported: false, models: [], sizes: [] },
+      videoGeneration: { supported: false, models: [], resolutions: [] },
+    };
+  }
+
+  const availabilities = items.map(it => getModalityAvailability(it.provider, it.model));
+
+  // Input modalities: AND logic - ALL must support
+  const allSupportImageUpload = availabilities.every(a => a.imageUpload.supported);
+  const allSupportDocumentUpload = availabilities.every(a => a.documentUpload.supported);
+
+  // Generation modalities: OR logic - any supporting enables the feature
   const base: ModalityAvailability = {
-    imageUpload: { supported: false },
-    documentUpload: { supported: false },
+    imageUpload: { supported: allSupportImageUpload },
+    documentUpload: { supported: allSupportDocumentUpload },
     imageGeneration: { supported: false, models: [], sizes: [] },
     videoGeneration: { supported: false, models: [], resolutions: [] },
   };
 
-  for (const it of items) {
-    const a = getModalityAvailability(it.provider, it.model);
-    base.imageUpload.supported ||= a.imageUpload.supported;
-    base.documentUpload.supported ||= a.documentUpload.supported;
-
+  for (const a of availabilities) {
     if (a.imageGeneration.supported) {
       base.imageGeneration.supported = true;
       if (a.imageGeneration.models) {
@@ -88,9 +102,8 @@ export function mergeAvailabilities(items: Array<{ provider: string; model: stri
 }
 
 /**
- * Strict merge: image/video generation requires ALL providers to support it (AND logic instead of OR).
- * Used for Compare mode where we want to generate from both providers simultaneously.
- * Input modalities still use OR logic (any supporting is fine for receiving attachments).
+ * Strict merge: ALL providers must support for any modality to be enabled (AND logic).
+ * Used for Compare mode where we want both providers to process inputs/generate outputs.
  */
 export function mergeAvailabilitiesStrict(items: Array<{ provider: string; model: string }>): ModalityAvailability {
   if (items.length === 0) {
@@ -104,15 +117,16 @@ export function mergeAvailabilitiesStrict(items: Array<{ provider: string; model
 
   const availabilities = items.map(it => getModalityAvailability(it.provider, it.model));
 
-  // Image generation: ALL must support
+  // All modalities: AND logic - ALL must support
+  const allSupportImageUpload = availabilities.every(a => a.imageUpload.supported);
+  const allSupportDocumentUpload = availabilities.every(a => a.documentUpload.supported);
   const allSupportImageGen = availabilities.every(a => a.imageGeneration.supported);
-  // Video generation: ALL must support
   const allSupportVideoGen = availabilities.every(a => a.videoGeneration.supported);
 
   return {
-    // Input modalities: OR logic (any supporting is fine)
-    imageUpload: { supported: availabilities.some(a => a.imageUpload.supported) },
-    documentUpload: { supported: availabilities.some(a => a.documentUpload.supported) },
+    // Input modalities: AND logic (all must support)
+    imageUpload: { supported: allSupportImageUpload },
+    documentUpload: { supported: allSupportDocumentUpload },
     // Generation modalities: AND logic (all must support)
     imageGeneration: {
       supported: allSupportImageGen,
