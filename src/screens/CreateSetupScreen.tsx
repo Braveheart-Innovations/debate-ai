@@ -114,7 +114,12 @@ export default function CreateSetupScreen() {
     const ais = configuredImageAIs.filter(ai =>
       selectedProviders.includes(ai.provider)
     );
-    setSelectedAIs(ais);
+    // Only update if the selected AIs have actually changed to prevent infinite loops
+    setSelectedAIs(prev => {
+      const prevIds = prev.map(a => a.id).sort().join(',');
+      const newIds = ais.map(a => a.id).sort().join(',');
+      return prevIds === newIds ? prev : ais;
+    });
   }, [selectedProviders, configuredImageAIs]);
 
   const isPremium = membershipStatus === 'premium';

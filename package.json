@@ -25,7 +25,7 @@
     "demo:bridge": "node scripts/demo/dev-bridge.mjs",
     "test": "jest --watch=false",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
+    "test:coverage": "jest --coverage --maxWorkers=50%",
     "eas-build-post-install": "bash scripts/eas-prebuild.sh"
   },
   "dependencies": {
