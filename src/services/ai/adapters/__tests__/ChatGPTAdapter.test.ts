@@ -192,14 +192,18 @@ describe('ChatGPTAdapter', () => {
     eventSource.emit('response.output_text.delta', JSON.stringify({ delta: 'Hi' }));
     await expect(firstChunk).resolves.toEqual({ value: 'Hi', done: false });
 
+    // Emit another delta chunk before the done event
+    const secondChunkPromise = iterator.next();
+    eventSource.emit('response.output_text.delta', JSON.stringify({ delta: ' there' }));
+    await expect(secondChunkPromise).resolves.toEqual({ value: ' there', done: false });
+
+    // The done event signals completion without yielding additional content
     const finalChunkPromise = iterator.next();
     eventSource.emit(
       'response.output_text.done',
-      JSON.stringify({ response: { output: [{ type: 'output_text', text: ' there' }] } })
+      JSON.stringify({ text: 'Hi there' })
     );
-    await expect(finalChunkPromise).resolves.toEqual({ value: ' there', done: false });
-
-    await expect(iterator.next()).resolves.toEqual({ value: undefined, done: true });
+    await expect(finalChunkPromise).resolves.toEqual({ value: undefined, done: true });
     expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'response.output_text.done' }));
     expect(eventSource.close).toHaveBeenCalled();
   });
