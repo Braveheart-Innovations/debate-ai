@@ -7,7 +7,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { View, StyleSheet, TouchableOpacity, Linking, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CitationBadge, CitationCard } from '@/components/molecules/citations';
-import { Typography } from '@/components/molecules';
+import { Typography } from '@/components/molecules/common/Typography';
 import { useTheme } from '@/theme';
 import { normalizeCitations } from '@/utils/citationUtils';
 import type { Citation } from '@/types';

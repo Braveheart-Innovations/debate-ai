@@ -21,7 +21,7 @@ import { WebView, WebViewNavigation } from 'react-native-webview';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/theme';
-import { Typography } from '@/components/molecules';
+import { Typography } from '@/components/molecules/common/Typography';
 import { Box } from '@/components/atoms';
 import { extractDomain, getFaviconUrl, truncateText } from '@/utils/citationUtils';
 import type { Citation } from '@/types';

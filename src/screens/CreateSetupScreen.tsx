@@ -76,12 +76,12 @@ export default function CreateSetupScreen() {
   const [uploadedImageUri, setUploadedImageUri] = useState<string | null>(null);
   const [showRefinementModal, setShowRefinementModal] = useState(false);
 
-  // Hydrate gallery on mount
+  // Hydrate gallery on mount (skip in demo mode - demo images are URLs, not local files)
   useEffect(() => {
-    if (!galleryHydrated) {
+    if (!galleryHydrated && !isDemo) {
       dispatch(hydrateGallery());
     }
-  }, [dispatch, galleryHydrated]);
+  }, [dispatch, galleryHydrated, isDemo]);
 
   // Build AIConfig objects for image-capable providers
   const configuredImageAIs = useMemo(() => {
@@ -232,8 +232,21 @@ export default function CreateSetupScreen() {
 
   const handleGalleryPress = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    if (isDemo) {
+      Alert.alert(
+        'Gallery Unavailable in Demo',
+        'The image gallery is available with a premium subscription. Upgrade to save and manage your generated images.',
+        [
+          { text: 'Maybe Later', style: 'cancel' },
+          { text: 'Upgrade', onPress: () => navigation.navigate('Subscription') },
+        ]
+      );
+      return;
+    }
+
     navigation.navigate('CreateSession', {});
-  }, [navigation]);
+  }, [navigation, isDemo]);
 
   const handleAddAI = useCallback(() => {
     navigation.navigate('APIConfig');

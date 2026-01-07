@@ -2,6 +2,7 @@
  * Tests for CreateSetupScreen - Setup screen for AI image generation
  */
 import React from 'react';
+import { Alert } from 'react-native';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../test-utils/renderWithProviders';
 
@@ -55,9 +56,15 @@ jest.mock('react-native-safe-area-context', () => ({
 
 jest.mock('@/components/organisms', () => {
   const React = require('react');
-  const { Text, TouchableOpacity } = require('react-native');
+  const { Text, View } = require('react-native');
   return {
-    Header: (props: any) => React.createElement(Text, { testID: 'header' }, props.title),
+    Header: (props: any) =>
+      React.createElement(
+        View,
+        { testID: 'header-container' },
+        React.createElement(Text, { testID: 'header' }, props.title),
+        props.rightElement
+      ),
     HeaderActions: () => null,
     DynamicAISelector: (props: any) => {
       mockDynamicAISelectorProps = props;
@@ -257,6 +264,73 @@ describe('CreateSetupScreen', () => {
 
       renderWithProviders(<CreateSetupScreen />);
       expect(mockDispatch).toHaveBeenCalledWith({ type: 'create/hydrateGallery' });
+    });
+
+    it('does NOT dispatch hydrateGallery in demo mode', () => {
+      mockUseFeatureAccess.mockReturnValue({ membershipStatus: 'free', isDemo: true });
+      mockUseSelector.mockImplementation((selector) =>
+        selector({
+          ...baseState,
+          create: { ...baseState.create, galleryHydrated: false },
+        })
+      );
+
+      renderWithProviders(<CreateSetupScreen />);
+      expect(mockDispatch).not.toHaveBeenCalledWith({ type: 'create/hydrateGallery' });
+    });
+  });
+
+  describe('gallery access', () => {
+    it('navigates to CreateSession when gallery button is pressed (premium user)', () => {
+      mockUseSelector.mockImplementation((selector) =>
+        selector({
+          ...baseState,
+          create: { ...baseState.create, gallery: [{ id: '1' }] },
+        })
+      );
+
+      const { getByTestId } = renderWithProviders(<CreateSetupScreen />);
+      fireEvent.press(getByTestId('header-gallery-button'));
+
+      expect(mockNavigate).toHaveBeenCalledWith('CreateSession', {});
+    });
+
+    it('shows upgrade alert when gallery button is pressed in demo mode', () => {
+      const alertSpy = jest.spyOn(Alert, 'alert');
+      mockUseFeatureAccess.mockReturnValue({ membershipStatus: 'free', isDemo: true });
+
+      const { getByTestId } = renderWithProviders(<CreateSetupScreen />);
+      fireEvent.press(getByTestId('header-gallery-button'));
+
+      expect(alertSpy).toHaveBeenCalledWith(
+        'Gallery Unavailable in Demo',
+        'The image gallery is available with a premium subscription. Upgrade to save and manage your generated images.',
+        expect.arrayContaining([
+          expect.objectContaining({ text: 'Maybe Later' }),
+          expect.objectContaining({ text: 'Upgrade' }),
+        ])
+      );
+      expect(mockNavigate).not.toHaveBeenCalledWith('CreateSession', {});
+
+      alertSpy.mockRestore();
+    });
+
+    it('navigates to Subscription when Upgrade is pressed in demo gallery alert', () => {
+      const alertSpy = jest.spyOn(Alert, 'alert');
+      mockUseFeatureAccess.mockReturnValue({ membershipStatus: 'free', isDemo: true });
+
+      const { getByTestId } = renderWithProviders(<CreateSetupScreen />);
+      fireEvent.press(getByTestId('header-gallery-button'));
+
+      // Get the Upgrade button callback from the alert call
+      const alertCall = alertSpy.mock.calls[0];
+      const buttons = alertCall[2] as Array<{ text: string; onPress?: () => void }>;
+      const upgradeButton = buttons.find(b => b.text === 'Upgrade');
+      upgradeButton?.onPress?.();
+
+      expect(mockNavigate).toHaveBeenCalledWith('Subscription');
+
+      alertSpy.mockRestore();
     });
   });
 });
