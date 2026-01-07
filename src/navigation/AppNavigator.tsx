@@ -31,6 +31,8 @@ import UpgradeScreen from '../screens/UpgradeScreen';
 import ExpertModeScreen from '../screens/ExpertModeScreen';
 import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
 import TermsOfServiceScreen from '../screens/TermsOfServiceScreen';
+import CreateSetupScreen from '../screens/CreateSetupScreen';
+import CreateScreen from '../screens/CreateScreen';
 // import SubscriptionScreen from '../screens/SubscriptionScreen';
 // import ExpertModeScreen from '../screens/ExpertModeScreen';
 
@@ -120,6 +122,20 @@ const MainTabs = () => {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? 'git-compare' : 'git-compare-outline'}
+              size={iconSize}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="CreateTab"
+        component={CreateSetupScreen}
+        options={{
+          tabBarLabel: 'Create',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? 'sparkles' : 'sparkles-outline'}
               size={iconSize}
               color={color}
             />
@@ -251,6 +267,11 @@ export default function AppNavigator() {
             <Stack.Screen
               name="CompareSession"
               component={CompareScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="CreateSession"
+              component={CreateScreen}
               options={{ headerShown: false }}
             />
             <Stack.Screen

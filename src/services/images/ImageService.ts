@@ -313,4 +313,32 @@ Requirements:
     console.warn('[ImageService] Google result count:', results.length);
     return results;
   }
+
+  /**
+   * Generate images from multiple providers in parallel
+   * Used for Create mode comparison feature
+   */
+  static async generateMultiple(
+    providers: Array<{ provider: AIProvider; apiKey: string }>,
+    opts: Omit<GenerateImageOptions, 'provider' | 'apiKey'>
+  ): Promise<Map<AIProvider, GeneratedImage[] | Error>> {
+    const results = new Map<AIProvider, GeneratedImage[] | Error>();
+
+    await Promise.all(
+      providers.map(async ({ provider, apiKey }) => {
+        try {
+          const images = await this.generateImage({
+            ...opts,
+            provider,
+            apiKey,
+          });
+          results.set(provider, images);
+        } catch (error) {
+          results.set(provider, error as Error);
+        }
+      })
+    );
+
+    return results;
+  }
 }

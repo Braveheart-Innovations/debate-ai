@@ -28,8 +28,7 @@ const MultimodalOptionsRow: React.FC<MultimodalOptionsRowProps> = ({ availabilit
   const items = useMemo(() => ([
     { key: 'imageUpload' as const, icon: 'image-outline' as const, label: 'Image', enabled: availability.imageUpload },
     { key: 'documentUpload' as const, icon: 'document-text-outline' as const, label: 'Doc', enabled: availability.documentUpload },
-    { key: 'imageGeneration' as const, icon: 'color-palette-outline' as const, label: 'Gen', enabled: availability.imageGeneration },
-    // Video removed for v1
+    // Image generation moved to dedicated Create mode
   ]), [availability]);
 
   return (

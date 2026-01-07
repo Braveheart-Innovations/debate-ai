@@ -8,6 +8,11 @@ import { useTheme } from '@/theme';
 import { useResponsive } from '@/hooks/useResponsive';
 import * as Haptics from 'expo-haptics';
 
+interface AICardBadge {
+  text: string;
+  color?: string;
+}
+
 interface DynamicAISelectorProps {
   configuredAIs: AIConfig[];
   selectedAIs: AIConfig[];
@@ -26,6 +31,8 @@ interface DynamicAISelectorProps {
   onPersonalityChange?: (aiId: string, personalityId: string) => void;
   onModelChange?: (aiId: string, modelId: string) => void;
   onQuickStart?: () => void;  // Handler for Quick Start icon tap
+  /** Optional callback to get a badge for an AI (e.g., "img2img" for image refinement support) */
+  getBadge?: (ai: AIConfig) => AICardBadge | undefined;
 }
 
 export const DynamicAISelector: React.FC<DynamicAISelectorProps> = ({
@@ -46,6 +53,7 @@ export const DynamicAISelector: React.FC<DynamicAISelectorProps> = ({
   onPersonalityChange,
   onModelChange,
   onQuickStart,
+  getBadge,
 }) => {
   const { theme } = useTheme();
   const { width: screenWidth } = useWindowDimensions();
@@ -136,6 +144,7 @@ export const DynamicAISelector: React.FC<DynamicAISelectorProps> = ({
                       personalityId={aiPersonalities[ai.id] || 'default'}
                       onPersonalityChange={isSelected && onPersonalityChange ? (personalityId) => onPersonalityChange(ai.id, personalityId) : undefined}
                       onModelChange={isSelected && onModelChange ? (modelId) => onModelChange(ai.id, modelId) : undefined}
+                      badge={getBadge?.(ai)}
                     />
                   </View>
                 );

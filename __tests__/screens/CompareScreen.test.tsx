@@ -62,27 +62,6 @@ jest.mock('@/hooks/multimodal/useModalityAvailability', () => ({
   useMergedModalityAvailabilityStrict: (...args: unknown[]) => mockUseMergedAvailabilityStrict(...args),
 }));
 
-const mockGenerateImage = jest.fn();
-
-jest.mock('@/services/images/ImageService', () => ({
-  ImageService: {
-    generateImage: (...args: unknown[]) => mockGenerateImage(...args),
-  },
-}));
-
-let mockImageModalProps: any;
-
-jest.mock('@/components/organisms/chat/ImageGenerationModal', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
-  return {
-    ImageGenerationModal: (props: any) => {
-      mockImageModalProps = props;
-      return React.createElement(Text, { testID: 'image-modal' }, 'modal');
-    },
-  };
-});
-
 jest.mock('@/services/demo/DemoContentService', () => ({
   DemoContentService: {
     listCompareSamples: (...args: unknown[]) => mockListSamples(...args),
@@ -318,26 +297,24 @@ beforeEach(() => {
   mockDemoSamplesProps = undefined;
   mockChatInputProps = undefined;
   mockDemoBannerProps = undefined;
-  mockImageModalProps = undefined;
   mockListSamples.mockResolvedValue([]);
   mockFindCompareById.mockResolvedValue(null);
   mockLoadCompareScript.mockReset();
   mockPrimeNextCompareTurn.mockReset().mockReturnValue({ user: 'Next message' });
   mockHasNextCompareTurn.mockReset().mockReturnValue(false);
-  mockGenerateImage.mockReset().mockResolvedValue([
-    { url: 'https://example.com/image.png', mimeType: 'image/png' },
-  ]);
   mockUseMergedAvailability.mockImplementation(() => ({
     imageUpload: { supported: true },
     documentUpload: { supported: false },
-    imageGeneration: { supported: true },
+    imageGeneration: { supported: false },
     videoGeneration: { supported: false },
+    webSearch: { supported: false },
   }));
   mockUseMergedAvailabilityStrict.mockImplementation(() => ({
     imageUpload: { supported: true },
     documentUpload: { supported: false },
-    imageGeneration: { supported: true },
+    imageGeneration: { supported: false },
     videoGeneration: { supported: false },
+    webSearch: { supported: false },
   }));
 });
 
@@ -423,164 +400,5 @@ describe('CompareScreen', () => {
     alertSpy.mockRestore();
   });
 
-  describe('parallel image generation', () => {
-    it('enables image generation when both providers support it', () => {
-      mockUseMergedAvailabilityStrict.mockReturnValue({
-        imageUpload: { supported: true },
-        documentUpload: { supported: false },
-        imageGeneration: { supported: true },
-        videoGeneration: { supported: false },
-      });
-
-      renderScreen();
-
-      expect(mockChatInputProps.imageGenerationEnabled).toBe(true);
-    });
-
-    it('disables image generation when one provider does not support it', () => {
-      mockUseMergedAvailabilityStrict.mockReturnValue({
-        imageUpload: { supported: true },
-        documentUpload: { supported: false },
-        imageGeneration: { supported: false }, // Strict merge returns false
-        videoGeneration: { supported: false },
-      });
-
-      renderScreen();
-
-      expect(mockChatInputProps.imageGenerationEnabled).toBe(false);
-    });
-
-    it('opens image modal when onOpenImageModal is called', async () => {
-      renderScreen();
-
-      await act(async () => {
-        mockChatInputProps.onOpenImageModal();
-      });
-
-      await waitFor(() => {
-        expect(mockImageModalProps.visible).toBe(true);
-      });
-    });
-
-    it('generates images from both providers in parallel', async () => {
-      const leftImage = { url: 'https://left.ai/image.png', mimeType: 'image/png' };
-      const rightImage = { url: 'https://right.ai/image.png', mimeType: 'image/png' };
-
-      mockGenerateImage
-        .mockResolvedValueOnce([leftImage])
-        .mockResolvedValueOnce([rightImage]);
-
-      renderScreen({
-        preloadedState: {
-          settings: {
-            apiKeys: { anthropic: 'left-key', openai: 'right-key' },
-          } as any,
-        },
-      });
-
-      await act(async () => {
-        mockChatInputProps.onOpenImageModal();
-      });
-
-      await act(async () => {
-        await mockImageModalProps.onGenerate({ prompt: 'A beautiful sunset', size: 'square' });
-      });
-
-      // Should call ImageService for both providers
-      expect(mockGenerateImage).toHaveBeenCalledTimes(2);
-      expect(mockGenerateImage).toHaveBeenCalledWith(
-        expect.objectContaining({
-          provider: leftAI.provider,
-          apiKey: 'left-key',
-          prompt: 'A beautiful sunset',
-        })
-      );
-      expect(mockGenerateImage).toHaveBeenCalledWith(
-        expect.objectContaining({
-          provider: rightAI.provider,
-          apiKey: 'right-key',
-          prompt: 'A beautiful sunset',
-        })
-      );
-    });
-
-    it('handles image generation errors gracefully for each provider', async () => {
-      mockGenerateImage
-        .mockResolvedValueOnce([{ url: 'https://left.ai/image.png', mimeType: 'image/png' }])
-        .mockRejectedValueOnce(new Error('Right provider failed'));
-
-      renderScreen({
-        preloadedState: {
-          settings: {
-            apiKeys: { anthropic: 'left-key', openai: 'right-key' },
-          } as any,
-        },
-      });
-
-      await act(async () => {
-        mockChatInputProps.onOpenImageModal();
-      });
-
-      await act(async () => {
-        await mockImageModalProps.onGenerate({ prompt: 'Test image', size: 'square' });
-      });
-
-      // Both providers should be called
-      expect(mockGenerateImage).toHaveBeenCalledTimes(2);
-
-      // Split view should show success on left and error on right
-      await waitFor(() => {
-        // Left should have successful image
-        expect(mockCompareSplitViewProps.leftMessages.some(
-          (m: Message) => m.attachments?.some(a => a.uri?.includes('left.ai'))
-        )).toBe(true);
-        // Right should have error message
-        expect(mockCompareSplitViewProps.rightMessages.some(
-          (m: Message) => m.content?.includes('Image generation failed')
-        )).toBe(true);
-      });
-    });
-
-    it('closes image modal after generation starts', async () => {
-      renderScreen({
-        preloadedState: {
-          settings: {
-            apiKeys: { anthropic: 'left-key', openai: 'right-key' },
-          } as any,
-        },
-      });
-
-      await act(async () => {
-        mockChatInputProps.onOpenImageModal();
-      });
-
-      expect(mockImageModalProps.visible).toBe(true);
-
-      await act(async () => {
-        await mockImageModalProps.onGenerate({ prompt: 'Test', size: 'square' });
-      });
-
-      await waitFor(() => {
-        expect(mockImageModalProps.visible).toBe(false);
-      });
-    });
-
-    it('shows subscription sheet when generating images in demo mode', async () => {
-      const store = createAppStore();
-      const dispatchSpy = jest.spyOn(store, 'dispatch');
-
-      renderScreen({ featureAccess: { isDemo: true }, store });
-
-      await act(async () => {
-        mockChatInputProps.onOpenImageModal();
-      });
-
-      await act(async () => {
-        await mockImageModalProps.onGenerate({ prompt: 'Test', size: 'square' });
-      });
-
-      expect(dispatchSpy).toHaveBeenCalledWith(showSheet({ sheet: 'subscription' }));
-      expect(mockGenerateImage).not.toHaveBeenCalled();
-    });
-  });
+  // Note: Image generation tests removed - image generation moved to Create mode
 });

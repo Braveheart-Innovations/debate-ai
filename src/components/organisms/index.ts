@@ -61,8 +61,12 @@ export { APIKeyWebViewModal } from './api-config/APIKeyWebViewModal';
 // Debate organisms
 export * from './debate';
 
-// Compare organisms  
+// Compare organisms
 export * from './compare';
+
+// Chat organisms
+export { ImageRefinementModal } from './chat/ImageRefinementModal';
+export type { RefinementProvider, ImageRefinementModalProps } from './chat/ImageRefinementModal';
 
 // Demo Organisms
 export * from './demo';

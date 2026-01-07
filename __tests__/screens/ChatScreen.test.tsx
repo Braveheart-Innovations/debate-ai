@@ -3,7 +3,7 @@ import { Alert } from 'react-native';
 import { act, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '../../test-utils/renderWithProviders';
 import type { AIConfig } from '@/types';
-import { addMessage, setRecordModeEnabled, updateMessage } from '@/store';
+import { setRecordModeEnabled } from '@/store';
 import type { RootState } from '@/store';
 
 const mockUseAIService = jest.fn();
@@ -29,11 +29,9 @@ jest.mock('@/hooks/chat', () => ({
 }));
 
 const mockMergedAvailability = jest.fn();
-const mockImageGenerationAvailability = jest.fn();
 
 jest.mock('@/hooks/multimodal/useModalityAvailability', () => ({
   useMergedModalityAvailability: (...args: unknown[]) => mockMergedAvailability(...args),
-  useImageGenerationAvailability: (...args: unknown[]) => mockImageGenerationAvailability(...args),
 }));
 
 const mockUseFeatureAccess = jest.fn();
@@ -56,7 +54,6 @@ let mockMessageListProps: any;
 let mockTypingIndicatorsProps: any;
 let mockMentionSuggestionsProps: any;
 let mockDemoBannerProps: any;
-let mockImageModalProps: any;
 let mockTopicPickerProps: any;
 
 jest.mock('@/components/organisms', () => {
@@ -96,18 +93,6 @@ jest.mock('@/components/organisms/chat', () => {
   };
 });
 
-jest.mock('@/components/organisms/chat/ImageGenerationModal', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
-  return {
-    ImageGenerationModal: (props: any) => {
-      mockImageModalProps = props;
-      return React.createElement(Text, { testID: 'image-modal' }, 'modal');
-    },
-  };
-});
-
-
 jest.mock('@/components/organisms/demo/ChatTopicPickerModal', () => {
   const React = require('react');
   const { Text } = require('react-native');
@@ -129,14 +114,6 @@ jest.mock('@/components/molecules/subscription/DemoBanner', () => {
     },
   };
 });
-
-const mockGenerateImage = jest.fn();
-
-jest.mock('@/services/images/ImageService', () => ({
-  ImageService: {
-    generateImage: (...args: unknown[]) => mockGenerateImage(...args),
-  },
-}));
 
 const mockDemoContentService = {
   findChatById: jest.fn(),
@@ -202,12 +179,6 @@ jest.mock('expo-sharing', () => ({
 const Clipboard = require('expo-clipboard');
 const FileSystem = require('expo-file-system');
 const Sharing = require('expo-sharing');
-
-const mockShowTrialCTA = jest.fn();
-
-jest.mock('@/utils/demoGating', () => ({
-  showTrialCTA: (...args: unknown[]) => mockShowTrialCTA(...args),
-}));
 
 const mockStreamingCancel = jest.fn();
 
@@ -364,18 +335,11 @@ describe('ChatScreen', () => {
     });
 
     mockMergedAvailability.mockReturnValue({
-      imageGeneration: { supported: true },
+      imageGeneration: { supported: false },
       imageUpload: { supported: false },
       documentUpload: { supported: true },
       videoGeneration: { supported: false },
-    });
-
-    // Default: multi-AI mode (2 AIs) - image generation disabled
-    mockImageGenerationAvailability.mockReturnValue({
-      isAvailable: false,
-      mode: 'single',
-      reason: 'Image generation only available with single AI',
-      providers: [],
+      webSearch: { supported: false },
     });
 
     mockGetAttachmentSupport.mockReturnValue({ images: true, documents: false });
@@ -392,13 +356,6 @@ describe('ChatScreen', () => {
     mockRecordController.isActive.mockReturnValue(false);
     mockRecordController.stop.mockReturnValue({ session: null });
 
-    mockGenerateImage.mockResolvedValue([
-      {
-        url: 'https://example.com/image.png',
-        mimeType: 'image/png',
-      },
-    ]);
-
     mockAppendToPack.mockResolvedValue({ ok: true });
 
     mockStreamingCancel.mockClear();
@@ -408,7 +365,6 @@ describe('ChatScreen', () => {
     mockTypingIndicatorsProps = undefined;
     mockMentionSuggestionsProps = undefined;
     mockDemoBannerProps = undefined;
-    mockImageModalProps = undefined;
     mockTopicPickerProps = undefined;
   });
 
@@ -446,8 +402,6 @@ describe('ChatScreen', () => {
 
     expect(mockGetAttachmentSupport).toHaveBeenCalledWith(selectedAIs);
     expect(mockChatInputBarProps.attachmentSupport).toEqual({ images: true, documents: false });
-    // Multi-AI mode now disables image generation
-    expect(mockChatInputBarProps.imageGenerationEnabled).toBe(false);
 
     act(() => {
       mockMessageListProps.onScrollToSearchResult(2);
@@ -477,23 +431,6 @@ describe('ChatScreen', () => {
     expect(mockInput.clearInput).toHaveBeenCalledTimes(1);
     expect(mockInput.dismissKeyboard).toHaveBeenCalledTimes(1);
     expect(mockAIResponsesData.sendAIResponses).toHaveBeenCalledTimes(1);
-
-    await act(async () => {
-      mockChatInputBarProps.onOpenImageModal();
-    });
-
-    await waitFor(() => {
-      expect(mockImageModalProps.visible).toBe(true);
-      expect(mockImageModalProps.initialPrompt).toBe('Hello world');
-    });
-
-    act(() => {
-      mockImageModalProps.onClose();
-    });
-
-    await waitFor(() => {
-      expect(mockImageModalProps.visible).toBe(false);
-    });
 
     act(() => {
       mockChatInputBarProps.onStop();
@@ -650,29 +587,6 @@ describe('ChatScreen', () => {
     expect(alertSpy).toHaveBeenCalledWith('Appended', 'Recording appended to pack.');
   });
 
-  it('prompts trial upgrade when generating images in demo mode', async () => {
-    mockUseFeatureAccess.mockReturnValue(buildFeatureAccess({ isDemo: true }));
-    mockShowTrialCTA.mockImplementation((navigateFn: (screen: string, params?: Record<string, unknown>) => void) => {
-      navigateFn('Subscription');
-    });
-
-    renderWithProviders(
-      <ChatScreen navigation={navigation} route={route} />
-    );
-
-    await act(async () => {
-      mockChatInputBarProps.onOpenImageModal();
-    });
-
-    await act(async () => {
-      await mockImageModalProps.onGenerate({ prompt: 'sketch', size: 'square' });
-    });
-
-    expect(mockShowTrialCTA).toHaveBeenCalledWith(expect.any(Function), expect.objectContaining({ message: expect.stringContaining('Image generation requires') }));
-    expect(navigation.navigate).toHaveBeenCalledWith('Subscription', undefined);
-    expect(mockGenerateImage).not.toHaveBeenCalled();
-  });
-
   it('records existing sample selection and plays scripted turn', async () => {
     mockUseFeatureAccess.mockReturnValue(buildFeatureAccess({ isDemo: true }));
     mockRecordController.startChat.mockImplementation(() => undefined);
@@ -736,173 +650,6 @@ describe('ChatScreen', () => {
     });
 
     expect(mockMessages.sendMessage).not.toHaveBeenCalled();
-  });
-
-  it('handles image generation lifecycle including retry and cancel', async () => {
-    const originalAbortController = global.AbortController;
-    const abortSpy = jest.fn();
-    (global as any).AbortController = jest.fn(() => ({ abort: abortSpy, signal: Symbol('signal') })) as unknown as typeof AbortController;
-
-    // Use single AI for image generation to be enabled
-    const singleAI = [selectedAIs[1]]; // OpenAI only
-    const singleAISession = {
-      ...mockSession,
-      selectedAIs: singleAI,
-      currentSession: {
-        ...mockSession.currentSession,
-        selectedAIs: singleAI,
-      },
-    };
-    mockUseChatSession.mockReturnValue(singleAISession);
-
-    mockUseFeatureAccess.mockReturnValue(buildFeatureAccess({ isDemo: false }));
-    mockGenerateImage.mockResolvedValue([
-      { url: 'https://example.com/image.png', mimeType: 'image/png' },
-    ]);
-
-    const { store } = renderWithProviders(
-      <ChatScreen navigation={navigation} route={route} />,
-      {
-        preloadedState: {
-          settings: {
-            theme: 'auto',
-            fontSize: 'medium',
-            apiKeys: { openai: 'test-key' },
-            realtimeRelayUrl: undefined,
-            verifiedProviders: [],
-            verificationTimestamps: {},
-            verificationModels: {},
-            expertMode: {},
-            hasCompletedOnboarding: false,
-            recordModeEnabled: false,
-          },
-        } as Partial<RootState>,
-      }
-    );
-
-    const dispatchSpy = jest.spyOn(store, 'dispatch');
-
-    await act(async () => {
-      mockChatInputBarProps.onOpenImageModal();
-    });
-
-    await act(async () => {
-      await mockImageModalProps.onGenerate({ prompt: 'Create art', size: 'portrait' });
-    });
-
-    expect(mockGenerateImage).toHaveBeenCalledWith(expect.objectContaining({ size: '1024x1536', prompt: 'Create art' }));
-    expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({ type: addMessage.type, payload: expect.objectContaining({ content: 'Generating image…' }) }));
-    expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({
-      type: updateMessage.type,
-      payload: expect.objectContaining({ attachments: [expect.objectContaining({ uri: 'https://example.com/image.png' })] }),
-    }));
-
-    const generatedAction = dispatchSpy.mock.calls.find(([action]) => action.type === addMessage.type);
-    const messageId = generatedAction?.[0].payload.id as string;
-
-    mockGenerateImage.mockClear();
-    mockGenerateImage.mockResolvedValue([
-      { url: 'https://example.com/second.png', mimeType: 'image/png' },
-    ]);
-
-    await act(async () => {
-      await mockMessageListProps.onRetryImage({
-        id: messageId,
-        metadata: {
-          providerMetadata: {
-            imageParams: { prompt: 'Retry it', size: 'landscape' },
-          },
-        },
-      } as any);
-    });
-
-    expect(mockGenerateImage).toHaveBeenCalledWith(expect.objectContaining({ size: '1536x1024', prompt: 'Retry it' }));
-
-    act(() => {
-      mockMessageListProps.onCancelImage({ id: messageId } as any);
-    });
-
-    expect(abortSpy).toHaveBeenCalled();
-    expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({
-      type: updateMessage.type,
-      payload: expect.objectContaining({ content: 'Generation cancelled.' }),
-    }));
-
-    mockGenerateImage.mockClear();
-    mockGenerateImage.mockResolvedValue([
-      { mimeType: 'image/png' } as any,
-    ]);
-
-    await act(async () => {
-      await mockMessageListProps.onRetryImage({
-        id: messageId,
-        metadata: {
-          providerMetadata: {
-            imageParams: { prompt: 'No uri variant', size: 'auto' },
-          },
-        },
-      } as any);
-    });
-
-    expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({
-      type: updateMessage.type,
-      payload: expect.objectContaining({ content: 'Image generated.' }),
-    }));
-
-    (global as any).AbortController = originalAbortController;
-  });
-
-  it('surfaces image generation errors when provider fails', async () => {
-    // Use single AI for image generation to be enabled
-    const singleAI = [selectedAIs[1]]; // OpenAI only
-    const singleAISession = {
-      ...mockSession,
-      selectedAIs: singleAI,
-      currentSession: {
-        ...mockSession.currentSession,
-        selectedAIs: singleAI,
-      },
-    };
-    mockUseChatSession.mockReturnValue(singleAISession);
-
-    mockUseFeatureAccess.mockReturnValue(buildFeatureAccess({ isDemo: false }));
-    mockGenerateImage.mockRejectedValueOnce(new Error('Service down'));
-
-    const { store } = renderWithProviders(
-      <ChatScreen navigation={navigation} route={route} />,
-      {
-        preloadedState: {
-          settings: {
-            theme: 'auto',
-            fontSize: 'medium',
-            apiKeys: { openai: 'demo-key' },
-            realtimeRelayUrl: undefined,
-            verifiedProviders: [],
-            verificationTimestamps: {},
-            verificationModels: {},
-            expertMode: {},
-            hasCompletedOnboarding: false,
-            recordModeEnabled: false,
-          },
-        } as Partial<RootState>,
-      }
-    );
-
-    const dispatchSpy = jest.spyOn(store, 'dispatch');
-
-    await act(async () => {
-      mockChatInputBarProps.onOpenImageModal();
-    });
-
-    await act(async () => {
-      await mockImageModalProps.onGenerate({ prompt: 'Failure case', size: 'auto' });
-    });
-
-    expect(mockGenerateImage).toHaveBeenCalled();
-    expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({
-      type: updateMessage.type,
-      payload: expect.objectContaining({ content: expect.stringContaining('Failed to generate image: Service down') }),
-    }));
   });
 
   it('invokes quick start handler when auto prompt is available', async () => {
@@ -971,221 +718,5 @@ describe('ChatScreen', () => {
   // verified manually via the app. These tests can be rewritten when the demo
   // system stabilizes.
 
-  describe('multi-provider image generation', () => {
-    it('disables image generation when multiple AIs are selected', () => {
-      // Multiple AIs selected (default)
-      mockMergedAvailability.mockReturnValue({
-        imageGeneration: { supported: true },
-        imageUpload: { supported: false },
-        documentUpload: { supported: true },
-        videoGeneration: { supported: false },
-      });
-
-      // Multi-AI image generation is disabled (only single AI mode supported)
-      mockImageGenerationAvailability.mockReturnValue({
-        isAvailable: false,
-        mode: 'single',
-        reason: 'Image generation only available with single AI',
-        providers: [],
-      });
-
-      renderWithProviders(
-        <ChatScreen navigation={navigation} route={route} />
-      );
-
-      // Multi-AI mode disables image generation
-      expect(mockChatInputBarProps.imageGenerationEnabled).toBe(false);
-    });
-
-    it('enables image generation for single AI with capability', () => {
-      // Single AI selected
-      const singleAISession = {
-        ...mockSession,
-        selectedAIs: [selectedAIs[1]], // Just GPT-4 (OpenAI)
-        currentSession: {
-          ...mockSession.currentSession,
-          selectedAIs: [selectedAIs[1]],
-        },
-      };
-      mockUseChatSession.mockReturnValue(singleAISession);
-
-      mockMergedAvailability.mockReturnValue({
-        imageGeneration: { supported: true },
-        imageUpload: { supported: false },
-        documentUpload: { supported: true },
-        videoGeneration: { supported: false },
-      });
-
-      // Single AI - image generation enabled
-      mockImageGenerationAvailability.mockReturnValue({
-        isAvailable: true,
-        mode: 'single',
-        providers: [
-          { provider: 'openai', supportsImageGen: true, supportsImg2Img: true },
-        ],
-      });
-
-      renderWithProviders(
-        <ChatScreen navigation={navigation} route={route} />
-      );
-
-      expect(mockChatInputBarProps.imageGenerationEnabled).toBe(true);
-    });
-
-    it('uses selected provider API key for image generation (not hardcoded OpenAI)', async () => {
-      // Single AI - Grok selected
-      const grokAI: AIConfig = {
-        id: 'grok',
-        name: 'Grok',
-        provider: 'grok',
-        model: 'grok-2',
-        color: '#000',
-      };
-
-      const singleGrokSession = {
-        ...mockSession,
-        selectedAIs: [grokAI],
-        currentSession: {
-          ...mockSession.currentSession,
-          selectedAIs: [grokAI],
-        },
-      };
-      mockUseChatSession.mockReturnValue(singleGrokSession);
-
-      mockMergedAvailability.mockReturnValue({
-        imageGeneration: { supported: true },
-        imageUpload: { supported: false },
-        documentUpload: { supported: false },
-        videoGeneration: { supported: false },
-      });
-
-      // Single AI - image generation enabled
-      mockImageGenerationAvailability.mockReturnValue({
-        isAvailable: true,
-        mode: 'single',
-        providers: [
-          { provider: 'grok', supportsImageGen: true, supportsImg2Img: false },
-        ],
-      });
-
-      mockUseFeatureAccess.mockReturnValue(buildFeatureAccess({ isDemo: false }));
-      mockGenerateImage.mockResolvedValue([
-        { url: 'https://grok.ai/image.png', mimeType: 'image/png' },
-      ]);
-
-      renderWithProviders(
-        <ChatScreen navigation={navigation} route={route} />,
-        {
-          preloadedState: {
-            settings: {
-              theme: 'auto',
-              fontSize: 'medium',
-              apiKeys: { grok: 'grok-test-key', openai: 'openai-key' },
-              realtimeRelayUrl: undefined,
-              verifiedProviders: [],
-              verificationTimestamps: {},
-              verificationModels: {},
-              expertMode: {},
-              hasCompletedOnboarding: false,
-              recordModeEnabled: false,
-            },
-          } as Partial<RootState>,
-        }
-      );
-
-      await act(async () => {
-        mockChatInputBarProps.onOpenImageModal();
-      });
-
-      await act(async () => {
-        await mockImageModalProps.onGenerate({ prompt: 'A test image', size: 'square' });
-      });
-
-      // Verify it uses grok provider, not hardcoded openai
-      expect(mockGenerateImage).toHaveBeenCalledWith(
-        expect.objectContaining({
-          provider: 'grok',
-          apiKey: 'grok-test-key',
-        })
-      );
-    });
-
-    it('shows error when provider API key is missing', async () => {
-      const googleAI: AIConfig = {
-        id: 'gemini',
-        name: 'Gemini',
-        provider: 'google',
-        model: 'gemini-pro',
-        color: '#000',
-      };
-
-      const singleGoogleSession = {
-        ...mockSession,
-        selectedAIs: [googleAI],
-        currentSession: {
-          ...mockSession.currentSession,
-          selectedAIs: [googleAI],
-        },
-      };
-      mockUseChatSession.mockReturnValue(singleGoogleSession);
-
-      mockMergedAvailability.mockReturnValue({
-        imageGeneration: { supported: true },
-        imageUpload: { supported: false },
-        documentUpload: { supported: false },
-        videoGeneration: { supported: false },
-      });
-
-      // Single AI - image generation enabled (but API key missing)
-      mockImageGenerationAvailability.mockReturnValue({
-        isAvailable: true,
-        mode: 'single',
-        providers: [
-          { provider: 'google', supportsImageGen: true, supportsImg2Img: true },
-        ],
-      });
-
-      mockUseFeatureAccess.mockReturnValue(buildFeatureAccess({ isDemo: false }));
-
-      const { store } = renderWithProviders(
-        <ChatScreen navigation={navigation} route={route} />,
-        {
-          preloadedState: {
-            settings: {
-              theme: 'auto',
-              fontSize: 'medium',
-              apiKeys: { openai: 'openai-key' }, // No google key!
-              realtimeRelayUrl: undefined,
-              verifiedProviders: [],
-              verificationTimestamps: {},
-              verificationModels: {},
-              expertMode: {},
-              hasCompletedOnboarding: false,
-              recordModeEnabled: false,
-            },
-          } as Partial<RootState>,
-        }
-      );
-
-      const dispatchSpy = jest.spyOn(store, 'dispatch');
-
-      await act(async () => {
-        mockChatInputBarProps.onOpenImageModal();
-      });
-
-      await act(async () => {
-        await mockImageModalProps.onGenerate({ prompt: 'Test', size: 'square' });
-      });
-
-      expect(mockGenerateImage).not.toHaveBeenCalled();
-      expect(dispatchSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: updateMessage.type,
-          payload: expect.objectContaining({
-            content: expect.stringContaining('google API key not configured'),
-          }),
-        })
-      );
-    });
-  });
+  // Note: Image generation tests removed - image generation moved to Create mode
 });

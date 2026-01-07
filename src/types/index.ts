@@ -196,9 +196,10 @@ export type RootStackParamList = {
   CompareSession: { leftAI: AIConfig; rightAI: AIConfig; sessionId?: string; resuming?: boolean };
   CreateTab: undefined;
   CreateSession: {
-    providers: AIProvider[];
+    providers?: AIProvider[];
     initialPrompt?: string;
     sourceImage?: string;
+    refinementInstructions?: string;
   };
   Stats: undefined;
   PrivacyPolicy: undefined;

@@ -1,19 +1,25 @@
 import React from 'react';
-import { ViewStyle } from 'react-native';
-import Animated, { 
-  FadeInDown, 
-  useSharedValue, 
+import { ViewStyle, View, StyleSheet } from 'react-native';
+import Animated, {
+  FadeInDown,
+  useSharedValue,
   useAnimatedStyle,
   withSequence,
   withSpring
 } from 'react-native-reanimated';
 import { Box } from '@/components/atoms';
-import { SelectionIndicator, GlassCard } from '@/components/molecules';
+import { SelectionIndicator, GlassCard, Typography } from '@/components/molecules';
 import { PersonalityPicker } from './PersonalityPicker';
 import { ModelSelectorEnhanced } from './ModelSelectorEnhanced';
 import { AIAvatar } from '@/components/organisms/common/AIAvatar';
 import { AIConfig } from '@/types';
+import { useTheme } from '@/theme';
 import * as Haptics from 'expo-haptics';
+
+interface AICardBadge {
+  text: string;
+  color?: string;
+}
 
 interface AICardProps {
   ai: AIConfig;
@@ -25,6 +31,8 @@ interface AICardProps {
   personalityId?: string;
   onPersonalityChange?: (personalityId: string) => void;
   onModelChange?: (modelId: string) => void;
+  /** Optional badge to display on the card (e.g., "img2img") */
+  badge?: AICardBadge;
 }
 
 export const AICard: React.FC<AICardProps> = ({
@@ -37,7 +45,9 @@ export const AICard: React.FC<AICardProps> = ({
   personalityId = 'default',
   onPersonalityChange,
   onModelChange,
+  badge,
 }) => {
+  const { theme } = useTheme();
   const scaleAnim = useSharedValue(1);
   
   const animatedStyle = useAnimatedStyle(() => ({
@@ -91,7 +101,21 @@ export const AICard: React.FC<AICardProps> = ({
         >
           <Box style={{ position: 'relative', overflow: 'visible' }}>
             <SelectionIndicator isSelected={isSelected} color={ai.color} />
-            
+
+            {/* Badge (e.g., img2img) */}
+            {badge && (
+              <View
+                style={[
+                  styles.badge,
+                  { backgroundColor: badge.color || theme.colors.success[500] },
+                ]}
+              >
+                <Typography variant="caption" style={styles.badgeText}>
+                  {badge.text}
+                </Typography>
+              </View>
+            )}
+
             {/* Avatar centered */}
             <Box style={{ alignItems: 'center' }}>
               <AIAvatar
@@ -136,3 +160,20 @@ export const AICard: React.FC<AICardProps> = ({
     </Animated.View>
   );
 };
+
+const styles = StyleSheet.create({
+  badge: {
+    position: 'absolute',
+    bottom: -4,
+    right: -4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    zIndex: 10,
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+});

@@ -3,11 +3,19 @@ import { waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '../../test-utils/renderWithProviders';
 import type { RootState } from '@/store';
 
+jest.mock('react-native-view-shot', () => ({
+  captureRef: jest.fn(),
+  default: 'ViewShot',
+}));
+
 jest.mock('@react-navigation/native', () => ({
   NavigationContainer: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   DefaultTheme: {},
   DarkTheme: {},
-  useNavigation: () => ({ navigate: jest.fn() }),
+  useNavigation: () => ({ navigate: jest.fn(), goBack: jest.fn() }),
+  useRoute: () => ({ params: {} }),
+  useFocusEffect: jest.fn(),
+  useIsFocused: () => true,
 }));
 
 jest.mock('@react-navigation/stack', () => ({
@@ -61,6 +69,8 @@ jest.mock('@/screens/UpgradeScreen', () => createScreenMock('Upgrade Screen'));
 jest.mock('@/screens/ExpertModeScreen', () => createScreenMock('Expert Mode Screen'));
 jest.mock('@/screens/PrivacyPolicyScreen', () => createScreenMock('Privacy Policy Screen'));
 jest.mock('@/screens/TermsOfServiceScreen', () => createScreenMock('Terms Screen'));
+jest.mock('@/screens/CreateSetupScreen', () => createScreenMock('Create Setup Screen'));
+jest.mock('@/screens/CreateScreen', () => createScreenMock('Create Screen'));
 
 const AppNavigator = require('@/navigation/AppNavigator').default;
 
