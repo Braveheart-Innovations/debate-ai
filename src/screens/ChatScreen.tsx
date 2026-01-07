@@ -188,6 +188,10 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
 
   // Handler for executing refinement
   const handleRefineImage = React.useCallback(async (opts: { instructions: string; provider: AIProvider }) => {
+    if (isDemo) {
+      Alert.alert('Demo Mode', 'Image refinement requires a subscription. Start a free trial to unlock this feature.');
+      return;
+    }
     setRefinementModalVisible(false);
 
     const apiKey = apiKeys[opts.provider as keyof typeof apiKeys];
@@ -268,7 +272,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
         metadata: { providerMetadata: { imageGenerating: false, imagePhase: 'error' } },
       }));
     }
-  }, [apiKeys, dispatch, refinementImageUri, refinementOriginalPrompt, refinementMessageId]);
+  }, [isDemo, apiKeys, dispatch, refinementImageUri, refinementOriginalPrompt, refinementMessageId]);
 
   /* const handleGenerateVideo = async (opts: { prompt: string; resolution: '720p' | '1080p'; duration: 5 | 10 | 15 }) => {
     try {

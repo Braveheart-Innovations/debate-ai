@@ -21,7 +21,7 @@ describe('PremiumService', () => {
   it('returns feature limits with semantic helpers', () => {
     const freeSpy = mockStoreState({ auth: { isPremium: false } });
     expect(getFeatureLimit('debateTopicSuggestions')).toBe(3);
-    expect(getFeatureLimit('aiPersonalities')).toEqual(['neutral', 'friendly', 'professional']);
+    expect(getFeatureLimit('aiPersonalities')).toEqual(['default', 'bestie', 'prof_sage']);
     freeSpy.mockRestore();
 
     const premiumSpy = mockStoreState({ auth: { isPremium: true } });
@@ -40,7 +40,7 @@ describe('PremiumService', () => {
 
   it('lists available personalities based on membership', () => {
     const freeSpy = mockStoreState({ auth: { isPremium: false } });
-    expect(getAvailablePersonalities()).toEqual(['neutral', 'friendly', 'professional']);
+    expect(getAvailablePersonalities()).toEqual(['default', 'bestie', 'prof_sage']);
     freeSpy.mockRestore();
 
     const premiumSpy = mockStoreState({ auth: { isPremium: true } });

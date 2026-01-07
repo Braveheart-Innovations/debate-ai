@@ -44,6 +44,7 @@ import { buildEnhancedPrompt } from '../config/create/stylePresets';
 import { mapSizeToProvider } from '../config/create/sizeOptions';
 import { supportsImageInput, getImageProviderDisplayName } from '../config/imageGenerationModels';
 import { loadBase64FromFileUri } from '../services/images/fileCache';
+import useFeatureAccess from '../hooks/useFeatureAccess';
 
 type NavigationProp = StackNavigationProp<RootStackParamList>;
 type ScreenRouteProp = RouteProp<RootStackParamList, 'CreateSession'>;
@@ -65,6 +66,7 @@ export default function CreateScreen() {
   const gallery = useSelector(selectGallery);
   const isGenerating = useSelector(selectIsGenerating);
   const apiKeys = useSelector((state: RootState) => state.settings.apiKeys || {});
+  const { isDemo } = useFeatureAccess();
 
   const {
     selectedStyle,
@@ -110,6 +112,10 @@ export default function CreateScreen() {
 
   // Generate refinement for uploaded image
   const generateRefinement = useCallback(async () => {
+    if (isDemo) {
+      Alert.alert('Demo Mode', 'Image generation requires a subscription. Start a free trial to unlock this feature.');
+      return;
+    }
     if (!sourceImage || !refinementInstructions || providers.length === 0) return;
 
     const provider = providers[0]; // Use the first (and typically only) provider for refinement
@@ -170,6 +176,7 @@ export default function CreateScreen() {
 
     dispatch(completeGeneration());
   }, [
+    isDemo,
     sourceImage,
     refinementInstructions,
     providers,
@@ -181,6 +188,10 @@ export default function CreateScreen() {
   ]);
 
   const generateImages = useCallback(async () => {
+    if (isDemo) {
+      Alert.alert('Demo Mode', 'Image generation requires a subscription. Start a free trial to unlock this feature.');
+      return;
+    }
     if (!initialPrompt) return;
 
     dispatch(startGeneration(providers));
@@ -257,6 +268,7 @@ export default function CreateScreen() {
       );
     }
   }, [
+    isDemo,
     initialPrompt,
     providers,
     selectedStyle,
@@ -268,6 +280,11 @@ export default function CreateScreen() {
   ]);
 
   const handleRefine = useCallback((imageId: string) => {
+    if (isDemo) {
+      Alert.alert('Demo Mode', 'Image refinement requires a subscription. Start a free trial to unlock this feature.');
+      return;
+    }
+
     const image = gallery.find(img => img.id === imageId);
     if (!image) return;
 
@@ -282,7 +299,7 @@ export default function CreateScreen() {
     }
 
     setRefiningImage(image);
-  }, [gallery, availableRefinementProviders]);
+  }, [isDemo, gallery, availableRefinementProviders]);
 
   const handleRefinementSubmit = useCallback(async (opts: { instructions: string; provider: AIProvider }) => {
     if (!refiningImage) return;

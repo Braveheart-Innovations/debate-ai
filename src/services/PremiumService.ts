@@ -17,7 +17,7 @@ export const PREMIUM_FEATURES = {
   
   // Personality Features
   aiPersonalities: {
-    free: ['neutral', 'friendly', 'professional'],  // Basic personalities
+    free: ['default', 'bestie', 'prof_sage'],  // Basic personalities
     premium: 'all',  // Access to all personalities
   },
   
@@ -123,16 +123,15 @@ export function hasReachedLimit(featureName: keyof typeof PREMIUM_FEATURES, curr
 export function getAvailablePersonalities(): string[] {
   const state = store.getState();
   const isPremium = state.auth?.isPremium || false;
-  
+
   if (isPremium) {
-    // Return all personalities for premium users
+    // Return all personalities for premium users (matches UNIVERSAL_PERSONALITIES in config)
     return [
-      'neutral', 'friendly', 'professional', 'academic', 'socratic',
-      'devil_advocate', 'optimistic', 'analytical', 'creative', 
-      'empathetic', 'challenging', 'supportive'
+      'default', 'bestie', 'brody', 'devlin',
+      'george', 'kai', 'prof_sage', 'scout'
     ];
   }
-  
+
   // Return only basic personalities for free users
   return PREMIUM_FEATURES.aiPersonalities.free as string[];
 }

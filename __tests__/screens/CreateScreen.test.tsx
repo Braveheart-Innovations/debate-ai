@@ -103,6 +103,14 @@ jest.mock('@/services/images/fileCache', () => ({
   loadBase64FromFileUri: jest.fn().mockResolvedValue('base64encodedimage'),
 }));
 
+// Mock useFeatureAccess hook
+const mockUseFeatureAccess = jest.fn();
+jest.mock('@/hooks/useFeatureAccess', () => ({
+  __esModule: true,
+  default: () => mockUseFeatureAccess(),
+  useFeatureAccess: () => mockUseFeatureAccess(),
+}));
+
 jest.mock('@/store/createSlice', () => ({
   selectCreateState: (state: any) => state.create,
   selectGallery: (state: any) => state.create.gallery,
@@ -155,6 +163,14 @@ describe('CreateScreen', () => {
     mockGoBack.mockClear();
     mockReplace.mockClear();
     mockUseSelector.mockImplementation((selector) => selector(baseState));
+    // Default to non-demo mode
+    mockUseFeatureAccess.mockReturnValue({
+      isDemo: false,
+      isPremium: true,
+      isInTrial: false,
+      membershipStatus: 'premium',
+      canAccessLiveAI: true,
+    });
   });
 
   describe('rendering', () => {
@@ -219,6 +235,35 @@ describe('CreateScreen', () => {
 
       const { getByText } = renderWithProviders(<CreateScreen />);
       expect(getByText('API rate limit exceeded')).toBeTruthy();
+    });
+  });
+
+  describe('demo mode guards', () => {
+    it('uses isDemo from useFeatureAccess hook', () => {
+      // Verify that the component renders when isDemo is false
+      mockUseFeatureAccess.mockReturnValue({
+        isDemo: false,
+        isPremium: true,
+        isInTrial: false,
+        membershipStatus: 'premium',
+        canAccessLiveAI: true,
+      });
+
+      const { getByText } = renderWithProviders(<CreateScreen />);
+      expect(getByText('Create')).toBeTruthy();
+    });
+
+    it('renders in demo mode without crashing', () => {
+      mockUseFeatureAccess.mockReturnValue({
+        isDemo: true,
+        isPremium: false,
+        isInTrial: false,
+        membershipStatus: 'demo',
+        canAccessLiveAI: false,
+      });
+
+      const { getByText } = renderWithProviders(<CreateScreen />);
+      expect(getByText('Create')).toBeTruthy();
     });
   });
 });

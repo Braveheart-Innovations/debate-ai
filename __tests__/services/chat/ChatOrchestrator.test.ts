@@ -177,4 +177,64 @@ describe('ChatOrchestrator', () => {
     expect(service.sendMessage).toHaveBeenCalled();
     expect(dispatchMock).not.toHaveBeenCalledWith(expect.objectContaining({ type: startStreaming.type }));
   });
+
+  it('uses demo api key when isDemo is true, ignoring stored api keys', async () => {
+    const { service } = mockAIService();
+    mockStreamingService.streamResponse.mockImplementation(async (_config, onChunk, onComplete) => {
+      onChunk?.('chunk');
+      onComplete?.('final');
+    });
+
+    const orchestrator = new ChatOrchestrator(service, dispatch);
+    orchestrator.updateSession(session);
+    jest.spyOn(ChatOrchestrator.prototype as unknown as { sleep: (ms: number) => Promise<void> }, 'sleep').mockResolvedValue(undefined);
+
+    // Call with isDemo: true and actual API keys - should use 'demo' instead
+    await orchestrator.processUserMessage(
+      buildParams({ isDemo: true, apiKeys: { claude: 'actual-key-123' } })
+    );
+
+    // Verify streamResponse was called with 'demo' as the API key, not 'actual-key-123'
+    expect(mockStreamingService.streamResponse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        adapterConfig: expect.objectContaining({
+          apiKey: 'demo',
+        }),
+      }),
+      expect.any(Function),
+      expect.any(Function),
+      expect.any(Function),
+      expect.any(Function),
+    );
+  });
+
+  it('uses actual api key when isDemo is false', async () => {
+    const { service } = mockAIService();
+    mockStreamingService.streamResponse.mockImplementation(async (_config, onChunk, onComplete) => {
+      onChunk?.('chunk');
+      onComplete?.('final');
+    });
+
+    const orchestrator = new ChatOrchestrator(service, dispatch);
+    orchestrator.updateSession(session);
+    jest.spyOn(ChatOrchestrator.prototype as unknown as { sleep: (ms: number) => Promise<void> }, 'sleep').mockResolvedValue(undefined);
+
+    // Call with isDemo: false - should use actual API key
+    await orchestrator.processUserMessage(
+      buildParams({ isDemo: false, apiKeys: { claude: 'actual-key-123' } })
+    );
+
+    // Verify streamResponse was called with actual API key
+    expect(mockStreamingService.streamResponse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        adapterConfig: expect.objectContaining({
+          apiKey: 'actual-key-123',
+        }),
+      }),
+      expect.any(Function),
+      expect.any(Function),
+      expect.any(Function),
+      expect.any(Function),
+    );
+  });
 });

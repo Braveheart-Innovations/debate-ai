@@ -346,7 +346,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
             messageId: `cmp_left_${Date.now()}`,
             adapterConfig: {
               provider: leftAI.provider,
-              apiKey: apiKeys[leftAI.provider] || 'demo',
+              apiKey: isDemo ? 'demo' : (apiKeys[leftAI.provider] || ''),
               model: leftEffModel,
               parameters: (leftExp && leftExp.enabled) ? (leftExp.parameters as never) : undefined,
               isDebateMode: false,
@@ -496,7 +496,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
             messageId: `cmp_right_${Date.now()}`,
             adapterConfig: {
               provider: rightAI.provider,
-              apiKey: apiKeys[rightAI.provider] || 'demo',
+              apiKey: isDemo ? 'demo' : (apiKeys[rightAI.provider] || ''),
               model: rightEffModel,
               parameters: (rightExp && rightExp.enabled) ? (rightExp.parameters as never) : undefined,
               isDebateMode: false,

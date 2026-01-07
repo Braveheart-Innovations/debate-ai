@@ -175,7 +175,7 @@ export class ChatOrchestrator {
               conversationContext,
               resumptionContext,
               attachments: aiAttachments,
-              apiKey: apiKeys[ai.provider] || (isDemo ? 'demo' : undefined),
+              apiKey: isDemo ? 'demo' : apiKeys[ai.provider],
               expert,
               streamingSpeed,
               webSearchEnabled,
