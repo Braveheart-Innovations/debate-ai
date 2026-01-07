@@ -7,6 +7,7 @@ export interface AIAdapterConfig {
   personality?: PersonalityConfig;
   parameters?: ModelParameters;
   isDebateMode?: boolean;
+  webSearchEnabled?: boolean;
 }
 
 export interface ResumptionContext {

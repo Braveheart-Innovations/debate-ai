@@ -2,22 +2,17 @@ import React, { useState, useCallback, useRef } from 'react';
 import { StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSelector } from 'react-redux';
-import { RootState } from '../store';
+import { RootState, setWebSearchPreferred } from '../store';
 
-import { 
+import {
   Header,
-  HeaderActions, 
-  CompareSplitView, 
-  CompareUserMessage 
+  HeaderActions,
+  CompareSplitView,
+  CompareUserMessage
 } from '../components/organisms';
 import { ChatInputBar } from '../components/organisms/chat';
 import { useMergedModalityAvailabilityStrict } from '../hooks/multimodal/useModalityAvailability';
-import { ImageGenerationModal } from '../components/organisms/chat/ImageGenerationModal';
 import { ImageLightboxModal } from '../components/organisms/chat/ImageLightboxModal';
-import { ImageService } from '../services/images/ImageService';
-import type { ImageGenState } from '../components/organisms/compare/CompareSplitView';
-import type { ImagePhase, ImageAspectRatio } from '../components/organisms/compare/CompareImageGeneratingPane';
-import { AIProvider } from '../types';
 
 import { useTheme } from '../theme';
 import { useAIService } from '../providers/AIServiceProvider';
@@ -71,6 +66,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
   const currentUser = useSelector((state: RootState) => state.user.currentUser);
   const streamingState = useSelector((state: RootState) => state.streaming);
   const apiKeys = useSelector((state: RootState) => state.settings.apiKeys || ({} as Record<string, string | undefined>));
+  const webSearchPreferred = useSelector((state: RootState) => state.chat.webSearchPreferred);
   
   // Check if we're resuming a session
   const currentSession = useSelector((state: RootState) => 
@@ -148,23 +144,8 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
   const [pickerVisible, setPickerVisible] = useState(false);
   const recordModeEnabled = useSelector((state: RootState) => state.settings.recordModeEnabled ?? false);
 
-  // Image generation state
-  const [imageModalVisible, setImageModalVisible] = useState(false);
-  const [imageModalPrompt, setImageModalPrompt] = useState('');
-  const [leftImageState, setLeftImageState] = useState<ImageGenState>({
-    isGenerating: false,
-    phase: 'done' as ImagePhase,
-    startTime: 0,
-    aspectRatio: 'square' as ImageAspectRatio,
-  });
-  const [rightImageState, setRightImageState] = useState<ImageGenState>({
-    isGenerating: false,
-    phase: 'done' as ImagePhase,
-    startTime: 0,
-    aspectRatio: 'square' as ImageAspectRatio,
-  });
+  // Image lightbox state
   const [lightboxUri, setLightboxUri] = useState<string | null>(null);
-  const imageControllersRef = useRef<{ left?: AbortController; right?: AbortController }>({});
   const synchronizerRef = useRef<CompareStreamSynchronizer | null>(null);
 
   // Refs for capturing citations during streaming
@@ -869,171 +850,12 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
     );
   }, [saveComparisonSession, navigation]);
 
-  // Image generation cancel handlers
-  const handleCancelLeftImage = useCallback(() => {
-    imageControllersRef.current.left?.abort();
-    setLeftImageState(prev => ({ ...prev, isGenerating: false, phase: 'cancelled' }));
-  }, []);
-
-  const handleCancelRightImage = useCallback(() => {
-    imageControllersRef.current.right?.abort();
-    setRightImageState(prev => ({ ...prev, isGenerating: false, phase: 'cancelled' }));
-  }, []);
-
   // Lightbox handler
   const handleOpenLightbox = useCallback((uri: string) => {
     setLightboxUri(uri);
   }, []);
 
-  // Handle parallel image generation from both providers
-  const handleGenerateImage = useCallback(async (opts: { prompt: string; size: 'auto' | 'square' | 'portrait' | 'landscape' }) => {
-    if (!leftAI || !rightAI) return;
-    if (isDemo) {
-      dispatch(showSheet({ sheet: 'subscription' }));
-      return;
-    }
-
-    const sizeMap: Record<typeof opts.size, 'auto' | '1024x1024' | '1024x1536' | '1536x1024'> = {
-      auto: 'auto',
-      square: '1024x1024',
-      portrait: '1024x1536',
-      landscape: '1536x1024',
-    };
-
-    // Create user message for the prompt
-    const userMessage: Message = {
-      id: `msg_img_${Date.now()}`,
-      sender: 'You',
-      senderType: 'user',
-      content: `[Image: ${opts.prompt}]`,
-      timestamp: Date.now(),
-    };
-    setUserMessages(prev => [...prev, userMessage]);
-
-    // Prepare abort controllers
-    const leftController = new AbortController();
-    const rightController = new AbortController();
-    imageControllersRef.current = { left: leftController, right: rightController };
-
-    const startTime = Date.now();
-    const aspectRatio = opts.size as ImageAspectRatio;
-
-    // Start both generations with phase tracking
-    setLeftImageState({
-      isGenerating: true,
-      phase: 'sending',
-      startTime,
-      aspectRatio,
-    });
-    setRightImageState({
-      isGenerating: true,
-      phase: 'sending',
-      startTime,
-      aspectRatio,
-    });
-
-    // Update to queued phase after brief delay
-    setTimeout(() => {
-      setLeftImageState(prev => prev.isGenerating ? { ...prev, phase: 'queued' } : prev);
-      setRightImageState(prev => prev.isGenerating ? { ...prev, phase: 'queued' } : prev);
-    }, 1000);
-
-    // Update to rendering phase after longer delay
-    setTimeout(() => {
-      setLeftImageState(prev => prev.isGenerating ? { ...prev, phase: 'rendering' } : prev);
-      setRightImageState(prev => prev.isGenerating ? { ...prev, phase: 'rendering' } : prev);
-    }, 5000);
-
-    const leftPromise = ImageService.generateImage({
-      provider: leftAI.provider as AIProvider,
-      apiKey: apiKeys[leftAI.provider] || '',
-      prompt: opts.prompt,
-      size: sizeMap[opts.size],
-      n: 1,
-      signal: leftController.signal,
-    }).then(images => {
-      const img = images[0];
-      const uri = img?.url || (img?.b64 ? `data:${img.mimeType};base64,${img.b64}` : undefined);
-      const leftMessage: Message = {
-        id: `msg_left_img_${Date.now()}`,
-        sender: leftAI.name,
-        senderType: 'ai',
-        content: '',
-        timestamp: Date.now(),
-        // NOTE: Do NOT store base64 in attachments or metadata - it bloats AsyncStorage
-        attachments: uri ? [{ type: 'image', uri, mimeType: img.mimeType }] : undefined,
-        metadata: {
-          generatedImage: {
-            url: uri || '',
-            prompt: opts.prompt,
-            providerId: leftAI.provider,
-            model: leftAI.model,
-          },
-        },
-      };
-      setLeftMessages(prev => [...prev, leftMessage]);
-      leftHistoryRef.current.push(leftMessage);
-    }).catch(err => {
-      setLeftImageState(prev => ({ ...prev, phase: 'error' }));
-      const leftMessage: Message = {
-        id: `msg_left_img_err_${Date.now()}`,
-        sender: leftAI.name,
-        senderType: 'ai',
-        content: `Image generation failed: ${err.message}`,
-        timestamp: Date.now(),
-      };
-      setLeftMessages(prev => [...prev, leftMessage]);
-    }).finally(() => {
-      setLeftImageState(prev => ({ ...prev, isGenerating: false, phase: 'done' }));
-    });
-
-    const rightPromise = ImageService.generateImage({
-      provider: rightAI.provider as AIProvider,
-      apiKey: apiKeys[rightAI.provider] || '',
-      prompt: opts.prompt,
-      size: sizeMap[opts.size],
-      n: 1,
-      signal: rightController.signal,
-    }).then(images => {
-      const img = images[0];
-      const uri = img?.url || (img?.b64 ? `data:${img.mimeType};base64,${img.b64}` : undefined);
-      const rightMessage: Message = {
-        id: `msg_right_img_${Date.now()}`,
-        sender: rightAI.name,
-        senderType: 'ai',
-        content: '',
-        timestamp: Date.now(),
-        // NOTE: Do NOT store base64 in attachments or metadata - it bloats AsyncStorage
-        attachments: uri ? [{ type: 'image', uri, mimeType: img.mimeType }] : undefined,
-        metadata: {
-          generatedImage: {
-            url: uri || '',
-            prompt: opts.prompt,
-            providerId: rightAI.provider,
-            model: rightAI.model,
-          },
-        },
-      };
-      setRightMessages(prev => [...prev, rightMessage]);
-      rightHistoryRef.current.push(rightMessage);
-    }).catch(err => {
-      setRightImageState(prev => ({ ...prev, phase: 'error' }));
-      const rightMessage: Message = {
-        id: `msg_right_img_err_${Date.now()}`,
-        sender: rightAI.name,
-        senderType: 'ai',
-        content: `Image generation failed: ${err.message}`,
-        timestamp: Date.now(),
-      };
-      setRightMessages(prev => [...prev, rightMessage]);
-    }).finally(() => {
-      setRightImageState(prev => ({ ...prev, isGenerating: false, phase: 'done' }));
-    });
-
-    await Promise.allSettled([leftPromise, rightPromise]);
-  }, [leftAI, rightAI, isDemo, dispatch, apiKeys]);
-
-  const isProcessing = leftTyping || rightTyping || leftImageState.isGenerating || rightImageState.isGenerating;
+  const isProcessing = leftTyping || rightTyping;
   const leftEffectiveModel = leftAI ? (selectedModels[leftAI.id] || leftAI.model) : '';
   const rightEffectiveModel = rightAI ? (selectedModels[rightAI.id] || rightAI.model) : '';
 
@@ -1047,7 +869,10 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
     ];
   })();
   const availability = useMergedModalityAvailabilityStrict(selectedList);
-  const imageGenerationEnabled = availability.imageGeneration.supported;
+
+  // Web search availability - both AIs must support it in Compare mode
+  const webSearchAvailable = availability.webSearch.supported;
+  const webSearchEnabled = webSearchPreferred && webSearchAvailable;
   
   // Navigate back if AIs are not provided (must be after all hooks)
   if (!leftAI || !rightAI) {
@@ -1178,10 +1003,6 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
                   continuedSide={continuedSide}
                   onExpandLeft={handleExpandLeft}
                   onExpandRight={handleExpandRight}
-                  leftImageState={index === userMessages.length - 1 ? leftImageState : undefined}
-                  rightImageState={index === userMessages.length - 1 ? rightImageState : undefined}
-                  onCancelLeftImage={handleCancelLeftImage}
-                  onCancelRightImage={handleCancelRightImage}
                   onOpenLightbox={handleOpenLightbox}
                 />
               )}
@@ -1201,23 +1022,22 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
               "Ask both AIs..."
             }
             disabled={isProcessing}
-            imageGenerationEnabled={imageGenerationEnabled}
-            onOpenImageModal={() => {
-              setImageModalPrompt(inputText.trim());
-              setImageModalVisible(true);
-            }}
+            imageGenerationEnabled={false}
             modalityAvailability={{
               imageUpload: availability.imageUpload.supported,
               documentUpload: availability.documentUpload.supported,
-              imageGeneration: availability.imageGeneration.supported,
+              imageGeneration: false,
               videoGeneration: availability.videoGeneration.supported,
             }}
             modalityReasons={{
               imageUpload: availability.imageUpload.supported ? undefined : 'Selected model(s) do not support image input',
               documentUpload: availability.documentUpload.supported ? undefined : 'Selected model(s) do not support document/PDF input',
-              imageGeneration: availability.imageGeneration.supported ? undefined : 'Both providers must support image generation',
+              imageGeneration: 'Use Create mode to generate images',
               videoGeneration: availability.videoGeneration.supported ? undefined : 'Selected provider(s) do not support video generation',
             }}
+            webSearchAvailable={webSearchAvailable}
+            webSearchEnabled={webSearchEnabled}
+            onWebSearchToggle={() => dispatch(setWebSearchPreferred(!webSearchPreferred))}
           />
         </SafeAreaView>
       </SafeAreaView>
@@ -1251,17 +1071,6 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
           }}
         />
       )}
-      <ImageGenerationModal
-        visible={imageModalVisible}
-        initialPrompt={imageModalPrompt}
-        providers={leftAI && rightAI ? [leftAI.provider, rightAI.provider] : undefined}
-        mode="compare"
-        onClose={() => setImageModalVisible(false)}
-        onGenerate={(opts) => {
-          setImageModalVisible(false);
-          handleGenerateImage(opts);
-        }}
-      />
       <ImageLightboxModal
         visible={!!lightboxUri}
         uri={lightboxUri || ''}

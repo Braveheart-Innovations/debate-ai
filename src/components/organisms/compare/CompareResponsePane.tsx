@@ -189,7 +189,11 @@ export const CompareResponsePane: React.FC<CompareResponsePaneProps> = ({
             variant="compact"
             initialVisible={2}
             brandColor={accentColor}
-            onCitationPress={(citation) => Linking.openURL(citation.url)}
+            onCitationPress={(citation) => {
+              const screenWidth = Dimensions.get('window').width;
+              const screenHeight = Dimensions.get('window').height;
+              showPreview(citation, { x: screenWidth / 2, y: screenHeight / 3 }, accentColor);
+            }}
           />
         )}
       </View>

@@ -81,6 +81,7 @@ export interface MessageMetadata {
   providerId?: string;
 
   // Rich content support
+  webSearchEnabled?: boolean; // Whether web search was used for this response
   citations?: Citation[];  // For Perplexity and other providers with sources
   providerMetadata?: Record<string, unknown>; // Flexible field for provider-specific data
 
@@ -177,8 +178,8 @@ export type RootStackParamList = {
   Welcome: undefined;
   MainTabs: undefined;
   Home: undefined;
-  Chat: { 
-    sessionId: string; 
+  Chat: {
+    sessionId: string;
     initialPrompt?: string;
     selectedAIs?: AIConfig[];
     initialMessages?: Message[];
@@ -193,6 +194,12 @@ export type RootStackParamList = {
   DebateTranscript: { session: ChatSession };
   Compare?: undefined;
   CompareSession: { leftAI: AIConfig; rightAI: AIConfig; sessionId?: string; resuming?: boolean };
+  CreateTab: undefined;
+  CreateSession: {
+    providers: AIProvider[];
+    initialPrompt?: string;
+    sourceImage?: string;
+  };
   Stats: undefined;
   PrivacyPolicy: undefined;
   TermsOfService: undefined;

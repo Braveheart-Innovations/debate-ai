@@ -31,9 +31,10 @@ export class ChatService {
   static createAIMessage(
     ai: AI,
     content: string,
-    metadata?: { 
-      modelUsed?: string; 
+    metadata?: {
+      modelUsed?: string;
       responseTime?: number;
+      webSearchEnabled?: boolean;
       citations?: Array<{
         index: number;
         url: string;
@@ -56,6 +57,7 @@ export class ChatService {
         ...(metadata ? {
           modelUsed: metadata.modelUsed,
           responseTime: metadata.responseTime,
+          webSearchEnabled: metadata.webSearchEnabled,
           citations: metadata.citations,
           providerMetadata: metadata.providerMetadata,
         } : {}),

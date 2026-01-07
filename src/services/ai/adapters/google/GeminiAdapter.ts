@@ -93,9 +93,9 @@ export class GeminiAdapter extends BaseAdapter {
     attachments?: MessageAttachment[],
     modelOverride?: string
   ): Promise<SendMessageResponse> {
-    const resolvedModel = modelOverride || 
+    const resolvedModel = modelOverride ||
                          resolveModelAlias(this.config.model || getDefaultModel('google'));
-    
+
     const contents = [
       ...this.formatHistoryForGemini(conversationHistory, resumptionContext),
       {
@@ -103,8 +103,29 @@ export class GeminiAdapter extends BaseAdapter {
         parts: this.formatContents(message, attachments)
       }
     ];
-    
+
     try {
+      // Build request body
+      const requestBody: Record<string, unknown> = {
+        contents,
+        generationConfig: (() => {
+          const cfg: Record<string, unknown> = {
+            temperature: this.config.parameters?.temperature ?? 0.7,
+            topP: this.config.parameters?.topP ?? 0.95,
+            topK: this.config.parameters?.topK ?? 40,
+          };
+          if (this.config.parameters?.maxTokens) {
+            cfg.maxOutputTokens = this.config.parameters.maxTokens;
+          }
+          return cfg;
+        })(),
+      };
+
+      // Add Google Search grounding tool when web search is enabled
+      if (this.config.webSearchEnabled) {
+        requestBody.tools = [{ google_search: {} }];
+      }
+
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${resolvedModel}:generateContent`,
         {
@@ -113,32 +134,24 @@ export class GeminiAdapter extends BaseAdapter {
             'Content-Type': 'application/json',
             'x-goog-api-key': this.config.apiKey,
           },
-      body: JSON.stringify((() => {
-        const cfg: Record<string, unknown> = {
-          temperature: this.config.parameters?.temperature ?? 0.7,
-          topP: this.config.parameters?.topP ?? 0.95,
-          topK: this.config.parameters?.topK ?? 40,
-        };
-        // Do not enforce maxOutputTokens unless explicitly provided by Expert Mode
-        if (this.config.parameters?.maxTokens) {
-          cfg.maxOutputTokens = this.config.parameters.maxTokens;
+          body: JSON.stringify(requestBody),
         }
-        return { contents, generationConfig: cfg };
-      })()),
-      }
-    );
-      
+      );
+
       if (!response.ok) {
         await this.handleApiError(response, 'Gemini');
       }
-      
+
       const data = await response.json();
-      
+
       const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
       if (!responseText) {
         throw new Error('No response from Gemini');
       }
-      
+
+      // Extract citations from grounding metadata if present
+      const citations = this.extractCitationsFromGrounding(data);
+
       return {
         response: responseText,
         modelUsed: resolvedModel,
@@ -147,23 +160,86 @@ export class GeminiAdapter extends BaseAdapter {
           completionTokens: data.usageMetadata.candidatesTokenCount,
           totalTokens: data.usageMetadata.totalTokenCount,
         } : undefined,
+        metadata: citations.length > 0 ? { citations } : undefined,
       };
     } catch (error) {
       console.error('Error in GeminiAdapter:', error);
       throw error;
     }
   }
+
+  /**
+   * Extract citations from Gemini's grounding metadata
+   */
+  private extractCitationsFromGrounding(data: Record<string, unknown>): Array<{ index: number; url: string; title?: string; domain?: string }> {
+    const citations: Array<{ index: number; url: string; title?: string; domain?: string }> = [];
+
+    const groundingMetadata = (data.candidates as Array<{ groundingMetadata?: { groundingChunks?: Array<{ web?: { uri: string; title?: string } }> } }>)?.[0]?.groundingMetadata;
+    if (!groundingMetadata) return citations;
+
+    const groundingChunks = groundingMetadata.groundingChunks || [];
+    for (let i = 0; i < groundingChunks.length; i++) {
+      const chunk = groundingChunks[i];
+      if (chunk.web?.uri) {
+        const url = chunk.web.uri;
+        const title = chunk.web.title;
+        // Use title as domain display since Gemini uses redirect URLs
+        const domain = title || `Source ${i + 1}`;
+        citations.push({ index: i + 1, url, title, domain });
+      }
+    }
+
+    return citations;
+  }
   
   async *streamMessage(
     message: string,
     conversationHistory: Message[] = [],
     attachments?: MessageAttachment[],
-    _resumptionContext?: ResumptionContext,
-    modelOverride?: string
+    resumptionContext?: ResumptionContext,
+    modelOverride?: string,
+    _abortSignal?: AbortSignal,
+    onEvent?: (event: unknown) => void
   ): AsyncGenerator<string, void, unknown> {
-    const resolvedModel = modelOverride || 
+    // When web search is enabled, use non-streaming request to capture grounding metadata
+    // (Gemini streaming doesn't include grounding metadata in chunks)
+    if (this.config.webSearchEnabled) {
+      const response = await this.sendMessage(
+        message,
+        conversationHistory,
+        resumptionContext,
+        attachments,
+        modelOverride
+      );
+
+      const content = typeof response === 'string' ? response : response.response;
+      const citations = typeof response === 'object' ? response.metadata?.citations : undefined;
+
+      // Simulate streaming by yielding content in chunks
+      const chunkSize = 8;
+      const delayMs = 12;
+
+      for (let i = 0; i < content.length; i += chunkSize) {
+        const chunk = content.slice(i, i + chunkSize);
+        yield chunk;
+
+        if (i + chunkSize < content.length) {
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
+      }
+
+      // Emit citations via onEvent
+      if (citations && citations.length > 0 && onEvent) {
+        onEvent({ type: 'citations', citations });
+      }
+
+      return;
+    }
+
+    // Standard streaming path (no web search)
+    const resolvedModel = modelOverride ||
                          resolveModelAlias(this.config.model || getDefaultModel('google'));
-    
+
     const contents = [
       ...this.formatHistoryForGemini(conversationHistory),
       {
@@ -171,41 +247,38 @@ export class GeminiAdapter extends BaseAdapter {
         parts: this.formatContents(message, attachments)
       }
     ];
-    
+
     const requestBody = JSON.stringify((() => {
       const cfg: Record<string, unknown> = {
         temperature: this.config.parameters?.temperature ?? 0.7,
         topP: this.config.parameters?.topP ?? 0.95,
         topK: this.config.parameters?.topK ?? 40,
       };
-      // Do not enforce maxOutputTokens unless explicitly provided by Expert Mode
       if (this.config.parameters?.maxTokens) {
         cfg.maxOutputTokens = this.config.parameters.maxTokens;
       }
       return { contents, generationConfig: cfg };
     })());
-    
+
     // Create EventSource for SSE streaming (React Native)
-    // Note: In RN, pass API key via URL
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${resolvedModel}:streamGenerateContent?alt=sse&key=${this.config.apiKey}`;
-    
+
     const es = new EventSource(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: requestBody,
-      timeoutBeforeConnection: 0, // Connect immediately
-      pollingInterval: 30000, // 30 second polling
+      timeoutBeforeConnection: 0,
+      pollingInterval: 30000,
       withCredentials: false,
     });
-    
+
     const eventQueue: string[] = [];
     let resolver: ((value: IteratorResult<string, void>) => void) | null = null;
     let isComplete = false;
     let errorOccurred: Error | null = null;
-    
-    // Handle message events
+
     es.addEventListener('message', (event) => {
       try {
         const line = event.data;
@@ -226,14 +299,12 @@ export class GeminiAdapter extends BaseAdapter {
         console.error('[GeminiAdapter] Error parsing message:', error);
       }
     });
-    
-    // Handle errors
+
     es.addEventListener('error', (error) => {
       let errorMessage = 'SSE connection error';
       try {
         if (error && typeof error === 'object' && 'data' in error) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const errorData = JSON.parse((error as any).data);
+          const errorData = JSON.parse((error as { data: string }).data);
           if (errorData.error) errorMessage = errorData.error.message || errorData.error.status || errorMessage;
         }
       } catch {
@@ -246,10 +317,9 @@ export class GeminiAdapter extends BaseAdapter {
       try { es.close(); } catch { /* noop */ }
       if (resolver) { const r = resolver; resolver = null; r({ value: undefined, done: true }); }
     });
-    
-    // Handle connection open (no-op)
+
     es.addEventListener('open', () => {});
-    
+
     try {
       while (!isComplete || eventQueue.length > 0) {
         if (errorOccurred) throw errorOccurred;

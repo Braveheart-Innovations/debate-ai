@@ -15,11 +15,13 @@ export interface AIResponsesHook {
   sendAIResponses: (
     userMessage: Message,
     enrichedPrompt?: string,
-    attachments?: MessageAttachment[]
+    attachments?: MessageAttachment[],
+    webSearchEnabled?: boolean
   ) => Promise<void>;
   sendQuickStartResponses: (
     userPrompt: string,
-    enrichedPrompt: string
+    enrichedPrompt: string,
+    webSearchEnabled?: boolean
   ) => Promise<void>;
   isProcessing: boolean;
 }
@@ -70,7 +72,8 @@ export const useAIResponsesWithStreaming = (isResuming?: boolean): AIResponsesHo
   const sendAIResponses = useCallback(async (
     userMessage: Message,
     enrichedPrompt?: string,
-    attachments?: MessageAttachment[]
+    attachments?: MessageAttachment[],
+    webSearchEnabled?: boolean
   ) => {
     if (!aiService || !isInitialized || !currentSession || !orchestratorRef.current) {
       console.error('AI service not ready or no active session');
@@ -102,12 +105,14 @@ export const useAIResponsesWithStreaming = (isResuming?: boolean): AIResponsesHo
       streamingSpeed,
       allowStreaming: true,
       isDemo,
+      webSearchEnabled,
     });
   }, [aiService, apiKeys, expertModeConfigs, globalStreamingEnabled, isDemo, isInitialized, isResuming, messages, selectedModels, aiPersonalities, streamingPreferences, streamingSpeed, currentSession, hasResumed]);
 
   const sendQuickStartResponses = useCallback(async (
     userPrompt: string,
-    enrichedPrompt: string
+    enrichedPrompt: string,
+    webSearchEnabled?: boolean
   ) => {
     if (!aiService || !isInitialized || !currentSession || !orchestratorRef.current) {
       console.error('AI service not ready or no active session');
@@ -131,6 +136,7 @@ export const useAIResponsesWithStreaming = (isResuming?: boolean): AIResponsesHo
       streamingSpeed,
       allowStreaming: true,
       isDemo,
+      webSearchEnabled,
     });
   }, [aiService, apiKeys, dispatch, expertModeConfigs, globalStreamingEnabled, isDemo, isInitialized, messages, selectedModels, aiPersonalities, streamingPreferences, streamingSpeed, currentSession]);
 

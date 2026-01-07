@@ -284,6 +284,11 @@ export class ChatGPTAdapter extends OpenAICompatibleAdapter {
       body.max_output_tokens = this.config.parameters.maxTokens;
     }
 
+    // Web search: add web_search tool when enabled
+    if (this.config.webSearchEnabled) {
+      body.tools = [{ type: 'web_search' }];
+    }
+
     if (process.env.NODE_ENV === 'development') {
       console.warn('[ChatGPT] request summary', {
         model: resolvedModel,
@@ -291,6 +296,7 @@ export class ChatGPTAdapter extends OpenAICompatibleAdapter {
         messages: transformed.length,
         temperature: body.temperature,
         max_output_tokens: body.max_output_tokens,
+        webSearchEnabled: this.config.webSearchEnabled,
       });
     }
 
@@ -370,10 +376,34 @@ export class ChatGPTAdapter extends OpenAICompatibleAdapter {
       return texts.join('');
     };
 
+    // Extract URL citations from OpenAI streaming response
+    // In streaming mode, citations are embedded as markdown links in the text: ([title](url))
+    const extractCitationsFromText = (text: string): Array<{ index: number; url: string; title?: string }> => {
+      const citations: Array<{ index: number; url: string; title?: string }> = [];
+      const seenUrls = new Set<string>();
+
+      // Match markdown links: [title](url) - capture title and url
+      const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g;
+      let match;
+      let citationIndex = 1;
+
+      while ((match = linkRegex.exec(text)) !== null) {
+        const title = match[1];
+        const url = match[2];
+        if (url && !seenUrls.has(url)) {
+          seenUrls.add(url);
+          citations.push({ index: citationIndex++, url, title });
+        }
+      }
+
+      return citations;
+    };
+
     const handleEventData = (dataStr: string | null | undefined, eventType?: string) => {
       if (!dataStr || dataStr === '[DONE]') return;
       try {
         const obj = JSON.parse(dataStr);
+
         // Surface non-text events to router if provided
         if (onEvent && eventType && eventType !== 'response.output_text.delta' && eventType !== 'response.delta') {
           try { onEvent({ type: eventType, ...obj }); } catch { /* noop */ }
@@ -391,13 +421,32 @@ export class ChatGPTAdapter extends OpenAICompatibleAdapter {
           isComplete = true;
           try { es.close(); } catch { /* noop */ }
           if (resolver) { const r = resolver; resolver = null; r({ value: undefined, done: true }); }
-        } else if (type === 'response.output_text.done' || type === 'response.completed') {
+        } else if (type === 'response.output_text.done') {
+          // Extract text from the done event
+          const text = (obj as { text?: string })?.text || '';
+
+          // Extract citations from inline markdown links in the text
+          if (onEvent && text) {
+            const citations = extractCitationsFromText(text);
+            if (process.env.NODE_ENV === 'development') {
+              console.warn('[ChatGPT] Extracted citations from text:', citations.length, citations.map(c => c.url).slice(0, 3));
+            }
+            if (citations.length > 0) {
+              try { onEvent({ type: 'citations', citations }); } catch { /* noop */ }
+            }
+          }
+
+          isComplete = true;
+          try { es.close(); } catch { /* noop */ }
+          if (resolver) { const r = resolver; resolver = null; r({ value: undefined, done: true }); }
+        } else if (type === 'response.completed') {
           // Try to extract a final text from the completed event and enqueue once
           const finalFromEvent = extractTextFromOutput(obj?.response ?? obj?.output ?? obj);
           if (finalFromEvent) {
             if (resolver) { const r = resolver; resolver = null; r({ value: finalFromEvent, done: false }); }
             else eventQueue.push(finalFromEvent);
           }
+
           isComplete = true;
           try { es.close(); } catch { /* noop */ }
           if (resolver) { const r = resolver; resolver = null; r({ value: undefined, done: true }); }

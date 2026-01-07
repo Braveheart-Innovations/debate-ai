@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { StyleSheet, TextInput, TouchableOpacity, Text as RNText, ScrollView, Image, Animated, View } from 'react-native';
 // We now render the options row above the input instead of expanding inline
 import MultimodalOptionsRow from '@/components/molecules/chat/MultimodalOptionsRow';
+import { WebSearchToggle } from '@/components/molecules/chat/WebSearchToggle';
 import { ImageUploadModal } from './ImageUploadModal';
 import { DocumentUploadModal } from './DocumentUploadModal';
 import { Box } from '../../atoms';
@@ -29,6 +30,9 @@ export interface ChatInputBarProps {
   imageGenerationEnabled?: boolean;
   modalityAvailability?: { imageUpload: boolean; documentUpload: boolean; imageGeneration: boolean; videoGeneration: boolean };
   modalityReasons?: { imageUpload?: string; documentUpload?: string; imageGeneration?: string; videoGeneration?: string };
+  webSearchAvailable?: boolean;
+  webSearchEnabled?: boolean;
+  onWebSearchToggle?: () => void;
 }
 
 export const ChatInputBar: React.FC<ChatInputBarProps> = ({
@@ -47,6 +51,9 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
   imageGenerationEnabled = false,
   modalityAvailability,
   modalityReasons,
+  webSearchAvailable = false,
+  webSearchEnabled = false,
+  onWebSearchToggle,
 }) => {
   const { theme, isDark } = useTheme();
   const { responsive, isTablet } = useResponsive();
@@ -223,7 +230,16 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
               <RNText style={[styles.attachButtonText, { color: theme.colors.text.primary }]}>{showModalityRow ? '×' : '+'}</RNText>
             </TouchableOpacity>
         )}
-        
+
+        {/* Web Search Toggle - only shown when available */}
+        {webSearchAvailable && onWebSearchToggle && (
+          <WebSearchToggle
+            enabled={webSearchEnabled}
+            onToggle={onWebSearchToggle}
+            disabled={isProcessing}
+          />
+        )}
+
         <TextInput
           style={[
             styles.input,

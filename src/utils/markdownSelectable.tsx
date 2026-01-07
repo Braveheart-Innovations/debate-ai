@@ -101,6 +101,10 @@ export const selectableMarkdownRules = {
       onPress={() => {
         const url = node?.attributes?.href;
         if (!url) return;
+        // Skip internal/non-openable URLs
+        if (url.startsWith('about:') || url.startsWith('javascript:') || url.startsWith('data:')) {
+          return;
+        }
         if (onLinkPress) {
           const shouldOpen = onLinkPress(url);
           if (shouldOpen === false) return;

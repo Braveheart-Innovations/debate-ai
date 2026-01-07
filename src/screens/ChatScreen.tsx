@@ -6,10 +6,9 @@ import { useAIService } from '../providers/AIServiceProvider';
 import { MessageAttachment } from '../types';
 import { getAttachmentSupport } from '../utils/attachmentUtils';
 import { useSelector, useDispatch } from 'react-redux';
-import { RootState, addMessage, updateMessage } from '../store';
+import { RootState, addMessage, updateMessage, setWebSearchPreferred } from '../store';
 import { ImageService } from '../services/images/ImageService';
-import { useMergedModalityAvailability, useImageGenerationAvailability } from '../hooks/multimodal/useModalityAvailability';
-import { ImageGenerationModal } from '../components/organisms/chat/ImageGenerationModal';
+import { useMergedModalityAvailability } from '../hooks/multimodal/useModalityAvailability';
 import { ImageRefinementModal, RefinementProvider } from '../components/organisms/chat/ImageRefinementModal';
 import { getProviderCapabilities } from '../config/providerCapabilities';
 import { getImageProviderDisplayName } from '../config/imageGenerationModels';
@@ -42,7 +41,6 @@ import { loadChatScript, primeNextChatTurn, hasNextChatTurn, isTurnComplete } fr
 import { DemoEmptyState } from '@/components/organisms/demo';
 import { showSheet } from '@/store';
 import useFeatureAccess from '@/hooks/useFeatureAccess';
-import { showTrialCTA } from '@/utils/demoGating';
 import { DemoBanner } from '@/components/molecules/subscription/DemoBanner';
 import { DemoProgressIndicator } from '@/components/molecules';
 import { getTotalChatTurns, getCurrentChatTurnIndex } from '@/services/demo/DemoPlaybackRouter';
@@ -89,6 +87,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
   const dispatch = useDispatch();
   const activeStreams = useSelector((state: RootState) => selectActiveStreamCount(state));
   const apiKeys = useSelector((state: RootState) => state.settings.apiKeys);
+  const webSearchPreferred = useSelector((state: RootState) => state.chat.webSearchPreferred);
 
   // AI Service state
   const { aiService, isInitialized, isLoading, error } = useAIService();
@@ -104,16 +103,11 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
   const availability = useMergedModalityAvailability(
     session.selectedAIs.map(ai => ({ provider: ai.provider, model: ai.model }))
   );
-  // Image generation availability with mode detection (single, roundRobin based on img2img support)
-  const imageAvailability = useImageGenerationAvailability(
-    session.selectedAIs.map(ai => ({ provider: ai.provider, model: ai.model })),
-    'chat'
-  );
-  const imageGenerationEnabled = imageAvailability.isAvailable;
-  const imageGenerationMode = imageAvailability.mode;
+
+  // Web search availability - only show toggle when all selected AIs support it
+  const webSearchAvailable = availability.webSearch.supported;
+  const webSearchEnabled = webSearchPreferred && webSearchAvailable;
   const controllersRef = React.useRef<Record<string, AbortController>>({});
-  const [imageModalVisible, setImageModalVisible] = React.useState(false);
-  const [imageModalPrompt, setImageModalPrompt] = React.useState('');
   // Refinement modal state
   const [refinementModalVisible, setRefinementModalVisible] = React.useState(false);
   const [refinementImageUri, setRefinementImageUri] = React.useState('');
@@ -128,6 +122,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
   const [demoCurrentTurn, setDemoCurrentTurn] = React.useState(0);
   const [demoTotalTurns, setDemoTotalTurns] = React.useState(0);
   const [demoComplete, setDemoComplete] = React.useState(false);
+
   const mapProvidersToMentions = React.useCallback((providers: string[]): string[] => {
     if (!session.currentSession) return [];
     const selected = session.currentSession.selectedAIs || [];
@@ -161,12 +156,6 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
     };
     await aiResponses.sendAIResponses(userMessage);
   }, [aiResponses, computeMentionsForTurn, messages]);
-  // Local nav function compatible with showTrialCTA typing
-  const navTo = React.useMemo(() => (
-    (screen: string, params?: Record<string, unknown>) => {
-      try { (navigation as unknown as { navigate: (s: string, p?: Record<string, unknown>) => void }).navigate(screen, params); } catch { /* no-op */ }
-    }
-  ), [navigation]);
 
   // Build list of providers available for refinement (those that support img2img)
   const refinementProviders = React.useMemo((): RefinementProvider[] => {
@@ -281,75 +270,6 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
     }
   }, [apiKeys, dispatch, refinementImageUri, refinementOriginalPrompt, refinementMessageId]);
 
-  const handleGenerateImage = async (opts: { prompt: string; size: 'auto' | 'square' | 'portrait' | 'landscape' }, reuseMessageId?: string) => {
-    if (isDemo) {
-      showTrialCTA(navTo, { message: 'Image generation requires a Free Trial.' });
-      return;
-    }
-
-    const sizeMap: Record<typeof opts.size, 'auto' | '1024x1024' | '1024x1536' | '1536x1024'> = {
-      auto: 'auto',
-      square: '1024x1024',
-      portrait: '1024x1536',
-      landscape: '1536x1024',
-    };
-
-    // Standard generation (user can refine via Refine button after initial generation)
-    try {
-      const providerAI = session.selectedAIs[0];
-      const provider = providerAI.provider;
-      const apiKey = apiKeys[provider as keyof typeof apiKeys];
-      if (!apiKey) throw new Error(`${provider} API key not configured`);
-      const messageId = reuseMessageId || `msg_${Date.now()}_${providerAI.id}`;
-      if (!reuseMessageId) {
-        dispatch(addMessage({
-          id: messageId,
-          sender: providerAI.name,
-          senderType: 'ai',
-          content: 'Generating image…',
-          timestamp: Date.now(),
-          metadata: { providerMetadata: { imageGenerating: true, imagePhase: 'sending', imageStartTime: Date.now(), imageParams: { size: opts.size, prompt: opts.prompt } } }
-        }));
-      } else {
-        dispatch(updateMessage({ id: messageId, content: 'Generating image…', attachments: [], metadata: { providerMetadata: { imageGenerating: true, imagePhase: 'sending', imageStartTime: Date.now(), imageParams: { size: opts.size, prompt: opts.prompt } } } }));
-      }
-      const controller = new AbortController();
-      controllersRef.current[messageId] = controller;
-      const images = await ImageService.generateImage({ provider: provider as AIProvider, apiKey, prompt: opts.prompt, size: sizeMap[opts.size], n: 1, signal: controller.signal });
-      const img = images[0];
-      const uri = img.url ? img.url : (img.b64 ? `data:${img.mimeType};base64,${img.b64}` : undefined);
-      if (uri) {
-        dispatch(updateMessage({
-          id: messageId,
-          content: '',
-          // NOTE: Do NOT store base64 in attachments or metadata - it bloats AsyncStorage
-          // The file URI is sufficient for display, and base64 is only needed transiently for img2img
-          attachments: [{ type: 'image', uri, mimeType: img.mimeType }],
-          metadata: {
-            providerMetadata: { imageGenerating: false, imagePhase: 'done' },
-            generatedImage: { url: uri, prompt: opts.prompt, providerId: provider, model: providerAI.model },
-          },
-        }));
-      } else {
-        dispatch(updateMessage({ id: messageId, content: 'Image generated.', metadata: { providerMetadata: { imageGenerating: false, imagePhase: 'done' } } }));
-      }
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : String(err);
-      const lastId = Object.keys(controllersRef.current).slice(-1)[0] as string;
-      dispatch(updateMessage({ id: reuseMessageId || lastId, content: `Failed to generate image: ${errorMsg}`, attachments: [], metadata: { providerMetadata: { imageGenerating: false, imagePhase: 'error' } } }));
-    }
-  };
-
-  const handleCancelImage = (message: Message) => {
-    const ctrl = controllersRef.current[message.id];
-    if (ctrl) ctrl.abort();
-    dispatch(updateMessage({ id: message.id, content: 'Generation cancelled.', metadata: { providerMetadata: { imageGenerating: false, imagePhase: 'cancelled' } } }));
-  };
-
-  const handleRetryImage = (message: Message) => {
-    const meta = message.metadata as { providerMetadata?: { imageParams?: { size?: 'auto' | 'square' | 'portrait' | 'landscape'; prompt?: string } } } | undefined;
-    const params = meta?.providerMetadata?.imageParams || { prompt: '', size: 'square' as const };
-
   /* const handleGenerateVideo = async (opts: { prompt: string; resolution: '720p' | '1080p'; duration: 5 | 10 | 15 }) => {
     try {
       const providerAI = session.selectedAIs[0];
@@ -367,9 +287,6 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
     }
   };
 */
-    if (!params.prompt) return;
-    handleGenerateImage({ prompt: params.prompt, size: params.size || 'square' }, message.id);
-  };
 
   // Handle message sending
   const handleSendMessage = useCallback(async (messageText?: string, attachments?: MessageAttachment[]): Promise<void> => {
@@ -409,9 +326,10 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
       attachments,
     };
 
-    // Trigger AI responses with attachments
-    await aiResponses.sendAIResponses(userMessage, undefined, attachments);
-  }, [dispatch, input, session.currentSession, mentions, messages, aiResponses, isDemo]);
+    // Trigger AI responses with attachments and web search if enabled
+    console.warn('[ChatScreen] Sending with webSearchEnabled:', webSearchEnabled, 'webSearchPreferred:', webSearchPreferred, 'webSearchAvailable:', webSearchAvailable);
+    await aiResponses.sendAIResponses(userMessage, undefined, attachments, webSearchEnabled);
+  }, [dispatch, input, session.currentSession, mentions, messages, aiResponses, isDemo, webSearchEnabled, webSearchPreferred, webSearchAvailable]);
 
   // Auto-save session when it's created or messages change
   useEffect(() => {
@@ -687,8 +605,6 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
             searchTerm={searchTerm}
             onContentSizeChange={messages.scrollToBottom}
             onScrollToSearchResult={handleScrollToSearchResult}
-            onCancelImage={handleCancelImage}
-            onRetryImage={handleRetryImage}
             canRefineImages={canRefineImages}
             onRefineImage={handleOpenRefinement}
           />
@@ -715,41 +631,28 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
             try { getStreamingService().cancelAllStreams(); } catch { /* no-op */ }
             dispatch(cancelAllStreams());
           }}
-          onOpenImageModal={() => {
-            setImageModalPrompt(input.inputText.trim());
-            setImageModalVisible(true);
-          }}
           placeholder="Type a message..."
           disabled={aiResponses.isProcessing}
           attachmentSupport={getAttachmentSupport(session.selectedAIs)}
           maxAttachments={20}
-          imageGenerationEnabled={imageGenerationEnabled}
           modalityAvailability={{
             imageUpload: availability.imageUpload.supported,
             documentUpload: availability.documentUpload.supported,
-            imageGeneration: availability.imageGeneration.supported,
+            imageGeneration: false, // Image generation moved to Create mode
             videoGeneration: availability.videoGeneration.supported,
           }}
           modalityReasons={{
             imageUpload: availability.imageUpload.supported ? undefined : 'Selected model(s) do not support image input',
             documentUpload: availability.documentUpload.supported ? undefined : 'Selected model(s) do not support document/PDF input',
-            imageGeneration: availability.imageGeneration.supported ? undefined : 'Selected provider(s) do not support image generation',
+            imageGeneration: 'Use Create mode to generate images',
             videoGeneration: availability.videoGeneration.supported ? undefined : 'Selected provider(s) do not support video generation',
           }}
+          webSearchAvailable={webSearchAvailable}
+          webSearchEnabled={webSearchEnabled}
+          onWebSearchToggle={() => dispatch(setWebSearchPreferred(!webSearchPreferred))}
         />
         </View>
         <View>
-          <ImageGenerationModal
-            visible={imageModalVisible}
-            initialPrompt={imageModalPrompt}
-            provider={session.selectedAIs[0]?.provider}
-            mode={imageGenerationMode}
-            onClose={() => setImageModalVisible(false)}
-            onGenerate={(opts) => {
-              setImageModalVisible(false);
-              handleGenerateImage(opts);
-            }}
-          />
           <ImageRefinementModal
             visible={refinementModalVisible}
             imageUri={refinementImageUri}

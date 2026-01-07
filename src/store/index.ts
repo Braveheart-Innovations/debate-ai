@@ -7,6 +7,7 @@ import authReducer from './authSlice';
 import navigationReducer from './navigationSlice';
 import compareReducer from './compareSlice';
 import errorReducer from './errorSlice';
+import createReducer from './createSlice';
 
 // User slice
 interface UserState {
@@ -57,6 +58,7 @@ interface ChatState {
   isLoading: boolean;
   aiPersonalities: { [aiId: string]: string };
   selectedModels: { [aiId: string]: string };
+  webSearchPreferred: boolean;
 }
 
 const initialChatState: ChatState = {
@@ -66,6 +68,7 @@ const initialChatState: ChatState = {
   isLoading: false,
   aiPersonalities: {},
   selectedModels: {},
+  webSearchPreferred: false,
 };
 
 const chatSlice = createSlice({
@@ -154,6 +157,9 @@ const chatSlice = createSlice({
     },
     clearModels: (state) => {
       state.selectedModels = {};
+    },
+    setWebSearchPreferred: (state, action: PayloadAction<boolean>) => {
+      state.webSearchPreferred = action.payload;
     },
   },
 });
@@ -299,6 +305,7 @@ const rootReducer = combineReducers({
   navigation: navigationReducer,
   compare: compareReducer,
   errors: errorReducer,
+  create: createReducer,
 });
 
 export type RootState = ReturnType<typeof rootReducer>;
@@ -316,7 +323,7 @@ export type AppDispatch = AppStore['dispatch'];
 
 // Export actions
 export const { setUser, updateUIMode, updateSubscription, logout } = userSlice.actions;
-export const { startSession, addMessage, updateMessage, setTypingAI, endSession, loadSession, setLoading, setAIPersonality, setAIModel, clearPersonalities, clearModels } = chatSlice.actions;
+export const { startSession, addMessage, updateMessage, setTypingAI, endSession, loadSession, setLoading, setAIPersonality, setAIModel, clearPersonalities, clearModels, setWebSearchPreferred } = chatSlice.actions;
 export const { 
   updateTheme, 
   updateFontSize, 
@@ -414,3 +421,45 @@ export {
   selectUndismissedErrorCount,
 } from './errorSlice';
 export type { ErrorEntry, ErrorState } from './errorSlice';
+
+// Create mode exports
+export {
+  setSelectedProviders,
+  toggleProvider,
+  setMode,
+  setPrompt,
+  setStyle,
+  setSize,
+  setQuality,
+  startGeneration,
+  updateGenerationProgress,
+  completeGeneration,
+  generationError,
+  clearGenerationError,
+  addToGallery,
+  removeFromGallery,
+  clearGallery,
+  startRefinement,
+  setRefinementPrompt,
+  cancelRefinement,
+  completeRefinement,
+  setSourceImage,
+  clearSourceImage,
+  setFocusedImage,
+  resetCreateState,
+  hydrateGallery,
+  persistGallery,
+  selectCreateState,
+  selectGallery,
+  selectIsGenerating,
+  selectSelectedProviders,
+  selectGenerationProgress,
+} from './createSlice';
+export type {
+  StylePreset,
+  SizeOption,
+  QualityOption,
+  GenerationProgress,
+  GeneratedImageEntry,
+  CreateState,
+} from './createSlice';

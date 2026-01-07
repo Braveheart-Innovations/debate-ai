@@ -418,7 +418,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, s
             variant="compact"
             initialVisible={3}
             brandColor={aiColor?.border}
-            onCitationPress={(citation) => Linking.openURL(citation.url)}
+            onCitationPress={(citation) => {
+              // Show citation preview tooltip at center of screen (matching inline link behavior)
+              const screenWidth = Dimensions.get('window').width;
+              const screenHeight = Dimensions.get('window').height;
+              showPreview(citation, { x: screenWidth / 2, y: screenHeight / 3 }, citationBrandColor);
+            }}
           />
         )}
         

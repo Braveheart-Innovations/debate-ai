@@ -101,6 +101,7 @@ export const AI_MODELS: ProviderModels = {
       supportsImageInput: true,
       supportsDocuments: true, // Native file support as of March 2025
       supportsFunctions: true,
+      supportsWebSearch: true,
       requiresTemperature1: true,
       useMaxCompletionTokens: true,
     },
@@ -114,6 +115,7 @@ export const AI_MODELS: ProviderModels = {
       supportsImageInput: true,
       supportsDocuments: true,
       supportsFunctions: true,
+      supportsWebSearch: true,
       requiresTemperature1: true,
       useMaxCompletionTokens: true,
     },
@@ -126,6 +128,7 @@ export const AI_MODELS: ProviderModels = {
       supportsImageInput: true,
       supportsDocuments: true,
       supportsFunctions: true,
+      supportsWebSearch: true,
       requiresTemperature1: true,
       useMaxCompletionTokens: true,
     },
@@ -138,6 +141,7 @@ export const AI_MODELS: ProviderModels = {
       supportsImageInput: true,
       supportsDocuments: true,
       supportsFunctions: true,
+      supportsWebSearch: true,
       requiresTemperature1: true,
       useMaxCompletionTokens: true,
     },
@@ -151,6 +155,7 @@ export const AI_MODELS: ProviderModels = {
       supportsImageInput: true,
       supportsDocuments: true,
       supportsFunctions: true,
+      supportsWebSearch: true,
     },
     {
       id: "gpt-4o",
@@ -161,6 +166,7 @@ export const AI_MODELS: ProviderModels = {
       supportsImageInput: true,
       supportsDocuments: true,
       supportsFunctions: true,
+      supportsWebSearch: true,
     },
     // Reasoning models (O-series)
     {

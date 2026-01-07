@@ -265,7 +265,11 @@ export const DebateMessageBubble: React.FC<DebateMessageBubbleProps> = React.mem
             variant="compact"
             initialVisible={3}
             brandColor={aiColor?.border}
-            onCitationPress={(citation) => Linking.openURL(citation.url)}
+            onCitationPress={(citation) => {
+              const screenWidth = Dimensions.get('window').width;
+              const screenHeight = Dimensions.get('window').height;
+              showPreview(citation, { x: screenWidth / 2, y: screenHeight / 3 }, aiColor?.border);
+            }}
           />
         )}
         {/* Copy button */}

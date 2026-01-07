@@ -42,6 +42,7 @@ export interface ProcessUserMessageParams {
   streamingSpeed?: 'instant' | 'natural' | 'slow';
   allowStreaming: boolean;
   isDemo: boolean;
+  webSearchEnabled?: boolean;
 }
 
 export class ChatOrchestrator {
@@ -100,6 +101,7 @@ export class ChatOrchestrator {
       streamingSpeed,
       allowStreaming,
       isDemo,
+      webSearchEnabled,
     } = params;
 
     let resumptionContext = initialResumption;
@@ -176,6 +178,7 @@ export class ChatOrchestrator {
               apiKey: apiKeys[ai.provider] || (isDemo ? 'demo' : undefined),
               expert,
               streamingSpeed,
+              webSearchEnabled,
             })
           : await this.handleNonStreamingResponse({
               ai: aiForTurn,
@@ -185,6 +188,7 @@ export class ChatOrchestrator {
               resumptionContext,
               attachments: aiAttachments,
               expert,
+              webSearchEnabled,
             });
 
         conversationContext = ChatService.buildRoundRobinContext(
@@ -226,6 +230,7 @@ export class ChatOrchestrator {
     apiKey?: string;
     expert?: { enabled?: boolean; parameters?: ModelParameters } | undefined;
     streamingSpeed?: 'instant' | 'natural' | 'slow';
+    webSearchEnabled?: boolean;
   }): Promise<Message> {
     const {
       ai,
@@ -237,6 +242,7 @@ export class ChatOrchestrator {
       apiKey,
       expert,
       streamingSpeed,
+      webSearchEnabled,
     } = options;
 
     if (!apiKey) {
@@ -252,6 +258,7 @@ export class ChatOrchestrator {
     const aiMessage = ChatService.createAIMessage(ai, '', {
       modelUsed: ai.model,
       responseTime: 0,
+      webSearchEnabled,
     });
     this.dispatch(addMessage(aiMessage));
     this.dispatch(startStreaming({ messageId: aiMessage.id, aiProvider: ai.id }));
@@ -259,6 +266,11 @@ export class ChatOrchestrator {
     let streamedContent = '';
     let finalContent = '';
     let capturedCitations: Array<{ index: number; url: string; title?: string; snippet?: string }> | undefined;
+
+    // Debug: log webSearchEnabled value
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[ChatOrchestrator] webSearchEnabled:', webSearchEnabled);
+    }
 
     await this.streamingService.streamResponse(
       {
@@ -270,6 +282,7 @@ export class ChatOrchestrator {
           personality: personality as PersonalityConfig | undefined,
           parameters: expert?.enabled ? expert.parameters : undefined,
           isDebateMode: conversationContext.isDebateMode,
+          webSearchEnabled,
         },
         message: prompt,
         conversationHistory: conversationContext.messages.slice(0, -1),
@@ -372,6 +385,7 @@ export class ChatOrchestrator {
       content: resolvedContent,
       metadata: {
         ...aiMessage.metadata,
+        webSearchEnabled,
         citations: capturedCitations,
       },
     };
@@ -381,7 +395,7 @@ export class ChatOrchestrator {
       this.dispatch(updateMessage({
         id: aiMessage.id,
         content: resolvedContent,
-        metadata: { ...aiMessage.metadata, citations: capturedCitations },
+        metadata: { ...aiMessage.metadata, webSearchEnabled, citations: capturedCitations },
       }));
     }
 
@@ -396,8 +410,9 @@ export class ChatOrchestrator {
     resumptionContext?: ResumptionContext;
     attachments?: MessageAttachment[];
     expert?: { enabled?: boolean; parameters?: ModelParameters } | undefined;
+    webSearchEnabled?: boolean;
   }): Promise<Message> {
-    const { ai, prompt, conversationContext, resumptionContext, attachments, expert } = options;
+    const { ai, prompt, conversationContext, resumptionContext, attachments, expert, webSearchEnabled } = options;
 
     if (expert?.enabled && expert.parameters) {
       try {
@@ -429,6 +444,7 @@ export class ChatOrchestrator {
     const aiMessage = ChatService.createAIMessage(ai, response, {
       modelUsed,
       responseTime,
+      webSearchEnabled,
       citations: metadata?.citations,
     });
     this.dispatch(addMessage(aiMessage));

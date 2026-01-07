@@ -16,6 +16,7 @@ export interface ModalityAvailability {
   documentUpload: ModalityFlag;   // PDF/document input
   imageGeneration: ModalityFlag;  // Images output
   videoGeneration: ModalityFlag;  // Videos output (future)
+  webSearch: ModalityFlag;        // Web search capability
 }
 
 /**
@@ -44,6 +45,7 @@ export function getModalityAvailability(providerId: string, modelId: string): Mo
       models: videoGen?.models,
       resolutions: videoGen?.resolutions,
     },
+    webSearch: { supported: Boolean(model?.supportsWebSearch) },
   };
 }
 
@@ -59,6 +61,7 @@ export function mergeAvailabilities(items: Array<{ provider: string; model: stri
       documentUpload: { supported: false },
       imageGeneration: { supported: false, models: [], sizes: [] },
       videoGeneration: { supported: false, models: [], resolutions: [] },
+      webSearch: { supported: false },
     };
   }
 
@@ -67,6 +70,7 @@ export function mergeAvailabilities(items: Array<{ provider: string; model: stri
   // Input modalities: AND logic - ALL must support
   const allSupportImageUpload = availabilities.every(a => a.imageUpload.supported);
   const allSupportDocumentUpload = availabilities.every(a => a.documentUpload.supported);
+  const allSupportWebSearch = availabilities.every(a => a.webSearch.supported);
 
   // Generation modalities: OR logic - any supporting enables the feature
   const base: ModalityAvailability = {
@@ -74,6 +78,7 @@ export function mergeAvailabilities(items: Array<{ provider: string; model: stri
     documentUpload: { supported: allSupportDocumentUpload },
     imageGeneration: { supported: false, models: [], sizes: [] },
     videoGeneration: { supported: false, models: [], resolutions: [] },
+    webSearch: { supported: allSupportWebSearch },
   };
 
   for (const a of availabilities) {
@@ -112,6 +117,7 @@ export function mergeAvailabilitiesStrict(items: Array<{ provider: string; model
       documentUpload: { supported: false },
       imageGeneration: { supported: false, models: [], sizes: [] },
       videoGeneration: { supported: false, models: [], resolutions: [] },
+      webSearch: { supported: false },
     };
   }
 
@@ -122,6 +128,7 @@ export function mergeAvailabilitiesStrict(items: Array<{ provider: string; model
   const allSupportDocumentUpload = availabilities.every(a => a.documentUpload.supported);
   const allSupportImageGen = availabilities.every(a => a.imageGeneration.supported);
   const allSupportVideoGen = availabilities.every(a => a.videoGeneration.supported);
+  const allSupportWebSearch = availabilities.every(a => a.webSearch.supported);
 
   return {
     // Input modalities: AND logic (all must support)
@@ -138,6 +145,7 @@ export function mergeAvailabilitiesStrict(items: Array<{ provider: string; model
       models: allSupportVideoGen ? availabilities.flatMap(a => a.videoGeneration.models || []) : [],
       resolutions: allSupportVideoGen ? [...new Set(availabilities.flatMap(a => a.videoGeneration.resolutions || []))] : [],
     },
+    webSearch: { supported: allSupportWebSearch },
   };
 }
 

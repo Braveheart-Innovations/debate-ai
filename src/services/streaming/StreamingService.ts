@@ -24,6 +24,7 @@ interface StreamConfig {
     personality?: PersonalityConfig;
     parameters?: ModelParameters;
     isDebateMode?: boolean;
+    webSearchEnabled?: boolean;
   };
   message: string;
   conversationHistory: Message[];
@@ -155,14 +156,15 @@ export class StreamingService {
     // Create adapter dynamically based on model if config provided
     let adapter: BaseAdapter;
     if (config.adapterConfig) {
-      const { provider, apiKey, model, personality, parameters, isDebateMode } = config.adapterConfig;
+      const { provider, apiKey, model, personality, parameters, isDebateMode, webSearchEnabled } = config.adapterConfig;
       const adapterConfig: AIAdapterConfig = {
         provider,
         apiKey,
         model,
         personality,
         parameters,
-        isDebateMode
+        isDebateMode,
+        webSearchEnabled
       };
       // Use the new createWithModel method to get the correct adapter
       adapter = AdapterFactory.createWithModel(adapterConfig, model);
