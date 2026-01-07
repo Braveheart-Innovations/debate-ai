@@ -13,7 +13,7 @@ interface ChatTopicPickerModalProps {
   allowNewSample?: boolean;
 }
 
-export const ChatTopicPickerModal: React.FC<ChatTopicPickerModalProps> = ({ visible, providers, personaId, onSelect, onClose, allowNewSample = false }) => {
+export const ChatTopicPickerModal: React.FC<ChatTopicPickerModalProps> = ({ visible, providers, personaId: _personaId, onSelect, onClose, allowNewSample = false }) => {
   const { theme } = useTheme();
   const [items, setItems] = React.useState<Array<{ id: string; title: string }>>([]);
   const [creatingNew, setCreatingNew] = React.useState(false);
@@ -68,14 +68,6 @@ export const ChatTopicPickerModal: React.FC<ChatTopicPickerModalProps> = ({ visi
         <View style={[styles.sheet, { backgroundColor: theme.colors.background, borderColor: theme.colors.border }]}> 
           <SheetHeader title="Choose a Chat Topic" onClose={onClose} showHandle />
 
-          {!!personaId && providers.length === 1 && (
-            <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
-              <Typography variant="caption" color="secondary">
-                Persona: {personaId === 'default' ? 'Default' : personaId}
-              </Typography>
-            </View>
-          )}
-
           <ScrollView style={{ maxHeight: 520 }} contentContainerStyle={{ padding: 12 }}>
             {/* New sample option */}
             {allowNewSample && !creatingNew && (
@@ -124,7 +116,6 @@ export const ChatTopicPickerModal: React.FC<ChatTopicPickerModalProps> = ({ visi
                 onPress={() => onSelect(it.id, it.title)}
               >
                 <Typography variant="body" weight="semibold">{it.title}</Typography>
-                <Typography variant="caption" color="secondary">{it.id}</Typography>
               </TouchableOpacity>
             ))}
             {items.length === 0 && (

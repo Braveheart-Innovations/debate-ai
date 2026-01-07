@@ -73,7 +73,6 @@ export const CompareSamplePickerModal: React.FC<CompareSamplePickerModalProps> =
                 onPress={() => onSelect(it.id)}
               >
                 <Typography variant="body" weight="semibold">{it.title}</Typography>
-                <Typography variant="caption" color="secondary">{it.id}</Typography>
               </TouchableOpacity>
             ))}
             {!loading && items.length === 0 && (

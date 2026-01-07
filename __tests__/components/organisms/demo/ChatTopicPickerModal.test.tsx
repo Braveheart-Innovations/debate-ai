@@ -118,17 +118,6 @@ describe('ChatTopicPickerModal', () => {
       });
     });
 
-    it('renders topic IDs below titles', async () => {
-      const { getByText } = renderWithProviders(
-        <ChatTopicPickerModal visible={true} providers={providers} onSelect={mockOnSelect} onClose={mockOnClose} />
-      );
-      await waitFor(() => {
-        expect(getByText('chat_o_1')).toBeTruthy();
-        expect(getByText('chat_o_2')).toBeTruthy();
-        expect(getByText('chat_o_3')).toBeTruthy();
-      });
-    });
-
     it('does not render "New sample" button by default', () => {
       const { queryByText } = renderWithProviders(
         <ChatTopicPickerModal visible={true} providers={providers} onSelect={mockOnSelect} onClose={mockOnClose} />
@@ -141,36 +130,6 @@ describe('ChatTopicPickerModal', () => {
         <ChatTopicPickerModal visible={true} providers={providers} onSelect={mockOnSelect} onClose={mockOnClose} allowNewSample={true} />
       );
       expect(getByText(/＋ New sample/i)).toBeTruthy();
-    });
-  });
-
-  describe('Persona Display', () => {
-    it('displays persona when personaId and single provider are provided', () => {
-      const { getByText } = renderWithProviders(
-        <ChatTopicPickerModal visible={true} providers={['openai']} personaId="sage" onSelect={mockOnSelect} onClose={mockOnClose} />
-      );
-      expect(getByText(/Persona: sage/i)).toBeTruthy();
-    });
-
-    it('displays "Default" for default persona', () => {
-      const { getByText } = renderWithProviders(
-        <ChatTopicPickerModal visible={true} providers={['openai']} personaId="default" onSelect={mockOnSelect} onClose={mockOnClose} />
-      );
-      expect(getByText(/Persona: Default/i)).toBeTruthy();
-    });
-
-    it('does not display persona when multiple providers', () => {
-      const { queryByText } = renderWithProviders(
-        <ChatTopicPickerModal visible={true} providers={providers} personaId="sage" onSelect={mockOnSelect} onClose={mockOnClose} />
-      );
-      expect(queryByText(/Persona:/i)).toBeNull();
-    });
-
-    it('does not display persona when personaId is not provided', () => {
-      const { queryByText } = renderWithProviders(
-        <ChatTopicPickerModal visible={true} providers={['openai']} onSelect={mockOnSelect} onClose={mockOnClose} />
-      );
-      expect(queryByText(/Persona:/i)).toBeNull();
     });
   });
 
@@ -503,13 +462,6 @@ describe('ChatTopicPickerModal', () => {
     it('matches snapshot with new sample option', () => {
       const { toJSON } = renderWithProviders(
         <ChatTopicPickerModal visible={true} providers={providers} onSelect={mockOnSelect} onClose={mockOnClose} allowNewSample={true} />
-      );
-      expect(toJSON()).toMatchSnapshot();
-    });
-
-    it('matches snapshot with persona', () => {
-      const { toJSON } = renderWithProviders(
-        <ChatTopicPickerModal visible={true} providers={['openai']} personaId="sage" onSelect={mockOnSelect} onClose={mockOnClose} />
       );
       expect(toJSON()).toMatchSnapshot();
     });

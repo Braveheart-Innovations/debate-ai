@@ -376,10 +376,6 @@ exports[`DemoDebatePickerModal Snapshot Tests matches snapshot with samples 1`] 
             <Text>
               Climate Change Solutions
             </Text>
-            <Text>
-              Motion: 
-              Should we prioritize nuclear energy?
-            </Text>
           </View>
           <View
             accessibilityState={
@@ -425,10 +421,6 @@ exports[`DemoDebatePickerModal Snapshot Tests matches snapshot with samples 1`] 
             <Text>
               AI Ethics
             </Text>
-            <Text>
-              Motion: 
-              Is AI consciousness possible?
-            </Text>
           </View>
           <View
             accessibilityState={
@@ -473,10 +465,6 @@ exports[`DemoDebatePickerModal Snapshot Tests matches snapshot with samples 1`] 
           >
             <Text>
               Economic Policy
-            </Text>
-            <Text>
-              Motion: 
-              Universal Basic Income pros and cons
             </Text>
           </View>
           <View

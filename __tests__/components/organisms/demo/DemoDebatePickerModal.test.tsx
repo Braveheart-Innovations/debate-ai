@@ -97,15 +97,6 @@ describe('DemoDebatePickerModal', () => {
       expect(getByText('Economic Policy')).toBeTruthy();
     });
 
-    it('renders debate topics with Motion prefix', () => {
-      const { getByText } = renderWithProviders(
-        <DemoDebatePickerModal visible={true} samples={sampleDebates} onSelect={mockOnSelect} onClose={mockOnClose} />
-      );
-      expect(getByText('Motion: Should we prioritize nuclear energy?')).toBeTruthy();
-      expect(getByText('Motion: Is AI consciousness possible?')).toBeTruthy();
-      expect(getByText('Motion: Universal Basic Income pros and cons')).toBeTruthy();
-    });
-
     it('renders Cancel button when samples are available', () => {
       const { getByText } = renderWithProviders(
         <DemoDebatePickerModal visible={true} samples={sampleDebates} onSelect={mockOnSelect} onClose={mockOnClose} />
@@ -288,7 +279,7 @@ describe('DemoDebatePickerModal', () => {
       const { getByText } = renderWithProviders(
         <DemoDebatePickerModal visible={true} samples={longTopicSample} onSelect={mockOnSelect} onClose={mockOnClose} />
       );
-      expect(getByText(/Motion: This is a very long topic/)).toBeTruthy();
+      expect(getByText('Short title')).toBeTruthy();
     });
 
     it('handles sample with special characters in title', () => {

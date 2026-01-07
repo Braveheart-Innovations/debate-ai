@@ -38,18 +38,21 @@ export const DemoDebatePickerModal: React.FC<DemoDebatePickerModalProps> = ({ vi
                 </Typography>
               </View>
             )}
-            {!loading && samples.map((it) => (
-              <TouchableOpacity
-                key={it.id}
-                style={[styles.item, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}
-                onPress={() => onSelect(it)}
-              >
-                <Typography variant="body" weight="semibold" style={{ marginBottom: 4 }}>
-                  {it.title || it.topic}
-                </Typography>
-                <Typography variant="caption" color="secondary">Motion: {it.topic}</Typography>
-              </TouchableOpacity>
-            ))}
+            {!loading && samples.map((it) => {
+              // Clean up display - strip "Motion:" prefix if present for cleaner display
+              const displayTitle = (it.title || it.topic).replace(/^Motion:\s*/i, '');
+              return (
+                <TouchableOpacity
+                  key={it.id}
+                  style={[styles.item, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}
+                  onPress={() => onSelect(it)}
+                >
+                  <Typography variant="body" weight="semibold">
+                    {displayTitle}
+                  </Typography>
+                </TouchableOpacity>
+              );
+            })}
             {!loading && samples.length > 0 && (
               <Button
                 title="Cancel"
