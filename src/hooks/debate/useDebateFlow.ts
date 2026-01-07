@@ -120,10 +120,15 @@ export const useDebateFlow = (orchestrator: DebateOrchestrator | null): UseDebat
         const messageId = String((event.data as { messageId?: string }).messageId || '');
         const finalContent = String((event.data as { finalContent?: string }).finalContent || '');
         const modelUsed = (event.data as { modelUsed?: string }).modelUsed;
+        const citations = (event.data as { citations?: Array<{ index: number; url: string; title?: string; snippet?: string }> }).citations;
         if (messageId) {
           dispatch(endStreaming({ messageId, finalContent }));
-          // Persist final content to the chat store
-          dispatch(updateMessage({ id: messageId, content: finalContent, metadata: modelUsed ? { modelUsed } : {} }));
+          // Persist final content to the chat store, including citations if present
+          dispatch(updateMessage({
+            id: messageId,
+            content: finalContent,
+            metadata: { ...(modelUsed ? { modelUsed } : {}), ...(citations ? { citations } : {}) },
+          }));
         }
         break;
       }

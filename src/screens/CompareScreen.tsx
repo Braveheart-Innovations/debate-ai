@@ -167,6 +167,10 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
   const imageControllersRef = useRef<{ left?: AbortController; right?: AbortController }>({});
   const synchronizerRef = useRef<CompareStreamSynchronizer | null>(null);
 
+  // Refs for capturing citations during streaming
+  const leftCitationsRef = useRef<Array<{ index: number; url: string; title?: string; snippet?: string }> | undefined>(undefined);
+  const rightCitationsRef = useRef<Array<{ index: number; url: string; title?: string; snippet?: string }> | undefined>(undefined);
+
   const saveComparisonSession = useCallback(async () => {
     if (userMessages.length === 0) return; // Don't save empty sessions
     
@@ -315,7 +319,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
               senderType: 'ai',
               content: finalContent,
               timestamp: Date.now(),
-              metadata: { modelUsed: leftEffModel, providerId: leftAI.provider },
+              metadata: { modelUsed: leftEffModel, providerId: leftAI.provider, citations: leftCitationsRef.current },
             };
             setLeftMessages(prev => [...prev, leftMessage]);
             leftHistoryRef.current.push(leftMessage);
@@ -330,7 +334,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
               senderType: 'ai',
               content: finalContent,
               timestamp: Date.now(),
-              metadata: { modelUsed: rightEffModel, providerId: rightAI.provider },
+              metadata: { modelUsed: rightEffModel, providerId: rightAI.provider, citations: rightCitationsRef.current },
             };
             setRightMessages(prev => [...prev, rightMessage]);
             rightHistoryRef.current.push(rightMessage);
@@ -355,6 +359,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
 
       if (shouldStreamLeft) {
         setLeftStreamingContent('');
+        leftCitationsRef.current = undefined; // Clear citations before streaming
         const leftStreamPromise = getStreamingService().streamResponse(
           {
             messageId: `cmp_left_${Date.now()}`,
@@ -390,7 +395,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
                 senderType: 'ai',
                 content: finalContent,
                 timestamp: Date.now(),
-                metadata: { modelUsed: leftEffModel, providerId: leftAI.provider },
+                metadata: { modelUsed: leftEffModel, providerId: leftAI.provider, citations: leftCitationsRef.current },
               };
               setLeftMessages(prev => [...prev, leftMessage]);
               leftHistoryRef.current.push(leftMessage);
@@ -431,6 +436,13 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
             try {
               const e = event as Record<string, unknown>;
               const type = String(e?.type || '');
+              // Handle citations event
+              if (type === 'citations') {
+                const citations = (e as { citations?: Array<{ index: number; url: string; title?: string; snippet?: string }> }).citations;
+                if (citations && citations.length > 0) {
+                  leftCitationsRef.current = citations;
+                }
+              }
               if (type.includes('output_image')) {
                 const ee = e as { image?: { url?: string; b64?: string; data?: string }; delta?: { image?: { url?: string; b64?: string; data?: string } }; image_url?: string };
                 const imageUrl = ee?.image?.url || ee?.delta?.image?.url || ee?.image_url;
@@ -497,6 +509,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
 
       if (shouldStreamRight) {
         setRightStreamingContent('');
+        rightCitationsRef.current = undefined; // Clear citations before streaming
         const rightStreamPromise = getStreamingService().streamResponse(
           {
             messageId: `cmp_right_${Date.now()}`,
@@ -532,7 +545,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
                 senderType: 'ai',
                 content: finalContent,
                 timestamp: Date.now(),
-                metadata: { modelUsed: rightEffModel, providerId: rightAI.provider },
+                metadata: { modelUsed: rightEffModel, providerId: rightAI.provider, citations: rightCitationsRef.current },
               };
               setRightMessages(prev => [...prev, rightMessage]);
               rightHistoryRef.current.push(rightMessage);
@@ -573,6 +586,13 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
             try {
               const e = event as Record<string, unknown>;
               const type = String(e?.type || '');
+              // Handle citations event
+              if (type === 'citations') {
+                const citations = (e as { citations?: Array<{ index: number; url: string; title?: string; snippet?: string }> }).citations;
+                if (citations && citations.length > 0) {
+                  rightCitationsRef.current = citations;
+                }
+              }
               if (type.includes('output_image')) {
                 const ee = e as { image?: { url?: string; b64?: string; data?: string }; delta?: { image?: { url?: string; b64?: string; data?: string } }; image_url?: string };
                 const imageUrl = ee?.image?.url || ee?.delta?.image?.url || ee?.image_url;

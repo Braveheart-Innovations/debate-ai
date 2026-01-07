@@ -9,7 +9,10 @@ jest.mock('react-native-reanimated', () => {
   const View = require('react-native').View;
   return {
     ...jest.requireActual('react-native-reanimated/mock'),
-    default: { View },
+    default: {
+      View,
+      createAnimatedComponent: (component: unknown) => component,
+    },
   };
 });
 

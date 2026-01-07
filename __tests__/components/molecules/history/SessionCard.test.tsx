@@ -13,7 +13,10 @@ jest.mock('react-native-reanimated', () => {
   return {
     ...jest.requireActual('react-native-reanimated/mock'),
     FadeInDown: mockAnimation,
-    default: { View },
+    default: {
+      View,
+      createAnimatedComponent: (component: unknown) => component,
+    },
   };
 });
 

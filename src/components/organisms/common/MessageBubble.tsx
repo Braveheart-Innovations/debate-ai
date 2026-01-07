@@ -1,9 +1,11 @@
-import React, { useState, useMemo } from 'react';
-import { Text, StyleSheet, Linking, TouchableOpacity } from 'react-native';
+import React, { useState, useMemo, useCallback } from 'react';
+import { Text, StyleSheet, Linking, TouchableOpacity, Dimensions } from 'react-native';
 import type { TextStyle } from 'react-native';
 import Animated from 'react-native-reanimated';
 import Markdown from 'react-native-markdown-display';
 import { sanitizeMarkdown, shouldLazyRender } from '@/utils/markdown';
+import { processMessageContentWithCitations, findCitationByUrl } from '@/utils/citationUtils';
+import { useCitationPreview } from '@/providers/CitationPreviewProvider';
 import { Image, View } from 'react-native';
 import { ImageBubble } from '../chat/ImageBubble';
 import { Box } from '@/components/atoms';
@@ -11,6 +13,7 @@ import IconStopOctagon from '@/components/atoms/icons/IconStopOctagon';
 import { Typography } from '@/components/molecules';
 import { LazyMarkdownRenderer, createMarkdownStyles } from '@/components/molecules/common/LazyMarkdownRenderer';
 import { StreamingIndicator } from './StreamingIndicator';
+import { CitationList } from './CitationList';
 import { useTheme } from '@/theme';
 import { Message } from '@/types';
 import { AI_BRAND_COLORS } from '@/constants/aiColors';
@@ -76,25 +79,12 @@ const formatTime = (timestamp: number) => {
   });
 };
 
-// Process message content to add citation links
+// Process message content to add citation links (using shared utility)
 const processMessageContent = (message: Message): string => {
-  let content = message.content;
-
-  // If we have citations, convert [1] references to clickable links
   if (message.metadata?.citations && message.metadata.citations.length > 0) {
-    const citations = message.metadata.citations;
-
-    // Replace [n] with markdown links keeping the bracket format
-    citations.forEach(citation => {
-      const pattern = new RegExp(`\\[${citation.index}\\]`, 'g');
-      // Keep the [n] format but make it a link
-      content = content.replace(pattern, `[[${citation.index}]](${citation.url})`);
-    });
-
-    // Don't add sources section here - we show it separately in the UI
+    return processMessageContentWithCitations(message.content, message.metadata.citations);
   }
-
-  return content;
+  return message.content;
 };
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, searchTerm }) => {
@@ -103,6 +93,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, s
   const [copied, setCopied] = useState(false);
   const { isDemo } = useFeatureAccess();
   const { responsive } = useResponsive();
+  const { showPreview } = useCitationPreview();
 
   // Narrower bubbles on tablet for better readability
   const bubbleMaxWidth = responsive('88%', '70%');
@@ -205,6 +196,28 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, s
 
   const markdownStyles = useMemo(() => createMarkdownStyles(theme, isDark), [theme, isDark]);
 
+  // Get AI brand color for citation preview
+  const citationBrandColor = aiColor?.border;
+
+  // Handle link press - check if it's a citation first
+  const handleLinkPress = useCallback((url: string): boolean => {
+    // Check if this URL matches a citation
+    const citations = message.metadata?.citations;
+    if (citations && citations.length > 0) {
+      const citation = findCitationByUrl(url, citations);
+      if (citation) {
+        // Show citation preview tooltip at center of screen
+        const screenWidth = Dimensions.get('window').width;
+        const screenHeight = Dimensions.get('window').height;
+        showPreview(citation, { x: screenWidth / 2, y: screenHeight / 3 }, citationBrandColor);
+        return false; // Prevent default link behavior
+      }
+    }
+    // Not a citation - open in browser
+    Linking.openURL(url).catch(err => console.error('Failed to open URL:', err));
+    return false;
+  }, [message.metadata?.citations, showPreview, citationBrandColor]);
+
   return (
     <Animated.View
       style={[
@@ -283,12 +296,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, s
               <LazyMarkdownRenderer
                 content={markdownContent}
                 style={markdownStyles}
-                onLinkPress={(url: string) => {
-                  Linking.openURL(url).catch(err =>
-                    console.error('Failed to open URL:', err)
-                  );
-                  return false;
-                }}
+                onLinkPress={handleLinkPress}
                 rules={{
                   ...selectableMarkdownRules,
                   // Custom image renderer to avoid spreading key in props (RN warning) and to control sizing
@@ -313,12 +321,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, s
             ) : (
               <Markdown
                 style={markdownStyles}
-                onLinkPress={(url: string) => {
-                  Linking.openURL(url).catch(err =>
-                    console.error('Failed to open URL:', err)
-                  );
-                  return false;
-                }}
+                onLinkPress={handleLinkPress}
                 rules={{
                   ...selectableMarkdownRules,
                   // Custom image renderer to avoid spreading key in props (RN warning) and to control sizing
@@ -410,22 +413,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isLast, s
         
         {/* Citations section for messages with sources */}
         {!isUser && message.metadata?.citations && message.metadata.citations.length > 0 && (
-          <Box style={[styles.citationsContainer, { borderTopColor: theme.colors.border }]}>
-            <Typography variant="caption" weight="semibold" style={{ marginBottom: 4 }}>
-              Sources:
-            </Typography>
-            {message.metadata.citations.slice(0, 3).map((citation, index) => (
-              <TouchableOpacity
-                key={index}
-                onPress={() => Linking.openURL(citation.url)}
-                style={styles.citationItem}
-              >
-                <Typography variant="caption" style={{ color: theme.colors.primary[500] }}>
-                  [{citation.index}] {citation.title || citation.url}
-                </Typography>
-              </TouchableOpacity>
-            ))}
-          </Box>
+          <CitationList
+            citations={message.metadata.citations}
+            variant="compact"
+            initialVisible={3}
+            brandColor={aiColor?.border}
+            onCitationPress={(citation) => Linking.openURL(citation.url)}
+          />
         )}
         
         <Box
@@ -509,14 +503,6 @@ const styles = StyleSheet.create({
   modelInfo: {
     fontSize: 11,
     fontStyle: 'italic',
-  },
-  citationsContainer: {
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  citationItem: {
-    paddingVertical: 2,
   },
   streamingContainer: {
     flexDirection: 'row',

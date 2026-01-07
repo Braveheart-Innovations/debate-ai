@@ -412,6 +412,7 @@ export class DebateOrchestrator {
         const streamingService = getStreamingService();
         let finalContent = '';
         let hadError = false;
+        let capturedCitations: Array<{ index: number; url: string; title?: string; snippet?: string }> | undefined;
 
         let errorForFallback: string | null = null;
         await streamingService.streamResponse(
@@ -428,19 +429,36 @@ export class DebateOrchestrator {
           },
           (completeText: string) => {
             finalContent = completeText;
-            this.emitEvent({ type: 'stream_completed', data: { messageId, finalContent: completeText, modelUsed: currentAI.model, aiProvider: currentAI.id }, timestamp: Date.now() });
+            this.emitEvent({ type: 'stream_completed', data: { messageId, finalContent: completeText, modelUsed: currentAI.model, aiProvider: currentAI.id, citations: capturedCitations }, timestamp: Date.now() });
           },
           (err: Error) => {
             hadError = true;
             const msg = err?.message || '';
             errorForFallback = msg;
             this.emitEvent({ type: 'stream_error', data: { messageId, error: msg, aiProvider: currentAI.id }, timestamp: Date.now() });
+          },
+          (event: unknown) => {
+            // Handle citation events from providers like Perplexity
+            try {
+              const e = event as Record<string, unknown>;
+              const type = String(e?.type || '');
+              if (type === 'citations') {
+                const citations = (e as { citations?: Array<{ index: number; url: string; title?: string; snippet?: string }> }).citations;
+                if (citations && citations.length > 0) {
+                  capturedCitations = citations;
+                }
+              }
+            } catch { /* ignore event handling errors */ }
           }
         );
 
         if (!hadError) {
-          // Update local message content for subsequent prompts/history
-          const updated = { ...placeholderMessage, content: finalContent };
+          // Update local message content for subsequent prompts/history, including citations if captured
+          const updated = {
+            ...placeholderMessage,
+            content: finalContent,
+            metadata: { ...placeholderMessage.metadata, citations: capturedCitations },
+          };
           this.currentMessages = [...existingMessages, updated];
         } else {
           // Determine if we should fallback to non-streaming

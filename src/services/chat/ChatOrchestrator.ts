@@ -258,6 +258,7 @@ export class ChatOrchestrator {
 
     let streamedContent = '';
     let finalContent = '';
+    let capturedCitations: Array<{ index: number; url: string; title?: string; snippet?: string }> | undefined;
 
     await this.streamingService.streamResponse(
       {
@@ -316,6 +317,15 @@ export class ChatOrchestrator {
         try {
           const record = event as Record<string, unknown>;
           const type = String(record?.type || '');
+
+          // Handle citations event from Perplexity and other providers
+          if (type === 'citations') {
+            const citations = (record as { citations?: Array<{ index: number; url: string; title?: string; snippet?: string }> }).citations;
+            if (citations && citations.length > 0) {
+              capturedCitations = citations;
+            }
+          }
+
           if (type.includes('output_image')) {
             const imageRecord = record as {
               image?: { url?: string; b64?: string; data?: string };
@@ -360,7 +370,20 @@ export class ChatOrchestrator {
     const completedMessage: Message = {
       ...aiMessage,
       content: resolvedContent,
+      metadata: {
+        ...aiMessage.metadata,
+        citations: capturedCitations,
+      },
     };
+
+    // Update the message in Redux store with citations if we have them
+    if (capturedCitations && capturedCitations.length > 0) {
+      this.dispatch(updateMessage({
+        id: aiMessage.id,
+        content: resolvedContent,
+        metadata: { ...aiMessage.metadata, citations: capturedCitations },
+      }));
+    }
 
     return completedMessage;
   }

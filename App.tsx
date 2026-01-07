@@ -7,6 +7,7 @@ import { store, RootState } from './src/store';
 import { updateApiKeys, restoreVerificationData, restoreStats } from './src/store';
 import AppNavigator from './src/navigation/AppNavigator';
 import { AIServiceProvider } from './src/providers/AIServiceProvider';
+import { CitationPreviewProvider } from './src/providers/CitationPreviewProvider';
 import { ThemeProvider } from './src/theme';
 import secureStorage from './src/services/secureStorage';
 import VerificationPersistenceService from './src/services/VerificationPersistenceService';
@@ -196,11 +197,13 @@ function AppContent() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <AIServiceProvider>
-          <AppNavigator />
-          <ToastContainer />
-          <StatusBar style="auto" />
-        </AIServiceProvider>
+        <CitationPreviewProvider>
+          <AIServiceProvider>
+            <AppNavigator />
+            <ToastContainer />
+            <StatusBar style="auto" />
+          </AIServiceProvider>
+        </CitationPreviewProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );

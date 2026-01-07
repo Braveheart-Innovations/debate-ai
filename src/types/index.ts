@@ -52,6 +52,7 @@ export interface Citation {
   url: string;
   title?: string;
   snippet?: string;
+  domain?: string; // Optional: extracted from URL for display
 }
 
 // Image generation types

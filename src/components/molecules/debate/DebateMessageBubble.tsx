@@ -4,12 +4,15 @@
  * Extends the base MessageBubble functionality for debate-specific features
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import Animated from 'react-native-reanimated';
-import { StyleSheet, Linking, TouchableOpacity } from 'react-native';
+import { StyleSheet, Linking, TouchableOpacity, Dimensions } from 'react-native';
 import Markdown from 'react-native-markdown-display';
 import { sanitizeMarkdown, shouldLazyRender } from '@/utils/markdown';
+import { processMessageContentWithCitations, findCitationByUrl } from '@/utils/citationUtils';
+import { useCitationPreview } from '@/providers/CitationPreviewProvider';
 import { LazyMarkdownRenderer, createMarkdownStyles } from '@/components/molecules/common/LazyMarkdownRenderer';
+import { CitationList } from '@/components/organisms/common/CitationList';
 import { Box } from '@/components/atoms';
 import { Typography } from '../common/Typography';
 import { StreamingIndicator } from '@/components/organisms/common/StreamingIndicator';
@@ -47,14 +50,27 @@ export const DebateMessageBubble: React.FC<DebateMessageBubbleProps> = React.mem
   const { content: streamingContent, isStreaming, cursorVisible, error: streamingError, chunksReceived } = useStreamingMessage(message.id);
   const [copied, setCopied] = useState(false);
 
+  // Check if message has citations
+  const hasCitations = !isHost && message.metadata?.citations && message.metadata.citations.length > 0;
+
   // Determine display content
   const displayContent = useMemo(() => {
-    if (isStreaming) return sanitizeMarkdown(streamingContent || '', { showWarning: false });
-    if (!isStreaming && (!message.content || message.content.trim() === '')) {
-      return sanitizeMarkdown(streamingContent || '', { showWarning: false });
+    let content = '';
+    if (isStreaming) {
+      content = streamingContent || '';
+    } else if (!message.content || message.content.trim() === '') {
+      content = streamingContent || '';
+    } else {
+      content = message.content;
     }
-    return sanitizeMarkdown(message.content, { showWarning: false });
-  }, [isStreaming, streamingContent, message.content]);
+
+    // Process citations if available (not during streaming)
+    if (!isStreaming && hasCitations && message.metadata?.citations) {
+      content = processMessageContentWithCitations(content, message.metadata.citations);
+    }
+
+    return sanitizeMarkdown(content, { showWarning: false });
+  }, [isStreaming, streamingContent, message.content, hasCitations, message.metadata?.citations]);
 
   // Check if content needs lazy rendering
   const isLongContent = useMemo(() => shouldLazyRender(displayContent), [displayContent]);
@@ -95,6 +111,23 @@ export const DebateMessageBubble: React.FC<DebateMessageBubbleProps> = React.mem
   };
   
   const aiColor = getAIColor();
+  const { showPreview } = useCitationPreview();
+
+  // Handle link press - check for citations first
+  const handleLinkPress = useCallback((url: string): boolean => {
+    const citations = message.metadata?.citations;
+    if (citations && citations.length > 0) {
+      const citation = findCitationByUrl(url, citations);
+      if (citation) {
+        const screenWidth = Dimensions.get('window').width;
+        const screenHeight = Dimensions.get('window').height;
+        showPreview(citation, { x: screenWidth / 2, y: screenHeight / 3 }, aiColor?.border);
+        return false;
+      }
+    }
+    Linking.openURL(url).catch(err => console.error('Failed to open URL:', err));
+    return false;
+  }, [message.metadata?.citations, showPreview, aiColor?.border]);
 
   // Unified animation hook - fade-in for Debate mode
   const { animatedStyle } = useMessageBubbleAnimation({
@@ -189,24 +222,14 @@ export const DebateMessageBubble: React.FC<DebateMessageBubbleProps> = React.mem
           <LazyMarkdownRenderer
             content={displayContent}
             style={markdownStyles}
-            onLinkPress={(url: string) => {
-              Linking.openURL(url).catch(err =>
-                console.error('Failed to open URL:', err)
-              );
-              return false;
-            }}
+            onLinkPress={handleLinkPress}
             rules={selectableMarkdownRules}
           />
         ) : (
           <Markdown
             style={markdownStyles}
             rules={selectableMarkdownRules}
-            onLinkPress={(url: string) => {
-              Linking.openURL(url).catch(err =>
-                console.error('Failed to open URL:', err)
-              );
-              return false;
-            }}
+            onLinkPress={handleLinkPress}
           >
             {displayContent}
           </Markdown>
@@ -234,6 +257,16 @@ export const DebateMessageBubble: React.FC<DebateMessageBubbleProps> = React.mem
               })()}
             </Typography>
           </Box>
+        )}
+        {/* Citations */}
+        {hasCitations && message.metadata?.citations && (
+          <CitationList
+            citations={message.metadata.citations}
+            variant="compact"
+            initialVisible={3}
+            brandColor={aiColor?.border}
+            onCitationPress={(citation) => Linking.openURL(citation.url)}
+          />
         )}
         {/* Copy button */}
         <TouchableOpacity

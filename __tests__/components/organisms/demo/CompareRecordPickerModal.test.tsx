@@ -59,12 +59,21 @@ jest.mock('react-native/Libraries/Modal/Modal', () => {
     React.createElement(View, { testID: 'modal-wrapper' }, children);
 });
 
+jest.mock('react-native-reanimated', () => {
+  const View = require('react-native').View;
+  return {
+    ...jest.requireActual('react-native-reanimated/mock'),
+    default: {
+      View,
+      createAnimatedComponent: (component: unknown) => component,
+    },
+  };
+});
+
 jest.mock('@/components/molecules', () => {
   const React = require('react');
-  const { Text, View } = require('react-native');
-  const actual = jest.requireActual('@/components/molecules');
+  const { Text, View, TextInput, TouchableOpacity } = require('react-native');
   return {
-    ...actual,
     Typography: ({ children }: { children: React.ReactNode }) => React.createElement(Text, null, children),
     SheetHeader: ({ title, onClose }: { title: string; onClose: () => void }) =>
       React.createElement(
@@ -72,6 +81,12 @@ jest.mock('@/components/molecules', () => {
         null,
         React.createElement(Text, null, title),
         React.createElement(Text, { onPress: onClose }, 'close')
+      ),
+    InputField: ({ value, onChangeText, placeholder }: { value: string; onChangeText: (text: string) => void; placeholder?: string }) =>
+      React.createElement(TextInput, { value, onChangeText, placeholder, testID: 'input-field' }),
+    Button: ({ title, onPress, disabled }: { title: string; onPress: () => void; disabled?: boolean }) =>
+      React.createElement(TouchableOpacity, { onPress, disabled, testID: 'button' },
+        React.createElement(Text, null, title)
       ),
   };
 });

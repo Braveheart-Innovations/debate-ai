@@ -6,6 +6,7 @@ import type { PreloadedState } from '@reduxjs/toolkit';
 import { createAppStore } from '@/store';
 import type { AppStore, RootState } from '@/store';
 import { ThemeProvider } from '@/theme';
+import { CitationPreviewProvider } from '@/providers/CitationPreviewProvider';
 
 interface ExtendedRenderOptions extends RenderOptions {
   preloadedState?: PreloadedState<RootState>;
@@ -15,7 +16,9 @@ interface ExtendedRenderOptions extends RenderOptions {
 function Providers({ children, store }: PropsWithChildren<{ store: AppStore }>) {
   return (
     <Provider store={store}>
-      <ThemeProvider>{children}</ThemeProvider>
+      <ThemeProvider>
+        <CitationPreviewProvider>{children}</CitationPreviewProvider>
+      </ThemeProvider>
     </Provider>
   );
 }

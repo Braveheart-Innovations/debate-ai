@@ -2,7 +2,14 @@ import 'whatwg-fetch';
 import mockSafeAreaContext from 'react-native-safe-area-context/jest/mock';
 
 jest.mock('react-native-safe-area-context', () => mockSafeAreaContext);
-jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
+jest.mock('react-native-reanimated', () => {
+  const Reanimated = require('react-native-reanimated/mock');
+  // Add createAnimatedComponent if not present
+  if (!Reanimated.default.createAnimatedComponent) {
+    Reanimated.default.createAnimatedComponent = (component: unknown) => component;
+  }
+  return Reanimated;
+});
 jest.mock('react-native-gesture-handler', () => require('react-native-gesture-handler/jestSetup'));
 jest.mock('react-native/Libraries/Modal/Modal', () => {
   const React = require('react');

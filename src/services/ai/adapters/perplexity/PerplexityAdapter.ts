@@ -1,9 +1,8 @@
 import { Message, MessageAttachment } from '../../../../types';
 import { OpenAICompatibleAdapter } from '../../base/OpenAICompatibleAdapter';
-import { ProviderConfig, ResumptionContext, SendMessageResponse, FormattedMessage } from '../../types/adapter.types';
+import { ProviderConfig, ResumptionContext, SendMessageResponse } from '../../types/adapter.types';
 import { getDefaultModel, resolveModelAlias } from '../../../../config/providers/modelRegistry';
 import { processPerplexityResponse } from '../../../../utils/responseProcessor';
-import EventSource from 'react-native-sse';
 
 // Perplexity-specific content part types
 type PerplexityContentPart =
@@ -157,146 +156,56 @@ export class PerplexityAdapter extends OpenAICompatibleAdapter {
   }
 
   /**
-   * Override streamMessage to use Perplexity-specific attachment format.
-   * The base class streamMessage doesn't properly use our formatUserMessage override,
-   * so we need to fully override the streaming implementation.
+   * Override streamMessage to use non-streaming request + simulated streaming.
+   * This approach (matching the web app) ensures we capture citations from Perplexity's response.
+   *
+   * Perplexity's SSE streaming doesn't include citations in the stream chunks,
+   * so we make a non-streaming request to get the full response with citations,
+   * then simulate streaming for a better UX.
    */
   async *streamMessage(
     message: string,
     conversationHistory: Message[] = [],
     attachments?: MessageAttachment[],
     resumptionContext?: ResumptionContext,
-    modelOverride?: string
+    modelOverride?: string,
+    _abortSignal?: AbortSignal,
+    onEvent?: (event: unknown) => void
   ): AsyncGenerator<string, void, unknown> {
-    const config = this.getProviderConfig();
-    const resolvedModel = modelOverride ||
-                         resolveModelAlias(this.config.model || getDefaultModel(this.config.provider));
+    // Make non-streaming request to get full response with citations
+    const response = await this.sendMessage(
+      message,
+      conversationHistory,
+      resumptionContext,
+      attachments,
+      modelOverride
+    );
 
-    // Use our formatUserMessage for proper Perplexity attachment format
-    const userContent = this.formatUserMessage(message, attachments);
+    // Extract content and citations from response
+    const content = typeof response === 'string' ? response : response.response;
+    const citations = typeof response === 'object' ? response.metadata?.citations : undefined;
 
-    // Build history with alternation safeguards
-    const history = this.formatHistory(conversationHistory, resumptionContext);
+    // Simulate streaming by yielding content in chunks
+    // This provides a smooth typing effect while preserving citation data
+    const chunkSize = 8; // Characters per chunk for natural typing feel
+    const delayMs = 12; // Delay between chunks
 
-    // Ensure first after system is user
-    if (history.length > 0 && history[0].role === 'assistant') {
-      const first = history[0];
-      if (typeof first.content === 'string') {
-        history[0] = { role: 'user', content: `[Previous assistant] ${first.content}` };
-      } else {
-        history[0] = { role: 'user', content: first.content };
+    for (let i = 0; i < content.length; i += chunkSize) {
+      const chunk = content.slice(i, i + chunkSize);
+      yield chunk;
+
+      // Small delay for natural streaming feel
+      if (i + chunkSize < content.length) {
+        await new Promise(resolve => setTimeout(resolve, delayMs));
       }
     }
 
-    // Compose messages
-    const messages: FormattedMessage[] = [
-      { role: 'system', content: this.getSystemPrompt() },
-      ...history,
-    ];
-
-    // Handle merging with last user message or adding new one
-    const last = messages[messages.length - 1];
-    if (last && last.role === 'user') {
-      if (typeof last.content === 'string' && typeof userContent === 'string') {
-        last.content = `${last.content}\n\n${userContent}`;
-      } else if (Array.isArray(userContent)) {
-        if (typeof last.content === 'string') {
-          last.content = [{ type: 'text', text: last.content }, ...userContent];
-        } else if (Array.isArray(last.content)) {
-          last.content = [...last.content, ...userContent];
-        }
-      } else if (typeof userContent === 'string' && Array.isArray(last.content)) {
-        last.content = [...last.content, { type: 'text', text: userContent }];
-      }
-    } else {
-      messages.push({ role: 'user', content: userContent });
-    }
-
-    const requestBody = JSON.stringify({
-      model: resolvedModel,
-      messages,
-      temperature: this.config.parameters?.temperature || 0.7,
-      max_tokens: this.config.parameters?.maxTokens || 2048,
-      top_p: this.config.parameters?.topP,
-      stream: true,
-      // Perplexity-specific parameters
-      return_citations: true,
-      search_recency_filter: 'month',
-    });
-
-    const headers = config.headers(this.config.apiKey);
-
-    // Create EventSource for SSE streaming
-    const es = new EventSource(`${config.baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        ...headers,
-        'Content-Type': 'application/json',
-        'Accept': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-      },
-      body: requestBody,
-      timeoutBeforeConnection: 0,
-      pollingInterval: 30000,
-      withCredentials: false,
-    });
-
-    const eventQueue: string[] = [];
-    let resolver: ((value: IteratorResult<string, void>) => void) | null = null;
-    let isComplete = false;
-    let errorOccurred: Error | null = null;
-
-    es.addEventListener('message', (event) => {
-      try {
-        const line = event.data;
-        if (!line) return;
-        if (line === '[DONE]') {
-          isComplete = true;
-          try { es.close(); } catch { /* noop */ }
-          if (resolver) { const r = resolver; resolver = null; r({ value: undefined, done: true }); }
-          return;
-        }
-        const data = JSON.parse(line || '{}');
-        const content = data.choices?.[0]?.delta?.content as string | undefined;
-        const finishReason = data.choices?.[0]?.finish_reason as string | undefined;
-        if (content) {
-          if (resolver) { const r = resolver; resolver = null; r({ value: content, done: false }); }
-          else eventQueue.push(content);
-        }
-        if (finishReason) {
-          isComplete = true;
-          try { es.close(); } catch { /* noop */ }
-          if (resolver) { const r = resolver; resolver = null; r({ value: undefined, done: true }); }
-        }
-      } catch (error) {
-        console.error('[Perplexity] Error parsing SSE data:', error);
-      }
-    });
-
-    es.addEventListener('error', (error) => {
-      errorOccurred = new Error(String(error));
-      isComplete = true;
-      try { es.close(); } catch { /* noop */ }
-      if (resolver) { const r = resolver; resolver = null; r({ value: undefined, done: true }); }
-    });
-
-    es.addEventListener('open', () => {});
-
-    try {
-      while (!isComplete || eventQueue.length > 0) {
-        if (errorOccurred) throw errorOccurred;
-        if (eventQueue.length > 0) {
-          const chunk = eventQueue.shift()!;
-          yield chunk;
-          continue;
-        }
-        const result = await new Promise<IteratorResult<string, void>>((resolve) => { resolver = resolve; });
-        if (errorOccurred) throw errorOccurred;
-        if (result.done) break;
-        if (result.value) yield result.value;
-      }
-    } finally {
-      try { es.close(); } catch { /* noop */ }
+    // Emit citations via onEvent so they can be captured by the streaming service
+    if (citations && citations.length > 0 && onEvent) {
+      onEvent({
+        type: 'citations',
+        citations,
+      });
     }
   }
 }

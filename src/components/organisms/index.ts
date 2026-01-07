@@ -46,6 +46,9 @@ export { TrialTermsSheet } from './subscription/TrialTermsSheet';
 // Help Organisms
 export { HelpSheet, HelpWebViewModal } from './help';
 
+// Citation Organisms
+export { CitationWebViewModal } from './citations';
+
 // API Configuration Organisms
 export { APIConfigHeader } from './api-config/APIConfigHeader';
 export { APIConfigProgress } from './api-config/APIConfigProgress';
