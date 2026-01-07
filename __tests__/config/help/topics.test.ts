@@ -13,11 +13,12 @@ describe('HELP_CATEGORIES', () => {
     expect(categoryIds).toContain('getting-started');
     expect(categoryIds).toContain('chat');
     expect(categoryIds).toContain('debate-arena');
+    expect(categoryIds).toContain('create');
     expect(categoryIds).toContain('byok');
     expect(categoryIds).toContain('compare');
     expect(categoryIds).toContain('history');
     expect(categoryIds).toContain('expert-mode');
-    expect(HELP_CATEGORIES).toHaveLength(7);
+    expect(HELP_CATEGORIES).toHaveLength(8);
   });
 
   it('each category has required properties', () => {
@@ -40,6 +41,7 @@ describe('HELP_TOPICS', () => {
     'getting-started',
     'chat',
     'debate-arena',
+    'create',
     'byok',
     'compare',
     'history',
@@ -104,6 +106,14 @@ describe('getTopicsByCategory', () => {
     expect(topics.length).toBeGreaterThan(0);
     topics.forEach((topic) => {
       expect(topic.category).toBe('debate-arena');
+    });
+  });
+
+  it('returns correct topics for create category', () => {
+    const topics = getTopicsByCategory('create');
+    expect(topics.length).toBeGreaterThan(0);
+    topics.forEach((topic) => {
+      expect(topic.category).toBe('create');
     });
   });
 

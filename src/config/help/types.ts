@@ -15,6 +15,7 @@ export type HelpTopicId =
   | 'history-overview'
   | 'byok-overview'
   | 'expert-mode'
+  | 'create-mode'
   // Chat
   | 'quick-start-wizard'
   | 'round-robin'
@@ -41,7 +42,13 @@ export type HelpTopicId =
   // Expert Mode
   | 'expert-temperature'
   | 'expert-tokens'
-  | 'expert-top-p';
+  | 'expert-top-p'
+  // Create Mode
+  | 'create-styles'
+  | 'create-sizes'
+  | 'create-refinement'
+  | 'create-gallery'
+  | 'create-providers';
 
 export type HelpCategory =
   | 'getting-started'
@@ -50,7 +57,8 @@ export type HelpCategory =
   | 'byok'
   | 'compare'
   | 'history'
-  | 'expert-mode';
+  | 'expert-mode'
+  | 'create';
 
 export interface HelpTopic {
   id: HelpTopicId;
@@ -59,7 +67,6 @@ export interface HelpTopic {
   category: HelpCategory;
   shortDescription: string;
   content: string; // In-app content (supports basic formatting)
-  webUrl?: string; // URL for detailed web content
   relatedTopics?: HelpTopicId[];
 }
 

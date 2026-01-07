@@ -258,7 +258,7 @@ export default function CreateSetupScreen() {
         testID="header-gallery-button"
         badge={galleryCount > 0 ? galleryCount : undefined}
       />
-      <HeaderActions variant="gradient" />
+      <HeaderActions variant="gradient" helpCategoryId="create" />
     </View>
   );
 
@@ -273,7 +273,7 @@ export default function CreateSetupScreen() {
           variant="gradient"
           title="Create"
           subtitle="AI Image Generation"
-          rightElement={<HeaderActions variant="gradient" />}
+          rightElement={<HeaderActions variant="gradient" helpCategoryId="create" />}
         />
         <View style={styles.premiumGate}>
           <Ionicons

@@ -6,6 +6,7 @@ const validCategories: HelpCategory[] = [
   'getting-started',
   'chat',
   'debate-arena',
+  'create',
   'byok',
   'compare',
   'history',
@@ -75,6 +76,14 @@ describe('getFAQByCategory', () => {
     expect(faqs.length).toBeGreaterThan(0);
     faqs.forEach((faq) => {
       expect(faq.category).toBe('debate-arena');
+    });
+  });
+
+  it('returns FAQs for create category', () => {
+    const faqs = getFAQByCategory('create');
+    expect(faqs.length).toBeGreaterThan(0);
+    faqs.forEach((faq) => {
+      expect(faq.category).toBe('create');
     });
   });
 

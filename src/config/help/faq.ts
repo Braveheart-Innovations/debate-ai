@@ -254,6 +254,66 @@ export const FAQ_ITEMS: FAQItem[] = [
       'Try force-closing and reopening the app. Clear the app cache if available. Ensure you\'re running the latest version. If problems persist, try reinstalling the app (your API keys are stored securely and will need to be re-entered).',
     category: 'getting-started',
   },
+
+  // ============================================
+  // CREATE MODE
+  // ============================================
+  {
+    id: 'faq-what-is-create-mode',
+    question: 'What is Create mode?',
+    answer:
+      'Create mode is Symposium AI\'s image generation feature. You can generate images using AI providers like OpenAI (DALL-E), Google (Imagen), and Grok. Enter a prompt, choose a style and size, then generate images from multiple providers simultaneously.',
+    category: 'create',
+    relatedTopic: 'create-mode',
+  },
+  {
+    id: 'faq-which-providers-generate-images',
+    question: 'Which AI providers can generate images?',
+    answer:
+      'Image generation is supported by OpenAI (using DALL-E), Google (using Imagen), and Grok. Each provider requires a valid API key. Providers that support image refinement (img2img) display a special badge in the selection screen.',
+    category: 'create',
+    relatedTopic: 'create-providers',
+  },
+  {
+    id: 'faq-what-are-style-presets',
+    question: 'What are style presets?',
+    answer:
+      'Style presets are artistic directions you can apply to your images. Choose from 9 options: None, Photo, Cinematic, Anime, Digital Art, Oil Painting, Watercolor, Sketch, and 3D Render. Each style adds keywords to your prompt to guide the AI toward that aesthetic.',
+    category: 'create',
+    relatedTopic: 'create-styles',
+  },
+  {
+    id: 'faq-what-is-image-refinement',
+    question: 'What is image refinement (img2img)?',
+    answer:
+      'Image refinement lets you use an existing image as a starting point and modify it with a new prompt. You can refine images from your gallery or upload your own photos. This is great for iterating on ideas or changing the style of an image.',
+    category: 'create',
+    relatedTopic: 'create-refinement',
+  },
+  {
+    id: 'faq-where-are-images-saved',
+    question: 'Where are my generated images saved?',
+    answer:
+      'Generated images are automatically saved to your in-app gallery and persist across app sessions. From the gallery, you can save images to your device\'s photo library, share them, use them for refinement, or delete them.',
+    category: 'create',
+    relatedTopic: 'create-gallery',
+  },
+  {
+    id: 'faq-image-generation-cost',
+    question: 'How much does image generation cost?',
+    answer:
+      'Image generation uses your API keys and is billed by each provider. Costs vary: OpenAI DALL-E charges per image (typically $0.02-0.08 depending on size/quality), Google Imagen has similar pricing, and Grok pricing varies. Check each provider\'s pricing page for current rates.',
+    category: 'create',
+    relatedTopic: 'byok-cost-savings',
+  },
+  {
+    id: 'faq-image-not-generating',
+    question: 'Why isn\'t my image generating?',
+    answer:
+      'Check that you have a valid API key for the selected provider and that billing is enabled in their dashboard. Some prompts may be rejected by provider safety filters. Try simplifying your prompt or selecting a different provider.',
+    category: 'create',
+    relatedTopic: 'create-mode',
+  },
 ];
 
 /**

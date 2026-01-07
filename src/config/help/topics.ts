@@ -28,6 +28,12 @@ export const HELP_CATEGORIES: HelpCategoryInfo[] = [
     description: "Watch AIs debate any topic",
   },
   {
+    id: "create",
+    title: "Create",
+    icon: "image-outline",
+    description: "Generate AI images",
+  },
+  {
     id: "byok",
     title: "Bring Your Own Keys",
     icon: "key-outline",
@@ -76,7 +82,6 @@ Demo vs Live:
 - Start a trial or subscription to run live debates with your API keys
 
 Each AI will present arguments, respond to their opponent, and try to make the most compelling case. You can vote on who made the better argument after the debate concludes.`,
-    webUrl: "https://www.symposiumai.app/help/debate-arena",
     relatedTopics: ["debate-formats", "debate-voting", "debate-stats"],
   },
 
@@ -99,7 +104,6 @@ Data-driven debate with emphasis on evidence and practical solutions. Includes p
 
 Socratic Method:
 Inquiry-based dialogue through thoughtful questions. AIs challenge each other's assumptions. Best for: Exploring complex ideas and definitions.`,
-    webUrl: "https://www.symposiumai.app/help/debate-formats",
     relatedTopics: ["debate-arena", "debate-voting"],
   },
 
@@ -124,7 +128,6 @@ Voting helps you engage critically with the debate content and track which AIs p
 
 Debate History:
 All your debates and votes are saved in your history, so you can review past debates and see patterns in AI performance.`,
-    webUrl: "https://www.symposiumai.app/help/debate-voting",
     relatedTopics: ["debate-arena", "debate-transcripts"],
   },
 
@@ -145,7 +148,6 @@ Transcript Contents:
 - AI participants
 - Full exchange in order
 - Final winner and round scores (if available)`,
-    webUrl: "https://www.symposiumai.app/help/debate-transcripts",
     relatedTopics: ["debate-arena", "debate-voting"],
   },
 
@@ -172,7 +174,6 @@ Supported Providers:
 - Character.AI
 
 Your keys are stored securely on your device and never sent to our servers.`,
-    webUrl: "https://www.symposiumai.app/help/byok",
     relatedTopics: ["byok-getting-keys", "byok-security", "byok-cost-savings"],
   },
 
@@ -199,7 +200,6 @@ Important:
 - Never share keys publicly
 - Set spending limits in provider dashboards
 - Regenerate keys if compromised`,
-    webUrl: "https://www.symposiumai.app/help/getting-keys",
     relatedTopics: ["byok-overview", "byok-security"],
   },
 
@@ -225,7 +225,6 @@ Best Practices:
 
 If You Suspect Compromise:
 Immediately regenerate your API keys in the provider's dashboard and update them in Symposium AI.`,
-    webUrl: "https://www.symposiumai.app/help/security",
     relatedTopics: ["byok-overview", "byok-getting-keys"],
   },
 
@@ -253,7 +252,6 @@ Pay-Per-Use Benefits:
 - No feature restrictions based on tier
 
 Tip: Start with the most affordable models (like GPT-4o-mini or Claude Haiku) and upgrade to higher-cost models only when needed.`,
-    webUrl: "https://www.symposiumai.app/help/cost-savings",
     relatedTopics: ["byok-overview", "expert-mode"],
   },
 
@@ -285,7 +283,6 @@ How to Use:
 
 Mix and Match:
 In multi-AI chats, give each AI a different personality to see varied perspectives and communication styles on the same topic.`,
-    webUrl: "https://www.symposiumai.app/help/personalities",
     relatedTopics: ["multi-ai-chat", "dynamic-ai-selector"],
   },
 
@@ -315,7 +312,6 @@ When to Use Expert Mode:
 Notes:
 - Expert Mode is available once you add provider API keys
 - Parameter availability varies by provider`,
-    webUrl: "https://www.symposiumai.app/help/expert-mode",
     relatedTopics: ["expert-temperature", "expert-tokens", "expert-top-p"],
   },
 
@@ -344,7 +340,6 @@ High Temperature (1.0-2.0):
 - Best for: Creative writing, brainstorming, storytelling
 
 Tip: Start with the default and adjust based on results. Too high can produce nonsensical output.`,
-    webUrl: "https://www.symposiumai.app/help/temperature",
     relatedTopics: ["expert-mode", "expert-tokens", "expert-top-p"],
   },
 
@@ -374,7 +369,6 @@ When to Adjust:
 - Code generation: 2048+ tokens
 
 Note: The AI may stop before reaching max tokens if it completes its thought.`,
-    webUrl: "https://www.symposiumai.app/help/max-tokens",
     relatedTopics: ["expert-mode", "expert-temperature", "byok-cost-savings"],
   },
 
@@ -403,7 +397,6 @@ Temperature vs Top-P:
 Both control randomness but differently. Most users adjust temperature and leave Top-P at default. Adjusting both can produce unexpected results.
 
 Tip: If using Top-P, consider setting temperature to 1.0 and only adjusting Top-P.`,
-    webUrl: "https://www.symposiumai.app/help/top-p",
     relatedTopics: ["expert-mode", "expert-temperature"],
   },
 
@@ -438,7 +431,6 @@ Use Cases:
 - Get diverse perspectives
 - Fact-check between models
 - Find the best explanation`,
-    webUrl: "https://www.symposiumai.app/help/compare-mode",
     relatedTopics: ["multi-ai-chat", "debate-arena", "web-search"],
   },
 
@@ -467,7 +459,6 @@ Use @Claude, @ChatGPT, etc. to direct a message to a specific AI. Otherwise, all
 
 Hallucination Shield:
 With multiple AIs, they can fact-check each other. If responses differ significantly, investigate further!`,
-    webUrl: "https://www.symposiumai.app/help/multi-ai-chat",
     relatedTopics: ["compare-mode", "personalities", "web-search"],
   },
 
@@ -503,7 +494,6 @@ Available Categories:
 - Creative Writing: Collaborative storytelling
 - Problem Solving: Work through challenges
 - Just for Fun: Games and entertainment`,
-    webUrl: "https://www.symposiumai.app/help/quick-start",
     relatedTopics: ["multi-ai-chat", "round-robin"],
   },
 
@@ -527,7 +517,6 @@ See your total sessions, message counts, and breakdown by type.
 
 Privacy:
 All history is stored locally on your device. Clearing the app data or uninstalling will remove history.`,
-    webUrl: "https://www.symposiumai.app/help/history",
     relatedTopics: ["history-overview", "history-clear-all"],
   },
 
@@ -560,7 +549,6 @@ Tips:
 - AIs can reference and respond to each other's points
 - Use @mentions to direct specific questions to one AI
 - All responses are clearly labeled with which AI wrote them`,
-    webUrl: "https://www.symposiumai.app/help/multi-ai-chat",
     relatedTopics: ["multi-ai-chat", "ai-mentions"],
   },
 
@@ -594,7 +582,6 @@ Pro Tips:
 - Great for fact-checking between multiple AIs
 - Helps reduce response volume when you only need one opinion
 - Each AI still sees the full conversation context`,
-    webUrl: "https://www.symposiumai.app/help/mentions",
     relatedTopics: ["multi-ai-chat", "round-robin"],
   },
 
@@ -630,7 +617,6 @@ Best Use Cases:
 - Up-to-date statistics and data
 - Fact-checking and verification
 - Research on recent topics`,
-    webUrl: "https://www.symposiumai.app/help/web-search",
     relatedTopics: ["multi-ai-chat", "compare-mode"],
   },
 
@@ -656,7 +642,6 @@ With Expert Mode enabled, you can choose specific AI models. This appears as a d
 
 Start Chatting:
 Once you've selected at least one AI, tap "Start Chat" to begin. Use the lightbulb icon for Quick Start prompts.`,
-    webUrl: "https://www.symposiumai.app/help/ai-selection",
     relatedTopics: ["personalities", "expert-mode", "quick-start-wizard"],
   },
 
@@ -681,7 +666,6 @@ Each session shows participants, date, preview, and message count. Tap to contin
 
 Local Storage:
 All history is stored on your device. Clearing app data will remove history.`,
-    webUrl: "https://www.symposiumai.app/help/history-overview",
     relatedTopics: ["chat-history", "debate-history", "compare-history"],
   },
 
@@ -709,7 +693,6 @@ Accessing Stats:
 Tap the Stats button on the Debate Arena setup screen to view your debate statistics.
 
 Note: Stats are calculated from your local debate history.`,
-    webUrl: "https://www.symposiumai.app/help/debate-stats",
     relatedTopics: ["debate-arena", "debate-voting"],
   },
 
@@ -732,7 +715,6 @@ Tap anywhere on a response bubble to expand it to full width. Tap again or tap o
 
 Comparing Content:
 Use this to carefully read each AI's full response before deciding which answer you prefer.`,
-    webUrl: "https://www.symposiumai.app/help/compare-bubble",
     relatedTopics: ["compare-mode", "compare-continue"],
   },
 
@@ -752,7 +734,6 @@ The new chat will include the comparison context, so the AI knows what was discu
 
 Use Case:
 Great for when one AI gives a better answer and you want to explore the topic further with them.`,
-    webUrl: "https://www.symposiumai.app/help/compare-continue",
     relatedTopics: ["compare-mode", "compare-bubble"],
   },
 
@@ -780,7 +761,6 @@ Managing Chats:
 
 Filtering:
 Use the "Chat" tab in History to see only chat sessions.`,
-    webUrl: "https://www.symposiumai.app/help/chat-history",
     relatedTopics: ["history-overview", "history-clear-all"],
   },
 
@@ -804,7 +784,6 @@ Tap any debate to read the full transcript and see the arguments each AI made.
 
 Filtering:
 Use the "Debate" tab in History to see only debate sessions.`,
-    webUrl: "https://www.symposiumai.app/help/debate-history",
     relatedTopics: ["history-overview", "debate-arena"],
   },
 
@@ -827,7 +806,6 @@ Tap any comparison to see the side-by-side responses again.
 
 Filtering:
 Use the "Compare" tab in History to see only comparison sessions.`,
-    webUrl: "https://www.symposiumai.app/help/compare-history",
     relatedTopics: ["history-overview", "compare-mode"],
   },
 
@@ -853,8 +831,170 @@ This action cannot be undone. All your conversation history will be permanently 
 
 Individual Deletion:
 To delete specific sessions, swipe left on them in the list instead of using Clear All.`,
-    webUrl: "https://www.symposiumai.app/help/history-clear-all",
     relatedTopics: ["history-overview", "chat-history"],
+  },
+
+  // ============================================
+  // CREATE MODE (AI Image Generation)
+  // ============================================
+  "create-mode": {
+    id: "create-mode",
+    title: "Create Mode",
+    icon: "image",
+    category: "getting-started",
+    shortDescription: "Generate AI images with multiple providers",
+    content: `Create Mode lets you generate AI images using multiple providers simultaneously, compare results, and refine your creations.
+
+How to Use:
+1. Go to the Create tab
+2. Select one or more AI providers (up to 3)
+3. Enter your image prompt
+4. Choose a style preset and size
+5. Tap Generate to create your images
+
+Multi-Provider Generation:
+Generate images with up to 3 providers at once to compare different AI interpretations of your prompt.
+
+Image Gallery:
+All generated images are automatically saved to your gallery. You can save them to your device, share them, or use them as a starting point for refinements.
+
+Refinement:
+Take any generated image (or upload your own) and refine it with additional prompts - perfect for iterating on ideas.`,
+    relatedTopics: ["create-styles", "create-sizes", "create-refinement", "create-gallery"],
+  },
+
+  "create-providers": {
+    id: "create-providers",
+    title: "Image Generation Providers",
+    icon: "apps",
+    category: "create",
+    shortDescription: "AI providers that support image generation",
+    content: `Symposium AI supports image generation from multiple AI providers, each with unique capabilities.
+
+Supported Providers:
+- OpenAI (DALL-E): High-quality images with strong prompt understanding
+- Google (Imagen): Photorealistic results with good composition
+- Grok (xAI): Fast generation with artistic flair
+
+Provider Selection:
+Providers that support image generation display an "img2img" badge when they also support image refinement.
+
+Multi-Provider Mode:
+Select up to 3 providers to generate images simultaneously and compare results side-by-side.
+
+API Keys Required:
+Each provider requires a valid API key configured in Settings > API Configuration. Image generation may have different pricing than text generation.`,
+    relatedTopics: ["create-mode", "byok-overview"],
+  },
+
+  "create-styles": {
+    id: "create-styles",
+    title: "Style Presets",
+    icon: "color-palette",
+    category: "create",
+    shortDescription: "Artistic styles for image generation",
+    content: `Style presets enhance your prompts with artistic direction, helping you achieve specific visual aesthetics.
+
+Available Styles:
+- None: Your prompt as-is, no style modification
+- Photo: Photorealistic, like professional photography
+- Cinematic: Movie-like dramatic scenes with film grain
+- Anime: Japanese animation style with vibrant colors
+- Digital Art: Modern digital illustration, clean lines
+- Oil Painting: Classical oil painting with visible brush strokes
+- Watercolor: Soft colors with flowing washes and paper texture
+- Sketch: Hand-drawn pencil sketch style
+- 3D Render: CGI quality with ray tracing and studio lighting
+
+How Styles Work:
+When you select a style, descriptive keywords are automatically appended to your prompt to guide the AI toward that aesthetic.
+
+Combining with Prompts:
+Write your core idea in the prompt, then let the style preset handle the artistic direction. For example: "a cozy cabin in the mountains" + Watercolor style.`,
+    relatedTopics: ["create-mode", "create-sizes"],
+  },
+
+  "create-sizes": {
+    id: "create-sizes",
+    title: "Image Sizes",
+    icon: "resize",
+    category: "create",
+    shortDescription: "Aspect ratios and dimensions",
+    content: `Choose the size and aspect ratio that best fits your intended use for the generated image.
+
+Available Sizes:
+- Auto: Uses the provider's default (usually square)
+- Square (1:1): Perfect for social media profiles, icons
+- Portrait (2:3): Vertical orientation, great for phone wallpapers
+- Landscape (3:2): Horizontal orientation, ideal for desktop backgrounds
+
+Provider-Specific Dimensions:
+Each provider maps these options to their supported dimensions:
+- OpenAI: 1024x1024 (square), 1024x1536 (portrait), 1536x1024 (landscape)
+- Google: Uses aspect ratio strings (1:1, 9:16, 16:9)
+- Grok: Provider default only
+
+Choosing the Right Size:
+Consider your end use - square for social media, portrait for phone backgrounds, landscape for presentations or desktop wallpapers.`,
+    relatedTopics: ["create-mode", "create-styles"],
+  },
+
+  "create-refinement": {
+    id: "create-refinement",
+    title: "Image Refinement",
+    icon: "brush",
+    category: "create",
+    shortDescription: "Refine and iterate on images",
+    content: `Image refinement (img2img) lets you use an existing image as a starting point and modify it with new prompts.
+
+How It Works:
+1. Select an image from your gallery OR upload your own
+2. Enter a refinement prompt describing desired changes
+3. Choose a provider that supports img2img
+4. Generate to create a refined version
+
+Use Cases:
+- Iterate on generated images to improve details
+- Change the style of an existing image
+- Add or remove elements from a scene
+- Apply artistic effects to photos
+
+Refinement vs New Generation:
+- New generation starts from scratch with just your prompt
+- Refinement uses an existing image as a reference, maintaining composition
+
+Supported Providers:
+Look for the "img2img" badge on provider cards - these support refinement. Not all providers support this feature.`,
+    relatedTopics: ["create-mode", "create-gallery"],
+  },
+
+  "create-gallery": {
+    id: "create-gallery",
+    title: "Image Gallery",
+    icon: "images",
+    category: "create",
+    shortDescription: "Manage your generated images",
+    content: `Your generated images are automatically saved to a persistent gallery that syncs across app sessions.
+
+Gallery Features:
+- View all generated images in a grid
+- Tap any image to view full-screen
+- Save images to your device's photo library
+- Share images directly to other apps
+- Use images as starting points for refinement
+
+Image Actions:
+From the full-screen view, you can:
+- Save: Download to your device's camera roll
+- Share: Send via messages, email, or social media
+- Refine: Use as a base for img2img refinement
+- Delete: Remove from your gallery
+
+Storage:
+Images are stored locally on your device. The gallery persists across app sessions, so your creations are always available.
+
+Tip: Long-press an image in the grid for quick actions without opening full-screen view.`,
+    relatedTopics: ["create-mode", "create-refinement"],
   },
 };
 

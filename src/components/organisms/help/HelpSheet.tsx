@@ -101,9 +101,9 @@ export const HelpSheet: React.FC<HelpSheetProps> = ({ onClose }) => {
     setExpandedTopicId((prev) => (prev === topicId ? null : topicId));
   }, []);
 
-  const handleLearnMore = useCallback(
-    (webUrl: string) => {
-      dispatch(showHelpWebView(webUrl));
+  const handleOpenUrl = useCallback(
+    (url: string) => {
+      dispatch(showHelpWebView(url));
     },
     [dispatch]
   );
@@ -279,9 +279,6 @@ export const HelpSheet: React.FC<HelpSheetProps> = ({ onClose }) => {
             topic={topic}
             isExpanded={expandedTopicId === topic.id}
             onPress={() => handleTopicPress(topic.id)}
-            onLearnMore={
-              topic.webUrl ? () => handleLearnMore(topic.webUrl!) : undefined
-            }
           />
         ))}
       </View>
@@ -353,7 +350,7 @@ export const HelpSheet: React.FC<HelpSheetProps> = ({ onClose }) => {
         </Typography>
         <TouchableOpacity
           style={[styles.listItem, { backgroundColor: theme.colors.surface }]}
-          onPress={() => handleLearnMore(PRIVACY_POLICY_URL)}
+          onPress={() => handleOpenUrl(PRIVACY_POLICY_URL)}
           activeOpacity={0.7}
         >
           <View style={styles.listItemContent}>
@@ -380,7 +377,7 @@ export const HelpSheet: React.FC<HelpSheetProps> = ({ onClose }) => {
 
         <TouchableOpacity
           style={[styles.listItem, { backgroundColor: theme.colors.surface }]}
-          onPress={() => handleLearnMore(TERMS_OF_SERVICE_URL)}
+          onPress={() => handleOpenUrl(TERMS_OF_SERVICE_URL)}
           activeOpacity={0.7}
         >
           <View style={styles.listItemContent}>

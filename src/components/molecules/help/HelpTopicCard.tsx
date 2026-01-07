@@ -24,7 +24,6 @@ interface HelpTopicCardProps {
   topic: HelpTopic;
   isExpanded: boolean;
   onPress: () => void;
-  onLearnMore?: () => void;
   testID?: string;
 }
 
@@ -32,7 +31,6 @@ export const HelpTopicCard: React.FC<HelpTopicCardProps> = ({
   topic,
   isExpanded,
   onPress,
-  onLearnMore,
   testID,
 }) => {
   const { theme } = useTheme();
@@ -56,11 +54,6 @@ export const HelpTopicCard: React.FC<HelpTopicCardProps> = ({
   const handlePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onPress();
-  };
-
-  const handleLearnMore = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    onLearnMore?.();
   };
 
   return (
@@ -123,29 +116,6 @@ export const HelpTopicCard: React.FC<HelpTopicCardProps> = ({
           >
             {topic.content}
           </Typography>
-          {topic.webUrl && onLearnMore && (
-            <TouchableOpacity
-              onPress={handleLearnMore}
-              style={[
-                styles.learnMoreButton,
-                { backgroundColor: theme.colors.primary[50] },
-              ]}
-              activeOpacity={0.7}
-            >
-              <Typography
-                variant="caption"
-                weight="semibold"
-                style={{ color: theme.colors.primary[600] }}
-              >
-                Learn More
-              </Typography>
-              <Ionicons
-                name="open-outline"
-                size={14}
-                color={theme.colors.primary[600]}
-              />
-            </TouchableOpacity>
-          )}
         </View>
       )}
     </Box>
@@ -189,16 +159,5 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 16,
     lineHeight: 22,
-  },
-  learnMoreButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: 6,
-    marginTop: 12,
-    marginLeft: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
   },
 });
