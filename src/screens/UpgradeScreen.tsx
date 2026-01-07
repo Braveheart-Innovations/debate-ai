@@ -5,20 +5,13 @@ import { useSelector, useDispatch } from 'react-redux';
 import { Box } from '@/components/atoms';
 import { Typography, GradientButton, Button } from '@/components/molecules';
 import { Header, TrialTermsSheet } from '@/components/organisms';
+import { UnlockEverythingBanner } from '@/components/organisms/subscription/UnlockEverythingBanner';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../theme';
 import { PurchaseService } from '@/services/iap/PurchaseService';
 import type { PlanType } from '@/services/iap/products';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { RootState, showSheet } from '@/store';
-
-const features = [
-  'Collaborate on ideas with multiple AIs at once',
-  'Create custom Debates or choose from preset topics',
-  'Utilize the personality system to enhance responses',
-  'Compare AI providers, models, or personality types',
-  'Resume conversations and export debate moments',
-];
 
 const plans = [
   { id: 'monthly', title: 'Monthly', price: '$5.99', period: '/mo', highlight: false },
@@ -169,15 +162,7 @@ export default function UpgradeScreen() {
           )}
 
           {/* Features */}
-          <Typography variant="subtitle" weight="bold" style={{ marginBottom: theme.spacing.md }}>
-            Premium Features
-          </Typography>
-          {features.map((f) => (
-            <View key={f} style={styles.featureRow}>
-              <Typography style={{ fontSize: 18 }}>✨</Typography>
-              <Typography variant="body" style={{ marginLeft: 8, flex: 1 }}>{f}</Typography>
-            </View>
-          ))}
+          <UnlockEverythingBanner />
 
           {/* Primary Trial CTA - only show if user can start trial */}
           {canStartTrial && (
@@ -319,11 +304,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     marginBottom: 20,
-  },
-  featureRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
   },
   trialCard: {
     padding: 20,

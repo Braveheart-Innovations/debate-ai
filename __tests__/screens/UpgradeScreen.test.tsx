@@ -18,6 +18,14 @@ jest.mock('@/components/organisms', () => ({
   TrialTermsSheet: () => null,
 }));
 
+const MockUnlockEverythingBanner = () => (
+  <Text testID="unlock-everything-banner">Unlock Everything</Text>
+);
+
+jest.mock('@/components/organisms/subscription/UnlockEverythingBanner', () => ({
+  UnlockEverythingBanner: () => <MockUnlockEverythingBanner />,
+}));
+
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ goBack: mockGoBack }),
 }));
@@ -91,13 +99,13 @@ describe('UpgradeScreen', () => {
     mockFeatureAccess.canStartTrial = true;
   });
 
-  it('renders feature list and navigates back via header', () => {
-    const { getByText, getByTestId } = renderWithProviders(<UpgradeScreen />);
+  it('renders UnlockEverythingBanner and navigates back via header', () => {
+    const { getByTestId } = renderWithProviders(<UpgradeScreen />);
 
     // Header should render with title
     expect(getByTestId('header')).toBeTruthy();
-    // Check for a premium feature in the list
-    expect(getByText('Collaborate on ideas with multiple AIs at once')).toBeTruthy();
+    // Check that UnlockEverythingBanner is rendered
+    expect(getByTestId('unlock-everything-banner')).toBeTruthy();
 
     fireEvent.press(getByTestId('header'));
     expect(mockGoBack).toHaveBeenCalledTimes(1);
