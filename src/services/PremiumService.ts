@@ -18,7 +18,7 @@ export const PREMIUM_FEATURES = {
   // Personality Features
   aiPersonalities: {
     free: ['neutral', 'friendly', 'professional'],  // Basic personalities
-    premium: 'all',  // Access to all 12 personalities
+    premium: 'all',  // Access to all personalities
   },
   
   // Expert Mode
@@ -156,7 +156,7 @@ export function isModelAvailable(modelId: string): boolean {
 export function getPremiumUpsellMessage(featureName: keyof typeof PREMIUM_FEATURES): string {
   const messages: Record<string, string> = {
     customDebateTopics: 'Upgrade to Premium to create custom debate topics!',
-    aiPersonalities: 'Unlock all 12 AI personalities with Premium!',
+    aiPersonalities: 'Unlock all AI personalities with Premium!',
     expertMode: 'Expert mode with advanced settings is a Premium feature.',
     conversationHistory: 'Premium members get unlimited conversation history.',
     shareDebateTranscripts: 'Share debate transcripts with Premium membership.',

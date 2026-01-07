@@ -44,7 +44,7 @@ describe('PremiumService', () => {
     freeSpy.mockRestore();
 
     const premiumSpy = mockStoreState({ auth: { isPremium: true } });
-    expect(getAvailablePersonalities()).toHaveLength(12);
+    expect(getAvailablePersonalities()).toHaveLength(8);
     premiumSpy.mockRestore();
   });
 

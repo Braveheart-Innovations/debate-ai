@@ -118,6 +118,18 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
 
   const features = [
     {
+      icon: { type: 'material', name: 'language' },
+      gradient: theme.colors.gradients.ocean,
+      title: 'Web Search',
+      description: 'Search the web in real-time.',
+    },
+    {
+      icon: { type: 'material', name: 'brush' },
+      gradient: theme.colors.gradients.sunset,
+      title: 'Create Mode',
+      description: 'Generate AI images instantly.',
+    },
+    {
       icon: { type: 'material-community', name: 'account-group' },
       gradient: theme.colors.gradients.primary,
       title: 'Group AI Chat',
@@ -125,33 +137,21 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
     },
     {
       icon: { type: 'material-community', name: 'sword-cross' },
-      gradient: theme.colors.gradients.sunset,
+      gradient: theme.colors.gradients.sunrise,
       title: 'AI Debate Arena',
       description: 'Watch AIs debate any topic live.',
     },
     {
       icon: { type: 'material', name: 'compare-arrows' },
-      gradient: theme.colors.gradients.sunrise,
+      gradient: theme.colors.gradients.forest,
       title: 'Compare Mode',
       description: 'See responses side-by-side.',
     },
     {
-      icon: { type: 'material', name: 'theater-comedy' },
-      gradient: theme.colors.gradients.forest,
-      title: 'Personalities',
-      description: 'Give each AI a unique voice.',
-    },
-    {
       icon: { type: 'material-community', name: 'key-variant' },
-      gradient: theme.colors.gradients.ocean,
+      gradient: theme.colors.gradients.primary,
       title: 'BYOK',
       description: 'Your API keys. Your savings.',
-    },
-    {
-      icon: { type: 'material', name: 'tune' },
-      gradient: theme.colors.gradients.forest,
-      title: 'Expert Mode',
-      description: 'Fine-tune temperature, tokens & more.',
     },
   ];
 
@@ -278,53 +278,39 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
             />
           </View>
           <View style={styles.premiumContent}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-              <MaterialCommunityIcons name="rocket-launch" size={28} color={theme.colors.primary[500]} style={{ marginRight: 12 }} />
-              <View>
-                <Typography variant="title" weight="bold">
-                  Unlock Everything
-                </Typography>
-                <Typography 
-                  variant="body" 
-                  weight="bold"
-                  style={{ color: theme.colors.primary[500] }}
-                >
-                  $5.99/month
-                </Typography>
-              </View>
+            <View style={{ alignItems: 'center', marginBottom: 12 }}>
+              <Typography variant="title" weight="bold" align="center">
+                One App. Every AI.
+              </Typography>
+              <Typography
+                variant="body"
+                weight="bold"
+                style={{ color: theme.colors.primary[500], marginTop: 4 }}
+              >
+                $5.99/month
+              </Typography>
             </View>
-            
+
             <Typography
               variant="caption"
               align="center"
-              style={{ color: theme.colors.text.secondary, marginBottom: 16 }}
+              style={{ color: theme.colors.text.secondary, marginBottom: 12 }}
             >
-              One subscription. Every AI. Huge savings.
+              Use your own API keys and skip the $20+/month per-AI subscriptions.
+              ChatGPT, Claude, Gemini, and more — all in one place.
             </Typography>
-            
+
             <View style={styles.premiumFeatures}>
               <View style={styles.bulletRow}>
                 <MaterialIcons name="check-circle" size={16} color={theme.colors.success[500]} style={{ marginRight: 8 }} />
                 <Typography variant="caption" color="secondary" style={{ flex: 1 }}>
-                  Unlimited group chats & debates
+                  7-day free trial with full access
                 </Typography>
               </View>
               <View style={styles.bulletRow}>
                 <MaterialIcons name="check-circle" size={16} color={theme.colors.success[500]} style={{ marginRight: 8 }} />
                 <Typography variant="caption" color="secondary" style={{ flex: 1 }}>
-                  Voice, images & document uploads
-                </Typography>
-              </View>
-              <View style={styles.bulletRow}>
-                <MaterialIcons name="check-circle" size={16} color={theme.colors.success[500]} style={{ marginRight: 8 }} />
-                <Typography variant="caption" color="secondary" style={{ flex: 1 }}>
-                  Custom topics & all 12 personalities
-                </Typography>
-              </View>
-              <View style={styles.bulletRow}>
-                <MaterialIcons name="check-circle" size={16} color={theme.colors.success[500]} style={{ marginRight: 8 }} />
-                <Typography variant="caption" color="secondary" style={{ flex: 1 }}>
-                  Full history & debate exports
+                  Pay only for what you use via BYOK
                 </Typography>
               </View>
             </View>

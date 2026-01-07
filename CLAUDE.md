@@ -47,10 +47,12 @@ src/
 ## Key Features
 1. **AI Debate Arena** - Watch different AIs debate any topic in real-time (Premium: custom topics)
 2. **Multi-AI Chat** - Chat with multiple AI providers simultaneously
-3. **Hallucination Shield** - Multiple AIs fact-check each other for accuracy
-4. **BYOK (Bring Your Own Keys)** - Use existing API keys, save vs multiple subscriptions
-5. **Personality System** - 12 different personalities per AI (Premium feature)
-6. **Expert Mode** - Choose specific models and control costs (Premium feature)
+3. **Web Search** - Real-time web search with cited sources (ChatGPT, Gemini, Perplexity)
+4. **Create Mode** - Generate and refine images with multiple AI providers (DALL-E, Gemini)
+5. **Hallucination Shield** - Multiple AIs fact-check each other for accuracy
+6. **BYOK (Bring Your Own Keys)** - Use existing API keys, save vs multiple subscriptions
+7. **Personality System** - 8 unique personalities to customize AI responses (Premium feature)
+8. **Expert Mode** - Choose specific models and control costs (Premium feature)
 
 ## Development Commands
 

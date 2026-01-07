@@ -31,6 +31,6 @@ describe('UnlockEverythingBanner', () => {
 
     expect(getByText('Unlock Everything')).toBeTruthy();
     expect(getByText('$5.99/month')).toBeTruthy();
-    expect(getByText(/Collaborate on ideas/)).toBeTruthy();
+    expect(getByText(/Create Mode/)).toBeTruthy();
   });
 });

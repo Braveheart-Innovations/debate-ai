@@ -49,7 +49,7 @@ describe('useSubscriptionSettings', () => {
     maxDebates: 25,
     customTopics: true,
     expertMode: true,
-    personalityVariants: 12,
+    personalityVariants: 8,
     prioritySupport: true,
     dataExport: true,
     advancedAnalytics: true,

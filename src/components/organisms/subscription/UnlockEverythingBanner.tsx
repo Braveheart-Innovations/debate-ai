@@ -50,44 +50,44 @@ export const UnlockEverythingBanner: React.FC = () => {
           align="center"
           style={{ color: theme.colors.text.secondary, marginBottom: 16 }}
         >
-          Get all premium features and save vs multiple AI subscriptions
+          One app for ChatGPT, Claude, Gemini, and more. Use your own API keys and pay only for what you use.
         </Typography>
 
         <View style={styles.features}>
           <View style={styles.bulletRow}>
             <MaterialIcons name="check-circle" size={16} color={theme.colors.success[500]} style={{ marginRight: 8 }} />
             <Typography variant="caption" color="secondary" style={{ flex: 1 }}>
-              Collaborate on ideas with multiple AIs at once
+              Create Mode: Generate and refine images with multiple AI providers like DALL-E and Gemini
             </Typography>
           </View>
           <View style={styles.bulletRow}>
             <MaterialIcons name="check-circle" size={16} color={theme.colors.success[500]} style={{ marginRight: 8 }} />
             <Typography variant="caption" color="secondary" style={{ flex: 1 }}>
-              Enjoy all features each provider enables over their API, including document attachments, image generation, and live voice mode
+              Web Search: Get real-time information with cited sources from supported AIs
             </Typography>
           </View>
           <View style={styles.bulletRow}>
             <MaterialIcons name="check-circle" size={16} color={theme.colors.success[500]} style={{ marginRight: 8 }} />
             <Typography variant="caption" color="secondary" style={{ flex: 1 }}>
-              Create custom Debates or choose from numerous preset topics
+              AI Debate Arena: Watch AIs debate any topic live, or choose from preset topics
             </Typography>
           </View>
           <View style={styles.bulletRow}>
             <MaterialIcons name="check-circle" size={16} color={theme.colors.success[500]} style={{ marginRight: 8 }} />
             <Typography variant="caption" color="secondary" style={{ flex: 1 }}>
-              Utilize the custom personality system to enhance AI responses 
+              Group Chat: Collaborate with up to 3 AIs simultaneously on any idea
             </Typography>
           </View>
           <View style={styles.bulletRow}>
             <MaterialIcons name="check-circle" size={16} color={theme.colors.success[500]} style={{ marginRight: 8 }} />
             <Typography variant="caption" color="secondary" style={{ flex: 1 }}>
-              Compare AI providers, different models from the same provider, or different custom personality types
+              Compare Mode: See responses side-by-side across providers, models, or personalities
             </Typography>
           </View>
           <View style={styles.bulletRow}>
             <MaterialIcons name="check-circle" size={16} color={theme.colors.success[500]} style={{ marginRight: 8 }} />
             <Typography variant="caption" color="secondary" style={{ flex: 1 }}>
-              Seemlessly resume prior conversations and export memorable debate moments
+              Upload documents and images for AI analysis, and export conversations
             </Typography>
           </View>
         </View>
