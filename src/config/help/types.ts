@@ -20,6 +20,7 @@ export type HelpTopicId =
   | 'round-robin'
   | 'history'
   | 'ai-mentions'
+  | 'web-search'
   // Debate Arena
   | 'debate-formats'
   | 'debate-voting'

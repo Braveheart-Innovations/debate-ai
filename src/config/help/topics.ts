@@ -439,7 +439,7 @@ Use Cases:
 - Fact-check between models
 - Find the best explanation`,
     webUrl: "https://www.symposiumai.app/help/compare-mode",
-    relatedTopics: ["multi-ai-chat", "debate-arena"],
+    relatedTopics: ["multi-ai-chat", "debate-arena", "web-search"],
   },
 
   "multi-ai-chat": {
@@ -468,7 +468,7 @@ Use @Claude, @ChatGPT, etc. to direct a message to a specific AI. Otherwise, all
 Hallucination Shield:
 With multiple AIs, they can fact-check each other. If responses differ significantly, investigate further!`,
     webUrl: "https://www.symposiumai.app/help/multi-ai-chat",
-    relatedTopics: ["compare-mode", "personalities"],
+    relatedTopics: ["compare-mode", "personalities", "web-search"],
   },
 
   // ============================================
@@ -596,6 +596,42 @@ Pro Tips:
 - Each AI still sees the full conversation context`,
     webUrl: "https://www.symposiumai.app/help/mentions",
     relatedTopics: ["multi-ai-chat", "round-robin"],
+  },
+
+  "web-search": {
+    id: "web-search",
+    title: "Web Search",
+    icon: "globe",
+    category: "chat",
+    shortDescription: "Get real-time information from the web",
+    content: `Web Search enables AIs to access current information from the internet, providing up-to-date answers with source citations.
+
+How to Enable:
+1. Look for the globe icon next to the message input
+2. Tap to toggle web search on (highlighted) or off
+3. Send your message - the AI will search the web as needed
+
+The toggle only appears when your selected AI(s) support web search.
+
+Supported Providers:
+- ChatGPT (OpenAI) - GPT-5.x, GPT-4.x models
+- Gemini (Google) - Gemini 2.0+ models
+- Perplexity - All Sonar models
+
+Multi-AI Mode:
+In multi-AI chats, web search is only available when ALL selected AIs support it. If one AI doesn't support web search, the toggle won't appear.
+
+Citations:
+When web search is enabled, responses include clickable source links. Tap any link to preview the source or open it in your browser.
+
+Best Use Cases:
+- Current events and news
+- Recent product information
+- Up-to-date statistics and data
+- Fact-checking and verification
+- Research on recent topics`,
+    webUrl: "https://www.symposiumai.app/help/web-search",
+    relatedTopics: ["multi-ai-chat", "compare-mode"],
   },
 
   // ============================================

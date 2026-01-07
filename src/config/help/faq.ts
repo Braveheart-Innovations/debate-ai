@@ -173,6 +173,30 @@ export const FAQ_ITEMS: FAQItem[] = [
   // CHAT
   // ============================================
   {
+    id: 'faq-what-is-web-search',
+    question: 'How do I use web search with AI?',
+    answer:
+      'Look for the globe icon next to the message input. Tap it to enable web search (the icon will highlight). When enabled, the AI will search the web for current information and include source citations in its response. The toggle only appears when your selected AI supports web search.',
+    category: 'chat',
+    relatedTopic: 'web-search',
+  },
+  {
+    id: 'faq-web-search-providers',
+    question: 'Which AIs support web search?',
+    answer:
+      'Web search is supported by ChatGPT (GPT-5.x, GPT-4.x models), Gemini (2.0+ models), and Perplexity (all Sonar models). Claude does not currently support web search. In multi-AI mode, all selected AIs must support web search for the toggle to appear.',
+    category: 'chat',
+    relatedTopic: 'web-search',
+  },
+  {
+    id: 'faq-web-search-citations',
+    question: 'How do citations work with web search?',
+    answer:
+      'When web search is enabled, responses include clickable source links. Tap any link to see a preview with the source title and URL, then choose "View Source" to open it in a browser. Citations appear both inline in the text and as a list below the response.',
+    category: 'chat',
+    relatedTopic: 'web-search',
+  },
+  {
     id: 'faq-multi-ai-benefits',
     question: 'Why chat with multiple AIs at once?',
     answer:
