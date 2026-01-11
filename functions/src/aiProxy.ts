@@ -243,8 +243,8 @@ interface ProxyRequest {
  */
 export const proxyAIRequest = onCall(
   {
-    timeoutSeconds: 300,  // 5 minutes for long responses
-    memory: '512MiB',     // Increased for base64 image processing
+    timeoutSeconds: 540,  // 9 minutes max - for large document processing
+    memory: '1GiB',       // Increased for large base64 document processing
     secrets: [encryptionKey],
   },
   async (request) => {
@@ -260,8 +260,8 @@ export const proxyAIRequest = onCall(
 
     const { providerId, model, messages, systemPrompt, maxTokens, temperature, sessionId, sessionType, searchOptions, attachments } = request.data as ProxyRequest;
 
-    // Ensure maxTokens and temperature are valid numbers
-    const resolvedMaxTokens = typeof maxTokens === 'number' && maxTokens > 0 ? Math.floor(maxTokens) : 2048;
+    // Only use maxTokens if explicitly provided - otherwise let providers use their defaults
+    const resolvedMaxTokens = typeof maxTokens === 'number' && maxTokens > 0 ? Math.floor(maxTokens) : undefined;
     const resolvedTemperature = typeof temperature === 'number' ? temperature : 0.7;
 
     // Validate provider
@@ -376,10 +376,12 @@ async function callClaude(
   model: string,
   messages: Message[],
   systemPrompt: string | undefined,
-  maxTokens: number,
+  maxTokens: number | undefined,
   temperature: number,
   attachments?: MessageAttachment[]
 ) {
+  // Claude requires max_tokens - use 8192 as default for generous responses
+  const resolvedMaxTokens = maxTokens ?? 8192;
   // Build messages, adding attachments to the last user message if present
   const anthropicMessages = messages
     .filter(m => m.role !== 'system')
@@ -448,7 +450,7 @@ async function callClaude(
     },
     body: JSON.stringify({
       model: model || 'claude-sonnet-4-20250514',
-      max_tokens: maxTokens,
+      max_tokens: resolvedMaxTokens,
       temperature,
       system: systemPrompt || messages.find(m => m.role === 'system')?.content,
       messages: anthropicMessages,
@@ -479,7 +481,7 @@ async function callGemini(
   model: string,
   messages: Message[],
   systemPrompt: string | undefined,
-  maxTokens: number,
+  maxTokens: number | undefined,
   temperature: number,
   searchOptions?: SearchOptions,
   attachments?: MessageAttachment[]
@@ -536,14 +538,16 @@ async function callGemini(
       };
     });
 
-  // Build request body
+  // Build request body - only include maxOutputTokens if explicitly set
+  const generationConfig: Record<string, unknown> = { temperature };
+  if (maxTokens !== undefined) {
+    generationConfig.maxOutputTokens = maxTokens;
+  }
+
   const requestBody: Record<string, unknown> = {
     contents,
     systemInstruction: systemPrompt ? { parts: [{ text: systemPrompt }] } : undefined,
-    generationConfig: {
-      maxOutputTokens: maxTokens,
-      temperature,
-    },
+    generationConfig,
   };
 
   // Add Google Search grounding tool when search is enabled
@@ -618,7 +622,7 @@ async function callCohere(
   model: string,
   messages: Message[],
   systemPrompt: string | undefined,
-  maxTokens: number,
+  maxTokens: number | undefined,
   temperature: number,
   attachments?: MessageAttachment[]
 ) {
@@ -689,18 +693,23 @@ async function callCohere(
     formattedMessages.unshift({ role: 'system', content: systemPrompt });
   }
 
+  // Build request body - only include max_tokens if explicitly set
+  const cohereRequest: Record<string, unknown> = {
+    model: model || 'command-r-plus',
+    messages: formattedMessages,
+    temperature,
+  };
+  if (maxTokens !== undefined) {
+    cohereRequest.max_tokens = maxTokens;
+  }
+
   const response = await fetch('https://api.cohere.ai/v2/chat', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({
-      model: model || 'command-r-plus',
-      messages: formattedMessages,
-      max_tokens: maxTokens,
-      temperature,
-    }),
+    body: JSON.stringify(cohereRequest),
   });
 
   if (!response.ok) {
@@ -729,7 +738,7 @@ async function callPerplexity(
   model: string,
   messages: Message[],
   systemPrompt: string | undefined,
-  maxTokens: number,
+  maxTokens: number | undefined,
   temperature: number,
   searchOptions?: SearchOptions,
   attachments?: MessageAttachment[]
@@ -812,12 +821,16 @@ async function callPerplexity(
   const requestBody: Record<string, unknown> = {
     model: model || 'sonar',
     messages: formattedMessages,
-    max_tokens: maxTokens,
     temperature,
     // Always request citations - Perplexity's key feature
     return_citations: true,
     return_related_questions: false,
   };
+
+  // Only include max_tokens if explicitly set
+  if (maxTokens !== undefined) {
+    requestBody.max_tokens = maxTokens;
+  }
 
   // Add search recency filter if specified
   if (searchOptions?.recencyFilter) {
@@ -886,7 +899,7 @@ async function callOpenAIWithSearch(
   model: string,
   messages: Message[],
   systemPrompt: string | undefined,
-  maxTokens: number,
+  maxTokens: number | undefined,
   temperature: number
 ): Promise<{
   content: string;
@@ -906,19 +919,24 @@ async function callOpenAIWithSearch(
     input += `${role}: ${msg.content}\n\n`;
   }
 
+  // Build request body - only include max_output_tokens if explicitly set
+  const openAIRequest: Record<string, unknown> = {
+    model,
+    tools: [{ type: 'web_search' }],
+    input: input.trim(),
+    temperature,
+  };
+  if (maxTokens !== undefined) {
+    openAIRequest.max_output_tokens = maxTokens;
+  }
+
   const response = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({
-      model,
-      tools: [{ type: 'web_search' }],
-      input: input.trim(),
-      max_output_tokens: maxTokens,
-      temperature,
-    }),
+    body: JSON.stringify(openAIRequest),
   });
 
   if (!response.ok) {
@@ -1038,7 +1056,7 @@ async function callOpenAICompatible(
   model: string,
   messages: Message[],
   systemPrompt: string | undefined,
-  maxTokens: number,
+  maxTokens: number | undefined,
   temperature: number,
   providerId: string,
   searchOptions?: SearchOptions,
@@ -1145,18 +1163,23 @@ async function callOpenAICompatible(
     formattedMessages.unshift({ role: 'system', content: systemPrompt });
   }
 
-  // OpenAI's newer models (o1, o1-mini, o1-preview, gpt-4o, etc.) require max_completion_tokens
-  // Other OpenAI-compatible providers still use max_tokens
-  const isOpenAI = providerId === 'openai';
-  const tokenParam = isOpenAI ? { max_completion_tokens: maxTokens } : { max_tokens: maxTokens };
-
   // Build base request body
   const requestBody: Record<string, unknown> = {
     model,
     messages: formattedMessages,
-    ...tokenParam,
     temperature,
   };
+
+  // Only include token limit if explicitly set
+  // OpenAI's newer models use max_completion_tokens, other providers use max_tokens
+  if (maxTokens !== undefined) {
+    const isOpenAI = providerId === 'openai';
+    if (isOpenAI) {
+      requestBody.max_completion_tokens = maxTokens;
+    } else {
+      requestBody.max_tokens = maxTokens;
+    }
+  }
 
   const response = await fetch(baseUrl, {
     method: 'POST',
