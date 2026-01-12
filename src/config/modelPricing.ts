@@ -92,12 +92,12 @@ export const MODEL_PRICING: { [provider: string]: ProviderPricing } = {
     },
   },
   google: {
-    // Gemini 3 (preview)
-    'gemini-3-pro-preview': {
+    // Gemini 3 (GA)
+    'gemini-3-pro': {
       inputPer1M: 2.00,
       outputPer1M: 10.00,
     },
-    'gemini-3-pro-image-preview': {
+    'gemini-3-pro-image': {
       inputPer1M: 2.00,
       outputPer1M: 10.00,
     },

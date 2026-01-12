@@ -21,7 +21,7 @@ const IMAGE_PROVIDERS: Record<string, {
     supportsImageInput: true,
   },
   google: {
-    models: ['gemini-2.5-flash-image', 'gemini-3-pro-image-preview'],
+    models: ['gemini-2.5-flash-image', 'gemini-3-pro-image'],
     defaultModel: 'gemini-2.5-flash-image',
     supportsImageInput: true,
   },

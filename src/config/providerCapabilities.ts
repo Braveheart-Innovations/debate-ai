@@ -46,7 +46,7 @@ export function getProviderCapabilities(provider: AIProvider): ProviderCapabilit
           supportsImageInput: true,  // Gemini supports img2img
           models: [
             'gemini-2.5-flash-image',
-            'gemini-3-pro-image-preview',
+            'gemini-3-pro-image',
           ],
           // Google uses aspect ratios, not pixel sizes
           sizes: ['1:1', '16:9', '9:16', '4:3', '3:4'],

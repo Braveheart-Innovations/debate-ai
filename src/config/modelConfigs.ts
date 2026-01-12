@@ -208,11 +208,11 @@ export const AI_MODELS: ProviderModels = {
     },
   ],
   google: [
-    // Gemini 3 series (December 2025)
+    // Gemini 3 series (GA January 2026)
     {
-      id: "gemini-3-pro-preview",
+      id: "gemini-3-pro",
       name: "Gemini 3 Pro",
-      description: "Latest flagship with advanced reasoning (December 2025)",
+      description: "Latest flagship with advanced reasoning",
       contextLength: 1048576,
       supportsVision: true,
       supportsDocuments: true,
@@ -220,9 +220,9 @@ export const AI_MODELS: ProviderModels = {
       supportsWebSearch: true,
     },
     {
-      id: "gemini-3-pro-image-preview",
+      id: "gemini-3-pro-image",
       name: "Gemini 3 Pro Image",
-      description: "Image generation with Gemini 3 (December 2025)",
+      description: "Image generation with Gemini 3",
       contextLength: 65536,
       supportsVision: true,
       supportsImageGeneration: true,
@@ -616,7 +616,7 @@ export const CURATED_MODEL_IDS: { [providerId: string]: string[] } = {
   google: [
     "gemini-2.5-flash",
     "gemini-2.5-pro",
-    "gemini-3-pro-preview",
+    "gemini-3-pro",
     "gemini-2.0-flash",
   ],
   perplexity: ["sonar-pro", "sonar"],

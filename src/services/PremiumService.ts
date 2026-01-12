@@ -53,7 +53,7 @@ export const PREMIUM_FEATURES = {
   
   // AI Model Access (for future when we might limit some models)
   modelAccess: {
-    free: ['gpt-4o-mini', 'claude-3-haiku', 'gemini-1.5-flash'],  // Basic models
+    free: ['gpt-4o-mini', 'claude-3-haiku', 'gemini-2.5-flash'],  // Basic models
     premium: 'all',  // Access to all models including GPT-5, Claude Opus, etc.
   },
   
