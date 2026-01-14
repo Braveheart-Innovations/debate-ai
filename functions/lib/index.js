@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.exportUserData = exports.recordImageGeneration = exports.getUsageStats = exports.getProviderBalances = exports.stripeWebhook = exports.cancelStripeSubscription = exports.createStripeBillingPortal = exports.createStripeCheckoutSession = exports.proxyImageGeneration = exports.proxyAIRequest = exports.getConfiguredProviders = exports.deleteApiKey = exports.saveApiKey = exports.deleteAccount = exports.handleAppStoreNotification = exports.handlePlayStoreNotification = exports.validatePurchase = void 0;
+exports.appleAuthCallback = exports.symposiumFeedback = exports.contactForm = exports.exportUserData = exports.recordImageGeneration = exports.getUsageStats = exports.getProviderBalances = exports.stripeWebhook = exports.cancelStripeSubscription = exports.createStripeBillingPortal = exports.createStripeCheckoutSession = exports.proxyImageGeneration = exports.proxyAIRequest = exports.getConfiguredProviders = exports.deleteApiKey = exports.saveApiKey = exports.deleteAccount = exports.handleAppStoreNotification = exports.handlePlayStoreNotification = exports.validatePurchase = void 0;
 var validatePurchase_1 = require("./validatePurchase");
 Object.defineProperty(exports, "validatePurchase", { enumerable: true, get: function () { return validatePurchase_1.validatePurchase; } });
 var playStore_1 = require("./notifications/playStore");
@@ -34,3 +34,12 @@ Object.defineProperty(exports, "recordImageGeneration", { enumerable: true, get:
 // GDPR User Data Export
 var userData_1 = require("./userData");
 Object.defineProperty(exports, "exportUserData", { enumerable: true, get: function () { return userData_1.exportUserData; } });
+// Braveheart Contact Form
+var contactForm_1 = require("./contactForm");
+Object.defineProperty(exports, "contactForm", { enumerable: true, get: function () { return contactForm_1.contactForm; } });
+// Symposium AI Feedback
+var symposiumFeedback_1 = require("./symposiumFeedback");
+Object.defineProperty(exports, "symposiumFeedback", { enumerable: true, get: function () { return symposiumFeedback_1.symposiumFeedback; } });
+// Apple Sign In Callback (handles form_post from Apple)
+var appleAuthCallback_1 = require("./appleAuthCallback");
+Object.defineProperty(exports, "appleAuthCallback", { enumerable: true, get: function () { return appleAuthCallback_1.appleAuthCallback; } });

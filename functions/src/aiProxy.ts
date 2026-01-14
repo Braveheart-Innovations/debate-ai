@@ -538,11 +538,13 @@ async function callGemini(
       };
     });
 
-  // Build request body - only include maxOutputTokens if explicitly set
-  const generationConfig: Record<string, unknown> = { temperature };
-  if (maxTokens !== undefined) {
-    generationConfig.maxOutputTokens = maxTokens;
-  }
+  // Build request body
+  // For Gemini "thinking" models (2.5 Pro, 3 Pro), thinking tokens consume part of
+  // the output budget. Set a generous default to ensure room for both thinking and output.
+  const generationConfig: Record<string, unknown> = {
+    temperature,
+    maxOutputTokens: maxTokens ?? 8192,
+  };
 
   const requestBody: Record<string, unknown> = {
     contents,
@@ -569,7 +571,22 @@ async function callGemini(
   }
 
   const data = await response.json();
-  const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+  // Check finish reason for debugging truncation issues
+  const finishReason = data.candidates?.[0]?.finishReason;
+  if (finishReason && finishReason !== 'STOP') {
+    console.warn(`[Gemini] Response finished with reason: ${finishReason}`, {
+      model: modelId,
+      outputTokens: data.usageMetadata?.candidatesTokenCount,
+    });
+  }
+
+  // Concatenate ALL text parts (Gemini can split responses across multiple parts)
+  const parts = data.candidates?.[0]?.content?.parts || [];
+  const content = parts
+    .filter((p: { text?: string }) => typeof p.text === 'string')
+    .map((p: { text: string }) => p.text)
+    .join('');
 
   // Extract citations from grounding metadata if present
   let citations: Citation[] | undefined;

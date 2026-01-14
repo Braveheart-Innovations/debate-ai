@@ -210,7 +210,7 @@ export const AI_MODELS: ProviderModels = {
   google: [
     // Gemini 3 series (GA January 2026)
     {
-      id: "gemini-3-pro",
+      id: "gemini-3-pro-preview",
       name: "Gemini 3 Pro",
       description: "Latest flagship with advanced reasoning",
       contextLength: 1048576,
@@ -616,7 +616,7 @@ export const CURATED_MODEL_IDS: { [providerId: string]: string[] } = {
   google: [
     "gemini-2.5-flash",
     "gemini-2.5-pro",
-    "gemini-3-pro",
+    "gemini-3-pro-preview",
     "gemini-2.0-flash",
   ],
   perplexity: ["sonar-pro", "sonar"],

@@ -304,6 +304,7 @@ describe('PurchaseService', () => {
         expect(mockGetSubscriptions).toHaveBeenCalledWith({ skus: [SUBSCRIPTION_PRODUCTS.monthly] });
         expect(mockRequestSubscription).toHaveBeenCalledWith({
           sku: SUBSCRIPTION_PRODUCTS.monthly,
+          appAccountToken: 'hashed-token-123',
         });
       });
 
@@ -315,6 +316,7 @@ describe('PurchaseService', () => {
         expect(mockGetSubscriptions).toHaveBeenCalledWith({ skus: [SUBSCRIPTION_PRODUCTS.annual] });
         expect(mockRequestSubscription).toHaveBeenCalledWith({
           sku: SUBSCRIPTION_PRODUCTS.annual,
+          appAccountToken: 'hashed-token-123',
         });
       });
     });

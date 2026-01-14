@@ -248,9 +248,10 @@ export class PurchaseService {
         if (!subs || subs.length === 0) {
           throw { code: 'E_ITEM_UNAVAILABLE', message: 'Subscription not found in store' };
         }
-        console.warn('[IAP] Requesting subscription (no appAccountToken)...');
-        // Try without appAccountToken to see if that's causing the hang
-        await requestSubscription({ sku });
+        // Generate appAccountToken so Apple can link this user in server notifications
+        const appAccountToken = await this.getOrCreateAppAccountToken(user.uid);
+        console.warn('[IAP] Requesting subscription with appAccountToken...');
+        await requestSubscription({ sku, appAccountToken });
         console.warn('[IAP] requestSubscription returned');
       } else {
         const subs = await getSubscriptions({ skus: [sku] });

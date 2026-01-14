@@ -25,6 +25,14 @@ export class SubscriptionManager {
     if (data.membershipStatus === 'trial') {
       const trialEndMs = this.toMillis(data.trialEndDate);
       if (trialEndMs && now > trialEndMs) {
+        // Check if subscription was renewed (user was charged after trial)
+        const expiryMs = this.toMillis(data.subscriptionExpiryDate);
+        if (expiryMs && expiryMs > now) {
+          // Trial ended but subscription is active - upgrade to premium
+          await setDoc(doc(collection(db, 'users'), user.uid), { membershipStatus: 'premium', isPremium: true }, { merge: true });
+          return 'premium';
+        }
+        // Trial ended and no active subscription - downgrade to demo
         await setDoc(doc(collection(db, 'users'), user.uid), { membershipStatus: 'demo', isPremium: false }, { merge: true });
         return 'demo';
       }

@@ -255,6 +255,15 @@ export const stripeWebhook = onRequest(
             createdAt: FieldValue.serverTimestamp(),
             updatedAt: FieldValue.serverTimestamp(),
           }, { merge: true });
+
+          // Sync to main user document
+          await db.collection('users').doc(uid).set({
+            membershipStatus: subscription.status === 'trialing' ? 'trial' : 'premium',
+            isPremium: true,
+            subscriptionSource: 'stripe',
+            subscriptionPlan: plan || 'monthly',
+            updatedAt: FieldValue.serverTimestamp(),
+          }, { merge: true });
           break;
         }
 
@@ -295,6 +304,19 @@ export const stripeWebhook = onRequest(
                 : null,
               updatedAt: FieldValue.serverTimestamp(),
             });
+
+            // Sync to main user document
+            const membershipStatus =
+              status === 'active' ? 'premium' :
+              status === 'trialing' ? 'trial' :
+              status === 'canceled' ? 'canceled' :
+              status === 'past_due' ? 'past_due' : 'free';
+
+            await userPath.set({
+              membershipStatus,
+              isPremium: status === 'active' || status === 'trialing',
+              updatedAt: FieldValue.serverTimestamp(),
+            }, { merge: true });
             break;
           }
 
@@ -317,6 +339,19 @@ export const stripeWebhook = onRequest(
               : null,
             updatedAt: FieldValue.serverTimestamp(),
           });
+
+          // Sync to main user document
+          const membershipStatus =
+            status === 'active' ? 'premium' :
+            status === 'trialing' ? 'trial' :
+            status === 'canceled' ? 'canceled' :
+            status === 'past_due' ? 'past_due' : 'free';
+
+          await db.collection('users').doc(uid).set({
+            membershipStatus,
+            isPremium: status === 'active' || status === 'trialing',
+            updatedAt: FieldValue.serverTimestamp(),
+          }, { merge: true });
           break;
         }
 
@@ -336,6 +371,16 @@ export const stripeWebhook = onRequest(
               canceledAt: FieldValue.serverTimestamp(),
               updatedAt: FieldValue.serverTimestamp(),
             });
+
+            // Sync to main user document
+            const userPath = usersSnapshot.docs[0].ref.parent.parent;
+            if (userPath) {
+              await userPath.set({
+                membershipStatus: 'canceled',
+                isPremium: false,
+                updatedAt: FieldValue.serverTimestamp(),
+              }, { merge: true });
+            }
           }
           break;
         }
@@ -354,6 +399,15 @@ export const stripeWebhook = onRequest(
               status: 'past_due',
               updatedAt: FieldValue.serverTimestamp(),
             });
+
+            // Sync to main user document
+            const userPath = usersSnapshot.docs[0].ref.parent.parent;
+            if (userPath) {
+              await userPath.set({
+                membershipStatus: 'past_due',
+                updatedAt: FieldValue.serverTimestamp(),
+              }, { merge: true });
+            }
           }
           break;
         }

@@ -59,7 +59,7 @@ export const MODEL_ALIASES: Record<string, string> = {
   'gemini-latest': 'gemini-2.5-flash',
   'gemini-pro-latest': 'gemini-2.5-pro',
   'gemini-flash-latest': 'gemini-2.5-flash',
-  'gemini-3-latest': 'gemini-3-pro',
+  'gemini-3-latest': 'gemini-3-pro-preview',
 
   // Grok aliases
   'grok-latest': 'grok-4-0709',

@@ -25,3 +25,12 @@ export { getProviderBalances, getUsageStats, recordImageGeneration } from './usa
 
 // GDPR User Data Export
 export { exportUserData } from './userData';
+
+// Braveheart Contact Form
+export { contactForm } from './contactForm';
+
+// Symposium AI Feedback
+export { symposiumFeedback } from './symposiumFeedback';
+
+// Apple Sign In Callback (handles form_post from Apple)
+export { appleAuthCallback } from './appleAuthCallback';
