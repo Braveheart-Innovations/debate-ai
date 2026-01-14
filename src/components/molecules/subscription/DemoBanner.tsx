@@ -3,6 +3,7 @@ import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTheme } from '@/theme';
 import { Typography } from '@/components/molecules';
 import useFeatureAccess from '@/hooks/useFeatureAccess';
+import { useStorePrices } from '@/hooks/useStorePrices';
 
 interface DemoBannerProps {
   onPress?: () => void;
@@ -12,6 +13,7 @@ interface DemoBannerProps {
 export const DemoBanner: React.FC<DemoBannerProps> = ({ onPress, subtitle }) => {
   const { theme, isDark } = useTheme();
   const { isDemo, hasUsedTrial, canStartTrial } = useFeatureAccess();
+  const { monthly } = useStorePrices();
   if (!isDemo) return null;
 
   // Determine the CTA text based on trial status
@@ -44,10 +46,17 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({ onPress, subtitle }) => 
         <Typography variant="caption" color="secondary" style={{ marginTop: 2 }}>
           {subtitle || defaultSubtitle}
         </Typography>
-        <View style={[styles.ctaPill, hasUsedTrial && styles.ctaPillWarning]}>
-          <Typography variant="caption" weight="semibold" color="inverse">
-            {ctaText}
-          </Typography>
+        <View style={styles.ctaRow}>
+          <View style={[styles.ctaPill, hasUsedTrial && styles.ctaPillWarning]}>
+            <Typography variant="caption" weight="semibold" color="inverse">
+              {ctaText}
+            </Typography>
+          </View>
+          {canStartTrial && (
+            <Typography variant="caption" color="secondary" style={styles.priceText}>
+              Then {monthly.localizedPrice}/mo
+            </Typography>
+          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -64,9 +73,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  ctaPill: {
-    alignSelf: 'flex-start',
+  ctaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginTop: 8,
+  },
+  ctaPill: {
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
@@ -74,6 +86,9 @@ const styles = StyleSheet.create({
   },
   ctaPillWarning: {
     backgroundColor: '#EF4444', // theme.colors.error
+  },
+  priceText: {
+    marginLeft: 8,
   },
 });
 

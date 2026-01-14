@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ScrollView, View, StyleSheet, Alert, TouchableOpacity, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSelector, useDispatch } from 'react-redux';
@@ -11,13 +11,8 @@ import { useTheme } from '../theme';
 import { PurchaseService } from '@/services/iap/PurchaseService';
 import type { PlanType } from '@/services/iap/products';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
+import { useStorePrices } from '@/hooks/useStorePrices';
 import { RootState, showSheet } from '@/store';
-
-const plans = [
-  { id: 'monthly', title: 'Monthly', price: '$5.99', period: '/mo', highlight: false },
-  { id: 'annual', title: 'Annual', price: '$49.99', period: '/yr', highlight: true, badge: 'Save 30%' },
-  { id: 'lifetime', title: 'Lifetime', price: '$129.99', period: '', highlight: false, badge: 'One-Time' },
-];
 
 export default function UpgradeScreen() {
   const { theme, isDark } = useTheme();
@@ -27,6 +22,14 @@ export default function UpgradeScreen() {
   const [showTrialTerms, setShowTrialTerms] = useState(false);
   const { hasUsedTrial, isInTrial, trialDaysRemaining, isPremium, canStartTrial, refresh } = useFeatureAccess();
   const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
+  const { monthly, annual, lifetime } = useStorePrices();
+
+  // Dynamic plans array using localized prices from the store
+  const plans = useMemo(() => [
+    { id: 'monthly', title: 'Monthly', price: monthly.localizedPrice, period: '/mo', highlight: false },
+    { id: 'annual', title: 'Annual', price: annual.localizedPrice, period: '/yr', highlight: true, badge: 'Save 30%' },
+    { id: 'lifetime', title: 'Lifetime', price: lifetime.localizedPrice, period: '', highlight: false, badge: 'One-Time' },
+  ], [monthly.localizedPrice, annual.localizedPrice, lifetime.localizedPrice]);
 
   // Listen for background purchase errors and show to user
   useEffect(() => {
@@ -177,7 +180,7 @@ export default function UpgradeScreen() {
                 Start 7-Day Free Trial
               </Typography>
               <Typography variant="body" color="secondary" style={{ textAlign: 'center', marginTop: 4 }}>
-                Then $5.99/month. Cancel anytime.
+                Then {monthly.localizedPrice}/month. Cancel anytime.
               </Typography>
               <GradientButton
                 title={loadingPlan === 'trial' ? 'Starting...' : 'Start Free Trial'}

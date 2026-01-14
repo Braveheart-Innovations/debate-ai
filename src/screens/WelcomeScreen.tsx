@@ -24,6 +24,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useDispatch } from 'react-redux';
 import { completeOnboarding } from '../store';
+import { useStorePrices } from '@/hooks/useStorePrices';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -77,6 +78,7 @@ const AnimatedGradientBackground: React.FC = () => {
 const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
   const dispatch = useDispatch();
   const { theme, isDark } = useTheme();
+  const { monthly } = useStorePrices();
   const scale = useSharedValue(0);
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(50);
@@ -287,7 +289,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
                 weight="bold"
                 style={{ color: theme.colors.primary[500], marginTop: 4 }}
               >
-                $5.99/month
+                {monthly.localizedPrice}/month
               </Typography>
             </View>
 

@@ -4,9 +4,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '@/theme';
 import { Typography } from '@/components/molecules';
+import { useStorePrices } from '@/hooks/useStorePrices';
 
 export const UnlockEverythingBanner: React.FC = () => {
   const { theme } = useTheme();
+  const { monthly } = useStorePrices();
 
   return (
     <View
@@ -40,7 +42,7 @@ export const UnlockEverythingBanner: React.FC = () => {
               Unlock Everything
             </Typography>
             <Typography variant="body" weight="bold" style={{ color: theme.colors.primary[500] }}>
-              $5.99/month
+              {monthly.localizedPrice}/month
             </Typography>
           </View>
         </View>

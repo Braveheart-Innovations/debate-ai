@@ -3,6 +3,7 @@ import { View, StyleSheet, ScrollView, Modal, TouchableOpacity, Linking, Platfor
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Typography, Button, GradientButton } from '@/components/molecules';
 import { useTheme } from '@/theme';
+import { useStorePrices } from '@/hooks/useStorePrices';
 
 interface TrialTermsSheetProps {
   visible: boolean;
@@ -11,18 +12,6 @@ interface TrialTermsSheetProps {
   isAuthenticated: boolean;
   loading?: boolean;
 }
-
-const TRIAL_FEATURES = [
-  '7 days free, then $5.99/month',
-  'Cancel anytime before trial ends',
-  'Full access to all premium features',
-];
-
-const LEGAL_TERMS = [
-  'Subscription auto-renews at $5.99/mo unless canceled at least 24 hours before the trial ends',
-  'Your payment method will be charged within 24 hours of the trial ending',
-  'Manage or cancel anytime in Settings > Subscriptions',
-];
 
 export const TrialTermsSheet: React.FC<TrialTermsSheetProps> = ({
   visible,
@@ -33,6 +22,20 @@ export const TrialTermsSheet: React.FC<TrialTermsSheetProps> = ({
 }) => {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const { monthly } = useStorePrices();
+
+  // Dynamic arrays using localized price from store
+  const trialFeatures = [
+    `7 days free, then ${monthly.localizedPrice}/month`,
+    'Cancel anytime before trial ends',
+    'Full access to all premium features',
+  ];
+
+  const legalTerms = [
+    `Subscription auto-renews at ${monthly.localizedPrice}/mo unless canceled at least 24 hours before the trial ends`,
+    'Your payment method will be charged within 24 hours of the trial ending',
+    'Manage or cancel anytime in Settings > Subscriptions',
+  ];
 
   const handlePrivacyPolicy = () => {
     // Use in-app navigation if available, otherwise fallback to URL
@@ -73,7 +76,7 @@ export const TrialTermsSheet: React.FC<TrialTermsSheetProps> = ({
         >
           {/* Trial Benefits */}
           <View style={[styles.benefitsCard, { backgroundColor: isDark ? theme.colors.surface : theme.colors.primary[50] as string }]}>
-            {TRIAL_FEATURES.map((feature, index) => (
+            {trialFeatures.map((feature, index) => (
               <View key={index} style={styles.featureRow}>
                 <View style={[styles.checkCircle, { backgroundColor: theme.colors.success[500] }]}>
                   <Typography variant="caption" weight="bold" color="inverse">
@@ -96,7 +99,7 @@ export const TrialTermsSheet: React.FC<TrialTermsSheetProps> = ({
               By starting your trial, you agree to:
             </Typography>
 
-            {LEGAL_TERMS.map((term, index) => (
+            {legalTerms.map((term, index) => (
               <View key={index} style={styles.termRow}>
                 <Typography variant="caption" color="secondary" style={styles.bullet}>
                   {'\u2022'}
