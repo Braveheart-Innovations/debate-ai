@@ -254,18 +254,44 @@ export class PurchaseService {
         await requestSubscription({ sku, appAccountToken });
         console.warn('[IAP] requestSubscription returned');
       } else {
-        const subs = await getSubscriptions({ skus: [sku] });
-        const product = subs?.[0] as SubscriptionAndroid | undefined;
+        // Android: Fetch and validate subscription exists
+        console.warn('[IAP] Android: Fetching subscriptions...');
+        const subs = await withTimeout(
+          getSubscriptions({ skus: [sku] }),
+          10000,
+          'Store connection timed out. Please try again.'
+        );
+        console.warn('[IAP] Android: Got subscriptions:', subs?.length);
+
+        if (!subs || subs.length === 0) {
+          throw { code: 'E_ITEM_UNAVAILABLE', message: 'Subscription not found in store. Please ensure you have the latest app version.' };
+        }
+
+        const product = subs[0] as SubscriptionAndroid;
+        console.warn('[IAP] Android: Product offers:', product?.subscriptionOfferDetails?.length);
+
+        // Find offer with free trial first, fall back to first offer
         const offerToken = product?.subscriptionOfferDetails?.find((o: SubscriptionOfferAndroid) =>
           o.pricingPhases.pricingPhaseList.some((p: PricingPhaseAndroid) => p.priceAmountMicros === '0')
         )?.offerToken || product?.subscriptionOfferDetails?.[0]?.offerToken;
 
-        await requestSubscription({ sku, subscriptionOffers: offerToken ? [{ sku, offerToken }] : undefined });
+        if (!offerToken) {
+          throw { code: 'E_DEVELOPER_ERROR', message: 'No subscription offers available. Please try again later.' };
+        }
+
+        console.warn('[IAP] Android: Requesting subscription with offerToken...');
+        await requestSubscription({ sku, subscriptionOffers: [{ sku, offerToken }] });
+        console.warn('[IAP] Android: requestSubscription returned');
       }
 
       return { success: true } as const;
     } catch (error: unknown) {
-      const errorCode = (error as { code?: string })?.code || 'UNKNOWN';
+      const errorObj = error as { code?: string; message?: string; debugMessage?: string };
+      const errorCode = errorObj?.code || 'UNKNOWN';
+      const errorMessage = errorObj?.message || errorObj?.debugMessage || 'Unknown error';
+
+      console.warn('[IAP] Purchase error:', { errorCode, errorMessage, error });
+
       if (errorCode === 'E_USER_CANCELLED') {
         return { success: false, cancelled: true, errorCode, userMessage: IAP_ERROR_MESSAGES[errorCode] } as const;
       }
@@ -273,9 +299,10 @@ export class PurchaseService {
       ErrorService.handleError(error, {
         feature: 'purchase',
         showToast: false, // UI handles displaying error
-        context: { action: 'purchaseSubscription', plan, errorCode },
+        context: { action: 'purchaseSubscription', plan, errorCode, errorMessage },
       });
-      const userMessage = IAP_ERROR_MESSAGES[errorCode] || 'Purchase failed. Please try again.';
+      // Use specific IAP message, or fall back to actual error message if available
+      const userMessage = IAP_ERROR_MESSAGES[errorCode] || errorMessage || 'Purchase failed. Please try again.';
       return { success: false, error, errorCode, userMessage } as const;
     }
   }
