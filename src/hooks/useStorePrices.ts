@@ -26,12 +26,28 @@ export interface StorePricesResult {
   refresh: () => Promise<void>;
 }
 
-// Module-level cache to avoid refetching on every component mount
+// Module-level cache with 24-hour TTL
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 let cachedPrices: {
   monthly: PriceInfo | null;
   annual: PriceInfo | null;
   lifetime: PriceInfo | null;
+  fetchedAt: number;
 } | null = null;
+
+// Module-level fetch lock to prevent concurrent IAP requests
+let fetchInProgress: Promise<void> | null = null;
+
+function isCacheValid(): boolean {
+  if (!cachedPrices) return false;
+  return Date.now() - cachedPrices.fetchedAt < CACHE_TTL_MS;
+}
+
+// Export for testing only - resets module-level cache
+export function __resetCacheForTesting(): void {
+  cachedPrices = null;
+  fetchInProgress = null;
+}
 
 // Fallback prices (USD) used when store fetch fails
 const FALLBACK_PRICES: Record<'monthly' | 'annual' | 'lifetime', PriceInfo> = {
@@ -104,80 +120,102 @@ export function useStorePrices(): StorePricesResult {
     annual: PriceInfo | null;
     lifetime: PriceInfo | null;
   }>({
-    monthly: cachedPrices?.monthly ?? null,
-    annual: cachedPrices?.annual ?? null,
-    lifetime: cachedPrices?.lifetime ?? null,
+    monthly: isCacheValid() ? cachedPrices!.monthly : null,
+    annual: isCacheValid() ? cachedPrices!.annual : null,
+    lifetime: isCacheValid() ? cachedPrices!.lifetime : null,
   });
-  const [loading, setLoading] = useState(!cachedPrices);
+  const [loading, setLoading] = useState(!isCacheValid());
   const [error, setError] = useState<Error | null>(null);
 
   const fetchPrices = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Ensure IAP connection is established before fetching prices
-      await initConnection();
-
-      const subscriptionSkus = [
-        SUBSCRIPTION_PRODUCTS.monthly,
-        SUBSCRIPTION_PRODUCTS.annual,
-      ];
-      const productSkus = [SUBSCRIPTION_PRODUCTS.lifetime];
-
-      const [subscriptions, products] = await Promise.all([
-        getSubscriptions({ skus: subscriptionSkus }),
-        getProducts({ skus: productSkus }),
-      ]);
-
-      const newPrices: {
-        monthly: PriceInfo | null;
-        annual: PriceInfo | null;
-        lifetime: PriceInfo | null;
-      } = {
-        monthly: null,
-        annual: null,
-        lifetime: null,
-      };
-
-      // Process subscriptions
-      for (const sub of subscriptions) {
-        const productId = sub.productId;
-        let priceInfo: PriceInfo | null = null;
-
-        if (Platform.OS === 'android') {
-          priceInfo = extractPriceFromAndroidSubscription(sub as SubscriptionAndroid);
-        } else {
-          priceInfo = extractPriceFromIOSSubscription(sub as SubscriptionIOS);
+    // If fetch already in progress, wait for it instead of starting a new one
+    if (fetchInProgress) {
+      try {
+        await fetchInProgress;
+        // After waiting, use the cached prices
+        if (cachedPrices) {
+          setPrices(cachedPrices);
         }
-
-        if (productId === SUBSCRIPTION_PRODUCTS.monthly) {
-          newPrices.monthly = priceInfo;
-        } else if (productId === SUBSCRIPTION_PRODUCTS.annual) {
-          newPrices.annual = priceInfo;
-        }
+      } catch {
+        // Ignore - the original fetch handles errors
+      } finally {
+        setLoading(false);
       }
-
-      // Process lifetime product
-      for (const prod of products) {
-        if (prod.productId === SUBSCRIPTION_PRODUCTS.lifetime) {
-          newPrices.lifetime = extractPriceFromProduct(prod);
-        }
-      }
-
-      cachedPrices = newPrices;
-      setPrices(newPrices);
-    } catch (e) {
-      const err = e instanceof Error ? e : new Error('Failed to fetch prices');
-      setError(err);
-      ErrorService.handleSilent(e, { action: 'fetch_store_prices' });
-    } finally {
-      setLoading(false);
+      return;
     }
+
+    const doFetch = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Ensure IAP connection is established before fetching prices
+        await initConnection();
+
+        const subscriptionSkus = [
+          SUBSCRIPTION_PRODUCTS.monthly,
+          SUBSCRIPTION_PRODUCTS.annual,
+        ];
+        const productSkus = [SUBSCRIPTION_PRODUCTS.lifetime];
+
+        const [subscriptions, products] = await Promise.all([
+          getSubscriptions({ skus: subscriptionSkus }),
+          getProducts({ skus: productSkus }),
+        ]);
+
+        const newPrices: {
+          monthly: PriceInfo | null;
+          annual: PriceInfo | null;
+          lifetime: PriceInfo | null;
+        } = {
+          monthly: null,
+          annual: null,
+          lifetime: null,
+        };
+
+        // Process subscriptions
+        for (const sub of subscriptions) {
+          const productId = sub.productId;
+          let priceInfo: PriceInfo | null = null;
+
+          if (Platform.OS === 'android') {
+            priceInfo = extractPriceFromAndroidSubscription(sub as SubscriptionAndroid);
+          } else {
+            priceInfo = extractPriceFromIOSSubscription(sub as SubscriptionIOS);
+          }
+
+          if (productId === SUBSCRIPTION_PRODUCTS.monthly) {
+            newPrices.monthly = priceInfo;
+          } else if (productId === SUBSCRIPTION_PRODUCTS.annual) {
+            newPrices.annual = priceInfo;
+          }
+        }
+
+        // Process lifetime product
+        for (const prod of products) {
+          if (prod.productId === SUBSCRIPTION_PRODUCTS.lifetime) {
+            newPrices.lifetime = extractPriceFromProduct(prod);
+          }
+        }
+
+        cachedPrices = { ...newPrices, fetchedAt: Date.now() };
+        setPrices(newPrices);
+      } catch (e) {
+        const err = e instanceof Error ? e : new Error('Failed to fetch prices');
+        setError(err);
+        ErrorService.handleSilent(e, { action: 'fetch_store_prices' });
+      } finally {
+        setLoading(false);
+        fetchInProgress = null;
+      }
+    };
+
+    fetchInProgress = doFetch();
+    await fetchInProgress;
   }, []);
 
   useEffect(() => {
-    if (!cachedPrices) {
+    if (!isCacheValid()) {
       fetchPrices();
     }
   }, [fetchPrices]);
