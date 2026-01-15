@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Platform } from 'react-native';
 import {
-  initConnection,
   getSubscriptions,
   getProducts,
   type Product,
@@ -10,6 +9,7 @@ import {
 } from 'react-native-iap';
 import { SUBSCRIPTION_PRODUCTS } from '@/services/iap/products';
 import { ErrorService } from '@/services/errors/ErrorService';
+import { PurchaseService } from '@/services/iap/PurchaseService';
 
 export interface PriceInfo {
   localizedPrice: string;
@@ -150,7 +150,8 @@ export function useStorePrices(): StorePricesResult {
         setError(null);
 
         // Ensure IAP connection is established before fetching prices
-        await initConnection();
+        // Use PurchaseService to avoid conflicting initConnection calls
+        await PurchaseService.initialize();
 
         const subscriptionSkus = [
           SUBSCRIPTION_PRODUCTS.monthly,

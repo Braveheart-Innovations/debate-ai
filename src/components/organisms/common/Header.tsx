@@ -168,8 +168,35 @@ export interface HeaderProps {
 // Base header heights - will be scaled for tablets
 export const HEADER_HEIGHT = 65;
 const COMPACT_HEIGHT = 50;
-const TABLET_HEADER_HEIGHT = 85;
 const TABLET_COMPACT_HEIGHT = 60;
+
+// Gradient header uses proportional scaling for tablets
+const MIN_TABLET_GRADIENT_HEIGHT = 100;
+const MAX_TABLET_GRADIENT_HEIGHT = 150;
+const TABLET_GRADIENT_HEIGHT_RATIO = 0.11; // 11% of screen height
+
+/**
+ * Calculate gradient header height based on screen dimensions.
+ * Uses proportional scaling for tablets to handle iPad Air vs iPad Pro differences.
+ */
+const getGradientHeaderHeight = (isTablet: boolean, screenHeight: number): number => {
+  if (!isTablet) return HEADER_HEIGHT; // 65px for phones - unchanged
+
+  // Proportional scaling: 11% of screen height, bounded by min/max
+  const proportionalHeight = screenHeight * TABLET_GRADIENT_HEIGHT_RATIO;
+  return Math.max(MIN_TABLET_GRADIENT_HEIGHT, Math.min(MAX_TABLET_GRADIENT_HEIGHT, proportionalHeight));
+};
+
+/**
+ * Get base header height for non-gradient variants.
+ */
+const getBaseHeaderHeight = (isTablet: boolean, isCompact: boolean): number => {
+  if (isCompact) {
+    return isTablet ? TABLET_COMPACT_HEIGHT : COMPACT_HEIGHT;
+  }
+  // Non-gradient tablets use a modest increase
+  return isTablet ? 85 : HEADER_HEIGHT;
+};
 
 // Animated SVG elements
 const AnimatedG = Animated.createAnimatedComponent(G);
@@ -197,7 +224,7 @@ export const Header: React.FC<HeaderProps> = ({
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const [currentTime, setCurrentTime] = useState(new Date());
-  const { width } = useWindowDimensions();
+  const { width, height: screenHeight } = useWindowDimensions();
   const { isTablet } = useDeviceType();
   const hasSubtitle = Boolean(subtitle);
   // Subtle, battery-friendly accents inside the SVG (no edges move)
@@ -276,11 +303,11 @@ export const Header: React.FC<HeaderProps> = ({
   }));
   
   // Accents disabled
-  
-  // Calculate header height - use larger heights for tablets
-  const baseHeight = variant === 'compact'
-    ? (isTablet ? TABLET_COMPACT_HEIGHT : COMPACT_HEIGHT)
-    : (isTablet ? TABLET_HEADER_HEIGHT : HEADER_HEIGHT);
+
+  // Calculate header height - use proportional scaling for gradient variant on tablets
+  const baseHeight = variant === 'gradient'
+    ? getGradientHeaderHeight(isTablet, screenHeight)
+    : getBaseHeaderHeight(isTablet, variant === 'compact');
   const headerHeight = height || baseHeight;
   const totalHeight = headerHeight + insets.top;
   
@@ -797,8 +824,8 @@ const createStyles = (
   // Gradient variant specific styles (from GradientHeader)
   gradientContentContainer: {
     paddingHorizontal: theme.spacing.lg,
-    paddingBottom: isTablet ? theme.spacing.lg : theme.spacing.md,
-    paddingTop: isTablet ? theme.spacing.md : theme.spacing.sm,
+    paddingBottom: isTablet ? theme.spacing.xl : theme.spacing.md,
+    paddingTop: isTablet ? theme.spacing.lg : theme.spacing.sm,
     zIndex: 10,
     justifyContent: 'flex-start',
   },
@@ -883,6 +910,7 @@ const createStyles = (
   dateText: {
     letterSpacing: 0.3,
     opacity: 0.9,
+    fontSize: isTablet ? 18 : undefined,
     textShadowColor: theme.colors.shadow,
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
@@ -897,31 +925,32 @@ const createStyles = (
     alignItems: 'flex-start',
     zIndex: 10,  // Lower than headerTopRightContainer
     minHeight: 0,
-    paddingTop: isTablet ? theme.spacing.xs : theme.spacing.xs * 0.25,
+    paddingTop: isTablet ? theme.spacing.sm : theme.spacing.xs * 0.25,
   },
   gradientTitleWrapper: {
     width: '100%',
   },
   gradientTitle: {
     letterSpacing: -1,
-    lineHeight: 32,
-    fontSize: 32,
+    lineHeight: isTablet ? 40 : 32,
+    fontSize: isTablet ? 38 : 32,
     textShadowColor: theme.colors.shadow,
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 8,
-    marginBottom: 2,
+    marginBottom: isTablet ? 4 : 2,
   },
   gradientTitleWithSubtitle: {
-    marginBottom: theme.spacing.xs,
+    marginBottom: isTablet ? theme.spacing.sm : theme.spacing.xs,
   },
   gradientSubtitle: {
     letterSpacing: 0.5,
-    lineHeight: 20,
+    lineHeight: isTablet ? 24 : 20,
+    fontSize: isTablet ? 18 : undefined, // Typography component handles base size
     opacity: 0.95,
     textShadowColor: theme.colors.shadow,
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
-    marginTop: -2,
+    marginTop: isTablet ? 0 : -2,
   },
   motionContainer: {
     width: '100%',

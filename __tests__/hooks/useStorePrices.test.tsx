@@ -1,16 +1,21 @@
 import { act, waitFor, renderHook } from '@testing-library/react-native';
 import {
-  initConnection,
   getSubscriptions,
   getProducts,
 } from 'react-native-iap';
 import { ErrorService } from '@/services/errors/ErrorService';
+import { PurchaseService } from '@/services/iap/PurchaseService';
 import { useStorePrices, __resetCacheForTesting } from '@/hooks/useStorePrices';
 
 jest.mock('react-native-iap', () => ({
-  initConnection: jest.fn(),
   getSubscriptions: jest.fn(),
   getProducts: jest.fn(),
+}));
+
+jest.mock('@/services/iap/PurchaseService', () => ({
+  PurchaseService: {
+    initialize: jest.fn(),
+  },
 }));
 
 jest.mock('@/services/errors/ErrorService', () => ({
@@ -27,7 +32,7 @@ jest.mock('@/services/iap/products', () => ({
   },
 }));
 
-const initConnectionMock = initConnection as jest.MockedFunction<typeof initConnection>;
+const initializeMock = PurchaseService.initialize as jest.MockedFunction<typeof PurchaseService.initialize>;
 const getSubscriptionsMock = getSubscriptions as jest.MockedFunction<typeof getSubscriptions>;
 const getProductsMock = getProducts as jest.MockedFunction<typeof getProducts>;
 
@@ -60,7 +65,7 @@ describe('useStorePrices', () => {
   });
 
   it('returns fallback prices while loading', async () => {
-    initConnectionMock.mockImplementation(() => new Promise(() => {})); // Never resolves
+    initializeMock.mockImplementation(() => new Promise(() => {}) as never); // Never resolves
 
     const { result } = renderHook(() => useStorePrices());
 
@@ -71,7 +76,7 @@ describe('useStorePrices', () => {
   });
 
   it('fetches and returns store prices on mount', async () => {
-    initConnectionMock.mockResolvedValue();
+    initializeMock.mockResolvedValue({ success: true });
     getSubscriptionsMock.mockResolvedValue(mockIOSSubscriptions as never);
     getProductsMock.mockResolvedValue([mockLifetimeProduct] as never);
 
@@ -79,7 +84,7 @@ describe('useStorePrices', () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    expect(initConnectionMock).toHaveBeenCalledTimes(1);
+    expect(initializeMock).toHaveBeenCalledTimes(1);
     expect(getSubscriptionsMock).toHaveBeenCalledTimes(1);
     expect(getProductsMock).toHaveBeenCalledTimes(1);
     expect(result.current.monthly.localizedPrice).toBe('$5.99');
@@ -89,28 +94,28 @@ describe('useStorePrices', () => {
   });
 
   it('uses cached prices within 24-hour TTL', async () => {
-    initConnectionMock.mockResolvedValue();
+    initializeMock.mockResolvedValue({ success: true });
     getSubscriptionsMock.mockResolvedValue(mockIOSSubscriptions as never);
     getProductsMock.mockResolvedValue([mockLifetimeProduct] as never);
 
     // First render - should fetch
     const { result: result1, unmount } = renderHook(() => useStorePrices());
     await waitFor(() => expect(result1.current.loading).toBe(false));
-    expect(initConnectionMock).toHaveBeenCalledTimes(1);
+    expect(initializeMock).toHaveBeenCalledTimes(1);
     unmount();
 
     // Second render - should use cache
     const { result: result2 } = renderHook(() => useStorePrices());
 
     // Should not trigger another fetch
-    expect(initConnectionMock).toHaveBeenCalledTimes(1);
+    expect(initializeMock).toHaveBeenCalledTimes(1);
     expect(result2.current.loading).toBe(false);
     expect(result2.current.monthly.localizedPrice).toBe('$5.99');
   });
 
   it('handles fetch errors and returns fallback prices', async () => {
     const testError = new Error('IAP connection failed');
-    initConnectionMock.mockRejectedValue(testError);
+    initializeMock.mockRejectedValue(testError);
 
     const { result } = renderHook(() => useStorePrices());
 
@@ -126,9 +131,9 @@ describe('useStorePrices', () => {
   });
 
   it('prevents concurrent fetch requests', async () => {
-    let resolveConnection: () => void;
-    initConnectionMock.mockImplementation(
-      () => new Promise((resolve) => { resolveConnection = resolve; })
+    let resolveInit: () => void;
+    initializeMock.mockImplementation(
+      () => new Promise((resolve) => { resolveInit = () => resolve({ success: true }); }) as never
     );
     getSubscriptionsMock.mockResolvedValue(mockIOSSubscriptions as never);
     getProductsMock.mockResolvedValue([mockLifetimeProduct] as never);
@@ -143,26 +148,26 @@ describe('useStorePrices', () => {
 
     // Resolve the connection
     await act(async () => {
-      resolveConnection!();
+      resolveInit!();
       await Promise.resolve();
     });
 
     await waitFor(() => expect(result1.current.loading).toBe(false));
     await waitFor(() => expect(result2.current.loading).toBe(false));
 
-    // Should only have called initConnection once (not twice)
-    expect(initConnectionMock).toHaveBeenCalledTimes(1);
+    // Should only have called initialize once (not twice)
+    expect(initializeMock).toHaveBeenCalledTimes(1);
   });
 
   it('refresh() triggers a new fetch', async () => {
-    initConnectionMock.mockResolvedValue();
+    initializeMock.mockResolvedValue({ success: true });
     getSubscriptionsMock.mockResolvedValue(mockIOSSubscriptions as never);
     getProductsMock.mockResolvedValue([mockLifetimeProduct] as never);
 
     const { result } = renderHook(() => useStorePrices());
 
     await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(initConnectionMock).toHaveBeenCalledTimes(1);
+    expect(initializeMock).toHaveBeenCalledTimes(1);
 
     // Update mock to return different prices
     getSubscriptionsMock.mockResolvedValue([
@@ -176,7 +181,7 @@ describe('useStorePrices', () => {
     });
 
     await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(initConnectionMock).toHaveBeenCalledTimes(2);
+    expect(initializeMock).toHaveBeenCalledTimes(2);
     expect(result.current.monthly.localizedPrice).toBe('$6.99');
   });
 });
