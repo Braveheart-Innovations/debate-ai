@@ -352,15 +352,15 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
               </Typography>
               
               <View style={styles.membershipStatus}>
-                {access.isPremium ? (
-                  <View style={[styles.membershipBadge, styles.premiumBadge, { backgroundColor: theme.colors.warning[500] }]}>
-                    <Typography variant="caption" weight="bold" color="inverse">Premium Member ✨</Typography>
-                  </View>
-                ) : access.isInTrial ? (
-                  <View style={[styles.membershipBadge, styles.premiumBadge, { backgroundColor: theme.colors.info[500] }]}>
+                {access.isInTrial ? (
+                  <View style={[styles.membershipBadge, styles.trialBadge, { backgroundColor: theme.colors.info[500] }]}>
                     <Typography variant="caption" weight="bold" color="inverse">
                       Trial — {access.trialDaysRemaining ?? 0} day{access.trialDaysRemaining === 1 ? '' : 's'} left
                     </Typography>
+                  </View>
+                ) : access.isPremium ? (
+                  <View style={[styles.membershipBadge, styles.premiumBadge, { backgroundColor: theme.colors.warning[500] }]}>
+                    <Typography variant="caption" weight="bold" color="inverse">Premium Member ✨</Typography>
                   </View>
                 ) : (
                   <View style={[styles.membershipBadge, styles.freeBadge, { backgroundColor: theme.colors.primary[100] as string }]}>
@@ -647,6 +647,16 @@ const styles = StyleSheet.create({
   },
   premiumBadge: {
     shadowColor: '#f59e0b',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  trialBadge: {
+    shadowColor: '#3b82f6',
     shadowOffset: {
       width: 0,
       height: 2,
