@@ -399,6 +399,7 @@ export const Header: React.FC<HeaderProps> = ({
   
   const renderGradientTitleContent = () => {
     if (!title) {
+      // Fallback when no title provided (rare - most screens pass titles)
       return (
         <Typography
           variant="heading"
@@ -406,7 +407,7 @@ export const Header: React.FC<HeaderProps> = ({
           color="inverse"
           style={styles.gradientTitle}
         >
-          {getGreeting()}
+          The symposium awaits
         </Typography>
       );
     }

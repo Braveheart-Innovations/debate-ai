@@ -101,11 +101,11 @@ describe('Header', () => {
     expect(getByTestId('badge-Premium')).toBeTruthy();
   });
 
-  it('falls back to greeting when gradient variant has no title', () => {
+  it('falls back to default greeting when gradient variant has no title', () => {
     const { getByText } = renderWithProviders(
       <Header title="" variant="gradient" />
     );
 
-    expect(getByText(/Good (morning|afternoon|evening|night)/)).toBeTruthy();
+    expect(getByText('The symposium awaits')).toBeTruthy();
   });
 });
