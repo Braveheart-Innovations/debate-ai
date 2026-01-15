@@ -24,6 +24,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useDispatch } from 'react-redux';
 import { completeOnboarding } from '../store';
+import { settingsService } from '../services/settings/SettingsService';
 import { useStorePrices } from '@/hooks/useStorePrices';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -116,6 +117,8 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
 
   const handleGetStarted = () => {
     dispatch(completeOnboarding());
+    // Persist onboarding state to survive app updates
+    settingsService.saveOnboardingState(true);
   };
 
   const features = [

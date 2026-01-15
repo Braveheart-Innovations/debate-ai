@@ -414,6 +414,12 @@ export class PurchaseService {
           const androidToken = (purchase as Purchase & { purchaseToken?: string }).purchaseToken || data.androidPurchaseToken || null;
           (update as { androidPurchaseToken?: string | null }).androidPurchaseToken = androidToken;
         }
+        // For iOS: generate/save appAccountToken for Apple Server-to-Server notifications
+        // This ensures existing users get the token backfilled on restore
+        if (Platform.OS === 'ios') {
+          const appAccountToken = await this.getOrCreateAppAccountToken(user.uid);
+          (update as { appAccountToken?: string }).appAccountToken = appAccountToken;
+        }
         const db = getFirestore();
         await setDoc(doc(collection(db, 'users'), user.uid), update, { merge: true });
       } else {

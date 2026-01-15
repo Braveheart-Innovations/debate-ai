@@ -4,7 +4,8 @@ import { Provider, useDispatch, useSelector } from 'react-redux';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { store, RootState } from './src/store';
-import { updateApiKeys, restoreVerificationData, restoreStats } from './src/store';
+import { updateApiKeys, restoreVerificationData, restoreStats, restoreOnboarding } from './src/store';
+import { settingsService } from './src/services/settings/SettingsService';
 import AppNavigator from './src/navigation/AppNavigator';
 import { AIServiceProvider } from './src/providers/AIServiceProvider';
 import { CitationPreviewProvider } from './src/providers/CitationPreviewProvider';
@@ -46,6 +47,17 @@ function AppContent() {
           console.log('IAP initialized');
         } catch (e) {
           console.warn('IAP init failed, continuing without IAP:', e);
+        }
+
+        // Load persisted onboarding state (survives app updates)
+        try {
+          const hasOnboarded = await settingsService.loadOnboardingState();
+          if (hasOnboarded) {
+            dispatch(restoreOnboarding(true));
+            console.log('Restored onboarding state: completed');
+          }
+        } catch (e) {
+          console.warn('Failed to load onboarding state:', e);
         }
 
         // Set up auth state listener
@@ -128,6 +140,19 @@ function AppContent() {
             );
 
             console.log('User authenticated with Firebase:', user.uid);
+
+            // Auto-restore subscriptions on app startup to sync with App Store/Play Store
+            // This fixes users who updated the app but didn't have their subscription status synced
+            try {
+              const restoreResult = await PurchaseService.restorePurchases();
+              if (restoreResult.restored) {
+                console.log('Subscriptions restored on startup:', restoreResult.isLifetime ? 'lifetime' : 'subscription');
+              } else if (restoreResult.success) {
+                console.log('No active subscriptions to restore');
+              }
+            } catch (e) {
+              console.warn('Subscription restore failed on startup:', e);
+            }
           } else {
             // User signed out - clear all auth state
             dispatch(setAuthUser(null));

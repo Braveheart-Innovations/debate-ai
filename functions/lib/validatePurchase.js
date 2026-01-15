@@ -126,9 +126,13 @@ exports.validatePurchase = (0, https_1.onCall)({ secrets: [appleSharedSecret] },
         const expiry = userData.subscriptionExpiryDate?.toDate?.() || null;
         const isLifetimeUser = userData.isLifetime === true;
         // If user already has active subscription, return current state
+        // BUT: if expiry is null (broken state), force re-validation to fix it
         if (status === 'trial' || status === 'premium') {
-            const isExpired = expiry && new Date() > expiry;
-            if (isLifetimeUser || !isExpired) {
+            // FIX: Treat null expiry as "needs re-validation" rather than "not expired"
+            // Previous bug: `expiry && new Date() > expiry` would be false when expiry is null
+            const isExpired = expiry ? new Date() > expiry : false;
+            const needsRevalidation = !expiry && !isLifetimeUser; // null expiry = broken state
+            if (isLifetimeUser || (!isExpired && !needsRevalidation)) {
                 console.log(`User ${userId} already has active ${status} - returning cached state`);
                 return {
                     valid: true,
@@ -141,6 +145,9 @@ exports.validatePurchase = (0, https_1.onCall)({ secrets: [appleSharedSecret] },
                     hasUsedTrial: userData.hasUsedTrial ?? false,
                     isLifetime: isLifetimeUser,
                 };
+            }
+            if (needsRevalidation) {
+                console.log(`User ${userId} has ${status} but null subscriptionExpiryDate - forcing re-validation`);
             }
         }
     }

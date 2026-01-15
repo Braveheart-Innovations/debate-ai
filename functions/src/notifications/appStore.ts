@@ -41,14 +41,25 @@ export const handleAppStoreNotification = functions.https.onRequest(async (req, 
           const userId = await findUserByAppAccountToken(appAccountToken);
           if (userId) {
             const expiresAt = expiresMs ? new Date(parseInt(expiresMs, 10)) : null;
-            const isActive = !!(expiresAt && expiresAt.getTime() > Date.now());
-            await admin.firestore().collection('users').doc(userId).set({
-              membershipStatus: isActive ? 'premium' : 'demo',
-              isPremium: isActive,
-              subscriptionExpiryDate: expiresAt ? admin.firestore.Timestamp.fromDate(expiresAt) : null,
-              productId: productId && productId.includes('annual') ? 'annual' : 'monthly',
-              lastValidated: admin.firestore.FieldValue.serverTimestamp(),
-            }, { merge: true });
+
+            // Only update if we have a valid expiry date
+            // Don't overwrite subscriptionExpiryDate with null - that breaks the subscription state
+            if (expiresAt) {
+              const isActive = expiresAt.getTime() > Date.now();
+              await admin.firestore().collection('users').doc(userId).set({
+                membershipStatus: isActive ? 'premium' : 'demo',
+                isPremium: isActive,
+                subscriptionExpiryDate: admin.firestore.Timestamp.fromDate(expiresAt),
+                productId: productId && productId.includes('annual') ? 'annual' : 'monthly',
+                lastValidated: admin.firestore.FieldValue.serverTimestamp(),
+              }, { merge: true });
+              console.log(`Updated user ${userId}: membershipStatus=${isActive ? 'premium' : 'demo'}, expiresAt=${expiresAt.toISOString()}`);
+            } else {
+              // Log warning but don't update - missing expiresDate would corrupt the user's state
+              console.warn(`App Store notification for user ${userId} missing expiresDate - skipping update to avoid corrupting state`);
+            }
+          } else {
+            console.warn(`App Store notification: no user found for appAccountToken ${appAccountToken.substring(0, 8)}...`);
           }
         }
       } catch (e) {

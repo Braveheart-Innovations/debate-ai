@@ -41,6 +41,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 class SettingsService {
   private static readonly SETTINGS_KEY = '@settings';
   private static readonly SETTINGS_VERSION = '1.0.0';
+  private static readonly ONBOARDING_KEY = '@hasCompletedOnboarding';
 
   /**
    * Load user settings from AsyncStorage
@@ -214,26 +215,51 @@ class SettingsService {
   private async migrateSettings(settings: AppSettings): Promise<AppSettings> {
     try {
       const currentVersion = settings.version || '0.0.0';
-      
+
       if (currentVersion !== SettingsService.SETTINGS_VERSION) {
         console.warn(`Migrating settings from ${currentVersion} to ${SettingsService.SETTINGS_VERSION}`);
-        
+
         // Perform migration logic here if needed
         const migratedSettings = {
           ...this.validateSettings(settings as unknown as Record<string, unknown>),
           version: SettingsService.SETTINGS_VERSION,
         };
-        
+
         // Save migrated settings
         await this.saveSettings(migratedSettings);
-        
+
         return migratedSettings;
       }
-      
+
       return settings;
     } catch (error) {
       console.error('Settings migration failed:', error);
       return DEFAULT_SETTINGS;
+    }
+  }
+
+  /**
+   * Load onboarding completion state from AsyncStorage
+   * Used to persist hasCompletedOnboarding across app updates
+   */
+  async loadOnboardingState(): Promise<boolean> {
+    try {
+      const value = await AsyncStorage.getItem(SettingsService.ONBOARDING_KEY);
+      return value === 'true';
+    } catch (error) {
+      console.error('Failed to load onboarding state:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Save onboarding completion state to AsyncStorage
+   */
+  async saveOnboardingState(completed: boolean): Promise<void> {
+    try {
+      await AsyncStorage.setItem(SettingsService.ONBOARDING_KEY, String(completed));
+    } catch (error) {
+      console.error('Failed to save onboarding state:', error);
     }
   }
 }

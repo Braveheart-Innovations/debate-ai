@@ -100,4 +100,62 @@ describe('SettingsService', () => {
     storage.getItem.mockRejectedValue(new Error('boom'));
     expect(await settingsService.getAppVersion()).toBe(DEFAULT_SETTINGS.version);
   });
+
+  describe('onboarding persistence', () => {
+    it('loads onboarding state as false when not set', async () => {
+      storage.getItem.mockResolvedValue(null);
+
+      const result = await settingsService.loadOnboardingState();
+
+      expect(result).toBe(false);
+      expect(storage.getItem).toHaveBeenCalledWith('@hasCompletedOnboarding');
+    });
+
+    it('loads onboarding state as true when set to "true"', async () => {
+      storage.getItem.mockResolvedValue('true');
+
+      const result = await settingsService.loadOnboardingState();
+
+      expect(result).toBe(true);
+    });
+
+    it('loads onboarding state as false when set to other values', async () => {
+      storage.getItem.mockResolvedValue('false');
+
+      const result = await settingsService.loadOnboardingState();
+
+      expect(result).toBe(false);
+    });
+
+    it('saves onboarding state correctly', async () => {
+      storage.setItem.mockResolvedValue(undefined);
+
+      await settingsService.saveOnboardingState(true);
+
+      expect(storage.setItem).toHaveBeenCalledWith('@hasCompletedOnboarding', 'true');
+    });
+
+    it('saves onboarding state as false correctly', async () => {
+      storage.setItem.mockResolvedValue(undefined);
+
+      await settingsService.saveOnboardingState(false);
+
+      expect(storage.setItem).toHaveBeenCalledWith('@hasCompletedOnboarding', 'false');
+    });
+
+    it('handles errors gracefully when loading onboarding state', async () => {
+      storage.getItem.mockRejectedValue(new Error('Storage error'));
+
+      const result = await settingsService.loadOnboardingState();
+
+      expect(result).toBe(false);
+    });
+
+    it('handles errors gracefully when saving onboarding state', async () => {
+      storage.setItem.mockRejectedValue(new Error('Storage error'));
+
+      // Should not throw
+      await expect(settingsService.saveOnboardingState(true)).resolves.not.toThrow();
+    });
+  });
 });

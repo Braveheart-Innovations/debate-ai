@@ -286,6 +286,9 @@ const settingsSlice = createSlice({
     completeOnboarding: (state) => {
       state.hasCompletedOnboarding = true;
     },
+    restoreOnboarding: (state, action: PayloadAction<boolean>) => {
+      state.hasCompletedOnboarding = action.payload;
+    },
     updateExpertMode: (state, action: PayloadAction<{ provider: string; config: ExpertModeConfig }>) => {
       state.expertMode[action.payload.provider] = action.payload.config;
     },
@@ -324,16 +327,17 @@ export type AppDispatch = AppStore['dispatch'];
 // Export actions
 export const { setUser, updateUIMode, updateSubscription, logout } = userSlice.actions;
 export const { startSession, addMessage, updateMessage, setTypingAI, endSession, loadSession, setLoading, setAIPersonality, setAIModel, clearPersonalities, clearModels, setWebSearchPreferred } = chatSlice.actions;
-export const { 
-  updateTheme, 
-  updateFontSize, 
+export const {
+  updateTheme,
+  updateFontSize,
   setAPIKey,
   updateApiKeys,
   setVerifiedProviders,
   addVerifiedProvider,
   removeVerifiedProvider,
   restoreVerificationData,
-  completeOnboarding, 
+  completeOnboarding,
+  restoreOnboarding,
   updateExpertMode,
   setRecordModeEnabled,
 } = settingsSlice.actions;
