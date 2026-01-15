@@ -154,6 +154,96 @@ describe('useDeviceType', () => {
     });
   });
 
+  describe('tabletSize classification', () => {
+    it('returns null for phones', () => {
+      mockUseWindowDimensions.mockReturnValue({ width: 390, height: 844 });
+
+      const { result } = renderHook(() => useDeviceType());
+
+      expect(result.current.tabletSize).toBeNull();
+    });
+
+    it('classifies iPad Air as small tablet (maxDimension < 1200)', () => {
+      mockUseWindowDimensions.mockReturnValue({ width: 820, height: 1180 });
+
+      const { result } = renderHook(() => useDeviceType());
+
+      expect(result.current.tabletSize).toBe('small');
+    });
+
+    it('classifies iPad mini as small tablet', () => {
+      mockUseWindowDimensions.mockReturnValue({ width: 744, height: 1133 });
+
+      const { result } = renderHook(() => useDeviceType());
+
+      expect(result.current.tabletSize).toBe('small');
+    });
+
+    it('classifies iPad Pro 11" as medium tablet (maxDimension >= 1200 && < 1300)', () => {
+      mockUseWindowDimensions.mockReturnValue({ width: 834, height: 1210 });
+
+      const { result } = renderHook(() => useDeviceType());
+
+      expect(result.current.tabletSize).toBe('medium');
+    });
+
+    it('classifies iPad Pro 12.9" as large tablet (maxDimension >= 1300)', () => {
+      mockUseWindowDimensions.mockReturnValue({ width: 1024, height: 1366 });
+
+      const { result } = renderHook(() => useDeviceType());
+
+      expect(result.current.tabletSize).toBe('large');
+    });
+
+    it('maintains correct tablet size in landscape orientation', () => {
+      // iPad Pro 12.9" in landscape
+      mockUseWindowDimensions.mockReturnValue({ width: 1366, height: 1024 });
+
+      const { result } = renderHook(() => useDeviceType());
+
+      expect(result.current.isTablet).toBe(true);
+      expect(result.current.isLandscape).toBe(true);
+      expect(result.current.tabletSize).toBe('large');
+    });
+  });
+
+  describe('screenScale calculation', () => {
+    it('returns 1.0 for reference phone height (844px)', () => {
+      mockUseWindowDimensions.mockReturnValue({ width: 390, height: 844 });
+
+      const { result } = renderHook(() => useDeviceType());
+
+      expect(result.current.screenScale).toBeCloseTo(1.0, 2);
+    });
+
+    it('returns less than 1.0 for smaller phones', () => {
+      mockUseWindowDimensions.mockReturnValue({ width: 375, height: 667 }); // iPhone SE
+
+      const { result } = renderHook(() => useDeviceType());
+
+      expect(result.current.screenScale).toBeLessThan(1.0);
+      expect(result.current.screenScale).toBeCloseTo(0.79, 2);
+    });
+
+    it('returns greater than 1.0 for larger screens in portrait', () => {
+      mockUseWindowDimensions.mockReturnValue({ width: 820, height: 1180 }); // iPad Air
+
+      const { result } = renderHook(() => useDeviceType());
+
+      expect(result.current.screenScale).toBeGreaterThan(1.0);
+      expect(result.current.screenScale).toBeCloseTo(1.40, 2);
+    });
+
+    it('adjusts scale based on current height (landscape has shorter height)', () => {
+      // iPad Air in landscape - height is now 820
+      mockUseWindowDimensions.mockReturnValue({ width: 1180, height: 820 });
+
+      const { result } = renderHook(() => useDeviceType());
+
+      expect(result.current.screenScale).toBeCloseTo(0.97, 2);
+    });
+  });
+
   describe('memoization', () => {
     it('returns same object reference when dimensions unchanged', () => {
       mockUseWindowDimensions.mockReturnValue({ width: 768, height: 1024 });

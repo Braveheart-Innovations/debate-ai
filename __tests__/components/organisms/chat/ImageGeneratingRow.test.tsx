@@ -20,18 +20,23 @@ describe('ImageGeneratingRow', () => {
   const mockOnCancel = jest.fn();
   const mockOnRetry = jest.fn();
 
-  const baseMessage: Message = {
+  // Use a getter so timestamp is fresh for each test
+  const getBaseMessage = (): Message => ({
     id: 'msg1',
     text: 'Generate an image',
     sender: 'Claude',
     senderId: 'claude',
     timestamp: Date.now(),
     metadata: {},
-  };
+  });
+
+  let baseMessage: Message;
 
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
+    // Create fresh message with current timestamp for each test
+    baseMessage = getBaseMessage();
   });
 
   afterEach(() => {

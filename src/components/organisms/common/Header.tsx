@@ -172,19 +172,25 @@ const TABLET_COMPACT_HEIGHT = 60;
 
 // Gradient header uses proportional scaling for tablets
 const MIN_TABLET_GRADIENT_HEIGHT = 100;
+const MIN_TABLET_LANDSCAPE_GRADIENT_HEIGHT = 120; // Higher minimum for landscape to fit badges/buttons
 const MAX_TABLET_GRADIENT_HEIGHT = 150;
 const TABLET_GRADIENT_HEIGHT_RATIO = 0.11; // 11% of screen height
+const TABLET_LANDSCAPE_HEIGHT_RATIO = 0.15; // 15% for landscape (shorter screen)
 
 /**
  * Calculate gradient header height based on screen dimensions.
  * Uses proportional scaling for tablets to handle iPad Air vs iPad Pro differences.
  */
-const getGradientHeaderHeight = (isTablet: boolean, screenHeight: number): number => {
+const getGradientHeaderHeight = (isTablet: boolean, screenHeight: number, isLandscape: boolean = false): number => {
   if (!isTablet) return HEADER_HEIGHT; // 65px for phones - unchanged
 
-  // Proportional scaling: 11% of screen height, bounded by min/max
-  const proportionalHeight = screenHeight * TABLET_GRADIENT_HEIGHT_RATIO;
-  return Math.max(MIN_TABLET_GRADIENT_HEIGHT, Math.min(MAX_TABLET_GRADIENT_HEIGHT, proportionalHeight));
+  // In landscape, use a higher ratio and minimum since screen height is shorter
+  const ratio = isLandscape ? TABLET_LANDSCAPE_HEIGHT_RATIO : TABLET_GRADIENT_HEIGHT_RATIO;
+  const minHeight = isLandscape ? MIN_TABLET_LANDSCAPE_GRADIENT_HEIGHT : MIN_TABLET_GRADIENT_HEIGHT;
+
+  // Proportional scaling with landscape-aware bounds
+  const proportionalHeight = screenHeight * ratio;
+  return Math.max(minHeight, Math.min(MAX_TABLET_GRADIENT_HEIGHT, proportionalHeight));
 };
 
 /**
@@ -225,7 +231,7 @@ export const Header: React.FC<HeaderProps> = ({
   const insets = useSafeAreaInsets();
   const [currentTime, setCurrentTime] = useState(new Date());
   const { width, height: screenHeight } = useWindowDimensions();
-  const { isTablet } = useDeviceType();
+  const { isTablet, isLandscape } = useDeviceType();
   const hasSubtitle = Boolean(subtitle);
   // Subtle, battery-friendly accents inside the SVG (no edges move)
   const enableAccents = true;
@@ -239,15 +245,6 @@ export const Header: React.FC<HeaderProps> = ({
   const subtitleOpacity = useSharedValue(animated ? 0 : 1);
   const subtitleTranslateY = useSharedValue(animated ? 15 : 0);
   // Deprecated accent animations removed
-  
-  // Get time-based greeting (for gradient variant)
-  const getGreeting = () => {
-    const hour = currentTime.getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    if (hour < 21) return 'Good evening';
-    return 'Good night';
-  };
   
   // Update time if needed (more frequent for gradient variant)
   useEffect(() => {
@@ -306,7 +303,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   // Calculate header height - use proportional scaling for gradient variant on tablets
   const baseHeight = variant === 'gradient'
-    ? getGradientHeaderHeight(isTablet, screenHeight)
+    ? getGradientHeaderHeight(isTablet, screenHeight, isLandscape)
     : getBaseHeaderHeight(isTablet, variant === 'compact');
   const headerHeight = height || baseHeight;
   const totalHeight = headerHeight + insets.top;
@@ -679,8 +676,14 @@ export const Header: React.FC<HeaderProps> = ({
   };
   
   const HeaderContent = animated && (variant as string) !== 'gradient' ? Animated.View : View;
-  // Offset demo badge to avoid overlapping the optional action button
-  const demoBadgeBottom = actionButton ? 40 : 10;
+
+  // Calculate bottom positions for demo badge and action button
+  // In landscape on tablets, use larger offsets to keep them within gradient bounds
+  const isTabletLandscape = isTablet && isLandscape;
+  const actionButtonBottom = isTabletLandscape ? 16 : 8;
+  const demoBadgeBottom = actionButton
+    ? (isTabletLandscape ? 52 : 40)  // Above action button
+    : (isTabletLandscape ? 16 : 10); // Standalone
 
   return (
     <Box 
@@ -723,9 +726,9 @@ export const Header: React.FC<HeaderProps> = ({
           
           {/* Action button positioned in lower right of header for gradient variant */}
           {actionButton && (
-            <View style={[styles.headerActionButtonContainer, { 
-              bottom: 8,
-              right: 16 
+            <View style={[styles.headerActionButtonContainer, {
+              bottom: actionButtonBottom,
+              right: 16
             }]}>
               <Button
                 title={actionButton.label}

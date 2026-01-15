@@ -175,6 +175,9 @@ export class PurchaseService {
     }
     this.purchaseUpdateSub = null;
     this.purchaseErrorSub = null;
+    this.isInitialized = false;
+    this.initializationInProgress = null;
+    errorListeners.clear();
     endConnection().catch(() => {});
   }
 
