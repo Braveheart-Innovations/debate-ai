@@ -390,7 +390,8 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
                     Alert.alert('Trial Started', 'Your trial is starting (pending store confirmation).');
                     await access.refresh();
                   } else if (!('cancelled' in res) || !res.cancelled) {
-                    Alert.alert('Purchase Failed', 'Unable to start trial.');
+                    const msg = 'userMessage' in res && res.userMessage ? res.userMessage : 'Unable to start trial.';
+                    Alert.alert('Purchase Failed', msg);
                   }
                 } catch (_e) {
                   void _e;

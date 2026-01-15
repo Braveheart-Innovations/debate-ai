@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Platform } from 'react-native';
 import {
+  initConnection,
   getSubscriptions,
   getProducts,
   type Product,
@@ -114,6 +115,9 @@ export function useStorePrices(): StorePricesResult {
     try {
       setLoading(true);
       setError(null);
+
+      // Ensure IAP connection is established before fetching prices
+      await initConnection();
 
       const subscriptionSkus = [
         SUBSCRIPTION_PRODUCTS.monthly,
