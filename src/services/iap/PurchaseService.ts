@@ -84,6 +84,7 @@ export class PurchaseService {
   private static purchaseUpdateSub: { remove: () => void } | null = null;
   private static purchaseErrorSub: { remove: () => void } | null = null;
   private static isInitialized = false;
+  private static initializationInProgress: Promise<{ success: boolean; error?: unknown }> | null = null;
 
   /**
    * Register a listener for background purchase errors (e.g., validation failures).
@@ -105,17 +106,34 @@ export class PurchaseService {
   }
 
   static async initialize() {
-    try {
-      await initConnection();
-      this.setupListeners();
-      this.isInitialized = true;
+    // Already initialized - return immediately
+    if (this.isInitialized) {
       return { success: true };
-    } catch (error) {
-      // Log via ErrorService but don't show toast (initialization is background)
-      ErrorService.handleSilent(error, { action: 'iap_initialize' });
-      this.isInitialized = false;
-      return { success: false, error } as const;
     }
+
+    // Initialization already in progress - wait for it
+    if (this.initializationInProgress) {
+      return this.initializationInProgress;
+    }
+
+    // Start initialization with lock
+    this.initializationInProgress = (async () => {
+      try {
+        await initConnection();
+        this.setupListeners();
+        this.isInitialized = true;
+        return { success: true };
+      } catch (error) {
+        // Log via ErrorService but don't show toast (initialization is background)
+        ErrorService.handleSilent(error, { action: 'iap_initialize' });
+        this.isInitialized = false;
+        return { success: false, error } as const;
+      } finally {
+        this.initializationInProgress = null;
+      }
+    })();
+
+    return this.initializationInProgress;
   }
 
   /**
@@ -174,10 +192,9 @@ export class PurchaseService {
       const subscriptionSkus = [SUBSCRIPTION_PRODUCTS.monthly, SUBSCRIPTION_PRODUCTS.annual];
       const productSkus = [SUBSCRIPTION_PRODUCTS.lifetime];
 
-      const [subs, prods] = await Promise.all([
-        getSubscriptions({ skus: subscriptionSkus }),
-        getProducts({ skus: productSkus }),
-      ]);
+      // Serialize IAP calls - react-native-iap can't handle concurrent requests
+      const subs = await getSubscriptions({ skus: subscriptionSkus });
+      const prods = await getProducts({ skus: productSkus });
 
       const foundIds = [...subs, ...prods].map((p) => p.productId);
       const unavailable = allSkus.filter((sku) => !foundIds.includes(sku));

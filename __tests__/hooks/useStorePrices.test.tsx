@@ -1,73 +1,27 @@
-import { act, waitFor, renderHook } from '@testing-library/react-native';
-import {
-  getSubscriptions,
-  getProducts,
-} from 'react-native-iap';
-import { ErrorService } from '@/services/errors/ErrorService';
-import { PurchaseService } from '@/services/iap/PurchaseService';
-import { useStorePrices, __resetCacheForTesting } from '@/hooks/useStorePrices';
+import { renderHook } from '@testing-library/react-native';
+import { Provider } from 'react-redux';
+import { configureStore } from '@reduxjs/toolkit';
+import pricesReducer, { setPrices } from '@/store/pricesSlice';
+import { useStorePrices } from '@/hooks/useStorePrices';
+import React from 'react';
 
-jest.mock('react-native-iap', () => ({
-  getSubscriptions: jest.fn(),
-  getProducts: jest.fn(),
-}));
-
-jest.mock('@/services/iap/PurchaseService', () => ({
-  PurchaseService: {
-    initialize: jest.fn(),
-  },
-}));
-
-jest.mock('@/services/errors/ErrorService', () => ({
-  ErrorService: {
-    handleSilent: jest.fn(),
-  },
-}));
-
-jest.mock('@/services/iap/products', () => ({
-  SUBSCRIPTION_PRODUCTS: {
-    monthly: 'com.test.monthly',
-    annual: 'com.test.annual',
-    lifetime: 'com.test.lifetime',
-  },
-}));
-
-const initializeMock = PurchaseService.initialize as jest.MockedFunction<typeof PurchaseService.initialize>;
-const getSubscriptionsMock = getSubscriptions as jest.MockedFunction<typeof getSubscriptions>;
-const getProductsMock = getProducts as jest.MockedFunction<typeof getProducts>;
-
-describe('useStorePrices', () => {
-  const mockIOSSubscriptions = [
-    {
-      productId: 'com.test.monthly',
-      localizedPrice: '$5.99',
-      price: '5.99',
-      currency: 'USD',
-    },
-    {
-      productId: 'com.test.annual',
-      localizedPrice: '$49.99',
-      price: '49.99',
-      currency: 'USD',
-    },
-  ];
-
-  const mockLifetimeProduct = {
-    productId: 'com.test.lifetime',
-    localizedPrice: '$129.99',
-    price: '129.99',
-    currency: 'USD',
-  };
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-    __resetCacheForTesting();
+const createTestStore = (preloadedState = {}) =>
+  configureStore({
+    reducer: { prices: pricesReducer },
+    preloadedState,
   });
 
-  it('returns fallback prices while loading', async () => {
-    initializeMock.mockImplementation(() => new Promise(() => {}) as never); // Never resolves
+const wrapper = (store: ReturnType<typeof createTestStore>) =>
+  function Wrapper({ children }: { children: React.ReactNode }) {
+    return <Provider store={store}>{children}</Provider>;
+  };
 
-    const { result } = renderHook(() => useStorePrices());
+describe('useStorePrices', () => {
+  it('returns fallback prices when not loaded', () => {
+    const store = createTestStore();
+    const { result } = renderHook(() => useStorePrices(), {
+      wrapper: wrapper(store),
+    });
 
     expect(result.current.loading).toBe(true);
     expect(result.current.monthly.localizedPrice).toBe('$5.99');
@@ -75,113 +29,21 @@ describe('useStorePrices', () => {
     expect(result.current.lifetime.localizedPrice).toBe('$129.99');
   });
 
-  it('fetches and returns store prices on mount', async () => {
-    initializeMock.mockResolvedValue({ success: true });
-    getSubscriptionsMock.mockResolvedValue(mockIOSSubscriptions as never);
-    getProductsMock.mockResolvedValue([mockLifetimeProduct] as never);
+  it('returns store prices after dispatch', () => {
+    const store = createTestStore();
+    store.dispatch(setPrices({
+      monthly: { localizedPrice: '€4.99', price: '4.99', currency: 'EUR' },
+      annual: { localizedPrice: '€39.99', price: '39.99', currency: 'EUR' },
+      lifetime: { localizedPrice: '€99.99', price: '99.99', currency: 'EUR' },
+    }));
 
-    const { result } = renderHook(() => useStorePrices());
-
-    await waitFor(() => expect(result.current.loading).toBe(false));
-
-    expect(initializeMock).toHaveBeenCalledTimes(1);
-    expect(getSubscriptionsMock).toHaveBeenCalledTimes(1);
-    expect(getProductsMock).toHaveBeenCalledTimes(1);
-    expect(result.current.monthly.localizedPrice).toBe('$5.99');
-    expect(result.current.annual.localizedPrice).toBe('$49.99');
-    expect(result.current.lifetime.localizedPrice).toBe('$129.99');
-    expect(result.current.error).toBeNull();
-  });
-
-  it('uses cached prices within 24-hour TTL', async () => {
-    initializeMock.mockResolvedValue({ success: true });
-    getSubscriptionsMock.mockResolvedValue(mockIOSSubscriptions as never);
-    getProductsMock.mockResolvedValue([mockLifetimeProduct] as never);
-
-    // First render - should fetch
-    const { result: result1, unmount } = renderHook(() => useStorePrices());
-    await waitFor(() => expect(result1.current.loading).toBe(false));
-    expect(initializeMock).toHaveBeenCalledTimes(1);
-    unmount();
-
-    // Second render - should use cache
-    const { result: result2 } = renderHook(() => useStorePrices());
-
-    // Should not trigger another fetch
-    expect(initializeMock).toHaveBeenCalledTimes(1);
-    expect(result2.current.loading).toBe(false);
-    expect(result2.current.monthly.localizedPrice).toBe('$5.99');
-  });
-
-  it('handles fetch errors and returns fallback prices', async () => {
-    const testError = new Error('IAP connection failed');
-    initializeMock.mockRejectedValue(testError);
-
-    const { result } = renderHook(() => useStorePrices());
-
-    await waitFor(() => expect(result.current.loading).toBe(false));
-
-    expect(result.current.error).toEqual(testError);
-    expect(ErrorService.handleSilent).toHaveBeenCalledWith(
-      testError,
-      { action: 'fetch_store_prices' }
-    );
-    // Should still return fallback prices
-    expect(result.current.monthly.localizedPrice).toBe('$5.99');
-  });
-
-  it('prevents concurrent fetch requests', async () => {
-    let resolveInit: () => void;
-    initializeMock.mockImplementation(
-      () => new Promise((resolve) => { resolveInit = () => resolve({ success: true }); }) as never
-    );
-    getSubscriptionsMock.mockResolvedValue(mockIOSSubscriptions as never);
-    getProductsMock.mockResolvedValue([mockLifetimeProduct] as never);
-
-    // Render multiple hooks simultaneously (simulating multiple components)
-    const { result: result1 } = renderHook(() => useStorePrices());
-    const { result: result2 } = renderHook(() => useStorePrices());
-
-    // Both should be loading
-    expect(result1.current.loading).toBe(true);
-    expect(result2.current.loading).toBe(true);
-
-    // Resolve the connection
-    await act(async () => {
-      resolveInit!();
-      await Promise.resolve();
+    const { result } = renderHook(() => useStorePrices(), {
+      wrapper: wrapper(store),
     });
 
-    await waitFor(() => expect(result1.current.loading).toBe(false));
-    await waitFor(() => expect(result2.current.loading).toBe(false));
-
-    // Should only have called initialize once (not twice)
-    expect(initializeMock).toHaveBeenCalledTimes(1);
-  });
-
-  it('refresh() triggers a new fetch', async () => {
-    initializeMock.mockResolvedValue({ success: true });
-    getSubscriptionsMock.mockResolvedValue(mockIOSSubscriptions as never);
-    getProductsMock.mockResolvedValue([mockLifetimeProduct] as never);
-
-    const { result } = renderHook(() => useStorePrices());
-
-    await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(initializeMock).toHaveBeenCalledTimes(1);
-
-    // Update mock to return different prices
-    getSubscriptionsMock.mockResolvedValue([
-      { ...mockIOSSubscriptions[0], localizedPrice: '$6.99' },
-      mockIOSSubscriptions[1],
-    ] as never);
-
-    // Call refresh
-    await act(async () => {
-      await result.current.refresh();
-    });
-
-    await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(initializeMock).toHaveBeenCalledTimes(2);
-    expect(result.current.monthly.localizedPrice).toBe('$6.99');
+    expect(result.current.loading).toBe(false);
+    expect(result.current.monthly.localizedPrice).toBe('€4.99');
+    expect(result.current.annual.localizedPrice).toBe('€39.99');
+    expect(result.current.lifetime.localizedPrice).toBe('€99.99');
   });
 });

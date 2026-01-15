@@ -7,6 +7,7 @@ import { useTheme } from '../../../theme';
 import { useResponsive } from '../../../hooks/useResponsive';
 import { dateFormatterService } from '../../../services/history';
 import { ChatSession } from '../../../types';
+import { colors } from '../../../theme/colors';
 
 interface SessionDetailPaneProps {
   session: ChatSession | null;
@@ -21,8 +22,13 @@ export const SessionDetailPane: React.FC<SessionDetailPaneProps> = ({
   session,
   onOpenSession,
 }) => {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const { rs, fontSize } = useResponsive();
+
+  // Theme-aware colors for message bubbles
+  const userMessageBg = isDark ? colors.primary[900] : colors.primary[50];
+  const userMessageBorder = isDark ? colors.primary[600] : colors.primary[500];
+  const aiMessageBorder = isDark ? colors.gray[700] : colors.gray[300];
 
   // Empty state when no session is selected
   if (!session) {
@@ -155,11 +161,11 @@ export const SessionDetailPane: React.FC<SessionDetailPaneProps> = ({
                   styles.messageItem,
                   {
                     backgroundColor: isUserMessage
-                      ? theme.colors.primary[50]
+                      ? userMessageBg
                       : theme.colors.surface,
                     borderLeftColor: isUserMessage
-                      ? theme.colors.primary[500]
-                      : theme.colors.gray[300],
+                      ? userMessageBorder
+                      : aiMessageBorder,
                   }
                 ]}
               >

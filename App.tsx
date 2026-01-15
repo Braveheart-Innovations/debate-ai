@@ -4,7 +4,8 @@ import { Provider, useDispatch, useSelector } from 'react-redux';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { store, RootState } from './src/store';
-import { updateApiKeys, restoreVerificationData, restoreStats, restoreOnboarding } from './src/store';
+import { updateApiKeys, restoreVerificationData, restoreStats, restoreOnboarding, setPrices } from './src/store';
+import { loadPersistedPrices, fetchAndPersistPrices } from './src/services/prices/PricesPersistenceService';
 import { settingsService } from './src/services/settings/SettingsService';
 import AppNavigator from './src/navigation/AppNavigator';
 import { AIServiceProvider } from './src/providers/AIServiceProvider';
@@ -41,10 +42,25 @@ function AppContent() {
         // Initialize Crashlytics
         await CrashlyticsService.initialize();
 
-        // Initialize IAP connection
+        // Initialize IAP connection and load prices ONCE
         try {
           await PurchaseService.initialize();
           console.log('IAP initialized');
+
+          // Load cached prices or fetch fresh if stale/missing
+          const cachedPrices = await loadPersistedPrices();
+          if (cachedPrices) {
+            dispatch(setPrices({
+              monthly: cachedPrices.monthly,
+              annual: cachedPrices.annual,
+              lifetime: cachedPrices.lifetime,
+            }));
+            console.log('Loaded cached prices');
+          } else {
+            const freshPrices = await fetchAndPersistPrices();
+            dispatch(setPrices(freshPrices));
+            console.log('Fetched fresh prices');
+          }
         } catch (e) {
           console.warn('IAP init failed, continuing without IAP:', e);
         }

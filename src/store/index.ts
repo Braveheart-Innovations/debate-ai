@@ -8,6 +8,7 @@ import navigationReducer from './navigationSlice';
 import compareReducer from './compareSlice';
 import errorReducer from './errorSlice';
 import createReducer from './createSlice';
+import pricesReducer from './pricesSlice';
 
 // User slice
 interface UserState {
@@ -309,6 +310,7 @@ const rootReducer = combineReducers({
   compare: compareReducer,
   errors: errorReducer,
   create: createReducer,
+  prices: pricesReducer,
 });
 
 export type RootState = ReturnType<typeof rootReducer>;
@@ -467,3 +469,6 @@ export type {
   GeneratedImageEntry,
   CreateState,
 } from './createSlice';
+
+// Prices exports
+export { setPrices } from './pricesSlice';
