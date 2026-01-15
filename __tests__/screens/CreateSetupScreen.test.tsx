@@ -166,7 +166,7 @@ describe('CreateSetupScreen', () => {
     mockDynamicAISelectorProps = undefined;
     mockGradientButtonProps = undefined;
     mockUseSelector.mockImplementation((selector) => selector(baseState));
-    mockUseFeatureAccess.mockReturnValue({ membershipStatus: 'premium', isDemo: false });
+    mockUseFeatureAccess.mockReturnValue({ membershipStatus: 'premium', isDemo: false, isPremium: true });
   });
 
   describe('rendering', () => {
@@ -188,14 +188,20 @@ describe('CreateSetupScreen', () => {
 
   describe('premium gating', () => {
     it('shows premium gate for non-premium users', () => {
-      mockUseFeatureAccess.mockReturnValue({ membershipStatus: 'free', isDemo: false });
+      mockUseFeatureAccess.mockReturnValue({ membershipStatus: 'demo', isDemo: false, isPremium: false });
       const { getByText } = renderWithProviders(<CreateSetupScreen />);
       expect(getByText('Create Mode')).toBeTruthy();
       expect(getByText('Upgrade to Premium')).toBeTruthy();
     });
 
+    it('allows trial users to access (trial = premium access)', () => {
+      mockUseFeatureAccess.mockReturnValue({ membershipStatus: 'trial', isDemo: false, isPremium: true });
+      const { getByTestId } = renderWithProviders(<CreateSetupScreen />);
+      expect(getByTestId('ai-selector')).toBeTruthy();
+    });
+
     it('allows demo users to access', () => {
-      mockUseFeatureAccess.mockReturnValue({ membershipStatus: 'free', isDemo: true });
+      mockUseFeatureAccess.mockReturnValue({ membershipStatus: 'demo', isDemo: true, isPremium: false });
       const { getByTestId } = renderWithProviders(<CreateSetupScreen />);
       expect(getByTestId('ai-selector')).toBeTruthy();
     });
@@ -267,7 +273,7 @@ describe('CreateSetupScreen', () => {
     });
 
     it('does NOT dispatch hydrateGallery in demo mode', () => {
-      mockUseFeatureAccess.mockReturnValue({ membershipStatus: 'free', isDemo: true });
+      mockUseFeatureAccess.mockReturnValue({ membershipStatus: 'demo', isDemo: true, isPremium: false });
       mockUseSelector.mockImplementation((selector) =>
         selector({
           ...baseState,
@@ -297,7 +303,7 @@ describe('CreateSetupScreen', () => {
 
     it('shows upgrade alert when gallery button is pressed in demo mode', () => {
       const alertSpy = jest.spyOn(Alert, 'alert');
-      mockUseFeatureAccess.mockReturnValue({ membershipStatus: 'free', isDemo: true });
+      mockUseFeatureAccess.mockReturnValue({ membershipStatus: 'demo', isDemo: true, isPremium: false });
 
       const { getByTestId } = renderWithProviders(<CreateSetupScreen />);
       fireEvent.press(getByTestId('header-gallery-button'));
@@ -317,7 +323,7 @@ describe('CreateSetupScreen', () => {
 
     it('navigates to Subscription when Upgrade is pressed in demo gallery alert', () => {
       const alertSpy = jest.spyOn(Alert, 'alert');
-      mockUseFeatureAccess.mockReturnValue({ membershipStatus: 'free', isDemo: true });
+      mockUseFeatureAccess.mockReturnValue({ membershipStatus: 'demo', isDemo: true, isPremium: false });
 
       const { getByTestId } = renderWithProviders(<CreateSetupScreen />);
       fireEvent.press(getByTestId('header-gallery-button'));

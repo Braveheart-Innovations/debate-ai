@@ -102,22 +102,67 @@ describe('useFeatureAccess', () => {
     expect(result.current.trialDaysRemaining).toBe(2);
   });
 
-  it('respects simulated premium override from auth state', async () => {
-    jest.spyOn(SubscriptionManager, 'checkSubscriptionStatus').mockResolvedValue('demo');
-    jest.spyOn(SubscriptionManager, 'getTrialDaysRemaining').mockResolvedValue(null);
+  it('uses Redux membershipStatus during loading to show correct trial badge immediately', async () => {
+    // Simulate slow Firestore response
+    let resolveCheckStatus: (value: 'trial') => void;
+    const checkStatusPromise = new Promise<'trial'>((resolve) => {
+      resolveCheckStatus = resolve;
+    });
+    jest.spyOn(SubscriptionManager, 'checkSubscriptionStatus').mockReturnValue(checkStatusPromise);
+    jest.spyOn(SubscriptionManager, 'getTrialDaysRemaining').mockResolvedValue(5);
+    jest.spyOn(SubscriptionManager, 'hasUserUsedTrial').mockResolvedValue(true);
 
     const { result } = renderHookWithProviders(() => useFeatureAccess(), {
       preloadedState: {
-        auth: { ...baseAuthState, isPremium: true },
+        auth: {
+          ...baseAuthState,
+          userProfile: {
+            email: 'test@example.com',
+            displayName: 'Test User',
+            photoURL: null,
+            createdAt: Date.now(),
+            membershipStatus: 'trial',
+            preferences: {},
+          },
+        },
+      },
+    });
+
+    // During loading, should use Redux membershipStatus ('trial')
+    expect(result.current.loading).toBe(true);
+    expect(result.current.isInTrial).toBe(true);
+    expect(result.current.isPremium).toBe(true);
+
+    // Resolve the async call
+    await act(async () => {
+      resolveCheckStatus!('trial');
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    // After loading, should still be trial
+    expect(result.current.membershipStatus).toBe('trial');
+    expect(result.current.isInTrial).toBe(true);
+    expect(result.current.isPremium).toBe(true);
+  });
+
+  it('falls back to local state when Redux userProfile is null during loading', async () => {
+    jest.spyOn(SubscriptionManager, 'checkSubscriptionStatus').mockResolvedValue('premium');
+    jest.spyOn(SubscriptionManager, 'getTrialDaysRemaining').mockResolvedValue(null);
+    jest.spyOn(SubscriptionManager, 'hasUserUsedTrial').mockResolvedValue(false);
+
+    const { result } = renderHookWithProviders(() => useFeatureAccess(), {
+      preloadedState: {
+        auth: { ...baseAuthState, userProfile: null },
       },
     });
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    expect(result.current.membershipStatus).toBe('demo');
+    expect(result.current.membershipStatus).toBe('premium');
     expect(result.current.isPremium).toBe(true);
-    expect(result.current.canAccessLiveAI).toBe(true);
-    expect(result.current.isDemo).toBe(false);
+    expect(result.current.isInTrial).toBe(false);
   });
 
   it('subscribes to auth changes and handles firestore updates and errors', async () => {

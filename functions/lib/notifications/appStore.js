@@ -36,11 +36,27 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.handleAppStoreNotification = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
-const jose_1 = require("jose");
-// Apple ASN v2 JWKS
-const APPLE_JWKS_URL = new URL('https://api.storekit.itunes.apple.com/inApps/v1/keys');
-const JWKS = (0, jose_1.createRemoteJWKSet)(APPLE_JWKS_URL);
+const app_store_server_library_1 = require("@apple/app-store-server-library");
+// App configuration
+const BUNDLE_ID = 'com.braveheartinnovations.debateai';
+const APP_APPLE_ID = 6751146458;
+// Use PRODUCTION for live app, SANDBOX for TestFlight/development
+// The library handles both - it will verify against the appropriate Apple certificates
+const ENVIRONMENT = app_store_server_library_1.Environment.PRODUCTION;
+// Initialize the verifier using Apple's official library
+// This properly handles x5c certificate chain verification against Apple Root CA
+const verifier = new app_store_server_library_1.SignedDataVerifier([], // Empty array = use built-in Apple root certificates
+true, // Enable online certificate revocation checking (OCSP)
+ENVIRONMENT, BUNDLE_ID, APP_APPLE_ID);
+/**
+ * Handle App Store Server Notifications V2
+ *
+ * Apple sends signed JWS payloads containing subscription lifecycle events.
+ * We verify the signature using Apple's official library which handles
+ * x5c certificate chain validation against Apple's Root CA.
+ */
 exports.handleAppStoreNotification = functions.https.onRequest(async (req, res) => {
+    console.log('Received App Store notification');
     try {
         if (req.method !== 'POST') {
             res.status(405).send('Method Not Allowed');
@@ -48,64 +64,90 @@ exports.handleAppStoreNotification = functions.https.onRequest(async (req, res) 
         }
         const { signedPayload } = req.body || {};
         if (!signedPayload) {
+            console.warn('Missing signedPayload in request body');
             res.status(400).send('Missing signedPayload');
             return;
         }
-        // Verify JWS
-        const { payload } = await (0, jose_1.jwtVerify)(signedPayload, JWKS, {
-            algorithms: ['ES256'],
-        });
-        const obj = payload;
-        const notificationType = obj?.notificationType;
-        const subtype = obj?.subtype;
-        const data = obj?.data;
-        const signedTransactionInfo = data?.signedTransactionInfo;
-        // Parse transaction for expiry, user linkage TBD
-        if (signedTransactionInfo) {
-            try {
-                const tr = await (0, jose_1.jwtVerify)(signedTransactionInfo, JWKS, { algorithms: ['ES256'] });
-                const t = tr.payload;
-                const productId = t?.productId;
-                const expiresMs = t?.expiresDate;
-                const appAccountToken = t?.appAccountToken;
-                if (appAccountToken) {
-                    const userId = await findUserByAppAccountToken(appAccountToken);
-                    if (userId) {
-                        const expiresAt = expiresMs ? new Date(parseInt(expiresMs, 10)) : null;
-                        // Only update if we have a valid expiry date
-                        // Don't overwrite subscriptionExpiryDate with null - that breaks the subscription state
-                        if (expiresAt) {
-                            const isActive = expiresAt.getTime() > Date.now();
-                            await admin.firestore().collection('users').doc(userId).set({
-                                membershipStatus: isActive ? 'premium' : 'demo',
-                                isPremium: isActive,
-                                subscriptionExpiryDate: admin.firestore.Timestamp.fromDate(expiresAt),
-                                productId: productId && productId.includes('annual') ? 'annual' : 'monthly',
-                                lastValidated: admin.firestore.FieldValue.serverTimestamp(),
-                            }, { merge: true });
-                            console.log(`Updated user ${userId}: membershipStatus=${isActive ? 'premium' : 'demo'}, expiresAt=${expiresAt.toISOString()}`);
-                        }
-                        else {
-                            // Log warning but don't update - missing expiresDate would corrupt the user's state
-                            console.warn(`App Store notification for user ${userId} missing expiresDate - skipping update to avoid corrupting state`);
-                        }
-                    }
-                    else {
-                        console.warn(`App Store notification: no user found for appAccountToken ${appAccountToken.substring(0, 8)}...`);
-                    }
-                }
-            }
-            catch (e) {
-                console.warn('Failed to verify signedTransactionInfo', e);
-            }
+        // Verify and decode the notification using Apple's official library
+        console.log('Verifying notification signature...');
+        let payload;
+        try {
+            payload = await verifier.verifyAndDecodeNotification(signedPayload);
+            console.log('Notification verified successfully');
         }
+        catch (verifyError) {
+            console.error('Notification verification failed:', verifyError);
+            // Return 200 to prevent Apple from retrying invalid notifications
+            res.status(200).send('Verification failed');
+            return;
+        }
+        const notificationType = payload.notificationType;
+        const subtype = payload.subtype;
+        console.log(`Notification type: ${notificationType}, subtype: ${subtype}`);
+        // Get the signed transaction info from the notification data
+        const signedTransactionInfo = payload.data?.signedTransactionInfo;
+        if (!signedTransactionInfo) {
+            console.warn('No signedTransactionInfo in notification');
+            res.status(200).send('OK - no transaction info');
+            return;
+        }
+        // Verify and decode the transaction
+        console.log('Verifying transaction info...');
+        let transaction;
+        try {
+            transaction = await verifier.verifyAndDecodeTransaction(signedTransactionInfo);
+            console.log('Transaction verified successfully');
+        }
+        catch (txError) {
+            console.error('Transaction verification failed:', txError);
+            res.status(200).send('Transaction verification failed');
+            return;
+        }
+        const productId = transaction.productId;
+        const expiresDate = transaction.expiresDate; // Already a number (milliseconds)
+        const appAccountToken = transaction.appAccountToken;
+        console.log(`Transaction: productId=${productId}, expiresDate=${expiresDate}, hasAppAccountToken=${!!appAccountToken}`);
+        if (!appAccountToken) {
+            console.warn('No appAccountToken in transaction - cannot link to user');
+            res.status(200).send('OK - no app account token');
+            return;
+        }
+        // Find the user by their appAccountToken
+        const userId = await findUserByAppAccountToken(appAccountToken);
+        if (!userId) {
+            console.warn(`No user found for appAccountToken ${appAccountToken.substring(0, 8)}...`);
+            res.status(200).send('OK - user not found');
+            return;
+        }
+        // Only update if we have a valid expiry date
+        if (!expiresDate) {
+            console.warn(`Notification for user ${userId} missing expiresDate - skipping update`);
+            res.status(200).send('OK - no expiry date');
+            return;
+        }
+        const expiresAt = new Date(expiresDate);
+        const isActive = expiresAt.getTime() > Date.now();
+        const newStatus = isActive ? 'premium' : 'demo';
+        console.log(`Updating user ${userId}: membershipStatus=${newStatus}, expiresAt=${expiresAt.toISOString()}`);
+        await admin.firestore().collection('users').doc(userId).set({
+            membershipStatus: newStatus,
+            isPremium: isActive,
+            subscriptionExpiryDate: admin.firestore.Timestamp.fromDate(expiresAt),
+            productId: productId && productId.includes('annual') ? 'annual' : 'monthly',
+            lastValidated: admin.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+        console.log(`Successfully updated user ${userId} to ${newStatus}`);
         res.status(200).send('OK');
     }
     catch (e) {
-        console.error('handleAppStoreNotification error', e);
-        res.status(500).send('Error');
+        console.error('handleAppStoreNotification error:', e);
+        // Return 200 to Apple to acknowledge receipt (prevents endless retries)
+        res.status(200).send('Error logged');
     }
 });
+/**
+ * Find a user by their appAccountToken (SHA256 hash of their UID)
+ */
 async function findUserByAppAccountToken(token) {
     const snap = await admin.firestore()
         .collection('users')

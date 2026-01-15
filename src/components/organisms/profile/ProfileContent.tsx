@@ -32,7 +32,7 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
   const dispatch = useDispatch();
   const { userProfile, isAuthenticated } = useSelector((state: RootState) => state.auth);
   const access = useFeatureAccess();
-  
+
   // Auth state
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [showAuthForm, setShowAuthForm] = useState(false);

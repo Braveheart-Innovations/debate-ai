@@ -11,8 +11,6 @@ export const useFeatureAccess = () => {
   const [trialDaysRemaining, setTrialDaysRemaining] = useState<number | null>(null);
   const [hasUsedTrial, setHasUsedTrial] = useState(false);
   const [loading, setLoading] = useState(true);
-  // Local premium override from Settings (simulated premium mode)
-  const simulatedPremium = useSelector((state: RootState) => state.auth?.isPremium) || false;
 
   useEffect(() => {
     let unsub: undefined | (() => void);
@@ -78,9 +76,13 @@ export const useFeatureAccess = () => {
     };
   }, []);
 
-  const isInTrial = membershipStatus === 'trial';
+  // Check trial status from both local state AND Redux (Redux updates immediately, local state is async)
+  const reduxMembershipStatus = useSelector((state: RootState) => state.auth?.userProfile?.membershipStatus);
+  const effectiveStatus = loading ? (reduxMembershipStatus || membershipStatus) : membershipStatus;
+
+  const isInTrial = effectiveStatus === 'trial';
   // isPremium includes both 'premium' AND 'trial' users (trial = premium access)
-  const isPremium = simulatedPremium || membershipStatus === 'premium' || membershipStatus === 'trial';
+  const isPremium = effectiveStatus === 'premium' || effectiveStatus === 'trial';
   const canAccessLiveAI = isInTrial || isPremium;
   const isDemo = !isInTrial && !isPremium;
 

@@ -55,7 +55,7 @@ export default function CreateSetupScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
   const dispatch = useDispatch<AppDispatch>();
-  const { membershipStatus, isDemo } = useFeatureAccess();
+  const { isDemo, isPremium } = useFeatureAccess();
 
   const createState = useSelector(selectCreateState);
   const apiKeys = useSelector((state: RootState) => state.settings.apiKeys || {});
@@ -121,8 +121,6 @@ export default function CreateSetupScreen() {
       return prevIds === newIds ? prev : ais;
     });
   }, [selectedProviders, configuredImageAIs]);
-
-  const isPremium = membershipStatus === 'premium';
 
   const handleToggleAI = useCallback((ai: AIConfig) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

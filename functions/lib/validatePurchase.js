@@ -68,15 +68,18 @@ const hashEmail = (email) => {
 };
 /**
  * Check if user has already used a trial (survives account deletion)
- * Checks both by UID and by email hash to prevent abuse
+ * Returns: { used: boolean, sameAccount: boolean }
+ * - used: true if they've used a trial before (by UID or email)
+ * - sameAccount: true if the match was by UID (re-validating current trial is OK)
  */
 const checkTrialHistory = async (uid, email) => {
     const firestore = admin.firestore();
-    // Check by UID first
+    // Check by UID first - same account re-validating
     const uidDoc = await firestore.collection('trialHistory').doc(uid).get();
-    if (uidDoc.exists)
-        return true;
-    // Check by email hash if email is available
+    if (uidDoc.exists) {
+        return { used: true, sameAccount: true };
+    }
+    // Check by email hash - different account, potential fraud
     if (email) {
         const emailHash = hashEmail(email);
         const emailQuery = await firestore
@@ -84,10 +87,11 @@ const checkTrialHistory = async (uid, email) => {
             .where('emailHash', '==', emailHash)
             .limit(1)
             .get();
-        if (!emailQuery.empty)
-            return true;
+        if (!emailQuery.empty) {
+            return { used: true, sameAccount: false };
+        }
     }
-    return false;
+    return { used: false, sameAccount: false };
 };
 /**
  * Record trial usage to prevent future abuse after account deletion
@@ -117,39 +121,24 @@ exports.validatePurchase = (0, https_1.onCall)({ secrets: [appleSharedSecret] },
     if (!platform || !productId) {
         throw new https_1.HttpsError('invalid-argument', 'Missing required fields');
     }
-    // Idempotency check: if user already has active trial/premium, return success
-    // This handles IAP retries without failing on trialHistory check
+    // ALWAYS validate receipt with Apple/Google - no caching
+    // Caching causes bugs: trial->premium conversion missed, cancellations missed
+    // Only exception: lifetime purchases (one-time, never expire)
     const userDoc = await admin.firestore().collection('users').doc(userId).get();
     const userData = userDoc.data();
-    if (userData) {
-        const status = userData.membershipStatus;
-        const expiry = userData.subscriptionExpiryDate?.toDate?.() || null;
-        const isLifetimeUser = userData.isLifetime === true;
-        // If user already has active subscription, return current state
-        // BUT: if expiry is null (broken state), force re-validation to fix it
-        if (status === 'trial' || status === 'premium') {
-            // FIX: Treat null expiry as "needs re-validation" rather than "not expired"
-            // Previous bug: `expiry && new Date() > expiry` would be false when expiry is null
-            const isExpired = expiry ? new Date() > expiry : false;
-            const needsRevalidation = !expiry && !isLifetimeUser; // null expiry = broken state
-            if (isLifetimeUser || (!isExpired && !needsRevalidation)) {
-                console.log(`User ${userId} already has active ${status} - returning cached state`);
-                return {
-                    valid: true,
-                    membershipStatus: status,
-                    expiryDate: expiry ? admin.firestore.Timestamp.fromDate(expiry) : null,
-                    trialStartDate: userData.trialStartDate || null,
-                    trialEndDate: userData.trialEndDate || null,
-                    autoRenewing: userData.autoRenewing ?? true,
-                    productId: userData.productId || 'monthly',
-                    hasUsedTrial: userData.hasUsedTrial ?? false,
-                    isLifetime: isLifetimeUser,
-                };
-            }
-            if (needsRevalidation) {
-                console.log(`User ${userId} has ${status} but null subscriptionExpiryDate - forcing re-validation`);
-            }
-        }
+    if (userData?.isLifetime === true) {
+        console.log(`User ${userId} is lifetime - returning cached state`);
+        return {
+            valid: true,
+            membershipStatus: 'premium',
+            expiryDate: null,
+            trialStartDate: userData.trialStartDate || null,
+            trialEndDate: userData.trialEndDate || null,
+            autoRenewing: false,
+            productId: 'lifetime',
+            hasUsedTrial: userData.hasUsedTrial ?? false,
+            isLifetime: true,
+        };
     }
     try {
         const isLifetime = LIFETIME_PRODUCT_IDS.includes(productId);
@@ -263,16 +252,22 @@ exports.validatePurchase = (0, https_1.onCall)({ secrets: [appleSharedSecret] },
         // Check and record trial usage to prevent abuse after account deletion
         if (inTrial) {
             // Check persistent trial history (survives account deletion)
-            const hasUsedTrialBefore = await checkTrialHistory(userId, userEmail);
-            if (hasUsedTrialBefore) {
-                // User already used a trial but Google gave them another one (dev settings or re-subscription)
-                // Don't reject - just treat them as premium (they're paying anyway after the trial)
-                console.log(`User ${userId} got trial from store but already used one - treating as premium`);
-                updateData.membershipStatus = 'premium';
-                // Keep inTrial dates for reference but status is premium
+            const trialCheck = await checkTrialHistory(userId, userEmail);
+            if (trialCheck.used && !trialCheck.sameAccount) {
+                // FRAUD ATTEMPT: Different account but same email - they already used a trial
+                // Block them completely - set to demo and reject
+                console.log(`User ${userId} attempted trial fraud (email already used trial) - blocking`);
+                throw new https_1.HttpsError('failed-precondition', 'You have already used your free trial. Please subscribe to continue using premium features.');
+            }
+            else if (trialCheck.used && trialCheck.sameAccount) {
+                // Same account re-validating their current trial - this is fine
+                // Keep them on trial status (already set in updateData)
+                console.log(`User ${userId} re-validating existing trial - keeping trial status`);
+                updateData.hasUsedTrial = true;
             }
             else {
                 // First time using trial - record it for future tracking
+                console.log(`User ${userId} starting first trial - recording usage`);
                 await recordTrialUsage(userId, userEmail);
                 updateData.hasUsedTrial = true;
             }
