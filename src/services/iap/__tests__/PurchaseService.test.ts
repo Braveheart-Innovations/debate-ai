@@ -466,7 +466,7 @@ describe('PurchaseService', () => {
         success: false,
         error,
         errorCode: 'E_NETWORK_ERROR',
-        userMessage: 'Network error. Please check your connection and try again.',
+        userMessage: 'Network error. Please check your internet connection and try again.',
       });
     });
 
@@ -575,7 +575,7 @@ describe('PurchaseService', () => {
       const result = await PurchaseService.purchaseLifetime();
 
       expect(result.success).toBe(false);
-      expect(result.userMessage).toBe('This subscription is currently unavailable.');
+      expect(result.userMessage).toBe('This subscription is currently unavailable in your region. Please try again later.');
     });
   });
 
@@ -669,7 +669,7 @@ describe('PurchaseService', () => {
       const result = await PurchaseService.restorePurchases();
 
       expect(result.success).toBe(false);
-      expect(result.userMessage).toBe('Store connection not ready. Please restart the app.');
+      expect(result.userMessage).toBe('Unable to connect to the store. Please close and reopen the app, then try again.');
     });
 
     it('should extract and show actual error message when available', async () => {
@@ -931,7 +931,7 @@ describe('PurchaseService', () => {
 
       const result = await PurchaseService.purchaseSubscription('monthly');
 
-      expect(result.userMessage).toBe('This product is not available yet. Please try again later.');
+      expect(result.userMessage).toBe('This subscription is not available for your account. If you are a tester, please ensure you are signed in with a licensed test account.');
     });
 
     it('should map E_ALREADY_OWNED to user-friendly message with restore suggestion', async () => {
@@ -940,7 +940,7 @@ describe('PurchaseService', () => {
 
       const result = await PurchaseService.purchaseLifetime();
 
-      expect(result.userMessage).toBe('You already own this subscription. Try "Restore Purchases" below.');
+      expect(result.userMessage).toBe('You already have an active subscription. Tap "Restore Purchases" below to restore it.');
     });
 
     it('should map E_BILLING_UNAVAILABLE to user-friendly message', async () => {
@@ -949,7 +949,7 @@ describe('PurchaseService', () => {
 
       const result = await PurchaseService.purchaseSubscription('annual');
 
-      expect(result.userMessage).toBe('Billing is not available on this device.');
+      expect(result.userMessage).toBe('In-app purchases are not available on this device. Please check your device settings.');
     });
 
     it('should map E_SERVICE_ERROR to user-friendly message', async () => {
@@ -958,7 +958,7 @@ describe('PurchaseService', () => {
 
       const result = await PurchaseService.purchaseSubscription('monthly');
 
-      expect(result.userMessage).toBe('Store service error. Please try again later.');
+      expect(result.userMessage).toBe('The app store service is temporarily unavailable. Please try again in a few moments.');
     });
   });
 });

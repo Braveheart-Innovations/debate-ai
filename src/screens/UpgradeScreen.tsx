@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ScrollView, View, StyleSheet, Alert, TouchableOpacity, Linking } from 'react-native';
+import { ScrollView, View, StyleSheet, Alert, TouchableOpacity, Linking, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSelector, useDispatch } from 'react-redux';
 import { Box } from '@/components/atoms';
@@ -23,6 +23,19 @@ export default function UpgradeScreen() {
   const { hasUsedTrial, isInTrial, trialDaysRemaining, isPremium, canStartTrial, refresh } = useFeatureAccess();
   const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
   const { monthly, annual, lifetime } = useStorePrices();
+
+  // Calculate trial end date for display (7 days from now)
+  const trialEndDate = useMemo(() => {
+    const date = new Date();
+    date.setDate(date.getDate() + 7);
+    return date.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+  }, []);
+
+  // Platform-specific cancellation instructions
+  const cancelInstructions = Platform.select({
+    ios: 'Go to Settings > [Your Name] > Subscriptions',
+    android: 'Go to Play Store > Menu > Subscriptions',
+  });
 
   // Dynamic plans array using localized prices from the store
   const plans = useMemo(() => [
@@ -97,10 +110,17 @@ export default function UpgradeScreen() {
         const message = 'userMessage' in result && result.userMessage
           ? result.userMessage
           : 'Could not start trial. Please try again.';
-        Alert.alert('Trial Failed', message);
+        const errorCode = 'errorCode' in result ? result.errorCode : undefined;
+        // Use more specific title based on error type
+        const title = errorCode === 'E_DEVELOPER_ERROR' || errorCode === 'E_ITEM_UNAVAILABLE'
+          ? 'Trial Unavailable'
+          : errorCode === 'E_NETWORK_ERROR' || errorCode === 'E_SERVICE_ERROR'
+          ? 'Connection Issue'
+          : 'Unable to Start Trial';
+        Alert.alert(title, message);
       }
     } catch {
-      Alert.alert('Error', 'An unexpected error occurred.');
+      Alert.alert('Unexpected Error', 'Something went wrong. Please try again or contact support if the issue persists.');
     } finally {
       setLoadingPlan(null);
     }
@@ -125,10 +145,17 @@ export default function UpgradeScreen() {
         const message = 'userMessage' in result && result.userMessage
           ? result.userMessage
           : 'Purchase could not be completed. Please try again.';
-        Alert.alert('Purchase Failed', message);
+        const errorCode = 'errorCode' in result ? result.errorCode : undefined;
+        // Use more specific title based on error type
+        const title = errorCode === 'E_DEVELOPER_ERROR' || errorCode === 'E_ITEM_UNAVAILABLE'
+          ? 'Subscription Unavailable'
+          : errorCode === 'E_NETWORK_ERROR' || errorCode === 'E_SERVICE_ERROR'
+          ? 'Connection Issue'
+          : 'Unable to Complete Purchase';
+        Alert.alert(title, message);
       }
     } catch {
-      Alert.alert('Error', 'An unexpected error occurred.');
+      Alert.alert('Unexpected Error', 'Something went wrong. Please try again or contact support if the issue persists.');
     } finally {
       setLoadingPlan(null);
     }
@@ -169,28 +196,61 @@ export default function UpgradeScreen() {
 
           {/* Primary Trial CTA - only show if user can start trial */}
           {canStartTrial && (
-            <View style={[
-              styles.trialCard,
-              {
-                backgroundColor: isDark ? 'rgba(99, 102, 241, 0.15)' : theme.colors.primary[50] as string,
-                borderColor: isDark ? theme.colors.primary[500] : theme.colors.primary[300]
-              }
-            ]}>
-              <Typography variant="title" weight="bold" color="brand" style={{ textAlign: 'center' }}>
-                Start 7-Day Free Trial
-              </Typography>
-              <Typography variant="body" color="secondary" style={{ textAlign: 'center', marginTop: 4 }}>
-                Then {monthly.localizedPrice}/month. Cancel anytime.
-              </Typography>
-              <GradientButton
-                title={loadingPlan === 'trial' ? 'Starting...' : 'Start Free Trial'}
-                onPress={handleStartTrialTap}
-                gradient={theme.colors.gradients.primary}
-                fullWidth
-                style={{ marginTop: 16 }}
-                disabled={loadingPlan !== null}
-              />
-            </View>
+            <>
+              <View style={[
+                styles.trialCard,
+                {
+                  backgroundColor: isDark ? 'rgba(99, 102, 241, 0.15)' : theme.colors.primary[50] as string,
+                  borderColor: isDark ? theme.colors.primary[500] : theme.colors.primary[300]
+                }
+              ]}>
+                <Typography variant="title" weight="bold" color="brand" style={{ textAlign: 'center' }}>
+                  Start 7-Day Free Trial
+                </Typography>
+                <Typography variant="body" color="secondary" style={{ textAlign: 'center', marginTop: 4 }}>
+                  Then {monthly.localizedPrice}/month. Cancel anytime.
+                </Typography>
+                <GradientButton
+                  title={loadingPlan === 'trial' ? 'Starting...' : 'Start Free Trial'}
+                  onPress={handleStartTrialTap}
+                  gradient={theme.colors.gradients.primary}
+                  fullWidth
+                  style={{ marginTop: 16 }}
+                  disabled={loadingPlan !== null}
+                />
+              </View>
+
+              {/* Trial Terms Disclosure - Required for Play Store compliance */}
+              <View style={[styles.trialTermsBox, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+                <Typography variant="body" weight="semibold" style={{ marginBottom: 12 }}>
+                  Free Trial Terms
+                </Typography>
+                <View style={styles.termRow}>
+                  <Typography variant="caption" color="secondary" style={styles.termBullet}>{'\u2022'}</Typography>
+                  <Typography variant="caption" color="secondary" style={styles.termText}>
+                    Your free trial ends on {trialEndDate}
+                  </Typography>
+                </View>
+                <View style={styles.termRow}>
+                  <Typography variant="caption" color="secondary" style={styles.termBullet}>{'\u2022'}</Typography>
+                  <Typography variant="caption" color="secondary" style={styles.termText}>
+                    After trial: {monthly.localizedPrice}/month, billed automatically
+                  </Typography>
+                </View>
+                <View style={styles.termRow}>
+                  <Typography variant="caption" color="secondary" style={styles.termBullet}>{'\u2022'}</Typography>
+                  <Typography variant="caption" color="secondary" style={styles.termText}>
+                    Cancel at least 24 hours before trial ends to avoid charges
+                  </Typography>
+                </View>
+                <View style={styles.termRow}>
+                  <Typography variant="caption" color="secondary" style={styles.termBullet}>{'\u2022'}</Typography>
+                  <Typography variant="caption" color="secondary" style={styles.termText}>
+                    To cancel: {cancelInstructions}
+                  </Typography>
+                </View>
+              </View>
+            </>
           )}
 
           {/* Separator */}
@@ -314,6 +374,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginTop: 24,
     marginBottom: 16,
+  },
+  trialTermsBox: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  termRow: {
+    flexDirection: 'row',
+    marginBottom: 8,
+  },
+  termBullet: {
+    marginRight: 8,
+    marginTop: 1,
+  },
+  termText: {
+    flex: 1,
+    lineHeight: 18,
   },
   separatorContainer: {
     flexDirection: 'row',

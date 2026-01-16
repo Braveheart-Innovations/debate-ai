@@ -183,7 +183,7 @@ describe('UpgradeScreen', () => {
     fireEvent.press(subscribeButtons[0]);
 
     await waitFor(() => {
-      expect(alertSpy).toHaveBeenCalledWith('Purchase Failed', 'Purchase could not be completed. Please try again.');
+      expect(alertSpy).toHaveBeenCalledWith('Unable to Complete Purchase', 'Purchase could not be completed. Please try again.');
     });
 
     alertSpy.mockRestore();

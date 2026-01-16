@@ -33,14 +33,25 @@ function withTimeout<T>(promise: Promise<T>, ms: number, errorMessage: string): 
 
 /** User-friendly error messages for common IAP error codes */
 const IAP_ERROR_MESSAGES: Record<string, string> = {
-  E_DEVELOPER_ERROR: 'This product is not available yet. Please try again later.',
-  E_ITEM_UNAVAILABLE: 'This subscription is currently unavailable.',
-  E_NETWORK_ERROR: 'Network error. Please check your connection and try again.',
-  E_SERVICE_ERROR: 'Store service error. Please try again later.',
-  E_BILLING_UNAVAILABLE: 'Billing is not available on this device.',
+  E_DEVELOPER_ERROR: 'This subscription is not available for your account. If you are a tester, please ensure you are signed in with a licensed test account.',
+  E_ITEM_UNAVAILABLE: 'This subscription is currently unavailable in your region. Please try again later.',
+  E_NETWORK_ERROR: 'Network error. Please check your internet connection and try again.',
+  E_SERVICE_ERROR: 'The app store service is temporarily unavailable. Please try again in a few moments.',
+  E_BILLING_UNAVAILABLE: 'In-app purchases are not available on this device. Please check your device settings.',
   E_USER_CANCELLED: 'Purchase was cancelled.',
-  E_ALREADY_OWNED: 'You already own this subscription. Try "Restore Purchases" below.',
-  E_NOT_PREPARED: 'Store connection not ready. Please restart the app.',
+  E_ALREADY_OWNED: 'You already have an active subscription. Tap "Restore Purchases" below to restore it.',
+  E_NOT_PREPARED: 'Unable to connect to the store. Please close and reopen the app, then try again.',
+  E_UNKNOWN: 'Unable to complete purchase. Please ensure you have a valid payment method and try again.',
+  // Google Play specific error codes
+  BILLING_UNAVAILABLE: 'Google Play billing is not available. Please ensure Google Play services are up to date.',
+  ITEM_UNAVAILABLE: 'This subscription is not available for purchase at this time.',
+  ITEM_NOT_OWNED: 'You do not own this item.',
+  ITEM_ALREADY_OWNED: 'You already have an active subscription. Tap "Restore Purchases" below to restore it.',
+  USER_CANCELED: 'Purchase was cancelled.',
+  ERROR: 'A purchase error occurred. Please check your payment method and try again.',
+  SERVICE_DISCONNECTED: 'Connection to the store was lost. Please try again.',
+  SERVICE_UNAVAILABLE: 'The store service is temporarily unavailable. Please try again later.',
+  FEATURE_NOT_SUPPORTED: 'This feature is not supported on your device.',
 };
 
 /** User-friendly messages for Firebase validation errors */
@@ -306,14 +317,15 @@ export class PurchaseService {
 
       return { success: true } as const;
     } catch (error: unknown) {
-      const errorObj = error as { code?: string; message?: string; debugMessage?: string };
-      const errorCode = errorObj?.code || 'UNKNOWN';
+      const errorObj = error as { code?: string; message?: string; debugMessage?: string; responseCode?: number };
+      // Handle both react-native-iap error codes and Google Play response codes
+      const errorCode = errorObj?.code || (errorObj?.responseCode !== undefined ? String(errorObj.responseCode) : 'UNKNOWN');
       const errorMessage = errorObj?.message || errorObj?.debugMessage || 'Unknown error';
 
-      console.warn('[IAP] Purchase error:', { errorCode, errorMessage, error });
+      console.warn('[IAP] Purchase error:', { errorCode, errorMessage, responseCode: errorObj?.responseCode, error });
 
-      if (errorCode === 'E_USER_CANCELLED') {
-        return { success: false, cancelled: true, errorCode, userMessage: IAP_ERROR_MESSAGES[errorCode] } as const;
+      if (errorCode === 'E_USER_CANCELLED' || errorCode === 'USER_CANCELED') {
+        return { success: false, cancelled: true, errorCode, userMessage: IAP_ERROR_MESSAGES[errorCode] || 'Purchase was cancelled.' } as const;
       }
       // Log via ErrorService for centralized tracking
       ErrorService.handleError(error, {
@@ -322,7 +334,10 @@ export class PurchaseService {
         context: { action: 'purchaseSubscription', plan, errorCode, errorMessage },
       });
       // Use specific IAP message, or fall back to actual error message if available
-      const userMessage = IAP_ERROR_MESSAGES[errorCode] || errorMessage || 'Purchase failed. Please try again.';
+      // Include fallback for unknown Google Play errors
+      const userMessage = IAP_ERROR_MESSAGES[errorCode]
+        || (errorMessage && errorMessage !== 'Unknown error' ? errorMessage : null)
+        || 'Unable to complete purchase. Please ensure you have a valid payment method configured in Google Play and try again.';
       return { success: false, error, errorCode, userMessage } as const;
     }
   }
@@ -357,9 +372,11 @@ export class PurchaseService {
 
       return { success: true } as const;
     } catch (error: unknown) {
-      const errorCode = (error as { code?: string })?.code || 'UNKNOWN';
-      if (errorCode === 'E_USER_CANCELLED') {
-        return { success: false, cancelled: true, errorCode, userMessage: IAP_ERROR_MESSAGES[errorCode] } as const;
+      const errorObj = error as { code?: string; message?: string };
+      const errorCode = errorObj?.code || 'UNKNOWN';
+      const errorMessage = errorObj?.message;
+      if (errorCode === 'E_USER_CANCELLED' || errorCode === 'USER_CANCELED') {
+        return { success: false, cancelled: true, errorCode, userMessage: IAP_ERROR_MESSAGES[errorCode] || 'Purchase was cancelled.' } as const;
       }
       // Log via ErrorService for centralized tracking
       ErrorService.handleError(error, {
@@ -367,7 +384,9 @@ export class PurchaseService {
         showToast: false,
         context: { action: 'purchaseLifetime', errorCode },
       });
-      const userMessage = IAP_ERROR_MESSAGES[errorCode] || 'Purchase failed. Please try again.';
+      const userMessage = IAP_ERROR_MESSAGES[errorCode]
+        || (errorMessage && errorMessage !== 'Unknown error' ? errorMessage : null)
+        || 'Unable to complete purchase. Please ensure you have a valid payment method configured and try again.';
       return { success: false, error, errorCode, userMessage } as const;
     }
   }
