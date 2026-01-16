@@ -126,9 +126,12 @@ describe('useGreeting', () => {
 
     rerender();
 
-    const refreshed = result.current.refreshGreeting();
-    expect(typeof refreshed.welcomeMessage).toBe('string');
-    expect(refreshed.welcomeMessage.length).toBeGreaterThan(0);
+    let refreshed: ReturnType<typeof result.current.refreshGreeting>;
+    act(() => {
+      refreshed = result.current.refreshGreeting();
+    });
+    expect(typeof refreshed!.welcomeMessage).toBe('string');
+    expect(refreshed!.welcomeMessage.length).toBeGreaterThan(0);
     expect(result.current.getUserInfo().email).toBe('new@example.com');
   });
 

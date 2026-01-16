@@ -1,112 +1,115 @@
-import { useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import { generateCompleteGreeting } from '../../utils/home/greetingGenerator';
 
+type TimePeriod = 'morning' | 'afternoon' | 'evening';
+
+const getTimePeriod = (): TimePeriod => {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'morning';
+  if (hour < 17) return 'afternoon';
+  return 'evening';
+};
+
 /**
  * Custom hook for generating dynamic greetings.
- * Handles time-based greetings and user personalization.
+ * - Generates a fresh greeting on each mount
+ * - Automatically updates when time period changes (morning → afternoon → evening)
+ * - Checks for time period changes every minute
  */
 export const useGreeting = () => {
   const user = useSelector((state: RootState) => state.user.currentUser);
 
-  // Generate greeting with current time and user info
-  const greeting = useMemo(() => {
-    return generateCompleteGreeting(user?.email);
-  }, [user?.email]);
+  // Track current time period to detect changes
+  const [timePeriod, setTimePeriod] = useState<TimePeriod>(getTimePeriod);
+
+  // Generate fresh greeting on mount and when time period changes
+  const [greeting, setGreeting] = useState(() =>
+    generateCompleteGreeting(user?.email)
+  );
+
+  // Check for time period changes every minute
+  useEffect(() => {
+    const checkTimePeriod = () => {
+      const newPeriod = getTimePeriod();
+      if (newPeriod !== timePeriod) {
+        setTimePeriod(newPeriod);
+        setGreeting(generateCompleteGreeting(user?.email));
+      }
+    };
+
+    const interval = setInterval(checkTimePeriod, 60000);
+    return () => clearInterval(interval);
+  }, [timePeriod, user?.email]);
 
   /**
    * Gets a greeting for a specific time (useful for testing).
-   * 
-   * @param hour - Hour to generate greeting for (0-23)
-   * @returns Greeting object with time-based and welcome messages
    */
-  const getGreetingForTime = (hour: number) => {
+  const getGreetingForTime = useCallback((hour: number) => {
     return generateCompleteGreeting(user?.email, hour);
-  };
+  }, [user?.email]);
 
   /**
-   * Checks if it's currently morning.
-   * 
-   * @returns True if current time is morning
+   * Checks if it's currently morning (evaluates fresh each call).
    */
-  const isMorning = (): boolean => {
-    const hour = new Date().getHours();
-    return hour < 12;
-  };
+  const isMorning = useCallback((): boolean => {
+    return getTimePeriod() === 'morning';
+  }, []);
 
   /**
-   * Checks if it's currently afternoon.
-   * 
-   * @returns True if current time is afternoon
+   * Checks if it's currently afternoon (evaluates fresh each call).
    */
-  const isAfternoon = (): boolean => {
-    const hour = new Date().getHours();
-    return hour >= 12 && hour < 17;
-  };
+  const isAfternoon = useCallback((): boolean => {
+    return getTimePeriod() === 'afternoon';
+  }, []);
 
   /**
-   * Checks if it's currently evening.
-   * 
-   * @returns True if current time is evening
+   * Checks if it's currently evening (evaluates fresh each call).
    */
-  const isEvening = (): boolean => {
-    const hour = new Date().getHours();
-    return hour >= 17;
-  };
-
-  /**
-   * Gets the current time period.
-   * 
-   * @returns Time period string ('morning', 'afternoon', or 'evening')
-   */
-  const getTimePeriod = (): 'morning' | 'afternoon' | 'evening' => {
-    if (isMorning()) return 'morning';
-    if (isAfternoon()) return 'afternoon';
-    return 'evening';
-  };
+  const isEvening = useCallback((): boolean => {
+    return getTimePeriod() === 'evening';
+  }, []);
 
   /**
    * Gets user display information.
-   * 
-   * @returns Object with user display details
    */
-  const getUserInfo = () => {
+  const getUserInfo = useCallback(() => {
     return {
       hasUser: !!user,
       email: user?.email || null,
       isAuthenticated: !!user?.email,
-      canPersonalize: false, // Set to false since we're keeping it generic
+      canPersonalize: false,
     };
-  };
+  }, [user]);
 
   /**
-   * Refreshes the greeting (useful for time changes).
-   * 
-   * @returns New greeting object
+   * Manually refresh the greeting.
    */
-  const refreshGreeting = () => {
-    return generateCompleteGreeting(user?.email);
-  };
+  const refreshGreeting = useCallback(() => {
+    const newGreeting = generateCompleteGreeting(user?.email);
+    setGreeting(newGreeting);
+    return newGreeting;
+  }, [user?.email]);
 
   return {
     // Current Greeting
     timeBasedGreeting: greeting.timeBasedGreeting,
     welcomeMessage: greeting.welcomeMessage,
-    
-    // Time Checks
+
+    // Time Checks (evaluate fresh each call)
     isMorning,
     isAfternoon,
     isEvening,
     getTimePeriod,
-    
+
     // User Info
     getUserInfo,
-    
+
     // Utilities
     getGreetingForTime,
     refreshGreeting,
-    
+
     // Complete Greeting Object
     greeting,
   };

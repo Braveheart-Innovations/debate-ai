@@ -19,6 +19,7 @@ import { Button } from '@/components/molecules';
 import { Badge } from '@/components/molecules';
 import { useTheme, Theme } from '@/theme';
 import { useDeviceType } from '@/hooks/useDeviceType';
+import { useGreeting } from '@/hooks/home/useGreeting';
 
 // Use responsive width via useWindowDimensions inside the component
 
@@ -232,6 +233,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [currentTime, setCurrentTime] = useState(new Date());
   const { width, height: screenHeight } = useWindowDimensions();
   const { isTablet, isLandscape } = useDeviceType();
+  const { timeBasedGreeting, welcomeMessage } = useGreeting();
   const hasSubtitle = Boolean(subtitle);
   // Subtle, battery-friendly accents inside the SVG (no edges move)
   const enableAccents = true;
@@ -399,16 +401,26 @@ export const Header: React.FC<HeaderProps> = ({
   
   const renderGradientTitleContent = () => {
     if (!title) {
-      // Fallback when no title provided (rare - most screens pass titles)
+      // Dynamic time-based greeting when no title provided
       return (
-        <Typography
-          variant="heading"
-          weight="bold"
-          color="inverse"
-          style={styles.gradientTitle}
-        >
-          The symposium awaits
-        </Typography>
+        <>
+          <Typography
+            variant="heading"
+            weight="bold"
+            color="inverse"
+            style={styles.gradientTitle}
+          >
+            {timeBasedGreeting}
+          </Typography>
+          <Typography
+            variant="subtitle"
+            weight="medium"
+            color="inverse"
+            style={styles.gradientSubtitle}
+          >
+            {welcomeMessage}
+          </Typography>
+        </>
       );
     }
 
