@@ -258,13 +258,13 @@ const CompareSetupScreen: React.FC<CompareSetupScreenProps> = ({ navigation, rou
         
         {/* Need More AIs Message */}
         {configuredAIs.length < 2 && (
-          <Box style={{ 
-            marginTop: theme.spacing.xl, 
+          <Box style={{
+            marginTop: theme.spacing.xl,
             padding: theme.spacing.lg,
             backgroundColor: theme.colors.warning[100],
             borderRadius: theme.borderRadius.lg,
           }}>
-            <Typography variant="body" color="primary" style={{ textAlign: 'center' }}>
+            <Typography variant="body" style={{ textAlign: 'center', color: theme.colors.warning[900] }}>
               You need at least 2 configured AIs to use the Compare feature.
             </Typography>
             <Button

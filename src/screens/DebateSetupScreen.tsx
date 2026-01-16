@@ -345,7 +345,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
             backgroundColor: theme.colors.warning[100],
             borderRadius: theme.borderRadius.lg,
           }}>
-            <Typography variant="body" color="primary" style={{ textAlign: 'center' }}>
+            <Typography variant="body" style={{ textAlign: 'center', color: theme.colors.warning[900] }}>
               You need at least 2 configured AIs to start a debate.
             </Typography>
             <Button
