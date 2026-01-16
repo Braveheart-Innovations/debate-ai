@@ -324,6 +324,7 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
                 photoURL={userProfile?.photoURL}
                 isPremium={access.isPremium || access.isInTrial}
                 size={72}
+                showPremiumIndicator={false}
               />
               {(access.isPremium || access.isInTrial) && (
                 <View style={[styles.premiumIndicator, { backgroundColor: theme.colors.warning[500] }]}>
