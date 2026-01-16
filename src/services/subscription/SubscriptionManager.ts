@@ -1,100 +1,29 @@
 import { getAuth } from '@react-native-firebase/auth';
-import {
-  getFirestore,
-  FirebaseFirestoreTypes,
-  collection,
-  doc,
-  getDoc,
-  setDoc,
-  onSnapshot,
-} from '@react-native-firebase/firestore';
-import type { MembershipStatus, UserSubscriptionDoc } from '@/types/subscription';
+import { getFirestore, collection, doc, getDoc } from '@react-native-firebase/firestore';
 
+/**
+ * Minimal subscription utility class.
+ *
+ * NOTE: Most subscription logic has moved to:
+ * - Server: validatePurchase Cloud Function handles all status transitions
+ * - Client: useFeatureAccess hook reads directly from Firestore snapshot
+ *
+ * This class only provides one-time utility checks, NOT continuous monitoring.
+ */
 export class SubscriptionManager {
-  static async checkSubscriptionStatus(): Promise<MembershipStatus> {
-    const user = getAuth().currentUser;
-    if (!user) return 'demo';
-
-    const db = getFirestore();
-    const snap = await getDoc(doc(collection(db, 'users'), user.uid));
-    const data = snap.data() as Partial<UserSubscriptionDoc> | undefined;
-    if (!data) return 'demo';
-
-    const now = Date.now();
-
-    if (data.membershipStatus === 'trial') {
-      const trialEndMs = this.toMillis(data.trialEndDate);
-      if (trialEndMs && now > trialEndMs) {
-        // Trial ended - check if subscription continued
-        const expiryMs = this.toMillis(data.subscriptionExpiryDate);
-        if (expiryMs && expiryMs > now) {
-          await setDoc(doc(collection(db, 'users'), user.uid), { membershipStatus: 'premium', isPremium: true }, { merge: true });
-          return 'premium';
-        }
-        await setDoc(doc(collection(db, 'users'), user.uid), { membershipStatus: 'demo', isPremium: false }, { merge: true });
-        return 'demo';
-      }
-      return 'trial';
-    }
-
-    if (data.membershipStatus === 'premium') {
-      const expiryMs = this.toMillis(data.subscriptionExpiryDate);
-      if (expiryMs && now > expiryMs && !data.autoRenewing) {
-        await setDoc(doc(collection(db, 'users'), user.uid), { membershipStatus: 'demo', isPremium: false }, { merge: true });
-        return 'demo';
-      }
-      return 'premium';
-    }
-
-    return (data.membershipStatus as MembershipStatus) || 'demo';
-  }
-
-  static async getTrialDaysRemaining(): Promise<number | null> {
-    const user = getAuth().currentUser;
-    if (!user) return null;
-
-    const db = getFirestore();
-    const snap = await getDoc(doc(collection(db, 'users'), user.uid));
-    const data = snap.data() as Partial<UserSubscriptionDoc> | undefined;
-    if (!data || data.membershipStatus !== 'trial') return null;
-
-    const trialEndMs = this.toMillis(data.trialEndDate);
-    if (!trialEndMs) return null;
-    const days = Math.ceil((trialEndMs - Date.now()) / (1000 * 60 * 60 * 24));
-    return Math.max(0, days);
-  }
-
+  /**
+   * One-time check if user has already used their trial.
+   * Use this ONLY for pre-purchase validation, not for UI state.
+   * For UI state, use the useFeatureAccess hook instead.
+   */
   static async hasUserUsedTrial(): Promise<boolean> {
     const user = getAuth().currentUser;
     if (!user) return false;
 
     const db = getFirestore();
     const snap = await getDoc(doc(collection(db, 'users'), user.uid));
-    const data = snap.data() as Partial<UserSubscriptionDoc> | undefined;
+    const data = snap.data() as { hasUsedTrial?: boolean } | undefined;
     return data?.hasUsedTrial === true;
-  }
-
-  static onSubscriptionChange(callback: (status: MembershipStatus) => void) {
-    const user = getAuth().currentUser;
-    if (!user) {
-      callback('demo');
-      return () => {};
-    }
-    const db = getFirestore();
-    const ref = doc(collection(db, 'users'), user.uid);
-    const unsub = onSnapshot(ref, async (snap) => {
-      const data = snap.data() as Partial<UserSubscriptionDoc> | undefined;
-      if (!data) return callback('demo');
-      const status = await this.checkSubscriptionStatus();
-      callback(status);
-    }, (err) => {
-      console.error('Subscription onSnapshot error', err);
-    });
-    return unsub;
-  }
-
-  private static toMillis(ts?: FirebaseFirestoreTypes.Timestamp | null): number | undefined {
-    return ts ? ts.toMillis() : undefined;
   }
 }
 

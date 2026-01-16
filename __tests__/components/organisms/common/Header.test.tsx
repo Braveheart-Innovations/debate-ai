@@ -55,6 +55,13 @@ jest.mock('@/components/molecules', () => {
   };
 });
 
+jest.mock('@/hooks/home/useGreeting', () => ({
+  useGreeting: () => ({
+    timeBasedGreeting: 'The symposium awaits',
+    welcomeMessage: 'Where ideas converge',
+  }),
+}));
+
 describe('Header', () => {
   beforeEach(() => {
     jest.clearAllMocks();

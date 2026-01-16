@@ -16,6 +16,17 @@ jest.mock('@/services/demo/demoMode', () => ({
   isDemoModeEnabled: jest.fn(),
 }));
 
+jest.mock('@/services/firebase/auth', () => ({
+  onAuthStateChanged: jest.fn(() => jest.fn()),
+}));
+
+jest.mock('@react-native-firebase/firestore', () => ({
+  getFirestore: jest.fn(),
+  collection: jest.fn(),
+  doc: jest.fn(),
+  onSnapshot: jest.fn(() => jest.fn()),
+}));
+
 describe('useAISelection', () => {
   const mockGetConfiguredAIs = AIConfigurationService.getConfiguredAIs as jest.MockedFunction<
     typeof AIConfigurationService.getConfiguredAIs

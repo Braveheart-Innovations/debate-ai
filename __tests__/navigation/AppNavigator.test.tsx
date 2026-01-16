@@ -72,6 +72,21 @@ jest.mock('@/screens/TermsOfServiceScreen', () => createScreenMock('Terms Screen
 jest.mock('@/screens/CreateSetupScreen', () => createScreenMock('Create Setup Screen'));
 jest.mock('@/screens/CreateScreen', () => createScreenMock('Create Screen'));
 
+jest.mock('@/services/firebase/auth', () => ({
+  onAuthStateChanged: jest.fn((callback) => {
+    // Immediately call with null user to resolve loading state
+    setTimeout(() => callback(null), 0);
+    return jest.fn();
+  }),
+}));
+
+jest.mock('@react-native-firebase/firestore', () => ({
+  getFirestore: jest.fn(),
+  collection: jest.fn(),
+  doc: jest.fn(),
+  onSnapshot: jest.fn(() => jest.fn()),
+}));
+
 const AppNavigator = require('@/navigation/AppNavigator').default;
 
 describe('AppNavigator', () => {
