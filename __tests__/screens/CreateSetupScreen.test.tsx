@@ -204,9 +204,9 @@ describe('CreateSetupScreen', () => {
     });
   });
 
-  describe('premium gating', () => {
-    it('shows premium gate for non-premium users', () => {
-      mockUseFeatureAccess.mockReturnValue({ membershipStatus: 'demo', isDemo: false, isPremium: false });
+  describe('demo mode gating', () => {
+    it('shows upgrade gate for demo users', () => {
+      mockUseFeatureAccess.mockReturnValue({ membershipStatus: 'demo', isDemo: true, isPremium: false });
       const { getByText } = renderWithProviders(<CreateSetupScreen />);
       expect(getByText('Create Mode')).toBeTruthy();
       expect(getByText('Upgrade to Premium')).toBeTruthy();
@@ -218,8 +218,8 @@ describe('CreateSetupScreen', () => {
       expect(getByTestId('ai-selector')).toBeTruthy();
     });
 
-    it('allows demo users to access', () => {
-      mockUseFeatureAccess.mockReturnValue({ membershipStatus: 'demo', isDemo: true, isPremium: false });
+    it('allows premium users to access', () => {
+      mockUseFeatureAccess.mockReturnValue({ membershipStatus: 'premium', isDemo: false, isPremium: true });
       const { getByTestId } = renderWithProviders(<CreateSetupScreen />);
       expect(getByTestId('ai-selector')).toBeTruthy();
     });
@@ -319,42 +319,7 @@ describe('CreateSetupScreen', () => {
       expect(mockNavigate).toHaveBeenCalledWith('CreateSession', {});
     });
 
-    it('shows upgrade alert when gallery button is pressed in demo mode', () => {
-      const alertSpy = jest.spyOn(Alert, 'alert');
-      mockUseFeatureAccess.mockReturnValue({ membershipStatus: 'demo', isDemo: true, isPremium: false });
-
-      const { getByTestId } = renderWithProviders(<CreateSetupScreen />);
-      fireEvent.press(getByTestId('header-gallery-button'));
-
-      expect(alertSpy).toHaveBeenCalledWith(
-        'Gallery Unavailable in Demo',
-        'The image gallery is available with a premium subscription. Upgrade to save and manage your generated images.',
-        expect.arrayContaining([
-          expect.objectContaining({ text: 'Maybe Later' }),
-          expect.objectContaining({ text: 'Upgrade' }),
-        ])
-      );
-      expect(mockNavigate).not.toHaveBeenCalledWith('CreateSession', {});
-
-      alertSpy.mockRestore();
-    });
-
-    it('navigates to Subscription when Upgrade is pressed in demo gallery alert', () => {
-      const alertSpy = jest.spyOn(Alert, 'alert');
-      mockUseFeatureAccess.mockReturnValue({ membershipStatus: 'demo', isDemo: true, isPremium: false });
-
-      const { getByTestId } = renderWithProviders(<CreateSetupScreen />);
-      fireEvent.press(getByTestId('header-gallery-button'));
-
-      // Get the Upgrade button callback from the alert call
-      const alertCall = alertSpy.mock.calls[0];
-      const buttons = alertCall[2] as Array<{ text: string; onPress?: () => void }>;
-      const upgradeButton = buttons.find(b => b.text === 'Upgrade');
-      upgradeButton?.onPress?.();
-
-      expect(mockNavigate).toHaveBeenCalledWith('Subscription');
-
-      alertSpy.mockRestore();
-    });
+    // Note: Demo users now see the upgrade gate before reaching the gallery button,
+    // so gallery-specific demo tests are no longer applicable
   });
 });

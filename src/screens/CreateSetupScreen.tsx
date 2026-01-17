@@ -56,7 +56,7 @@ export default function CreateSetupScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
   const dispatch = useDispatch<AppDispatch>();
-  const { isDemo, isPremium } = useFeatureAccess();
+  const { isDemo } = useFeatureAccess();
   const greeting = useGreeting({ screenCategory: 'create' });
 
   const createState = useSelector(selectCreateState);
@@ -275,8 +275,8 @@ export default function CreateSetupScreen() {
     </View>
   );
 
-  // Premium gate
-  if (!isPremium && !isDemo) {
+  // Demo mode gate - only demo users should be blocked
+  if (isDemo) {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: theme.colors.background }]}
