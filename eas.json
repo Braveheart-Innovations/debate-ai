@@ -7,6 +7,7 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "channel": "development",
       "env": {
         "EXPO_PUBLIC_RELEASE_CHANNEL": "development",
         "EXPO_PUBLIC_ENVIRONMENT": "development"
@@ -21,6 +22,7 @@
     "internal-testing": {
       "developmentClient": false,
       "distribution": "store",
+      "channel": "internal-testing",
       "env": {
         "EXPO_PUBLIC_RELEASE_CHANNEL": "internal",
         "EXPO_PUBLIC_ENVIRONMENT": "development",
@@ -34,6 +36,7 @@
     "beta": {
       "developmentClient": false,
       "distribution": "store",
+      "channel": "beta",
       "env": {
         "EXPO_PUBLIC_RELEASE_CHANNEL": "beta",
         "EXPO_PUBLIC_ENVIRONMENT": "staging",
@@ -51,6 +54,7 @@
     "preview": {
       "developmentClient": false,
       "distribution": "internal",
+      "channel": "preview",
       "env": {
         "EXPO_PUBLIC_RELEASE_CHANNEL": "preview"
       },
@@ -64,6 +68,7 @@
     "production": {
       "developmentClient": false,
       "distribution": "store",
+      "channel": "production",
       "env": {
         "EXPO_PUBLIC_RELEASE_CHANNEL": "production",
         "EXPO_PUBLIC_ENVIRONMENT": "production",
