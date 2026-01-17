@@ -205,6 +205,46 @@ const getBaseHeaderHeight = (isTablet: boolean, isCompact: boolean): number => {
   return isTablet ? 85 : HEADER_HEIGHT;
 };
 
+/**
+ * Calculate responsive greeting font sizes based on content length and screen width.
+ * Prevents long greetings from wrapping and creating a cramped header appearance.
+ */
+const calculateGreetingFontSizes = (
+  title: string,
+  screenWidth: number,
+  isTablet: boolean
+): { titleSize: number; titleLineHeight: number } => {
+  const titleLength = title.length;
+
+  // Calculate available width (screen minus horizontal padding)
+  const availableWidth = screenWidth - 32; // 16px padding each side
+
+  // Estimate characters per line at base font size
+  // At 32px font, roughly 0.55 width ratio per character
+  const charWidthRatio = 0.55;
+  const maxCharsAtBaseSize = availableWidth / (32 * charWidthRatio);
+
+  // If text fits at base size, use it; otherwise scale down
+  let titleSize: number;
+  if (isTablet) {
+    // Tablets have more room, use simpler calculation
+    titleSize = titleLength > 25 ? 30 : titleLength > 20 ? 34 : 38;
+  } else {
+    // Phones need more aggressive scaling
+    if (titleLength <= maxCharsAtBaseSize) {
+      titleSize = 32; // Fits at full size
+    } else {
+      // Scale down to fit: calculate size needed for text to fit on one line
+      const neededSize = availableWidth / (titleLength * charWidthRatio);
+      titleSize = Math.max(18, Math.min(32, neededSize));
+    }
+  }
+
+  const titleLineHeight = titleSize + (isTablet ? 8 : 4);
+
+  return { titleSize, titleLineHeight };
+};
+
 // Animated SVG elements
 const AnimatedG = Animated.createAnimatedComponent(G);
 
@@ -402,13 +442,19 @@ export const Header: React.FC<HeaderProps> = ({
   const renderGradientTitleContent = () => {
     if (!title) {
       // Dynamic time-based greeting when no title provided
+      // Calculate dynamic font sizes based on greeting length and screen width
+      const { titleSize, titleLineHeight } = calculateGreetingFontSizes(timeBasedGreeting, width, isTablet);
+
       return (
         <>
           <Typography
             variant="heading"
             weight="bold"
             color="inverse"
-            style={styles.gradientTitle}
+            style={[
+              styles.gradientTitle,
+              { fontSize: titleSize, lineHeight: titleLineHeight }
+            ]}
           >
             {timeBasedGreeting}
           </Typography>
@@ -457,6 +503,9 @@ export const Header: React.FC<HeaderProps> = ({
       );
     }
 
+    // Calculate dynamic font sizes based on title length and screen width
+    const { titleSize, titleLineHeight } = calculateGreetingFontSizes(title, width, isTablet);
+
     return (
       <Typography
         variant="heading"
@@ -464,7 +513,11 @@ export const Header: React.FC<HeaderProps> = ({
         color="inverse"
         numberOfLines={2}
         ellipsizeMode="tail"
-        style={[styles.gradientTitle, hasSubtitle && styles.gradientTitleWithSubtitle]}
+        style={[
+          styles.gradientTitle,
+          { fontSize: titleSize, lineHeight: titleLineHeight },
+          hasSubtitle && styles.gradientTitleWithSubtitle
+        ]}
       >
         {title}
       </Typography>
@@ -840,7 +893,9 @@ const createStyles = (
   // Gradient variant specific styles (from GradientHeader)
   gradientContentContainer: {
     paddingHorizontal: theme.spacing.lg,
-    paddingBottom: isTablet ? theme.spacing.xl : theme.spacing.md,
+    paddingBottom: isTablet
+      ? theme.spacing.xl
+      : Platform.select({ ios: theme.spacing.md, android: theme.spacing.lg }),
     paddingTop: isTablet ? theme.spacing.lg : theme.spacing.sm,
     zIndex: 10,
     justifyContent: 'flex-start',
@@ -960,13 +1015,13 @@ const createStyles = (
   },
   gradientSubtitle: {
     letterSpacing: 0.5,
-    lineHeight: isTablet ? 24 : 20,
-    fontSize: isTablet ? 18 : undefined, // Typography component handles base size
+    lineHeight: isTablet ? 24 : 22,
+    fontSize: isTablet ? 18 : 15, // Slightly larger on phones for readability
     opacity: 0.95,
     textShadowColor: theme.colors.shadow,
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
-    marginTop: isTablet ? 0 : -2,
+    marginTop: isTablet ? 0 : 2,
   },
   motionContainer: {
     width: '100%',
