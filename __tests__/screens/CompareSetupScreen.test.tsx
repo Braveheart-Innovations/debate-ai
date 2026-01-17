@@ -24,6 +24,27 @@ jest.mock('@/hooks/useFeatureAccess', () => ({
   useFeatureAccess: (...args: unknown[]) => mockUseFeatureAccess(...args),
 }));
 
+jest.mock('@react-navigation/native', () => ({
+  useFocusEffect: (cb: () => (() => void) | void) => {
+    const { useEffect } = require('react');
+    useEffect(() => {
+      const cleanup = cb();
+      return cleanup;
+    }, [cb]);
+  },
+}));
+
+jest.mock('@/hooks/useGreeting', () => ({
+  useGreeting: () => ({
+    timeBasedGreeting: 'Compare mode',
+    welcomeMessage: 'Pick your AIs',
+    greeting: {
+      timeBasedGreeting: 'Compare mode',
+      welcomeMessage: 'Pick your AIs',
+    },
+  }),
+}));
+
 jest.mock('@/components/molecules/subscription/TrialBanner', () => ({
   TrialBanner: () => null,
 }));

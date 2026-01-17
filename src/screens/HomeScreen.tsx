@@ -17,7 +17,7 @@ import { useDispatch } from 'react-redux';
 import { showSheet } from '@/store';
 
 // Custom hooks
-import { useGreeting } from '../hooks/home/useGreeting';
+import { useGreeting } from '../hooks/useGreeting';
 import { usePremiumFeatures } from '../hooks/home/usePremiumFeatures';
 import { useAISelection } from '../hooks/home/useAISelection';
 import { useSessionManagement } from '../hooks/home/useSessionManagement';

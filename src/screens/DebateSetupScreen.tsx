@@ -9,6 +9,7 @@ import { Box, ResponsiveContainer } from '../components/atoms';
 import { Button, Typography, GradientButton, InfoButton } from '../components/molecules';
 import { useResponsive } from '../hooks/useResponsive';
 import { Header, HeaderActions } from '../components/organisms';
+import { useGreeting } from '../hooks/useGreeting';
 // Legacy premium gating replaced by useFeatureAccess
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import {
@@ -55,6 +56,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
   const dispatch = useDispatch();
   const scrollViewRef = useRef<ScrollView>(null);
   const { rs } = useResponsive();
+  const greeting = useGreeting({ screenCategory: 'debate' });
   const apiKeys = useSelector((state: RootState) => state.settings.apiKeys || {});
   const expertMode = useSelector((state: RootState) => state.settings.expertMode || {});
   const aiPersonalities = useSelector((state: RootState) => state.chat.aiPersonalities);
@@ -295,8 +297,8 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
       <TrialBanner />
       <Header
         variant="gradient"
-        title="Debate Arena"
-        subtitle="Choose Your Combatants"
+        title={greeting.timeBasedGreeting}
+        subtitle={greeting.welcomeMessage}
         showTime={true}
         showDate={true}
         animated={true}

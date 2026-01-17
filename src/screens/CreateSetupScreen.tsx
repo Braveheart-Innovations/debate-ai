@@ -23,6 +23,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../theme';
 import { useFeatureAccess } from '../hooks/useFeatureAccess';
+import { useGreeting } from '../hooks/useGreeting';
 import { Typography, GradientButton, HeaderIcon, SectionHeader } from '../components/molecules';
 import { Header, HeaderActions, DynamicAISelector, ImageRefinementModal } from '../components/organisms';
 import type { RefinementProvider } from '../components/organisms/chat/ImageRefinementModal';
@@ -56,6 +57,7 @@ export default function CreateSetupScreen() {
   const navigation = useNavigation<NavigationProp>();
   const dispatch = useDispatch<AppDispatch>();
   const { isDemo, isPremium } = useFeatureAccess();
+  const greeting = useGreeting({ screenCategory: 'create' });
 
   const createState = useSelector(selectCreateState);
   const apiKeys = useSelector((state: RootState) => state.settings.apiKeys || {});
@@ -319,8 +321,9 @@ export default function CreateSetupScreen() {
     >
       <Header
         variant="gradient"
-        title="Create"
-        subtitle="Generate and refine images with AI"
+        title={greeting.timeBasedGreeting}
+        subtitle={greeting.welcomeMessage}
+        showTime={true}
         showDate={true}
         rightElement={renderHeaderRight()}
         showDemoBadge={isDemo}

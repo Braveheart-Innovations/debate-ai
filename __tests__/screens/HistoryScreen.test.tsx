@@ -114,9 +114,24 @@ let focusEffectCleanup: (() => void) | undefined;
 
 jest.mock('@react-navigation/native', () => ({
   useFocusEffect: (cb: () => void | (() => void)) => {
-    const cleanup = cb();
-    focusEffectCleanup = typeof cleanup === 'function' ? cleanup : undefined;
+    const { useEffect } = require('react');
+    useEffect(() => {
+      const cleanup = cb();
+      focusEffectCleanup = typeof cleanup === 'function' ? cleanup : undefined;
+      return cleanup;
+    }, [cb]);
   },
+}));
+
+jest.mock('@/hooks/useGreeting', () => ({
+  useGreeting: () => ({
+    timeBasedGreeting: 'History awaits',
+    welcomeMessage: 'Your past conversations',
+    greeting: {
+      timeBasedGreeting: 'History awaits',
+      welcomeMessage: 'Your past conversations',
+    },
+  }),
 }));
 
 const mockUseFeatureAccess = jest.fn();
@@ -344,7 +359,7 @@ describe('HistoryScreen', () => {
   it('shows loading skeleton when history is loading', () => {
     renderHistoryScreen({ history: { isLoading: true } });
 
-    expect(mockHeaderProps.title).toBe('Chat History');
+    expect(mockHeaderProps.title).toBe('History awaits');
     expect(mockHistoryListProps).toBeUndefined();
   });
 

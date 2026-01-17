@@ -28,6 +28,24 @@ jest.mock('@react-navigation/native', () => ({
     navigate: mockNavigate,
     goBack: jest.fn(),
   }),
+  useFocusEffect: (cb: () => (() => void) | void) => {
+    const { useEffect } = require('react');
+    useEffect(() => {
+      const cleanup = cb();
+      return cleanup;
+    }, [cb]);
+  },
+}));
+
+jest.mock('@/hooks/useGreeting', () => ({
+  useGreeting: () => ({
+    timeBasedGreeting: 'Create something',
+    welcomeMessage: 'Pick your AI',
+    greeting: {
+      timeBasedGreeting: 'Create something',
+      welcomeMessage: 'Pick your AI',
+    },
+  }),
 }));
 
 jest.mock('@/hooks/useFeatureAccess', () => ({

@@ -13,6 +13,7 @@ export const HOME_CONSTANTS = {
 
   // Greeting System
   GREETING_TIMES: {
+    LATE_NIGHT_END: 4,
     MORNING_END: 12,
     AFTERNOON_END: 17,
   },

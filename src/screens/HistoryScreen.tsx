@@ -4,6 +4,7 @@ import { ScrollView, View, Alert, StyleSheet } from 'react-native';
 import { Box } from '../components/atoms';
 import { Button } from '../components/molecules';
 import { useTheme } from '../theme';
+import { useGreeting } from '../hooks/useGreeting';
 import { useFocusEffect } from '@react-navigation/native';
 import { StorageService } from '../services/chat';
 import {
@@ -39,6 +40,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
   const dispatch = useDispatch();
   const { isDemo } = useFeatureAccess();
   const { isTablet, isLandscape, width } = useResponsive();
+  const greeting = useGreeting({ screenCategory: 'history' });
   const [activeTab, setActiveTab] = useState<'all' | 'chat' | 'comparison' | 'debate'>('all');
   const [selectedSession, setSelectedSession] = useState<ChatSession | null>(null);
 
@@ -140,10 +142,10 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
       <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: theme.colors.background }}>
         <ErrorBoundary>
           <Box style={{ flex: 1, backgroundColor: theme.colors.background }}>
-            {/* Header with skeleton data */}
+            {/* Header with greeting while loading */}
             <Header
               variant="gradient"
-              title="Chat History"
+              title={greeting.timeBasedGreeting}
               subtitle="Loading your conversation archive..."
               showTime={true}
               showDate={true}
@@ -276,11 +278,11 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
     <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <ErrorBoundary>
         <Box style={{ flex: 1, backgroundColor: theme.colors.background }}>
-          {/* Header with title and subtitle */}
+          {/* Header with dynamic greeting */}
           <Header
             variant="gradient"
-            title="Chat History"
-            subtitle="Your conversation archive"
+            title={greeting.timeBasedGreeting}
+            subtitle={greeting.welcomeMessage}
             showTime={true}
             showDate={true}
             animated={true}

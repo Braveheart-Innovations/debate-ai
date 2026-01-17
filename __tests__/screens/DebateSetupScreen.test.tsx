@@ -98,6 +98,27 @@ jest.mock('@/hooks/debate', () => ({
   }),
 }));
 
+jest.mock('@react-navigation/native', () => ({
+  useFocusEffect: (cb: () => (() => void) | void) => {
+    const { useEffect } = require('react');
+    useEffect(() => {
+      const cleanup = cb();
+      return cleanup;
+    }, [cb]);
+  },
+}));
+
+jest.mock('@/hooks/useGreeting', () => ({
+  useGreeting: () => ({
+    timeBasedGreeting: 'Ready to debate',
+    welcomeMessage: 'Pick your topic',
+    greeting: {
+      timeBasedGreeting: 'Ready to debate',
+      welcomeMessage: 'Pick your topic',
+    },
+  }),
+}));
+
 jest.mock('@/hooks/useFeatureAccess', () => ({
   __esModule: true,
   default: (...args: unknown[]) => mockFeatureAccess(...args),

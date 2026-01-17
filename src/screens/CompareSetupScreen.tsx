@@ -7,6 +7,7 @@ import { RootState, setAIPersonality, setAIModel } from '../store';
 import { Box } from '../components/atoms';
 import { Typography, Button } from '../components/molecules';
 import { Header, HeaderActions, DynamicAISelector } from '../components/organisms';
+import { useGreeting } from '../hooks/useGreeting';
 
 import { useTheme } from '../theme';
 import { AIConfig } from '../types';
@@ -36,6 +37,7 @@ const CompareSetupScreen: React.FC<CompareSetupScreenProps> = ({ navigation, rou
   const dispatch = useDispatch();
   const apiKeys = useSelector((state: RootState) => state.settings.apiKeys || {});
   const access = useFeatureAccess();
+  const greeting = useGreeting({ screenCategory: 'compare' });
   const expertMode = useSelector((state: RootState) => state.settings.expertMode || {});
   
   // Calculate half screen width for each selector
@@ -145,9 +147,9 @@ const CompareSetupScreen: React.FC<CompareSetupScreenProps> = ({ navigation, rou
       <TrialBanner />
       <Header
         variant="gradient"
-        title="Compare AIs"
-        subtitle={bothSelected ? "Ready to compare" : "Select two AIs to compare"}
-        showTime={false}
+        title={greeting.timeBasedGreeting}
+        subtitle={greeting.welcomeMessage}
+        showTime={true}
         showDate={true}
         animated={true}
         rightElement={<HeaderActions variant="gradient" helpTopicId="compare-mode" />}

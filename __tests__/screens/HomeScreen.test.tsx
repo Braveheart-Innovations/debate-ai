@@ -20,7 +20,7 @@ let mockPromptWizardProps: any;
 let mockDemoBannerProps: any;
 let mockChatTopicPickerProps: any;
 
-jest.mock('@/hooks/home/useGreeting', () => ({
+jest.mock('@/hooks/useGreeting', () => ({
   useGreeting: (...args: unknown[]) => mockUseGreeting(...args),
 }));
 
