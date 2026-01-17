@@ -3,12 +3,11 @@ import { TouchableOpacity, StyleSheet } from 'react-native';
 import { Typography } from '../common/Typography';
 import { useTheme } from '@/theme';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
-import { useNavigation, NavigationProp } from '@react-navigation/native';
-import type { RootStackParamList } from '@/types';
+import { useProfileSheet } from '@/contexts/SheetContext';
 
 export const TrialBanner: React.FC = () => {
   const { theme } = useTheme();
-  const nav = useNavigation<NavigationProp<RootStackParamList>>();
+  const profileSheet = useProfileSheet();
   const { isInTrial, trialDaysRemaining } = useFeatureAccess();
 
   if (!isInTrial || trialDaysRemaining == null) return null;
@@ -18,7 +17,7 @@ export const TrialBanner: React.FC = () => {
   return (
     <TouchableOpacity
       style={[styles.banner, { backgroundColor: color }]}
-      onPress={() => nav.navigate('Subscription')}
+      onPress={() => profileSheet.show()}
       activeOpacity={0.9}
     >
       <Typography variant="caption" style={styles.text}>
