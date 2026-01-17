@@ -110,6 +110,11 @@ export const useFeatureAccess = () => {
       const endMs = typeof data.trialEndDate.toMillis === 'function'
         ? data.trialEndDate.toMillis()
         : (data.trialEndDate as unknown as number);
+      // Guard against NaN or invalid dates
+      if (typeof endMs !== 'number' || isNaN(endMs)) {
+        console.warn('useFeatureAccess: Invalid trialEndDate, returning null');
+        return null;
+      }
       const days = Math.ceil((endMs - Date.now()) / (1000 * 60 * 60 * 24));
       return Math.max(0, days);
     } catch (err) {
