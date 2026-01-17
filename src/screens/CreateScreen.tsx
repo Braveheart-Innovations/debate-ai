@@ -66,7 +66,7 @@ export default function CreateScreen() {
   const gallery = useSelector(selectGallery);
   const isGenerating = useSelector(selectIsGenerating);
   const apiKeys = useSelector((state: RootState) => state.settings.apiKeys || {});
-  const { isDemo } = useFeatureAccess();
+  const { isDemo, loading: subscriptionLoading } = useFeatureAccess();
 
   const {
     selectedStyle,
@@ -98,8 +98,11 @@ export default function CreateScreen() {
     }
   }, [gallery, dispatch]);
 
-  // Start generation on mount (including refinement of uploaded images)
+  // Start generation once subscription status is loaded
   useEffect(() => {
+    // Wait for subscription data to load before checking isDemo
+    if (subscriptionLoading) return;
+
     // Normal generation: prompt + providers
     if (initialPrompt && providers.length > 0) {
       generateImages();
@@ -108,7 +111,7 @@ export default function CreateScreen() {
     else if (sourceImage && refinementInstructions && providers.length > 0) {
       generateRefinement();
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [subscriptionLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Generate refinement for uploaded image
   const generateRefinement = useCallback(async () => {
