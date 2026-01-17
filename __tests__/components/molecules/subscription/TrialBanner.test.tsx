@@ -2,10 +2,13 @@ import React from 'react';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 
-const mockNavigate = jest.fn();
-jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({ navigate: mockNavigate }),
-  NavigationProp: {},
+const mockShowProfile = jest.fn();
+jest.mock('@/contexts/SheetContext', () => ({
+  useProfileSheet: () => ({
+    show: mockShowProfile,
+    hide: jest.fn(),
+    isVisible: false,
+  }),
 }));
 
 const mockFeatureAccess = jest.fn();
@@ -61,7 +64,7 @@ describe('TrialBanner', () => {
     expect(getByText('Trial ends tomorrow')).toBeTruthy();
   });
 
-  it('navigates to subscription screen when pressed', () => {
+  it('opens profile sheet when pressed', () => {
     mockFeatureAccess.mockReturnValue({
       isInTrial: true,
       trialDaysRemaining: 3,
@@ -69,6 +72,6 @@ describe('TrialBanner', () => {
 
     const { getByText } = renderWithProviders(<TrialBanner />);
     fireEvent.press(getByText('Manage →'));
-    expect(mockNavigate).toHaveBeenCalledWith('Subscription');
+    expect(mockShowProfile).toHaveBeenCalled();
   });
 });
