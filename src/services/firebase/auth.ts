@@ -465,6 +465,13 @@ export const signInWithGoogle = async (): Promise<{ user: User; profile: UserPro
       console.warn('Google Play Services available');
     }
     
+    // Sign out first to ensure account picker appears
+    try {
+      await GoogleSignin.signOut();
+    } catch {
+      // Ignore - user may not be signed in
+    }
+
     // Sign in with Google
     console.warn('Presenting Google Sign In dialog...');
     await GoogleSignin.signIn();

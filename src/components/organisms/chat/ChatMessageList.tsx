@@ -4,7 +4,6 @@ import { Box, ResponsiveContainer } from '../../atoms';
 import { Typography } from '../../molecules';
 import { MessageBubble } from '@/components/organisms/common/MessageBubble';
 import { ImageMessageRow } from './ImageMessageRow';
-import { VideoMessageRow } from './VideoMessageRow';
 import { ImageGeneratingRow } from './ImageGeneratingRow';
 import { useTheme } from '../../../theme';
 import { useResponsive } from '../../../hooks/useResponsive';
@@ -77,12 +76,8 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
       return <ImageGeneratingRow message={item} onCancel={onCancelImage} onRetry={onRetryImage} />;
     }
     const hasImageOnly = (item.attachments && item.attachments.length > 0 && item.attachments.some(a => a.type === 'image')) && (!item.content || item.content.trim() === '');
-    const hasVideoOnly = (item.attachments && item.attachments.length > 0 && item.attachments.some(a => a.type === 'video')) && (!item.content || item.content.trim() === '');
     if (!isUserMessage(item) && hasImageOnly) {
       return <ImageMessageRow message={item} canRefine={canRefineImages} onRefine={onRefineImage} />;
-    }
-    if (!isUserMessage(item) && hasVideoOnly) {
-      return <VideoMessageRow message={item} />;
     }
     return (
       <MessageBubble 

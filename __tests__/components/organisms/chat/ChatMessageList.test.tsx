@@ -59,14 +59,6 @@ jest.mock('../../../../src/components/organisms/chat/ImageMessageRow', () => ({
   },
 }));
 
-jest.mock('../../../../src/components/organisms/chat/VideoMessageRow', () => ({
-  VideoMessageRow: ({ message }: { message: Message }) => {
-    const React = require('react');
-    const { Text } = require('react-native');
-    return React.createElement(Text, { testID: `video-row-${message.id}` }, 'Video Message');
-  },
-}));
-
 jest.mock('../../../../src/components/organisms/chat/ImageGeneratingRow', () => ({
   ImageGeneratingRow: ({ message }: { message: Message }) => {
     const React = require('react');
@@ -183,30 +175,6 @@ describe('ChatMessageList', () => {
 
       expect(screen.getByTestId('image-row-msg-image')).toBeTruthy();
       expect(screen.getByText('Image Message')).toBeTruthy();
-    });
-
-    it('renders video message row for AI messages with video attachments', () => {
-      const flatListRef = createMockRef();
-      const messagesWithVideo: Message[] = [
-        {
-          id: 'msg-video',
-          content: '',
-          senderType: 'ai',
-          senderId: 'ai-1',
-          timestamp: Date.now(),
-          attachments: [{ type: 'video', url: 'https://example.com/video.mp4' }],
-        },
-      ];
-
-      render(
-        <ChatMessageList
-          messages={messagesWithVideo}
-          flatListRef={flatListRef}
-        />
-      );
-
-      expect(screen.getByTestId('video-row-msg-video')).toBeTruthy();
-      expect(screen.getByText('Video Message')).toBeTruthy();
     });
 
     it('renders image generating row for AI messages with imageGenerating metadata', () => {
