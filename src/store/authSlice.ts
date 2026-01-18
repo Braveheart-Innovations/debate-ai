@@ -15,6 +15,8 @@ interface AuthState {
     membershipStatus: 'demo' | 'free' | 'trial' | 'premium' | 'canceled' | 'past_due';
     preferences?: Record<string, unknown>;
     authProvider?: 'email' | 'apple' | 'google';
+    hasUsedTrial?: boolean;
+    trialEndDate?: number | null; // milliseconds timestamp
   } | null;
   // Social auth state
   lastAuthMethod: 'email' | 'apple' | 'google' | null;

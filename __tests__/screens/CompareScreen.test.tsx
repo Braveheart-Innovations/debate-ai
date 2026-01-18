@@ -20,7 +20,6 @@ const rightAI: AIConfig = {
   model: 'gpt-4-turbo',
 };
 
-const mockFeatureAccess = jest.fn();
 const mockUseAIService = jest.fn();
 const mockUseMergedAvailability = jest.fn();
 const mockListSamples = jest.fn();
@@ -43,12 +42,6 @@ jest.mock('@expo/vector-icons', () => ({
   Ionicons: () => null,
   MaterialIcons: () => null,
   MaterialCommunityIcons: () => null,
-}));
-
-jest.mock('@/hooks/useFeatureAccess', () => ({
-  __esModule: true,
-  default: (...args: unknown[]) => mockFeatureAccess(...args),
-  useFeatureAccess: (...args: unknown[]) => mockFeatureAccess(...args),
 }));
 
 jest.mock('@/providers/AIServiceProvider', () => ({
@@ -223,7 +216,7 @@ type CompareRouteParams = {
 
 type RenderOptions = {
   params?: Partial<CompareRouteParams>;
-  featureAccess?: Record<string, unknown>;
+  isDemo?: boolean;
   preloadedState?: Partial<RootState>;
   aiServiceOverrides?: Partial<{
     getAdapter: jest.Mock;
@@ -250,7 +243,7 @@ const mergeState = <T extends Record<string, any>>(base: T, overrides?: Partial<
 };
 
 const renderScreen = (options: RenderOptions = {}) => {
-  const { params, featureAccess, preloadedState, aiServiceOverrides, store: providedStore } = options;
+  const { params, isDemo = false, preloadedState, aiServiceOverrides, store: providedStore } = options;
 
   const aiService = {
     getAdapter: jest.fn().mockReturnValue({ config: {} }),
@@ -267,14 +260,14 @@ const renderScreen = (options: RenderOptions = {}) => {
     reinitialize: jest.fn(),
   });
 
-  mockFeatureAccess.mockReturnValue({ isDemo: false, ...featureAccess });
-
   let store: AppStore;
   if (providedStore) {
     store = providedStore;
   } else {
     const baseState = createAppStore().getState();
-    const mergedState = mergeState(baseState, preloadedState ? preloadedState : undefined);
+    // Set auth.isPremium based on isDemo flag (isDemo = !isPremium)
+    const authState = { auth: { isPremium: !isDemo } };
+    const mergedState = mergeState(mergeState(baseState, authState), preloadedState ? preloadedState : undefined);
     store = createAppStore(mergedState);
   }
 
@@ -364,10 +357,13 @@ describe('CompareScreen', () => {
   });
 
   it('dispatches subscription sheet when demo banner is pressed', async () => {
-    const store = createAppStore();
+    const store = createAppStore({
+      ...createAppStore().getState(),
+      auth: { isPremium: false } as any,
+    });
     const dispatchSpy = jest.spyOn(store, 'dispatch');
 
-    renderScreen({ featureAccess: { isDemo: true }, store });
+    renderScreen({ isDemo: true, store });
 
     await act(async () => {
       mockDemoBannerProps.onPress();
@@ -381,7 +377,7 @@ describe('CompareScreen', () => {
     mockListSamples.mockResolvedValue([sample]);
     mockFindCompareById.mockResolvedValue(sample);
 
-    const { aiService } = renderScreen({ featureAccess: { isDemo: true } });
+    const { aiService } = renderScreen({ isDemo: true });
 
     await waitFor(() => expect(mockDemoSamplesProps).toBeDefined());
 

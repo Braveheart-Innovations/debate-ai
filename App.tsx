@@ -109,6 +109,16 @@ function AppContent() {
                   let membershipStatus = profileData?.membershipStatus || 'demo';
                   if (membershipStatus === 'free') membershipStatus = 'demo';
 
+                  // Extract trialEndDate as milliseconds
+                  let trialEndDate: number | null = null;
+                  if (profileData?.trialEndDate) {
+                    if (typeof profileData.trialEndDate.toMillis === 'function') {
+                      trialEndDate = profileData.trialEndDate.toMillis();
+                    } else if (typeof profileData.trialEndDate === 'number') {
+                      trialEndDate = profileData.trialEndDate;
+                    }
+                  }
+
                   dispatch(setUserProfile({
                     email: user.email,
                     displayName: profileData?.displayName || user.displayName || 'User',
@@ -120,6 +130,8 @@ function AppContent() {
                       : Date.now(),
                     membershipStatus,
                     preferences: profileData?.preferences || {},
+                    hasUsedTrial: profileData?.hasUsedTrial === true,
+                    trialEndDate,
                   }));
 
                   CrashlyticsService.setAttributes({ membershipStatus });

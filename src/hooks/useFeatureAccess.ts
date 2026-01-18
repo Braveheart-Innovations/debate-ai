@@ -1,136 +1,53 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
-import { getFirestore, collection, doc, onSnapshot, FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
-import { onAuthStateChanged } from '@/services/firebase/auth';
+import { useMemo, useCallback } from 'react';
+import { useSelector } from 'react-redux';
+import type { RootState } from '@/store';
 import type { MembershipStatus } from '@/types/subscription';
 
 /**
- * Simplified subscription hook that reads directly from Firestore snapshot.
+ * Subscription hook that reads from Redux (populated by App.tsx Firestore listener).
  *
- * Key principles:
- * 1. Single source of truth: Firestore user document
- * 2. No redundant getDoc() calls - use snapshot data directly
- * 3. Server (validatePurchase Cloud Function) handles all business logic
- * 4. Client only reads and displays
+ * This avoids the race condition where each component mounting would create its own
+ * Firestore listener and briefly return isDemo=true while loading.
+ *
+ * Redux auth state is populated at app startup and stays in sync via App.tsx.
  */
-
-interface SubscriptionData {
-  membershipStatus: MembershipStatus;
-  trialEndDate: FirebaseFirestoreTypes.Timestamp | null;
-  hasUsedTrial: boolean;
-}
-
 export const useFeatureAccess = () => {
-  const [data, setData] = useState<SubscriptionData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const userProfile = useSelector((state: RootState) => state.auth.userProfile);
+  const isPremiumFromRedux = useSelector((state: RootState) => state.auth.isPremium);
+  const authLoading = useSelector((state: RootState) => state.auth.authLoading);
 
-  useEffect(() => {
-    let unsubFirestore: (() => void) | undefined;
-
-    // Listen to auth state changes
-    const unsubAuth = onAuthStateChanged((user) => {
-      // Clean up previous Firestore listener when auth changes
-      if (unsubFirestore) {
-        try { unsubFirestore(); } catch (_e) { void _e; }
-        unsubFirestore = undefined;
-      }
-
-      // Always reset state when auth changes to prevent data leaking between users
-      setData(null);
-
-      if (!user) {
-        // Signed out: reset to demo state
-        setLoading(false);
-        return;
-      }
-
-      // User is logging in - show loading while we wait for Firestore snapshot
-      setLoading(true);
-
-      // Set up Firestore listener for this user
-      const db = getFirestore();
-      const userDocRef = doc(collection(db, 'users'), user.uid);
-
-      unsubFirestore = onSnapshot(
-        userDocRef,
-        (snap) => {
-          // USE THE SNAPSHOT DATA DIRECTLY - no extra getDoc() calls
-          const docData = snap.data();
-          if (docData) {
-            setData({
-              membershipStatus: (docData.membershipStatus as MembershipStatus) || 'demo',
-              trialEndDate: docData.trialEndDate || null,
-              hasUsedTrial: docData.hasUsedTrial === true,
-            });
-          } else {
-            // Document doesn't exist yet (new user)
-            setData({
-              membershipStatus: 'demo',
-              trialEndDate: null,
-              hasUsedTrial: false,
-            });
-          }
-          setLoading(false);
-        },
-        (err: unknown) => {
-          const code = (err as { code?: string } | undefined)?.code;
-          if (code === 'firestore/permission-denied') {
-            // Signed out or no access - reset to demo
-            setData(null);
-            setLoading(false);
-            return;
-          }
-          console.error('useFeatureAccess onSnapshot error:', err);
-          setData(null);
-          setLoading(false);
-        }
-      );
-    });
-
-    return () => {
-      unsubAuth();
-      if (unsubFirestore) unsubFirestore();
-    };
-  }, []);
-
-  // Derive all values from the single source of truth
-  const membershipStatus: MembershipStatus = data?.membershipStatus || 'demo';
-  const hasUsedTrial = data?.hasUsedTrial || false;
+  // Derive all values from Redux state
+  // Map 'free', 'canceled', 'past_due' to 'demo' for simplicity
+  const rawStatus = userProfile?.membershipStatus || 'demo';
+  const membershipStatus: MembershipStatus =
+    rawStatus === 'premium' ? 'premium' :
+    rawStatus === 'trial' ? 'trial' : 'demo';
+  const hasUsedTrial = userProfile?.hasUsedTrial === true;
 
   const isInTrial = membershipStatus === 'trial';
-  // isPremium includes both 'premium' AND 'trial' users (trial = premium access)
-  const isPremium = membershipStatus === 'premium' || membershipStatus === 'trial';
+  const isPremium = isPremiumFromRedux;
   const isDemo = !isPremium;
   const canAccessLiveAI = isPremium;
   const canStartTrial = !hasUsedTrial && isDemo;
 
-  // Calculate trial days remaining from trialEndDate
+  // Calculate trial days remaining from trialEndDate in Redux
   const trialDaysRemaining = useMemo(() => {
-    if (!isInTrial || !data?.trialEndDate) return null;
+    if (!isInTrial || !userProfile?.trialEndDate) return null;
     try {
-      const endMs = typeof data.trialEndDate.toMillis === 'function'
-        ? data.trialEndDate.toMillis()
-        : (data.trialEndDate as unknown as number);
-      // Guard against NaN or invalid dates
-      if (typeof endMs !== 'number' || isNaN(endMs)) {
-        console.warn('useFeatureAccess: Invalid trialEndDate, returning null');
-        return null;
-      }
+      const endMs = userProfile.trialEndDate;
+      if (typeof endMs !== 'number' || isNaN(endMs)) return null;
       const days = Math.ceil((endMs - Date.now()) / (1000 * 60 * 60 * 24));
       return Math.max(0, days);
-    } catch (err) {
-      console.warn('useFeatureAccess: Failed to calculate trial days remaining', err);
+    } catch {
       return null;
     }
-  }, [isInTrial, data?.trialEndDate]);
+  }, [isInTrial, userProfile?.trialEndDate]);
 
-  // Refresh is now a no-op - Firestore listener handles all updates automatically
-  const refresh = useCallback(async () => {
-    // No-op: onSnapshot already keeps data in sync
-    // This method is kept for API compatibility with existing components
-  }, []);
+  // Refresh is a no-op - Redux is kept in sync by App.tsx
+  const refresh = useCallback(async () => {}, []);
 
   return {
-    loading,
+    loading: authLoading,
     membershipStatus,
     trialDaysRemaining,
     hasUsedTrial,
