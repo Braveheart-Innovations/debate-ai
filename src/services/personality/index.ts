@@ -1,0 +1,1 @@
+export { PersonalityStorageService } from './PersonalityStorageService';

@@ -95,3 +95,6 @@ export {
 export { WinRateDonutSection } from './stats/WinRateDonutSection';
 export { PerformanceBarSection } from './stats/PerformanceBarSection';
 export { TrendLineSection } from './stats/TrendLineSection';
+
+// Personality Organisms
+export * from './personality';

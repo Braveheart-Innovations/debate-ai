@@ -31,6 +31,10 @@ export interface PersonalityOption {
     concession: number;
     interruption?: number;
   };
+  modelParameters?: {
+    temperature: number;
+    topP?: number;
+  };
 }
 
 // Universal personalities available for all providers
@@ -41,9 +45,10 @@ export const UNIVERSAL_PERSONALITIES: PersonalityOption[] = [
     emoji: '🤖',
     tagline: 'Use the AI exactly as-is',
     description: 'No personality layer applied',
-    bio: 'Select this when you want the provider’s default behavior with no stylistic modifications from our system.',
+    bio: "Select this when you want the provider's default behavior with no stylistic modifications from our system.",
     systemPrompt: 'You are a helpful AI assistant. Be thoughtful and balanced in your responses.',
     signatureMoves: [],
+    modelParameters: { temperature: 0.7 },
   },
   {
     id: 'bestie',
@@ -70,6 +75,7 @@ export const UNIVERSAL_PERSONALITIES: PersonalityOption[] = [
     },
     tone: { formality: 0.45, humor: 0.35, energy: 0.45, empathy: 0.9, technicality: 0.4 },
     debateProfile: { argumentStyle: 'emotional', aggression: 0.25, concession: 0.7, interruption: 0.2 },
+    modelParameters: { temperature: 0.75 },
   },
   {
     id: 'brody',
@@ -96,6 +102,7 @@ export const UNIVERSAL_PERSONALITIES: PersonalityOption[] = [
     },
     tone: { formality: 0.25, humor: 0.35, energy: 0.75, empathy: 0.5, technicality: 0.4 },
     debateProfile: { argumentStyle: 'emotional', aggression: 0.6, concession: 0.3, interruption: 0.5 },
+    modelParameters: { temperature: 0.8 },
   },
   {
     id: 'devlin',
@@ -122,6 +129,7 @@ export const UNIVERSAL_PERSONALITIES: PersonalityOption[] = [
     },
     tone: { formality: 0.6, humor: 0.25, energy: 0.5, empathy: 0.45, technicality: 0.7 },
     debateProfile: { argumentStyle: 'logical', aggression: 0.6, concession: 0.25, interruption: 0.6 },
+    modelParameters: { temperature: 0.65 },
   },
   {
     id: 'george',
@@ -148,6 +156,7 @@ export const UNIVERSAL_PERSONALITIES: PersonalityOption[] = [
     },
     tone: { formality: 0.45, humor: 0.85, energy: 0.55, empathy: 0.4, technicality: 0.5 },
     debateProfile: { argumentStyle: 'emotional', aggression: 0.55, concession: 0.35, interruption: 0.6 },
+    modelParameters: { temperature: 0.85 },
   },
   {
     id: 'kai',
@@ -173,6 +182,7 @@ export const UNIVERSAL_PERSONALITIES: PersonalityOption[] = [
     },
     tone: { formality: 0.65, humor: 0.2, energy: 0.5, empathy: 0.45, technicality: 0.75 },
     debateProfile: { argumentStyle: 'logical', aggression: 0.45, concession: 0.4, interruption: 0.35 },
+    modelParameters: { temperature: 0.5 },
   },
   {
     id: 'prof_sage',
@@ -198,6 +208,7 @@ export const UNIVERSAL_PERSONALITIES: PersonalityOption[] = [
     },
     tone: { formality: 0.85, humor: 0.1, energy: 0.45, empathy: 0.55, technicality: 0.7 },
     debateProfile: { argumentStyle: 'logical', aggression: 0.35, concession: 0.65, interruption: 0.2 },
+    modelParameters: { temperature: 0.4 },
   },
   {
     id: 'scout',
@@ -224,6 +235,7 @@ export const UNIVERSAL_PERSONALITIES: PersonalityOption[] = [
     },
     tone: { formality: 0.5, humor: 0.4, energy: 0.55, empathy: 0.7, technicality: 0.5 },
     debateProfile: { argumentStyle: 'balanced', aggression: 0.4, concession: 0.5, interruption: 0.3 },
+    modelParameters: { temperature: 0.8 },
   },
 ];
 

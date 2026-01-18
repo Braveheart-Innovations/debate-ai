@@ -10,7 +10,7 @@ import {
 import { ChatService } from './ChatService';
 import { PromptBuilder } from './PromptBuilder';
 import { HOME_CONSTANTS } from '@/config/homeConstants';
-import { getPersonality } from '@/config/personalities';
+import { getPersonality, PersonalityOption } from '@/config/personalities';
 import { getExpertOverrides } from '@/utils/expertMode';
 import { getStreamingService } from '@/services/streaming/StreamingService';
 import { RecordController } from '@/services/demo/RecordController';
@@ -34,6 +34,8 @@ export interface ProcessUserMessageParams {
   attachments?: MessageAttachment[];
   resumptionContext?: ResumptionContext;
   aiPersonalities: Record<string, string>;
+  /** Optional pre-merged personalities from context (includes user customizations) */
+  mergedPersonalities?: Record<string, PersonalityOption>;
   selectedModels: Record<string, string>;
   apiKeys: Record<string, string | undefined>;
   expertModeConfigs: Record<string, unknown>;
@@ -93,6 +95,7 @@ export class ChatOrchestrator {
       attachments,
       resumptionContext: initialResumption,
       aiPersonalities,
+      mergedPersonalities,
       selectedModels,
       apiKeys,
       expertModeConfigs,
@@ -136,7 +139,10 @@ export class ChatOrchestrator {
         await this.sleep(ChatService.calculateTypingDelay());
 
         const personalityId = aiPersonalities[ai.id] || 'default';
-        const personality = personalityId !== 'default' ? getPersonality(personalityId) : undefined;
+        // Use pre-merged personality from context if available, otherwise fall back to base
+        const personality = personalityId !== 'default'
+          ? (mergedPersonalities?.[personalityId] || getPersonality(personalityId))
+          : undefined;
         if (personality) {
           this.aiService.setPersonality(ai.id, personality);
         }
@@ -222,7 +228,7 @@ export class ChatOrchestrator {
 
   private async handleStreamingResponse(options: {
     ai: AI;
-    personality?: ReturnType<typeof getPersonality>;
+    personality?: PersonalityOption | undefined;
     prompt: string;
     conversationContext: ReturnType<typeof ChatService.buildConversationContext>;
     resumptionContext?: ResumptionContext;
@@ -404,7 +410,7 @@ export class ChatOrchestrator {
 
   private async handleNonStreamingResponse(options: {
     ai: AI;
-    personality?: ReturnType<typeof getPersonality>;
+    personality?: PersonalityOption | undefined;
     prompt: string;
     conversationContext: ReturnType<typeof ChatService.buildConversationContext>;
     resumptionContext?: ResumptionContext;

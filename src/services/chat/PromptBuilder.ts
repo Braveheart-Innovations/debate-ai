@@ -1,5 +1,6 @@
-import { Message, AI } from '../../types';
+import { Message, AI, PersonalityTone } from '../../types';
 import { PersonalityOption } from '../../config/personalities';
+import { toneToModifiers, shouldApplyToneModifiers } from '@/lib/personality';
 
 export interface PromptContext {
   isFirstAI: boolean;
@@ -25,7 +26,7 @@ export class PromptBuilder {
     userMessage: string,
     context: PromptContext,
     ai: AI,
-    personality?: PersonalityOption
+    _personality?: PersonalityOption
   ): string {
     const { isFirstAI, isDebateMode, lastSpeaker, lastMessage } = context;
 
@@ -44,17 +45,15 @@ export class PromptBuilder {
       prompt = this.applyDebateMode(prompt, ai, context);
     }
 
-    // Layer persona guidance after debate framing so it stays closest to the actionable instructions
-    if (personality) {
-      const mode: 'chat' | 'debate' | 'compare' = isDebateMode ? 'debate' : 'chat';
-      prompt = this.appendPersonaGuidance(prompt, personality, mode);
-    }
+    // Persona guidance is now handled via adapter's system prompt (includes tone modifiers)
+    // No need to append to user message - setPersonality() handles it
 
     return prompt;
   }
 
   /**
    * Builds enriched prompt for Quick Start feature
+   * Persona guidance is now handled via adapter's system prompt
    */
   static buildEnrichedPrompt(
     userPrompt: string,
@@ -62,16 +61,9 @@ export class PromptBuilder {
     personality?: PersonalityOption,
     isDebateMode: boolean = false
   ): EnrichedPrompt {
-    let enrichedPrompt = aiPrompt;
-
-    if (personality) {
-      const mode: 'chat' | 'debate' | 'compare' = isDebateMode ? 'debate' : 'chat';
-      enrichedPrompt = this.appendPersonaGuidance(enrichedPrompt, personality, mode);
-    }
-
     return {
       userVisiblePrompt: userPrompt,
-      aiProcessingPrompt: enrichedPrompt,
+      aiProcessingPrompt: aiPrompt,
       hasPersonality: !!personality,
       hasDebateMode: isDebateMode
     };
@@ -102,6 +94,28 @@ export class PromptBuilder {
     }
 
     return `${prompt}\n\nPersona focus: ${reminder}`;
+  }
+
+  /**
+   * Applies tone modifiers to a prompt based on customized personality settings.
+   * Modifiers are applied periodically (every 5th message) to reinforce style.
+   */
+  static applyToneModifiers(
+    prompt: string,
+    tone: Partial<PersonalityTone> | undefined,
+    messageCount: number
+  ): string {
+    // Only apply tone modifiers periodically to avoid overwhelming the prompt
+    if (!tone || !shouldApplyToneModifiers(messageCount)) {
+      return prompt;
+    }
+
+    const modifiers = toneToModifiers(tone);
+    if (!modifiers) {
+      return prompt;
+    }
+
+    return `${prompt}\n\n${modifiers}`;
   }
 
   /**
@@ -175,21 +189,16 @@ ${prompt}`;
 
   /**
    * Builds mention-specific prompt
+   * Persona guidance is now handled via adapter's system prompt
    */
   static buildMentionPrompt(
     originalPrompt: string,
     mentionedAI: string,
-    personality?: PersonalityOption
+    _personality?: PersonalityOption
   ): string {
-    const mentionPrompt = `You (${mentionedAI}) were specifically mentioned in this message. Please respond directly:
+    return `You (${mentionedAI}) were specifically mentioned in this message. Please respond directly:
 
 ${originalPrompt}`;
-
-    if (personality) {
-      return this.appendPersonaGuidance(mentionPrompt, personality, 'chat');
-    }
-
-    return mentionPrompt;
   }
 
   /**

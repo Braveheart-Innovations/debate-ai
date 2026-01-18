@@ -23,6 +23,7 @@ import PurchaseService from './src/services/iap/PurchaseService';
 import { CrashlyticsService } from './src/services/crashlytics';
 import { ErrorBoundary } from './src/components/organisms/common/ErrorBoundary';
 import { ToastContainer } from './src/components/organisms/common/ToastContainer';
+import { PersonalityProvider } from './src/contexts/PersonalityContext';
 
 function AppContent() {
   const dispatch = useDispatch();
@@ -238,13 +239,15 @@ function AppContent() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <CitationPreviewProvider>
-          <AIServiceProvider>
-            <AppNavigator />
-            <ToastContainer />
-            <StatusBar style="auto" />
-          </AIServiceProvider>
-        </CitationPreviewProvider>
+        <PersonalityProvider>
+          <CitationPreviewProvider>
+            <AIServiceProvider>
+              <AppNavigator />
+              <ToastContainer />
+              <StatusBar style="auto" />
+            </AIServiceProvider>
+          </CitationPreviewProvider>
+        </PersonalityProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );

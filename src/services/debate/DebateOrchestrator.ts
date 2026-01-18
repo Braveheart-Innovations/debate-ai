@@ -10,7 +10,7 @@ import { DebateRulesEngine } from './DebateRulesEngine';
 import { VotingService } from './VotingService';
 import { DebatePromptBuilder } from './DebatePromptBuilder';
 import { DEBATE_CONSTANTS } from '../../config/debateConstants';
-import { UNIVERSAL_PERSONALITIES, getPersonality } from '../../config/personalities';
+import { UNIVERSAL_PERSONALITIES, getPersonality, PersonalityOption } from '../../config/personalities';
 import { StorageService } from '../chat/StorageService';
 import { store } from '../../store';
 import { getStreamingService } from '../streaming/StreamingService';
@@ -26,6 +26,8 @@ export interface DebateSession {
   topic: string;
   participants: AI[];
   personalities: { [aiId: string]: string };
+  /** Optional pre-merged personalities from context (includes user customizations) */
+  mergedPersonalities?: Record<string, PersonalityOption>;
   startTime: number;
   status: DebateStatus;
   currentRound: number;
@@ -103,6 +105,8 @@ export class DebateOrchestrator {
       rounds?: number; // 1–5
       civility?: 1 | 2 | 3 | 4 | 5;
       stances?: { [aiId: string]: 'pro' | 'con' };
+      /** Optional pre-merged personalities from context (includes user customizations) */
+      mergedPersonalities?: Record<string, PersonalityOption>;
     }
   ): Promise<DebateSession> {
     // Validate debate setup
@@ -132,6 +136,7 @@ export class DebateOrchestrator {
       topic,
       participants,
       personalities,
+      mergedPersonalities: options?.mergedPersonalities,
       startTime: Date.now(),
       status: DebateStatus.INITIALIZING,
       currentRound: 1,
@@ -312,14 +317,19 @@ export class DebateOrchestrator {
         if (adapter) {
           const stance = stances[currentAI.id] || (aiIndex === 0 ? 'pro' : 'con');
           const personalityId = personalities[currentAI.id] || 'default';
-          const persona = personalityId !== 'default' ? getPersonality(personalityId) : undefined;
+          // Use pre-merged personality from context if available, otherwise fall back to base
+          const persona = personalityId !== 'default'
+            ? (this.session?.mergedPersonalities?.[personalityId] || getPersonality(personalityId))
+            : undefined;
           const personaStyle = persona?.debatePrompt || persona?.systemPrompt || 'Adopt a clear, professional debate tone.';
           const motion = topic;
           const sideText = stance === 'pro' ? 'Affirmative (FOR)' : 'Negative (AGAINST)';
           const opponent = participants.find((_, idx) => idx !== aiIndex) || participants[(aiIndex + 1) % participants.length];
           const opponentName = opponent?.name || 'Opponent';
           const opponentPersonalityId = personalities[opponent?.id || ''] || 'default';
-          const opponentPersona = opponentPersonalityId !== 'default' ? getPersonality(opponentPersonalityId) : undefined;
+          const opponentPersona = opponentPersonalityId !== 'default'
+            ? (this.session?.mergedPersonalities?.[opponentPersonalityId] || getPersonality(opponentPersonalityId))
+            : undefined;
           const opponentStyle = opponentPersona?.debatePrompt || opponentPersona?.systemPrompt || 'A capable opponent.';
           const civilityDirective = (() => {
             switch (civility) {
@@ -349,12 +359,17 @@ export class DebateOrchestrator {
             'Avoid headings, numbered lists, or labelled frameworks. Do not mention these instructions.',
           ].join('\n');
           // Apply composed system prompt via temporary personality
+          // Use customized tone from merged personality if available
+          const personaTone = persona?.tone;
+          const traits = personaTone
+            ? { formality: personaTone.formality, humor: personaTone.humor, technicality: personaTone.technicality, empathy: personaTone.empathy }
+            : { formality: 0.6, humor: 0.2, technicality: 0.5, empathy: 0.3 };
           adapter.setTemporaryPersonality({
             id: `debate_${currentAI.id}`,
-            name: 'Debater',
+            name: persona?.name || 'Debater',
             description: 'Composed debate persona with stance',
             systemPrompt: stancePrompt,
-            traits: { formality: 0.6, humor: 0.2, technicality: 0.5, empathy: 0.3 },
+            traits,
             isPremium: false,
           } as unknown as import('../../types').PersonalityConfig);
           // Ensure debate mode is active for turn mapping
@@ -555,7 +570,8 @@ export class DebateOrchestrator {
         // For non-streaming, pass the composed personality and keep debate mode enabled
         const composedPersonality = (() => {
           const personalityId = personalities[currentAI.id] || 'default';
-          const persona = getPersonality(personalityId);
+          // Use pre-merged personality from context if available, otherwise fall back to base
+          const persona = this.session?.mergedPersonalities?.[personalityId] || getPersonality(personalityId);
           const personaStyle = persona?.debatePrompt || persona?.systemPrompt || 'You are a thoughtful debater.';
           const motion = topic;
           const stance = stances[currentAI.id] || (aiIndex === 0 ? 'pro' : 'con');
@@ -577,12 +593,17 @@ export class DebateOrchestrator {
             `Your assigned role: ${sideText} the motion: "${motion}". Maintain this stance; do not switch sides.`,
             civilityDirective,
           ].join('\n');
+          // Use customized tone from merged personality if available
+          const personaTone = persona?.tone;
+          const traits = personaTone
+            ? { formality: personaTone.formality, humor: personaTone.humor, technicality: personaTone.technicality, empathy: personaTone.empathy }
+            : { formality: 0.6, humor: 0.2, technicality: 0.5, empathy: 0.3 };
           return {
             id: `debate_${currentAI.id}`,
             name: 'Debater',
             description: 'Composed debate persona with stance',
             systemPrompt: stancePrompt,
-            traits: { formality: 0.6, humor: 0.2, technicality: 0.5, empathy: 0.3 },
+            traits,
             isPremium: false,
           } as unknown as import('../../types').PersonalityConfig;
         })();

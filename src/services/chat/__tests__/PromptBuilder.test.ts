@@ -49,7 +49,7 @@ describe('PromptBuilder', () => {
     jest.useRealTimers();
   });
 
-  it('buildAIPrompt handles first AI vs subsequent with debate and personality', () => {
+  it('buildAIPrompt handles first AI vs subsequent with debate mode', () => {
     const firstContext: PromptContext = {
       ...context,
       isFirstAI: true,
@@ -57,18 +57,19 @@ describe('PromptBuilder', () => {
       lastMessage: undefined,
     };
 
+    // Persona guidance is now handled via adapter's system prompt, not in user messages
     const firstPrompt = PromptBuilder.buildAIPrompt('Hello world', firstContext, ai, personality);
     expect(firstPrompt).toContain('[DEBATE MODE ACTIVE]');
-    expect(firstPrompt).toContain('Persona focus');
 
     const followUp = PromptBuilder.buildAIPrompt('ignored', context, ai, personality);
     expect(followUp).toContain('Beta just responded');
     expect(followUp).toContain('[DEBATE MODE ACTIVE]');
   });
 
-  it('buildEnrichedPrompt appends persona guidance when provided', () => {
+  it('buildEnrichedPrompt passes through prompt with metadata', () => {
+    // Persona guidance is now handled via adapter's system prompt, not in user messages
     const enriched = PromptBuilder.buildEnrichedPrompt('user prompt', 'ai prompt', personality, true);
-    expect(enriched.aiProcessingPrompt).toContain('Persona focus');
+    expect(enriched.aiProcessingPrompt).toBe('ai prompt');
     expect(enriched.hasPersonality).toBe(true);
     expect(enriched.hasDebateMode).toBe(true);
   });
@@ -105,10 +106,11 @@ describe('PromptBuilder', () => {
     expect(initial).toContain('Recent context');
   });
 
-  it('buildMentionPrompt emphasizes mention and persona guidance', () => {
+  it('buildMentionPrompt emphasizes mention', () => {
+    // Persona guidance is now handled via adapter's system prompt, not in user messages
     const prompt = PromptBuilder.buildMentionPrompt('User question', 'Alpha', personality);
     expect(prompt).toContain('specifically mentioned');
-    expect(prompt).toContain('Persona focus');
+    expect(prompt).toContain('Alpha');
   });
 
   it('buildContextSummary condenses long conversations', () => {

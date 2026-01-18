@@ -61,12 +61,13 @@ describe('PromptBuilder', () => {
     };
     const debatePrompt = PromptBuilder.buildAIPrompt('Initial', debateContext, ai, personality);
     expect(debatePrompt).toContain('[DEBATE MODE ACTIVE]');
-    expect(debatePrompt).toContain('Persona focus');
+    // Note: Persona guidance is now applied via adapter's system prompt, not in buildAIPrompt
   });
 
   it('builds enriched prompts and persona guidance', () => {
     const enriched = PromptBuilder.buildEnrichedPrompt('User', 'Base', personality, true);
-    expect(enriched.aiProcessingPrompt).toContain('Persona focus');
+    // Persona guidance is now applied via adapter's system prompt, not in enriched prompt
+    expect(enriched.aiProcessingPrompt).toBe('Base');
     expect(enriched.hasPersonality).toBe(true);
     expect(enriched.hasDebateMode).toBe(true);
 
@@ -80,7 +81,7 @@ describe('PromptBuilder', () => {
   it('builds mention prompts and round robin copy', () => {
     const mention = PromptBuilder.buildMentionPrompt('Original', 'Claude', personality);
     expect(mention).toContain('You (Claude)');
-    expect(mention).toContain('Persona focus');
+    // Persona guidance is now applied via adapter's system prompt, not in mention prompt
 
     const rr = PromptBuilder.buildRoundRobinPrompt('Claude', 'Argument');
     expect(rr).toContain('Claude just responded');

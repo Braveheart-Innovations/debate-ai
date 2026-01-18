@@ -8,6 +8,7 @@ import {
   AdapterCapabilities
 } from '../types/adapter.types';
 import { APIError } from '../../../errors/types/APIError';
+import { toneToModifiers, debateProfileToGuidance } from '@/lib/personality';
 
 export abstract class BaseAdapter {
   public config: AIAdapterConfig;
@@ -29,22 +30,46 @@ export abstract class BaseAdapter {
   protected getSystemPrompt(): string {
     const debateBase = 'You are participating in a structured debate. Take a clear position, follow the phase-specific instructions provided in user messages (Opening/Rebuttal/Closing), avoid headings/lists, and use concrete reasoning.';
 
+    let basePrompt: string;
+
     // If both debate mode and personality are present, compose them so debates preserve persona style
     if (this.config.isDebateMode && this.config.personality && 'systemPrompt' in this.config.personality) {
       const persona = this.config.personality.systemPrompt || '';
-      // If a personality is set, prefer its dedicated debatePrompt via systemPrompt content (already composed upstream)
-      return [debateBase, persona].filter(Boolean).join('\n');
+      basePrompt = [debateBase, persona].filter(Boolean).join('\n');
+    } else if (this.config.isDebateMode) {
+      // Debate mode without explicit persona
+      basePrompt = debateBase;
+    } else if (this.config.personality && 'systemPrompt' in this.config.personality) {
+      // Personality outside of debate
+      basePrompt = this.config.personality.systemPrompt || 'You are a helpful AI assistant.';
+    } else {
+      // Default
+      basePrompt = 'You are a helpful AI assistant.';
     }
-    // Debate mode without explicit persona
-    if (this.config.isDebateMode) {
-      return debateBase;
+
+    // Apply tone modifiers from personality customization
+    const personality = this.config.personality;
+    if (personality) {
+      // Extract tone - could be from PersonalityOption.tone or PersonalityConfig.traits
+      const tone = 'tone' in personality ? personality.tone :
+                   'traits' in personality ? { ...personality.traits, energy: 0.5 } : undefined;
+      if (tone) {
+        const toneModifier = toneToModifiers(tone);
+        if (toneModifier) {
+          basePrompt = `${basePrompt}\n\n${toneModifier}`;
+        }
+      }
+
+      // In debate mode, also append debate profile modifiers (only PersonalityOption has this)
+      if (this.config.isDebateMode && 'debateProfile' in personality && personality.debateProfile) {
+        const debateModifier = debateProfileToGuidance(personality.debateProfile);
+        if (debateModifier) {
+          basePrompt = `${basePrompt}\n${debateModifier}`;
+        }
+      }
     }
-    // Personality outside of debate
-    if (this.config.personality && 'systemPrompt' in this.config.personality) {
-      return this.config.personality.systemPrompt || 'You are a helpful AI assistant.';
-    }
-    // Default
-    return 'You are a helpful AI assistant.';
+
+    return basePrompt;
   }
   
   // Debug helper: expose the final system prompt (dev only)

@@ -11,7 +11,7 @@ import Animated, { FadeIn, FadeOut, Layout } from 'react-native-reanimated';
 import { Typography } from '../components/molecules';
 import { useTheme } from '../theme';
 import { AI } from '../types';
-import { getPersonality } from '../config/personalities';
+import { usePersonality } from '@/hooks/usePersonality';
 import {
   useDebateSession,
   useDebateFlow,
@@ -90,6 +90,7 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
   const voting = useDebateVoting(session.orchestrator, selectedAIs);
   const messages = useDebateMessages(session.session?.startTime);
   const { isDemo } = useFeatureAccess();
+  const { getPersonality: getMergedPersonality } = usePersonality();
 
   useEffect(() => {
     if (demoSample) {
@@ -158,11 +159,22 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
         }
       }
 
+      // Build merged personalities map from context
+      const mergedPersonalities: Record<string, NonNullable<ReturnType<typeof getMergedPersonality>>> = {};
+      Object.values(effectivePersonalities).forEach((personalityId) => {
+        if (personalityId && personalityId !== 'default' && !mergedPersonalities[personalityId]) {
+          const merged = getMergedPersonality(personalityId);
+          if (merged) {
+            mergedPersonalities[personalityId] = merged;
+          }
+        }
+      });
+
       await session.initializeSession(
         topicToUse,
         selectedAIs,
         effectivePersonalities,
-        { formatId: formatId || 'oxford', rounds: (exchanges || rounds || 3), civility: (civility as 1|2|3|4|5) || 1 }
+        { formatId: formatId || 'oxford', rounds: (exchanges || rounds || 3), civility: (civility as 1|2|3|4|5) || 1, mergedPersonalities }
       );
       
       // Add initial host message
@@ -191,7 +203,8 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
     session,
     messages,
     flow,
-    isDemo
+    isDemo,
+    getMergedPersonality
   ]);
   
   // Auto-start debate if topic is provided from DebateSetupScreen
@@ -280,7 +293,7 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
   const displayName = (ai: AI) => {
     const pid = initialPersonalities?.[ai.id];
     if (!pid) return ai.name;
-    const p = getPersonality(pid);
+    const p = getMergedPersonality(pid);
     if (!p || pid === 'default') return ai.name;
     return `${ai.name} (${p.name})`;
   };

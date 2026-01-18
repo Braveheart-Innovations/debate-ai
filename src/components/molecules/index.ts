@@ -85,3 +85,6 @@ export * from './citations';
 
 // Chat Molecules
 export { WebSearchToggle } from './chat/WebSearchToggle';
+
+// Personality Molecules
+export * from './personality';

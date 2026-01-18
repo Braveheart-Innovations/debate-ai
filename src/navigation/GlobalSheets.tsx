@@ -142,6 +142,10 @@ export const GlobalSheets: React.FC = () => {
                 handleSheetClose();
                 navigation.navigate('ExpertMode');
               }}
+              onNavigateToPersonalitySystem={() => {
+                handleSheetClose();
+                navigation.navigate('PersonalitySystem');
+              }}
               onOpenDebugMenu={() => {
                 handleSheetClose();
                 setDebugMenuVisible(true);

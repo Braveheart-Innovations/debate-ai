@@ -87,6 +87,26 @@ jest.mock('@react-native-firebase/firestore', () => ({
   onSnapshot: jest.fn(() => jest.fn()),
 }));
 
+jest.mock('@/hooks/usePersonality', () => ({
+  usePersonality: () => ({
+    isLoading: false,
+    settings: { customizations: {}, lastSyncedAt: 0, version: 1 },
+    getPersonality: jest.fn().mockReturnValue(null),
+    getAllPersonalities: jest.fn().mockReturnValue([]),
+    isCustomized: jest.fn().mockReturnValue(false),
+    getCustomization: jest.fn().mockReturnValue(null),
+    updateCustomization: jest.fn(),
+    updateTone: jest.fn(),
+    updateDebateProfile: jest.fn(),
+    updateModelParameters: jest.fn(),
+    toggleCustomization: jest.fn(),
+    resetToDefaults: jest.fn(),
+    resetAll: jest.fn(),
+    reload: jest.fn(),
+  }),
+  usePersonalityById: () => null,
+}));
+
 const AppNavigator = require('@/navigation/AppNavigator').default;
 
 describe('AppNavigator', () => {

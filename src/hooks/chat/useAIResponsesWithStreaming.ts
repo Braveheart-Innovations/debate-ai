@@ -7,6 +7,7 @@ import { Message, MessageAttachment } from '../../types';
 import { useAIService } from '../../providers/AIServiceProvider';
 import { ChatService, ChatOrchestrator } from '../../services/chat';
 import useFeatureAccess from '@/hooks/useFeatureAccess';
+import { usePersonality } from '@/hooks/usePersonality';
 import type { ResumptionContext } from '../../services/aiAdapter';
 
 export interface AIResponsesHook {
@@ -46,6 +47,21 @@ export const useAIResponsesWithStreaming = (isResuming?: boolean): AIResponsesHo
 
   const messages = useMemo(() => currentSession?.messages ?? [], [currentSession?.messages]);
   const { isDemo } = useFeatureAccess();
+  const { getPersonality: getMergedPersonality } = usePersonality();
+
+  // Build merged personalities map from context (keyed by personality ID)
+  const mergedPersonalities = useMemo(() => {
+    const result: Record<string, NonNullable<ReturnType<typeof getMergedPersonality>>> = {};
+    Object.values(aiPersonalities).forEach((personalityId) => {
+      if (personalityId && personalityId !== 'default' && !result[personalityId]) {
+        const merged = getMergedPersonality(personalityId);
+        if (merged) {
+          result[personalityId] = merged;
+        }
+      }
+    });
+    return result;
+  }, [aiPersonalities, getMergedPersonality]);
 
   const [hasResumed, setHasResumed] = useState(false);
   const orchestratorRef = useRef<ChatOrchestrator | null>(null);
@@ -97,6 +113,7 @@ export const useAIResponsesWithStreaming = (isResuming?: boolean): AIResponsesHo
       attachments,
       resumptionContext,
       aiPersonalities,
+      mergedPersonalities,
       selectedModels,
       apiKeys,
       expertModeConfigs,
@@ -107,7 +124,7 @@ export const useAIResponsesWithStreaming = (isResuming?: boolean): AIResponsesHo
       isDemo,
       webSearchEnabled,
     });
-  }, [aiService, apiKeys, expertModeConfigs, globalStreamingEnabled, isDemo, isInitialized, isResuming, messages, selectedModels, aiPersonalities, streamingPreferences, streamingSpeed, currentSession, hasResumed]);
+  }, [aiService, apiKeys, expertModeConfigs, globalStreamingEnabled, isDemo, isInitialized, isResuming, messages, selectedModels, aiPersonalities, mergedPersonalities, streamingPreferences, streamingSpeed, currentSession, hasResumed]);
 
   const sendQuickStartResponses = useCallback(async (
     userPrompt: string,
@@ -128,6 +145,7 @@ export const useAIResponsesWithStreaming = (isResuming?: boolean): AIResponsesHo
       mentions: [],
       enrichedPrompt,
       aiPersonalities,
+      mergedPersonalities,
       selectedModels,
       apiKeys,
       expertModeConfigs,
@@ -138,7 +156,7 @@ export const useAIResponsesWithStreaming = (isResuming?: boolean): AIResponsesHo
       isDemo,
       webSearchEnabled,
     });
-  }, [aiService, apiKeys, dispatch, expertModeConfigs, globalStreamingEnabled, isDemo, isInitialized, messages, selectedModels, aiPersonalities, streamingPreferences, streamingSpeed, currentSession]);
+  }, [aiService, apiKeys, dispatch, expertModeConfigs, globalStreamingEnabled, isDemo, isInitialized, messages, selectedModels, aiPersonalities, mergedPersonalities, streamingPreferences, streamingSpeed, currentSession]);
 
   return {
     typingAIs,

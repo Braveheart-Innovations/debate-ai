@@ -20,6 +20,7 @@ import { AIConfig, Message, ChatSession, MessageAttachment } from '../types';
 import { StorageService } from '../services/chat/StorageService';
 import { getExpertOverrides } from '../utils/expertMode';
 import useFeatureAccess from '@/hooks/useFeatureAccess';
+import { usePersonality } from '@/hooks/usePersonality';
 import { DemoBanner } from '@/components/molecules/subscription/DemoBanner';
 import { useDispatch } from 'react-redux';
 import { showSheet } from '@/store';
@@ -28,7 +29,6 @@ import { loadCompareScript, primeNextCompareTurn, hasNextCompareTurn } from '@/s
 import { DemoSamplesBar } from '@/components/organisms/demo/DemoSamplesBar';
 import { getStreamingService } from '@/services/streaming/StreamingService';
 import { CompareStreamSynchronizer } from '@/services/streaming/CompareStreamSynchronizer';
-import { PromptBuilder } from '@/services/chat';
 import { RecordController } from '@/services/demo/RecordController';
 import * as Clipboard from 'expo-clipboard';
 import * as FileSystem from 'expo-file-system';
@@ -59,6 +59,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
   const { aiService, isInitialized } = useAIService();
   const dispatch = useDispatch();
   const { isDemo } = useFeatureAccess();
+  const { getPersonality: getMergedPersonality } = usePersonality();
   
   // Get models and user status from Redux
   const selectedModels = useSelector((state: RootState) => state.chat.selectedModels);
@@ -253,26 +254,19 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
     const leftExp = getExpertOverrides(expertModeConfigs as Record<string, unknown>, leftAI.provider);
     const rightExp = getExpertOverrides(expertModeConfigs as Record<string, unknown>, rightAI.provider);
 
-    // Prepare per-side prompts with persona guidance
-    let leftPromptBody = messageText;
-    let rightPromptBody = messageText;
-
-    // Apply personalities (unless default) before sending
+    // Apply personalities (unless default) before sending - uses merged personalities from context
+    // Personality tone modifiers are applied via adapter's system prompt
     try {
       if (leftAI?.personality && leftAI.personality !== 'default') {
-        const { getPersonality } = await import('../config/personalities');
-        const p = getPersonality(leftAI.personality);
+        const p = getMergedPersonality(leftAI.personality);
         if (p) {
           aiService.setPersonality(leftAI.provider, p);
-          leftPromptBody = PromptBuilder.appendPersonaGuidance(messageText, p, 'compare');
         }
       }
       if (rightAI?.personality && rightAI.personality !== 'default') {
-        const { getPersonality } = await import('../config/personalities');
-        const p = getPersonality(rightAI.personality);
+        const p = getMergedPersonality(rightAI.personality);
         if (p) {
           aiService.setPersonality(rightAI.provider, p);
-          rightPromptBody = PromptBuilder.appendPersonaGuidance(messageText, p, 'compare');
         }
       }
     } catch (_e) { console.warn('compare apply personality failed', _e); }
@@ -351,7 +345,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
               parameters: (leftExp && leftExp.enabled) ? (leftExp.parameters as never) : undefined,
               isDebateMode: false,
             },
-            message: leftPromptBody,
+            message: messageText,
             conversationHistory: leftHistoryRef.current,
             attachments,
             modelOverride: leftEffModel,
@@ -390,7 +384,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
             const isVerification = msg.toLowerCase().includes('verification');
             const isOverload = msg.toLowerCase().includes('overload') || msg.toLowerCase().includes('rate limit');
             try {
-              const response = await aiService.sendMessage(leftAI.provider, leftPromptBody, leftHistoryRef.current, false, undefined, attachments, leftEffModel);
+              const response = await aiService.sendMessage(leftAI.provider, messageText, leftHistoryRef.current, false, undefined, attachments, leftEffModel);
               const leftMessage: Message = {
                 id: `msg_left_${Date.now()}`,
                 sender: leftAI.name,
@@ -449,7 +443,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
         pendingPromises.push(leftStreamPromise);
       } else {
         const leftCompletion = aiService
-          .sendMessage(leftAI.provider, leftPromptBody, leftHistoryRef.current, false, undefined, attachments, leftEffModel)
+          .sendMessage(leftAI.provider, messageText, leftHistoryRef.current, false, undefined, attachments, leftEffModel)
           .then(response => {
             const leftMessage: Message = {
               id: `msg_left_${Date.now()}`,
@@ -501,7 +495,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
               parameters: (rightExp && rightExp.enabled) ? (rightExp.parameters as never) : undefined,
               isDebateMode: false,
             },
-            message: rightPromptBody,
+            message: messageText,
             conversationHistory: rightHistoryRef.current,
             attachments,
             modelOverride: rightEffModel,
@@ -540,7 +534,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
             const isVerification = msg.toLowerCase().includes('verification');
             const isOverload = msg.toLowerCase().includes('overload') || msg.toLowerCase().includes('rate limit');
             try {
-              const response = await aiService.sendMessage(rightAI.provider, rightPromptBody, rightHistoryRef.current, false, undefined, attachments, rightEffModel);
+              const response = await aiService.sendMessage(rightAI.provider, messageText, rightHistoryRef.current, false, undefined, attachments, rightEffModel);
               const rightMessage: Message = {
                 id: `msg_right_${Date.now()}`,
                 sender: rightAI.name,
@@ -599,7 +593,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
         pendingPromises.push(rightStreamPromise);
       } else {
         const rightCompletion = aiService
-          .sendMessage(rightAI.provider, rightPromptBody, rightHistoryRef.current, false, undefined, attachments, rightEffModel)
+          .sendMessage(rightAI.provider, messageText, rightHistoryRef.current, false, undefined, attachments, rightEffModel)
           .then(response => {
             const rightMessage: Message = {
               id: `msg_right_${Date.now()}`,
@@ -659,6 +653,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
     streamingState?.streamingPreferences,
     streamingState?.providerVerificationErrors,
     streamingState?.streamingSpeed,
+    getMergedPersonality,
   ]);
 
   const dispatchScriptedTurn = useCallback((rawMessage: string) => {

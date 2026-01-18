@@ -33,6 +33,7 @@ import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
 import TermsOfServiceScreen from '../screens/TermsOfServiceScreen';
 import CreateSetupScreen from '../screens/CreateSetupScreen';
 import CreateScreen from '../screens/CreateScreen';
+import PersonalitySystemScreen from '../screens/PersonalitySystemScreen';
 // import SubscriptionScreen from '../screens/SubscriptionScreen';
 // import ExpertModeScreen from '../screens/ExpertModeScreen';
 
@@ -302,6 +303,11 @@ export default function AppNavigator() {
             <Stack.Screen
               name="ExpertMode"
               component={ExpertModeScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="PersonalitySystem"
+              component={PersonalitySystemScreen}
               options={{ headerShown: false }}
             />
           </>

@@ -3,9 +3,10 @@
  * Handles construction of prompts for different phases of debate
  */
 
-import { AI, Message } from '../../types';
+import { AI, Message, PersonalityTone, PersonalityDebateProfile } from '../../types';
 import { DEBATE_CONSTANTS } from '../../config/debateConstants';
 import type { FormatSpec } from '../../config/debate/formats';
+import { generateStyleNudge } from '@/lib/personality';
 
 export interface PromptContext {
   topic: string;
@@ -29,8 +30,11 @@ export class DebatePromptBuilder {
     civilityLevel?: 1 | 2 | 3 | 4 | 5;
     format?: FormatSpec;
     personalityId?: string;
+    // Optional customized personality data for style nudges
+    customizedTone?: Partial<PersonalityTone>;
+    customizedDebateProfile?: Partial<PersonalityDebateProfile>;
   }): string {
-    const { topic, phase, previousMessage, isFinalRound, guidance, civilityLevel, format, personalityId } = params;
+    const { topic, phase, previousMessage, isFinalRound, guidance, civilityLevel, format, personalityId, customizedTone, customizedDebateProfile } = params;
     const base = guidance || '';
     const prev = previousMessage ? `${DEBATE_CONSTANTS.PROMPT_MARKERS.PREVIOUS_SPEAKER}"${previousMessage}"` : '';
     const isSocratic = format?.id === 'socratic';
@@ -38,9 +42,13 @@ export class DebatePromptBuilder {
     const tone = civilityLevel
       ? `Tone: ${civilityLevel <= 2 ? 'friendly wit' : civilityLevel >= 5 ? 'sharp but respectful' : 'neutral and professional'}. Avoid insults or stereotyping.`
       : '';
-    const styleNudge = personalityId === 'george'
-      ? 'Use observational, PG humor: include one clever, respectful zinger.'
-      : '';
+    // Generate style nudge from customized personality data, or fall back to hardcoded george behavior
+    let styleNudge = '';
+    if (customizedTone || customizedDebateProfile) {
+      styleNudge = generateStyleNudge(customizedTone, customizedDebateProfile);
+    } else if (personalityId === 'george') {
+      styleNudge = 'Use observational, PG humor: include one clever, respectful zinger.';
+    }
     const prevGuarded = phase === 'opening' ? '' : prev;
     // Human-friendly phase labels (format-aware for Socratic)
     const defaultLabelMap: Record<typeof phase, string> = {

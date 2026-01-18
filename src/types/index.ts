@@ -204,4 +204,8 @@ export type RootStackParamList = {
   Stats: undefined;
   PrivacyPolicy: undefined;
   TermsOfService: undefined;
+  PersonalitySystem: undefined;
 };
+
+// Re-export personality types
+export * from './personality';

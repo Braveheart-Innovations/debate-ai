@@ -70,10 +70,9 @@ describe('GeminiAdapter', () => {
     const body = JSON.parse(rawBody);
 
     expect(Array.isArray(body.contents)).toBe(true);
-    expect(body.contents[0]).toEqual({
-      role: 'user',
-      parts: [{ text: `System: ${personality.systemPrompt}` }],
-    });
+    // System prompt now includes tone modifiers appended by getSystemPrompt()
+    expect(body.contents[0].role).toBe('user');
+    expect(body.contents[0].parts[0].text).toContain(`System: ${personality.systemPrompt}`);
     expect(body.contents[1]).toEqual({
       role: 'model',
       parts: [{ text: 'Understood. I will follow these instructions.' }],

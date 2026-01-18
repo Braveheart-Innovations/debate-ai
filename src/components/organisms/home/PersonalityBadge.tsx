@@ -14,6 +14,8 @@ interface PersonalityBadgeProps {
   onPress: () => void;
   disabled?: boolean;
   style?: object;
+  /** Show a dot to indicate this personality has been customized */
+  isCustomized?: boolean;
 }
 
 const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
@@ -23,6 +25,7 @@ export const PersonalityBadge: React.FC<PersonalityBadgeProps> = ({
   onPress,
   disabled = false,
   style,
+  isCustomized = false,
 }) => {
   const { theme } = useTheme();
   const scale = useSharedValue(1);
@@ -76,6 +79,14 @@ export const PersonalityBadge: React.FC<PersonalityBadgeProps> = ({
         >
           {personalityName}
         </Typography>
+        {isCustomized && (
+          <View
+            style={[
+              styles.customizedDot,
+              { backgroundColor: theme.colors.primary[500] },
+            ]}
+          />
+        )}
         <Text style={[styles.chevron, { color: theme.colors.text.disabled }]}>
           ›
         </Text>
@@ -106,5 +117,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginLeft: 4,
     fontWeight: '600',
+  },
+  customizedDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginLeft: 4,
   },
 });

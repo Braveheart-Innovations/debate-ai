@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Typography, InfoButton } from '@/components/molecules';
 import { UNIVERSAL_PERSONALITIES } from '@/config/personalities';
 import { PersonalityBadge } from './PersonalityBadge';
 import * as Haptics from 'expo-haptics';
 import { PersonalityModal } from '../debate/PersonalityModal';
+import { usePersonality } from '@/hooks/usePersonality';
 
 interface PersonalityPickerProps {
   currentPersonalityId: string;
@@ -18,8 +19,10 @@ export const PersonalityPicker: React.FC<PersonalityPickerProps> = ({
   aiName,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  
+  const { isCustomized } = usePersonality();
+
   const currentPersonality = UNIVERSAL_PERSONALITIES.find(p => p.id === currentPersonalityId) || UNIVERSAL_PERSONALITIES[0];
+  const isCurrentCustomized = useMemo(() => isCustomized(currentPersonalityId), [isCustomized, currentPersonalityId]);
   
   const handleSelect = (personalityId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -43,6 +46,7 @@ export const PersonalityPicker: React.FC<PersonalityPickerProps> = ({
         personalityName={currentPersonality.name}
         onPress={() => setIsOpen(true)}
         disabled={false}
+        isCustomized={isCurrentCustomized}
       />
 
       <PersonalityModal

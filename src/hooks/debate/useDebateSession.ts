@@ -9,6 +9,7 @@ import { startSession, startDebate } from '../../store';
 import { DebateOrchestrator, DebateSession, DebateStatus } from '../../services/debate';
 import { useAIService } from '../../providers/AIServiceProvider';
 import { AI } from '../../types';
+import { PersonalityOption } from '@/config/personalities';
 
 export interface UseDebateSessionReturn {
   session: DebateSession | null;
@@ -19,7 +20,14 @@ export interface UseDebateSessionReturn {
     topic: string,
     participants: AI[],
     personalities?: { [aiId: string]: string },
-    options?: { formatId?: 'oxford' | 'lincoln_douglas' | 'policy' | 'socratic'; rounds?: number; civility?: 1|2|3|4|5; stances?: { [aiId: string]: 'pro' | 'con' } }
+    options?: {
+      formatId?: 'oxford' | 'lincoln_douglas' | 'policy' | 'socratic';
+      rounds?: number;
+      civility?: 1|2|3|4|5;
+      stances?: { [aiId: string]: 'pro' | 'con' };
+      /** Optional pre-merged personalities from context (includes user customizations) */
+      mergedPersonalities?: Record<string, PersonalityOption>;
+    }
   ) => Promise<void>;
   resetSession: () => void;
   error: string | null;
@@ -48,7 +56,13 @@ export const useDebateSession = (_selectedAIs: AI[]): UseDebateSessionReturn => 
     topic: string,
     participants: AI[],
     personalities: { [aiId: string]: string } = {},
-    options?: { formatId?: 'oxford' | 'lincoln_douglas' | 'policy' | 'socratic'; rounds?: number; civility?: 1|2|3|4|5; stances?: { [aiId: string]: 'pro' | 'con' } }
+    options?: {
+      formatId?: 'oxford' | 'lincoln_douglas' | 'policy' | 'socratic';
+      rounds?: number;
+      civility?: 1|2|3|4|5;
+      stances?: { [aiId: string]: 'pro' | 'con' };
+      mergedPersonalities?: Record<string, PersonalityOption>;
+    }
   ): Promise<void> => {
     if (!orchestrator) {
       setError('Orchestrator not initialized. Please wait a moment and try again.');

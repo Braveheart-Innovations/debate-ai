@@ -12,6 +12,7 @@ interface SettingsContentProps {
   onClose?: () => void;
   onNavigateToAPIConfig?: () => void;
   onNavigateToExpertMode?: () => void;
+  onNavigateToPersonalitySystem?: () => void;
   onOpenDebugMenu?: () => void;
 }
 
@@ -19,6 +20,7 @@ export const SettingsContent: React.FC<SettingsContentProps> = ({
   onClose,
   onNavigateToAPIConfig,
   onNavigateToExpertMode,
+  onNavigateToPersonalitySystem,
   onOpenDebugMenu,
 }) => {
   const showDevSettings = __DEV__;
@@ -84,6 +86,12 @@ export const SettingsContent: React.FC<SettingsContentProps> = ({
           icon="options"
           onPress={hasAnyApiKey ? () => { onNavigateToExpertMode?.(); onClose?.(); } : undefined}
           disabled={!hasAnyApiKey}
+        />
+        <SettingRow
+          title="Personality System"
+          subtitle="Customize AI personalities and debate styles"
+          icon="people"
+          onPress={() => { onNavigateToPersonalitySystem?.(); onClose?.(); }}
         />
       </View>
 
