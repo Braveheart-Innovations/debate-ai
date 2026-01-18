@@ -20,6 +20,7 @@ import { getExpertOverrides } from '../../utils/expertMode';
 import { ErrorService } from '@/services/errors/ErrorService';
 import { AppError } from '@/errors/types/AppError';
 import { ErrorCode } from '@/errors/codes/ErrorCodes';
+import { mergeAvailabilitiesStrict } from '@/hooks/multimodal/useModalityAvailability';
 
 export interface DebateSession {
   id: string;
@@ -37,6 +38,7 @@ export interface DebateSession {
   civility: 1 | 2 | 3 | 4 | 5;
   format: FormatSpec;
   stances: { [aiId: string]: 'pro' | 'con' };
+  webSearchEnabled?: boolean; // Auto-enabled when both AIs support it
 }
 
 export enum DebateStatus {
@@ -130,6 +132,12 @@ export class DebateOrchestrator {
     if (participants[0]) stances[participants[0].id] = options?.stances?.[participants[0].id] || 'pro';
     if (participants[1]) stances[participants[1].id] = options?.stances?.[participants[1].id] || 'con';
 
+    // Check if both participants support web search
+    const webSearchAvailability = mergeAvailabilitiesStrict(
+      participants.map(p => ({ provider: p.provider, model: p.model }))
+    );
+    const webSearchEnabled = webSearchAvailability.webSearch.supported;
+
     // Create new session
     const session: DebateSession = {
       id: `debate_${Date.now()}`,
@@ -146,8 +154,9 @@ export class DebateOrchestrator {
       civility,
       format,
       stances,
+      webSearchEnabled,
     };
-    
+
     this.session = session;
     
     // Initialize services
@@ -375,6 +384,11 @@ export class DebateOrchestrator {
           // Ensure debate mode is active for turn mapping
           adapter.config.isDebateMode = true;
 
+          // Apply web search enabled flag to adapter config
+          if (this.session?.webSearchEnabled) {
+            adapter.config.webSearchEnabled = true;
+          }
+
           // Debug logging
           try {
             const { PromptDebugLogger } = await import('../debug/PromptDebugLogger');
@@ -565,6 +579,10 @@ export class DebateOrchestrator {
         try {
           if (expert.enabled && expert.parameters && adapter) {
             adapter.config.parameters = expert.parameters;
+          }
+          // Apply web search enabled flag for non-streaming path
+          if (this.session?.webSearchEnabled && adapter) {
+            adapter.config.webSearchEnabled = true;
           }
         } catch { /* ignore */ }
         // For non-streaming, pass the composed personality and keep debate mode enabled

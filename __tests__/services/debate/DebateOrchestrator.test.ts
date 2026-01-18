@@ -1,7 +1,12 @@
 import { DebateOrchestrator, DebateStatus } from '@/services/debate/DebateOrchestrator';
 import { DEBATE_CONSTANTS } from '@/config/debateConstants';
-import type { AI, Message } from '@/types';
+import type { AI } from '@/types';
 import { setProviderVerificationError } from '@/store/streamingSlice';
+
+const mockMergeAvailabilitiesStrict = jest.fn();
+jest.mock('@/hooks/multimodal/useModalityAvailability', () => ({
+  mergeAvailabilitiesStrict: (...args: unknown[]) => mockMergeAvailabilitiesStrict(...args),
+}));
 
 jest.mock('@/services/chat/StorageService', () => ({
   StorageService: {
@@ -66,6 +71,14 @@ describe('DebateOrchestrator', () => {
     mockStreamingService.streamResponse.mockReset();
     mockStreamingService.cancelAllStreams.mockReset();
     mockStreamingService.cancelStream.mockReset();
+    // Default: web search not supported
+    mockMergeAvailabilitiesStrict.mockReturnValue({
+      webSearch: { supported: false },
+      imageUpload: { supported: false },
+      documentUpload: { supported: false },
+      imageGeneration: { supported: false },
+      videoGeneration: { supported: false },
+    });
   });
 
   it('throws when debate setup validation fails', async () => {
@@ -154,5 +167,123 @@ describe('DebateOrchestrator', () => {
     setTimeoutSpy.mockRestore();
     jest.clearAllTimers();
     jest.useRealTimers();
+  });
+
+  describe('web search support', () => {
+    it('enables webSearchEnabled when both participants support web search', async () => {
+      mockMergeAvailabilitiesStrict.mockReturnValue({
+        webSearch: { supported: true },
+        imageUpload: { supported: false },
+        documentUpload: { supported: false },
+        imageGeneration: { supported: false },
+        videoGeneration: { supported: false },
+      });
+
+      const orchestrator = new DebateOrchestrator({
+        getAdapter: jest.fn(),
+        sendMessage: jest.fn(),
+      } as unknown as Parameters<typeof DebateOrchestrator>[0]);
+
+      const session = await orchestrator.initializeDebate('AI ethics', participants);
+
+      expect(session.webSearchEnabled).toBe(true);
+      expect(mockMergeAvailabilitiesStrict).toHaveBeenCalledWith([
+        { provider: 'claude', model: 'claude-3-opus' },
+        { provider: 'openai', model: 'gpt-4.1-mini' },
+      ]);
+    });
+
+    it('disables webSearchEnabled when participants do not support web search', async () => {
+      mockMergeAvailabilitiesStrict.mockReturnValue({
+        webSearch: { supported: false },
+        imageUpload: { supported: false },
+        documentUpload: { supported: false },
+        imageGeneration: { supported: false },
+        videoGeneration: { supported: false },
+      });
+
+      const orchestrator = new DebateOrchestrator({
+        getAdapter: jest.fn(),
+        sendMessage: jest.fn(),
+      } as unknown as Parameters<typeof DebateOrchestrator>[0]);
+
+      const session = await orchestrator.initializeDebate('AI ethics', participants);
+
+      expect(session.webSearchEnabled).toBe(false);
+    });
+
+    it('sets adapter.config.webSearchEnabled when streaming with web search enabled', async () => {
+      jest.useFakeTimers();
+
+      mockMergeAvailabilitiesStrict.mockReturnValue({
+        webSearch: { supported: true },
+        imageUpload: { supported: false },
+        documentUpload: { supported: false },
+        imageGeneration: { supported: false },
+        videoGeneration: { supported: false },
+      });
+
+      const adapter = {
+        config: {} as Record<string, unknown>,
+        getCapabilities: jest.fn(() => ({ streaming: true })),
+        setTemporaryPersonality: jest.fn(),
+        debugGetSystemPrompt: jest.fn(() => ''),
+      };
+
+      const aiService = {
+        getAdapter: jest.fn(() => adapter),
+        sendMessage: jest.fn(),
+      };
+
+      mockStreamingService.streamResponse.mockImplementation(async (_config, _onChunk, onComplete) => {
+        onComplete?.('response');
+      });
+
+      const orchestrator = new DebateOrchestrator(aiService as unknown as Parameters<typeof DebateOrchestrator>[0]);
+      await orchestrator.initializeDebate('AI ethics', participants, {}, { rounds: 1 });
+      await orchestrator.startDebate([]);
+
+      expect(adapter.config.webSearchEnabled).toBe(true);
+
+      jest.clearAllTimers();
+      jest.useRealTimers();
+    });
+
+    it('does not set adapter.config.webSearchEnabled when web search is disabled', async () => {
+      jest.useFakeTimers();
+
+      mockMergeAvailabilitiesStrict.mockReturnValue({
+        webSearch: { supported: false },
+        imageUpload: { supported: false },
+        documentUpload: { supported: false },
+        imageGeneration: { supported: false },
+        videoGeneration: { supported: false },
+      });
+
+      const adapter = {
+        config: {} as Record<string, unknown>,
+        getCapabilities: jest.fn(() => ({ streaming: true })),
+        setTemporaryPersonality: jest.fn(),
+        debugGetSystemPrompt: jest.fn(() => ''),
+      };
+
+      const aiService = {
+        getAdapter: jest.fn(() => adapter),
+        sendMessage: jest.fn(),
+      };
+
+      mockStreamingService.streamResponse.mockImplementation(async (_config, _onChunk, onComplete) => {
+        onComplete?.('response');
+      });
+
+      const orchestrator = new DebateOrchestrator(aiService as unknown as Parameters<typeof DebateOrchestrator>[0]);
+      await orchestrator.initializeDebate('AI ethics', participants, {}, { rounds: 1 });
+      await orchestrator.startDebate([]);
+
+      expect(adapter.config.webSearchEnabled).toBeUndefined();
+
+      jest.clearAllTimers();
+      jest.useRealTimers();
+    });
   });
 });
