@@ -1,13 +1,16 @@
-import React, { useState, useMemo } from 'react';
-import { View, StyleSheet, TouchableOpacity, Linking, Image } from 'react-native';
+import React, { useState, useMemo, useCallback } from 'react';
+import { View, StyleSheet, TouchableOpacity, Linking, Image, Dimensions } from 'react-native';
 import Animated from 'react-native-reanimated';
 import Markdown from 'react-native-markdown-display';
 import { Typography } from '../../molecules';
 import { LazyMarkdownRenderer, createMarkdownStyles } from '../../molecules/common/LazyMarkdownRenderer';
 import { CompareImageDisplay } from './CompareImageDisplay';
+import { CitationList } from '../common/CitationList';
 import { Message, AIConfig } from '../../../types';
 import { useTheme } from '../../../theme';
 import { sanitizeMarkdown, shouldLazyRender } from '@/utils/markdown';
+import { processMessageContentWithCitations, findCitationByUrl } from '@/utils/citationUtils';
+import { useCitationPreview } from '@/providers/CitationPreviewProvider';
 import { selectableMarkdownRules } from '@/utils/markdownSelectable';
 import { useStreamingMessage } from '@/hooks/streaming';
 import { useMessageBubbleAnimation } from '@/hooks/useMessageBubbleAnimation';
@@ -35,6 +38,7 @@ export const CompareMessageBubble: React.FC<CompareMessageBubbleProps> = ({
   const { theme, isDark } = useTheme();
   const [copied, setCopied] = useState(false);
   const { isDemo } = useFeatureAccess();
+  const { showPreview } = useCitationPreview();
 
   // Unified animation hook - fade-in for Compare mode
   const { animatedStyle } = useMessageBubbleAnimation({
@@ -61,10 +65,18 @@ export const CompareMessageBubble: React.FC<CompareMessageBubbleProps> = ({
     return message.content;
   }, [message.content, streamingContent, streamingError, isStreaming]);
 
+  // Process message content to add citation links
+  const processedContent = useMemo(() => {
+    if (message.metadata?.citations && message.metadata.citations.length > 0) {
+      return processMessageContentWithCitations(displayContent, message.metadata.citations);
+    }
+    return displayContent;
+  }, [displayContent, message.metadata?.citations]);
+
   // Process markdown content
   const markdownContent = useMemo(() => {
-    return sanitizeMarkdown(displayContent, { showWarning: false });
-  }, [displayContent]);
+    return sanitizeMarkdown(processedContent, { showWarning: false });
+  }, [processedContent]);
 
   // Check if content needs lazy rendering
   const isLongContent = useMemo(() => {
@@ -115,6 +127,28 @@ export const CompareMessageBubble: React.FC<CompareMessageBubbleProps> = ({
     color: resolvedPalette ? resolvedPalette[500] : '#666',
   }), [message, providerName, resolvedPalette]);
 
+  // Get brand color for citation preview
+  const citationBrandColor = resolvedPalette ? resolvedPalette[500] : undefined;
+
+  // Handle link press - check if it's a citation first
+  const handleLinkPress = useCallback((url: string): boolean => {
+    // Check if this URL matches a citation
+    const citations = message.metadata?.citations;
+    if (citations && citations.length > 0) {
+      const citation = findCitationByUrl(url, citations);
+      if (citation) {
+        // Show citation preview tooltip at center of screen
+        const screenWidth = Dimensions.get('window').width;
+        const screenHeight = Dimensions.get('window').height;
+        showPreview(citation, { x: screenWidth / 2, y: screenHeight / 3 }, citationBrandColor);
+        return false; // Prevent default link behavior
+      }
+    }
+    // Not a citation - open in browser
+    Linking.openURL(url).catch(err => console.error('Failed to open URL:', err));
+    return false;
+  }, [message.metadata?.citations, showPreview, citationBrandColor]);
+
   return (
     <Animated.View style={[
       styles.row,
@@ -142,12 +176,7 @@ export const CompareMessageBubble: React.FC<CompareMessageBubbleProps> = ({
           <LazyMarkdownRenderer
             content={markdownContent}
             style={markdownStyles}
-            onLinkPress={(url: string) => {
-              Linking.openURL(url).catch(err =>
-                console.error('Failed to open URL:', err)
-              );
-              return false;
-            }}
+            onLinkPress={handleLinkPress}
             rules={{
               ...selectableMarkdownRules,
               // Custom image renderer
@@ -172,12 +201,7 @@ export const CompareMessageBubble: React.FC<CompareMessageBubbleProps> = ({
         ) : (
           <Markdown
             style={markdownStyles}
-            onLinkPress={(url: string) => {
-              Linking.openURL(url).catch(err =>
-                console.error('Failed to open URL:', err)
-              );
-              return false;
-            }}
+            onLinkPress={handleLinkPress}
             rules={{
               ...selectableMarkdownRules,
               // Custom image renderer
@@ -218,6 +242,21 @@ export const CompareMessageBubble: React.FC<CompareMessageBubbleProps> = ({
               />
             ))}
           </View>
+        )}
+        {/* Citations section for messages with sources */}
+        {message.metadata?.citations && message.metadata.citations.length > 0 && (
+          <CitationList
+            citations={message.metadata.citations}
+            variant="compact"
+            initialVisible={3}
+            brandColor={citationBrandColor}
+            onCitationPress={(citation) => {
+              // Show citation preview tooltip at center of screen
+              const screenWidth = Dimensions.get('window').width;
+              const screenHeight = Dimensions.get('window').height;
+              showPreview(citation, { x: screenWidth / 2, y: screenHeight / 3 }, citationBrandColor);
+            }}
+          />
         )}
         {/* Copy button */}
         <TouchableOpacity

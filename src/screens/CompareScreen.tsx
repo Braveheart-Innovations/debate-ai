@@ -153,6 +153,26 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
   const leftCitationsRef = useRef<Array<{ index: number; url: string; title?: string; snippet?: string }> | undefined>(undefined);
   const rightCitationsRef = useRef<Array<{ index: number; url: string; title?: string; snippet?: string }> | undefined>(undefined);
 
+  // Effective models for web search availability check
+  const leftEffectiveModel = leftAI ? (selectedModels[leftAI.id] || leftAI.model) : '';
+  const rightEffectiveModel = rightAI ? (selectedModels[rightAI.id] || rightAI.model) : '';
+
+  // Build provider list for modality availability check
+  const selectedList: Array<{ provider: string; model: string }> = (() => {
+    if (!leftAI || !rightAI) return [];
+    if (viewMode === 'left-only' || continuedSide === 'left') return [{ provider: leftAI.provider, model: leftEffectiveModel }];
+    if (viewMode === 'right-only' || continuedSide === 'right') return [{ provider: rightAI.provider, model: rightEffectiveModel }];
+    return [
+      { provider: leftAI.provider, model: leftEffectiveModel },
+      { provider: rightAI.provider, model: rightEffectiveModel },
+    ];
+  })();
+  const availability = useMergedModalityAvailabilityStrict(selectedList);
+
+  // Web search availability - both AIs must support it in Compare mode
+  const webSearchAvailable = availability.webSearch.supported;
+  const webSearchEnabled = webSearchPreferred && webSearchAvailable;
+
   const saveComparisonSession = useCallback(async () => {
     if (userMessages.length === 0) return; // Don't save empty sessions
     
@@ -344,6 +364,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
               model: leftEffModel,
               parameters: (leftExp && leftExp.enabled) ? (leftExp.parameters as never) : undefined,
               isDebateMode: false,
+              webSearchEnabled,
             },
             message: messageText,
             conversationHistory: leftHistoryRef.current,
@@ -494,6 +515,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
               model: rightEffModel,
               parameters: (rightExp && rightExp.enabled) ? (rightExp.parameters as never) : undefined,
               isDebateMode: false,
+              webSearchEnabled,
             },
             message: messageText,
             conversationHistory: rightHistoryRef.current,
@@ -654,6 +676,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
     streamingState?.providerVerificationErrors,
     streamingState?.streamingSpeed,
     getMergedPersonality,
+    webSearchEnabled,
   ]);
 
   const dispatchScriptedTurn = useCallback((rawMessage: string) => {
@@ -851,24 +874,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
   }, []);
 
   const isProcessing = leftTyping || rightTyping;
-  const leftEffectiveModel = leftAI ? (selectedModels[leftAI.id] || leftAI.model) : '';
-  const rightEffectiveModel = rightAI ? (selectedModels[rightAI.id] || rightAI.model) : '';
 
-  const selectedList: Array<{ provider: string; model: string }> = (() => {
-    if (!leftAI || !rightAI) return [];
-    if (viewMode === 'left-only' || continuedSide === 'left') return [{ provider: leftAI.provider, model: leftEffectiveModel }];
-    if (viewMode === 'right-only' || continuedSide === 'right') return [{ provider: rightAI.provider, model: rightEffectiveModel }];
-    return [
-      { provider: leftAI.provider, model: leftEffectiveModel },
-      { provider: rightAI.provider, model: rightEffectiveModel },
-    ];
-  })();
-  const availability = useMergedModalityAvailabilityStrict(selectedList);
-
-  // Web search availability - both AIs must support it in Compare mode
-  const webSearchAvailable = availability.webSearch.supported;
-  const webSearchEnabled = webSearchPreferred && webSearchAvailable;
-  
   // Navigate back if AIs are not provided (must be after all hooks)
   if (!leftAI || !rightAI) {
     navigation.goBack();
