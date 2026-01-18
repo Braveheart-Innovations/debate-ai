@@ -1,6 +1,6 @@
 /**
- * PersonalityCard - Displays a personality with mini trait bars
- * Shows customization indicator and handles tap to open panel
+ * PersonalityCard - Displays a personality in a clean, minimal card
+ * Shows customization badge and handles tap to open panel
  */
 
 import React from 'react';
@@ -23,34 +23,6 @@ interface PersonalityCardProps {
   testID?: string;
 }
 
-interface MiniTraitBarProps {
-  value: number;
-  color: string;
-}
-
-const MiniTraitBar: React.FC<MiniTraitBarProps> = ({ value, color }) => {
-  const { theme } = useTheme();
-
-  return (
-    <View
-      style={[
-        styles.miniTraitBar,
-        { backgroundColor: theme.colors.border },
-      ]}
-    >
-      <View
-        style={[
-          styles.miniTraitFill,
-          {
-            backgroundColor: color,
-            width: `${value * 100}%`,
-          },
-        ]}
-      />
-    </View>
-  );
-};
-
 export const PersonalityCard: React.FC<PersonalityCardProps> = ({
   personality,
   onPress,
@@ -60,21 +32,20 @@ export const PersonalityCard: React.FC<PersonalityCardProps> = ({
 }) => {
   const { theme } = useTheme();
 
-  const traitColors = [
-    theme.colors.primary[400], // formality
-    theme.colors.warning[500], // humor
-    theme.colors.success[500], // energy
-    theme.colors.error[400],   // empathy
-    theme.colors.info[500],    // technicality
-  ];
+  const isCustomized = personality.isCustomized && !isLocked;
 
-  const traitValues = [
-    personality.mergedTone.formality,
-    personality.mergedTone.humor,
-    personality.mergedTone.energy,
-    personality.mergedTone.empathy,
-    personality.mergedTone.technicality,
-  ];
+  // Determine border color based on state
+  const getBorderColor = () => {
+    if (isSelected) return theme.colors.primary[500];
+    if (isCustomized) return theme.colors.primary[400];
+    return theme.colors.border;
+  };
+
+  // Determine border width based on state
+  const getBorderWidth = () => {
+    if (isSelected || isCustomized) return 2;
+    return 1;
+  };
 
   return (
     <TouchableOpacity
@@ -82,8 +53,8 @@ export const PersonalityCard: React.FC<PersonalityCardProps> = ({
         styles.container,
         {
           backgroundColor: theme.colors.surface,
-          borderColor: isSelected ? theme.colors.primary[500] : theme.colors.border,
-          borderWidth: isSelected ? 2 : 1,
+          borderColor: getBorderColor(),
+          borderWidth: getBorderWidth(),
         },
         isLocked && styles.containerLocked,
       ]}
@@ -92,22 +63,11 @@ export const PersonalityCard: React.FC<PersonalityCardProps> = ({
       disabled={isLocked}
       testID={testID}
     >
-      {/* Emoji and Name */}
+      {/* Header with emoji and lock badge */}
       <View style={styles.header}>
-        <View style={styles.emojiContainer}>
-          <Typography variant="heading" style={styles.emoji}>
-            {personality.emoji}
-          </Typography>
-          {/* Customized indicator dot */}
-          {personality.isCustomized && (
-            <View
-              style={[
-                styles.customizedDot,
-                { backgroundColor: theme.colors.primary[500] },
-              ]}
-            />
-          )}
-        </View>
+        <Typography variant="heading" style={styles.emoji}>
+          {personality.emoji}
+        </Typography>
 
         {/* Lock icon for demo users */}
         {isLocked && (
@@ -126,36 +86,46 @@ export const PersonalityCard: React.FC<PersonalityCardProps> = ({
         )}
       </View>
 
-      {/* Name */}
-      <Typography
-        variant="body"
-        weight="semibold"
-        color={isLocked ? 'disabled' : 'primary'}
-        style={styles.name}
-        numberOfLines={1}
-      >
-        {personality.name}
-      </Typography>
+      {/* Content section */}
+      <View style={styles.content}>
+        {/* Name */}
+        <Typography
+          variant="body"
+          weight="semibold"
+          color={isLocked ? 'disabled' : 'primary'}
+          numberOfLines={1}
+        >
+          {personality.name}
+        </Typography>
 
-      {/* Tagline */}
-      <Typography
-        variant="caption"
-        color={isLocked ? 'disabled' : 'secondary'}
-        style={styles.tagline}
-        numberOfLines={2}
-      >
-        {personality.tagline}
-      </Typography>
+        {/* Badge row - always reserve space for consistent card heights */}
+        <View style={styles.badgeRow}>
+          {isCustomized && (
+            <View
+              style={[
+                styles.customizedBadge,
+                { backgroundColor: theme.colors.primary[500] },
+              ]}
+            >
+              <Typography
+                variant="caption"
+                style={styles.badgeText}
+              >
+                Customized
+              </Typography>
+            </View>
+          )}
+        </View>
 
-      {/* Mini trait bars */}
-      <View style={styles.traitsContainer}>
-        {traitValues.map((value, index) => (
-          <MiniTraitBar
-            key={index}
-            value={value}
-            color={isLocked ? theme.colors.text.disabled : traitColors[index]}
-          />
-        ))}
+        {/* Tagline */}
+        <Typography
+          variant="caption"
+          color={isLocked ? 'disabled' : 'secondary'}
+          style={styles.tagline}
+          numberOfLines={2}
+        >
+          {personality.tagline}
+        </Typography>
       </View>
 
       {/* Chevron indicator */}
@@ -175,7 +145,7 @@ export const PersonalityCard: React.FC<PersonalityCardProps> = ({
 const styles = StyleSheet.create({
   container: {
     borderRadius: 12,
-    padding: 12,
+    padding: 16,
     minHeight: 140,
     position: 'relative',
   },
@@ -186,53 +156,42 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 4,
-  },
-  emojiContainer: {
-    position: 'relative',
+    marginBottom: 12,
   },
   emoji: {
-    fontSize: 32,
-  },
-  customizedDot: {
-    position: 'absolute',
-    top: -2,
-    right: -2,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    borderWidth: 2,
-    borderColor: 'white',
+    fontSize: 40,
   },
   lockBadge: {
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 8,
   },
-  name: {
+  content: {
+    flex: 1,
+  },
+  badgeRow: {
+    height: 22,
+    marginTop: 2,
     marginBottom: 2,
+    justifyContent: 'center',
+  },
+  customizedBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '600',
   },
   tagline: {
-    marginBottom: 8,
-    minHeight: 32,
-  },
-  traitsContainer: {
-    flexDirection: 'row',
-    gap: 3,
-  },
-  miniTraitBar: {
-    flex: 1,
-    height: 4,
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  miniTraitFill: {
-    height: '100%',
-    borderRadius: 2,
+    marginTop: 0,
   },
   chevron: {
     position: 'absolute',
-    right: 8,
+    right: 12,
     top: '50%',
     marginTop: -8,
   },

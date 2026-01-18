@@ -10,34 +10,49 @@ import {
   Modal,
   FlatList,
   useWindowDimensions,
+  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { Typography, GradientButton } from '@/components/molecules';
-import { Header, PersonalityCard, PersonalityCustomizationPanel } from '@/components/organisms';
+import { Typography } from '@/components/molecules';
+import { Header, PersonalityCard, PersonalityCustomizationPanel, CreateYourOwnCard } from '@/components/organisms';
 import { useTheme } from '@/theme';
 import { usePersonality, MergedPersonality } from '@/hooks/usePersonality';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
+import { useStorePrices } from '@/hooks/useStorePrices';
 import { RootStackParamList } from '@/types';
 
 type NavigationProp = StackNavigationProp<RootStackParamList>;
 
+// Grid item types for the personality list
+type PersonalityGridItem =
+  | { type: 'personality'; data: MergedPersonality }
+  | { type: 'create-your-own' };
+
 export default function PersonalitySystemScreen() {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
   const { width } = useWindowDimensions();
 
   const { getAllPersonalities, isLoading } = usePersonality();
-  const { isDemo, isPremium } = useFeatureAccess();
+  const { isDemo, isPremium, canStartTrial } = useFeatureAccess();
+  const { monthly } = useStorePrices();
 
   const [selectedPersonality, setSelectedPersonality] = useState<MergedPersonality | null>(null);
   const [panelVisible, setPanelVisible] = useState(false);
 
-  // Get all personalities excluding 'default'
-  const personalities = useMemo(() => {
-    return getAllPersonalities().filter(p => p.id !== 'default');
+  // Get all personalities excluding 'default', plus the CreateYourOwn teaser card
+  const gridItems = useMemo((): PersonalityGridItem[] => {
+    const personalities = getAllPersonalities().filter(p => p.id !== 'default');
+    const items: PersonalityGridItem[] = personalities.map(p => ({
+      type: 'personality' as const,
+      data: p,
+    }));
+    // Add the "Create Your Own" teaser as the 8th card
+    items.push({ type: 'create-your-own' as const });
+    return items;
   }, [getAllPersonalities]);
 
   // Calculate number of columns based on screen width
@@ -65,39 +80,75 @@ export default function PersonalitySystemScreen() {
     navigation.navigate('Subscription');
   }, [navigation]);
 
-  const renderPersonalityCard = useCallback(
-    ({ item }: { item: MergedPersonality }) => (
-      <View style={[styles.cardWrapper, { width: cardWidth }]}>
-        <PersonalityCard
-          personality={item}
-          onPress={() => handlePersonalityPress(item)}
-          isLocked={isDemo}
-          testID={`personality-card-${item.id}`}
-        />
-      </View>
-    ),
+  const renderGridItem = useCallback(
+    ({ item }: { item: PersonalityGridItem }) => {
+      if (item.type === 'create-your-own') {
+        return (
+          <View style={[styles.cardWrapper, { width: cardWidth }]}>
+            <CreateYourOwnCard testID="create-your-own-card" />
+          </View>
+        );
+      }
+
+      return (
+        <View style={[styles.cardWrapper, { width: cardWidth }]}>
+          <PersonalityCard
+            personality={item.data}
+            onPress={() => handlePersonalityPress(item.data)}
+            isLocked={isDemo}
+            testID={`personality-card-${item.data.id}`}
+          />
+        </View>
+      );
+    },
     [cardWidth, handlePersonalityPress, isDemo]
   );
 
+  const getItemKey = useCallback((item: PersonalityGridItem) => {
+    if (item.type === 'create-your-own') return 'create-your-own';
+    return item.data.id;
+  }, []);
+
+  const ctaText = canStartTrial ? 'Start 7-Day Free Trial' : 'Upgrade to Premium';
+
   const renderHeader = () => (
     <View style={styles.headerContent}>
-      {/* Premium Banner for Demo Users */}
+      {/* Premium Banner for Demo Users - matches DemoBanner design */}
       {isDemo && (
-        <View style={[styles.upgradeBanner, { backgroundColor: theme.colors.primary[50] }]}>
-          <View style={styles.upgradeBannerContent}>
-            <Typography variant="body" weight="semibold" color="primary">
-              Unlock Personality Customization
-            </Typography>
-            <Typography variant="caption" color="secondary" style={styles.upgradeDescription}>
-              Premium and trial users can customize how each personality communicates
-            </Typography>
+        <TouchableOpacity
+          style={[
+            styles.upgradeBanner,
+            {
+              backgroundColor: isDark ? 'rgba(99,102,241,0.12)' : 'rgba(99,102,241,0.10)',
+              borderColor: theme.colors.primary[300],
+            },
+          ]}
+          onPress={handleUpgradePress}
+          activeOpacity={0.8}
+        >
+          <Typography
+            variant="caption"
+            weight="bold"
+            style={{ color: theme.colors.primary[500] }}
+          >
+            Unlock Personality Customization
+          </Typography>
+          <Typography variant="caption" color="secondary" style={styles.upgradeDescription}>
+            Premium and trial users can customize how each personality communicates
+          </Typography>
+          <View style={styles.ctaRow}>
+            <View style={styles.ctaPill}>
+              <Typography variant="caption" weight="semibold" color="inverse">
+                {ctaText}
+              </Typography>
+            </View>
+            {canStartTrial && (
+              <Typography variant="caption" color="secondary" style={styles.priceText}>
+                Then {monthly.localizedPrice}/mo
+              </Typography>
+            )}
           </View>
-          <GradientButton
-            title="Upgrade"
-            onPress={handleUpgradePress}
-            size="small"
-          />
-        </View>
+        </TouchableOpacity>
       )}
 
       {/* Description */}
@@ -130,9 +181,9 @@ export default function PersonalitySystemScreen() {
 
       {/* Personality Grid */}
       <FlatList
-        data={personalities}
-        renderItem={renderPersonalityCard}
-        keyExtractor={(item) => item.id}
+        data={gridItems}
+        renderItem={renderGridItem}
+        keyExtractor={getItemKey}
         numColumns={numColumns}
         key={numColumns} // Force re-render when columns change
         contentContainerStyle={[
@@ -199,18 +250,28 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   upgradeBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
     borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     marginBottom: 16,
-  },
-  upgradeBannerContent: {
-    flex: 1,
-    marginRight: 12,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   upgradeDescription: {
-    marginTop: 4,
+    marginTop: 2,
+  },
+  ctaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  ctaPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#6366F1',
+  },
+  priceText: {
+    marginLeft: 8,
   },
   descriptionContainer: {
     marginBottom: 8,

@@ -110,11 +110,13 @@ export const PersonalityProvider: React.FC<PersonalityProviderProps> = ({ childr
     [settings]
   );
 
-  // Check if personality is customized
+  // Check if personality is customized (has any stored customization data)
   const isCustomized = useCallback(
     (id: string): boolean => {
       const customization = settings.customizations[id];
-      return customization?.isCustomized ?? false;
+      // Customized = entry exists with any actual customization values
+      if (!customization) return false;
+      return !!(customization.tone || customization.debateProfile || customization.modelParameters);
     },
     [settings]
   );
@@ -126,14 +128,15 @@ export const PersonalityProvider: React.FC<PersonalityProviderProps> = ({ childr
       if (!base) return null;
 
       const customization = settings.customizations[id];
-      const hasCustomization = customization?.isCustomized ?? false;
+      // Check if any actual customization data exists
+      const hasCustomization = !!(customization?.tone || customization?.debateProfile || customization?.modelParameters);
 
       // Merge tone: base defaults → personality defaults → customization
       const baseTone: PersonalityTone = {
         ...DEFAULT_TONE,
         ...(base.tone || {}),
       };
-      const mergedTone: PersonalityTone = hasCustomization && customization?.tone
+      const mergedTone: PersonalityTone = customization?.tone
         ? { ...baseTone, ...customization.tone }
         : baseTone;
 
@@ -142,7 +145,7 @@ export const PersonalityProvider: React.FC<PersonalityProviderProps> = ({ childr
         ...DEFAULT_DEBATE_PROFILE,
         ...(base.debateProfile || {}),
       };
-      const mergedDebateProfile: PersonalityDebateProfile = hasCustomization && customization?.debateProfile
+      const mergedDebateProfile: PersonalityDebateProfile = customization?.debateProfile
         ? { ...baseDebateProfile, ...customization.debateProfile }
         : baseDebateProfile;
 
@@ -151,7 +154,7 @@ export const PersonalityProvider: React.FC<PersonalityProviderProps> = ({ childr
         ...DEFAULT_MODEL_PARAMETERS,
         ...(base.modelParameters || {}),
       };
-      const mergedModelParameters: PersonalityModelParameters = hasCustomization && customization?.modelParameters
+      const mergedModelParameters: PersonalityModelParameters = customization?.modelParameters
         ? { ...baseModelParams, ...customization.modelParameters }
         : baseModelParams;
 

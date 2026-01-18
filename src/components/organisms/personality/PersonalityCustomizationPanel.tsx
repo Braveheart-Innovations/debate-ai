@@ -1,6 +1,7 @@
 /**
  * PersonalityCustomizationPanel - Full customization interface for a personality
  * Displayed as a modal/sheet when tapping a PersonalityCard
+ * Uses Lock/Unlock pattern to protect against accidental changes
  */
 
 import React, { useState, useCallback } from 'react';
@@ -8,8 +9,8 @@ import {
   View,
   ScrollView,
   StyleSheet,
-  Switch,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -24,11 +25,15 @@ import { usePersonality } from '@/hooks/usePersonality';
 import {
   PersonalityTone,
   PersonalityDebateProfile,
+  DEFAULT_TONE,
+  DEFAULT_DEBATE_PROFILE,
+  DEFAULT_MODEL_PARAMETERS,
 } from '@/types/personality';
 import {
   getToneDescription,
   getDebateProfileDescription,
 } from '@/lib/personality';
+import { getPersonality as getBasePersonality } from '@/config/personalities';
 
 interface PersonalityCustomizationPanelProps {
   /** The personality being customized */
@@ -52,12 +57,11 @@ export const PersonalityCustomizationPanel: React.FC<PersonalityCustomizationPan
     updateTone,
     updateDebateProfile,
     updateModelParameters,
-    toggleCustomization,
     resetToDefaults,
-    isCustomized,
   } = usePersonality();
 
-  const [isEnabled, setIsEnabled] = useState(isCustomized(personality.id));
+  // Lock state - defaults to locked to prevent accidental changes
+  const [isLocked, setIsLocked] = useState(true);
 
   // Local state for immediate UI feedback
   const [localTone, setLocalTone] = useState<PersonalityTone>(personality.mergedTone);
@@ -68,57 +72,89 @@ export const PersonalityCustomizationPanel: React.FC<PersonalityCustomizationPan
     personality.mergedModelParameters.temperature
   );
 
-  const handleToggleCustomization = useCallback(async () => {
-    const newEnabled = !isEnabled;
-    setIsEnabled(newEnabled);
-    await toggleCustomization(personality.id, newEnabled);
-  }, [isEnabled, personality.id, toggleCustomization]);
+  // Track if we've made any changes this session (for showing customized state)
+  const [hasLocalChanges, setHasLocalChanges] = useState(false);
+
+  const handleToggleLock = useCallback(() => {
+    setIsLocked(prev => !prev);
+  }, []);
 
   const handleToneChange = useCallback(
     async (key: keyof PersonalityTone, value: number) => {
       const newTone = { ...localTone, [key]: value };
       setLocalTone(newTone);
+      setHasLocalChanges(true);
 
-      if (isEnabled) {
-        await updateTone(personality.id, { [key]: value });
-      }
+      // Always save when unlocked (lock state is just UI protection)
+      await updateTone(personality.id, { [key]: value });
     },
-    [localTone, isEnabled, personality.id, updateTone]
+    [localTone, personality.id, updateTone]
   );
 
   const handleDebateProfileChange = useCallback(
     async (key: keyof PersonalityDebateProfile, value: PersonalityDebateProfile[keyof PersonalityDebateProfile]) => {
       const newProfile = { ...localDebateProfile, [key]: value };
       setLocalDebateProfile(newProfile as PersonalityDebateProfile);
+      setHasLocalChanges(true);
 
-      if (isEnabled) {
-        await updateDebateProfile(personality.id, { [key]: value });
-      }
+      await updateDebateProfile(personality.id, { [key]: value });
     },
-    [localDebateProfile, isEnabled, personality.id, updateDebateProfile]
+    [localDebateProfile, personality.id, updateDebateProfile]
   );
 
   const handleTemperatureChange = useCallback(
     async (value: number) => {
       setLocalTemperature(value);
+      setHasLocalChanges(true);
 
-      if (isEnabled) {
-        await updateModelParameters(personality.id, { temperature: value });
-      }
+      await updateModelParameters(personality.id, { temperature: value });
     },
-    [isEnabled, personality.id, updateModelParameters]
+    [personality.id, updateModelParameters]
   );
 
-  const handleResetToDefaults = useCallback(async () => {
-    await resetToDefaults(personality.id);
-    // Reset local state to defaults from the personality
-    setLocalTone(personality.mergedTone);
-    setLocalDebateProfile(personality.mergedDebateProfile);
-    setLocalTemperature(personality.mergedModelParameters.temperature);
-    setIsEnabled(false);
-  }, [personality, resetToDefaults]);
+  const handleResetToDefaults = useCallback(() => {
+    Alert.alert(
+      'Reset to Defaults',
+      `Are you sure you want to reset ${personality.name} to their original settings? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset',
+          style: 'destructive',
+          onPress: async () => {
+            await resetToDefaults(personality.id);
 
-  const disabled = !canCustomize || !isEnabled;
+            // Get the BASE personality values (not merged with customizations)
+            const basePersonality = getBasePersonality(personality.id);
+
+            // Reset local state to actual defaults
+            const baseTone: PersonalityTone = {
+              ...DEFAULT_TONE,
+              ...(basePersonality?.tone || {}),
+            };
+            const baseDebateProfile: PersonalityDebateProfile = {
+              ...DEFAULT_DEBATE_PROFILE,
+              ...(basePersonality?.debateProfile || {}),
+            };
+            const baseTemperature = basePersonality?.modelParameters?.temperature
+              ?? DEFAULT_MODEL_PARAMETERS.temperature;
+
+            setLocalTone(baseTone);
+            setLocalDebateProfile(baseDebateProfile);
+            setLocalTemperature(baseTemperature);
+            setHasLocalChanges(false);
+            setIsLocked(true);
+          },
+        },
+      ]
+    );
+  }, [personality.id, personality.name, resetToDefaults]);
+
+  // Sliders are disabled if user can't customize OR if locked
+  const slidersDisabled = !canCustomize || isLocked;
+
+  // Show customized state if personality was already customized or we made changes
+  const showCustomizedState = personality.isCustomized || hasLocalChanges;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]} testID={testID}>
@@ -141,36 +177,83 @@ export const PersonalityCustomizationPanel: React.FC<PersonalityCustomizationPan
           </Typography>
         </View>
 
-        {/* Customization Toggle */}
+        {/* Lock/Unlock Control */}
         {canCustomize && (
-          <View style={[styles.toggleRow, { backgroundColor: theme.colors.surface }]}>
-            <View style={styles.toggleLabel}>
-              <Typography variant="body" weight="medium">
-                Enable Customization
-              </Typography>
-              <Typography variant="caption" color="secondary">
-                Override default personality settings
-              </Typography>
-            </View>
-            <Switch
-              value={isEnabled}
-              onValueChange={handleToggleCustomization}
-              trackColor={{
-                false: theme.colors.border,
-                true: theme.colors.primary[400],
-              }}
-              thumbColor={isEnabled ? theme.colors.primary[500] : theme.colors.text.disabled}
-            />
+          <View style={styles.controlsContainer}>
+            <TouchableOpacity
+              style={[
+                styles.lockRow,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: isLocked ? theme.colors.border : theme.colors.primary[400],
+                  borderWidth: isLocked ? 1 : 2,
+                },
+              ]}
+              onPress={handleToggleLock}
+              activeOpacity={0.7}
+            >
+              <View style={styles.lockContent}>
+                <Ionicons
+                  name={isLocked ? 'lock-closed' : 'lock-open'}
+                  size={20}
+                  color={isLocked ? theme.colors.text.secondary : theme.colors.primary[500]}
+                />
+                <View style={styles.lockLabel}>
+                  <Typography
+                    variant="body"
+                    weight="medium"
+                    color={isLocked ? 'secondary' : 'primary'}
+                  >
+                    {isLocked ? 'Locked' : 'Unlocked - Editing'}
+                  </Typography>
+                  <Typography variant="caption" color="secondary">
+                    {isLocked
+                      ? 'Tap to unlock and make changes'
+                      : 'Sliders are now active'}
+                  </Typography>
+                </View>
+              </View>
+              {showCustomizedState && (
+                <View
+                  style={[
+                    styles.customizedBadge,
+                    { backgroundColor: theme.colors.primary[500] },
+                  ]}
+                >
+                  <Typography variant="caption" style={styles.badgeText}>
+                    Customized
+                  </Typography>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {/* Reset link - shown when customized */}
+            {showCustomizedState && (
+              <TouchableOpacity
+                style={styles.resetLink}
+                onPress={handleResetToDefaults}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons
+                  name="refresh"
+                  size={14}
+                  color={theme.colors.error[500]}
+                />
+                <Typography variant="caption" color="error">
+                  Reset to defaults
+                </Typography>
+              </TouchableOpacity>
+            )}
           </View>
         )}
 
         {/* Premium Upsell for Demo Users */}
         {!canCustomize && (
-          <View style={[styles.upsellCard, { backgroundColor: theme.colors.warning[50] }]}>
+          <View style={[styles.upsellCard, { backgroundColor: theme.colors.surface }]}>
             <Ionicons
               name="lock-closed"
               size={20}
-              color={theme.colors.warning[700]}
+              color={theme.colors.warning[500]}
             />
             <View style={styles.upsellText}>
               <Typography variant="body" weight="medium" color="warning">
@@ -195,7 +278,7 @@ export const PersonalityCustomizationPanel: React.FC<PersonalityCustomizationPan
             onValueChange={(v) => handleToneChange('formality', v)}
             lowLabel={getToneDescription('formality', 0).low}
             highLabel={getToneDescription('formality', 1).high}
-            disabled={disabled}
+            disabled={slidersDisabled}
           />
 
           <TraitSlider
@@ -204,7 +287,7 @@ export const PersonalityCustomizationPanel: React.FC<PersonalityCustomizationPan
             onValueChange={(v) => handleToneChange('humor', v)}
             lowLabel={getToneDescription('humor', 0).low}
             highLabel={getToneDescription('humor', 1).high}
-            disabled={disabled}
+            disabled={slidersDisabled}
           />
 
           <TraitSlider
@@ -213,7 +296,7 @@ export const PersonalityCustomizationPanel: React.FC<PersonalityCustomizationPan
             onValueChange={(v) => handleToneChange('energy', v)}
             lowLabel={getToneDescription('energy', 0).low}
             highLabel={getToneDescription('energy', 1).high}
-            disabled={disabled}
+            disabled={slidersDisabled}
           />
 
           <TraitSlider
@@ -222,7 +305,7 @@ export const PersonalityCustomizationPanel: React.FC<PersonalityCustomizationPan
             onValueChange={(v) => handleToneChange('empathy', v)}
             lowLabel={getToneDescription('empathy', 0).low}
             highLabel={getToneDescription('empathy', 1).high}
-            disabled={disabled}
+            disabled={slidersDisabled}
           />
 
           <TraitSlider
@@ -231,7 +314,7 @@ export const PersonalityCustomizationPanel: React.FC<PersonalityCustomizationPan
             onValueChange={(v) => handleToneChange('technicality', v)}
             lowLabel={getToneDescription('technicality', 0).low}
             highLabel={getToneDescription('technicality', 1).high}
-            disabled={disabled}
+            disabled={slidersDisabled}
           />
         </View>
 
@@ -244,7 +327,7 @@ export const PersonalityCustomizationPanel: React.FC<PersonalityCustomizationPan
           <ArgumentStyleSelect
             value={localDebateProfile.argumentStyle}
             onValueChange={(v) => handleDebateProfileChange('argumentStyle', v)}
-            disabled={disabled}
+            disabled={slidersDisabled}
           />
 
           <TraitSlider
@@ -253,7 +336,7 @@ export const PersonalityCustomizationPanel: React.FC<PersonalityCustomizationPan
             onValueChange={(v) => handleDebateProfileChange('aggression', v)}
             lowLabel={getDebateProfileDescription('aggression', 0).low}
             highLabel={getDebateProfileDescription('aggression', 1).high}
-            disabled={disabled}
+            disabled={slidersDisabled}
           />
 
           <TraitSlider
@@ -262,7 +345,7 @@ export const PersonalityCustomizationPanel: React.FC<PersonalityCustomizationPan
             onValueChange={(v) => handleDebateProfileChange('concession', v)}
             lowLabel={getDebateProfileDescription('concession', 0).low}
             highLabel={getDebateProfileDescription('concession', 1).high}
-            disabled={disabled}
+            disabled={slidersDisabled}
           />
         </View>
 
@@ -278,7 +361,7 @@ export const PersonalityCustomizationPanel: React.FC<PersonalityCustomizationPan
             onValueChange={handleTemperatureChange}
             lowLabel="Precise"
             highLabel="Creative"
-            disabled={disabled}
+            disabled={slidersDisabled}
           />
 
           <Typography variant="caption" color="secondary" style={styles.paramNote}>
@@ -315,13 +398,13 @@ export const PersonalityCustomizationPanel: React.FC<PersonalityCustomizationPan
             <Typography variant="title" weight="semibold" style={styles.sectionTitle}>
               Watch Out For
             </Typography>
-            <View style={[styles.infoCard, { backgroundColor: theme.colors.warning[50] }]}>
+            <View style={[styles.infoCard, { backgroundColor: theme.colors.surface }]}>
               {personality.watchouts.map((watchout, index) => (
                 <View key={index} style={styles.signatureMove}>
                   <Ionicons
                     name="alert-circle"
                     size={16}
-                    color={theme.colors.warning[600]}
+                    color={theme.colors.warning[500]}
                   />
                   <Typography variant="body" color="secondary" style={styles.moveText}>
                     {watchout}
@@ -330,26 +413,6 @@ export const PersonalityCustomizationPanel: React.FC<PersonalityCustomizationPan
               ))}
             </View>
           </View>
-        )}
-
-        {/* Reset Button */}
-        {canCustomize && isEnabled && (
-          <TouchableOpacity
-            style={[
-              styles.resetButton,
-              { borderColor: theme.colors.error[500] },
-            ]}
-            onPress={handleResetToDefaults}
-          >
-            <Ionicons
-              name="refresh"
-              size={18}
-              color={theme.colors.error[500]}
-            />
-            <Typography variant="body" color="error" style={styles.resetText}>
-              Reset to Defaults
-            </Typography>
-          </TouchableOpacity>
         )}
 
         {/* Bottom padding for scroll */}
@@ -374,17 +437,42 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 16,
   },
-  toggleRow: {
+  controlsContainer: {
+    marginBottom: 16,
+  },
+  lockRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
     borderRadius: 12,
-    marginBottom: 16,
   },
-  toggleLabel: {
+  resetLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 4,
+    paddingTop: 8,
+    paddingRight: 4,
+  },
+  lockContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
-    marginRight: 16,
+    gap: 12,
+  },
+  lockLabel: {
+    flex: 1,
+  },
+  customizedBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '600',
   },
   upsellCard: {
     flexDirection: 'row',
@@ -419,18 +507,6 @@ const styles = StyleSheet.create({
   },
   moveText: {
     flex: 1,
-  },
-  resetButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    gap: 8,
-  },
-  resetText: {
-    marginLeft: 4,
   },
   bottomPadding: {
     height: 40,

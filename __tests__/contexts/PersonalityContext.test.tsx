@@ -272,7 +272,10 @@ describe('PersonalityContext', () => {
   });
 
   describe('toggleCustomization', () => {
-    it('enables customization', async () => {
+    it('sets isCustomized flag but does not affect isCustomized() when no data exists', async () => {
+      // Note: isCustomized() now checks for actual data (tone, debateProfile, modelParameters)
+      // not the isCustomized flag. This is because we moved to a Lock/Unlock pattern
+      // where customization status is determined by whether values differ from defaults.
       const { result } = renderHook(() => usePersonality(), { wrapper });
 
       await waitFor(() => {
@@ -283,10 +286,15 @@ describe('PersonalityContext', () => {
         await result.current.toggleCustomization('bestie', true);
       });
 
-      expect(result.current.isCustomized('bestie')).toBe(true);
+      // isCustomized returns false because there's no actual data
+      expect(result.current.isCustomized('bestie')).toBe(false);
+      // But the customization entry exists with the flag set
+      const customization = result.current.getCustomization('bestie');
+      expect(customization).not.toBeNull();
+      expect(customization?.isCustomized).toBe(true);
     });
 
-    it('disables customization but keeps data', async () => {
+    it('keeps data when flag is toggled off - isCustomized based on data presence', async () => {
       const mockSettings: UserPersonalitySettings = {
         customizations: {
           bestie: {
@@ -311,9 +319,12 @@ describe('PersonalityContext', () => {
         await result.current.toggleCustomization('bestie', false);
       });
 
-      expect(result.current.isCustomized('bestie')).toBe(false);
+      // isCustomized() returns true because actual data exists (tone)
+      // regardless of the isCustomized flag
+      expect(result.current.isCustomized('bestie')).toBe(true);
       // Customization data should still exist
       expect(result.current.getCustomization('bestie')).not.toBeNull();
+      expect(result.current.getCustomization('bestie')?.tone?.formality).toBe(0.3);
     });
   });
 
