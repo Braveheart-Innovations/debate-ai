@@ -157,6 +157,9 @@ export const PersonalityProvider: React.FC<PersonalityProviderProps> = ({ childr
 
       return {
         ...base,
+        // Override base tone/debateProfile with merged values so adapters use customizations
+        tone: mergedTone,
+        debateProfile: mergedDebateProfile,
         isCustomized: hasCustomization,
         mergedTone,
         mergedDebateProfile,
