@@ -100,11 +100,44 @@ export class PerplexityAdapter extends OpenAICompatibleAdapter {
     // Use our overridden formatUserMessage for proper Perplexity attachment format
     const userContent = this.formatUserMessage(message, attachments);
 
-    const messages = [
+    // Build history with alternation safeguards (same pattern as base OpenAICompatibleAdapter)
+    const rawHistory = this.formatHistory(conversationHistory, resumptionContext);
+
+    // Map history to string content only (history from formatHistory is always string content)
+    const history: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = rawHistory.map(m => ({
+      role: m.role,
+      content: typeof m.content === 'string' ? m.content : '[complex content]',
+    }));
+
+    // Ensure first after system is user: if leading assistant, convert to user with attribution
+    if (history.length > 0 && history[0].role === 'assistant') {
+      history[0] = { role: 'user', content: `[Previous assistant] ${history[0].content}` };
+    }
+
+    // Compose messages, merging consecutive user with the new user content
+    type PerplexityMessage = { role: 'system' | 'user' | 'assistant'; content: string | PerplexityContentPart[] };
+    const messages: PerplexityMessage[] = [
       { role: 'system' as const, content: this.getSystemPrompt() },
-      ...this.formatHistory(conversationHistory, resumptionContext),
-      { role: 'user' as const, content: userContent }
+      ...history,
     ];
+
+    const last = messages[messages.length - 1];
+    if (last && last.role === 'user') {
+      // Merge userContent into last user message to avoid consecutive user messages
+      if (typeof last.content === 'string' && typeof userContent === 'string') {
+        last.content = `${last.content}\n\n${userContent}`;
+      } else if (Array.isArray(userContent)) {
+        if (typeof last.content === 'string') {
+          last.content = [{ type: 'text', text: last.content }, ...userContent] as PerplexityContentPart[];
+        } else if (Array.isArray(last.content)) {
+          last.content = [...last.content, ...userContent];
+        }
+      } else if (typeof userContent === 'string' && Array.isArray(last.content)) {
+        last.content = [...last.content, { type: 'text', text: userContent }];
+      }
+    } else {
+      messages.push({ role: 'user' as const, content: userContent });
+    }
 
     try {
       const response = await fetch(`${config.baseUrl}/chat/completions`, {

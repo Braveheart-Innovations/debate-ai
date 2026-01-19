@@ -196,6 +196,59 @@ describe('PerplexityAdapter', () => {
       // Content should be plain string, not array
       expect(userMessage.content).toBe('Simple question');
     });
+
+    it('merges consecutive user messages to satisfy Perplexity alternation requirement', async () => {
+      const adapter = new PerplexityAdapter(makeConfig());
+
+      // Simulate multi-AI chat history where another AI's response is mapped to user role
+      // This can happen in debate mode when other AI responses become user messages
+      const conversationHistory = [
+        {
+          id: '1',
+          content: 'What is quantum computing?',
+          sender: 'User',
+          senderType: 'user' as const,
+          timestamp: Date.now() - 3000,
+        },
+        {
+          id: '2',
+          content: 'Quantum computing uses qubits...',
+          sender: 'Claude',
+          senderType: 'ai' as const,
+          timestamp: Date.now() - 2000,
+          metadata: { providerId: 'claude' },
+        },
+        {
+          id: '3',
+          content: 'Can you explain more?',
+          sender: 'User',
+          senderType: 'user' as const,
+          timestamp: Date.now() - 1000,
+        },
+      ];
+
+      await adapter.sendMessage('And what about quantum supremacy?', conversationHistory);
+
+      const [, requestInit] = fetchMock.mock.calls[0];
+      const body = JSON.parse(requestInit?.body as string);
+
+      // Verify messages alternate properly: system -> user -> assistant -> user
+      // The last two user messages should be merged
+      const roles = body.messages.map((m: { role: string }) => m.role);
+
+      // Check no consecutive user or assistant messages (except system at start)
+      for (let i = 1; i < roles.length - 1; i++) {
+        if (roles[i] !== 'system') {
+          expect(roles[i]).not.toBe(roles[i + 1]);
+        }
+      }
+
+      // The final user message should contain both the history user message and new message
+      const lastMessage = body.messages[body.messages.length - 1];
+      expect(lastMessage.role).toBe('user');
+      expect(lastMessage.content).toContain('Can you explain more?');
+      expect(lastMessage.content).toContain('And what about quantum supremacy?');
+    });
   });
 
   describe('streamMessage', () => {
