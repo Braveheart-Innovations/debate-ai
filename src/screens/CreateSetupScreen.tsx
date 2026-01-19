@@ -13,11 +13,10 @@ import {
   TouchableOpacity,
   Alert,
   Keyboard,
-  TouchableWithoutFeedback,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSelector, useDispatch } from 'react-redux';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
@@ -55,7 +54,6 @@ const IMAGE_GEN_PROVIDERS = ['openai', 'google', 'grok'];
 
 export default function CreateSetupScreen() {
   const { theme } = useTheme();
-  const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
   const dispatch = useDispatch<AppDispatch>();
   const { isDemo } = useFeatureAccess();
@@ -79,6 +77,25 @@ export default function CreateSetupScreen() {
   const [selectedAIs, setSelectedAIs] = useState<AIConfig[]>([]);
   const [uploadedImageUri, setUploadedImageUri] = useState<string | null>(null);
   const [showRefinementModal, setShowRefinementModal] = useState(false);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  // Listen for keyboard show/hide to toggle Generate button visibility
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSubscription = Keyboard.addListener(showEvent, () => {
+      setIsKeyboardVisible(true);
+    });
+    const hideSubscription = Keyboard.addListener(hideEvent, () => {
+      setIsKeyboardVisible(false);
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
 
   // Hydrate gallery on mount (skip in demo mode - demo images are URLs, not local files)
   useEffect(() => {
@@ -339,15 +356,12 @@ export default function CreateSetupScreen() {
           style={styles.flex}
           contentContainerStyle={[
             styles.content,
-            { paddingBottom: 100, flexGrow: 1 },
+            { paddingBottom: 16 },
           ]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
           showsVerticalScrollIndicator={false}
-          onScrollBeginDrag={Keyboard.dismiss}
         >
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-            <View style={styles.flex}>
           {/* AI Provider Selection using tiles */}
           <View style={styles.section}>
             <DynamicAISelector
@@ -631,34 +645,33 @@ export default function CreateSetupScreen() {
               </TouchableOpacity>
             </View>
           </View>
-          </View>
-        </TouchableWithoutFeedback>
-      </ScrollView>
+        </ScrollView>
 
-        {/* Generate Button */}
-        <View
-          style={[
-            styles.generateContainer,
-            {
-              backgroundColor: theme.colors.background,
-              paddingBottom: insets.bottom + 16,
-              borderTopColor: theme.colors.border,
-            },
-          ]}
-        >
-          <GradientButton
-            title={
-              selectedProviders.length === 0
-                ? 'Select an AI to generate'
-                : selectedProviders.length > 1
-                  ? `Generate with ${selectedProviders.length} AIs`
-                  : 'Generate Image'
-            }
-            onPress={handleGenerate}
-            disabled={!canGenerate}
-            fullWidth
-          />
-        </View>
+        {/* Generate Button - hidden when keyboard is visible */}
+        {!isKeyboardVisible && (
+          <View
+            style={[
+              styles.generateContainer,
+              {
+                backgroundColor: theme.colors.background,
+                borderTopColor: theme.colors.border,
+              },
+            ]}
+          >
+            <GradientButton
+              title={
+                selectedProviders.length === 0
+                  ? 'Select an AI to generate'
+                  : selectedProviders.length > 1
+                    ? `Generate with ${selectedProviders.length} AIs`
+                    : 'Generate Image'
+              }
+              onPress={handleGenerate}
+              disabled={!canGenerate}
+              fullWidth
+            />
+          </View>
+        )}
       </KeyboardAvoidingView>
 
       {/* Image Refinement Modal */}
@@ -776,7 +789,7 @@ const styles = StyleSheet.create({
   },
   generateContainer: {
     paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingVertical: 12,
     borderTopWidth: 1,
   },
   premiumGate: {
