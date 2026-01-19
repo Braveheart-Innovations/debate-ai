@@ -1,10 +1,20 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
-import { Alert } from 'react-native';
 import { ImageUploadModal } from '../../../../src/components/organisms/chat/ImageUploadModal';
 import { useTheme } from '../../../../src/theme';
 import * as ImagePicker from 'expo-image-picker';
 import * as imageProcessing from '../../../../src/utils/imageProcessing';
+
+// Mock ErrorService
+const mockShowWarning = jest.fn();
+jest.mock('@/services/errors/ErrorService', () => ({
+  ErrorService: {
+    showWarning: (...args: unknown[]) => mockShowWarning(...args),
+    handleWithToast: jest.fn(),
+    showSuccess: jest.fn(),
+    showInfo: jest.fn(),
+  },
+}));
 
 // Mock molecules
 jest.mock('@/components/molecules', () => {
@@ -51,9 +61,6 @@ jest.mock('../../../../src/utils/imageProcessing', () => ({
   getReadableFileSize: jest.fn(),
 }));
 
-// Mock Alert
-jest.spyOn(Alert, 'alert');
-
 describe('ImageUploadModal', () => {
   const mockTheme = {
     colors: {
@@ -77,6 +84,7 @@ describe('ImageUploadModal', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockShowWarning.mockClear();
     (useTheme as jest.Mock).mockReturnValue({ theme: mockTheme });
     (imageProcessing.getReadableFileSize as jest.Mock).mockReturnValue('2.5 MB');
     (imageProcessing.processImageForClaude as jest.Mock).mockResolvedValue({
@@ -162,7 +170,7 @@ describe('ImageUploadModal', () => {
       });
     });
 
-    it('should show alert when photo library permission is denied', async () => {
+    it('should show warning when photo library permission is denied', async () => {
       (ImagePicker.requestMediaLibraryPermissionsAsync as jest.Mock).mockResolvedValue({
         granted: false,
       });
@@ -178,9 +186,9 @@ describe('ImageUploadModal', () => {
       fireEvent.press(screen.getByText('Photo Library'));
 
       await waitFor(() => {
-        expect(Alert.alert).toHaveBeenCalledWith(
-          'Permission Required',
-          'Please allow photo library access.'
+        expect(mockShowWarning).toHaveBeenCalledWith(
+          'Please allow photo library access.',
+          'chat'
         );
       });
     });
@@ -300,7 +308,7 @@ describe('ImageUploadModal', () => {
       });
     });
 
-    it('should show alert when camera permission is denied', async () => {
+    it('should show warning when camera permission is denied', async () => {
       (ImagePicker.requestCameraPermissionsAsync as jest.Mock).mockResolvedValue({
         granted: false,
       });
@@ -316,9 +324,9 @@ describe('ImageUploadModal', () => {
       fireEvent.press(screen.getByText('Camera'));
 
       await waitFor(() => {
-        expect(Alert.alert).toHaveBeenCalledWith(
-          'Permission Required',
-          'Please allow camera access.'
+        expect(mockShowWarning).toHaveBeenCalledWith(
+          'Please allow camera access.',
+          'chat'
         );
       });
     });
@@ -460,7 +468,7 @@ describe('ImageUploadModal', () => {
   });
 
   describe('Attach Button', () => {
-    it('should show alert when trying to attach without selecting image', () => {
+    it('should show warning when trying to attach without selecting image', () => {
       render(
         <ImageUploadModal
           visible={true}
@@ -471,9 +479,9 @@ describe('ImageUploadModal', () => {
 
       fireEvent.press(screen.getByText('Attach'));
 
-      expect(Alert.alert).toHaveBeenCalledWith(
-        'No Image Selected',
-        'Please choose an image first.'
+      expect(mockShowWarning).toHaveBeenCalledWith(
+        'Please choose an image first.',
+        'chat'
       );
     });
 

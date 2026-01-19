@@ -10,7 +10,6 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -25,6 +24,7 @@ import { SheetHeader } from '@/components/molecules';
 import { useTheme } from '../../../theme';
 import { Message } from '../../../types';
 import { AI_BRAND_COLORS } from '../../../constants/aiColors';
+import { ErrorService } from '@/services/errors/ErrorService';
 
 export interface TranscriptModalProps {
   visible: boolean;
@@ -357,10 +357,10 @@ export const TranscriptModal: React.FC<TranscriptModalProps> = ({
         to: fileUri,
       });
       
-      Alert.alert('Success', `Transcript saved as ${filename}`);
+      ErrorService.showSuccess(`Transcript saved as ${filename}`, 'debate');
     } catch (error) {
       console.error('Error saving PDF:', error);
-      Alert.alert('Error', 'Failed to save PDF. Please try again.');
+      ErrorService.handleWithToast(new Error('Failed to save PDF. Please try again.'), { feature: 'debate' });
     } finally {
       setIsGenerating(false);
     }
@@ -397,11 +397,11 @@ export const TranscriptModal: React.FC<TranscriptModalProps> = ({
           UTI: 'com.adobe.pdf',
         });
       } else {
-        Alert.alert('Error', 'Sharing is not available on this device.');
+        ErrorService.showWarning('Sharing is not available on this device.', 'debate');
       }
     } catch (error) {
       console.error('Error sharing PDF:', error);
-      Alert.alert('Error', 'Failed to share PDF. Please try again.');
+      ErrorService.handleWithToast(new Error('Failed to share PDF. Please try again.'), { feature: 'debate' });
     } finally {
       setIsGenerating(false);
     }

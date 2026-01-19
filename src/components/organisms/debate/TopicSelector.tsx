@@ -5,13 +5,14 @@
  */
 
 import React from 'react';
-import { TouchableOpacity, ScrollView, TextInput, Alert } from 'react-native';
+import { TouchableOpacity, ScrollView, TextInput } from 'react-native';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { Box } from '../../atoms';
 import { Button, GradientButton, Typography } from '../../molecules';
 import { useTheme } from '../../../theme';
 import { catalog } from '../../../config/debate/topics';
 import { UseTopicSelectionReturn } from '../../../hooks/debate';
+import { ErrorService } from '@/services/errors/ErrorService';
 
 export interface TopicSelectorProps extends UseTopicSelectionReturn {
   onStartDebate: () => void;
@@ -37,7 +38,7 @@ export const TopicSelector: React.FC<TopicSelectorProps> = ({
   const handleStartDebate = () => {
     const validation = validateCurrentTopic();
     if (!validation.valid) {
-      Alert.alert('Invalid Motion', validation.error || 'Please select a valid motion');
+      ErrorService.showWarning(validation.error || 'Please select a valid motion', 'debate');
       return;
     }
     onStartDebate();

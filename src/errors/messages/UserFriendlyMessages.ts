@@ -45,6 +45,9 @@ export const UserFriendlyMessages: Record<ErrorCode, string> = {
   [ErrorCode.VALIDATION_MESSAGE_TOO_LONG]: 'Your message is too long. Please shorten it.',
   [ErrorCode.VALIDATION_ATTACHMENT_TOO_LARGE]: 'Attachment is too large. Maximum size is 10MB.',
   [ErrorCode.VALIDATION_UNSUPPORTED_FORMAT]: 'This file format is not supported.',
+  [ErrorCode.VALIDATION_TOPIC_REQUIRED]: 'Please enter a topic to continue.',
+  [ErrorCode.VALIDATION_AI_SELECTION_REQUIRED]: 'Please select at least one AI to continue.',
+  [ErrorCode.VALIDATION_IMAGE_REQUIRED]: 'Please select or generate an image first.',
 
   // App Errors
   [ErrorCode.APP_STORAGE_FULL]: 'Storage is full. Please free up some space.',
@@ -54,6 +57,21 @@ export const UserFriendlyMessages: Record<ErrorCode, string> = {
   [ErrorCode.APP_ADAPTER_NOT_FOUND]: 'AI provider configuration not found. Please check settings.',
   [ErrorCode.APP_SESSION_NOT_FOUND]: 'Session not found. Please start a new conversation.',
   [ErrorCode.APP_INITIALIZATION_FAILED]: 'App initialization failed. Please restart the app.',
+  [ErrorCode.APP_SHARING_UNAVAILABLE]: 'Sharing is not available on this device.',
+  [ErrorCode.APP_IMAGE_SAVE_FAILED]: 'Failed to save image. Please try again.',
+  [ErrorCode.APP_PDF_GENERATION_FAILED]: 'Failed to generate PDF. Please try again.',
+  [ErrorCode.APP_DEMO_MODE_RESTRICTED]: 'This feature is limited in demo mode. Add your API key to unlock.',
+  [ErrorCode.APP_RECORDING_FAILED]: 'Recording failed. Please try again.',
+  [ErrorCode.APP_CAMERA_PERMISSION_DENIED]: 'Camera access denied. Please enable it in Settings.',
+  [ErrorCode.APP_PHOTO_LIBRARY_PERMISSION_DENIED]: 'Photo library access denied. Please enable it in Settings.',
+
+  // Purchase Errors
+  [ErrorCode.PURCHASE_FAILED]: 'Purchase failed. Please try again.',
+  [ErrorCode.PURCHASE_CANCELLED]: 'Purchase was cancelled.',
+  [ErrorCode.PURCHASE_RESTORE_FAILED]: 'Failed to restore purchases. Please try again.',
+  [ErrorCode.PURCHASE_NO_PURCHASES_FOUND]: 'No previous purchases found to restore.',
+  [ErrorCode.PURCHASE_PRODUCT_UNAVAILABLE]: 'This product is currently unavailable.',
+  [ErrorCode.PURCHASE_NETWORK_ERROR]: 'Network error during purchase. Please check your connection.',
 
   // Unknown
   [ErrorCode.UNKNOWN]: 'An unexpected error occurred. Please try again.',

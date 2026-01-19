@@ -5,6 +5,18 @@ import HistoryScreen from '@/screens/HistoryScreen';
 import { renderWithProviders } from '../../test-utils/renderWithProviders';
 import { showSheet, createAppStore } from '@/store';
 
+// Mock ErrorService
+const mockShowSuccess = jest.fn();
+const mockHandleWithToast = jest.fn();
+jest.mock('@/services/errors/ErrorService', () => ({
+  ErrorService: {
+    showSuccess: (...args: unknown[]) => mockShowSuccess(...args),
+    handleWithToast: (...args: unknown[]) => mockHandleWithToast(...args),
+    showWarning: jest.fn(),
+    showInfo: jest.fn(),
+  },
+}));
+
 let sessionCounter = 1;
 
 const createSession = (overrides: Record<string, unknown> = {}) => {
@@ -296,6 +308,8 @@ describe('HistoryScreen', () => {
     mockUseSessionStats.mockClear();
     mockClearAllSessions.mockReset();
     alertSpy.mockReset();
+    mockShowSuccess.mockClear();
+    mockHandleWithToast.mockClear();
     focusEffectCleanup = undefined;
     mockHeaderProps = undefined;
     mockHistorySearchProps = undefined;
@@ -381,7 +395,7 @@ describe('HistoryScreen', () => {
     expect(sessionHistoryState.refresh).toHaveBeenCalledTimes(1);
   });
 
-  it('clears all storage via header action and shows success alert', async () => {
+  it('clears all storage via header action and shows success toast', async () => {
     mockClearAllSessions.mockResolvedValueOnce(undefined);
     renderHistoryScreen();
 
@@ -398,7 +412,7 @@ describe('HistoryScreen', () => {
 
     expect(mockClearAllSessions).toHaveBeenCalledTimes(1);
     expect(sessionHistoryState.refresh).toHaveBeenCalled();
-    expect(alertSpy).toHaveBeenLastCalledWith('Success', 'All storage has been cleared.');
+    expect(mockShowSuccess).toHaveBeenCalledWith('All storage has been cleared.', 'history');
   });
 
   it('handles storage clear failures gracefully', async () => {
@@ -412,13 +426,14 @@ describe('HistoryScreen', () => {
     const [, , buttons] = alertSpy.mock.calls[0];
     const destructiveButton = buttons.find((btn: any) => btn.style === 'destructive');
 
-    alertSpy.mockClear();
-
     await act(async () => {
       await destructiveButton.onPress();
     });
 
-    expect(alertSpy).toHaveBeenCalledWith('Error', 'Failed to clear storage.');
+    expect(mockHandleWithToast).toHaveBeenCalledWith(
+      expect.any(Error),
+      expect.objectContaining({ feature: 'history' })
+    );
   });
 
   it('shows demo indicators and dispatches subscription sheet', async () => {

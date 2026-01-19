@@ -5,6 +5,20 @@ import { renderWithProviders } from '../../test-utils/renderWithProviders';
 import { createAppStore, showSheet } from '@/store';
 import type { AI, Message } from '@/types';
 
+// Mock ErrorService
+const mockHandleWithToast = jest.fn();
+const mockShowInfo = jest.fn();
+const mockShowWarning = jest.fn();
+
+jest.mock('@/services/errors/ErrorService', () => ({
+  ErrorService: {
+    handleWithToast: (...args: unknown[]) => mockHandleWithToast(...args),
+    showInfo: (...args: unknown[]) => mockShowInfo(...args),
+    showWarning: (...args: unknown[]) => mockShowWarning(...args),
+    showSuccess: jest.fn(),
+  },
+}));
+
 const baseAIs: AI[] = [
   { id: 'left', provider: 'anthropic', name: 'Claude', model: 'claude-3-opus', color: '#000' },
   { id: 'right', provider: 'openai', name: 'GPT-4', model: 'gpt-4-turbo', color: '#000' },
@@ -450,7 +464,11 @@ describe('DebateScreen', () => {
       await mockVotingInterfaceProps.onVote('left');
     });
 
-    expect(Alert.alert).toHaveBeenCalledWith('Error', 'vote failed');
+    // Error is now shown via ErrorService.handleWithToast instead of Alert.alert
+    expect(mockHandleWithToast).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'vote failed' }),
+      { feature: 'debate' }
+    );
   });
 
   it('loads demo sample from samples bar and primes debate', async () => {
@@ -540,7 +558,8 @@ describe('DebateScreen', () => {
       mockVictoryProps.onViewTranscript();
     });
 
-    expect(Alert.alert).toHaveBeenCalledWith('No Transcript', 'No messages to display in transcript.');
+    // Info message is now shown via ErrorService.showInfo instead of Alert.alert
+    expect(mockShowInfo).toHaveBeenCalledWith('No messages to display in transcript.', 'debate');
   });
 
   it('stops streams and resets session when starting over', () => {

@@ -1,10 +1,20 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
-import { Alert } from 'react-native';
 import { DocumentUploadModal } from '../../../../src/components/organisms/chat/DocumentUploadModal';
 import { useTheme } from '../../../../src/theme';
 import * as DocumentPicker from 'expo-document-picker';
 import { MessageAttachment } from '../../../../src/types';
+
+// Mock ErrorService
+const mockShowWarning = jest.fn();
+jest.mock('@/services/errors/ErrorService', () => ({
+  ErrorService: {
+    showWarning: (...args: unknown[]) => mockShowWarning(...args),
+    handleWithToast: jest.fn(),
+    showSuccess: jest.fn(),
+    showInfo: jest.fn(),
+  },
+}));
 
 // Mock dependencies
 jest.mock('../../../../src/theme', () => ({
@@ -58,8 +68,6 @@ jest.mock('../../../../src/utils/imageProcessing', () => ({
   getReadableFileSize: jest.fn((size: number) => `${(size / 1024).toFixed(2)} KB`),
 }));
 
-jest.spyOn(Alert, 'alert');
-
 const mockUseTheme = useTheme as jest.MockedFunction<typeof useTheme>;
 const mockGetDocumentAsync = DocumentPicker.getDocumentAsync as jest.MockedFunction<typeof DocumentPicker.getDocumentAsync>;
 
@@ -91,6 +99,7 @@ describe('DocumentUploadModal', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockShowWarning.mockClear();
     mockUseTheme.mockReturnValue(mockTheme);
     mockDocumentProcessing.isSupportedDocumentType.mockReturnValue(true);
     mockDocumentProcessing.validateDocumentSize.mockReturnValue({ valid: true });
@@ -223,7 +232,7 @@ describe('DocumentUploadModal', () => {
   });
 
   describe('File Validation', () => {
-    it('shows alert for unsupported file types', async () => {
+    it('shows warning for unsupported file types', async () => {
       const mockAsset = {
         uri: 'file://test.exe',
         name: 'test.exe',
@@ -250,14 +259,14 @@ describe('DocumentUploadModal', () => {
       fireEvent.press(browseButton);
 
       await waitFor(() => {
-        expect(Alert.alert).toHaveBeenCalledWith(
-          'Unsupported',
-          'Select PDF, TXT, MD, CSV, JSON, XML, HTML, DOCX, XLSX, or PPTX.'
+        expect(mockShowWarning).toHaveBeenCalledWith(
+          'Select PDF, TXT, MD, CSV, JSON, XML, HTML, DOCX, XLSX, or PPTX.',
+          'chat'
         );
       });
     });
 
-    it('shows alert for files that are too large', async () => {
+    it('shows warning for files that are too large', async () => {
       const mockAsset = {
         uri: 'file://large.pdf',
         name: 'large.pdf',
@@ -287,9 +296,9 @@ describe('DocumentUploadModal', () => {
       fireEvent.press(browseButton);
 
       await waitFor(() => {
-        expect(Alert.alert).toHaveBeenCalledWith(
-          'File Too Large',
-          'File exceeds maximum size of 10MB'
+        expect(mockShowWarning).toHaveBeenCalledWith(
+          'File exceeds maximum size of 10MB',
+          'chat'
         );
       });
     });
@@ -343,7 +352,7 @@ describe('DocumentUploadModal', () => {
       expect(mockOnClose).toHaveBeenCalled();
     });
 
-    it('shows alert when trying to attach without selecting document', () => {
+    it('shows warning when trying to attach without selecting document', () => {
       render(
         <DocumentUploadModal
           visible={true}
@@ -355,9 +364,9 @@ describe('DocumentUploadModal', () => {
       const attachButton = screen.getByText('Attach');
       fireEvent.press(attachButton);
 
-      expect(Alert.alert).toHaveBeenCalledWith(
-        'No Document',
-        'Please choose a document first.'
+      expect(mockShowWarning).toHaveBeenCalledWith(
+        'Please choose a document first.',
+        'chat'
       );
       expect(mockOnUpload).not.toHaveBeenCalled();
     });

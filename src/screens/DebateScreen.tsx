@@ -7,6 +7,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ErrorService } from '@/services/errors/ErrorService';
 import Animated, { FadeIn, FadeOut, Layout } from 'react-native-reanimated';
 import { Typography } from '../components/molecules';
 import { useTheme } from '../theme';
@@ -128,7 +129,7 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
   const handleStartDebate = useCallback(async (topic?: string) => {
     const topicToUse = topic || topicSelection.finalTopic;
     if (!topicToUse) {
-      Alert.alert('Invalid Motion', 'Please select a valid motion');
+      ErrorService.showWarning('Please select a valid motion', 'debate');
       return;
     }
     
@@ -189,8 +190,7 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
       await flow.startDebate();
       
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to start debate';
-      Alert.alert('Error', errorMessage);
+      ErrorService.handleWithToast(error, { feature: 'debate' });
     }
   }, [
     topicSelection.finalTopic,
@@ -244,8 +244,7 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
       
       // Debate completion will be handled by the UI components themselves
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to record vote';
-      Alert.alert('Error', errorMessage);
+      ErrorService.handleWithToast(error, { feature: 'debate' });
     }
   };
   
@@ -283,7 +282,7 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
   // Handle view transcript
   const handleViewTranscript = () => {
     if (messages.messages.length === 0) {
-      Alert.alert('No Transcript', 'No messages to display in transcript.');
+      ErrorService.showInfo('No messages to display in transcript.', 'debate');
       return;
     }
     setShowTranscript(true);
@@ -313,15 +312,6 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
   const displayedTopic = session.session?.topic || topicSelection.finalTopic || initialTopic || 'Debate Motion';
   const vsLine = selectedAIs.length >= 2 ? `${displayName(selectedAIs[0])} vs ${displayName(selectedAIs[1])}` : '';
   const headerSubtitle = vsLine || undefined;
-  const motionText = displayedTopic.replace(/^Motion:\s*/i, '').trim();
-  const approxCharsPerLine = 34;
-  const estimatedLines = Math.min(3, Math.max(1, Math.ceil(motionText.length / approxCharsPerLine)));
-  const subtitleLines = headerSubtitle ? headerSubtitle.split('\n').length : 0;
-  const dynamicHeightBase = 88;
-  const headerHeight = Math.max(
-    96,
-    Math.min(148, dynamicHeightBase + (estimatedLines - 1) * 18 + (subtitleLines > 0 ? 12 : 0))
-  );
 
   const renderContent = () => {
     const bottomInset = votingOverlayHeight + scoreOverlayHeight;
@@ -462,19 +452,19 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
   // Handle error states
   useEffect(() => {
     if (session.error) {
-      Alert.alert('Session Error', session.error);
+      ErrorService.handleWithToast(new Error(session.error), { feature: 'debate' });
     }
   }, [session.error]);
-  
+
   useEffect(() => {
     if (flow.error) {
-      Alert.alert('Debate Error', flow.error);
+      ErrorService.handleWithToast(new Error(flow.error), { feature: 'debate' });
     }
   }, [flow.error]);
-  
+
   useEffect(() => {
     if (voting.error) {
-      Alert.alert('Voting Error', voting.error);
+      ErrorService.handleWithToast(new Error(voting.error), { feature: 'debate' });
     }
   }, [voting.error]);
   
@@ -546,7 +536,6 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
             variant: isRecording ? 'danger' : 'primary',
           } : undefined}
           showDemoBadge={isDemo}
-          height={headerHeight}
         />
       );
       })()}

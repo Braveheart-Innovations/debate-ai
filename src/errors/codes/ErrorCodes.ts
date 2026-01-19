@@ -6,6 +6,7 @@
  * - E3xxx: Authentication errors
  * - E4xxx: Validation errors
  * - E5xxx: Application errors
+ * - E6xxx: Purchase errors
  * - E9xxx: Unknown/system errors
  */
 export enum ErrorCode {
@@ -49,6 +50,9 @@ export enum ErrorCode {
   VALIDATION_MESSAGE_TOO_LONG = 'E4004',
   VALIDATION_ATTACHMENT_TOO_LARGE = 'E4005',
   VALIDATION_UNSUPPORTED_FORMAT = 'E4006',
+  VALIDATION_TOPIC_REQUIRED = 'E4007',
+  VALIDATION_AI_SELECTION_REQUIRED = 'E4008',
+  VALIDATION_IMAGE_REQUIRED = 'E4009',
 
   // App Errors (5xxx)
   APP_STORAGE_FULL = 'E5001',
@@ -58,12 +62,27 @@ export enum ErrorCode {
   APP_ADAPTER_NOT_FOUND = 'E5005',
   APP_SESSION_NOT_FOUND = 'E5006',
   APP_INITIALIZATION_FAILED = 'E5007',
+  APP_SHARING_UNAVAILABLE = 'E5008',
+  APP_IMAGE_SAVE_FAILED = 'E5009',
+  APP_PDF_GENERATION_FAILED = 'E5010',
+  APP_DEMO_MODE_RESTRICTED = 'E5011',
+  APP_RECORDING_FAILED = 'E5012',
+  APP_CAMERA_PERMISSION_DENIED = 'E5013',
+  APP_PHOTO_LIBRARY_PERMISSION_DENIED = 'E5014',
+
+  // Purchase Errors (6xxx)
+  PURCHASE_FAILED = 'E6001',
+  PURCHASE_CANCELLED = 'E6002',
+  PURCHASE_RESTORE_FAILED = 'E6003',
+  PURCHASE_NO_PURCHASES_FOUND = 'E6004',
+  PURCHASE_PRODUCT_UNAVAILABLE = 'E6005',
+  PURCHASE_NETWORK_ERROR = 'E6006',
 
   // Unknown/System
   UNKNOWN = 'E9999',
 }
 
-export type ErrorSeverity = 'info' | 'warning' | 'error' | 'critical';
+export type ErrorSeverity = 'success' | 'info' | 'warning' | 'error' | 'critical';
 
 export interface ErrorContext {
   provider?: string;

@@ -96,6 +96,57 @@ class ErrorServiceClass {
   }
 
   /**
+   * Show a success toast notification.
+   * Use for positive feedback to user actions.
+   */
+  showSuccess(message: string, feature?: string): void {
+    store.dispatch(addError({
+      code: ErrorCode.UNKNOWN, // Success messages don't need specific codes
+      message,
+      severity: 'success',
+      timestamp: Date.now(),
+      recoverable: true,
+      retryable: false,
+      feature,
+      dismissed: false,
+    }));
+  }
+
+  /**
+   * Show an info toast notification.
+   * Use for informational messages that don't indicate errors.
+   */
+  showInfo(message: string, feature?: string): void {
+    store.dispatch(addError({
+      code: ErrorCode.UNKNOWN,
+      message,
+      severity: 'info',
+      timestamp: Date.now(),
+      recoverable: true,
+      retryable: false,
+      feature,
+      dismissed: false,
+    }));
+  }
+
+  /**
+   * Show a warning toast notification.
+   * Use for caution messages that don't block the user.
+   */
+  showWarning(message: string, feature?: string): void {
+    store.dispatch(addError({
+      code: ErrorCode.UNKNOWN,
+      message,
+      severity: 'warning',
+      timestamp: Date.now(),
+      recoverable: true,
+      retryable: false,
+      feature,
+      dismissed: false,
+    }));
+  }
+
+  /**
    * Handle error silently (log only, no toast).
    * Use for errors that don't need user notification.
    */

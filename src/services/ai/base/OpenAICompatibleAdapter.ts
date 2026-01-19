@@ -1,14 +1,15 @@
 import { Message, MessageAttachment } from '../../../types';
 import { getDefaultModel, resolveModelAlias } from '../../../config/providers/modelRegistry';
 import { BaseAdapter } from './BaseAdapter';
-import { 
-  ResumptionContext, 
+import {
+  ResumptionContext,
   SendMessageResponse,
   FormattedMessage,
   AdapterCapabilities,
-  ProviderConfig 
+  ProviderConfig
 } from '../types/adapter.types';
 import EventSource from 'react-native-sse';
+import { extractSSEErrorMessage } from '../utils/extractSSEErrorMessage';
 
 export abstract class OpenAICompatibleAdapter extends BaseAdapter {
   protected abstract getProviderConfig(): ProviderConfig;
@@ -290,8 +291,10 @@ export abstract class OpenAICompatibleAdapter extends BaseAdapter {
     });
 
     // Handle errors
-    es.addEventListener('error', (error) => {
-      errorOccurred = new Error(String(error));
+    es.addEventListener('error', (error: unknown) => {
+      console.error(`[${this.config.provider}] SSE error:`, error);
+      const errorMessage = extractSSEErrorMessage(error, 'Connection failed');
+      errorOccurred = new Error(errorMessage);
       isComplete = true;
       try { es.close(); } catch { /* noop */ }
       if (resolver) { const r = resolver; resolver = null; r({ value: undefined, done: true }); }

@@ -127,6 +127,13 @@ export const ToastNotification: React.FC<ToastNotificationProps> = ({
 
   const getSeverityConfig = useCallback((): SeverityConfig => {
     switch (severity) {
+      case 'success':
+        return {
+          icon: 'checkmark-circle',
+          backgroundColor: isDark ? theme.colors.success[900] : theme.colors.success[50],
+          borderColor: theme.colors.success[500],
+          textColor: isDark ? theme.colors.success[200] : theme.colors.success[700],
+        };
       case 'info':
         return {
           icon: 'information-circle',

@@ -1,12 +1,13 @@
 import { Message, MessageAttachment } from '../../../../types';
 import { getDefaultModel, resolveModelAlias } from '../../../../config/providers/modelRegistry';
 import { BaseAdapter } from '../../base/BaseAdapter';
-import { 
-  ResumptionContext, 
+import {
+  ResumptionContext,
   SendMessageResponse,
-  AdapterCapabilities 
+  AdapterCapabilities
 } from '../../types/adapter.types';
 import EventSource, { CustomEvent } from 'react-native-sse';
+import { extractSSEErrorMessage, mapErrorTypeToMessage } from '../../utils/extractSSEErrorMessage';
 
 // Define Claude's custom SSE event types
 type ClaudeEventTypes = 'message_start' | 'content_block_start' | 'content_block_delta' | 'content_block_stop' | 'message_stop' | 'ping' | 'message';
@@ -309,40 +310,26 @@ export class ClaudeAdapter extends BaseAdapter {
     // Handle errors
     es.addEventListener('error', (error) => {
       console.error('[ClaudeAdapter] SSE error event:', error);
-      
-      // Parse the error data to check for specific error types
-      let errorMessage = 'SSE connection error';
-      let isOverloaded = false;
-      
+
+      // Check for Claude-specific error types first
+      let errorType: string | undefined;
       try {
         if (error && typeof error === 'object' && 'data' in error) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const errorData = JSON.parse((error as any).data);
-          if (errorData.error) {
-            errorMessage = errorData.error.message || errorMessage;
-            isOverloaded = errorData.error.type === 'overloaded_error';
-          }
+          const errorData = JSON.parse((error as { data: string }).data);
+          errorType = errorData?.error?.type;
         }
       } catch {
-        // If we can't parse the error, use the default message
+        // Ignore parsing errors
       }
-      
-      // Create appropriate error with user-friendly message
-      if (isOverloaded) {
-        errorOccurred = new Error(`Claude is temporarily overloaded. The service will retry automatically.`);
-      } else if (errorMessage.includes('rate_limit')) {
-        errorOccurred = new Error(`Rate limit reached. Please wait a moment before trying again.`);
-      } else if (errorMessage.includes('authentication') || errorMessage.includes('api_key')) {
-        errorOccurred = new Error(`Authentication failed. Please check your API key in Settings.`);
-      } else if (errorMessage.includes('network') || errorMessage.includes('connection')) {
-        errorOccurred = new Error(`Connection error. Please check your internet connection.`);
-      } else {
-        errorOccurred = new Error(errorMessage);
-      }
-      
+
+      // Use mapped message for known error types, otherwise extract from event
+      const mappedMessage = errorType ? mapErrorTypeToMessage(errorType) : null;
+      const errorMessage = mappedMessage || extractSSEErrorMessage(error, 'Connection failed');
+
+      errorOccurred = new Error(errorMessage);
       isComplete = true;
       es.close();
-      
+
       // Resolve any pending promise to unblock the generator
       if (resolver) {
         resolver({ value: undefined, done: true });

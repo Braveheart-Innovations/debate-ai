@@ -4,6 +4,7 @@ import { ProviderConfig, ResumptionContext, SendMessageResponse } from '../../ty
 import { getModelById } from '../../../../config/modelConfigs';
 import { getDefaultModel, resolveModelAlias } from '../../../../config/providers/modelRegistry';
 import EventSource from 'react-native-sse';
+import { extractSSEErrorMessage } from '../../utils/extractSSEErrorMessage';
 
 export class ChatGPTAdapter extends OpenAICompatibleAdapter {
   async testConnection(): Promise<boolean> {
@@ -487,8 +488,10 @@ export class ChatGPTAdapter extends OpenAICompatibleAdapter {
     });
 
     es.addEventListener('error', (e: unknown) => {
-      const anyErr = e as { message?: string; status?: number } | undefined;
-      errorMsg = String(anyErr?.message || `SSE error${anyErr?.status ? ` (${anyErr.status})` : ''}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[ChatGPT] SSE error:', e);
+      }
+      errorMsg = extractSSEErrorMessage(e, 'Connection failed');
       isComplete = true;
       try { es.close(); } catch { /* noop */ }
       if (resolver) { const r = resolver; resolver = null; r({ value: undefined, done: true }); }

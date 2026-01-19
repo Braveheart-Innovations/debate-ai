@@ -7,6 +7,7 @@ import { ChatSession } from '../../types';
 import { UseSessionActionsReturn, HistoryScreenNavigationProps } from '../../types/history';
 import useFeatureAccess from '@/hooks/useFeatureAccess';
 import { showTrialCTA } from '@/utils/demoGating';
+import { ErrorService } from '@/services/errors/ErrorService';
 
 export const useSessionActions = (
   navigation: HistoryScreenNavigationProps,
@@ -44,11 +45,8 @@ export const useSessionActions = (
                 resolve();
               } catch (error) {
                 console.error('Error deleting session:', error);
-                Alert.alert(
-                  'Error',
-                  'Failed to delete the conversation. Please try again.',
-                  [{ text: 'OK', onPress: () => resolve() }]
-                );
+                ErrorService.handleWithToast(new Error('Failed to delete the conversation. Please try again.'), { feature: 'history' });
+                resolve();
               } finally {
                 setIsProcessing(false);
               }
@@ -227,11 +225,7 @@ export const useSessionActions = (
       }
     } catch (error) {
       console.error('Error resuming session:', error);
-      Alert.alert(
-        'Error',
-        'Failed to open the session. Please try again.',
-        [{ text: 'OK' }]
-      );
+      ErrorService.handleWithToast(new Error('Failed to open the session. Please try again.'), { feature: 'history' });
     }
   }, [dispatch, navigation, isDemo]);
 
@@ -270,11 +264,7 @@ export const useSessionActions = (
       
     } catch (error) {
       console.error('Error sharing session:', error);
-      Alert.alert(
-        'Error',
-        'Failed to share the conversation. Please try again.',
-        [{ text: 'OK' }]
-      );
+      ErrorService.handleWithToast(new Error('Failed to share the conversation. Please try again.'), { feature: 'history' });
     } finally {
       setIsProcessing(false);
     }
@@ -288,11 +278,7 @@ export const useSessionActions = (
       setIsProcessing(true);
       
       // For now, just show a message that it's not implemented
-      Alert.alert(
-        'Coming Soon',
-        'Session archiving will be available in a future update.',
-        [{ text: 'OK' }]
-      );
+      ErrorService.showInfo('Session archiving will be available in a future update.', 'history');
       
       // Future implementation would:
       // 1. Add an 'archived' field to session
@@ -344,11 +330,8 @@ export const useSessionActions = (
                 resolve();
               } catch (error) {
                 console.error('Error in bulk delete:', error);
-                Alert.alert(
-                  'Error',
-                  'Failed to delete some conversations. Please try again.',
-                  [{ text: 'OK', onPress: () => resolve() }]
-                );
+                ErrorService.handleWithToast(new Error('Failed to delete some conversations. Please try again.'), { feature: 'history' });
+                resolve();
               } finally {
                 setIsProcessing(false);
               }

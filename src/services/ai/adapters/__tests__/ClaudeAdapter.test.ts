@@ -226,7 +226,7 @@ describe('ClaudeAdapter', () => {
     if (!eventSource) throw new Error('EventSource not created');
 
     eventSource.emit('error', JSON.stringify({ error: { type: 'overloaded_error', message: 'busy' } }));
-    await expect(pending).rejects.toThrow('Claude is temporarily overloaded');
+    await expect(pending).rejects.toThrow('temporarily overloaded');
     expect(eventSource.close).toHaveBeenCalled();
   });
 });

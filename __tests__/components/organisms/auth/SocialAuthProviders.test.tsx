@@ -2,9 +2,20 @@ import React from 'react';
 import { fireEvent, waitFor } from '@testing-library/react-native';
 import { SocialAuthProviders } from '@/components/organisms/auth/SocialAuthProviders';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
-import { Platform, Alert } from 'react-native';
+import { Platform } from 'react-native';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { signInWithApple, signInWithGoogle, toAuthUser } from '@/services/firebase/auth';
+
+// Mock ErrorService
+const mockHandleWithToast = jest.fn();
+jest.mock('@/services/errors/ErrorService', () => ({
+  ErrorService: {
+    handleWithToast: (...args: unknown[]) => mockHandleWithToast(...args),
+    showSuccess: jest.fn(),
+    showWarning: jest.fn(),
+    showInfo: jest.fn(),
+  },
+}));
 
 jest.mock('@/components/molecules', () => {
   const React = require('react');
@@ -53,14 +64,13 @@ jest.mock('@/services/firebase/auth', () => ({
   toAuthUser: jest.fn(),
 }));
 
-jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-
 const originalPlatform = Platform.OS;
 const originalDev = __DEV__;
 
 describe('SocialAuthProviders', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockHandleWithToast.mockClear();
     Object.defineProperty(Platform, 'OS', { value: originalPlatform });
     (AppleAuthentication.isAvailableAsync as jest.Mock).mockReset();
     (signInWithApple as jest.Mock).mockReset();
@@ -107,7 +117,7 @@ describe('SocialAuthProviders', () => {
     expect(profile?.authProvider).toBe('apple');
     expect(profile?.membershipStatus).toBe('premium');
     expect(onSuccess).toHaveBeenCalledTimes(1);
-    expect(Alert.alert).not.toHaveBeenCalled();
+    expect(mockHandleWithToast).not.toHaveBeenCalled();
   });
 
   it('falls back to Google sign-in and updates state on success', async () => {
@@ -142,7 +152,7 @@ describe('SocialAuthProviders', () => {
     expect(onSuccess).toHaveBeenCalledTimes(1);
   });
 
-  it('invokes error callback and alert when Google sign-in fails', async () => {
+  it('invokes error callback and shows error toast when Google sign-in fails', async () => {
     Object.defineProperty(Platform, 'OS', { value: 'android' });
     const error = new Error('Network issue');
     (signInWithGoogle as jest.Mock).mockRejectedValue(error);
@@ -160,7 +170,7 @@ describe('SocialAuthProviders', () => {
       expect(onError).toHaveBeenCalledWith(error);
     });
 
-    expect(Alert.alert).toHaveBeenCalledWith('Sign In', 'Network issue');
+    expect(mockHandleWithToast).toHaveBeenCalledWith(error, expect.objectContaining({ feature: 'auth' }));
     consoleSpy.mockRestore();
   });
 

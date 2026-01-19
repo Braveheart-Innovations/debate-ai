@@ -7,6 +7,7 @@ import { useTheme } from '../theme';
 import { useGreeting } from '../hooks/useGreeting';
 import { useFocusEffect } from '@react-navigation/native';
 import { StorageService } from '../services/chat';
+import { ErrorService } from '@/services/errors/ErrorService';
 import {
   HistorySearchBar,
   HistoryList,
@@ -115,9 +116,9 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({ navigation }) => {
             try {
               await StorageService.clearAllSessions();
               refresh();
-              Alert.alert('Success', 'All storage has been cleared.');
+              ErrorService.showSuccess('All storage has been cleared.', 'history');
             } catch {
-              Alert.alert('Error', 'Failed to clear storage.');
+              ErrorService.handleWithToast(new Error('Failed to clear storage.'), { feature: 'history' });
             }
           }
         }

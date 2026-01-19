@@ -8,6 +8,19 @@ import type { RootState } from '@/store';
 // Mock Alert
 jest.spyOn(Alert, 'alert');
 
+// Mock ErrorService
+const mockShowSuccess = jest.fn();
+const mockShowInfo = jest.fn();
+const mockHandleWithToast = jest.fn();
+
+jest.mock('@/services/errors/ErrorService', () => ({
+  ErrorService: {
+    showSuccess: (...args: unknown[]) => mockShowSuccess(...args),
+    showInfo: (...args: unknown[]) => mockShowInfo(...args),
+    handleWithToast: (...args: unknown[]) => mockHandleWithToast(...args),
+  },
+}));
+
 jest.mock('expo-linear-gradient', () => ({
   LinearGradient: ({ children }: any) => <>{children}</>,
 }));
@@ -113,6 +126,9 @@ describe('ProfileContent', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockDeleteAccount.mockReset();
+    mockShowSuccess.mockClear();
+    mockShowInfo.mockClear();
+    mockHandleWithToast.mockClear();
   });
 
   it('renders signed-out view and opens email auth form', async () => {
@@ -218,10 +234,9 @@ describe('ProfileContent', () => {
       });
 
       await waitFor(() => {
-        expect(Alert.alert).toHaveBeenCalledWith(
-          'Account Deleted',
-          expect.any(String),
-          expect.any(Array)
+        expect(mockShowSuccess).toHaveBeenCalledWith(
+          'Your account has been permanently deleted.',
+          'account'
         );
       });
     });
@@ -249,10 +264,9 @@ describe('ProfileContent', () => {
       });
 
       await waitFor(() => {
-        expect(Alert.alert).toHaveBeenCalledWith(
-          'Re-authentication Required',
-          expect.stringContaining('sign out'),
-          expect.any(Array)
+        expect(mockShowInfo).toHaveBeenCalledWith(
+          'For security, please sign out and sign back in before deleting your account.',
+          'account'
         );
       });
     });
@@ -279,9 +293,9 @@ describe('ProfileContent', () => {
       });
 
       await waitFor(() => {
-        expect(Alert.alert).toHaveBeenCalledWith(
-          'Error',
-          expect.stringContaining('Failed to delete')
+        expect(mockHandleWithToast).toHaveBeenCalledWith(
+          expect.objectContaining({ message: 'Failed to delete' }),
+          { feature: 'account' }
         );
       });
     });

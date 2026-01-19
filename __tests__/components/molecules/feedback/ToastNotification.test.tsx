@@ -74,6 +74,13 @@ describe('ToastNotification', () => {
   });
 
   describe('Severity Variants', () => {
+    it('renders success severity correctly', () => {
+      const { getByText } = renderWithProviders(
+        <ToastNotification {...defaultProps} severity="success" />
+      );
+      expect(getByText('checkmark-circle')).toBeTruthy();
+    });
+
     it('renders info severity correctly', () => {
       const { getByText } = renderWithProviders(
         <ToastNotification {...defaultProps} severity="info" />
@@ -100,6 +107,24 @@ describe('ToastNotification', () => {
         <ToastNotification {...defaultProps} severity="critical" />
       );
       expect(getByText('alert-circle')).toBeTruthy();
+    });
+
+    it('auto-dismisses success toasts', () => {
+      const onDismiss = jest.fn();
+      renderWithProviders(
+        <ToastNotification
+          {...defaultProps}
+          onDismiss={onDismiss}
+          duration={2000}
+          severity="success"
+        />
+      );
+
+      act(() => {
+        jest.advanceTimersByTime(2000);
+      });
+
+      expect(onDismiss).toHaveBeenCalled();
     });
   });
 

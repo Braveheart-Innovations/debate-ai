@@ -2,6 +2,7 @@ import React, { useEffect, useCallback } from 'react';
 import { KeyboardAvoidingView, Platform, View, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AIServiceLoading, Header, HeaderActions } from '../components/organisms';
+import { ErrorService } from '@/services/errors/ErrorService';
 import { useAIService } from '../providers/AIServiceProvider';
 import { MessageAttachment } from '../types';
 import { getAttachmentSupport } from '../utils/attachmentUtils';
@@ -189,14 +190,14 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
   // Handler for executing refinement
   const handleRefineImage = React.useCallback(async (opts: { instructions: string; provider: AIProvider }) => {
     if (isDemo) {
-      Alert.alert('Demo Mode', 'Image refinement requires a subscription. Start a free trial to unlock this feature.');
+      ErrorService.showInfo('Image refinement requires a subscription. Start a free trial to unlock this feature.', 'chat');
       return;
     }
     setRefinementModalVisible(false);
 
     const apiKey = apiKeys[opts.provider as keyof typeof apiKeys];
     if (!apiKey) {
-      Alert.alert('Error', `${opts.provider} API key not configured`);
+      ErrorService.handleWithToast(new Error(`${opts.provider} API key not configured`), { feature: 'chat', provider: opts.provider });
       return;
     }
 

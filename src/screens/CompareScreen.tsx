@@ -3,6 +3,7 @@ import { StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'r
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSelector } from 'react-redux';
 import { RootState, setWebSearchPreferred } from '../store';
+import { ErrorService } from '@/services/errors/ErrorService';
 
 import {
   Header,
@@ -422,7 +423,8 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
               try { if (RecordController.isActive()) { RecordController.recordAssistantMessage(leftAI.provider, leftMessage.content); } } catch (_e) { console.warn('compare left fallback final record failed', _e); }
             } catch (fallbackError) {
               console.error('Left AI streaming error:', err, 'fallback error:', fallbackError);
-              Alert.alert('Error', isVerification ? `${leftAI.name} requires org verification to stream.` : isOverload ? `${leftAI.name} is overloaded. Try again soon.` : `Failed to get response from ${leftAI.name}`);
+              const errorMsg = isVerification ? `${leftAI.name} requires org verification to stream.` : isOverload ? `${leftAI.name} is overloaded. Try again soon.` : `Failed to get response from ${leftAI.name}`;
+              ErrorService.handleWithToast(new Error(errorMsg), { feature: 'compare', provider: leftAI.provider });
             } finally {
               setLeftStreamingContent('');
               setLeftTyping(false);
@@ -486,7 +488,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
           .catch(error => {
             console.error('Left AI error:', error);
             setLeftTyping(false);
-            Alert.alert('Error', `Failed to get response from ${leftAI.name}`);
+            ErrorService.handleWithToast(new Error(`Failed to get response from ${leftAI.name}`), { feature: 'compare', provider: leftAI.provider });
           });
         pendingPromises.push(leftCompletion);
       }
@@ -573,7 +575,8 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
               try { if (RecordController.isActive()) { RecordController.recordAssistantMessage(rightAI.provider, rightMessage.content); } } catch (_e) { console.warn('compare right fallback final record failed', _e); }
             } catch (fallbackError) {
               console.error('Right AI streaming error:', err, 'fallback error:', fallbackError);
-              Alert.alert('Error', isVerification ? `${rightAI.name} requires org verification to stream.` : isOverload ? `${rightAI.name} is overloaded. Try again soon.` : `Failed to get response from ${rightAI.name}`);
+              const errorMsg = isVerification ? `${rightAI.name} requires org verification to stream.` : isOverload ? `${rightAI.name} is overloaded. Try again soon.` : `Failed to get response from ${rightAI.name}`;
+              ErrorService.handleWithToast(new Error(errorMsg), { feature: 'compare', provider: rightAI.provider });
             } finally {
               setRightStreamingContent('');
               setRightTyping(false);
@@ -637,7 +640,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
           .catch(error => {
             console.error('Right AI error:', error);
             setRightTyping(false);
-            Alert.alert('Error', `Failed to get response from ${rightAI.name}`);
+            ErrorService.handleWithToast(new Error(`Failed to get response from ${rightAI.name}`), { feature: 'compare', provider: rightAI.provider });
           });
         pendingPromises.push(rightCompletion);
       }

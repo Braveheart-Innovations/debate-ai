@@ -412,8 +412,11 @@ export const Header: React.FC<HeaderProps> = ({
     const cy2 = totalHeight * 0.6;
     const cy3 = totalHeight * 0.4;
 
+    // Use a large height to ensure gradient covers expanded content (clipped by parent overflow)
+    const gradientHeight = Math.max(totalHeight, 300);
+
     return (
-      <Svg width={width} height={totalHeight} style={StyleSheet.absoluteFillObject}>
+      <Svg width={width} height={gradientHeight} style={StyleSheet.absoluteFillObject}>
         <Defs>
           <SvgGradient id="headerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
             {primaryGradient.map((color, index) => (
@@ -422,7 +425,7 @@ export const Header: React.FC<HeaderProps> = ({
           </SvgGradient>
         </Defs>
         {/* Background gradient */}
-        <Rect x={0} y={-1} width={width} height={totalHeight + 2} fill="url(#headerGradient)" />
+        <Rect x={0} y={-1} width={width} height={gradientHeight + 2} fill="url(#headerGradient)" />
         {enableAccents && (
           <>
             <AnimatedG animatedProps={pulseProps}>
@@ -759,7 +762,7 @@ export const Header: React.FC<HeaderProps> = ({
         variant === 'gradient' && {
           minHeight: totalHeight,
           paddingBottom: 0, // Override base padding, gradientContentContainer handles it
-          overflow: 'hidden',
+          overflow: 'hidden', // Clips the oversized gradient at actual content height
           borderBottomWidth: 0,
           // Remove drop shadow/elevation to avoid a subtle line under the gradient
           elevation: 0,
@@ -893,12 +896,11 @@ const createStyles = (
   // Gradient variant specific styles (from GradientHeader)
   gradientContentContainer: {
     paddingHorizontal: theme.spacing.lg,
-    paddingBottom: isTablet
-      ? theme.spacing.xl
-      : Platform.select({ ios: theme.spacing.md, android: theme.spacing.lg }),
-    paddingTop: isTablet ? theme.spacing.lg : theme.spacing.sm,
+    paddingBottom: theme.spacing.xs,  // 4px
+    paddingTop: theme.spacing.xs,     // 4px
     zIndex: 10,
-    justifyContent: 'flex-start',
+    flex: 1,
+    justifyContent: 'center',  // Vertically center content within header
   },
   geometryContainer: {
     position: 'absolute',
@@ -996,7 +998,7 @@ const createStyles = (
     alignItems: 'flex-start',
     zIndex: 10,  // Lower than headerTopRightContainer
     minHeight: 0,
-    paddingTop: isTablet ? theme.spacing.sm : theme.spacing.xs * 0.25,
+    // No extra paddingTop - container padding handles spacing
   },
   gradientTitleWrapper: {
     width: '100%',
@@ -1008,15 +1010,15 @@ const createStyles = (
     textShadowColor: theme.colors.shadow,
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 8,
-    marginBottom: isTablet ? 4 : 2,
+    marginBottom: isTablet ? 4 : 4,  // Consistent 4px gap
   },
   gradientTitleWithSubtitle: {
-    marginBottom: isTablet ? theme.spacing.sm : theme.spacing.xs,
+    marginBottom: isTablet ? theme.spacing.xs : theme.spacing.xs, // 4px
   },
   gradientSubtitle: {
     letterSpacing: 0.5,
-    lineHeight: isTablet ? 24 : 22,
-    fontSize: isTablet ? 18 : 15, // Slightly larger on phones for readability
+    lineHeight: isTablet ? 24 : 24,  // was 22 on phones
+    fontSize: isTablet ? 18 : 17,    // was 15 on phones
     opacity: 0.95,
     textShadowColor: theme.colors.shadow,
     textShadowOffset: { width: 0, height: 1 },

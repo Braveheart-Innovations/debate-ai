@@ -10,7 +10,6 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   Dimensions,
   KeyboardAvoidingView,
   Platform,
@@ -23,6 +22,7 @@ import * as Haptics from 'expo-haptics';
 import { SheetHeader, SharePreviewCard, ShareActionButtons, Typography } from '@/components/molecules';
 import { useTheme } from '../../../theme';
 import { Message, AI } from '../../../types';
+import { ErrorService } from '@/services/errors/ErrorService';
 
 const { height } = Dimensions.get('window');
 
@@ -66,15 +66,15 @@ export const ShareModal: React.FC<ShareModalProps> = ({
           dialogTitle: 'Share AI Debate',
           UTI: 'public.png',
         });
-        
+
         onShare?.('ios');
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } else {
-        Alert.alert('Sharing not available', 'Please try saving the image instead.');
+        ErrorService.showWarning('Sharing not available. Please try saving the image instead.', 'debate');
       }
     } catch (error) {
       console.error('Share failed:', error);
-      Alert.alert('Error', 'Failed to share debate. Please try again.');
+      ErrorService.handleWithToast(new Error('Failed to share debate. Please try again.'), { feature: 'debate' });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsGenerating(false);

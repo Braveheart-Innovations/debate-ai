@@ -5,10 +5,21 @@
 
 import React from 'react';
 import { fireEvent, waitFor } from '@testing-library/react-native';
-import { Alert } from 'react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { ShareModal } from '@/components/organisms/debate/ShareModal';
 import { AI, Message } from '@/types';
+
+// Mock ErrorService
+const mockShowWarning = jest.fn();
+const mockHandleWithToast = jest.fn();
+jest.mock('@/services/errors/ErrorService', () => ({
+  ErrorService: {
+    showWarning: (...args: unknown[]) => mockShowWarning(...args),
+    handleWithToast: (...args: unknown[]) => mockHandleWithToast(...args),
+    showSuccess: jest.fn(),
+    showInfo: jest.fn(),
+  },
+}));
 
 // Mock dependencies
 jest.mock('expo-blur', () => ({
@@ -105,7 +116,8 @@ describe('ShareModal', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    mockShowWarning.mockClear();
+    mockHandleWithToast.mockClear();
     jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
@@ -216,7 +228,7 @@ describe('ShareModal', () => {
       });
     });
 
-    it('shows alert when sharing is not available', async () => {
+    it('shows warning when sharing is not available', async () => {
       const Sharing = require('expo-sharing');
       Sharing.isAvailableAsync.mockResolvedValueOnce(false);
 
@@ -225,14 +237,14 @@ describe('ShareModal', () => {
       fireEvent.press(getByTestId('share-image-button'));
 
       await waitFor(() => {
-        expect(Alert.alert).toHaveBeenCalledWith(
-          'Sharing not available',
-          'Please try saving the image instead.'
+        expect(mockShowWarning).toHaveBeenCalledWith(
+          'Sharing not available. Please try saving the image instead.',
+          'debate'
         );
       });
     });
 
-    it('shows error alert when share fails', async () => {
+    it('shows error toast when share fails', async () => {
       const Sharing = require('expo-sharing');
       Sharing.shareAsync.mockRejectedValueOnce(new Error('Share failed'));
 
@@ -241,9 +253,9 @@ describe('ShareModal', () => {
       fireEvent.press(getByTestId('share-image-button'));
 
       await waitFor(() => {
-        expect(Alert.alert).toHaveBeenCalledWith(
-          'Error',
-          'Failed to share debate. Please try again.'
+        expect(mockHandleWithToast).toHaveBeenCalledWith(
+          expect.any(Error),
+          expect.objectContaining({ feature: 'debate' })
         );
       });
     });

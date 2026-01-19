@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   Linking,
-  Alert,
   Platform,
   Image,
 } from 'react-native';
@@ -19,6 +18,7 @@ import { MODEL_PRICING, getFreeMessageInfo } from '@/config/modelPricing';
 import { ActualPricing } from '@/components/organisms/subscription/ActualPricing';
 import { getAIProviderIcon } from '@/utils/aiProviderAssets';
 import * as Haptics from 'expo-haptics';
+import { ErrorService } from '@/services/errors/ErrorService';
 
 /**
  * Convert a raw model ID to a friendly display name
@@ -137,7 +137,7 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
     try {
       await Linking.openURL(url);
     } catch {
-      Alert.alert('Error', 'Could not open URL');
+      ErrorService.handleWithToast(new Error('Could not open URL'), { feature: 'settings' });
     }
   };
 

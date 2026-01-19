@@ -20,6 +20,7 @@ import { TrialBanner } from '@/components/molecules/subscription/TrialBanner';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import PurchaseService from '@/services/iap/PurchaseService';
 import { deleteAccount } from '@/services/firebase/accountDeletion';
+import { ErrorService } from '@/services/errors/ErrorService';
 
 interface ProfileContentProps {
   onClose: () => void;
@@ -74,10 +75,7 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
 
       setShowAuthForm(false);
     } catch (error) {
-      Alert.alert(
-        'Authentication Error',
-        error instanceof Error ? error.message : 'An error occurred during authentication'
-      );
+      ErrorService.handleWithToast(error, { feature: 'auth' });
     } finally {
       setLoading(false);
     }
@@ -107,25 +105,16 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
             try {
               const result = await deleteAccount();
               if (result.success) {
-                Alert.alert(
-                  'Account Deleted',
-                  'Your account has been permanently deleted.',
-                  [{ text: 'OK', onPress: () => {
-                    dispatch(logout());
-                    onClose();
-                  }}]
-                );
+                ErrorService.showSuccess('Your account has been permanently deleted.', 'account');
+                dispatch(logout());
+                onClose();
               } else if (result.requiresRecentLogin) {
-                Alert.alert(
-                  'Re-authentication Required',
-                  'For security, please sign out and sign back in before deleting your account.',
-                  [{ text: 'OK' }]
-                );
+                ErrorService.showInfo('For security, please sign out and sign back in before deleting your account.', 'account');
               } else {
-                Alert.alert('Error', result.message || 'Failed to delete account. Please try again.');
+                ErrorService.handleWithToast(new Error(result.message || 'Failed to delete account. Please try again.'), { feature: 'account' });
               }
             } catch (error) {
-              Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+              ErrorService.handleWithToast(error, { feature: 'account' });
               console.error('Delete account error:', error);
             } finally {
               setDeleteLoading(false);
@@ -388,15 +377,15 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
                   setIapLoading(true);
                   const res = await PurchaseService.purchaseSubscription('monthly');
                   if (res.success) {
-                    Alert.alert('Trial Started', 'Your trial is starting (pending store confirmation).');
+                    ErrorService.showSuccess('Your trial is starting (pending store confirmation).', 'subscription');
                     await access.refresh();
                   } else if (!('cancelled' in res) || !res.cancelled) {
                     const msg = 'userMessage' in res && res.userMessage ? res.userMessage : 'Unable to start trial.';
-                    Alert.alert('Purchase Failed', msg);
+                    ErrorService.handleWithToast(new Error(msg), { feature: 'subscription' });
                   }
                 } catch (_e) {
                   void _e;
-                  Alert.alert('Error', 'Failed to initiate purchase.');
+                  ErrorService.handleWithToast(new Error('Failed to initiate purchase.'), { feature: 'subscription' });
                 } finally {
                   setIapLoading(false);
                 }
@@ -472,14 +461,14 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
                 setIapLoading(true);
                 const res = await PurchaseService.restorePurchases();
                 if (res.success && res.restored) {
-                  Alert.alert('Restored', 'Your subscription was restored.');
+                  ErrorService.showSuccess('Your subscription was restored.', 'subscription');
                   await access.refresh();
                 } else {
-                  Alert.alert('No Purchases', 'No active subscriptions found.');
+                  ErrorService.showInfo('No active subscriptions found.', 'subscription');
                 }
               } catch (_e) {
                 void _e;
-                Alert.alert('Restore Failed', 'Unable to restore purchases.');
+                ErrorService.handleWithToast(new Error('Unable to restore purchases.'), { feature: 'subscription' });
               } finally {
                 setIapLoading(false);
               }

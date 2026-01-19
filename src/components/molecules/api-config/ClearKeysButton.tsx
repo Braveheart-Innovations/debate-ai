@@ -4,6 +4,7 @@ import { Box } from '@/components/atoms';
 import { Typography } from '../common/Typography';
 import { useTheme } from '@/theme';
 import * as Haptics from 'expo-haptics';
+import { ErrorService } from '@/services/errors/ErrorService';
 
 interface ClearKeysButtonProps {
   onPress: () => Promise<void>;
@@ -53,13 +54,10 @@ export const ClearKeysButton: React.FC<ClearKeysButtonProps> = ({
             try {
               await onPress();
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              Alert.alert('Success', 'All API keys have been cleared');
+              ErrorService.showSuccess('All API keys have been cleared', 'settings');
             } catch (error) {
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-              Alert.alert(
-                'Error', 
-                error instanceof Error ? error.message : 'Failed to clear API keys'
-              );
+              ErrorService.handleWithToast(error, { feature: 'settings' });
             }
           },
         },

@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Platform, Alert } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { GoogleSigninButton } from '@react-native-google-signin/google-signin';
 import { Typography } from '@/components/molecules';
 import { useTheme } from '../../../theme';
 import { useDispatch } from 'react-redux';
-import { 
-  signInWithApple, 
-  signInWithGoogle, 
+import {
+  signInWithApple,
+  signInWithGoogle,
   toAuthUser
 } from '../../../services/firebase/auth';
 import { setAuthUser, setUserProfile } from '../../../store/authSlice';
+import { ErrorService } from '@/services/errors/ErrorService';
 
 interface SocialAuthProvidersProps {
   onSuccess?: () => void;
@@ -73,7 +74,7 @@ export const SocialAuthProviders: React.FC<SocialAuthProvidersProps> = ({
       console.error('Apple Sign In error:', error);
       if (error instanceof Error && error.message !== 'User cancelled') {
         onError?.(error);
-        Alert.alert('Sign In Failed', 'Unable to sign in with Apple. Please try again.');
+        ErrorService.handleWithToast(new Error('Unable to sign in with Apple. Please try again.'), { feature: 'auth' });
       }
     } finally {
       setLoadingProvider(null);
@@ -99,7 +100,7 @@ export const SocialAuthProviders: React.FC<SocialAuthProvidersProps> = ({
       console.error('Google Sign In error:', error);
       if (error instanceof Error && !error.message.toLowerCase().includes('cancel')) {
         onError?.(error);
-        Alert.alert('Sign In', error.message || 'Unable to sign in with Google.');
+        ErrorService.handleWithToast(error, { feature: 'auth' });
       }
     } finally {
       setLoadingProvider(null);

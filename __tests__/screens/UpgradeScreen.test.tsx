@@ -3,6 +3,19 @@ import { Text, Alert } from 'react-native';
 import { fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '../../test-utils/renderWithProviders';
 
+// Mock ErrorService
+const mockShowSuccess = jest.fn();
+const mockShowInfo = jest.fn();
+const mockHandleWithToast = jest.fn();
+jest.mock('@/services/errors/ErrorService', () => ({
+  ErrorService: {
+    showSuccess: (...args: unknown[]) => mockShowSuccess(...args),
+    showInfo: (...args: unknown[]) => mockShowInfo(...args),
+    handleWithToast: (...args: unknown[]) => mockHandleWithToast(...args),
+    showWarning: jest.fn(),
+  },
+}));
+
 const mockHeader = jest.fn(({ title, subtitle, onBack }: { title: string; subtitle?: string; onBack: () => void }) => (
   <Text testID="header" onPress={onBack}>
     {title} {subtitle}
@@ -89,6 +102,9 @@ describe('UpgradeScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGoBack.mockReset();
+    mockShowSuccess.mockClear();
+    mockShowInfo.mockClear();
+    mockHandleWithToast.mockClear();
     mockPurchaseSubscription.mockResolvedValue({ success: true });
     mockRestorePurchases.mockResolvedValue({ success: true, restored: false });
     // Reset feature access mock
@@ -112,7 +128,6 @@ describe('UpgradeScreen', () => {
   });
 
   it('calls purchaseSubscription when Subscribe Now is pressed', async () => {
-    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
     const { getAllByText } = renderWithProviders(<UpgradeScreen />, {
       preloadedState: {
         auth: { isAuthenticated: true, user: null, loading: false, error: null },
@@ -131,12 +146,9 @@ describe('UpgradeScreen', () => {
     await waitFor(() => {
       expect(mockPurchaseSubscription).toHaveBeenCalledWith('annual');
     });
-
-    alertSpy.mockRestore();
   });
 
   it('calls restorePurchases when Restore Purchases is pressed', async () => {
-    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
     const { getByText } = renderWithProviders(<UpgradeScreen />);
 
     const restoreButton = getByText('Restore Purchases');
@@ -145,12 +157,9 @@ describe('UpgradeScreen', () => {
     await waitFor(() => {
       expect(mockRestorePurchases).toHaveBeenCalled();
     });
-
-    alertSpy.mockRestore();
   });
 
-  it('shows success alert on successful purchase', async () => {
-    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  it('shows success toast on successful purchase', async () => {
     mockPurchaseSubscription.mockResolvedValueOnce({ success: true });
 
     const { getAllByText } = renderWithProviders(<UpgradeScreen />, {
@@ -163,14 +172,11 @@ describe('UpgradeScreen', () => {
     fireEvent.press(subscribeButtons[0]);
 
     await waitFor(() => {
-      expect(alertSpy).toHaveBeenCalledWith('Success', 'Thank you for your purchase!');
+      expect(mockShowSuccess).toHaveBeenCalledWith('Thank you for your purchase!', 'subscription');
     });
-
-    alertSpy.mockRestore();
   });
 
-  it('shows error alert on failed purchase', async () => {
-    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  it('shows error toast on failed purchase', async () => {
     mockPurchaseSubscription.mockResolvedValueOnce({ success: false, error: 'Payment failed' });
 
     const { getAllByText } = renderWithProviders(<UpgradeScreen />, {
@@ -183,9 +189,10 @@ describe('UpgradeScreen', () => {
     fireEvent.press(subscribeButtons[0]);
 
     await waitFor(() => {
-      expect(alertSpy).toHaveBeenCalledWith('Unable to Complete Purchase', 'Purchase could not be completed. Please try again.');
+      expect(mockHandleWithToast).toHaveBeenCalledWith(
+        expect.any(Error),
+        expect.objectContaining({ feature: 'subscription' })
+      );
     });
-
-    alertSpy.mockRestore();
   });
 });

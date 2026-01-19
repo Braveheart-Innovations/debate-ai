@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, TouchableOpacity, Modal, KeyboardAvoidingView, Platform, ScrollView, Image, Alert } from 'react-native';
+import { StyleSheet, TouchableOpacity, Modal, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import * as ImagePicker from 'expo-image-picker';
@@ -8,6 +8,7 @@ import { useTheme } from '../../../theme';
 import { Typography, SheetHeader } from '@/components/molecules';
 import { MessageAttachment } from '../../../types';
 import { processImageForClaude, getReadableFileSize } from '../../../utils/imageProcessing';
+import { ErrorService } from '@/services/errors/ErrorService';
 
 interface ImageUploadModalProps {
   visible: boolean;
@@ -22,7 +23,7 @@ export const ImageUploadModal: React.FC<ImageUploadModalProps> = ({ visible, onC
   const pickFromLibrary = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert('Permission Required', 'Please allow photo library access.');
+      ErrorService.showWarning('Please allow photo library access.', 'chat');
       return;
     }
     const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.9, base64: true });
@@ -35,7 +36,7 @@ export const ImageUploadModal: React.FC<ImageUploadModalProps> = ({ visible, onC
   const takePhoto = async () => {
     const perm = await ImagePicker.requestCameraPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert('Permission Required', 'Please allow camera access.');
+      ErrorService.showWarning('Please allow camera access.', 'chat');
       return;
     }
     const res = await ImagePicker.launchCameraAsync({ quality: 0.9, base64: true });
@@ -47,7 +48,7 @@ export const ImageUploadModal: React.FC<ImageUploadModalProps> = ({ visible, onC
 
   const handleConfirm = () => {
     if (attachments.length === 0) {
-      Alert.alert('No Image Selected', 'Please choose an image first.');
+      ErrorService.showWarning('Please choose an image first.', 'chat');
       return;
     }
     onUpload(attachments);

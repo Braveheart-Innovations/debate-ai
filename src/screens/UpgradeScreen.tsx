@@ -13,6 +13,7 @@ import type { PlanType } from '@/services/iap/products';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { useStorePrices } from '@/hooks/useStorePrices';
 import { RootState, showSheet } from '@/store';
+import { ErrorService } from '@/services/errors/ErrorService';
 
 export default function UpgradeScreen() {
   const { theme, isDark } = useTheme();
@@ -60,7 +61,7 @@ export default function UpgradeScreen() {
           ]
         );
       } else {
-        Alert.alert('Purchase Failed', message);
+        ErrorService.handleWithToast(new Error(message), { feature: 'subscription' });
       }
     });
 
@@ -102,7 +103,7 @@ export default function UpgradeScreen() {
       const result = await PurchaseService.purchaseSubscription('monthly');
       if (result.success) {
         setShowTrialTerms(false);
-        Alert.alert('Success', 'Your free trial has started!');
+        ErrorService.showSuccess('Your free trial has started!', 'subscription');
         (navigation as unknown as { goBack: () => void }).goBack();
       } else if ('cancelled' in result && result.cancelled) {
         // User cancelled, keep terms sheet open
@@ -110,17 +111,10 @@ export default function UpgradeScreen() {
         const message = 'userMessage' in result && result.userMessage
           ? result.userMessage
           : 'Could not start trial. Please try again.';
-        const errorCode = 'errorCode' in result ? result.errorCode : undefined;
-        // Use more specific title based on error type
-        const title = errorCode === 'E_DEVELOPER_ERROR' || errorCode === 'E_ITEM_UNAVAILABLE'
-          ? 'Trial Unavailable'
-          : errorCode === 'E_NETWORK_ERROR' || errorCode === 'E_SERVICE_ERROR'
-          ? 'Connection Issue'
-          : 'Unable to Start Trial';
-        Alert.alert(title, message);
+        ErrorService.handleWithToast(new Error(message), { feature: 'subscription' });
       }
     } catch {
-      Alert.alert('Unexpected Error', 'Something went wrong. Please try again or contact support if the issue persists.');
+      ErrorService.handleWithToast(new Error('Something went wrong. Please try again or contact support if the issue persists.'), { feature: 'subscription' });
     } finally {
       setLoadingPlan(null);
     }
@@ -137,7 +131,7 @@ export default function UpgradeScreen() {
       setLoadingPlan(planId);
       const result = await PurchaseService.purchaseSubscription(planId as PlanType);
       if (result.success) {
-        Alert.alert('Success', 'Thank you for your purchase!');
+        ErrorService.showSuccess('Thank you for your purchase!', 'subscription');
         (navigation as unknown as { goBack: () => void }).goBack();
       } else if ('cancelled' in result && result.cancelled) {
         // User cancelled, do nothing
@@ -145,17 +139,10 @@ export default function UpgradeScreen() {
         const message = 'userMessage' in result && result.userMessage
           ? result.userMessage
           : 'Purchase could not be completed. Please try again.';
-        const errorCode = 'errorCode' in result ? result.errorCode : undefined;
-        // Use more specific title based on error type
-        const title = errorCode === 'E_DEVELOPER_ERROR' || errorCode === 'E_ITEM_UNAVAILABLE'
-          ? 'Subscription Unavailable'
-          : errorCode === 'E_NETWORK_ERROR' || errorCode === 'E_SERVICE_ERROR'
-          ? 'Connection Issue'
-          : 'Unable to Complete Purchase';
-        Alert.alert(title, message);
+        ErrorService.handleWithToast(new Error(message), { feature: 'subscription' });
       }
     } catch {
-      Alert.alert('Unexpected Error', 'Something went wrong. Please try again or contact support if the issue persists.');
+      ErrorService.handleWithToast(new Error('Something went wrong. Please try again or contact support if the issue persists.'), { feature: 'subscription' });
     } finally {
       setLoadingPlan(null);
     }
@@ -305,18 +292,18 @@ export default function UpgradeScreen() {
                 setLoadingPlan('restore');
                 const result = await PurchaseService.restorePurchases();
                 if (result.success && result.restored) {
-                  Alert.alert('Success', 'Your purchases have been restored.');
+                  ErrorService.showSuccess('Your purchases have been restored.', 'subscription');
                   (navigation as unknown as { goBack: () => void }).goBack();
                 } else if (result.success && !result.restored) {
-                  Alert.alert('No Purchases', 'No previous purchases were found.');
+                  ErrorService.showInfo('No previous purchases were found.', 'subscription');
                 } else {
                   const message = 'userMessage' in result && result.userMessage
                     ? result.userMessage
                     : 'Could not restore purchases. Please try again.';
-                  Alert.alert('Restore Failed', message);
+                  ErrorService.handleWithToast(new Error(message), { feature: 'subscription' });
                 }
               } catch {
-                Alert.alert('Error', 'An unexpected error occurred.');
+                ErrorService.handleWithToast(new Error('An unexpected error occurred.'), { feature: 'subscription' });
               } finally {
                 setLoadingPlan(null);
               }

@@ -5,6 +5,19 @@ import { createMockSession } from '../../test-utils/hooks/historyFixtures';
 import { renderHookWithProviders } from '../../test-utils/renderHookWithProviders';
 import type { ChatSession } from '@/types';
 
+// Mock ErrorService
+const mockHandleWithToast = jest.fn();
+const mockShowInfo = jest.fn();
+
+jest.mock('@/services/errors/ErrorService', () => ({
+  ErrorService: {
+    handleWithToast: (...args: unknown[]) => mockHandleWithToast(...args),
+    showInfo: (...args: unknown[]) => mockShowInfo(...args),
+    showSuccess: jest.fn(),
+    showWarning: jest.fn(),
+  },
+}));
+
 const mockUseFeatureAccess = jest.fn();
 const mockShowTrialCTA = jest.fn();
 const mockDeleteSession = jest.fn();
@@ -42,6 +55,8 @@ describe('useSessionActions', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseFeatureAccess.mockReturnValue({ isDemo: false });
+    mockHandleWithToast.mockClear();
+    mockShowInfo.mockClear();
   });
 
   it('confirms deletion and triggers refresh', async () => {
@@ -96,12 +111,13 @@ describe('useSessionActions', () => {
       await initialButtons?.find(btn => btn.text === 'Delete')?.onPress?.();
     });
 
-    const [, errorMessage, errorButtons] = alertSpy.mock.calls[1];
-    expect(errorMessage).toContain('Failed to delete the conversation');
-    errorButtons?.find(btn => btn.text === 'OK')?.onPress?.();
+    // Error is now shown via ErrorService.handleWithToast instead of Alert.alert
+    expect(mockHandleWithToast).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'Failed to delete the conversation. Please try again.' }),
+      { feature: 'history' }
+    );
 
     await expect(deletePromise).resolves.toBeUndefined();
-    expect(alertSpy).toHaveBeenCalledTimes(2);
 
     alertSpy.mockRestore();
     consoleSpy.mockRestore();
@@ -285,7 +301,6 @@ describe('useSessionActions', () => {
 
   it('handles share failures gracefully', async () => {
     const shareSpy = jest.spyOn(Share, 'share').mockRejectedValue(new Error('fail'));
-    const alertSpy = jest.spyOn(Alert, 'alert');
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     const session = createMockSession();
 
@@ -296,26 +311,30 @@ describe('useSessionActions', () => {
     });
 
     expect(shareSpy).toHaveBeenCalled();
-    expect(alertSpy).toHaveBeenCalledWith('Error', expect.stringContaining('Failed to share'), expect.any(Array));
+    // Error is now shown via ErrorService.handleWithToast instead of Alert.alert
+    expect(mockHandleWithToast).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'Failed to share the conversation. Please try again.' }),
+      { feature: 'history' }
+    );
     expect(result.current.isProcessing).toBe(false);
 
     shareSpy.mockRestore();
-    alertSpy.mockRestore();
     consoleSpy.mockRestore();
   });
 
   it('shows placeholder messaging for archive and resets processing', async () => {
-    const alertSpy = jest.spyOn(Alert, 'alert');
     const { result } = renderHookWithProviders(() => useSessionActions(navigation));
 
     await act(async () => {
       await result.current.archiveSession('session-archive');
     });
 
-    expect(alertSpy).toHaveBeenCalledWith('Coming Soon', expect.stringContaining('Session archiving'), [{ text: 'OK' }]);
+    // Info message is now shown via ErrorService.showInfo instead of Alert.alert
+    expect(mockShowInfo).toHaveBeenCalledWith(
+      'Session archiving will be available in a future update.',
+      'history'
+    );
     expect(result.current.isProcessing).toBe(false);
-
-    alertSpy.mockRestore();
   });
 
   it('bulk deletes sessions and refreshes the list', async () => {
@@ -359,12 +378,11 @@ describe('useSessionActions', () => {
       await buttons?.find(btn => btn.text === 'Delete All')?.onPress?.();
     });
 
-    const [, errorMessage, errorButtons] = alertSpy.mock.calls[1];
-    expect(errorMessage).toContain('Failed to delete some conversations');
-
-    act(() => {
-      errorButtons?.find(btn => btn.text === 'OK')?.onPress?.();
-    });
+    // Error is now shown via ErrorService.handleWithToast instead of Alert.alert
+    expect(mockHandleWithToast).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'Failed to delete some conversations. Please try again.' }),
+      { feature: 'history' }
+    );
 
     await act(async () => {
       await bulkPromise;

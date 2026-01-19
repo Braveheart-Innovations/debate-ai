@@ -1,12 +1,13 @@
 import { Message, MessageAttachment } from '../../../../types';
 import { getDefaultModel, resolveModelAlias } from '../../../../config/providers/modelRegistry';
 import { BaseAdapter } from '../../base/BaseAdapter';
-import { 
-  ResumptionContext, 
+import {
+  ResumptionContext,
   SendMessageResponse,
-  AdapterCapabilities 
+  AdapterCapabilities
 } from '../../types/adapter.types';
 import EventSource from 'react-native-sse';
+import { extractSSEErrorMessage } from '../../utils/extractSSEErrorMessage';
 
 export class GeminiAdapter extends BaseAdapter {
   getCapabilities(): AdapterCapabilities {
@@ -301,17 +302,8 @@ export class GeminiAdapter extends BaseAdapter {
     });
 
     es.addEventListener('error', (error) => {
-      let errorMessage = 'SSE connection error';
-      try {
-        if (error && typeof error === 'object' && 'data' in error) {
-          const errorData = JSON.parse((error as { data: string }).data);
-          if (errorData.error) errorMessage = errorData.error.message || errorData.error.status || errorMessage;
-        }
-      } catch {
-        if (error && typeof error === 'object' && 'message' in error) {
-          errorMessage = String((error as { message?: string }).message || errorMessage);
-        }
-      }
+      console.error('[GeminiAdapter] SSE error:', error);
+      const errorMessage = extractSSEErrorMessage(error, 'Connection failed');
       errorOccurred = new Error(errorMessage);
       isComplete = true;
       try { es.close(); } catch { /* noop */ }

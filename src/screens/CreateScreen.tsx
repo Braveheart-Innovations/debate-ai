@@ -15,6 +15,7 @@ import {
   Share,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ErrorService } from '@/services/errors/ErrorService';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useSelector, useDispatch } from 'react-redux';
@@ -116,7 +117,7 @@ export default function CreateScreen() {
   // Generate refinement for uploaded image
   const generateRefinement = useCallback(async () => {
     if (isDemo) {
-      Alert.alert('Demo Mode', 'Image generation requires a subscription. Start a free trial to unlock this feature.');
+      ErrorService.showInfo('Image generation requires a subscription. Start a free trial to unlock this feature.', 'create');
       return;
     }
     if (!sourceImage || !refinementInstructions || providers.length === 0) return;
@@ -170,11 +171,7 @@ export default function CreateScreen() {
       console.error(`[CreateScreen] Refinement error for ${provider}:`, error);
       dispatch(updateGenerationProgress({ provider, progress: 'error' }));
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert(
-        'Refinement Failed',
-        error instanceof Error ? error.message : 'Failed to refine image. Please try again.',
-        [{ text: 'OK' }]
-      );
+      ErrorService.handleWithToast(error, { feature: 'create', provider });
     }
 
     dispatch(completeGeneration());
@@ -192,7 +189,7 @@ export default function CreateScreen() {
 
   const generateImages = useCallback(async () => {
     if (isDemo) {
-      Alert.alert('Demo Mode', 'Image generation requires a subscription. Start a free trial to unlock this feature.');
+      ErrorService.showInfo('Image generation requires a subscription. Start a free trial to unlock this feature.', 'create');
       return;
     }
     if (!initialPrompt) return;
@@ -258,16 +255,15 @@ export default function CreateScreen() {
 
     dispatch(completeGeneration());
 
-    // Show error alert if any providers failed
+    // Show error toast if any providers failed
     const failedProviders = results.filter(r => r.images instanceof Error);
     if (failedProviders.length > 0) {
       const failedNames = failedProviders
         .map(r => getImageProviderDisplayName(r.provider))
         .join(', ');
-      Alert.alert(
-        'Generation Issue',
+      ErrorService.showWarning(
         `Image generation failed for: ${failedNames}. ${failedProviders.length < providers.length ? 'Other providers succeeded.' : 'Please try again.'}`,
-        [{ text: 'OK' }]
+        'create'
       );
     }
   }, [
@@ -284,7 +280,7 @@ export default function CreateScreen() {
 
   const handleRefine = useCallback((imageId: string) => {
     if (isDemo) {
-      Alert.alert('Demo Mode', 'Image refinement requires a subscription. Start a free trial to unlock this feature.');
+      ErrorService.showInfo('Image refinement requires a subscription. Start a free trial to unlock this feature.', 'create');
       return;
     }
 
@@ -294,10 +290,7 @@ export default function CreateScreen() {
     // Check if any provider supports refinement
     const hasRefinementProvider = availableRefinementProviders.some(p => p.supportsImg2Img && p.hasApiKey);
     if (!hasRefinementProvider) {
-      Alert.alert(
-        'Refinement Not Available',
-        'No providers with image refinement capability are configured. Add an OpenAI or Google API key to enable refinement.'
-      );
+      ErrorService.showInfo('No providers with image refinement capability are configured. Add an OpenAI or Google API key to enable refinement.', 'create');
       return;
     }
 
@@ -313,7 +306,7 @@ export default function CreateScreen() {
     // Load base64 from the image file
     const base64 = await loadBase64FromFileUri(refiningImage.uri);
     if (!base64) {
-      Alert.alert('Error', 'Could not load image for refinement.');
+      ErrorService.handleWithToast(new Error('Could not load image for refinement.'), { feature: 'create' });
       return;
     }
 
@@ -333,17 +326,17 @@ export default function CreateScreen() {
     try {
       const { status } = await MediaLibrary.requestPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Please allow access to save images.');
+        ErrorService.showWarning('Please allow access to save images.', 'create');
         return;
       }
 
       await MediaLibrary.saveToLibraryAsync(image.uri);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Saved', 'Image saved to your photo library.');
+      ErrorService.showSuccess('Image saved to your photo library.', 'create');
     } catch (error) {
       console.error('[CreateScreen] Save error:', error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('Error', 'Failed to save image.');
+      ErrorService.handleWithToast(new Error('Failed to save image.'), { feature: 'create' });
     } finally {
       setSavingImage(false);
     }

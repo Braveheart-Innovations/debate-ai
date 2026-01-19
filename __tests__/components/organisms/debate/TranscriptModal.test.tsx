@@ -5,10 +5,22 @@
 
 import React from 'react';
 import { fireEvent, waitFor } from '@testing-library/react-native';
-import { Alert } from 'react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { TranscriptModal } from '@/components/organisms/debate/TranscriptModal';
 import { Message } from '@/types';
+
+// Mock ErrorService
+const mockShowSuccess = jest.fn();
+const mockShowWarning = jest.fn();
+const mockHandleWithToast = jest.fn();
+jest.mock('@/services/errors/ErrorService', () => ({
+  ErrorService: {
+    showSuccess: (...args: unknown[]) => mockShowSuccess(...args),
+    showWarning: (...args: unknown[]) => mockShowWarning(...args),
+    handleWithToast: (...args: unknown[]) => mockHandleWithToast(...args),
+    showInfo: jest.fn(),
+  },
+}));
 
 // Mock dependencies
 jest.mock('expo-blur', () => ({
@@ -86,7 +98,9 @@ describe('TranscriptModal', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    mockShowSuccess.mockClear();
+    mockShowWarning.mockClear();
+    mockHandleWithToast.mockClear();
     jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
@@ -217,13 +231,16 @@ describe('TranscriptModal', () => {
   });
 
   describe('Save Functionality', () => {
-    it('shows success alert after saving', async () => {
+    it('shows success toast after saving', async () => {
       const { getByTestId } = renderWithProviders(<TranscriptModal {...defaultProps} />);
 
       fireEvent.press(getByTestId('save-button'));
 
       await waitFor(() => {
-        expect(Alert.alert).toHaveBeenCalledWith('Success', expect.any(String));
+        expect(mockShowSuccess).toHaveBeenCalledWith(
+          expect.stringContaining('Transcript saved as'),
+          'debate'
+        );
       });
     });
 
@@ -244,7 +261,7 @@ describe('TranscriptModal', () => {
       });
     });
 
-    it('shows error alert when save fails', async () => {
+    it('shows error toast when save fails', async () => {
       const Print = require('expo-print');
       Print.printToFileAsync.mockRejectedValueOnce(new Error('Save failed'));
 
@@ -253,7 +270,10 @@ describe('TranscriptModal', () => {
       fireEvent.press(getByTestId('save-button'));
 
       await waitFor(() => {
-        expect(Alert.alert).toHaveBeenCalledWith('Error', expect.any(String));
+        expect(mockHandleWithToast).toHaveBeenCalledWith(
+          expect.any(Error),
+          expect.objectContaining({ feature: 'debate' })
+        );
       });
     });
   });
@@ -276,7 +296,7 @@ describe('TranscriptModal', () => {
       });
     });
 
-    it('shows alert when sharing is not available', async () => {
+    it('shows warning when sharing is not available', async () => {
       const Sharing = require('expo-sharing');
       Sharing.isAvailableAsync.mockResolvedValueOnce(false);
 
@@ -285,11 +305,14 @@ describe('TranscriptModal', () => {
       fireEvent.press(getByTestId('share-button'));
 
       await waitFor(() => {
-        expect(Alert.alert).toHaveBeenCalledWith('Error', expect.any(String));
+        expect(mockShowWarning).toHaveBeenCalledWith(
+          'Sharing is not available on this device.',
+          'debate'
+        );
       });
     });
 
-    it('shows error alert when share fails', async () => {
+    it('shows error toast when share fails', async () => {
       const Sharing = require('expo-sharing');
       Sharing.shareAsync.mockRejectedValueOnce(new Error('Share failed'));
 
@@ -298,7 +321,10 @@ describe('TranscriptModal', () => {
       fireEvent.press(getByTestId('share-button'));
 
       await waitFor(() => {
-        expect(Alert.alert).toHaveBeenCalledWith('Error', expect.any(String));
+        expect(mockHandleWithToast).toHaveBeenCalledWith(
+          expect.any(Error),
+          expect.objectContaining({ feature: 'debate' })
+        );
       });
     });
   });

@@ -6,6 +6,7 @@ import {
   AdapterCapabilities
 } from '../../types/adapter.types';
 import EventSource, { CustomEvent } from 'react-native-sse';
+import { extractSSEErrorMessage } from '../../utils/extractSSEErrorMessage';
 
 // Define Cohere's SSE event types
 type CohereEventTypes = 'message-start' | 'content-start' | 'content-delta' | 'content-end' | 'message-end' | 'message';
@@ -262,20 +263,7 @@ export class CohereAdapter extends BaseAdapter {
     // Handle errors
     es.addEventListener('error', (error) => {
       console.error('[CohereAdapter] SSE error:', error);
-
-      let errorMessage = 'SSE connection error';
-      try {
-        if (error && typeof error === 'object' && 'data' in error) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const errorData = JSON.parse((error as any).data);
-          if (errorData.message) {
-            errorMessage = errorData.message;
-          }
-        }
-      } catch {
-        // Use default error message
-      }
-
+      const errorMessage = extractSSEErrorMessage(error, 'Connection failed');
       errorOccurred = new Error(errorMessage);
       isComplete = true;
       try { es.close(); } catch { /* noop */ }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, TouchableOpacity, Modal, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
+import { StyleSheet, TouchableOpacity, Modal, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import * as DocumentPicker from 'expo-document-picker';
@@ -7,13 +7,14 @@ import { Box } from '../../atoms';
 import { useTheme } from '../../../theme';
 import { Typography, SheetHeader } from '@/components/molecules';
 import { MessageAttachment } from '../../../types';
-import { 
+import {
   processDocumentForClaude,
   isSupportedDocumentType,
   validateDocumentSize,
   getFileExtensionFromMimeType,
   } from '../../../utils/documentProcessing';
 import { getReadableFileSize } from '../../../utils/imageProcessing';
+import { ErrorService } from '@/services/errors/ErrorService';
 
 interface DocumentUploadModalProps {
   visible: boolean;
@@ -30,13 +31,13 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({ visibl
     if (result.canceled || !result.assets?.length) return;
     const asset = result.assets[0];
     if (!isSupportedDocumentType(asset.mimeType || '')) {
-      Alert.alert('Unsupported', 'Select PDF, TXT, MD, CSV, JSON, XML, HTML, DOCX, XLSX, or PPTX.');
+      ErrorService.showWarning('Select PDF, TXT, MD, CSV, JSON, XML, HTML, DOCX, XLSX, or PPTX.', 'chat');
       return;
     }
     if (asset.size) {
       const sizeValidation = validateDocumentSize(asset.size);
       if (!sizeValidation.valid) {
-        Alert.alert('File Too Large', sizeValidation.error || 'File exceeds size limit');
+        ErrorService.showWarning(sizeValidation.error || 'File exceeds size limit', 'chat');
         return;
       }
     }
@@ -45,7 +46,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({ visibl
   };
 
   const handleConfirm = () => {
-    if (!doc) { Alert.alert('No Document', 'Please choose a document first.'); return; }
+    if (!doc) { ErrorService.showWarning('Please choose a document first.', 'chat'); return; }
     onUpload([doc]);
     setDoc(null);
     onClose();
