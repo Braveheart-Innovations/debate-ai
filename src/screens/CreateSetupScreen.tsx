@@ -12,6 +12,8 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -330,18 +332,22 @@ export default function CreateSetupScreen() {
       />
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <ScrollView
           style={styles.flex}
           contentContainerStyle={[
             styles.content,
-            { paddingBottom: 100 },
+            { paddingBottom: 100, flexGrow: 1 },
           ]}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
           showsVerticalScrollIndicator={false}
+          onScrollBeginDrag={Keyboard.dismiss}
         >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+            <View style={styles.flex}>
           {/* AI Provider Selection using tiles */}
           <View style={styles.section}>
             <DynamicAISelector
@@ -625,7 +631,9 @@ export default function CreateSetupScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </ScrollView>
+          </View>
+        </TouchableWithoutFeedback>
+      </ScrollView>
 
         {/* Generate Button */}
         <View

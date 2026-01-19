@@ -8,6 +8,8 @@ import {
   Platform,
   ScrollView,
   Image,
+  Keyboard,
+  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
@@ -102,12 +104,20 @@ export const ImageRefinementModal: React.FC<ImageRefinementModalProps> = ({
       onRequestClose={onClose}
     >
       <BlurView intensity={20} style={styles.backdrop}>
-        <TouchableOpacity style={styles.backdropTouchable} activeOpacity={1} onPress={onClose}>
-          <TouchableOpacity activeOpacity={1} style={[styles.sheet, { backgroundColor: theme.colors.background }]} onPress={() => {}}>
+        <Pressable style={styles.backdropTouchable} onPress={onClose}>
+          <Pressable
+            style={[styles.sheet, { backgroundColor: theme.colors.background }]}
+            onPress={Keyboard.dismiss}
+          >
             <SafeAreaView style={{ flex: 1 }}>
               <SheetHeader title="Refine Image" onClose={onClose} showHandle />
               <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-                <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
+                <ScrollView
+                  contentContainerStyle={styles.content}
+                  keyboardShouldPersistTaps="handled"
+                  keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+                  onScrollBeginDrag={Keyboard.dismiss}
+                >
                   {/* Image Preview */}
                   <Box style={styles.imagePreviewContainer}>
                     <Image
@@ -226,8 +236,8 @@ export const ImageRefinementModal: React.FC<ImageRefinementModalProps> = ({
                 </Box>
               </KeyboardAvoidingView>
             </SafeAreaView>
-          </TouchableOpacity>
-        </TouchableOpacity>
+          </Pressable>
+        </Pressable>
       </BlurView>
     </Modal>
   );
