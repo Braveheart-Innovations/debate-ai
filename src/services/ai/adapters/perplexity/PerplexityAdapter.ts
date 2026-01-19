@@ -109,9 +109,11 @@ export class PerplexityAdapter extends OpenAICompatibleAdapter {
       content: typeof m.content === 'string' ? m.content : '[complex content]',
     }));
 
-    // Ensure first after system is user: if leading assistant, convert to user with attribution
+    // Ensure first after system is user: if leading assistant, convert to user
+    // Note: Unlike the base adapter, we don't add "[Previous assistant]" prefix as it confuses
+    // Perplexity about its role in the conversation
     if (history.length > 0 && history[0].role === 'assistant') {
-      history[0] = { role: 'user', content: `[Previous assistant] ${history[0].content}` };
+      history[0] = { role: 'user', content: history[0].content };
     }
 
     // Compose messages, merging consecutive user with the new user content
