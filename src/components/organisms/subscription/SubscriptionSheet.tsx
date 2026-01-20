@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { View, ScrollView, Platform } from "react-native";
 import { SheetHeader } from "@/components/molecules/sheets/SheetHeader";
 import { UnlockEverythingBanner } from "@/components/organisms/subscription/UnlockEverythingBanner";
@@ -17,6 +17,17 @@ export const SubscriptionSheet: React.FC<SubscriptionSheetProps> = ({
   const { theme } = useTheme();
   const [loading, setLoading] = useState(false);
   const { monthly } = useStorePrices();
+
+  // Get trial duration from store prices (fetched from Google Play/App Store)
+  const trialDuration = monthly.trial?.durationText || '1 week';
+  const trialDays = monthly.trial?.durationDays || 7;
+
+  // Calculate trial end date based on actual trial duration
+  const trialEndDate = useMemo(() => {
+    const date = new Date();
+    date.setDate(date.getDate() + trialDays);
+    return date.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+  }, [trialDays]);
 
   const cancelInstructions = Platform.select({
     ios: 'Settings > Your Name > Subscriptions',
@@ -45,7 +56,7 @@ export const SubscriptionSheet: React.FC<SubscriptionSheetProps> = ({
           color="secondary"
           style={{ marginBottom: 16 }}
         >
-          Start your 7‑day free trial and unlock all premium features with your
+          Start your {trialDuration} free trial and unlock all premium features with your
           own API keys.
         </Typography>
 
@@ -62,13 +73,16 @@ export const SubscriptionSheet: React.FC<SubscriptionSheetProps> = ({
             Trial Terms
           </Typography>
           <Typography variant="caption" color="secondary" style={{ marginBottom: 4 }}>
-            {'\u2022'} 7-day free trial
+            {'\u2022'} Payment method required to start trial
           </Typography>
           <Typography variant="caption" color="secondary" style={{ marginBottom: 4 }}>
-            {'\u2022'} After trial: {monthly.localizedPrice}/month
+            {'\u2022'} {trialDuration} free trial ends on {trialEndDate}
           </Typography>
           <Typography variant="caption" color="secondary" style={{ marginBottom: 4 }}>
-            {'\u2022'} Auto-renews unless canceled 24 hours before trial ends
+            {'\u2022'} First charge: {monthly.localizedPrice} on {trialEndDate} unless canceled
+          </Typography>
+          <Typography variant="caption" color="secondary" style={{ marginBottom: 4 }}>
+            {'\u2022'} Subscription auto-renews monthly at {monthly.localizedPrice}
           </Typography>
           <Typography variant="caption" color="secondary">
             {'\u2022'} Cancel anytime: {cancelInstructions}
@@ -77,7 +91,7 @@ export const SubscriptionSheet: React.FC<SubscriptionSheetProps> = ({
 
         <UnlockEverythingBanner />
         <GradientButton
-          title={loading ? "Starting Trial…" : "Start 7‑Day Free Trial"}
+          title={loading ? "Starting Trial…" : `Start ${trialDuration} Free Trial`}
           onPress={handleStartTrial}
           gradient={theme.colors.gradients.primary}
           fullWidth

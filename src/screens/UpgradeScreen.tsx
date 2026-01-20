@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ScrollView, View, StyleSheet, Alert, TouchableOpacity, Linking, Platform } from 'react-native';
+import { ScrollView, View, StyleSheet, TouchableOpacity, Linking, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSelector, useDispatch } from 'react-redux';
 import { Box } from '@/components/atoms';
@@ -25,12 +25,16 @@ export default function UpgradeScreen() {
   const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
   const { monthly, annual, lifetime } = useStorePrices();
 
-  // Calculate trial end date for display (7 days from now)
+  // Get trial duration from store prices (fetched from Google Play/App Store)
+  const trialDuration = monthly.trial?.durationText || '1 week';
+  const trialDays = monthly.trial?.durationDays || 7;
+
+  // Calculate trial end date based on actual trial duration
   const trialEndDate = useMemo(() => {
     const date = new Date();
-    date.setDate(date.getDate() + 7);
+    date.setDate(date.getDate() + trialDays);
     return date.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
-  }, []);
+  }, [trialDays]);
 
   // Platform-specific cancellation instructions
   const cancelInstructions = Platform.select({
@@ -51,14 +55,11 @@ export default function UpgradeScreen() {
       // Refresh subscription status in case it actually succeeded
       refresh();
 
+      // Show error via ErrorService - user can tap "Restore Purchases" button if needed
       if (isRecoverable) {
-        Alert.alert(
-          'Purchase Issue',
-          `${message}\n\nYour payment may still be processing. Please wait a moment and check your subscription status.`,
-          [
-            { text: 'OK', style: 'default' },
-            { text: 'Restore Purchases', onPress: () => PurchaseService.restorePurchases() },
-          ]
+        ErrorService.showWarning(
+          `${message} Your payment may still be processing. Try "Restore Purchases" below.`,
+          'subscription'
         );
       } else {
         ErrorService.handleWithToast(new Error(message), { feature: 'subscription' });
@@ -73,7 +74,7 @@ export default function UpgradeScreen() {
     if (isPremium) return 'Manage your subscription';
     if (isInTrial && trialDaysRemaining !== null) return `${trialDaysRemaining} days left in trial`;
     if (hasUsedTrial) return 'Your trial has ended';
-    return 'Start your 7‑day free trial';
+    return `Start your ${trialDuration} free trial`;
   };
 
   // Determine the title based on membership status
@@ -192,7 +193,7 @@ export default function UpgradeScreen() {
                 }
               ]}>
                 <Typography variant="title" weight="bold" color="brand" style={{ textAlign: 'center' }}>
-                  Start 7-Day Free Trial
+                  Start {trialDuration} Free Trial
                 </Typography>
                 <Typography variant="body" color="secondary" style={{ textAlign: 'center', marginTop: 4 }}>
                   Then {monthly.localizedPrice}/month. Cancel anytime.
@@ -215,25 +216,31 @@ export default function UpgradeScreen() {
                 <View style={styles.termRow}>
                   <Typography variant="caption" color="secondary" style={styles.termBullet}>{'\u2022'}</Typography>
                   <Typography variant="caption" color="secondary" style={styles.termText}>
-                    Your free trial ends on {trialEndDate}
+                    Payment method required to start trial
                   </Typography>
                 </View>
                 <View style={styles.termRow}>
                   <Typography variant="caption" color="secondary" style={styles.termBullet}>{'\u2022'}</Typography>
                   <Typography variant="caption" color="secondary" style={styles.termText}>
-                    After trial: {monthly.localizedPrice}/month, billed automatically
+                    {trialDuration} free trial ends on {trialEndDate}
                   </Typography>
                 </View>
                 <View style={styles.termRow}>
                   <Typography variant="caption" color="secondary" style={styles.termBullet}>{'\u2022'}</Typography>
                   <Typography variant="caption" color="secondary" style={styles.termText}>
-                    Cancel at least 24 hours before trial ends to avoid charges
+                    First charge: {monthly.localizedPrice} on {trialEndDate} unless canceled
                   </Typography>
                 </View>
                 <View style={styles.termRow}>
                   <Typography variant="caption" color="secondary" style={styles.termBullet}>{'\u2022'}</Typography>
                   <Typography variant="caption" color="secondary" style={styles.termText}>
-                    To cancel: {cancelInstructions}
+                    Subscription auto-renews monthly at {monthly.localizedPrice}
+                  </Typography>
+                </View>
+                <View style={styles.termRow}>
+                  <Typography variant="caption" color="secondary" style={styles.termBullet}>{'\u2022'}</Typography>
+                  <Typography variant="caption" color="secondary" style={styles.termText}>
+                    Cancel anytime: {cancelInstructions}
                   </Typography>
                 </View>
               </View>
@@ -275,8 +282,16 @@ export default function UpgradeScreen() {
                 <Typography variant="title" weight="bold">{p.price}</Typography>
                 <Typography variant="caption" color="secondary" style={{ marginLeft: 6 }}>{p.period}</Typography>
               </View>
+              {/* Trial terms for subscriptions - required for Play Store compliance */}
+              {canStartTrial && (p.id === 'monthly' || p.id === 'annual') && (
+                <View style={[styles.inlineTrial, { backgroundColor: theme.colors.surface }]}>
+                  <Typography variant="caption" color="secondary">
+                    Includes {p.id === 'monthly' ? trialDuration : (annual.trial?.durationText || trialDuration)} free trial ending {trialEndDate}. First charge of {p.id === 'monthly' ? monthly.localizedPrice : annual.localizedPrice} on {trialEndDate} unless canceled. {cancelInstructions}
+                  </Typography>
+                </View>
+              )}
               <GradientButton
-                title={loadingPlan === p.id ? 'Processing...' : (p.id === 'lifetime' ? 'Buy Now' : 'Subscribe Now')}
+                title={loadingPlan === p.id ? 'Processing...' : (p.id === 'lifetime' ? 'Buy Now' : (canStartTrial ? 'Start Free Trial' : 'Subscribe Now'))}
                 onPress={() => onSubscribe(p.id)}
                 gradient={theme.colors.gradients.primary}
                 fullWidth
@@ -397,6 +412,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
+  },
+  inlineTrial: {
+    marginTop: 12,
+    padding: 10,
+    borderRadius: 8,
   },
   badge: {
     paddingHorizontal: 8,

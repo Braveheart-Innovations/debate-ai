@@ -12,10 +12,21 @@ import {
 } from 'react-native-iap';
 import { SUBSCRIPTION_PRODUCTS } from '@/services/iap/products';
 
+export interface TrialInfo {
+  /** Human-readable trial duration (e.g., "1 week", "7 days", "3 days") */
+  durationText: string;
+  /** Number of days in the trial */
+  durationDays: number;
+  /** Whether this plan has a free trial */
+  hasTrial: boolean;
+}
+
 export interface PriceInfo {
   localizedPrice: string;
   price: string;
   currency: string;
+  /** Trial information if the subscription has a free trial offer */
+  trial?: TrialInfo;
 }
 
 interface PersistedPrices {
@@ -28,10 +39,20 @@ interface PersistedPrices {
 const STORAGE_KEY = '@store_prices';
 const TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
-// Fallback prices (USD)
+// Fallback prices (USD) - trial defaults to 1 week to match Google Play Console config
 export const FALLBACK_PRICES: Record<'monthly' | 'annual' | 'lifetime', PriceInfo> = {
-  monthly: { localizedPrice: '$5.99', price: '5.99', currency: 'USD' },
-  annual: { localizedPrice: '$49.99', price: '49.99', currency: 'USD' },
+  monthly: {
+    localizedPrice: '$5.99',
+    price: '5.99',
+    currency: 'USD',
+    trial: { durationText: '1 week', durationDays: 7, hasTrial: true },
+  },
+  annual: {
+    localizedPrice: '$49.99',
+    price: '49.99',
+    currency: 'USD',
+    trial: { durationText: '1 week', durationDays: 7, hasTrial: true },
+  },
   lifetime: { localizedPrice: '$129.99', price: '129.99', currency: 'USD' },
 };
 
@@ -123,26 +144,115 @@ export async function fetchAndPersistPrices(): Promise<{
   }
 }
 
+/**
+ * Parse ISO 8601 duration string to human-readable text and days
+ * Examples: P1W = 1 week (7 days), P3D = 3 days, P1M = 1 month (30 days)
+ */
+function parseTrialDuration(billingPeriod: string): { durationText: string; durationDays: number } {
+  // Match patterns like P1W, P7D, P3D, P1M
+  const weekMatch = billingPeriod.match(/P(\d+)W/);
+  const dayMatch = billingPeriod.match(/P(\d+)D/);
+  const monthMatch = billingPeriod.match(/P(\d+)M/);
+
+  if (weekMatch) {
+    const weeks = parseInt(weekMatch[1], 10);
+    return {
+      durationText: weeks === 1 ? '1 week' : `${weeks} weeks`,
+      durationDays: weeks * 7,
+    };
+  }
+  if (dayMatch) {
+    const days = parseInt(dayMatch[1], 10);
+    return {
+      durationText: days === 1 ? '1 day' : `${days} days`,
+      durationDays: days,
+    };
+  }
+  if (monthMatch) {
+    const months = parseInt(monthMatch[1], 10);
+    return {
+      durationText: months === 1 ? '1 month' : `${months} months`,
+      durationDays: months * 30,
+    };
+  }
+
+  // Default fallback
+  return { durationText: '1 week', durationDays: 7 };
+}
+
 function extractAndroidPrice(sub: SubscriptionAndroid): PriceInfo | null {
-  const offer = sub.subscriptionOfferDetails?.[0];
+  // Find the offer with a free trial first, or fall back to first offer
+  const offerWithTrial = sub.subscriptionOfferDetails?.find((o) =>
+    o.pricingPhases.pricingPhaseList.some((p) => p.priceAmountMicros === '0')
+  );
+  const offer = offerWithTrial || sub.subscriptionOfferDetails?.[0];
   if (!offer) return null;
 
   const phases = offer.pricingPhases.pricingPhaseList;
+  const trialPhase = phases.find((p) => p.priceAmountMicros === '0');
   const recurringPhase = phases.find((p) => p.priceAmountMicros !== '0');
   if (!recurringPhase) return null;
+
+  // Extract trial info if available
+  let trial: TrialInfo | undefined;
+  if (trialPhase) {
+    const { durationText, durationDays } = parseTrialDuration(trialPhase.billingPeriod);
+    trial = {
+      durationText,
+      durationDays,
+      hasTrial: true,
+    };
+  }
 
   return {
     localizedPrice: recurringPhase.formattedPrice,
     price: (parseInt(recurringPhase.priceAmountMicros, 10) / 1000000).toFixed(2),
     currency: recurringPhase.priceCurrencyCode,
+    trial,
   };
 }
 
 function extractIOSPrice(sub: SubscriptionIOS): PriceInfo | null {
   if (!sub.localizedPrice) return null;
+
+  // Extract trial info from introductoryPrice if available
+  let trial: TrialInfo | undefined;
+  const introPrice = sub as SubscriptionIOS & {
+    introductoryPrice?: string;
+    introductoryPriceNumberOfPeriodsIOS?: string;
+    introductoryPriceSubscriptionPeriodIOS?: string;
+  };
+
+  // iOS free trial has introductoryPrice of "0" or empty and a subscription period
+  if (introPrice.introductoryPriceSubscriptionPeriodIOS) {
+    const period = introPrice.introductoryPriceSubscriptionPeriodIOS;
+    // iOS periods: DAY, WEEK, MONTH, YEAR
+    let durationText = '1 week';
+    let durationDays = 7;
+
+    if (period === 'WEEK') {
+      durationText = '1 week';
+      durationDays = 7;
+    } else if (period === 'DAY') {
+      const numPeriods = parseInt(introPrice.introductoryPriceNumberOfPeriodsIOS || '7', 10);
+      durationText = numPeriods === 1 ? '1 day' : `${numPeriods} days`;
+      durationDays = numPeriods;
+    } else if (period === 'MONTH') {
+      durationText = '1 month';
+      durationDays = 30;
+    }
+
+    // Only set trial if it's actually free (price is 0 or empty)
+    const introAmount = parseFloat(introPrice.introductoryPrice || '0');
+    if (introAmount === 0) {
+      trial = { durationText, durationDays, hasTrial: true };
+    }
+  }
+
   return {
     localizedPrice: sub.localizedPrice,
     price: sub.price,
     currency: sub.currency,
+    trial,
   };
 }

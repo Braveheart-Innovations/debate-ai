@@ -6,7 +6,7 @@
 import React from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { Typography } from '@/components/molecules';
+import { Typography } from '@/components/molecules/common/Typography';
 import { useTheme } from '@/theme';
 import { PersonalityDebateProfile } from '@/types/personality';
 

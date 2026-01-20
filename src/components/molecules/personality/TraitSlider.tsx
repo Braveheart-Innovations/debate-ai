@@ -16,7 +16,7 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { Typography } from '@/components/molecules';
+import { Typography } from '@/components/molecules/common/Typography';
 import { useTheme } from '@/theme';
 
 interface TraitSliderProps {

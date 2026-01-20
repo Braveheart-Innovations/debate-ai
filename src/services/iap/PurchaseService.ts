@@ -311,7 +311,8 @@ export class PurchaseService {
         }
 
         console.warn('[IAP] Android: Requesting subscription with offerToken...');
-        await requestSubscription({ sku, subscriptionOffers: [{ sku, offerToken }] });
+        // For Android, subscriptionOffers contains the sku and offerToken
+        await requestSubscription({ subscriptionOffers: [{ sku, offerToken }] });
         console.warn('[IAP] Android: requestSubscription returned');
       }
 

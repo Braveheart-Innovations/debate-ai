@@ -24,17 +24,33 @@ export const TrialTermsSheet: React.FC<TrialTermsSheetProps> = ({
   const insets = useSafeAreaInsets();
   const { monthly } = useStorePrices();
 
-  // Dynamic arrays using localized price from store
+  // Get trial duration from store prices (fetched from Google Play/App Store)
+  const trialDuration = monthly.trial?.durationText || '1 week';
+  const trialDays = monthly.trial?.durationDays || 7;
+
+  // Calculate trial end date based on actual trial duration
+  const trialEndDate = React.useMemo(() => {
+    const date = new Date();
+    date.setDate(date.getDate() + trialDays);
+    return date.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+  }, [trialDays]);
+
+  // Dynamic arrays using localized price and trial duration from store
   const trialFeatures = [
-    `7 days free, then ${monthly.localizedPrice}/month`,
-    'Cancel anytime before trial ends',
+    `${trialDuration} free, then ${monthly.localizedPrice}/month`,
+    'Cancel anytime before trial ends to avoid charges',
     'Full access to all premium features',
   ];
 
   const legalTerms = [
-    `Subscription auto-renews at ${monthly.localizedPrice}/mo unless canceled at least 24 hours before the trial ends`,
-    'Your payment method will be charged within 24 hours of the trial ending',
-    'Manage or cancel anytime in Settings > Subscriptions',
+    `Payment method required to start trial`,
+    `${trialDuration} free trial ends ${trialEndDate}`,
+    `First charge of ${monthly.localizedPrice} on ${trialEndDate} unless you cancel`,
+    `Subscription automatically renews monthly at ${monthly.localizedPrice}`,
+    'Cancel at least 24 hours before trial ends to avoid charges',
+    Platform.OS === 'ios'
+      ? 'To cancel: Settings > Your Name > Subscriptions'
+      : 'To cancel: Play Store > Menu > Subscriptions',
   ];
 
   const handlePrivacyPolicy = () => {

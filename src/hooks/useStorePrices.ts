@@ -7,12 +7,10 @@
 
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
+import type { PriceInfo, TrialInfo } from '@/services/prices/PricesPersistenceService';
 
-export interface PriceInfo {
-  localizedPrice: string;
-  price: string;
-  currency: string;
-}
+// Re-export types for consumers
+export type { PriceInfo, TrialInfo };
 
 export interface StorePricesResult {
   monthly: PriceInfo;
