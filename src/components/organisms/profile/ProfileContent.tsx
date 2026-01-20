@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Linking, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSelector, useDispatch } from 'react-redux';
@@ -18,6 +18,7 @@ import {
 import { getFirestore, doc, getDoc } from '@react-native-firebase/firestore';
 import { TrialBanner } from '@/components/molecules/subscription/TrialBanner';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
+import { useStorePrices } from '@/hooks/useStorePrices';
 import PurchaseService from '@/services/iap/PurchaseService';
 import { deleteAccount } from '@/services/firebase/accountDeletion';
 import { ErrorService } from '@/services/errors/ErrorService';
@@ -33,6 +34,24 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
   const dispatch = useDispatch();
   const { userProfile, isAuthenticated } = useSelector((state: RootState) => state.auth);
   const access = useFeatureAccess();
+  const { monthly } = useStorePrices();
+
+  // Get trial duration from store prices (fetched from Google Play/App Store)
+  const trialDuration = monthly.trial?.durationText || '1 week';
+  const trialDays = monthly.trial?.durationDays || 7;
+
+  // Calculate trial end date based on actual trial duration
+  const trialEndDate = useMemo(() => {
+    const date = new Date();
+    date.setDate(date.getDate() + trialDays);
+    return date.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+  }, [trialDays]);
+
+  // Platform-specific cancel instructions
+  const cancelInstructions = Platform.select({
+    ios: 'Settings > Your Name > Subscriptions',
+    android: 'Play Store > Account > Subscriptions',
+  });
 
   // Auth state
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
@@ -371,7 +390,7 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
           {/* Start Trial button first */}
           <View style={styles.ctaSection}>
             <Button
-              title={iapLoading ? 'Starting Trial…' : 'Start 7‑Day Free Trial'}
+              title={iapLoading ? 'Starting Trial…' : `Start ${trialDuration} Free Trial`}
               onPress={async () => {
                 try {
                   setIapLoading(true);
@@ -392,6 +411,12 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
               }}
               variant="primary"
             />
+            {/* Trial Terms Disclosure - Required for Play Store compliance */}
+            <View style={[styles.trialTerms, { backgroundColor: theme.colors.surface }]}>
+              <Typography variant="caption" color="secondary" style={styles.trialTermsText}>
+                {trialDuration} free trial ends {trialEndDate}. Then {monthly.localizedPrice}/month unless canceled. Cancel anytime: {cancelInstructions}
+              </Typography>
+            </View>
           </View>
 
           {/* Then Unlock Everything banner */}
@@ -703,6 +728,15 @@ const styles = StyleSheet.create({
   ctaSection: {
     paddingHorizontal: 20,
     marginBottom: 16,
+  },
+  trialTerms: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 8,
+  },
+  trialTermsText: {
+    textAlign: 'center',
+    lineHeight: 18,
   },
   displayName: {
     fontSize: 20,
