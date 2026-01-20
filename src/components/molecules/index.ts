@@ -88,3 +88,6 @@ export { WebSearchToggle } from './chat/WebSearchToggle';
 
 // Personality Molecules
 export * from './personality';
+
+// Create Mode Molecules
+export * from './create';

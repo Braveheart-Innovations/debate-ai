@@ -9,7 +9,6 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  TextInput,
   TouchableOpacity,
   Alert,
   Keyboard,
@@ -25,7 +24,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../theme';
 import { useFeatureAccess } from '../hooks/useFeatureAccess';
 import { useGreeting } from '../hooks/useGreeting';
-import { Typography, GradientButton, HeaderIcon, SectionHeader } from '../components/molecules';
+import {
+  Typography,
+  GradientButton,
+  HeaderIcon,
+  SectionHeader,
+  PromptHeroInput,
+  AdvancedOptionsSection,
+} from '../components/molecules';
 import { Header, HeaderActions, DynamicAISelector, ImageRefinementModal } from '../components/organisms';
 import type { RefinementProvider } from '../components/organisms/chat/ImageRefinementModal';
 import { RootState, AppDispatch } from '../store';
@@ -40,7 +46,6 @@ import {
 } from '../store/createSlice';
 import { RootStackParamList, AIProvider, AIConfig } from '../types';
 import { STYLE_PRESETS } from '../config/create/stylePresets';
-import { SIZE_OPTIONS } from '../config/create/sizeOptions';
 import { supportsImageGeneration, supportsImageInput } from '../config/imageGenerationModels';
 import { AI_PROVIDERS } from '../config/aiProviders';
 import { getAIProviderIcon } from '../utils/aiProviderAssets';
@@ -220,7 +225,7 @@ export default function CreateSetupScreen() {
 
     // Launch image picker
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       quality: 0.8,
     });
@@ -390,99 +395,15 @@ export default function CreateSetupScreen() {
             )}
           </View>
 
-          {/* Prompt Input */}
+          {/* Hero Prompt Input */}
           <View style={styles.section}>
-            <SectionHeader
-              title="Describe Your Image"
-              subtitle={`${currentPrompt.length}/${MAX_PROMPT_LENGTH} characters`}
-              icon="✨"
-            />
-            <TextInput
-              style={[
-                styles.promptInput,
-                {
-                  backgroundColor: theme.colors.surface,
-                  color: theme.colors.text.primary,
-                  borderColor: theme.colors.border,
-                },
-              ]}
-              placeholder="A serene mountain landscape at sunset with vibrant colors..."
-              placeholderTextColor={theme.colors.text.secondary}
+            <PromptHeroInput
               value={currentPrompt}
               onChangeText={(text) => dispatch(setPrompt(text))}
-              multiline
               maxLength={MAX_PROMPT_LENGTH}
-              textAlignVertical="top"
+              placeholder="Describe what you want to create..."
+              testID="create-prompt-input"
             />
-          </View>
-
-          {/* Refine Your Image - Upload existing image */}
-          <View style={styles.section}>
-            <SectionHeader
-              title="Refine Your Image"
-              subtitle={canRefineImages
-                ? "Upload an image to modify with AI"
-                : "Configure an AI provider to enable refinement"}
-              icon="🖼️"
-            />
-            <TouchableOpacity
-              style={[
-                styles.uploadButton,
-                {
-                  backgroundColor: theme.colors.surface,
-                  borderColor: theme.colors.border,
-                  opacity: canRefineImages ? 1 : 0.5,
-                },
-              ]}
-              onPress={canRefineImages ? handlePickImage : undefined}
-              activeOpacity={canRefineImages ? 0.7 : 1}
-              disabled={!canRefineImages}
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel="Upload image for refinement"
-              accessibilityHint={canRefineImages
-                ? "Opens photo library to select an image"
-                : "Disabled. Configure an AI provider to enable"}
-              accessibilityState={{ disabled: !canRefineImages }}
-            >
-              <View style={styles.uploadContent}>
-                <View
-                  style={[
-                    styles.uploadIconContainer,
-                    { backgroundColor: canRefineImages
-                        ? theme.colors.primary[500] + '20'
-                        : theme.colors.gray[300] + '20' },
-                  ]}
-                >
-                  <Ionicons
-                    name="cloud-upload-outline"
-                    size={28}
-                    color={canRefineImages
-                      ? theme.colors.primary[500]
-                      : theme.colors.gray[400]}
-                  />
-                </View>
-                <View style={styles.uploadTextContainer}>
-                  <Typography
-                    variant="body"
-                    weight="semibold"
-                    color={canRefineImages ? undefined : 'secondary'}
-                  >
-                    Upload Image
-                  </Typography>
-                  <Typography variant="caption" color="secondary">
-                    {canRefineImages
-                      ? "Select from your photo library"
-                      : "Requires OpenAI or Google API key"}
-                  </Typography>
-                </View>
-                <Ionicons
-                  name="chevron-forward"
-                  size={20}
-                  color={theme.colors.text.secondary}
-                />
-              </View>
-            </TouchableOpacity>
           </View>
 
           {/* Style Selection */}
@@ -522,9 +443,11 @@ export default function CreateSetupScreen() {
                     />
                     <Typography
                       variant="caption"
+                      numberOfLines={1}
                       style={{
                         color: isSelected ? '#FFFFFF' : theme.colors.text.primary,
                         marginTop: 4,
+                        textAlign: 'center',
                       }}
                     >
                       {style.label}
@@ -535,116 +458,16 @@ export default function CreateSetupScreen() {
             </ScrollView>
           </View>
 
-          {/* Size Selection */}
-          <View style={styles.section}>
-            <SectionHeader
-              title="Aspect Ratio"
-              subtitle="Choose image dimensions"
-              icon="📐"
-            />
-            <View style={styles.sizeGrid}>
-              {SIZE_OPTIONS.map(size => {
-                const isSelected = selectedSize === size.id;
-                return (
-                  <TouchableOpacity
-                    key={size.id}
-                    style={[
-                      styles.sizeChip,
-                      {
-                        backgroundColor: isSelected
-                          ? theme.colors.primary[500]
-                          : theme.colors.surface,
-                        borderColor: isSelected
-                          ? theme.colors.primary[500]
-                          : theme.colors.border,
-                      },
-                    ]}
-                    onPress={() => handleSizeSelect(size.id)}
-                  >
-                    <Ionicons
-                      name={size.icon as keyof typeof Ionicons.glyphMap}
-                      size={24}
-                      color={isSelected ? '#FFFFFF' : theme.colors.text.secondary}
-                    />
-                    <Typography
-                      variant="caption"
-                      style={{
-                        color: isSelected ? '#FFFFFF' : theme.colors.text.primary,
-                        marginTop: 4,
-                      }}
-                    >
-                      {size.preview}
-                    </Typography>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-
-          {/* Quality Selection */}
-          <View style={styles.section}>
-            <SectionHeader
-              title="Quality"
-              subtitle="Higher quality takes longer"
-              icon="⚡"
-            />
-            <View style={styles.qualityRow}>
-              <TouchableOpacity
-                style={[
-                  styles.qualityChip,
-                  {
-                    backgroundColor: selectedQuality === 'standard'
-                      ? theme.colors.primary[500]
-                      : theme.colors.surface,
-                    borderColor: selectedQuality === 'standard'
-                      ? theme.colors.primary[500]
-                      : theme.colors.border,
-                  },
-                ]}
-                onPress={() => handleQualitySelect('standard')}
-              >
-                <Typography
-                  variant="body"
-                  style={{
-                    color: selectedQuality === 'standard' ? '#FFFFFF' : theme.colors.text.primary,
-                  }}
-                >
-                  Standard
-                </Typography>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.qualityChip,
-                  {
-                    backgroundColor: selectedQuality === 'hd'
-                      ? theme.colors.primary[500]
-                      : theme.colors.surface,
-                    borderColor: selectedQuality === 'hd'
-                      ? theme.colors.primary[500]
-                      : theme.colors.border,
-                  },
-                ]}
-                onPress={() => handleQualitySelect('hd')}
-              >
-                <View style={styles.qualityContent}>
-                  <Typography
-                    variant="body"
-                    style={{
-                      color: selectedQuality === 'hd' ? '#FFFFFF' : theme.colors.text.primary,
-                    }}
-                  >
-                    HD
-                  </Typography>
-                  <Ionicons
-                    name="sparkles"
-                    size={16}
-                    color={selectedQuality === 'hd' ? '#FFFFFF' : theme.colors.primary[500]}
-                    style={{ marginLeft: 4 }}
-                  />
-                </View>
-              </TouchableOpacity>
-            </View>
-          </View>
+          {/* Advanced Options - Collapsed by default */}
+          <AdvancedOptionsSection
+            selectedSize={selectedSize}
+            onSizeChange={handleSizeSelect}
+            selectedQuality={selectedQuality}
+            onQualityChange={handleQualitySelect}
+            canRefine={canRefineImages}
+            onUploadImage={handlePickImage}
+            testID="create-advanced-options"
+          />
         </ScrollView>
 
         {/* Generate Button - hidden when keyboard is visible */}
@@ -674,18 +497,20 @@ export default function CreateSetupScreen() {
         )}
       </KeyboardAvoidingView>
 
-      {/* Image Refinement Modal */}
-      <ImageRefinementModal
-        visible={showRefinementModal}
-        imageUri={uploadedImageUri || ''}
-        originalProvider="openai"
-        availableProviders={availableRefinementProviders}
-        onClose={() => {
-          setShowRefinementModal(false);
-          setUploadedImageUri(null);
-        }}
-        onRefine={handleRefinement}
-      />
+      {/* Image Refinement Modal - only render when we have an image */}
+      {uploadedImageUri && (
+        <ImageRefinementModal
+          visible={showRefinementModal}
+          imageUri={uploadedImageUri}
+          originalProvider="openai"
+          availableProviders={availableRefinementProviders}
+          onClose={() => {
+            setShowRefinementModal(false);
+            setUploadedImageUri(null);
+          }}
+          onRefine={handleRefinement}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -719,73 +544,18 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 4,
   },
-  promptInput: {
-    height: 120,
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 16,
-    fontSize: 16,
-    lineHeight: 24,
-  },
-  uploadButton: {
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 16,
-  },
-  uploadContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  uploadIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  uploadTextContainer: {
-    flex: 1,
-    marginLeft: 12,
-  },
   styleScroll: {
     paddingRight: 16,
   },
   styleChip: {
-    width: 80,
+    minWidth: 88,
     height: 80,
+    paddingHorizontal: 12,
     borderRadius: 12,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
-  },
-  sizeGrid: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  sizeChip: {
-    flex: 1,
-    paddingVertical: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  qualityRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  qualityChip: {
-    flex: 1,
-    paddingVertical: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  qualityContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    marginRight: 10,
   },
   generateContainer: {
     paddingHorizontal: 16,

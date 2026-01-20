@@ -92,9 +92,12 @@ jest.mock('@/components/organisms', () => {
   };
 });
 
+let mockPromptHeroInputProps: any;
+let mockAdvancedOptionsSectionProps: any;
+
 jest.mock('@/components/molecules', () => {
   const React = require('react');
-  const { Text, TouchableOpacity, View } = require('react-native');
+  const { Text, TextInput, TouchableOpacity, View } = require('react-native');
   return {
     Typography: ({ children, testID }: { children: React.ReactNode; testID?: string }) =>
       React.createElement(Text, { testID }, children),
@@ -110,6 +113,22 @@ jest.mock('@/components/molecules', () => {
       React.createElement(TouchableOpacity, { testID: props.testID, onPress: props.onPress }),
     SectionHeader: (props: any) =>
       React.createElement(Text, { testID: 'section-header' }, props.title),
+    PromptHeroInput: (props: any) => {
+      mockPromptHeroInputProps = props;
+      return React.createElement(TextInput, {
+        testID: props.testID || 'prompt-hero-input',
+        value: props.value,
+        onChangeText: props.onChangeText,
+        placeholder: props.placeholder,
+        maxLength: props.maxLength,
+      });
+    },
+    AdvancedOptionsSection: (props: any) => {
+      mockAdvancedOptionsSectionProps = props;
+      return React.createElement(View, { testID: props.testID || 'advanced-options-section' },
+        React.createElement(Text, null, 'Advanced Options')
+      );
+    },
   };
 });
 
@@ -183,6 +202,8 @@ describe('CreateSetupScreen', () => {
     mockNavigate.mockClear();
     mockDynamicAISelectorProps = undefined;
     mockGradientButtonProps = undefined;
+    mockPromptHeroInputProps = undefined;
+    mockAdvancedOptionsSectionProps = undefined;
     mockUseSelector.mockImplementation((selector) => selector(baseState));
     mockUseFeatureAccess.mockReturnValue({ membershipStatus: 'premium', isDemo: false, isPremium: true });
   });
@@ -201,6 +222,16 @@ describe('CreateSetupScreen', () => {
     it('renders generate button', () => {
       const { getByTestId } = renderWithProviders(<CreateSetupScreen />);
       expect(getByTestId('gradient-button')).toBeTruthy();
+    });
+
+    it('renders PromptHeroInput', () => {
+      const { getByTestId } = renderWithProviders(<CreateSetupScreen />);
+      expect(getByTestId('create-prompt-input')).toBeTruthy();
+    });
+
+    it('renders AdvancedOptionsSection', () => {
+      const { getByTestId } = renderWithProviders(<CreateSetupScreen />);
+      expect(getByTestId('create-advanced-options')).toBeTruthy();
     });
   });
 
@@ -230,6 +261,78 @@ describe('CreateSetupScreen', () => {
       renderWithProviders(<CreateSetupScreen />);
       expect(mockDynamicAISelectorProps).toBeDefined();
       expect(mockDynamicAISelectorProps.maxAIs).toBe(3);
+    });
+  });
+
+  describe('PromptHeroInput integration', () => {
+    it('passes correct props to PromptHeroInput', () => {
+      renderWithProviders(<CreateSetupScreen />);
+      expect(mockPromptHeroInputProps).toBeDefined();
+      expect(mockPromptHeroInputProps.maxLength).toBe(4000);
+      expect(mockPromptHeroInputProps.value).toBe('');
+    });
+
+    it('passes current prompt value to PromptHeroInput', () => {
+      mockUseSelector.mockImplementation((selector) =>
+        selector({
+          ...baseState,
+          create: { ...baseState.create, currentPrompt: 'Test prompt' },
+        })
+      );
+
+      renderWithProviders(<CreateSetupScreen />);
+      expect(mockPromptHeroInputProps.value).toBe('Test prompt');
+    });
+
+    it('dispatches setPrompt when text changes', () => {
+      renderWithProviders(<CreateSetupScreen />);
+      mockPromptHeroInputProps.onChangeText('New prompt');
+      expect(mockDispatch).toHaveBeenCalledWith({ type: 'create/setPrompt', payload: 'New prompt' });
+    });
+  });
+
+  describe('AdvancedOptionsSection integration', () => {
+    it('passes correct props to AdvancedOptionsSection', () => {
+      renderWithProviders(<CreateSetupScreen />);
+      expect(mockAdvancedOptionsSectionProps).toBeDefined();
+      expect(mockAdvancedOptionsSectionProps.selectedSize).toBe('auto');
+      expect(mockAdvancedOptionsSectionProps.selectedQuality).toBe('standard');
+    });
+
+    it('passes updated size to AdvancedOptionsSection', () => {
+      mockUseSelector.mockImplementation((selector) =>
+        selector({
+          ...baseState,
+          create: { ...baseState.create, selectedSize: 'square' },
+        })
+      );
+
+      renderWithProviders(<CreateSetupScreen />);
+      expect(mockAdvancedOptionsSectionProps.selectedSize).toBe('square');
+    });
+
+    it('passes updated quality to AdvancedOptionsSection', () => {
+      mockUseSelector.mockImplementation((selector) =>
+        selector({
+          ...baseState,
+          create: { ...baseState.create, selectedQuality: 'hd' },
+        })
+      );
+
+      renderWithProviders(<CreateSetupScreen />);
+      expect(mockAdvancedOptionsSectionProps.selectedQuality).toBe('hd');
+    });
+
+    it('dispatches setSize when size changes', () => {
+      renderWithProviders(<CreateSetupScreen />);
+      mockAdvancedOptionsSectionProps.onSizeChange('portrait');
+      expect(mockDispatch).toHaveBeenCalledWith({ type: 'create/setSize', payload: 'portrait' });
+    });
+
+    it('dispatches setQuality when quality changes', () => {
+      renderWithProviders(<CreateSetupScreen />);
+      mockAdvancedOptionsSectionProps.onQualityChange('hd');
+      expect(mockDispatch).toHaveBeenCalledWith({ type: 'create/setQuality', payload: 'hd' });
     });
   });
 
