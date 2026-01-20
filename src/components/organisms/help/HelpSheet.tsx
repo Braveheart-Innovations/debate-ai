@@ -17,6 +17,7 @@ import {
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -119,8 +120,9 @@ export const HelpSheet: React.FC<HelpSheetProps> = ({ onClose }) => {
   };
 
   const getDeviceInfo = () => {
+    const appVersion = Constants.expoConfig?.version ?? 'Unknown';
     const info = [
-      'App Version: 1.0.0',
+      `App Version: ${appVersion}`,
       `Platform: ${Platform.OS} ${Platform.Version}`,
       `Device: ${Device.brand} ${Device.modelName}`,
       `OS: ${Device.osName} ${Device.osVersion}`,
@@ -431,7 +433,7 @@ export const HelpSheet: React.FC<HelpSheetProps> = ({ onClose }) => {
             color="secondary"
             style={{ textAlign: 'center' }}
           >
-            Version 1.0.0
+            Version {Constants.expoConfig?.version ?? 'Unknown'}
           </Typography>
         </Box>
       </Box>
