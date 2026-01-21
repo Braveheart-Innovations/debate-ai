@@ -92,8 +92,8 @@ android {
         applicationId 'com.braveheartinnovations.debateai'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 24
-        versionName "1.5.3"
+        versionCode 25
+        versionName "1.5.4"
         // Required for react-native-iap to resolve store flavor ambiguity
         missingDimensionStrategy 'store', 'play'
     }
