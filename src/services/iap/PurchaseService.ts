@@ -19,6 +19,7 @@ import {
 } from 'react-native-iap';
 import { SUBSCRIPTION_PRODUCTS, type PlanType } from '@/services/iap/products';
 import * as Crypto from 'expo-crypto';
+import Constants from 'expo-constants';
 import { ErrorService } from '@/services/errors/ErrorService';
 
 /** Timeout helper for promises */
@@ -56,7 +57,7 @@ async function logPurchaseError(
       userId: user?.uid || 'anonymous',
       userEmail: user?.email || 'anonymous',
       platform: Platform.OS,
-      appVersion: '1.5.3', // Hardcoded for now to track which version logged
+      appVersion: Constants.expoConfig?.version ?? 'unknown',
       details: JSON.stringify(details),
     };
     console.warn('[IAP] Attempting Firestore write with:', JSON.stringify(docData));
@@ -478,7 +479,7 @@ export class PurchaseService {
         // For Android, verify the product exists before requesting purchase
         await getProducts({ skus: [sku] });
         this.pendingPurchaseSku = sku; // Mark that we're expecting this purchase
-        await requestPurchase({ sku });
+        await requestPurchase({ skus: [sku] });
       }
 
       return { success: true } as const;
