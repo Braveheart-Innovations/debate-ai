@@ -41,21 +41,31 @@ async function logPurchaseError(
   errorMessage: string,
   details: Record<string, unknown>
 ): Promise<void> {
+  // Always log to console first as backup
+  console.warn('[IAP] LOGGING ERROR TO FIREBASE:', { action, errorCode, errorMessage, details });
+
   try {
     const db = getFirestore();
     const user = getAuth().currentUser;
-    await addDoc(collection(db, 'purchase_errors'), {
+    const docData = {
       timestamp: Date.now(),
+      timestampISO: new Date().toISOString(),
       action,
       errorCode,
       errorMessage,
       userId: user?.uid || 'anonymous',
+      userEmail: user?.email || 'anonymous',
       platform: Platform.OS,
+      appVersion: '1.5.3', // Hardcoded for now to track which version logged
       details: JSON.stringify(details),
-    });
+    };
+    console.warn('[IAP] Attempting Firestore write with:', JSON.stringify(docData));
+    const docRef = await addDoc(collection(db, 'purchase_errors'), docData);
+    console.warn('[IAP] Successfully logged error to Firestore, docId:', docRef.id);
   } catch (e) {
-    // Silently fail - we don't want logging to break purchases
-    console.warn('[IAP] Failed to log error to Firestore:', e);
+    // Log the actual Firestore error
+    const firebaseError = e as { code?: string; message?: string };
+    console.warn('[IAP] FAILED to log error to Firestore:', firebaseError?.code, firebaseError?.message, e);
   }
 }
 
@@ -70,7 +80,7 @@ const IAP_ERROR_MESSAGES: Record<string, string> = {
   E_ALREADY_OWNED: 'You already have an active subscription. Tap "Restore Purchases" below to restore it.',
   E_NOT_PREPARED: 'Unable to connect to the store. Please close and reopen the app, then try again.',
   E_UNKNOWN: 'Unable to complete purchase. Please ensure you have a valid payment method and try again.',
-  // Google Play specific error codes
+  // Google Play specific string error codes
   BILLING_UNAVAILABLE: 'Google Play billing is not available. Please ensure Google Play services are up to date.',
   ITEM_UNAVAILABLE: 'This subscription is not available for purchase at this time.',
   ITEM_NOT_OWNED: 'You do not own this item.',
@@ -80,6 +90,19 @@ const IAP_ERROR_MESSAGES: Record<string, string> = {
   SERVICE_DISCONNECTED: 'Connection to the store was lost. Please try again.',
   SERVICE_UNAVAILABLE: 'The store service is temporarily unavailable. Please try again later.',
   FEATURE_NOT_SUPPORTED: 'This feature is not supported on your device.',
+  // Google Play NUMERIC response codes (BillingResponseCode)
+  '0': 'Purchase completed successfully.',  // OK
+  '1': 'Purchase was cancelled.',  // USER_CANCELED
+  '2': 'The store service is temporarily unavailable. Please try again later.',  // SERVICE_UNAVAILABLE
+  '3': 'Google Play billing is not available. Please ensure Google Play services are up to date.',  // BILLING_UNAVAILABLE
+  '4': 'This subscription is not available for purchase at this time.',  // ITEM_UNAVAILABLE
+  '5': 'Unable to connect to the store. Please ensure you have the latest version of the app.',  // DEVELOPER_ERROR
+  '6': 'A purchase error occurred. Please check your payment method and try again.',  // ERROR
+  '7': 'You already have an active subscription. Tap "Restore Purchases" below to restore it.',  // ITEM_ALREADY_OWNED
+  '8': 'You do not own this item.',  // ITEM_NOT_OWNED
+  '-1': 'Connection to the store was lost. Please try again.',  // SERVICE_DISCONNECTED
+  '-2': 'This feature is not supported on your device.',  // FEATURE_NOT_SUPPORTED
+  '-3': 'Network error. Please check your internet connection and try again.',  // NETWORK_ERROR
 };
 
 /** User-friendly messages for Firebase validation errors */
@@ -319,35 +342,72 @@ export class PurchaseService {
         console.warn('[IAP] requestSubscription returned');
       } else {
         // Android: Fetch and validate subscription exists
-        console.warn('[IAP] Android: Fetching subscriptions...');
+        console.warn('[IAP] Android: Fetching subscriptions for SKU:', sku);
         const subs = await withTimeout(
           getSubscriptions({ skus: [sku] }),
           10000,
           'Store connection timed out. Please try again.'
         );
-        console.warn('[IAP] Android: Got subscriptions:', subs?.length);
+        console.warn('[IAP] Android: Got subscriptions:', subs?.length, 'for', sku);
 
         if (!subs || subs.length === 0) {
+          // Log this critical error to Firestore
+          await logPurchaseError('getSubscriptions', 'NO_PRODUCTS', `No subscription found for SKU: ${sku}`, {
+            plan,
+            sku,
+            subsLength: 0,
+          });
           throw { code: 'E_ITEM_UNAVAILABLE', message: 'Subscription not found in store. Please ensure you have the latest app version.' };
         }
 
-        const product = subs[0] as SubscriptionAndroid;
-        console.warn('[IAP] Android: Product offers:', product?.subscriptionOfferDetails?.length);
+        // CRITICAL: Find the product that matches our requested SKU
+        // getSubscriptions may return cached/wrong data, so we must verify
+        const product = subs.find(s => s.productId === sku) as SubscriptionAndroid | undefined;
+
+        if (!product) {
+          console.warn('[IAP] Android: Product mismatch! Requested:', sku, 'Got:', subs.map(s => s.productId));
+          await logPurchaseError('productMismatch', 'E_ITEM_UNAVAILABLE', `Product ${sku} not found in response`, {
+            plan,
+            sku,
+            returnedProducts: subs.map(s => s.productId),
+          });
+          throw { code: 'E_ITEM_UNAVAILABLE', message: 'Subscription not found. Please try again.' };
+        }
+
+        const offerCount = product?.subscriptionOfferDetails?.length || 0;
+        console.warn('[IAP] Android: Product', sku, 'matched, has', offerCount, 'offers');
+
+        // Log all offers for debugging
+        product?.subscriptionOfferDetails?.forEach((offer: SubscriptionOfferAndroid, idx: number) => {
+          const phases = offer.pricingPhases.pricingPhaseList;
+          const hasFreeTrial = phases.some((p: PricingPhaseAndroid) => p.priceAmountMicros === '0');
+          console.warn(`[IAP] Android: Offer ${idx}: hasFreeTrial=${hasFreeTrial}, phases=${phases.length}`);
+        });
 
         // Find offer with free trial first, fall back to first offer
-        const offerToken = product?.subscriptionOfferDetails?.find((o: SubscriptionOfferAndroid) =>
+        const trialOffer = product?.subscriptionOfferDetails?.find((o: SubscriptionOfferAndroid) =>
           o.pricingPhases.pricingPhaseList.some((p: PricingPhaseAndroid) => p.priceAmountMicros === '0')
-        )?.offerToken || product?.subscriptionOfferDetails?.[0]?.offerToken;
+        );
+        const offerToken = trialOffer?.offerToken || product?.subscriptionOfferDetails?.[0]?.offerToken;
+
+        console.warn('[IAP] Android: Selected offer for', sku, '- hasTrialOffer:', !!trialOffer, 'offerToken:', offerToken ? 'present' : 'MISSING');
 
         if (!offerToken) {
+          // Log this critical error to Firestore
+          await logPurchaseError('noOfferToken', 'E_DEVELOPER_ERROR', `No offer token for SKU: ${sku}`, {
+            plan,
+            sku,
+            offerCount,
+            productDetails: JSON.stringify(product),
+          });
           throw { code: 'E_DEVELOPER_ERROR', message: 'No subscription offers available. Please try again later.' };
         }
 
-        console.warn('[IAP] Android: Requesting subscription with offerToken...');
+        console.warn('[IAP] Android: Calling requestSubscription for', sku);
         this.pendingPurchaseSku = sku; // Mark that we're expecting this purchase
         // For Android, subscriptionOffers contains the sku and offerToken
         await requestSubscription({ subscriptionOffers: [{ sku, offerToken }] });
-        console.warn('[IAP] Android: requestSubscription returned');
+        console.warn('[IAP] Android: requestSubscription returned successfully for', sku);
       }
 
       return { success: true } as const;
@@ -363,10 +423,13 @@ export class PurchaseService {
       console.warn('[IAP] Purchase error:', { errorCode, errorMessage, responseCode: errorObj?.responseCode, error });
 
       // Log to Firestore for debugging Google Play review issues
+      const sku = SUBSCRIPTION_PRODUCTS[plan];
       await logPurchaseError('purchaseSubscription', errorCode, errorMessage, {
         plan,
+        sku,
         responseCode: errorObj?.responseCode,
         debugMessage: errorObj?.debugMessage,
+        rawErrorCode: errorObj?.code,
         fullError: String(error),
       });
 
@@ -632,12 +695,10 @@ export class PurchaseService {
         return { success: false, errorCode: 'NOT_AUTHENTICATED', userMessage: 'Please sign in to restore purchases.' } as const;
       }
 
-      // CRITICAL: Check if user already has subscription data
-      // This prevents a different Google Play account's purchase from overwriting
-      // an existing Firebase user's subscription status
+      // Check if user already has subscription data in Firebase
       const hasExisting = await this.userHasExistingSubscription();
       if (hasExisting) {
-        console.warn('[IAP] User already has subscription data, skipping restore to prevent overwrite');
+        console.warn('[IAP] User already has subscription data');
         return { success: true, restored: false, userMessage: 'Your subscription is already active.' } as const;
       }
 
@@ -657,7 +718,7 @@ export class PurchaseService {
         await this.validateAndSavePurchase(active);
         return { success: true, restored: true, isLifetime: false } as const;
       }
-      return { success: true, restored: false } as const;
+      return { success: true, restored: false, userMessage: 'No previous purchases found.' } as const;
     } catch (error) {
       const errorCode = (error as { code?: string })?.code || 'UNKNOWN';
       const errorMessage = (error as { message?: string })?.message || String(error);

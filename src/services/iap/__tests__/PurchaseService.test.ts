@@ -374,18 +374,18 @@ describe('PurchaseService', () => {
 
       it('should fallback to first offer if no trial available', async () => {
         const mockProduct = {
-          productId: SUBSCRIPTION_PRODUCTS.monthly,
+          productId: SUBSCRIPTION_PRODUCTS.annual,
           subscriptionOfferDetails: [
             {
               offerToken: 'regular-offer-token',
               pricingPhases: {
                 pricingPhaseList: [
                   {
-                    priceAmountMicros: '5990000',
-                    billingPeriod: 'P1M',
+                    priceAmountMicros: '49990000',
+                    billingPeriod: 'P1Y',
                     recurrenceMode: 1,
                     billingCycleCount: 0,
-                    formattedPrice: '$5.99',
+                    formattedPrice: '$49.99',
                     priceCurrencyCode: 'USD',
                   },
                 ],
@@ -622,7 +622,9 @@ describe('PurchaseService', () => {
 
       const result = await PurchaseService.restorePurchases();
 
-      expect(result).toEqual({ success: true, restored: false });
+      expect(result.success).toBe(true);
+      expect(result.restored).toBe(false);
+      expect(result.userMessage).toBe('No previous purchases found.');
     });
 
     it('should attempt to validate restored purchases', async () => {
