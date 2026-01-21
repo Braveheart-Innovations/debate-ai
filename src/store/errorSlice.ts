@@ -49,7 +49,7 @@ const initialState: ErrorState = {
   activeToast: null,
   featureErrors: {},
   lastErrorTimestamp: 0,
-  toastDuration: 4000,
+  toastDuration: 6000, // Increased from 4000 to give users more time to read error messages
   maxQueueSize: 5,
 };
 

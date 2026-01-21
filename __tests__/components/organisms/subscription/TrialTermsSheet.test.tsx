@@ -70,7 +70,7 @@ describe('TrialTermsSheet', () => {
           isAuthenticated={true}
         />
       );
-      expect(getByText('7 days free, then $5.99/month')).toBeTruthy();
+      expect(getByText('1 week free, then $5.99/month')).toBeTruthy();
     });
 
     it('displays cancel anytime feature', () => {
@@ -82,7 +82,7 @@ describe('TrialTermsSheet', () => {
           isAuthenticated={true}
         />
       );
-      expect(getByText('Cancel anytime before trial ends')).toBeTruthy();
+      expect(getByText('Cancel anytime before trial ends to avoid charges')).toBeTruthy();
     });
 
     it('displays full access feature', () => {
@@ -121,9 +121,7 @@ describe('TrialTermsSheet', () => {
         />
       );
       expect(
-        getByText(
-          'Subscription auto-renews at $5.99/mo unless canceled at least 24 hours before the trial ends'
-        )
+        getByText('Subscription automatically renews monthly at $5.99')
       ).toBeTruthy();
     });
   });

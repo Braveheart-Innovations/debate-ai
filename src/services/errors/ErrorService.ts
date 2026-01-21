@@ -147,6 +147,24 @@ class ErrorServiceClass {
   }
 
   /**
+   * Show an error toast notification with a custom message.
+   * Use when you have a user-friendly error message that should be shown directly,
+   * bypassing the error normalization that maps to generic messages.
+   */
+  showError(message: string, feature?: string): void {
+    store.dispatch(addError({
+      code: ErrorCode.UNKNOWN,
+      message,
+      severity: 'error',
+      timestamp: Date.now(),
+      recoverable: true,
+      retryable: true,
+      feature,
+      dismissed: false,
+    }));
+  }
+
+  /**
    * Handle error silently (log only, no toast).
    * Use for errors that don't need user notification.
    */

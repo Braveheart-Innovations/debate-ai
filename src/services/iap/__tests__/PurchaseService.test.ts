@@ -368,7 +368,6 @@ describe('PurchaseService', () => {
         await PurchaseService.purchaseSubscription('monthly');
 
         expect(mockRequestSubscription).toHaveBeenCalledWith({
-          sku: SUBSCRIPTION_PRODUCTS.monthly,
           subscriptionOffers: [{ sku: SUBSCRIPTION_PRODUCTS.monthly, offerToken: 'trial-offer-token' }],
         });
       });
@@ -400,7 +399,6 @@ describe('PurchaseService', () => {
         await PurchaseService.purchaseSubscription('annual');
 
         expect(mockRequestSubscription).toHaveBeenCalledWith({
-          sku: SUBSCRIPTION_PRODUCTS.annual,
           subscriptionOffers: [{ sku: SUBSCRIPTION_PRODUCTS.annual, offerToken: 'regular-offer-token' }],
         });
       });
@@ -575,7 +573,7 @@ describe('PurchaseService', () => {
       const result = await PurchaseService.purchaseLifetime();
 
       expect(result.success).toBe(false);
-      expect(result.userMessage).toBe('This subscription is currently unavailable in your region. Please try again later.');
+      expect(result.userMessage).toBe('This subscription is currently unavailable. Please try again later.');
     });
   });
 
@@ -871,6 +869,7 @@ describe('PurchaseService', () => {
     });
 
     it('should handle multiple listeners', async () => {
+      Platform.OS = 'ios';
       const listener1 = jest.fn();
       const listener2 = jest.fn();
 
@@ -878,6 +877,11 @@ describe('PurchaseService', () => {
       PurchaseService.onPurchaseError(listener2);
 
       await PurchaseService.initialize();
+
+      // Must initiate a purchase first to set pendingPurchaseSku
+      // (otherwise the handler ignores updates to prevent cross-account issues)
+      mockGetSubscriptions.mockResolvedValue([{ productId: SUBSCRIPTION_PRODUCTS.monthly }]);
+      await PurchaseService.purchaseSubscription('monthly');
 
       const purchaseUpdateHandler = mockPurchaseUpdatedListener.mock.calls[0][0];
       const purchase = {
@@ -888,12 +892,13 @@ describe('PurchaseService', () => {
 
       await purchaseUpdateHandler(purchase);
 
-      // Both listeners should be called
+      // Both listeners should be called (validation fails due to no Firebase user, triggering error listeners)
       expect(listener1).toHaveBeenCalled();
       expect(listener2).toHaveBeenCalled();
     });
 
     it('should handle listener errors gracefully', async () => {
+      Platform.OS = 'ios';
       const errorListener = jest.fn(() => {
         throw new Error('Listener error');
       });
@@ -903,6 +908,10 @@ describe('PurchaseService', () => {
       PurchaseService.onPurchaseError(normalListener);
 
       await PurchaseService.initialize();
+
+      // Must initiate a purchase first to set pendingPurchaseSku
+      mockGetSubscriptions.mockResolvedValue([{ productId: SUBSCRIPTION_PRODUCTS.monthly }]);
+      await PurchaseService.purchaseSubscription('monthly');
 
       const purchaseUpdateHandler = mockPurchaseUpdatedListener.mock.calls[0][0];
       const purchase = {
@@ -931,7 +940,7 @@ describe('PurchaseService', () => {
 
       const result = await PurchaseService.purchaseSubscription('monthly');
 
-      expect(result.userMessage).toBe('This subscription is not available for your account. If you are a tester, please ensure you are signed in with a licensed test account.');
+      expect(result.userMessage).toBe('Unable to connect to the store. Please ensure you have the latest version of the app from the Play Store and try again.');
     });
 
     it('should map E_ALREADY_OWNED to user-friendly message with restore suggestion', async () => {

@@ -50,7 +50,7 @@ describe('SubscriptionSheet', () => {
     const onClose = jest.fn();
     const { getByText } = renderWithProviders(<SubscriptionSheet onClose={onClose} />);
 
-    fireEvent.press(getByText('Start 7‑Day Free Trial'));
+    fireEvent.press(getByText('Start 1 week Free Trial'));
 
     await waitFor(() => expect(mockPurchaseSubscription).toHaveBeenCalledWith('monthly'));
     expect(onClose).toHaveBeenCalled();

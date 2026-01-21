@@ -65,5 +65,12 @@ service cloud.firestore {
       allow read: if request.auth != null && request.auth.uid == docId;
       allow write: if false; // Only cloud functions (admin SDK) can write
     }
+
+    // Purchase errors - for debugging Play Store review failures
+    // Allow any authenticated user to write (create only), no reads from client
+    match /purchase_errors/{docId} {
+      allow create: if true; // Allow even unauthenticated to log errors
+      allow read, update, delete: if false; // Only viewable in Firebase Console
+    }
   }
 }

@@ -56,13 +56,14 @@ export default function UpgradeScreen() {
       refresh();
 
       // Show error via ErrorService - user can tap "Restore Purchases" button if needed
+      // Use showWarning/showError to preserve the specific error message
       if (isRecoverable) {
         ErrorService.showWarning(
           `${message} Your payment may still be processing. Try "Restore Purchases" below.`,
           'subscription'
         );
       } else {
-        ErrorService.handleWithToast(new Error(message), { feature: 'subscription' });
+        ErrorService.showError(message, 'subscription');
       }
     });
 
@@ -94,6 +95,7 @@ export default function UpgradeScreen() {
     if (!isAuthenticated) {
       // Close terms sheet and open profile sheet for auth
       setShowTrialTerms(false);
+      ErrorService.showInfo('Please create an account or sign in to start your trial.', 'subscription');
       dispatch(showSheet({ sheet: 'profile' }));
       return;
     }
@@ -109,13 +111,14 @@ export default function UpgradeScreen() {
       } else if ('cancelled' in result && result.cancelled) {
         // User cancelled, keep terms sheet open
       } else {
+        // Use showError to preserve the specific error message from PurchaseService
         const message = 'userMessage' in result && result.userMessage
           ? result.userMessage
           : 'Could not start trial. Please try again.';
-        ErrorService.handleWithToast(new Error(message), { feature: 'subscription' });
+        ErrorService.showError(message, 'subscription');
       }
     } catch {
-      ErrorService.handleWithToast(new Error('Something went wrong. Please try again or contact support if the issue persists.'), { feature: 'subscription' });
+      ErrorService.showError('Something went wrong. Please try again or contact support if the issue persists.', 'subscription');
     } finally {
       setLoadingPlan(null);
     }
@@ -124,6 +127,7 @@ export default function UpgradeScreen() {
   const onSubscribe = async (planId: string) => {
     // Check authentication first for all purchases
     if (!isAuthenticated) {
+      ErrorService.showInfo('Please create an account or sign in to continue.', 'subscription');
       dispatch(showSheet({ sheet: 'profile' }));
       return;
     }
@@ -137,13 +141,14 @@ export default function UpgradeScreen() {
       } else if ('cancelled' in result && result.cancelled) {
         // User cancelled, do nothing
       } else {
+        // Use showError to preserve the specific error message from PurchaseService
         const message = 'userMessage' in result && result.userMessage
           ? result.userMessage
           : 'Purchase could not be completed. Please try again.';
-        ErrorService.handleWithToast(new Error(message), { feature: 'subscription' });
+        ErrorService.showError(message, 'subscription');
       }
     } catch {
-      ErrorService.handleWithToast(new Error('Something went wrong. Please try again or contact support if the issue persists.'), { feature: 'subscription' });
+      ErrorService.showError('Something went wrong. Please try again or contact support if the issue persists.', 'subscription');
     } finally {
       setLoadingPlan(null);
     }
@@ -291,7 +296,17 @@ export default function UpgradeScreen() {
                 </View>
               )}
               <GradientButton
-                title={loadingPlan === p.id ? 'Processing...' : (p.id === 'lifetime' ? 'Buy Now' : (canStartTrial ? 'Start Free Trial' : 'Subscribe Now'))}
+                title={
+                  loadingPlan === p.id
+                    ? 'Processing...'
+                    : !isAuthenticated
+                      ? 'Sign In to Purchase'
+                      : p.id === 'lifetime'
+                        ? 'Buy Now'
+                        : canStartTrial
+                          ? 'Start Free Trial'
+                          : 'Subscribe Now'
+                }
                 onPress={() => onSubscribe(p.id)}
                 gradient={theme.colors.gradients.primary}
                 fullWidth
@@ -303,6 +318,13 @@ export default function UpgradeScreen() {
           <Button
             title="Restore Purchases"
             onPress={async () => {
+              // Require authentication for restore
+              if (!isAuthenticated) {
+                ErrorService.showInfo('Please sign in to restore your purchases.', 'subscription');
+                dispatch(showSheet({ sheet: 'profile' }));
+                return;
+              }
+
               try {
                 setLoadingPlan('restore');
                 const result = await PurchaseService.restorePurchases();
@@ -310,15 +332,20 @@ export default function UpgradeScreen() {
                   ErrorService.showSuccess('Your purchases have been restored.', 'subscription');
                   (navigation as unknown as { goBack: () => void }).goBack();
                 } else if (result.success && !result.restored) {
-                  ErrorService.showInfo('No previous purchases were found.', 'subscription');
+                  // Check if there's a specific message (e.g., "already active")
+                  const message = 'userMessage' in result && result.userMessage
+                    ? result.userMessage
+                    : 'No previous purchases were found.';
+                  ErrorService.showInfo(message, 'subscription');
                 } else {
+                  // Use showError to preserve the specific error message
                   const message = 'userMessage' in result && result.userMessage
                     ? result.userMessage
                     : 'Could not restore purchases. Please try again.';
-                  ErrorService.handleWithToast(new Error(message), { feature: 'subscription' });
+                  ErrorService.showError(message, 'subscription');
                 }
               } catch {
-                ErrorService.handleWithToast(new Error('An unexpected error occurred.'), { feature: 'subscription' });
+                ErrorService.showError('Could not restore purchases. Please try again.', 'subscription');
               } finally {
                 setLoadingPlan(null);
               }

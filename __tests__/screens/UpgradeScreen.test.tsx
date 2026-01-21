@@ -6,13 +6,16 @@ import { renderWithProviders } from '../../test-utils/renderWithProviders';
 // Mock ErrorService
 const mockShowSuccess = jest.fn();
 const mockShowInfo = jest.fn();
+const mockShowError = jest.fn();
+const mockShowWarning = jest.fn();
 const mockHandleWithToast = jest.fn();
 jest.mock('@/services/errors/ErrorService', () => ({
   ErrorService: {
     showSuccess: (...args: unknown[]) => mockShowSuccess(...args),
     showInfo: (...args: unknown[]) => mockShowInfo(...args),
+    showError: (...args: unknown[]) => mockShowError(...args),
+    showWarning: (...args: unknown[]) => mockShowWarning(...args),
     handleWithToast: (...args: unknown[]) => mockHandleWithToast(...args),
-    showWarning: jest.fn(),
   },
 }));
 
@@ -104,6 +107,8 @@ describe('UpgradeScreen', () => {
     mockGoBack.mockReset();
     mockShowSuccess.mockClear();
     mockShowInfo.mockClear();
+    mockShowError.mockClear();
+    mockShowWarning.mockClear();
     mockHandleWithToast.mockClear();
     mockPurchaseSubscription.mockResolvedValue({ success: true });
     mockRestorePurchases.mockResolvedValue({ success: true, restored: false });
@@ -127,29 +132,36 @@ describe('UpgradeScreen', () => {
     expect(mockGoBack).toHaveBeenCalledTimes(1);
   });
 
-  it('calls purchaseSubscription when Subscribe Now is pressed', async () => {
+  it('calls purchaseSubscription when plan card button is pressed', async () => {
     const { getAllByText } = renderWithProviders(<UpgradeScreen />, {
       preloadedState: {
         auth: { isAuthenticated: true, user: null, loading: false, error: null },
       },
     });
 
-    const subscribeButtons = getAllByText('Subscribe Now');
-    fireEvent.press(subscribeButtons[0]);
+    // With canStartTrial=true and authenticated, plan cards show "Start Free Trial"
+    // Index 0 is the big primary CTA button (opens terms sheet)
+    // Index 1 is monthly plan card, Index 2 is annual plan card
+    const subscribeButtons = getAllByText('Start Free Trial');
+    fireEvent.press(subscribeButtons[1]); // Monthly plan card
 
     await waitFor(() => {
       expect(mockPurchaseSubscription).toHaveBeenCalledWith('monthly');
     });
 
-    fireEvent.press(subscribeButtons[1]);
+    fireEvent.press(subscribeButtons[2]); // Annual plan card
 
     await waitFor(() => {
       expect(mockPurchaseSubscription).toHaveBeenCalledWith('annual');
     });
   });
 
-  it('calls restorePurchases when Restore Purchases is pressed', async () => {
-    const { getByText } = renderWithProviders(<UpgradeScreen />);
+  it('calls restorePurchases when Restore Purchases is pressed (authenticated)', async () => {
+    const { getByText } = renderWithProviders(<UpgradeScreen />, {
+      preloadedState: {
+        auth: { isAuthenticated: true, user: null, loading: false, error: null },
+      },
+    });
 
     const restoreButton = getByText('Restore Purchases');
     fireEvent.press(restoreButton);
@@ -168,8 +180,9 @@ describe('UpgradeScreen', () => {
       },
     });
 
-    const subscribeButtons = getAllByText('Subscribe Now');
-    fireEvent.press(subscribeButtons[0]);
+    // Index 1 is the monthly plan card button (Index 0 is the primary CTA)
+    const subscribeButtons = getAllByText('Start Free Trial');
+    fireEvent.press(subscribeButtons[1]);
 
     await waitFor(() => {
       expect(mockShowSuccess).toHaveBeenCalledWith('Thank you for your purchase!', 'subscription');
@@ -177,7 +190,7 @@ describe('UpgradeScreen', () => {
   });
 
   it('shows error toast on failed purchase', async () => {
-    mockPurchaseSubscription.mockResolvedValueOnce({ success: false, error: 'Payment failed' });
+    mockPurchaseSubscription.mockResolvedValueOnce({ success: false, userMessage: 'Payment failed' });
 
     const { getAllByText } = renderWithProviders(<UpgradeScreen />, {
       preloadedState: {
@@ -185,14 +198,13 @@ describe('UpgradeScreen', () => {
       },
     });
 
-    const subscribeButtons = getAllByText('Subscribe Now');
-    fireEvent.press(subscribeButtons[0]);
+    // Index 1 is the monthly plan card button (Index 0 is the primary CTA)
+    const subscribeButtons = getAllByText('Start Free Trial');
+    fireEvent.press(subscribeButtons[1]);
 
+    // Now uses ErrorService.showError instead of handleWithToast
     await waitFor(() => {
-      expect(mockHandleWithToast).toHaveBeenCalledWith(
-        expect.any(Error),
-        expect.objectContaining({ feature: 'subscription' })
-      );
+      expect(mockShowError).toHaveBeenCalled();
     });
   });
 });

@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 import { getAuth } from '@react-native-firebase/auth';
-import { getFirestore, collection, doc, getDoc, setDoc } from '@react-native-firebase/firestore';
+import { getFirestore, collection, doc, getDoc, setDoc, addDoc } from '@react-native-firebase/firestore';
 import {
   initConnection,
   endConnection,
@@ -31,10 +31,38 @@ function withTimeout<T>(promise: Promise<T>, ms: number, errorMessage: string): 
   ]);
 }
 
+/**
+ * Log purchase errors to Firestore for debugging Google Play review rejections.
+ * This allows us to see exactly what error occurred during review.
+ */
+async function logPurchaseError(
+  action: string,
+  errorCode: string,
+  errorMessage: string,
+  details: Record<string, unknown>
+): Promise<void> {
+  try {
+    const db = getFirestore();
+    const user = getAuth().currentUser;
+    await addDoc(collection(db, 'purchase_errors'), {
+      timestamp: Date.now(),
+      action,
+      errorCode,
+      errorMessage,
+      userId: user?.uid || 'anonymous',
+      platform: Platform.OS,
+      details: JSON.stringify(details),
+    });
+  } catch (e) {
+    // Silently fail - we don't want logging to break purchases
+    console.warn('[IAP] Failed to log error to Firestore:', e);
+  }
+}
+
 /** User-friendly error messages for common IAP error codes */
 const IAP_ERROR_MESSAGES: Record<string, string> = {
-  E_DEVELOPER_ERROR: 'This subscription is not available for your account. If you are a tester, please ensure you are signed in with a licensed test account.',
-  E_ITEM_UNAVAILABLE: 'This subscription is currently unavailable in your region. Please try again later.',
+  E_DEVELOPER_ERROR: 'Unable to connect to the store. Please ensure you have the latest version of the app from the Play Store and try again.',
+  E_ITEM_UNAVAILABLE: 'This subscription is currently unavailable. Please try again later.',
   E_NETWORK_ERROR: 'Network error. Please check your internet connection and try again.',
   E_SERVICE_ERROR: 'The app store service is temporarily unavailable. Please try again in a few moments.',
   E_BILLING_UNAVAILABLE: 'In-app purchases are not available on this device. Please check your device settings.',
@@ -96,6 +124,10 @@ export class PurchaseService {
   private static purchaseErrorSub: { remove: () => void } | null = null;
   private static isInitialized = false;
   private static initializationInProgress: Promise<{ success: boolean; error?: unknown }> | null = null;
+
+  // Track when we're expecting a purchase - only process listener events when true
+  // This prevents assigning purchases from a different Google account to the current Firebase user
+  private static pendingPurchaseSku: string | null = null;
 
   /**
    * Register a listener for background purchase errors (e.g., validation failures).
@@ -282,6 +314,7 @@ export class PurchaseService {
         // Generate appAccountToken so Apple can link this user in server notifications
         const appAccountToken = await this.getOrCreateAppAccountToken(user.uid);
         console.warn('[IAP] Requesting subscription with appAccountToken...');
+        this.pendingPurchaseSku = sku; // Mark that we're expecting this purchase
         await requestSubscription({ sku, appAccountToken });
         console.warn('[IAP] requestSubscription returned');
       } else {
@@ -311,6 +344,7 @@ export class PurchaseService {
         }
 
         console.warn('[IAP] Android: Requesting subscription with offerToken...');
+        this.pendingPurchaseSku = sku; // Mark that we're expecting this purchase
         // For Android, subscriptionOffers contains the sku and offerToken
         await requestSubscription({ subscriptionOffers: [{ sku, offerToken }] });
         console.warn('[IAP] Android: requestSubscription returned');
@@ -318,12 +352,23 @@ export class PurchaseService {
 
       return { success: true } as const;
     } catch (error: unknown) {
+      // Clear pending purchase flag on error
+      this.pendingPurchaseSku = null;
+
       const errorObj = error as { code?: string; message?: string; debugMessage?: string; responseCode?: number };
       // Handle both react-native-iap error codes and Google Play response codes
       const errorCode = errorObj?.code || (errorObj?.responseCode !== undefined ? String(errorObj.responseCode) : 'UNKNOWN');
       const errorMessage = errorObj?.message || errorObj?.debugMessage || 'Unknown error';
 
       console.warn('[IAP] Purchase error:', { errorCode, errorMessage, responseCode: errorObj?.responseCode, error });
+
+      // Log to Firestore for debugging Google Play review issues
+      await logPurchaseError('purchaseSubscription', errorCode, errorMessage, {
+        plan,
+        responseCode: errorObj?.responseCode,
+        debugMessage: errorObj?.debugMessage,
+        fullError: String(error),
+      });
 
       if (errorCode === 'E_USER_CANCELLED' || errorCode === 'USER_CANCELED') {
         return { success: false, cancelled: true, errorCode, userMessage: IAP_ERROR_MESSAGES[errorCode] || 'Purchase was cancelled.' } as const;
@@ -364,18 +409,29 @@ export class PurchaseService {
           throw { code: 'E_ITEM_UNAVAILABLE', message: 'Product not found in store' };
         }
         const appAccountToken = await this.getOrCreateAppAccountToken(user.uid);
+        this.pendingPurchaseSku = sku; // Mark that we're expecting this purchase
         await requestPurchase({ sku, andDangerouslyFinishTransactionAutomaticallyIOS: false, appAccountToken });
       } else {
         // For Android, verify the product exists before requesting purchase
         await getProducts({ skus: [sku] });
+        this.pendingPurchaseSku = sku; // Mark that we're expecting this purchase
         await requestPurchase({ sku });
       }
 
       return { success: true } as const;
     } catch (error: unknown) {
+      // Clear pending purchase flag on error
+      this.pendingPurchaseSku = null;
+
       const errorObj = error as { code?: string; message?: string };
       const errorCode = errorObj?.code || 'UNKNOWN';
-      const errorMessage = errorObj?.message;
+      const errorMessage = errorObj?.message || 'Unknown error';
+
+      // Log to Firestore for debugging Google Play review issues
+      await logPurchaseError('purchaseLifetime', errorCode, errorMessage, {
+        fullError: String(error),
+      });
+
       if (errorCode === 'E_USER_CANCELLED' || errorCode === 'USER_CANCELED') {
         return { success: false, cancelled: true, errorCode, userMessage: IAP_ERROR_MESSAGES[errorCode] || 'Purchase was cancelled.' } as const;
       }
@@ -406,6 +462,35 @@ export class PurchaseService {
   private static async handlePurchaseUpdate(purchase: Purchase) {
     if (!purchase.transactionReceipt) return;
 
+    // CRITICAL: Only process purchases that we initiated
+    // This prevents assigning purchases from a different Google Play account
+    // to the currently logged-in Firebase user
+    if (!this.pendingPurchaseSku) {
+      console.warn('[IAP] Ignoring purchase update - no pending purchase expected:', purchase.productId);
+      // Still finish the transaction to prevent it from firing repeatedly
+      try {
+        await finishTransaction({ purchase, isConsumable: false });
+      } catch {
+        // Ignore finish errors
+      }
+      return;
+    }
+
+    // Clear the pending purchase flag
+    const expectedSku = this.pendingPurchaseSku;
+    this.pendingPurchaseSku = null;
+
+    // Verify the purchase matches what we expected
+    if (purchase.productId !== expectedSku) {
+      console.warn('[IAP] Purchase product mismatch - expected:', expectedSku, 'got:', purchase.productId);
+      // Log this unexpected situation
+      await logPurchaseError('handlePurchaseUpdate', 'SKU_MISMATCH', `Expected ${expectedSku}, got ${purchase.productId}`, {
+        expectedSku,
+        actualSku: purchase.productId,
+        transactionId: purchase.transactionId,
+      });
+    }
+
     let validationError: unknown = null;
 
     // Try to validate
@@ -413,6 +498,15 @@ export class PurchaseService {
       await this.validateAndSavePurchase(purchase);
     } catch (e) {
       validationError = e;
+
+      // Log to Firestore for debugging Google Play review issues
+      const errObj = e as { code?: string; message?: string };
+      await logPurchaseError('handlePurchaseUpdate', errObj?.code || 'VALIDATION_ERROR', errObj?.message || String(e), {
+        productId: purchase.productId,
+        transactionId: purchase.transactionId,
+        fullError: String(e),
+      });
+
       ErrorService.handleError(e, {
         feature: 'purchase',
         showToast: false,
@@ -499,10 +593,53 @@ export class PurchaseService {
     }
   }
 
+  /**
+   * Check if the current Firebase user already has subscription data.
+   * Used to prevent overwriting legitimate subscription data during restore.
+   */
+  private static async userHasExistingSubscription(): Promise<boolean> {
+    try {
+      const user = getAuth().currentUser;
+      if (!user) return false;
+
+      const db = getFirestore();
+      const userDoc = await getDoc(doc(collection(db, 'users'), user.uid));
+      const data = userDoc.data() as {
+        membershipStatus?: string;
+        isLifetime?: boolean;
+        subscriptionExpiryDate?: unknown;
+      } | undefined;
+
+      // Check if user has any subscription-related data
+      return !!(
+        data?.membershipStatus === 'premium' ||
+        data?.membershipStatus === 'trial' ||
+        data?.isLifetime === true ||
+        data?.subscriptionExpiryDate
+      );
+    } catch {
+      return false;
+    }
+  }
+
   static async restorePurchases() {
     try {
       // Ensure IAP is initialized
       await this.ensureInitialized();
+
+      const user = getAuth().currentUser;
+      if (!user) {
+        return { success: false, errorCode: 'NOT_AUTHENTICATED', userMessage: 'Please sign in to restore purchases.' } as const;
+      }
+
+      // CRITICAL: Check if user already has subscription data
+      // This prevents a different Google Play account's purchase from overwriting
+      // an existing Firebase user's subscription status
+      const hasExisting = await this.userHasExistingSubscription();
+      if (hasExisting) {
+        console.warn('[IAP] User already has subscription data, skipping restore to prevent overwrite');
+        return { success: true, restored: false, userMessage: 'Your subscription is already active.' } as const;
+      }
 
       const purchases = await getAvailablePurchases();
       const ids = Object.values(SUBSCRIPTION_PRODUCTS) as string[];
@@ -523,6 +660,13 @@ export class PurchaseService {
       return { success: true, restored: false } as const;
     } catch (error) {
       const errorCode = (error as { code?: string })?.code || 'UNKNOWN';
+      const errorMessage = (error as { message?: string })?.message || String(error);
+
+      // Log to Firestore for debugging Google Play review issues
+      await logPurchaseError('restorePurchases', errorCode, errorMessage, {
+        fullError: String(error),
+      });
+
       // Log via ErrorService for centralized tracking
       ErrorService.handleError(error, {
         feature: 'purchase',

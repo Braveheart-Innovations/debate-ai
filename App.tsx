@@ -170,18 +170,11 @@ function AppContent() {
 
             console.log('User authenticated with Firebase:', user.uid);
 
-            // Auto-restore subscriptions on app startup to sync with App Store/Play Store
-            // This fixes users who updated the app but didn't have their subscription status synced
-            try {
-              const restoreResult = await PurchaseService.restorePurchases();
-              if (restoreResult.restored) {
-                console.log('Subscriptions restored on startup:', restoreResult.isLifetime ? 'lifetime' : 'subscription');
-              } else if (restoreResult.success) {
-                console.log('No active subscriptions to restore');
-              }
-            } catch (e) {
-              console.warn('Subscription restore failed on startup:', e);
-            }
+            // NOTE: Auto-restore removed - it was assigning purchases from OTHER Google accounts
+            // to the currently logged-in Firebase user. This caused:
+            // 1. New users inheriting subscriptions from previous device users
+            // 2. Google Play review failures due to inconsistent behavior
+            // Users can manually tap "Restore Purchases" on the paywall if needed.
           } else {
             // User signed out - clear all auth state
             dispatch(setAuthUser(null));

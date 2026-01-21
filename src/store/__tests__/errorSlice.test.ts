@@ -35,7 +35,7 @@ describe('errorSlice', () => {
     activeToast: null,
     featureErrors: {},
     lastErrorTimestamp: 0,
-    toastDuration: 4000,
+    toastDuration: 6000,
     maxQueueSize: 5,
   };
 
@@ -396,7 +396,7 @@ describe('errorSlice', () => {
       it('returns toast duration', () => {
         const mockState = createMockState(initialState);
 
-        expect(selectToastDuration(mockState as Parameters<typeof selectActiveToast>[0])).toBe(4000);
+        expect(selectToastDuration(mockState as Parameters<typeof selectActiveToast>[0])).toBe(6000);
       });
     });
 
