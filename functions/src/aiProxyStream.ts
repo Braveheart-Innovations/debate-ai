@@ -1267,6 +1267,7 @@ function modelSupportsVision(providerId: string, model: string): boolean {
              modelLower.includes('gpt-4-vision') ||
              modelLower.includes('gpt-4-turbo') ||
              modelLower.includes('gpt-5') ||
+             modelLower.includes('gpt-6') ||
              modelLower.includes('o1') ||
              modelLower.includes('o3');
     case 'grok':

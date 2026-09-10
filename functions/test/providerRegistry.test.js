@@ -5,6 +5,7 @@ const {
   getDefaultModel,
   normalizeProviderTemperature,
   requiresReasoningEffortNoneForTools,
+  requiresResponsesApi,
   resolveProviderModelId,
 } = require('../lib/modelRegistry');
 const {
@@ -69,6 +70,18 @@ describe('modelRegistry', () => {
     assert.equal(requiresReasoningEffortNoneForTools('gpt-6-astra'), false);
     assert.equal(requiresReasoningEffortNoneForTools('gpt-5.6-sol'), true);
     assert.equal(requiresReasoningEffortNoneForTools('gpt-5.5'), false);
+  });
+
+  it('routes Responses-only OpenAI models to /v1/responses instead of downgrading them', () => {
+    assert.equal(requiresResponsesApi('gpt-6-astra'), true);
+    assert.equal(requiresResponsesApi('gpt-6-latest'), true);
+    assert.equal(requiresResponsesApi('gpt-5.5-pro'), true);
+    assert.equal(requiresResponsesApi('gpt-5.5-pro-latest'), true);
+    assert.equal(requiresResponsesApi('gpt-5.6-sol'), false);
+    assert.equal(requiresResponsesApi(undefined), false);
+    // gpt-5.5-pro used to be silently swapped for the provider default.
+    assert.equal(resolveProviderModelId('openai', 'gpt-5.5-pro'), 'gpt-5.5-pro');
+    assert.equal(resolveProviderModelId('openai', 'gpt-6-astra'), 'gpt-6-astra');
   });
 
   it('routes every DeepSeek name to V4.1 Flash', () => {
