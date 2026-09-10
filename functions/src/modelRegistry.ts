@@ -108,11 +108,15 @@ export const MODEL_ALIASES: Record<string, string> = {
   'command-light-latest': 'command-r7b-12-2024',
 
   // DeepSeek aliases
-  'deepseek-chat': 'deepseek-v4-flash',
-  'deepseek-reasoner': 'deepseek-v4-flash',
-  'deepseek-chat-latest': 'deepseek-v4-flash',
-  'deepseek-reasoner-latest': 'deepseek-v4-flash',
-  'deepseek-latest': 'deepseek-v4-flash',
+  // DeepSeek retired the V4 Flash names on 2026-09-10; every legacy name is
+  // served as V4.1 Flash = deepseek-flash (web modelRegistry mirrors this).
+  'deepseek-chat': 'deepseek-flash',
+  'deepseek-reasoner': 'deepseek-flash',
+  'deepseek-chat-latest': 'deepseek-flash',
+  'deepseek-reasoner-latest': 'deepseek-flash',
+  'deepseek-latest': 'deepseek-flash',
+  'deepseek-v4-flash': 'deepseek-flash',
+  'deepseek-v4-flash-vision-exp': 'deepseek-flash',
 };
 
 export const DEFAULT_PROVIDER_MODELS: Record<string, string> = {
@@ -122,7 +126,7 @@ export const DEFAULT_PROVIDER_MODELS: Record<string, string> = {
   perplexity: 'sonar-pro',
   mistral: 'mistral-medium-2604',
   cohere: 'command-a-reasoning-08-2025',
-  deepseek: 'deepseek-v4-flash',
+  deepseek: 'deepseek-flash',
   grok: 'grok-4.3',
   moonshot: 'kimi-k3',
   zai: 'glm-5.3',
@@ -188,9 +192,12 @@ const MODELS_REQUIRING_REASONING_EFFORT_NONE_FOR_TOOLS = new Set([
   'gpt-5.6-sol',
   'gpt-5.6-terra',
   'gpt-5.6-luna',
-  // Assumed to inherit the GPT-5.6 chat-completions restriction; not
-  // live-verifiable until OpenAI serves gpt-6-astra to standard keys.
-  'gpt-6-astra',
+  // gpt-6-astra is deliberately NOT here. Live-verified 2026-09-10: chat
+  // completions reject function tools for it with every reasoning_effort AND
+  // reject reasoning_effort 'none' ("Supported values are: 'low', 'medium',
+  // 'high', and 'xhigh'"), so there is no chat-completions shape that carries
+  // tools. /v1/responses accepts them fine. The web catalog marks the model
+  // supportsFunctions: false until the Responses API migration lands.
 ]);
 
 export function requiresReasoningEffortNoneForTools(modelId: string | undefined): boolean {
