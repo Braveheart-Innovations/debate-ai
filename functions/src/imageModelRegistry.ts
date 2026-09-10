@@ -19,10 +19,12 @@ export interface ImageModelConfig {
 
 const IMAGE_MODEL_ALIASES: Partial<Record<ImageProviderId, Record<string, string>>> = {
   openai: {
-    'gpt-image-latest': 'gpt-image-2',
+    'gpt-image-latest': 'gpt-image-2.5-flare',
+    'gpt-image-2.5-flare-2026-09-08': 'gpt-image-2.5-flare',
+    'gpt-image-2.5-sunburst-2026-09-08': 'gpt-image-2.5-sunburst',
     'gpt-image-2-2026-04-21': 'gpt-image-2',
-    'chatgpt-image-latest': 'gpt-image-2',
-    'dall-e-3': 'gpt-image-2',
+    'chatgpt-image-latest': 'gpt-image-2.5-flare',
+    'dall-e-3': 'gpt-image-2.5-flare',
   },
   google: {
     'gemini-3.1-flash-image-preview': 'gemini-3.1-flash-image',
@@ -46,11 +48,25 @@ function createImageModel(config: ImageModelConfig): ImageModelConfig {
 export const IMAGE_MODELS: Record<ImageProviderId, ImageModelConfig[]> = {
   openai: [
     createImageModel({
+      id: 'gpt-image-2.5-flare',
+      displayName: 'GPT Image 2.5 Flare',
+      apiFamily: 'openai-images',
+      supportsImageInput: true,
+      isDefault: true,
+    }),
+    createImageModel({
+      id: 'gpt-image-2.5-sunburst',
+      displayName: 'GPT Image 2.5 Sunburst',
+      apiFamily: 'openai-images',
+      supportsImageInput: true,
+      isDefault: false,
+    }),
+    createImageModel({
       id: 'gpt-image-2',
       displayName: 'GPT Image 2',
       apiFamily: 'openai-images',
       supportsImageInput: true,
-      isDefault: true,
+      isDefault: false,
     }),
     createImageModel({
       id: 'gpt-image-1.5',

@@ -1302,9 +1302,10 @@ function modelSupportsVision(providerId: string, model: string): boolean {
       return modelLower.includes('vision') ||
              modelLower.includes('command-a');
     case 'deepseek':
-      // deepseek-v4-flash-vision-exp (2026-08-21) is the only DeepSeek model
-      // that accepts image input.
-      return modelLower.includes('vision');
+      // DeepSeek V4.1 Flash (deepseek-flash, 2026-09-10) is natively
+      // multimodal, and the retired deepseek-v4-flash / -vision-exp names are
+      // served by it. deepseek-v4-pro does not accept images.
+      return modelLower.includes('flash') || modelLower.includes('vision');
     case 'moonshot':
       // Kimi K3 and K2.x are natively multimodal
       return modelLower.includes('kimi-k');
