@@ -61,11 +61,23 @@ describe('modelRegistry', () => {
     assert.equal(resolveProviderModelId('mistral', 'mistral-large-2512'), 'mistral-large-2512');
   });
 
-  it('applies GPT-6 Astra sampling rules ahead of API availability', () => {
+  it('applies GPT-6 Astra sampling rules without the GPT-5.6 tool workaround', () => {
     assert.equal(normalizeProviderTemperature('openai', 'gpt-6-astra', 0.7), 1);
     assert.equal(normalizeProviderTemperature('openai', 'gpt-6-latest', 0.7), 1);
-    assert.equal(requiresReasoningEffortNoneForTools('gpt-6-astra'), true);
+    // Live-verified 2026-09-10: chat completions reject reasoning_effort 'none'
+    // for Astra, so injecting it would only swap one 400 for another.
+    assert.equal(requiresReasoningEffortNoneForTools('gpt-6-astra'), false);
+    assert.equal(requiresReasoningEffortNoneForTools('gpt-5.6-sol'), true);
     assert.equal(requiresReasoningEffortNoneForTools('gpt-5.5'), false);
+  });
+
+  it('routes every DeepSeek name to V4.1 Flash', () => {
+    assert.equal(getDefaultModel('deepseek'), 'deepseek-flash');
+    assert.equal(resolveProviderModelId('deepseek', 'deepseek-v4-flash'), 'deepseek-flash');
+    assert.equal(resolveProviderModelId('deepseek', 'deepseek-v4-flash-vision-exp'), 'deepseek-flash');
+    assert.equal(resolveProviderModelId('deepseek', 'deepseek-chat'), 'deepseek-flash');
+    assert.equal(resolveProviderModelId('deepseek', 'deepseek-reasoner'), 'deepseek-flash');
+    assert.equal(resolveProviderModelId('deepseek', 'deepseek-v4-pro'), 'deepseek-v4-pro');
   });
 
   it('omits temperature for Claude 5-family models while preserving other model normalization', () => {
