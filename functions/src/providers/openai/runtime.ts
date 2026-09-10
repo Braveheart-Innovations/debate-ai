@@ -18,7 +18,12 @@ import type {
   CanonicalToolDefinition,
   CanonicalToolChoice,
 } from '../../types/canonical';
-import { normalizeProviderTemperature, requiresReasoningEffortNoneForTools } from '../../modelRegistry';
+import {
+  normalizeProviderTemperature,
+  requiresReasoningEffortNoneForTools,
+  requiresResponsesApi,
+} from '../../modelRegistry';
+import { OPENAI_RESPONSES_URL, buildResponsesBody, parseResponsesStream } from './responses';
 import type { ProviderRuntime, ProviderRequest, BuiltRequest, ProviderConfig } from '../types';
 import {
   parseSSEStream,
@@ -141,6 +146,29 @@ export class OpenAIRuntime implements ProviderRuntime {
    * Build OpenAI API request from canonical format
    */
   buildRequest(request: ProviderRequest, apiKey: string): BuiltRequest {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      [this.config.authHeader]: `${this.config.authPrefix || ''}${apiKey}`,
+    };
+
+    // Responses-only OpenAI models (see MODELS_REQUIRING_RESPONSES_API).
+    if (this.providerId === 'openai' && requiresResponsesApi(request.model)) {
+      return {
+        url: OPENAI_RESPONSES_URL,
+        headers,
+        body: buildResponsesBody({
+          model: request.model,
+          messages: request.messages,
+          systemPrompt: request.systemPrompt,
+          attachments: request.attachments,
+          maxTokens: request.maxTokens,
+          tools: this.supportsTools ? request.tools : undefined,
+          toolChoice: request.toolChoice,
+          stream: true,
+        }),
+      };
+    }
+
     const openaiMessages = this.transformMessages(request);
     const temperature = normalizeProviderTemperature(
       this.providerId,
@@ -178,11 +206,6 @@ export class OpenAIRuntime implements ProviderRuntime {
       }
     }
 
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      [this.config.authHeader]: `${this.config.authPrefix || ''}${apiKey}`,
-    };
-
     return {
       url: this.config.baseUrl,
       headers,
@@ -197,13 +220,52 @@ export class OpenAIRuntime implements ProviderRuntime {
     responseStream: ReadableStream<Uint8Array>,
     traceId: string
   ): AsyncGenerator<CanonicalSSEEvent, void, unknown> {
+    // The runtime instance is shared across concurrent requests, so the
+    // wire format is detected per stream from its first event rather than
+    // remembered from buildRequest: Responses events carry a `type` of
+    // `response.*`, chat completions chunks carry `choices`.
+    const dataEvents = parseSSEStream(responseStream);
+    const first = await dataEvents.next();
+    if (first.done) {
+      yield* this.parseChatCompletionsStream(dataEvents, undefined);
+      return;
+    }
+
+    let isResponsesFormat = false;
+    try {
+      const parsed = JSON.parse(first.value);
+      isResponsesFormat = typeof parsed?.type === 'string' && parsed.type.startsWith('response.');
+    } catch {
+      // Unparseable first chunk: fall through to the chat-completions parser,
+      // which skips invalid JSON.
+    }
+
+    const replay = (async function* () {
+      yield first.value;
+      yield* dataEvents;
+    })();
+
+    if (isResponsesFormat) {
+      yield* parseResponsesStream(replay, traceId);
+      return;
+    }
+    yield* this.parseChatCompletionsStream(replay, traceId);
+  }
+
+  /**
+   * Parse a chat-completions SSE stream (OpenAI and OpenAI-compatible APIs).
+   */
+  private async *parseChatCompletionsStream(
+    dataEvents: AsyncIterable<string>,
+    _traceId: string | undefined
+  ): AsyncGenerator<CanonicalSSEEvent, void, unknown> {
     const toolCallsInProgress = new Map<number, ToolCallInProgress>();
     const completedToolCalls: CanonicalToolCall[] = [];
     let inputTokens = 0;
     let outputTokens = 0;
     let finishReason = 'stop';
 
-    for await (const data of parseSSEStream(responseStream)) {
+    for await (const data of dataEvents) {
       try {
         const event = JSON.parse(data);
         const choice = event.choices?.[0];

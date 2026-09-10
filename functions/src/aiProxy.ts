@@ -1,7 +1,8 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getDecryptedApiKey, encryptionKey } from './apiKeys';
 import { recordUsageInternal, enforceFreeTierForInteraction } from './usageTracking';
-import { normalizeProviderTemperature, resolveProviderModelId } from './modelRegistry';
+import { normalizeProviderTemperature, resolveProviderModelId, requiresResponsesApi } from './modelRegistry';
+import { OPENAI_RESPONSES_URL, buildResponsesBody, parseResponsesOutput } from './providers/openai/responses';
 import { buildGeminiGenerationConfig } from './providers/google/thinking';
 
 // Provider API endpoints
@@ -1162,6 +1163,52 @@ async function callPerplexity(
 }
 
 /**
+ * OpenAI Responses API (non-streaming) for models that are not usable on
+ * /v1/chat/completions. Shares the request/response translation with the V2
+ * streaming runtime (providers/openai/responses.ts).
+ */
+async function callOpenAIResponses(
+  apiKey: string,
+  model: string,
+  messages: Message[],
+  systemPrompt: string | undefined,
+  maxTokens: number | undefined,
+  attachments?: MessageAttachment[]
+): Promise<{
+  content: string;
+  usage?: { inputTokens: number; outputTokens: number };
+}> {
+  const body = buildResponsesBody({
+    model,
+    messages: messages.map(m => ({ role: m.role, content: m.content })),
+    systemPrompt,
+    attachments: modelSupportsVision('openai', model) ? attachments : undefined,
+    maxTokens,
+    stream: false,
+  });
+
+  const response = await fetch(OPENAI_RESPONSES_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw { status: response.status, message: error };
+  }
+
+  const parsed = parseResponsesOutput(await response.json());
+  return {
+    content: parsed.content,
+    usage: parsed.usage,
+  };
+}
+
+/**
  * OpenAI Responses API with web search
  * Docs: https://platform.openai.com/docs/guides/tools-web-search
  * Note: Web search requires the Responses API, not Chat Completions
@@ -1196,8 +1243,11 @@ async function callOpenAIWithSearch(
     model,
     tools: [{ type: 'web_search' }],
     input: input.trim(),
-    temperature,
   };
+  // Responses-only reasoning models reject `temperature` outright.
+  if (!requiresResponsesApi(model)) {
+    openAIRequest.temperature = temperature;
+  }
   if (maxTokens !== undefined) {
     openAIRequest.max_output_tokens = maxTokens;
   }
@@ -1281,6 +1331,7 @@ function modelSupportsVision(providerId: string, model: string): boolean {
              modelLower.includes('gpt-4-vision') ||
              modelLower.includes('gpt-4-turbo') ||
              modelLower.includes('gpt-5') ||
+             modelLower.includes('gpt-6') ||
              modelLower.includes('o1') ||
              modelLower.includes('o3');
     case 'grok':
@@ -1345,6 +1396,11 @@ async function callOpenAICompatible(
   // OpenAI with web search uses a different API (Responses API)
   if (providerId === 'openai' && searchOptions?.enabled) {
     return callOpenAIWithSearch(apiKey, model, messages, systemPrompt, maxTokens, temperature);
+  }
+
+  // Responses-only OpenAI models (gpt-5.5-pro, gpt-6-astra).
+  if (providerId === 'openai' && requiresResponsesApi(model)) {
+    return callOpenAIResponses(apiKey, model, messages, systemPrompt, maxTokens, attachments);
   }
 
   const supportsVision = modelSupportsVision(providerId, model);

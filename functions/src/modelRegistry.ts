@@ -178,9 +178,21 @@ const MODELS_DEPRECATING_TEMPERATURE = new Set([
   'claude-fable-5-1',
 ]);
 
-const MODELS_UNSUPPORTED_CHAT_COMPLETIONS = new Set([
+// Models that must be called through /v1/responses instead of
+// /v1/chat/completions. gpt-5.5-pro is not served on chat completions at all;
+// gpt-6-astra is, but rejects function tools there with every
+// reasoning_effort and does not accept 'none' (live-verified 2026-09-10).
+// Both accept function tools, streaming, and function_call_output replay on
+// /v1/responses. Neither accepts `temperature` there.
+const MODELS_REQUIRING_RESPONSES_API = new Set([
+  'gpt-6-astra',
   'gpt-5.5-pro',
 ]);
+
+export function requiresResponsesApi(modelId: string | undefined): boolean {
+  if (!modelId) return false;
+  return MODELS_REQUIRING_RESPONSES_API.has(resolveModelAlias(modelId));
+}
 
 // GPT-5.6 GA on /v1/chat/completions cannot combine function tools with its
 // default reasoning: "Function tools with reasoning_effort are not supported
@@ -215,14 +227,10 @@ export function getDefaultModel(providerId: string): string {
 
 export function resolveProviderModelId(providerId: string, modelId?: string): string {
   if (modelId) {
-    const resolvedModel = resolveModelAlias(modelId);
-    if (
-      providerId === 'openai' &&
-      MODELS_UNSUPPORTED_CHAT_COMPLETIONS.has(resolvedModel)
-    ) {
-      return getDefaultModel(providerId);
-    }
-    return resolvedModel;
+    // Responses-only OpenAI models are no longer downgraded to the provider
+    // default here; the OpenAI runtime and callable proxy route them to
+    // /v1/responses instead.
+    return resolveModelAlias(modelId);
   }
   return getDefaultModel(providerId);
 }
