@@ -12,7 +12,7 @@
     "watch": "tsc -w -p tsconfig.json"
   },
   "dependencies": {
-    "@apple/app-store-server-library": "^2.0.0",
+    "@apple/app-store-server-library": "^3.1.0",
     "@google-cloud/tasks": "^6.2.3",
     "@sparticuz/chromium": "^149.0.0",
     "axios": "^1.13.5",
