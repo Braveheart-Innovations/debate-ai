@@ -109,6 +109,33 @@ describe('ErrorService', () => {
       expect(mockCrashlytics.recordError).not.toHaveBeenCalled();
     });
 
+    it.each([
+      ErrorCode.PURCHASE_CANCELLED,
+      ErrorCode.API_UNAUTHORIZED,
+      ErrorCode.API_BILLING_REQUIRED,
+      ErrorCode.API_RATE_LIMITED,
+      ErrorCode.VALIDATION_API_KEY_INVALID,
+      ErrorCode.APP_PREMIUM_REQUIRED,
+    ])('skips Crashlytics for expected user-side code %s but still toasts', (code) => {
+      const error = new AppError({ code, message: 'expected', severity: 'error' });
+
+      ErrorService.handleError(error, { showToast: true });
+
+      expect(mockCrashlytics.recordError).not.toHaveBeenCalled();
+      expect(mockLogger.error).toHaveBeenCalled();
+      expect(mockStore.dispatch).toHaveBeenCalledWith(
+        expect.objectContaining({ type: addError.type })
+      );
+    });
+
+    it('still records unexpected API errors to Crashlytics', () => {
+      const error = new AppError({ code: ErrorCode.API_INVALID_RESPONSE, message: 'bad json' });
+
+      ErrorService.handleError(error);
+
+      expect(mockCrashlytics.recordError).toHaveBeenCalled();
+    });
+
     it('dispatches to Redux when showToast is true', () => {
       const error = new Error('Test error');
 

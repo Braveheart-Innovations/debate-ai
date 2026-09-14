@@ -74,7 +74,9 @@ export const SocialAuthProviders: React.FC<SocialAuthProvidersProps> = ({
       console.error('Apple Sign In error:', error);
       if (error instanceof Error && error.message !== 'User cancelled') {
         onError?.(error);
-        ErrorService.handleWithToast(new Error('Unable to sign in with Apple. Please try again.'), { feature: 'auth' });
+        // signInWithApple already recorded the underlying error (with its real message
+        // and context) to Crashlytics; here we only surface the friendly message.
+        ErrorService.handleError(error, { feature: 'auth', showToast: true, logToCrashlytics: false });
       }
     } finally {
       setLoadingProvider(null);
@@ -100,7 +102,8 @@ export const SocialAuthProviders: React.FC<SocialAuthProvidersProps> = ({
       console.error('Google Sign In error:', error);
       if (error instanceof Error && !error.message.toLowerCase().includes('cancel')) {
         onError?.(error);
-        ErrorService.handleWithToast(error, { feature: 'auth' });
+        // signInWithGoogle already recorded the underlying error to Crashlytics.
+        ErrorService.handleError(error, { feature: 'auth', showToast: true, logToCrashlytics: false });
       }
     } finally {
       setLoadingProvider(null);

@@ -7,10 +7,10 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import { signInWithApple, signInWithGoogle, toAuthUser } from '@/services/firebase/auth';
 
 // Mock ErrorService
-const mockHandleWithToast = jest.fn();
+const mockHandleError = jest.fn();
 jest.mock('@/services/errors/ErrorService', () => ({
   ErrorService: {
-    handleWithToast: (...args: unknown[]) => mockHandleWithToast(...args),
+    handleError: (...args: unknown[]) => mockHandleError(...args),
     showSuccess: jest.fn(),
     showWarning: jest.fn(),
     showInfo: jest.fn(),
@@ -70,7 +70,7 @@ const originalDev = __DEV__;
 describe('SocialAuthProviders', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockHandleWithToast.mockClear();
+    mockHandleError.mockClear();
     Object.defineProperty(Platform, 'OS', { value: originalPlatform });
     (AppleAuthentication.isAvailableAsync as jest.Mock).mockReset();
     (signInWithApple as jest.Mock).mockReset();
@@ -117,7 +117,7 @@ describe('SocialAuthProviders', () => {
     expect(profile?.authProvider).toBe('apple');
     expect(profile?.membershipStatus).toBe('premium');
     expect(onSuccess).toHaveBeenCalledTimes(1);
-    expect(mockHandleWithToast).not.toHaveBeenCalled();
+    expect(mockHandleError).not.toHaveBeenCalled();
   });
 
   it('falls back to Google sign-in and updates state on success', async () => {
@@ -170,7 +170,11 @@ describe('SocialAuthProviders', () => {
       expect(onError).toHaveBeenCalledWith(error);
     });
 
-    expect(mockHandleWithToast).toHaveBeenCalledWith(error, expect.objectContaining({ feature: 'auth' }));
+    // The auth service already records the real error; the UI only toasts it.
+    expect(mockHandleError).toHaveBeenCalledWith(
+      error,
+      expect.objectContaining({ feature: 'auth', showToast: true, logToCrashlytics: false })
+    );
     consoleSpy.mockRestore();
   });
 

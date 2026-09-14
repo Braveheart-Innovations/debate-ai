@@ -167,6 +167,9 @@ async function logPurchaseError(
   }
 }
 
+/** Store error codes that mean the user dismissed the purchase sheet (iOS + Android + Play responseCode). */
+const IAP_USER_CANCELLED_CODES = ['E_USER_CANCELLED', 'USER_CANCELED', 'user-cancelled', '1'];
+
 /** User-friendly error messages for common IAP error codes */
 const IAP_ERROR_MESSAGES: Record<string, string> = {
   E_DEVELOPER_ERROR: 'Unable to connect to the store. Please ensure you have the latest version of the app from the Play Store and try again.',
@@ -1192,13 +1195,17 @@ export class PurchaseService {
     };
     const errorCode = errorObj?.code || (errorObj?.responseCode !== undefined ? String(errorObj.responseCode) : 'UNKNOWN');
     const errorMessage = errorObj?.message || errorObj?.debugMessage || 'Unknown error';
+    const userCancelled = IAP_USER_CANCELLED_CODES.includes(errorCode);
 
-    ErrorService.handleSilent(error, {
-      action: 'iap_purchase_error',
-      productId: pendingSku ?? 'unknown',
-      errorCode,
-      errorMessage,
-    });
+    // A user backing out of the store sheet is not an error; keep it out of Crashlytics.
+    if (!userCancelled) {
+      ErrorService.handleSilent(error, {
+        action: 'iap_purchase_error',
+        productId: pendingSku ?? 'unknown',
+        errorCode,
+        errorMessage,
+      });
+    }
 
     if (pendingSku) {
       await logPurchaseError('purchaseErrorListener', errorCode, errorMessage, {
@@ -1213,7 +1220,7 @@ export class PurchaseService {
       });
     }
 
-    if (['E_USER_CANCELLED', 'USER_CANCELED', 'user-cancelled', '1'].includes(errorCode)) {
+    if (userCancelled) {
       return;
     }
 

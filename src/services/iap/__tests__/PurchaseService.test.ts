@@ -69,6 +69,7 @@ jest.mock('expo-device', () => ({ isDevice: true }));
 // Import after mocks
 import { PurchaseService } from '../PurchaseService';
 import { SUBSCRIPTION_PRODUCTS } from '../products';
+import { ErrorService } from '../../errors/ErrorService';
 
 describe('PurchaseService', () => {
   beforeEach(() => {
@@ -1316,6 +1317,36 @@ describe('PurchaseService', () => {
 
       expect(result.success).toBe(false);
       expect(result.userMessage).toBe('Failed to restore purchases. Please try again.');
+    });
+  });
+
+  describe('handlePurchaseError (via listener)', () => {
+    it.each(['E_USER_CANCELLED', 'USER_CANCELED', 'user-cancelled', '1'])(
+      'does not record user cancellation %s to Crashlytics',
+      async (code) => {
+        const handleSilent = jest.spyOn(ErrorService, 'handleSilent');
+        await PurchaseService.initialize();
+        const purchaseErrorHandler = mockPurchaseErrorListener.mock.calls[0][0];
+
+        await purchaseErrorHandler({ code, message: 'User cancelled the operation' });
+
+        expect(handleSilent).not.toHaveBeenCalled();
+        handleSilent.mockRestore();
+      }
+    );
+
+    it('still records real store errors', async () => {
+      const handleSilent = jest.spyOn(ErrorService, 'handleSilent');
+      await PurchaseService.initialize();
+      const purchaseErrorHandler = mockPurchaseErrorListener.mock.calls[0][0];
+
+      await purchaseErrorHandler({ code: 'E_SERVICE_ERROR', message: 'Store unavailable' });
+
+      expect(handleSilent).toHaveBeenCalledWith(
+        expect.objectContaining({ code: 'E_SERVICE_ERROR' }),
+        expect.objectContaining({ action: 'iap_purchase_error', errorCode: 'E_SERVICE_ERROR' })
+      );
+      handleSilent.mockRestore();
     });
   });
 

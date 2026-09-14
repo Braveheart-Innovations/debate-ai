@@ -1,6 +1,6 @@
 import { AppError } from '../types/AppError';
 import { NetworkError } from '../types/NetworkError';
-import { APIError } from '../types/APIError';
+import { APIError, isBillingMessage } from '../types/APIError';
 import { AuthError } from '../types/AuthError';
 import { ErrorCode, ErrorContext } from '../codes/ErrorCodes';
 
@@ -81,8 +81,18 @@ function normalizeStandardError(
     return createNetworkError(error, message);
   }
 
+  // Provider account out of credit/quota - a user-side condition, checked before
+  // status parsing because providers report it under 400, 402 and 429.
+  if (isBillingMessage(message)) {
+    return APIError.billingRequired(provider || 'AI', error.message);
+  }
+
   // API-related errors - check for HTTP status codes
-  const statusMatch = message.match(/\((\d{3})\)/) || message.match(/status[:\s]+(\d{3})/i);
+  // Matches "(429)", "status: 500" and adapter-style "API error: 401 - ..."
+  const statusMatch =
+    message.match(/\((\d{3})\)/) ||
+    message.match(/status[:\s]+(\d{3})(?!\d)/i) ||
+    message.match(/error:?\s+(\d{3})(?!\d)/i);
   if (statusMatch) {
     const statusCode = parseInt(statusMatch[1], 10);
     return APIError.fromHttpStatus(statusCode, provider, error.message);
