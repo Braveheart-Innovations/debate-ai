@@ -23,7 +23,7 @@
     "google-auth-library": "^10.6.2",
     "googleapis": "^174.0.1",
     "handlebars": "^4.7.8",
-    "jose": "^5.9.3",
+    "jose": "^6.2.9",
     "marked": "^18.0.6",
     "pdfjs-dist": "^5.4.530",
     "puppeteer-core": "25.1.0",
