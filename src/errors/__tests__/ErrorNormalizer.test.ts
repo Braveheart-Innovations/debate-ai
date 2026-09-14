@@ -232,6 +232,32 @@ describe('ErrorNormalizer', () => {
     });
   });
 
+  describe('provider billing detection', () => {
+    it('maps Anthropic "credit balance too low" (a 400) to API_BILLING_REQUIRED', () => {
+      const result = normalizeError(
+        new Error('Claude API error: 400 - Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'),
+        { provider: 'claude' }
+      );
+
+      expect(result).toBeInstanceOf(APIError);
+      expect(result.code).toBe(ErrorCode.API_BILLING_REQUIRED);
+      expect(result.retryable).toBe(false);
+    });
+
+    it('maps OpenAI insufficient_quota (a 429) to API_BILLING_REQUIRED, not rate limit', () => {
+      const result = APIError.fromHttpStatus(429, 'openai', 'You exceeded your current quota, please check your plan and billing details. insufficient_quota');
+
+      expect(result.code).toBe(ErrorCode.API_BILLING_REQUIRED);
+    });
+
+    it('detects adapter-style "API error: 401 - ..." messages as unauthorized', () => {
+      const result = normalizeError(new Error('Claude API error: 401 - invalid x-api-key'), { provider: 'claude' });
+
+      expect(result).toBeInstanceOf(APIError);
+      expect(result.code).toBe(ErrorCode.API_UNAUTHORIZED);
+    });
+  });
+
   describe('context preservation', () => {
     it('adds provider context to normalized error', () => {
       const result = normalizeError(

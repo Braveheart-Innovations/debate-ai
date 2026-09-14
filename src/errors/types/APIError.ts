@@ -50,11 +50,13 @@ export class APIError extends AppError {
       529: { code: ErrorCode.API_PROVIDER_OVERLOADED, message: 'Service overloaded', retryable: true },
     };
 
-    const mapped = errorMap[statusCode] || {
-      code: ErrorCode.API_SERVER_ERROR,
-      message: 'API error',
-      retryable: statusCode >= 500,
-    };
+    const mapped = originalMessage && isBillingMessage(originalMessage)
+      ? { code: ErrorCode.API_BILLING_REQUIRED, message: 'Provider account out of credit', retryable: false }
+      : errorMap[statusCode] || {
+        code: ErrorCode.API_SERVER_ERROR,
+        message: 'API error',
+        retryable: statusCode >= 500,
+      };
 
     const message = originalMessage
       ? `${provider || 'API'} error (${statusCode}): ${originalMessage}`
@@ -66,6 +68,23 @@ export class APIError extends AppError {
       statusCode,
       provider,
       retryable: mapped.retryable,
+    });
+  }
+
+  /**
+   * Create an error for a provider account with no remaining credit/quota.
+   * Providers report this inconsistently (Anthropic: 400 "credit balance is too low",
+   * OpenAI: 429 "insufficient_quota"), so callers detect it by message.
+   */
+  static billingRequired(provider: string, originalMessage?: string): APIError {
+    return new APIError({
+      code: ErrorCode.API_BILLING_REQUIRED,
+      message: originalMessage
+        ? `${provider} error: ${originalMessage}`
+        : `${provider} account has no remaining credit`,
+      statusCode: 402,
+      provider,
+      retryable: false,
     });
   }
 
@@ -158,4 +177,21 @@ export class APIError extends AppError {
       retryable: false,
     });
   }
+}
+
+/**
+ * Detect provider "out of credit / quota" messages. These are user-account
+ * conditions (BYOK), not app defects.
+ */
+export function isBillingMessage(message: string): boolean {
+  const m = message.toLowerCase();
+  return (
+    m.includes('credit balance') ||
+    m.includes('insufficient_quota') ||
+    m.includes('insufficient quota') ||
+    m.includes('exceeded your current quota') ||
+    m.includes('billing details') ||
+    m.includes('plans & billing') ||
+    m.includes('payment required')
+  );
 }

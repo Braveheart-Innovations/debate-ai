@@ -7,6 +7,23 @@ import { addError } from '../../store/errorSlice';
 import { ErrorCode, ErrorSeverity } from '../../errors/codes/ErrorCodes';
 import { getUserFriendlyMessage } from '../../errors/messages/UserFriendlyMessages';
 
+/**
+ * Errors that are expected outcomes of user or account state rather than app
+ * defects. They are still logged locally and shown to the user, but never
+ * recorded to Crashlytics, where they would bury real problems.
+ */
+const EXPECTED_USER_ERROR_CODES: ReadonlySet<ErrorCode> = new Set([
+  ErrorCode.PURCHASE_CANCELLED,
+  ErrorCode.API_UNAUTHORIZED,
+  ErrorCode.API_FORBIDDEN,
+  ErrorCode.API_RATE_LIMITED,
+  ErrorCode.API_BILLING_REQUIRED,
+  ErrorCode.API_CONTENT_FILTERED,
+  ErrorCode.VALIDATION_API_KEY_INVALID,
+  ErrorCode.APP_PREMIUM_REQUIRED,
+  ErrorCode.APP_DEMO_MODE_RESTRICTED,
+]);
+
 export interface ErrorHandleOptions {
   /** Show toast notification (default: true) */
   showToast?: boolean;
@@ -83,7 +100,7 @@ class ErrorServiceClass {
     );
 
     // Additional Crashlytics logging for AppError-specific data
-    if (logToCrashlytics && appError.severity !== 'info') {
+    if (logToCrashlytics && appError.severity !== 'info' && !this.isExpectedUserError(appError)) {
       this.logToCrashlytics(appError);
     }
 
@@ -237,6 +254,14 @@ class ErrorServiceClass {
     });
 
     return this.handleError(appError, options);
+  }
+
+  /**
+   * True for errors that reflect user or account state (cancelled purchase,
+   * bad BYOK key, provider out of credit, gated feature) rather than a defect.
+   */
+  isExpectedUserError(appError: AppError): boolean {
+    return EXPECTED_USER_ERROR_CODES.has(appError.code);
   }
 
   /**

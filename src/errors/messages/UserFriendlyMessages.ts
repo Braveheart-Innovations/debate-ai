@@ -25,6 +25,7 @@ export const UserFriendlyMessages: Record<ErrorCode, string> = {
   [ErrorCode.API_VERIFICATION_REQUIRED]: 'Organization verification is required for streaming.',
   [ErrorCode.API_INVALID_RESPONSE]: 'Received an unexpected response. Please try again.',
   [ErrorCode.API_CONTENT_FILTERED]: 'The response was filtered due to content policies.',
+  [ErrorCode.API_BILLING_REQUIRED]: 'Your provider account is out of credit. Add funds on the provider\'s billing page and try again.',
 
   // Auth Errors
   [ErrorCode.AUTH_INVALID_CREDENTIALS]: 'Invalid email or password. Please try again.',
