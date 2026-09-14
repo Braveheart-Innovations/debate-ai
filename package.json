@@ -116,7 +116,7 @@
     "react-syntax-highlighter": "^16.1.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.25.2",
+    "@babel/core": "^8.0.1",
     "@eslint/js": "^9.33.0",
     "@react-native/jest-preset": "^0.86.2",
     "@testing-library/react-native": "^12.3.0",
