@@ -84,6 +84,17 @@ describe('modelRegistry', () => {
     assert.equal(resolveProviderModelId('openai', 'gpt-6-astra'), 'gpt-6-astra');
   });
 
+  it('covers the late-September 2026 Claude 5.5 and GPT-6 models', () => {
+    assert.equal(normalizeProviderTemperature('claude', 'claude-opus-5-5', 0.7), undefined);
+    assert.equal(normalizeProviderTemperature('claude', 'claude-sonnet-5-5', 0.7), undefined);
+    for (const model of ['gpt-6.1-sol', 'gpt-6-sol', 'gpt-6-luna']) {
+      assert.equal(normalizeProviderTemperature('openai', model, 0.7), 1);
+      assert.equal(requiresResponsesApi(model), true);
+      assert.equal(requiresReasoningEffortNoneForTools(model), false);
+      assert.equal(resolveProviderModelId('openai', model), model);
+    }
+  });
+
   it('routes every DeepSeek name to V4.1 Flash', () => {
     assert.equal(getDefaultModel('deepseek'), 'deepseek-flash');
     assert.equal(resolveProviderModelId('deepseek', 'deepseek-v4-flash'), 'deepseek-flash');
