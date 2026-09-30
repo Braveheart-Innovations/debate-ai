@@ -64,6 +64,17 @@ const KNOWN_SUPERSEDED_IDS = new Set([
   'command-r7b-arabic-02-2025',
 ]);
 
+// Model IDs whose provider catalog metadata is known to be wrong. The live
+// endpoint is still authoritative for presence, but capability drift for these
+// IDs is skipped because direct probes contradict the catalog:
+// - mistral-medium-2604: /v1/models returns a stub (completion_chat false, 32K
+//   context, every capability false) while chat, tool calls, image input, and
+//   120K-token prompts all succeed on 2026-09-03. Re-check each refresh and
+//   drop the entry once Mistral fixes the catalog.
+const CATALOG_METADATA_UNRELIABLE = new Set([
+  'mistral-medium-2604',
+]);
+
 const PROVIDERS = [
   {
     id: 'claude',
@@ -279,9 +290,16 @@ const PROVIDERS = [
     extract: (payload) => payload.data?.map((model) => ({
       id: model.id,
       ownedBy: model.owned_by,
+      contextLength: model.context_length,
+      capabilities: typeof model.supports_image_in === 'boolean' || typeof model.supports_reasoning === 'boolean'
+        ? {
+          vision: model.supports_image_in,
+          thinking: model.supports_reasoning,
+        }
+        : undefined,
       raw: model,
     })) || [],
-    note: 'Bare IDs only; capabilities/pricing are docs-curated. moonshot-v1-* series sunsets 2026-08-31 — never catalog it.',
+    note: 'Returns context_length + supports_image_in/supports_reasoning (since 2026-09); pricing is docs-curated. moonshot-v1-* series sunsets 2026-08-31 — never catalog it.',
   },
   {
     id: 'zai',
@@ -296,7 +314,7 @@ const PROVIDERS = [
       ownedBy: model.owned_by,
       raw: model,
     })) || [],
-    note: 'Bare IDs only (verified 2026-08-17); capabilities/pricing are docs-curated. Catalog can list gated models — probe chat completions before curating new IDs (glm-5.3 returns permission error 1220 on standard keys).',
+    note: 'Bare IDs only (verified 2026-08-17); capabilities/pricing are docs-curated. Catalog can list gated models — probe chat completions before curating new IDs (glm-5.3 returned permission error 1220 on standard keys until September 2026).',
   },
 ];
 
@@ -505,7 +523,7 @@ function isImageModelId(id) {
 
 function isUnsupportedMediaModelId(id) {
   // Audio, video, speech, and realtime models the app has no surface for.
-  return /^(veo-|lyria-|sora|whisper|tts-|gpt-audio|gpt-realtime|gemini-omni-|voxtral|omni-moderation|.*-tts(?:-|$)|.*transcribe|.*native-audio|grok-imagine-video|cohere-transcribe)/.test(id);
+  return /^(veo-|lyria-|sora|whisper|tts-|gpt-audio|gpt-realtime|gpt-live|gemini-omni-|gemini-.*-live-|voxtral|omni-moderation|.*-tts(?:-|$)|.*transcribe|.*native-audio|grok-imagine-video|cohere-transcribe)/.test(id);
 }
 
 function isCatalogOnlyModelId(id) {
@@ -513,7 +531,7 @@ function isCatalogOnlyModelId(id) {
   // provider-side "-latest" alias IDs (aliases are resolved app-side).
   return /-latest$/.test(id)
     || KNOWN_SUPERSEDED_IDS.has(id)
-    || /^(gemma-|embed-|rerank-|nvidia\/|davinci|babbage|text-embedding|gpt-3\.5|gpt-4$|gpt-4-|o1-pro|o3-pro|open-mistral|mistral-tiny|mistral-code|mistral-embed|mistral-moderation|mistral-ocr|codestral-embed|labs-|c4ai-|tiny-aya|north-mini|.*embedding|.*robotics|.*-computer-use|.*customtools|.*deep-research|.*search-preview|.*search-api|.*-codex(?:-|$)|.*vibe-cli|grok-4\.20-multi-agent)/.test(id);
+    || /^(gemma-|embed-|rerank-|nvidia\/|davinci|babbage|text-embedding|gpt-3\.5|gpt-4$|gpt-4-|o1-pro|o3-pro|open-mistral|mistral-tiny|mistral-code|mistral-embed|mistral-moderation|mistral-ocr|codestral-embed|labs-|c4ai-|tiny-aya|north-mini|parse-|.*embedding|.*robotics|.*-computer-use|.*customtools|.*deep-research|.*search-preview|.*search-api|.*-codex(?:-|$)|.*vibe-cli|grok-4\.20-multi-agent)/.test(id);
 }
 
 const CAPABILITY_FLAG_PAIRS = [
@@ -527,6 +545,7 @@ function collectCapabilityDrift(configuredModels, discoveredById) {
   const drift = [];
   for (const model of configuredModels) {
     if (model.isDeprecated || model.supportsImageGeneration) continue;
+    if (CATALOG_METADATA_UNRELIABLE.has(model.id)) continue;
     const discovered = discoveredById.get(model.id);
     if (!discovered) continue;
 

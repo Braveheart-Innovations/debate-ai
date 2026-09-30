@@ -4,7 +4,7 @@
  * This file contains mappings for model versioning and easy updates.
  * Update this file when new model versions are released.
  * 
- * Last updated: July 2026
+ * Last updated: September 2026
  */
 
 export interface ModelVersionInfo {
@@ -31,10 +31,16 @@ export const MODEL_VERSIONS: ProviderVersions = {
   claude: {
     premium: [
       {
+        id: 'claude-opus-5-5',
+        version: '5.5-opus',
+        releaseDate: '2026-09-30',
+        isLatest: true,
+      },
+      {
         id: 'claude-opus-5',
         version: '5-opus',
         releaseDate: '2026-08-17',
-        isLatest: true,
+        isLatest: false,
       },
       {
         id: 'claude-opus-4-8',
@@ -78,18 +84,30 @@ export const MODEL_VERSIONS: ProviderVersions = {
     ],
     fable: [
       {
+        id: 'claude-fable-5-1',
+        version: '5.1-fable',
+        releaseDate: '2026-09-03',
+        isLatest: true,
+      },
+      {
         id: 'claude-fable-5',
         version: '5-fable',
         releaseDate: '2026-06-10',
-        isLatest: true,
+        isLatest: false,
       },
     ],
     balanced: [
       {
+        id: 'claude-sonnet-5-5',
+        version: '5.5-sonnet',
+        releaseDate: '2026-09-30',
+        isLatest: true,
+      },
+      {
         id: 'claude-sonnet-5',
         version: '5-sonnet',
         releaseDate: '2026-07-16',
-        isLatest: true,
+        isLatest: false,
       },
       {
         id: 'claude-sonnet-4-6',
@@ -138,10 +156,28 @@ export const MODEL_VERSIONS: ProviderVersions = {
   openai: {
     flagship: [
       {
+        id: 'gpt-6.1-sol',
+        version: '6.1-sol',
+        releaseDate: '2026-09-30',
+        isLatest: true,
+      },
+      {
+        id: 'gpt-6-astra',
+        version: '6-astra',
+        releaseDate: '2026-09-03',
+        isLatest: false,
+      },
+      {
+        id: 'gpt-6-sol',
+        version: '6-sol',
+        releaseDate: '2026-09-30',
+        isLatest: false,
+      },
+      {
         id: 'gpt-5.6-sol',
         version: '5.6-sol',
         releaseDate: '2026-07-16',
-        isLatest: true,
+        isLatest: false,
       },
       {
         id: 'gpt-5.6-terra',
@@ -188,10 +224,16 @@ export const MODEL_VERSIONS: ProviderVersions = {
     ],
     efficient: [
       {
+        id: 'gpt-6-luna',
+        version: '6-luna',
+        releaseDate: '2026-09-30',
+        isLatest: true,
+      },
+      {
         id: 'gpt-5.6-luna',
         version: '5.6-luna',
         releaseDate: '2026-07-16',
-        isLatest: true,
+        isLatest: false,
       },
       {
         id: 'gpt-5.4-mini',
@@ -266,10 +308,16 @@ export const MODEL_VERSIONS: ProviderVersions = {
     ],
     fast: [
       {
+        id: 'gemini-3.8-flash',
+        version: '3.8-flash',
+        releaseDate: '2026-09-03',
+        isLatest: true,
+      },
+      {
         id: 'gemini-3.7-flash',
         version: '3.7-flash',
         releaseDate: '2026-08-17',
-        isLatest: true,
+        isLatest: false,
       },
       {
         id: 'gemini-3.6-flash',
@@ -349,6 +397,12 @@ export const MODEL_VERSIONS: ProviderVersions = {
         version: '4.3',
         releaseDate: '2026-04-17',
         isLatest: true,
+      },
+      {
+        id: 'grok-4.7',
+        version: '4.7',
+        releaseDate: '2026-09-30',
+        isLatest: false,
       },
       {
         id: 'grok-4.6',
@@ -469,6 +523,8 @@ export const MODEL_VERSIONS: ProviderVersions = {
         version: '2512',
         releaseDate: '2025-12-01',
         isLatest: true,
+        isDeprecated: true,
+        replacedBy: 'mistral-medium-2604',
       },
     ],
     medium: [
@@ -483,6 +539,16 @@ export const MODEL_VERSIONS: ProviderVersions = {
         version: '2508',
         releaseDate: '2025-08-01',
         isLatest: false,
+        isDeprecated: true,
+        replacedBy: 'mistral-medium-2604',
+      },
+      {
+        id: 'devstral-2512',
+        version: '2512',
+        releaseDate: '2025-12-01',
+        isLatest: false,
+        isDeprecated: true,
+        replacedBy: 'mistral-medium-2604',
       },
     ],
     small: [
@@ -535,14 +601,6 @@ export const MODEL_VERSIONS: ProviderVersions = {
         isDeprecated: true,
       },
     ],
-    agentic: [
-      {
-        id: 'devstral-2512',
-        version: '2512',
-        releaseDate: '2025-12-01',
-        isLatest: true,
-      },
-    ],
     coding: [
       {
         id: 'codestral-2508',
@@ -585,6 +643,12 @@ export const MODEL_VERSIONS: ProviderVersions = {
         isLatest: false,
       },
       {
+        id: 'north-small-translate-09-2026',
+        version: 'north-small-translate-09-2026',
+        releaseDate: '2026-09-10',
+        isLatest: false,
+      },
+      {
         id: 'command-r-08-2024',
         version: 'r-08-2024',
         releaseDate: '2024-08-01',
@@ -601,10 +665,18 @@ export const MODEL_VERSIONS: ProviderVersions = {
   deepseek: {
     chat: [
       {
+        id: 'deepseek-flash',
+        version: 'v4.1-flash',
+        releaseDate: '2026-09-10',
+        isLatest: true,
+      },
+      {
         id: 'deepseek-v4-flash',
         version: 'v4-flash',
         releaseDate: '2026-04-24',
-        isLatest: true,
+        isLatest: false,
+        isDeprecated: true,
+        replacedBy: 'deepseek-flash',
       },
     ],
     pro: [
@@ -613,13 +685,15 @@ export const MODEL_VERSIONS: ProviderVersions = {
         version: 'v4-pro',
         releaseDate: '2026-04-24',
         isLatest: true,
+        isDeprecated: true,
+        replacedBy: 'deepseek-flash',
       },
     ],
     reasoning: [
       {
-        id: 'deepseek-v4-flash',
-        version: 'v4-flash-thinking',
-        releaseDate: '2026-04-24',
+        id: 'deepseek-flash',
+        version: 'v4.1-flash-thinking',
+        releaseDate: '2026-09-10',
         isLatest: true,
       },
       {
@@ -628,7 +702,7 @@ export const MODEL_VERSIONS: ProviderVersions = {
         releaseDate: '2025-06-01',
         isLatest: false,
         isDeprecated: true,
-        replacedBy: 'deepseek-v4-flash',
+        replacedBy: 'deepseek-flash',
       },
     ],
   },
@@ -665,15 +739,35 @@ export const MODEL_VERSIONS: ProviderVersions = {
   zai: {
     main: [
       {
+        id: 'glm-5.3',
+        version: '5.3',
+        releaseDate: '2026-09-03',
+        isLatest: true,
+      },
+      {
         id: 'glm-5.2',
         version: '5.2',
         releaseDate: '2026-05-28',
-        isLatest: true,
+        isLatest: false,
       },
       {
         id: 'glm-5.1',
         version: '5.1',
         releaseDate: '2026-02-11',
+        isLatest: false,
+      },
+    ],
+    flash: [
+      {
+        id: 'glm-5.3-flash',
+        version: '5.3-flash',
+        releaseDate: '2026-09-03',
+        isLatest: true,
+      },
+      {
+        id: 'glm-5.3-flashx',
+        version: '5.3-flashx',
+        releaseDate: '2026-09-30',
         isLatest: false,
       },
     ],

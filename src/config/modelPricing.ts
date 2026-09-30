@@ -13,10 +13,23 @@ export interface ProviderPricing {
 // provider exposes token-based rates compatible with this structure.
 export const MODEL_PRICING: { [provider: string]: ProviderPricing } = {
   claude: {
-    // Standard price; intro pricing of $2/$10 runs through 2026-08-31.
+    'claude-sonnet-5-5': {
+      inputPer1M: 2.0,
+      outputPer1M: 10.0,
+    },
+    'claude-opus-5-5': {
+      inputPer1M: 4.0,
+      outputPer1M: 20.0,
+    },
+    // Sonnet 5's $2/$10 launch price became its standard price (the planned
+    // 2026-09-01 increase to $3/$15 was cancelled).
     'claude-sonnet-5': {
-      inputPer1M: 3.0,
-      outputPer1M: 15.0,
+      inputPer1M: 2.0,
+      outputPer1M: 10.0,
+    },
+    'claude-fable-5-1': {
+      inputPer1M: 10.0,
+      outputPer1M: 50.0,
     },
     'claude-fable-5': {
       inputPer1M: 10.0,
@@ -76,6 +89,25 @@ export const MODEL_PRICING: { [provider: string]: ProviderPricing } = {
     },
   },
   openai: {
+    // GPT-6: prompts above 272K input tokens bill at 2x input / 1.5x output.
+    'gpt-6.1-sol': {
+      inputPer1M: 2.0,
+      outputPer1M: 10.0,
+    },
+    'gpt-6-astra': {
+      inputPer1M: 10.0,
+      outputPer1M: 50.0,
+    },
+    'gpt-6-sol': {
+      inputPer1M: 2.0,
+      outputPer1M: 10.0,
+    },
+    'gpt-6-luna': {
+      inputPer1M: 0.1,
+      outputPer1M: 0.5,
+    },
+    // Standard prices; promotional $4/$20, $2/$12, and $0.20/$1.20 rates on
+    // Sol/Terra/Luna run at least through 2026-11-21.
     'gpt-5.6-sol': {
       inputPer1M: 5.0,
       outputPer1M: 30.0,
@@ -163,6 +195,10 @@ export const MODEL_PRICING: { [provider: string]: ProviderPricing } = {
   },
   google: {
     // Standard price; intro pricing of $0.75/$3.75 runs through 2026-12-31.
+    'gemini-3.8-flash': {
+      inputPer1M: 1.5,
+      outputPer1M: 7.5,
+    },
     'gemini-3.7-flash': {
       inputPer1M: 1.5,
       outputPer1M: 7.5,
@@ -308,21 +344,28 @@ export const MODEL_PRICING: { [provider: string]: ProviderPricing } = {
     },
   },
   deepseek: {
+    // V4.1 Flash list (peak) rates; DeepSeek bills half of these off-peak.
+    'deepseek-flash': {
+      inputPer1M: 0.3,
+      outputPer1M: 1.2,
+    },
+    // Retired 2026-09-10 names and V4 Pro (from 2026-09-14) are served as
+    // V4.1 Flash at Flash rates.
     'deepseek-v4-flash': {
-      inputPer1M: 0.14,
-      outputPer1M: 0.28,
+      inputPer1M: 0.3,
+      outputPer1M: 1.2,
     },
     'deepseek-v4-pro': {
-      inputPer1M: 1.74,
-      outputPer1M: 3.48,
+      inputPer1M: 0.3,
+      outputPer1M: 1.2,
     },
     'deepseek-chat': {
-      inputPer1M: 0.14,
-      outputPer1M: 0.28,
+      inputPer1M: 0.3,
+      outputPer1M: 1.2,
     },
     'deepseek-reasoner': {
-      inputPer1M: 0.14,
-      outputPer1M: 0.28,
+      inputPer1M: 0.3,
+      outputPer1M: 1.2,
     },
   },
   grok: {
@@ -330,7 +373,11 @@ export const MODEL_PRICING: { [provider: string]: ProviderPricing } = {
       inputPer1M: 1.25,
       outputPer1M: 2.5,
     },
-    // grok-4.6/4.5: $4/$12 beyond the 200K long-context threshold.
+    // grok-4.7/4.6/4.5: $4/$12 beyond the 200K long-context threshold.
+    'grok-4.7': {
+      inputPer1M: 2.0,
+      outputPer1M: 6.0,
+    },
     'grok-4.6': {
       inputPer1M: 2.0,
       outputPer1M: 6.0,
@@ -343,17 +390,19 @@ export const MODEL_PRICING: { [provider: string]: ProviderPricing } = {
       inputPer1M: 1.0,
       outputPer1M: 2.0,
     },
+    // grok-4.20 is priced like grok-4.3 (xAI /v1/language-models + docs,
+    // 2026-09-10); $2.50/$5 beyond the 200K long-context threshold.
     'grok-4.20-0309-non-reasoning': {
-      inputPer1M: 3.0,
-      outputPer1M: 15.0,
+      inputPer1M: 1.25,
+      outputPer1M: 2.5,
     },
     'grok-4.20-0309-reasoning': {
-      inputPer1M: 3.0,
-      outputPer1M: 15.0,
+      inputPer1M: 1.25,
+      outputPer1M: 2.5,
     },
     'grok-4.20': {
-      inputPer1M: 3.0,
-      outputPer1M: 15.0,
+      inputPer1M: 1.25,
+      outputPer1M: 2.5,
     },
     'grok-4-0709': {
       inputPer1M: 3.0,
@@ -395,8 +444,20 @@ export const MODEL_PRICING: { [provider: string]: ProviderPricing } = {
       outputPer1M: 4.0,
     },
   },
-  // Source: docs.z.ai/guides/overview/pricing (glm-5.3 pricing unpublished while API access is gated)
+  // Source: docs.z.ai/guides/overview/pricing
   zai: {
+    'glm-5.3': {
+      inputPer1M: 1.4,
+      outputPer1M: 4.4,
+    },
+    'glm-5.3-flash': {
+      inputPer1M: 0.15,
+      outputPer1M: 0.5,
+    },
+    'glm-5.3-flashx': {
+      inputPer1M: 0.37,
+      outputPer1M: 1.25,
+    },
     'glm-5.2': {
       inputPer1M: 1.4,
       outputPer1M: 4.4,

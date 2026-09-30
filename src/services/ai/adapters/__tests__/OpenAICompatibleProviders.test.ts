@@ -69,11 +69,11 @@ const ADAPTER_MATRIX: AdapterEntry[] = [
     provider: 'deepseek',
     AdapterCtor: DeepSeekAdapter,
     baseUrl: 'https://api.deepseek.com/v1',
-    defaultModel: 'deepseek-v4-flash',
+    defaultModel: 'deepseek-flash',
     capabilities: {
       streaming: true,
-      attachments: false,  // Chat API doesn't support vision
-      supportsImages: false,
+      attachments: true,  // DeepSeek V4.1 Flash is natively multimodal
+      supportsImages: true,
       supportsDocuments: false,
       functionCalling: true,
       systemPrompt: true,
@@ -103,7 +103,7 @@ const ADAPTER_MATRIX: AdapterEntry[] = [
     provider: 'mistral',
     AdapterCtor: MistralAdapter,
     baseUrl: 'https://api.mistral.ai/v1',
-    defaultModel: 'mistral-large-2512',
+    defaultModel: 'mistral-medium-2604',
     capabilities: {
       streaming: true,
       attachments: true,  // Supports images only
@@ -137,10 +137,10 @@ const ADAPTER_MATRIX: AdapterEntry[] = [
     provider: 'zai',
     AdapterCtor: ZaiAdapter,
     baseUrl: 'https://api.z.ai/api/paas/v4',
-    defaultModel: 'glm-5.2',
+    defaultModel: 'glm-5.3',
     capabilities: {
       streaming: true,
-      attachments: false,  // GLM 5.x text line has no image input (glm-5v-* is retired)
+      attachments: false,  // GLM-5.3 is text-only; only the Flash/FlashX variants take images
       supportsImages: false,
       supportsDocuments: false,
       functionCalling: true,
@@ -432,5 +432,20 @@ describe('GrokAdapter web search (xAI Responses API)', () => {
 
     const [url] = fetchMock.mock.calls[0];
     expect(String(url)).toBe('https://api.x.ai/v1/chat/completions');
+  });
+});
+
+describe('per-model image input for DeepSeek and Z.ai', () => {
+  it.each([
+    ['deepseek', DeepSeekAdapter, 'deepseek-flash', true],
+    ['deepseek', DeepSeekAdapter, 'deepseek-v4-pro', false],
+    ['zai', ZaiAdapter, 'glm-5.3-flash', true],
+    ['zai', ZaiAdapter, 'glm-5.3-flashx', true],
+    ['zai', ZaiAdapter, 'glm-5.3', false],
+    ['zai', ZaiAdapter, 'glm-5.2', false],
+  ] as const)('%s / %s supportsImages=%s', (provider, AdapterCtor, model, expected) => {
+    const adapter = new AdapterCtor(makeConfig(provider, model));
+    expect(adapter.getCapabilities().supportsImages).toBe(expected);
+    expect(adapter.getCapabilities().attachments).toBe(expected);
   });
 });

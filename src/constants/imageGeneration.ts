@@ -10,7 +10,7 @@ export const IMAGE_GENERATION_CONSTANTS = {
     HD: 'hd',
   },
   MODELS: {
-    OPENAI_IMAGE: 'gpt-image-2',
+    OPENAI_IMAGE: 'gpt-image-2.5-flare',
   },
 } as const;
 

@@ -1,11 +1,12 @@
 import { OpenAICompatibleAdapter } from '../../base/OpenAICompatibleAdapter';
 import { ProviderConfig } from '../../types/adapter.types';
+import { getDefaultModel } from '../../../../config/providers/modelRegistry';
 
 export class MistralAdapter extends OpenAICompatibleAdapter {
   protected getProviderConfig(): ProviderConfig {
     return {
       baseUrl: 'https://api.mistral.ai/v1',
-      defaultModel: 'mistral-large-2512',
+      defaultModel: getDefaultModel('mistral'),
       headers: (apiKey: string) => ({
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,

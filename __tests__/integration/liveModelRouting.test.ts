@@ -178,7 +178,8 @@ const buildLiveParameters = (
   } else if (provider === 'zai' && modelConfig?.supportsThinking) {
     // GLM reasoners can spend >128 tokens thinking before any visible text.
     maxTokens = 512;
-  } else if (provider === 'deepseek' && model === 'deepseek-reasoner') {
+  } else if (provider === 'deepseek' && modelConfig?.supportsThinking) {
+    // DeepSeek V4.1 Flash thinks by default before any visible text.
     maxTokens = 384;
   } else if (modelConfig?.supportsThinking) {
     maxTokens = 128;

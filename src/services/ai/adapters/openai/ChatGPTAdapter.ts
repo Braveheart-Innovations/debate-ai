@@ -66,6 +66,7 @@ export class ChatGPTAdapter extends OpenAICompatibleAdapter {
                           model.startsWith('gpt-4-vision') ||
                           model.startsWith('gpt-4.1') ||
                           model.startsWith('gpt-5') ||
+                          model.startsWith('gpt-6') ||
                           model.startsWith('o1') ||
                           model.startsWith('o3') ||
                           model.startsWith('o4');

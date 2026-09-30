@@ -49,9 +49,9 @@ describe('Model selection flow hardening', () => {
 
   it('AIService normalizes deprecated and alias model overrides before calling adapters', async () => {
     const adapter = {
-      config: { model: 'claude-sonnet-5', isDebateMode: false },
+      config: { model: 'claude-sonnet-5-5', isDebateMode: false },
       setTemporaryPersonality: jest.fn(),
-      sendMessage: jest.fn().mockResolvedValue({ response: 'ok', modelUsed: 'claude-sonnet-5' }),
+      sendMessage: jest.fn().mockResolvedValue({ response: 'ok', modelUsed: 'claude-sonnet-5-5' }),
     };
     const createSpy = jest.spyOn(AdapterFactory, 'create').mockReturnValue(adapter as never);
     const service = new AIService({ claude: 'key' });
@@ -65,8 +65,8 @@ describe('Model selection flow hardening', () => {
       undefined,
       'claude-3-7-sonnet-20250219'
     );
-    expect(adapter.config.model).toBe('claude-sonnet-5');
-    expect(adapter.sendMessage).toHaveBeenLastCalledWith('Hello', [], undefined, undefined, 'claude-sonnet-5');
+    expect(adapter.config.model).toBe('claude-sonnet-5-5');
+    expect(adapter.sendMessage).toHaveBeenLastCalledWith('Hello', [], undefined, undefined, 'claude-sonnet-5-5');
 
     await service.sendMessage(
       'claude',
@@ -77,8 +77,8 @@ describe('Model selection flow hardening', () => {
       undefined,
       'claude-latest'
     );
-    expect(adapter.config.model).toBe('claude-sonnet-5');
-    expect(adapter.sendMessage).toHaveBeenLastCalledWith('Hello again', [], undefined, undefined, 'claude-sonnet-5');
+    expect(adapter.config.model).toBe('claude-sonnet-5-5');
+    expect(adapter.sendMessage).toHaveBeenLastCalledWith('Hello again', [], undefined, undefined, 'claude-sonnet-5-5');
 
     createSpy.mockRestore();
   });
@@ -113,7 +113,7 @@ describe('Model selection flow hardening', () => {
     };
     const service = {
       getAdapter: jest.fn(() => adapter),
-      sendMessage: jest.fn().mockResolvedValue({ response: 'fallback', modelUsed: 'claude-sonnet-5' }),
+      sendMessage: jest.fn().mockResolvedValue({ response: 'fallback', modelUsed: 'claude-sonnet-5-5' }),
       setPersonality: jest.fn(),
     } as unknown as AIServiceType;
     const dispatch = jest.fn() as unknown as AppDispatch;
@@ -149,13 +149,13 @@ describe('Model selection flow hardening', () => {
     expect(mockStreamingService.streamResponse).toHaveBeenCalledWith(
       expect.objectContaining({
         adapterConfig: expect.objectContaining({
-          model: 'claude-sonnet-5',
+          model: 'claude-sonnet-5-5',
           personality: expect.objectContaining({
             id: 'persona',
             systemPrompt: expect.stringContaining('Chat mode contract'),
           }),
         }),
-        modelOverride: 'claude-sonnet-5',
+        modelOverride: 'claude-sonnet-5-5',
       }),
       expect.any(Function),
       expect.any(Function),
@@ -191,7 +191,7 @@ describe('Model selection flow hardening', () => {
       }),
       undefined,
       undefined,
-      'claude-sonnet-5'
+      'claude-sonnet-5-5'
     );
   });
 });
