@@ -11,8 +11,8 @@
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
-		244335D4A9694C42AB3CA95E /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = CFD2E2E936EA413F8CE3D283 /* PrivacyInfo.xcprivacy */; };
-		E6A50963BC7649ABB28FF547 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 2C68AE0087274164BC833F91 /* GoogleService-Info.plist */; };
+		19D2081D496548D5808A98DF /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 352DFFC7F84448E7A3C37C11 /* PrivacyInfo.xcprivacy */; };
+		A9A47EF5E6064E8C9576BABC /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 5793CF4F880A4D0AA6DE6B9E /* GoogleService-Info.plist */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -24,8 +24,8 @@
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = SymposiumAI/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* SymposiumAI-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "SymposiumAI-Bridging-Header.h"; path = "SymposiumAI/SymposiumAI-Bridging-Header.h"; sourceTree = "<group>"; };
-		CFD2E2E936EA413F8CE3D283 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; name = "PrivacyInfo.xcprivacy"; path = "SymposiumAI/PrivacyInfo.xcprivacy"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
-		2C68AE0087274164BC833F91 /* GoogleService-Info.plist */ = {isa = PBXFileReference; name = "GoogleService-Info.plist"; path = "SymposiumAI/GoogleService-Info.plist"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = text.plist.xml; explicitFileType = undefined; includeInIndex = 0; };
+		352DFFC7F84448E7A3C37C11 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; name = "PrivacyInfo.xcprivacy"; path = "SymposiumAI/PrivacyInfo.xcprivacy"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		5793CF4F880A4D0AA6DE6B9E /* GoogleService-Info.plist */ = {isa = PBXFileReference; name = "GoogleService-Info.plist"; path = "SymposiumAI/GoogleService-Info.plist"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = text.plist.xml; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -48,8 +48,8 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				CFD2E2E936EA413F8CE3D283 /* PrivacyInfo.xcprivacy */,
-				2C68AE0087274164BC833F91 /* GoogleService-Info.plist */,
+				352DFFC7F84448E7A3C37C11 /* PrivacyInfo.xcprivacy */,
+				5793CF4F880A4D0AA6DE6B9E /* GoogleService-Info.plist */,
 			);
 			name = SymposiumAI;
 			sourceTree = "<group>";
@@ -161,8 +161,8 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				244335D4A9694C42AB3CA95E /* PrivacyInfo.xcprivacy in Resources */,
-				E6A50963BC7649ABB28FF547 /* GoogleService-Info.plist in Resources */,
+				19D2081D496548D5808A98DF /* PrivacyInfo.xcprivacy in Resources */,
+				A9A47EF5E6064E8C9576BABC /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
