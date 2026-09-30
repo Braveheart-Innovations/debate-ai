@@ -2,7 +2,7 @@
   "expo": {
     "name": "Symposium AI",
     "slug": "symposium-ai",
-    "version": "2.1.0",
+    "version": "2.2.0",
     "description": "Where Ideas Converge. Where Understanding Emerges.",
     "primaryColor": "#0E9594",
     "orientation": "default",
@@ -123,7 +123,7 @@
         "projectId": "f607938e-5c51-4cac-9901-a0419c7a79fd"
       }
     },
-    "runtimeVersion": "2.1.0",
+    "runtimeVersion": "2.2.0",
     "updates": {
       "url": "https://u.expo.dev/f607938e-5c51-4cac-9901-a0419c7a79fd"
     }
