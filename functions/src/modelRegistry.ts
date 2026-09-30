@@ -146,6 +146,11 @@ const MODELS_REQUIRING_TEMPERATURE_1 = new Set([
   // NOT live-verified: OpenAI still returned 404 for standard keys at refresh
   // time — re-run the live smoke as soon as the API serves it.
   'gpt-6-astra',
+  // GPT-6.1 Sol / GPT-6 Sol / GPT-6 Luna (live-verified 2026-09-30): same
+  // "Only the default (1) value is supported" 400 on temperature 0.7.
+  'gpt-6.1-sol',
+  'gpt-6-sol',
+  'gpt-6-luna',
   'gpt-5.5',
   'gpt-5.5-pro',
   'gpt-5.4',
@@ -176,6 +181,10 @@ const MODELS_DEPRECATING_TEMPERATURE = new Set([
   'claude-opus-5',
   // Live-verified 2026-09-03: same 400 on temperature 0.7; omission accepted.
   'claude-fable-5-1',
+  // Live-verified 2026-09-30: temperature 0.7 and top_p both 400
+  // "deprecated for this model"; temperature 1 and omission accepted.
+  'claude-opus-5-5',
+  'claude-sonnet-5-5',
 ]);
 
 // Models that must be called through /v1/responses instead of
@@ -187,6 +196,14 @@ const MODELS_DEPRECATING_TEMPERATURE = new Set([
 const MODELS_REQUIRING_RESPONSES_API = new Set([
   'gpt-6-astra',
   'gpt-5.5-pro',
+  // Live-verified 2026-09-30. gpt-6.1-sol rejects function tools on chat
+  // completions with every reasoning_effort and rejects 'none' (the same
+  // shape as gpt-6-astra). gpt-6-sol / gpt-6-luna accept tools there only
+  // with reasoning_effort 'none'; routing them through /v1/responses keeps
+  // reasoning on during tool use. All three emit function_call on Responses.
+  'gpt-6.1-sol',
+  'gpt-6-sol',
+  'gpt-6-luna',
 ]);
 
 export function requiresResponsesApi(modelId: string | undefined): boolean {
