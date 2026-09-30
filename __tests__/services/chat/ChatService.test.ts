@@ -60,59 +60,6 @@ describe('ChatService', () => {
     expect(runtimeError.content).toContain('Sorry, I encountered an error');
   });
 
-  it('builds conversation context with debate mode detection', () => {
-    const messages: Message[] = [
-      { id: '1', sender: 'You', senderType: 'user', content: 'Hello', timestamp: 1 },
-      { id: '2', sender: 'Claude', senderType: 'ai', content: '[DEBATE MODE] Opening statement', timestamp: 2 },
-    ];
-    const userMessage: Message = { id: '3', sender: 'You', senderType: 'user', content: 'reply', timestamp: 3 };
-
-    const context = ChatService.buildConversationContext(messages, userMessage);
-
-    expect(context.isDebateMode).toBe(true);
-    expect(context.lastSpeaker).toBe('Claude');
-    expect(context.lastMessage).toBe('[DEBATE MODE] Opening statement');
-    expect(context.messages).toHaveLength(3);
-  });
-
-  it('does not infer debate mode from message text when session type is chat', () => {
-    const messages: Message[] = [
-      { id: '1', sender: 'You', senderType: 'user', content: '[DEBATE MODE] stale marker', timestamp: 1 },
-      { id: '2', sender: 'Claude', senderType: 'ai', content: 'Normal chat answer', timestamp: 2 },
-    ];
-    const userMessage: Message = { id: '3', sender: 'You', senderType: 'user', content: 'continue', timestamp: 3 };
-
-    const context = ChatService.buildConversationContext(messages, userMessage, {
-      sessionType: 'chat',
-    });
-
-    expect(context.isDebateMode).toBe(false);
-  });
-
-  it('uses explicit debate session type for debate mode', () => {
-    const userMessage: Message = { id: '1', sender: 'You', senderType: 'user', content: 'Opening prompt', timestamp: 1 };
-
-    const context = ChatService.buildConversationContext([], userMessage, {
-      sessionType: 'debate',
-    });
-
-    expect(context.isDebateMode).toBe(true);
-  });
-
-  it('builds round robin context and determines first AI in round', () => {
-    const history: Message[] = [
-      { id: '1', sender: 'You', senderType: 'user', content: 'Hello', timestamp: 1 },
-    ];
-    const responses: Message[] = [
-      { id: '2', sender: 'Claude', senderType: 'ai', content: 'Hi there', timestamp: 2 },
-    ];
-
-    const context = ChatService.buildRoundRobinContext(history, responses);
-    expect(context.lastSpeaker).toBe('Claude');
-    expect(context.isDebateMode).toBe(false);
-    expect(ChatService.isFirstAIInRound({ messages: history.concat(responses), isDebateMode: false })).toBe(false);
-  });
-
   it('validates message content and typing delay', () => {
     expect(ChatService.validateMessageContent('')).toEqual({ isValid: false, error: 'Content must be a string' });
     expect(ChatService.validateMessageContent('   ')).toEqual({ isValid: false, error: 'Content cannot be empty' });
@@ -134,6 +81,5 @@ describe('ChatService', () => {
     expect(ChatService.hasMessages(messages)).toBe(true);
     expect(ChatService.getLastUserMessage(messages)?.id).toBe('2');
     expect(ChatService.getMessagesSinceLastUser(messages)).toHaveLength(2);
-    expect(ChatService.isDebateModeActive(messages)).toBe(true);
   });
 });

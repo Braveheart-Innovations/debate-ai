@@ -74,6 +74,7 @@ const makeHistory = (): Message[] => [
     senderType: 'ai',
     content: 'Previous response',
     timestamp: Date.now() - 2000,
+    metadata: { providerId: 'openai' },
   },
   {
     id: 'user-1',

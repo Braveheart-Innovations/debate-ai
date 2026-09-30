@@ -57,7 +57,7 @@ describe('CohereAdapter', () => {
       const adapter = new CohereAdapter(makeConfig());
       const history: Message[] = [
         { id: '1', sender: 'You', senderType: 'user', content: 'Outline milestones', timestamp: 1 },
-        { id: '2', sender: 'Cohere', senderType: 'ai', content: 'Milestones ready', timestamp: 2 },
+        { id: '2', sender: 'Cohere', senderType: 'ai', content: 'Milestones ready', timestamp: 2, metadata: { providerId: 'cohere' } },
       ];
 
       await adapter.sendMessage('Provide next actions', history);

@@ -9,6 +9,15 @@ export interface AIAdapterConfig {
   parameters?: Partial<ModelParameters>;
   isDebateMode?: boolean;
   webSearchEnabled?: boolean;
+  /** Set when this adapter speaks in a multi-AI Chat; drives the group-chat system contract. */
+  groupChat?: GroupChatContext;
+}
+
+export interface GroupChatContext {
+  /** This AI's display name, as it appears in transcript labels. */
+  selfName: string;
+  /** Display names of every AI in the chat, in session order (includes selfName). */
+  participants: string[];
 }
 
 export type AdapterConfig = AIAdapterConfig;

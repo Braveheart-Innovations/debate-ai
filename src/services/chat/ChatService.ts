@@ -1,17 +1,5 @@
 import { Message, AI } from '../../types';
 
-export interface ConversationContext {
-  messages: Message[];
-  isDebateMode: boolean;
-  lastSpeaker?: string;
-  lastMessage?: string;
-}
-
-export interface ConversationContextOptions {
-  sessionType?: 'chat' | 'comparison' | 'debate';
-  isDebateMode?: boolean;
-}
-
 export class ChatService {
   /**
    * Creates a new user message with proper structure
@@ -88,67 +76,18 @@ export class ChatService {
       senderType: 'ai',
       content,
       timestamp: Date.now(),
+      metadata: {
+        aiId: ai.id,
+        providerId: ai.provider,
+        // Marks this as a non-answer so it never feeds into other AIs' context.
+        lifecycle: {
+          status: 'failed',
+          reason: errorMsg,
+          partial: false,
+          retryable: false,
+        },
+      },
     };
-  }
-
-  /**
-   * Determines which AIs should respond based on mentions and selection
-   */
-  /**
-   * Builds conversation context for AI processing
-   */
-  static buildConversationContext(
-    messages: Message[],
-    userMessage: Message,
-    options: ConversationContextOptions = {}
-  ): ConversationContext {
-    const allMessages = [...messages, userMessage];
-    const isDebateMode = ChatService.resolveDebateMode(allMessages, options);
-
-    const lastAIMessage = allMessages
-      .slice()
-      .reverse()
-      .find(msg => msg.senderType === 'ai');
-
-    return {
-      messages: allMessages,
-      isDebateMode,
-      lastSpeaker: lastAIMessage?.sender,
-      lastMessage: lastAIMessage?.content,
-    };
-  }
-
-  /**
-   * Builds conversation context for round-robin responses
-   */
-  static buildRoundRobinContext(
-    messages: Message[],
-    newResponses: Message[],
-    options: ConversationContextOptions = {}
-  ): ConversationContext {
-    const allMessages = [...messages, ...newResponses];
-    const isDebateMode = ChatService.resolveDebateMode(allMessages, options);
-
-    const lastMessage = allMessages[allMessages.length - 1];
-
-    return {
-      messages: allMessages,
-      isDebateMode,
-      lastSpeaker: lastMessage?.sender,
-      lastMessage: lastMessage?.content,
-    };
-  }
-
-  /**
-   * Determines if an AI is the first to respond in this round
-   */
-  static isFirstAIInRound(
-    conversationContext: ConversationContext
-  ): boolean {
-    const lastMessage = conversationContext.messages[
-      conversationContext.messages.length - 1
-    ];
-    return lastMessage?.senderType === 'user';
   }
 
   /**
@@ -206,31 +145,5 @@ export class ChatService {
     const lastUserIndex = messages.map(m => m.senderType).lastIndexOf('user');
     if (lastUserIndex === -1) return [];
     return messages.slice(lastUserIndex + 1);
-  }
-
-  /**
-   * Checks if debate mode is active in the conversation
-   */
-  static isDebateModeActive(messages: Message[]): boolean {
-    return messages.some(msg => 
-      msg.content.toLowerCase().includes('[debate mode]')
-    );
-  }
-
-  private static resolveDebateMode(
-    messages: Message[],
-    options: ConversationContextOptions
-  ): boolean {
-    if (typeof options.isDebateMode === 'boolean') {
-      return options.isDebateMode;
-    }
-
-    if (options.sessionType) {
-      return options.sessionType === 'debate';
-    }
-
-    return messages.some(msg =>
-      msg.content.includes('[DEBATE MODE]')
-    );
   }
 }

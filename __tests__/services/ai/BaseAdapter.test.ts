@@ -358,3 +358,107 @@ describe('BaseAdapter.getSystemPrompt', () => {
     expect(prompt).toContain('stand firm on positions');
   });
 });
+
+describe('BaseAdapter multi-AI chat attribution', () => {
+  const groupChat = { selfName: 'Claude', participants: ['Gemini', 'ChatGPT', 'Claude'] };
+
+  // Round 1 of a Gemini → ChatGPT → Claude chat, then the user's follow-up.
+  const round: Message[] = [
+    { id: 'u1', sender: 'You', senderType: 'user', content: 'Is coffee bad for you?', timestamp: 1 },
+    {
+      id: 'g1', sender: 'Gemini', senderType: 'ai', content: 'Coffee dehydrates you.', timestamp: 2,
+      metadata: { aiId: 'gemini', providerId: 'google' },
+    },
+    {
+      id: 'c1', sender: 'ChatGPT', senderType: 'ai', content: "Gemini overreached: coffee isn't meaningfully dehydrating.", timestamp: 3,
+      metadata: { aiId: 'chatgpt', providerId: 'openai' },
+    },
+    {
+      id: 'a1', sender: 'Claude', senderType: 'ai', content: 'Agreed with ChatGPT.', timestamp: 4,
+      metadata: { aiId: 'claude', providerId: 'claude' },
+    },
+  ];
+
+  const makeAdapter = (overrides: Partial<ConstructorParameters<typeof TestAdapter>[0]> = {}) =>
+    new TestAdapter({ provider: 'claude', identityId: 'claude', apiKey: 'key', model: 'opus', ...overrides });
+
+  it("never presents another AI's words as the adapter's own, even outside debate", () => {
+    const formatted = makeAdapter().format(round);
+
+    expect(formatted).toEqual([
+      {
+        role: 'user',
+        content: "Is coffee bad for you?\n\n[Gemini] Coffee dehydrates you.\n\n[ChatGPT] Gemini overreached: coffee isn't meaningfully dehydrating.",
+      },
+      { role: 'assistant', content: 'Agreed with ChatGPT.' },
+    ]);
+  });
+
+  it('labels the human as [User] in group chat so merged blocks stay unambiguous', () => {
+    const formatted = makeAdapter({ groupChat }).format(round);
+
+    expect(formatted[0]).toEqual({
+      role: 'user',
+      content: "[User] Is coffee bad for you?\n\n[Gemini] Coffee dehydrates you.\n\n[ChatGPT] Gemini overreached: coffee isn't meaningfully dehydrating.",
+    });
+    expect(formatted[1]).toEqual({ role: 'assistant', content: 'Agreed with ChatGPT.' });
+  });
+
+  it('distinguishes two instances of the same provider by identity', () => {
+    const history: Message[] = [
+      { id: 'u', sender: 'You', senderType: 'user', content: 'Hi', timestamp: 1 },
+      { id: 'x', sender: 'Claude 2', senderType: 'ai', content: 'From the other Claude', timestamp: 2, metadata: { aiId: 'claude-2', providerId: 'claude' } },
+    ];
+    expect(makeAdapter().format(history)).toEqual([
+      { role: 'user', content: 'Hi\n\n[Claude 2] From the other Claude' },
+    ]);
+  });
+
+  it('drops failed and interrupted turns from context', () => {
+    const history: Message[] = [
+      round[0],
+      {
+        id: 'e', sender: 'Gemini', senderType: 'ai', content: 'Sorry, I encountered an error: boom', timestamp: 2,
+        metadata: { aiId: 'gemini', providerId: 'google', lifecycle: { status: 'failed', retryable: false } },
+      },
+      {
+        id: 'p', sender: 'ChatGPT', senderType: 'ai', content: 'Half an answ', timestamp: 3,
+        metadata: { aiId: 'chatgpt', providerId: 'openai', lifecycle: { status: 'interrupted', partial: true } },
+      },
+    ];
+    expect(makeAdapter().format(history)).toEqual([
+      { role: 'user', content: 'Is coffee bad for you?' },
+    ]);
+  });
+
+  it('keeps debate mapping unlabeled for the user even if groupChat is stale', () => {
+    const formatted = makeAdapter({ groupChat, isDebateMode: true }).format(round);
+    expect(formatted[0].content).toMatch(/^Is coffee bad for you\?/);
+  });
+
+  describe('getSystemPrompt group-chat contract', () => {
+    it('appends identity, roster, and norms when groupChat is set', () => {
+      const prompt = makeAdapter({ groupChat }).getSystemPromptPublic();
+      expect(prompt.startsWith('You are a helpful AI assistant.')).toBe(true);
+      expect(prompt).toContain('You appear in this group chat as Claude');
+      expect(prompt).toContain('Participants: Gemini, ChatGPT, Claude (you).');
+      expect(prompt).toContain('a critique aimed at another AI is not aimed at you');
+      expect(prompt).toContain('Accuracy over agreement');
+    });
+
+    it('omits the contract for single-AI chat and for debate', () => {
+      expect(makeAdapter().getSystemPromptPublic()).toBe('You are a helpful AI assistant.');
+      expect(makeAdapter({ groupChat, isDebateMode: true }).getSystemPromptPublic()).not.toContain('group chat');
+    });
+
+    it('composes after a persona prompt', () => {
+      const personality = {
+        id: 'devlin', name: 'Devlin', description: 'd', systemPrompt: 'You are Devlin.',
+        traits: { formality: 0.5, humor: 0.5, technicality: 0.5, empathy: 0.5 }, isPremium: false,
+      } as PersonalityConfig;
+      const prompt = makeAdapter({ groupChat, personality }).getSystemPromptPublic();
+      expect(prompt.indexOf('You are Devlin.')).toBe(0);
+      expect(prompt.indexOf('You appear in this group chat as Claude')).toBeGreaterThan(0);
+    });
+  });
+});

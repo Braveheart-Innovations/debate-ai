@@ -1,4 +1,4 @@
-import { ChatService, ConversationContext } from '../ChatService';
+import { ChatService } from '../ChatService';
 import { AI, Message } from '../../../types';
 
 describe('ChatService', () => {
@@ -59,91 +59,13 @@ describe('ChatService', () => {
     expect(notConfigured.content).toContain("I'm not configured yet");
   });
 
-  describe('conversation context builders', () => {
-    const history: Message[] = [
-      {
-        id: '1',
-        sender: 'Alpha',
-        senderType: 'ai',
-        content: 'Hello',
-        timestamp: Date.now() - 1000,
-      },
-    ];
-
-    it('buildConversationContext derives last speaker and debate flag', () => {
-      const userMessage: Message = {
-        id: '2',
-        sender: 'You',
-        senderType: 'user',
-        content: '[DEBATE MODE] Let us start',
-        timestamp: Date.now(),
-      };
-
-      const context = ChatService.buildConversationContext(history, userMessage);
-      expect(context.messages).toHaveLength(2);
-      expect(context.isDebateMode).toBe(true);
-      expect(context.lastSpeaker).toBe('Alpha');
-      expect(context.lastMessage).toBe('Hello');
+  it('createErrorMessage marks the turn as failed so it stays out of AI context', () => {
+    const message = ChatService.createErrorMessage(ai, new Error('boom'));
+    expect(message.metadata).toMatchObject({
+      aiId: 'ai-1',
+      providerId: 'openai',
+      lifecycle: { status: 'failed', reason: 'boom', retryable: false },
     });
-
-    it('keeps chat sessions out of debate mode even with stale marker text', () => {
-      const userMessage: Message = {
-        id: '2',
-        sender: 'You',
-        senderType: 'user',
-        content: '[DEBATE MODE] stale marker',
-        timestamp: Date.now(),
-      };
-
-      const context = ChatService.buildConversationContext(history, userMessage, {
-        sessionType: 'chat',
-      });
-
-      expect(context.isDebateMode).toBe(false);
-    });
-
-    it('uses explicit debate session type for debate context', () => {
-      const userMessage: Message = {
-        id: '2',
-        sender: 'You',
-        senderType: 'user',
-        content: 'Opening prompt',
-        timestamp: Date.now(),
-      };
-
-      const context = ChatService.buildConversationContext(history, userMessage, {
-        sessionType: 'debate',
-      });
-
-      expect(context.isDebateMode).toBe(true);
-    });
-
-    it('buildRoundRobinContext uses merged responses', () => {
-      const newResponses: Message[] = [
-        {
-          id: '3',
-          sender: 'Beta',
-          senderType: 'ai',
-          content: 'Reply',
-          timestamp: Date.now(),
-        },
-      ];
-
-      const context = ChatService.buildRoundRobinContext(history, newResponses);
-      expect(context.messages).toHaveLength(2);
-      expect(context.lastSpeaker).toBe('Beta');
-      expect(context.isDebateMode).toBe(false);
-    });
-  });
-
-  it('isFirstAIInRound checks last message sender', () => {
-    const context: ConversationContext = {
-      messages: [
-        { id: '1', sender: 'You', senderType: 'user', content: 'Hi', timestamp: Date.now() },
-      ],
-      isDebateMode: false,
-    };
-    expect(ChatService.isFirstAIInRound(context)).toBe(true);
   });
 
   describe('validateMessageContent', () => {
@@ -189,12 +111,4 @@ describe('ChatService', () => {
     expect(since.map(m => m.id)).toEqual(['2', '3']);
   });
 
-  it('isDebateModeActive checks for debate marker', () => {
-    const messages: Message[] = [
-      { id: '1', sender: 'Alpha', senderType: 'ai', content: 'Regular chat', timestamp: 1 },
-      { id: '2', sender: 'You', senderType: 'user', content: '[DEBATE MODE] Start', timestamp: 2 },
-    ];
-
-    expect(ChatService.isDebateModeActive(messages)).toBe(true);
-  });
 });

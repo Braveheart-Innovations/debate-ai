@@ -41,6 +41,7 @@
     "test": "jest --watch=false --runInBand",
     "test:model-routing": "jest --runInBand __tests__/config/modelSelectionContract.test.ts __tests__/services/ai/ModelRoutingContract.test.ts __tests__/services/modelSelectionFlow.test.ts __tests__/services/home/AIConfigurationService.test.ts",
     "test:model-routing:live": "LIVE_MODEL_TEST=1 jest --runInBand --runTestsByPath __tests__/integration/liveModelRouting.test.ts",
+    "test:group-chat:live": "LIVE_GROUP_CHAT_TEST=1 jest --runInBand --runTestsByPath __tests__/integration/liveGroupChat.test.ts",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage --maxWorkers=50%",
     "eas-build-post-install": "bash scripts/eas-prebuild.sh",

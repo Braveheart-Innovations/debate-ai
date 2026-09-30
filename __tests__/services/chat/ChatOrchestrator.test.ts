@@ -377,4 +377,154 @@ describe('ChatOrchestrator', () => {
       expect.any(Function),
     );
   });
+
+  describe('multi-AI rounds', () => {
+    const gemini = { id: 'gemini', provider: 'google', name: 'Gemini', model: 'gemini-x' } as AI;
+    const chatgpt = { id: 'chatgpt', provider: 'openai', name: 'ChatGPT', model: 'gpt-x' } as AI;
+    const claude = { id: 'claude', provider: 'claude', name: 'Claude', model: 'claude-x' } as AI;
+    const trio: ChatSession = { ...session, selectedAIs: [gemini, chatgpt, claude] };
+    const replies: Record<string, string> = {
+      gemini: 'Coffee dehydrates you.',
+      chatgpt: "Gemini overreached: coffee isn't meaningfully dehydrating.",
+      claude: 'Agreed with ChatGPT, and here is more.',
+    };
+
+    const trioParams = (overrides: Partial<Parameters<ChatOrchestrator['processUserMessage']>[0]> = {}) => buildParams({
+      aiPersonalities: {},
+      selectedModels: {},
+      apiKeys: { google: 'k', openai: 'k', claude: 'k' },
+      streamingPreferences: {},
+      userMessage: { ...userMessage, content: 'Is coffee bad for you?' },
+      ...overrides,
+    });
+
+    const setup = () => {
+      const { adapter, service } = mockAIService();
+      (service as unknown as { getApiKey: jest.Mock }).getApiKey = jest.fn().mockResolvedValue('k');
+      mockStreamingService.streamResponse.mockImplementation(async (config, _onChunk, onComplete) => {
+        onComplete?.(replies[config.adapterConfig.identityId]);
+      });
+      const orchestrator = new ChatOrchestrator(service, dispatch);
+      orchestrator.updateSession(trio);
+      jest.spyOn(ChatOrchestrator.prototype as unknown as { sleep: (ms: number) => Promise<void> }, 'sleep').mockResolvedValue(undefined);
+      return { adapter, service, orchestrator };
+    };
+
+    const streamCalls = () => mockStreamingService.streamResponse.mock.calls.map(call => call[0]);
+
+    it("shows the third AI the whole round, labeled by speaker, not as its own words", async () => {
+      const { orchestrator } = setup();
+      await orchestrator.processUserMessage(trioParams());
+
+      const calls = streamCalls();
+      expect(calls.map(c => c.adapterConfig.identityId)).toEqual(['gemini', 'chatgpt', 'claude']);
+
+      // Every responder gets the same prior-round history; this round lives in the turn prompt.
+      calls.forEach(c => expect(c.conversationHistory).toEqual([]));
+
+      const third = calls[2];
+      expect(third.adapterConfig.groupChat).toEqual({ selfName: 'Claude', participants: ['Gemini', 'ChatGPT', 'Claude'] });
+      expect(third.adapterConfig.isDebateMode).toBe(false);
+      expect(third.message).toBe(
+        "[User] Is coffee bad for you?\n\n"
+        + '[Gemini] Coffee dehydrates you.\n\n'
+        + "[ChatGPT] Gemini overreached: coffee isn't meaningfully dehydrating.\n\n"
+        + "(Your turn, Claude: you're replying 3rd of 3, after Gemini and ChatGPT. Answer the user, engaging with the earlier replies where useful.)"
+      );
+      expect(calls[0].message).toContain("you're replying first; ChatGPT and Claude will reply after you.");
+      expect(calls[1].message).toContain('[User] Is coffee bad for you?');
+    });
+
+    it('rotates the opener next round and passes prior replies with speaker identity', async () => {
+      const { orchestrator } = setup();
+      await orchestrator.processUserMessage(trioParams());
+      const round1 = dispatchMock.mock.calls
+        .map(call => call[0])
+        .filter(action => action.type === addMessage.type)
+        .map(action => action.payload as Message);
+      const finalized = round1.map(m => ({ ...m, content: replies[m.metadata?.aiId as string] }));
+      mockStreamingService.streamResponse.mockClear();
+
+      const history = [{ ...userMessage, content: 'Is coffee bad for you?' }, ...finalized];
+      await orchestrator.processUserMessage(trioParams({
+        existingMessages: history,
+        userMessage: { ...userMessage, id: 'u2', content: 'What about tea?' },
+      }));
+
+      const calls = streamCalls();
+      expect(calls.map(c => c.adapterConfig.identityId)).toEqual(['chatgpt', 'claude', 'gemini']);
+      expect(calls[0].conversationHistory.map((m: Message) => m.metadata?.aiId ?? 'user'))
+        .toEqual(['user', 'gemini', 'chatgpt', 'claude']);
+    });
+
+    it('limits the round to mentioned AIs', async () => {
+      const { orchestrator } = setup();
+      await orchestrator.processUserMessage(trioParams({ mentions: ['claude'] }));
+
+      const calls = streamCalls();
+      expect(calls).toHaveLength(1);
+      expect(calls[0].message).toBe('[User] Is coffee bad for you?\n\n(Your turn, Claude. Answer the user directly.)');
+    });
+
+    it('leaves failed turns out of later prompts', async () => {
+      const { orchestrator } = setup();
+      mockStreamingService.streamResponse.mockImplementation(async (config, _onChunk, onComplete) => {
+        if (config.adapterConfig.identityId === 'gemini') throw new Error('boom');
+        onComplete?.(replies[config.adapterConfig.identityId]);
+      });
+      jest.spyOn(console, 'error').mockImplementation(() => undefined);
+      await orchestrator.processUserMessage(trioParams());
+
+      const third = streamCalls()[2];
+      expect(third.message).not.toContain('[Gemini]');
+      expect(third.message).toContain("you're replying 3rd of 3, after ChatGPT.");
+    });
+
+    it('strips an echoed self-label from the reply', async () => {
+      const { orchestrator } = setup();
+      mockStreamingService.streamResponse.mockImplementation(async (config, _onChunk, onComplete) => {
+        onComplete?.(`[${config.adapterConfig.identityId === 'claude' ? 'Claude' : 'X'}] hi`);
+      });
+      await orchestrator.processUserMessage(trioParams({ mentions: ['claude'] }));
+
+      expect(dispatchMock).toHaveBeenCalledWith(expect.objectContaining({
+        type: updateMessage.type,
+        payload: expect.objectContaining({ content: 'hi' }),
+      }));
+    });
+
+    it('configures shared adapters for group chat on the non-streaming path', async () => {
+      const { adapter, service, orchestrator } = setup();
+      adapter.getCapabilities.mockReturnValue({ streaming: false });
+      (adapter.config as Record<string, unknown>).isDebateMode = true;
+      await orchestrator.processUserMessage(trioParams({ allowStreaming: false, mentions: ['claude'] }));
+
+      expect(adapter.config).toMatchObject({
+        isDebateMode: false,
+        groupChat: { selfName: 'Claude', participants: ['Gemini', 'ChatGPT', 'Claude'] },
+      });
+      expect(service.sendMessage).toHaveBeenCalledWith(
+        'claude',
+        expect.stringContaining('[User] Is coffee bad for you?'),
+        [],
+        false,
+        undefined,
+        undefined,
+        expect.any(String),
+      );
+    });
+
+    it('keeps single-AI chat prompts unchanged', async () => {
+      const { service } = mockAIService();
+      mockStreamingService.streamResponse.mockImplementation(async (_config, _onChunk, onComplete) => onComplete?.('ok'));
+      const orchestrator = new ChatOrchestrator(service, dispatch);
+      orchestrator.updateSession(session);
+      jest.spyOn(ChatOrchestrator.prototype as unknown as { sleep: (ms: number) => Promise<void> }, 'sleep').mockResolvedValue(undefined);
+      await orchestrator.processUserMessage(buildParams());
+
+      const call = streamCalls()[0];
+      expect(call.message).toBe('Hello team');
+      expect(call.adapterConfig.groupChat).toBeUndefined();
+    });
+  });
 });
