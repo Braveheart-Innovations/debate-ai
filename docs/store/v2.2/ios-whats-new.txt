@@ -1,0 +1,21 @@
+Symposium AI 2.2 brings the newest AI models, smarter multi-AI conversations, and a round of fixes.
+
+THE NEWEST MODELS
+Claude Sonnet 5.5, GPT-6.1 Sol, and Gemini 3.8 Flash are the new defaults for Claude, ChatGPT, and Gemini. Also new: Claude Opus 5.5 and Fable 5.1, GPT-6 Astra and GPT-6 Luna, Grok 4.7, DeepSeek Flash, GLM-5.3 Flash and FlashX, and Cohere's North Small Translate. Mistral Medium 3.5, DeepSeek Flash, and GLM-5.3 are the new defaults for Mistral, DeepSeek, and GLM.
+
+SHOW THEM PICTURES
+DeepSeek Flash and GLM-5.3 Flash and FlashX can now see the images you attach.
+
+CREATE STUDIO
+GPT Image 2.5 Flare is the new ChatGPT image model, with GPT Image 2.5 Sunburst for detailed, high-precision work. Grok Imagine 2.0 adds cinematic 21:9 and wide 5:2 aspect ratios.
+
+MULTI-AI CHAT THAT KEEPS TRACK
+When several AIs share a chat, each one now knows who said what and where it falls in the round. They build on each other's replies instead of mistaking another AI's answer for their own.
+
+FIXES
+• Sonar Deep Research no longer comes back empty. Full research reports now arrive.
+• Streamed Claude replies no longer drop letters.
+• If a provider account runs out of credit, you now get a clear message telling you to add funds.
+• Updated app platform for better stability.
+
+And as always, bring your own API keys. They stay private and secure on your device, saving you money versus juggling multiple AI subscriptions.
