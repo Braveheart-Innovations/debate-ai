@@ -4,10 +4,12 @@
   "allowlist": [
     // image-size DoS advisories (ICNS / JXL / HEIF parser infinite loops),
     // reached only through metro's dev-time asset pipeline (metro -> expo /
-    // react-native). Every published image-size version (<=2.0.2) is in the
-    // vulnerable range, so no upgrade or override can resolve these yet.
-    // Remove both entries as soon as a patched image-size ships and metro
-    // picks it up. Allowlisted 2026-08-18 during the Expo SDK 57 upgrade.
+    // react-native). Patched 2.0.3+ shipped 2026-09-14, but there is no
+    // patched 1.x and metro 0.84 requires ^1.0.2: it calls imageSize(filePath),
+    // which 2.x rejects (buffers only), so overriding to 2.x breaks every image
+    // asset in the bundle (verified 2026-09-30). Remove both entries once metro
+    // moves to image-size 2.x. Allowlisted 2026-08-18 during the Expo SDK 57
+    // upgrade.
     "GHSA-w3rx-r6r6-pgpr",
     "GHSA-5p2g-fcmc-qvqq",
     // decode-uri-component DoS (exponential decoding of malformed input),
