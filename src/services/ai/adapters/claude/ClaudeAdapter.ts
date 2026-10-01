@@ -317,18 +317,6 @@ export class ClaudeAdapter extends BaseAdapter {
     
     // Queue to handle SSE events; StreamingService will own pacing/buffering
     const eventQueue: string[] = [];
-    // Dedupe rolling tail to avoid repeating overlaps between deltas
-    let outputTail = '';
-    const MAX_TAIL = 100;
-    const dedupeChunk = (text: string): string => {
-      if (!text) return text;
-      if (!outputTail) return text;
-      const maxOverlap = Math.min(outputTail.length, text.length, MAX_TAIL);
-      for (let k = maxOverlap; k > 0; k--) {
-        if (outputTail.slice(-k) === text.slice(0, k)) return text.slice(k);
-      }
-      return text;
-    };
     let resolver: ((value: IteratorResult<string, void>) => void) | null = null;
     let isComplete = false;
     let errorOccurred: Error | null = null;
@@ -336,7 +324,6 @@ export class ClaudeAdapter extends BaseAdapter {
     // Push a chunk into the stream (or queue it until the consumer is ready).
     const emitText = (nextText: string) => {
       if (!nextText) return;
-      outputTail = (outputTail + nextText).slice(-MAX_TAIL);
       if (resolver) {
         const r = resolver; resolver = null;
         r({ value: nextText, done: false });
@@ -397,7 +384,10 @@ export class ClaudeAdapter extends BaseAdapter {
         }
 
         if (data.delta?.text) {
-          emitText(dedupeChunk(data.delta.text));
+          // text_delta is incremental and never repeats earlier text, so emit it verbatim.
+          // (Trimming "overlap" with the previous delta used to eat real characters:
+          // "nar" + "row" became "narow".)
+          emitText(data.delta.text);
         }
         if (onEvent) onEvent({ type: 'content_block_delta', ...data });
       } catch (error) {
