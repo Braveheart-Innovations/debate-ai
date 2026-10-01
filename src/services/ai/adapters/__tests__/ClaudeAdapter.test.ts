@@ -336,7 +336,7 @@ describe('ClaudeAdapter', () => {
     await expect(adapter.sendMessage('fail')).rejects.toThrow('Claude API error: 400 - bad request');
   });
 
-  it('streams SSE deltas with deduplication and completion handling', async () => {
+  it('streams SSE deltas verbatim and completes', async () => {
     const adapter = new ClaudeAdapter(makeConfig('claude-3-7-sonnet-20250219'));
     const onEvent = jest.fn();
     const iterator = adapter.streamMessage('Hello', [], undefined, undefined, undefined, undefined, onEvent);
@@ -350,13 +350,37 @@ describe('ClaudeAdapter', () => {
     await expect(firstChunk).resolves.toEqual({ value: 'Hello', done: false });
 
     const secondChunk = iterator.next();
-    eventSource.emit('content_block_delta', JSON.stringify({ delta: { text: 'Hello there' } }));
+    eventSource.emit('content_block_delta', JSON.stringify({ delta: { text: ' there' } }));
     await expect(secondChunk).resolves.toEqual({ value: ' there', done: false });
 
     eventSource.emit('message_stop', null);
     await expect(iterator.next()).resolves.toEqual({ value: undefined, done: true });
     expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'content_block_delta' }));
     expect(eventSource.close).toHaveBeenCalled();
+  });
+
+  it('keeps characters shared across delta boundaries (no overlap trimming)', async () => {
+    // Regression: a rolling-tail "dedupe" stripped any prefix of a delta that matched the end of
+    // the previous one, so a word split at a doubled letter lost a character ("narrow" -> "narow").
+    const adapter = new ClaudeAdapter(makeConfig('claude-sonnet-5'));
+    const iterator = adapter.streamMessage('Hello');
+
+    const pending = iterator.next();
+    await flushMicrotasks();
+    const eventSource = mockEventSourceInstances[0];
+    if (!eventSource) throw new Error('EventSource not created');
+
+    const deltas = ['It is nar', 'row and we ke', 'ep it', ' ', ' spaced', 'd'];
+    for (const text of deltas) {
+      eventSource.emit('content_block_delta', JSON.stringify({ delta: { text } }));
+    }
+    eventSource.emit('message_stop', null);
+
+    const chunks: string[] = [(await pending).value as string];
+    for (let next = await iterator.next(); !next.done; next = await iterator.next()) {
+      chunks.push(next.value);
+    }
+    expect(chunks.join('')).toBe('It is narrow and we keep it  spacedd');
   });
 
   it('emits accumulated citations before the stream completes', async () => {
