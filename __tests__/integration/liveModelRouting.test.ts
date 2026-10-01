@@ -65,6 +65,11 @@ const PROVIDER_KEY_ENV_VARS: Record<AIProvider, string[]> = {
 
 const LIVE_PROMPT = 'Reply with OK and nothing else.';
 const DEFAULT_TIMEOUT_MS = 180000;
+// Models that research for minutes before answering get their own per-test
+// timeout instead of stretching every case. Sonar Deep Research took 115-180s
+// per call when live-verified on 2026-09-30.
+const LONG_RUNNING_MODELS = new Set(['sonar-deep-research']);
+const LONG_RUNNING_TIMEOUT_MS = 600000;
 
 const demoModeMock = isDemoModeEnabled as jest.MockedFunction<typeof isDemoModeEnabled>;
 // jest-expo 57's setup installs expo/src/winter, which replaces globalThis.fetch
@@ -338,40 +343,52 @@ describeLive('Live model routing smoke', () => {
     }
   });
 
-  it.each(runtime?.cases || [])(
-    'validates $provider / $model via live adapter request',
-    async ({ provider, model, apiKey, keyEnv }) => {
-      const service = new AIService({ [provider]: apiKey });
-      const startedAt = Date.now();
+  const runLiveCase = async ({ provider, model, apiKey, keyEnv }: LiveCase) => {
+    const service = new AIService({ [provider]: apiKey });
+    const startedAt = Date.now();
 
-      try {
-        const result = await service.sendMessage(
-          provider,
-          LIVE_PROMPT,
-          [],
-          false,
-          model,
-          buildLiveParameters(provider, model)
-        );
-        const durationMs = Date.now() - startedAt;
-        const responseText = result.response.trim();
+    try {
+      const result = await service.sendMessage(
+        provider,
+        LIVE_PROMPT,
+        [],
+        false,
+        model,
+        buildLiveParameters(provider, model)
+      );
+      const durationMs = Date.now() - startedAt;
+      const responseText = result.response.trim();
 
-        expect(responseText.length).toBeGreaterThan(0);
-        expect(service.getAdapter(provider)?.config.model).toBe(model);
+      expect(responseText.length).toBeGreaterThan(0);
+      expect(service.getAdapter(provider)?.config.model).toBe(model);
 
-        successfulRuns.push({
-          provider,
-          model,
-          modelUsed: result.modelUsed || model,
-          durationMs,
-          keyEnv,
-        });
-      } catch (error) {
-        const durationMs = Date.now() - startedAt;
-        throw new Error(
-          `Live smoke failed for ${provider}/${model} after ${durationMs}ms: ${formatError(error)}`
-        );
-      }
+      successfulRuns.push({
+        provider,
+        model,
+        modelUsed: result.modelUsed || model,
+        durationMs,
+        keyEnv,
+      });
+    } catch (error) {
+      const durationMs = Date.now() - startedAt;
+      throw new Error(
+        `Live smoke failed for ${provider}/${model} after ${durationMs}ms: ${formatError(error)}`
+      );
     }
-  );
+  };
+
+  const cases = runtime?.cases || [];
+  const standardCases = cases.filter((liveCase) => !LONG_RUNNING_MODELS.has(liveCase.model));
+  const longRunningCases = cases.filter((liveCase) => LONG_RUNNING_MODELS.has(liveCase.model));
+
+  if (standardCases.length > 0) {
+    it.each(standardCases)('validates $provider / $model via live adapter request', runLiveCase);
+  }
+  if (longRunningCases.length > 0) {
+    it.each(longRunningCases)(
+      'validates $provider / $model via live adapter request',
+      runLiveCase,
+      LONG_RUNNING_TIMEOUT_MS
+    );
+  }
 });
