@@ -61,9 +61,10 @@ describe('Model selection contract', () => {
     expect(resolveProviderModelId('mistral', 'mistral-medium-2508')).toBe('mistral-medium-2604');
   });
 
-  it('moves persisted Mistral Large 3 selections to the default (403 tier_not_allowed for standard keys)', () => {
-    expect(getModelById('mistral', 'mistral-large-2512')?.isDeprecated).toBe(true);
-    expect(resolveProviderModelId('mistral', 'mistral-large-2512')).toBe('mistral-medium-2604');
+  it('keeps paid-tier Mistral Large 3 selectable while Medium 3.5 is the default', () => {
+    expect(resolveProviderModelId('mistral', 'mistral-large-2512')).toBe('mistral-large-2512');
+    expect(getProviderModels('mistral').map((model) => model.id)).toContain('mistral-large-2512');
+    expect(getDefaultModel('mistral')).toBe('mistral-medium-2604');
   });
 
   it('looks up persisted alias IDs with the resolved model capabilities', () => {

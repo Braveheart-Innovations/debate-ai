@@ -523,8 +523,6 @@ export const MODEL_VERSIONS: ProviderVersions = {
         version: '2512',
         releaseDate: '2025-12-01',
         isLatest: true,
-        isDeprecated: true,
-        replacedBy: 'mistral-medium-2604',
       },
     ],
     medium: [

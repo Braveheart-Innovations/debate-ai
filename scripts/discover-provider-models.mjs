@@ -51,7 +51,9 @@ const KNOWN_SUPERSEDED_IDS = new Set([
   // Mistral re-hosts Z.ai's GLM under these IDs; GLM is served natively via
   // the zai provider (dotted IDs like glm-5.2), so skip the Mistral copies.
   'glm-5-2',
+  'zai-glm-5',
   'zai-glm-5-2',
+  'zai-glm-5-3',
   'gpt-5-mini',
   'gpt-5-nano',
   'gpt-5-pro',

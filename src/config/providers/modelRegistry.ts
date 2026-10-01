@@ -121,9 +121,9 @@ export const MODEL_ALIASES: Record<string, string> = {
   'sonar-research-latest': 'sonar-deep-research',
 
   // Mistral aliases
-  // mistral-large-2512 is tier-gated for standard keys (2026-09); the Mistral
-  // API itself now serves Mistral Medium 3.5 for the retired Devstral 2 and
-  // Mistral Medium 3.1 ids, so route them the same way.
+  // Medium 3.5 is the default (Large 3 is paid-tier only); the Mistral API
+  // itself now serves Medium 3.5 for the retired Devstral 2 and Medium 3.1
+  // ids, so route them the same way.
   'mistral-latest': 'mistral-medium-2604',
   'mistral-large-latest': 'mistral-large-2512',
   'mistral-medium-latest': 'mistral-medium-2604',

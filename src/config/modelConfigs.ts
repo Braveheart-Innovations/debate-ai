@@ -12,6 +12,11 @@ export interface ModelConfig {
   contextLength: number;
   contextLabel?: string | null; // Optional UI label when the provider publishes a friendly label or no numeric window
   maxOutputTokens?: number; // Maximum output tokens the model supports
+  // Floor for the max_tokens sent with each request, for models whose hidden
+  // reasoning spends the same budget as the visible answer: below it they stop
+  // with finish_reason "length" before writing any text. Settings can raise the
+  // budget above the floor, never below it.
+  minOutputTokens?: number;
   isDefault?: boolean;
   isPreview?: boolean;
   supportsVision?: boolean;
@@ -893,32 +898,34 @@ export const AI_MODELS: ProviderModels = {
       supportsThinking: true,
     },
     {
+      // Live-verified 2026-09-30: a full report is ~13K completion tokens on
+      // top of ~80-110K reasoning tokens. max_tokens 512/2048 returned empty
+      // text and 8000 a cut-off report (finish_reason "length"); 128000 was
+      // accepted and finished ("stop"). Cost is billed on tokens used.
       id: "sonar-deep-research",
       name: "Sonar Deep Research",
       description: "Expert research model for exhaustive searches and comprehensive reports",
       contextLength: 128000,
       contextLabel: "Context unpublished",
-      maxOutputTokens: 8000,
+      maxOutputTokens: 128000,
+      minOutputTokens: 32768,
       supportsWebSearch: true,
       supportsThinking: true,
     },
   ],
   mistral: [
     {
-      // Dropped out of /v1/models for standard keys in September 2026; chat
-      // completions return 403 tier_not_allowed (re-verified 2026-09-30).
-      // Deprecated (not just uncurated) because it was the previous mobile
-      // default: mobile has no unknown-ID passthrough, so persisted selections
-      // must fall back to the current default instead of failing with a 403.
+      // Tier-gated: free (Experiment) keys get 403 tier_not_allowed and it
+      // drops out of their /v1/models, but paid keys list it and chat works
+      // (live-verified 2026-09-30). Selectable; Medium 3.5 is the default.
       id: "mistral-large-2512",
       name: "Mistral Large 3",
-      description: "Open-weight Mistral flagship; Mistral now gates API access by subscription tier, so it is hidden from the picker",
+      description: "Open-weight Mistral flagship multimodal model with 256K context (paid Mistral API tiers)",
       contextLength: 262144,
       supportsVision: true,
       supportsImageInput: true,
       supportsDocuments: true,
       supportsFunctions: true,
-      isDeprecated: true,
     },
     {
       // Reasoning prompt mode is rejected ("not enabled for this model"), so
@@ -1484,6 +1491,7 @@ export const CURATED_MODEL_IDS: { [providerId: string]: string[] } = {
   ],
   mistral: [
     "mistral-medium-2604",
+    "mistral-large-2512",
     "mistral-small-2603",
     "ministral-14b-2512",
     "codestral-2508",

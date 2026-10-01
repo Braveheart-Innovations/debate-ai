@@ -8,7 +8,7 @@ import {
   AdapterCapabilities
 } from '../types/adapter.types';
 import { APIError } from '../../../errors/types/APIError';
-import { getSupportedParams, normalizeTemperatureForModel } from '../../../config/modelConfigs';
+import { getModelById, getSupportedParams, normalizeTemperatureForModel } from '../../../config/modelConfigs';
 import { toneToModifiers, debateProfileToGuidance } from '@/lib/personality';
 
 export abstract class BaseAdapter {
@@ -34,6 +34,14 @@ export abstract class BaseAdapter {
    * the provider/model range (e.g. Claude/Cohere cap at 1, requiresTemperature1
    * models lock to 1). Single choke point for chat, compare, and debate.
    */
+  // max_tokens for a request: the configured value (or the caller's fallback),
+  // raised to the model's minOutputTokens floor when it has one.
+  protected resolveMaxTokens(modelId: string, fallback: number): number {
+    const requested = this.config.parameters?.maxTokens || fallback;
+    const floor = getModelById(this.config.provider, modelId)?.minOutputTokens ?? 0;
+    return Math.max(requested, floor);
+  }
+
   protected resolveSamplingParameters(modelId: string): {
     temperature?: number;
     topP?: number;

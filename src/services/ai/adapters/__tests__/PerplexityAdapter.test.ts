@@ -329,4 +329,61 @@ describe('PerplexityAdapter', () => {
       ]);
     });
   });
+
+  describe('output token budget', () => {
+    const sentMaxTokens = () => {
+      const [, requestInit] = fetchMock.mock.calls[0];
+      return JSON.parse(requestInit?.body as string).max_tokens;
+    };
+
+    it('raises Sonar Deep Research to its minOutputTokens floor', async () => {
+      const adapter = new PerplexityAdapter(makeConfig({ model: 'sonar-deep-research' }));
+      await adapter.sendMessage('Research this');
+      expect(sentMaxTokens()).toBe(32768);
+    });
+
+    it('lets settings raise the budget above the floor but never below it', async () => {
+      const above = new PerplexityAdapter(makeConfig({
+        model: 'sonar-deep-research',
+        parameters: { temperature: 0.7, maxTokens: 64000 },
+      }));
+      await above.sendMessage('Research this');
+      expect(sentMaxTokens()).toBe(64000);
+    });
+
+    it('leaves models without a floor on the configured budget', async () => {
+      const adapter = new PerplexityAdapter(makeConfig({ model: 'sonar-pro' }));
+      await adapter.sendMessage('Quick answer');
+      expect(sentMaxTokens()).toBe(2048);
+    });
+  });
+
+  describe('finish reason', () => {
+    const truncatedResponse = () => ({
+      ok: true,
+      json: async () => ({
+        choices: [{ message: { content: 'Partial report' }, finish_reason: 'length' }],
+        model: 'sonar-deep-research',
+      }),
+    }) as unknown as Response;
+
+    it('returns the normalized finish reason from sendMessage', async () => {
+      fetchMock.mockImplementationOnce(async () => truncatedResponse());
+      const adapter = new PerplexityAdapter(makeConfig({ model: 'sonar-deep-research' }));
+      const result = await adapter.sendMessage('Research this');
+      expect(typeof result === 'object' ? result.finishReason : undefined).toBe('length');
+    });
+
+    it('emits a finish event after the simulated stream', async () => {
+      fetchMock.mockImplementationOnce(async () => truncatedResponse());
+      const adapter = new PerplexityAdapter(makeConfig({ model: 'sonar-deep-research' }));
+      const events: unknown[] = [];
+      const chunks: string[] = [];
+      for await (const chunk of adapter.streamMessage('Research this', [], undefined, undefined, undefined, undefined, (event) => events.push(event))) {
+        chunks.push(chunk);
+      }
+      expect(chunks.join('')).toBe('Partial report');
+      expect(events).toContainEqual({ type: 'finish', reason: 'length' });
+    });
+  });
 });
