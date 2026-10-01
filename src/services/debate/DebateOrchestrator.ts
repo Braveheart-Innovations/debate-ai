@@ -995,6 +995,7 @@ export class DebateOrchestrator {
           adapter.setTemporaryPersonality(runtime.personalityConfig);
           // Ensure debate mode is active for turn mapping
           adapter.config.isDebateMode = true;
+          adapter.config.groupChat = undefined;
           // Effective parameters are applied to the adapter inside DebateTurnRunner (single owner).
           this.applyWebSearchConfig(adapter);
 

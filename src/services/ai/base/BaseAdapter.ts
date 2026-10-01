@@ -10,6 +10,7 @@ import {
 import { APIError } from '../../../errors/types/APIError';
 import { getModelById, getSupportedParams, normalizeTemperatureForModel } from '../../../config/modelConfigs';
 import { toneToModifiers, debateProfileToGuidance } from '@/lib/personality';
+import { buildGroupChatContract, formatSpeakerLabel, USER_LABEL } from '@/lib/groupChat';
 
 export abstract class BaseAdapter {
   public config: AIAdapterConfig;
@@ -116,6 +117,11 @@ export abstract class BaseAdapter {
       }
     }
 
+    const groupChat = this.config.groupChat;
+    if (groupChat && !this.config.isDebateMode) {
+      basePrompt = `${basePrompt}\n\n${buildGroupChatContract(groupChat)}`;
+    }
+
     return basePrompt;
   }
   
@@ -175,36 +181,38 @@ export abstract class BaseAdapter {
       });
     }
 
-    const recent = history.slice(-10);
+    // Failed/interrupted turns are not real answers; don't let "Sorry, I encountered an error"
+    // or a half-finished reply masquerade as conversation.
+    const recent = history
+      .filter((msg) => msg.metadata?.lifecycle === undefined)
+      .slice(-10);
 
-    // In debate mode, remap roles so the target adapter sees a single assistant (itself)
-    // and everything else as user content, then enforce alternation by merging same-role runs.
-    const debateMode = !!this.config.isDebateMode;
+    // Speaker attribution: the target adapter sees a single assistant (itself); every other AI's
+    // output becomes labeled user content. Without this, a model reads another AI's reply as its
+    // own words (and critiques of that reply as aimed at itself). Same-role runs are merged below.
     const providerId = this.config.provider;
     const identityId = this.config.identityId || providerId;
+    const labelUser = !!this.config.groupChat && !this.config.isDebateMode;
 
     const mapped: FormattedMessage[] = recent
       .map((msg) => {
         if (msg.senderType === 'user') {
-          return { role: 'user' as const, content: msg.content || '' };
+          const content = msg.content || '';
+          return {
+            role: 'user' as const,
+            content: labelUser && content ? formatSpeakerLabel(USER_LABEL, content) : content,
+          };
         }
-        // senderType === 'ai'
-        if (debateMode) {
-          const msgIdentity = msg.metadata?.aiId;
-          const msgProvider = msg.metadata?.providerId;
-          const isOwnMessage = msgIdentity !== undefined
-            ? msgIdentity === identityId
-            : msgProvider === providerId;
-          if (isOwnMessage) {
-            // This adapter's own prior outputs remain assistant
-            return { role: 'assistant' as const, content: msg.content || '' };
-          }
-          // Other AI outputs become user content with attribution
-          const speaker = msg.sender || 'Other AI';
-          return { role: 'user' as const, content: `[${speaker}] ${msg.content || ''}` };
+        const msgIdentity = msg.metadata?.aiId;
+        const msgProvider = msg.metadata?.providerId;
+        const isOwnMessage = msgIdentity !== undefined
+          ? msgIdentity === identityId
+          : msgProvider === providerId;
+        if (isOwnMessage) {
+          return { role: 'assistant' as const, content: msg.content || '' };
         }
-        // Non-debate: default mapping
-        return { role: 'assistant' as const, content: msg.content || '' };
+        const speaker = msg.sender || 'Other AI';
+        return { role: 'user' as const, content: msg.content ? formatSpeakerLabel(speaker, msg.content) : '' };
       })
       .filter((m) => !!m.content);
 

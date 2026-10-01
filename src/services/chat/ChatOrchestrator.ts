@@ -7,12 +7,12 @@ import {
   setProviderVerificationError,
 } from '@/store/streamingSlice';
 import { ChatService } from './ChatService';
-import { PromptBuilder } from './PromptBuilder';
 import { HOME_CONSTANTS } from '@/config/homeConstants';
 import { getPersonality, PersonalityOption } from '@/config/personalities';
 import { resolveProviderModelId, supportsWebSearch } from '@/config/modelConfigs';
 import { getExpertOverrides } from '@/utils/expertMode';
 import { ensureAnswerContent } from '@/utils/citationUtils';
+import { buildGroupTurnPrompt, stripLeadingSelfLabel } from '@/lib/groupChat';
 import { getStreamingService, isStreamInterruptedError } from '@/services/streaming/StreamingService';
 import {
   appendStreamingContent,
@@ -28,6 +28,7 @@ import { buildPersonalityRuntime, mergeRuntimeModelParameters, type PersonalityR
 import { AppError } from '@/errors/types/AppError';
 import { ErrorCode } from '@/errors/codes/ErrorCodes';
 import type { AIService, ResumptionContext } from '@/services/aiAdapter';
+import type { GroupChatContext } from '@/services/ai/types/adapter.types';
 import type { AI, ChatSession, Message, MessageAttachment, ModelParameters } from '@/types';
 
 interface StreamingPreferenceState {
@@ -118,13 +119,14 @@ export class ChatOrchestrator {
       return;
     }
 
-    const sessionType = this.session.sessionType ?? 'chat';
-    const conversationContextOptions = { sessionType };
-    let conversationContext = ChatService.buildConversationContext(
-      existingMessages,
-      userMessage,
-      conversationContextOptions
-    );
+    // Every responder gets the same prior-round history (speaker attribution happens in the
+    // adapter) plus a turn prompt carrying this round's transcript so far.
+    const history = existingMessages;
+    const participantNames = this.session.selectedAIs.map(participant => participant.name);
+    const isGroupChat = participantNames.length > 1;
+    const responderNames = responders.map(responder => responder.name);
+    const userContent = enrichedPrompt || userMessage.content;
+    const roundReplies: Message[] = [];
 
     for (const ai of responders) {
       const effectiveModel = resolveProviderModelId(
@@ -167,23 +169,20 @@ export class ChatOrchestrator {
         });
         this.aiService.setPersonality(ai.id, runtime.personalityConfig);
 
-        const promptContext = {
-          isFirstAI: ChatService.isFirstAIInRound(conversationContext),
-          isDebateMode: conversationContext.isDebateMode,
-          lastSpeaker: conversationContext.lastSpeaker,
-          lastMessage: conversationContext.lastMessage,
-          conversationHistory: conversationContext.messages,
-          mentions,
-        };
-
-        const promptForAI = (enrichedPrompt && promptContext.isFirstAI)
-          ? enrichedPrompt
-          : PromptBuilder.buildAIPrompt(
-              userMessage.content,
-              promptContext,
-              aiForTurn,
-              personality
-            );
+        const groupChat: GroupChatContext | undefined = isGroupChat
+          ? { selfName: ai.name, participants: participantNames }
+          : undefined;
+        const promptForAI = groupChat
+          ? buildGroupTurnPrompt({
+              userMessage: userContent,
+              roundReplies: roundReplies.map(reply => ({ sender: reply.sender, content: reply.content })),
+              selfName: ai.name,
+              responderNames,
+            })
+          : userContent;
+        // Shared adapters may carry state from a Debate or a previous chat lineup.
+        adapter.config.isDebateMode = false;
+        adapter.config.groupChat = groupChat;
 
         const expert = getExpertOverrides(
           expertModeConfigs as unknown as Record<string, { enabled?: boolean; parameters?: ModelParameters; model?: string }> ,
@@ -212,7 +211,8 @@ export class ChatOrchestrator {
               ai: aiForTurn,
               runtime,
               prompt: promptForAI,
-              conversationContext,
+              history,
+              groupChat,
               resumptionContext,
               attachments: aiAttachments,
               apiKey: isDemo ? 'demo' : await this.getExecutionApiKey(ai.provider, apiKeys),
@@ -224,7 +224,8 @@ export class ChatOrchestrator {
               ai: aiForTurn,
               runtime,
               prompt: promptForAI,
-              conversationContext,
+              history,
+              groupChat,
               resumptionContext,
               attachments: aiAttachments,
               expert,
@@ -232,11 +233,9 @@ export class ChatOrchestrator {
               webSearchEnabled,
             });
 
-        conversationContext = ChatService.buildRoundRobinContext(
-          conversationContext.messages,
-          [aiMessage],
-          conversationContextOptions
-        );
+        if (!aiMessage.metadata?.lifecycle) {
+          roundReplies.push(aiMessage);
+        }
         resumptionContext = undefined;
       } catch (error) {
         // Use ErrorService for centralized error handling
@@ -247,11 +246,6 @@ export class ChatOrchestrator {
         });
         const errorMessage = ChatService.createErrorMessage(ai, appError);
         this.dispatch(addMessage(errorMessage));
-        conversationContext = ChatService.buildRoundRobinContext(
-          conversationContext.messages,
-          [errorMessage],
-          conversationContextOptions
-        );
       } finally {
         if (isDemo) {
           markProviderComplete(ai.provider);
@@ -267,7 +261,8 @@ export class ChatOrchestrator {
     ai: AI;
     runtime: PersonalityRuntime;
     prompt: string;
-    conversationContext: ReturnType<typeof ChatService.buildConversationContext>;
+    history: Message[];
+    groupChat?: GroupChatContext;
     resumptionContext?: ResumptionContext;
     attachments?: MessageAttachment[];
     apiKey?: string;
@@ -279,7 +274,8 @@ export class ChatOrchestrator {
       ai,
       runtime,
       prompt,
-      conversationContext,
+      history,
+      groupChat,
       resumptionContext,
       attachments,
       apiKey,
@@ -310,6 +306,7 @@ export class ChatOrchestrator {
     let streamedContent = '';
     let finalContent = '';
     let capturedCitations: Array<{ index: number; url: string; title?: string; snippet?: string }> | undefined;
+    let lifecycle: NonNullable<Message['metadata']>['lifecycle'];
 
     await this.streamingService.streamResponse(
       {
@@ -321,11 +318,12 @@ export class ChatOrchestrator {
           model: ai.model,
           personality: runtime.personalityConfig,
           parameters: runtimeParameters,
-          isDebateMode: conversationContext.isDebateMode,
+          isDebateMode: false,
           webSearchEnabled,
+          groupChat,
         },
         message: prompt,
-        conversationHistory: conversationContext.messages.slice(0, -1),
+        conversationHistory: history,
         resumptionContext,
         attachments,
         modelOverride: ai.model,
@@ -369,6 +367,12 @@ export class ChatOrchestrator {
             },
           }));
           finalContent = interruptedContent;
+          lifecycle = {
+            status: error.reason,
+            reason: error.message,
+            interruptedAt: Date.now(),
+            partial: partialContent.length > 0,
+          };
           return;
         }
 
@@ -377,7 +381,7 @@ export class ChatOrchestrator {
         const fallbackContent = await this.handleStreamingFallback({
           ai,
           prompt,
-          conversationContext,
+          history,
           resumptionContext,
           attachments,
           expert,
@@ -388,8 +392,13 @@ export class ChatOrchestrator {
             streamedContent = content;
           },
         });
-        if (typeof fallbackContent === 'string') {
-          finalContent = fallbackContent;
+        if (fallbackContent) {
+          finalContent = fallbackContent.content;
+          if (fallbackContent.failed) {
+            lifecycle = { status: 'failed', reason: error.message, partial: false, retryable: false };
+          }
+        } else {
+          lifecycle = { status: 'failed', reason: error.message, partial: false, retryable: false };
         }
       },
       (event: unknown) => {
@@ -445,8 +454,9 @@ export class ChatOrchestrator {
       }
     );
 
+    const rawContent = finalContent || streamedContent;
     const normalizedAnswer = ensureAnswerContent(
-      finalContent || streamedContent,
+      groupChat ? stripLeadingSelfLabel(rawContent, ai.name) : rawContent,
       capturedCitations,
       ai.name
     );
@@ -457,16 +467,19 @@ export class ChatOrchestrator {
         ...aiMessage.metadata,
         webSearchEnabled,
         citations: normalizedAnswer.citations,
+        ...(lifecycle ? { lifecycle } : {}),
       },
     };
 
-    // Update the message in Redux store with citations if we have them
-    if (normalizedAnswer.content !== (finalContent || streamedContent)
-      || (normalizedAnswer.citations && normalizedAnswer.citations.length > 0)) {
+    // Update the stored message when normalization changed it, citations arrived, or the turn
+    // failed (lifecycle keeps a failed turn out of later AIs' context).
+    if (normalizedAnswer.content !== rawContent
+      || (normalizedAnswer.citations && normalizedAnswer.citations.length > 0)
+      || lifecycle) {
       this.dispatch(updateMessage({
         id: aiMessage.id,
         content: normalizedAnswer.content,
-        metadata: { ...aiMessage.metadata, webSearchEnabled, citations: normalizedAnswer.citations },
+        metadata: completedMessage.metadata,
       }));
     }
 
@@ -477,14 +490,15 @@ export class ChatOrchestrator {
     ai: AI;
     runtime: PersonalityRuntime;
     prompt: string;
-    conversationContext: ReturnType<typeof ChatService.buildConversationContext>;
+    history: Message[];
+    groupChat?: GroupChatContext;
     resumptionContext?: ResumptionContext;
     attachments?: MessageAttachment[];
     expert?: { enabled?: boolean; parameters?: Partial<ModelParameters> } | undefined;
     runtimeParameters?: Partial<ModelParameters> | undefined;
     webSearchEnabled?: boolean;
   }): Promise<Message> {
-    const { ai, runtime, prompt, conversationContext, resumptionContext, attachments, runtimeParameters, webSearchEnabled } = options;
+    const { ai, runtime, prompt, history, groupChat, resumptionContext, attachments, runtimeParameters, webSearchEnabled } = options;
 
     if (runtimeParameters) {
       try {
@@ -501,8 +515,8 @@ export class ChatOrchestrator {
     const result = await this.aiService.sendMessage(
       ai.id,
       prompt,
-      conversationContext.messages.slice(0, -1),
-      runtime.personalityConfig || conversationContext.isDebateMode,
+      history,
+      runtime.personalityConfig || false,
       resumptionContext,
       attachments,
       ai.model
@@ -512,7 +526,10 @@ export class ChatOrchestrator {
     const response = typeof result === 'string' ? result : result.response;
     const modelUsed = typeof result === 'string' ? ai.model : (result.modelUsed || ai.model);
     const metadata = typeof result === 'string' ? undefined : (result as Record<string, unknown>).metadata as { citations?: Array<{ index: number; url: string; title?: string; snippet?: string }> } | undefined;
-    const normalizedAnswer = ensureAnswerContent(response, metadata?.citations, ai.name);
+    const answerContent = groupChat
+      ? stripLeadingSelfLabel(response, ai.name)
+      : response;
+    const normalizedAnswer = ensureAnswerContent(answerContent, metadata?.citations, ai.name);
 
     const aiMessage = ChatService.createAIMessage(ai, normalizedAnswer.content, {
       modelUsed,
@@ -535,7 +552,7 @@ export class ChatOrchestrator {
   private async handleStreamingFallback(options: {
     ai: AI;
     prompt: string;
-    conversationContext: ReturnType<typeof ChatService.buildConversationContext>;
+    history: Message[];
     resumptionContext?: ResumptionContext;
     attachments?: MessageAttachment[];
     expert?: { enabled?: boolean; parameters?: Partial<ModelParameters> } | undefined;
@@ -543,8 +560,8 @@ export class ChatOrchestrator {
     aiMessageId: string;
     originalError: Error;
     updateStreamContent: (content: string) => void;
-  }): Promise<string | null> {
-    const { ai, prompt, conversationContext, resumptionContext, attachments, runtimeParameters, aiMessageId, originalError, updateStreamContent } = options;
+  }): Promise<{ content: string; failed: boolean } | null> {
+    const { ai, prompt, history, resumptionContext, attachments, runtimeParameters, aiMessageId, originalError, updateStreamContent } = options;
 
     const message = originalError.message || '';
     const requiresVerification = message.includes('organization must be verified')
@@ -578,8 +595,8 @@ export class ChatOrchestrator {
       const result = await this.aiService.sendMessage(
         ai.id,
         prompt,
-        conversationContext.messages.slice(0, -1),
-        conversationContext.isDebateMode,
+        history,
+        false,
         resumptionContext,
         attachments,
         ai.model
@@ -598,7 +615,7 @@ export class ChatOrchestrator {
       } catch {
         /* noop */
       }
-      return response;
+      return { content: response, failed: false };
     } catch (fallbackError) {
       // Use ErrorService for centralized error handling (silent - no toast since we're already showing message in chat)
       const appError = ErrorService.handleError(fallbackError, {
@@ -612,7 +629,7 @@ export class ChatOrchestrator {
       failStreamingContent(aiMessageId, userMessage);
       this.dispatch(streamingError({ messageId: aiMessageId, error: userMessage }));
       updateStreamContent(userMessage);
-      return userMessage;
+      return { content: userMessage, failed: true };
     }
   }
 

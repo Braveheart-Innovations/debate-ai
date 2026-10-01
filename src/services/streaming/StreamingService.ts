@@ -1,6 +1,6 @@
 import { BaseAdapter } from '../ai/base/BaseAdapter';
 import { Message, MessageAttachment, AIProvider, PersonalityConfig, ModelParameters } from '../../types';
-import { ResumptionContext, AIAdapterConfig } from '../ai/types/adapter.types';
+import { ResumptionContext, AIAdapterConfig, GroupChatContext } from '../ai/types/adapter.types';
 import { AdapterFactory } from '../ai/factory/AdapterFactory';
 import { ErrorService } from '@/services/errors/ErrorService';
 import { AppError } from '@/errors/types/AppError';
@@ -28,6 +28,7 @@ interface StreamConfig {
     parameters?: Partial<ModelParameters>;
     isDebateMode?: boolean;
     webSearchEnabled?: boolean;
+    groupChat?: GroupChatContext;
   };
   message: string;
   conversationHistory: Message[];
@@ -168,7 +169,7 @@ export class StreamingService {
     let adapter: BaseAdapter;
     let resolvedModelOverride = config.modelOverride;
     if (config.adapterConfig) {
-      const { provider, identityId, apiKey, model, personality, parameters, isDebateMode, webSearchEnabled } = config.adapterConfig;
+      const { provider, identityId, apiKey, model, personality, parameters, isDebateMode, webSearchEnabled, groupChat } = config.adapterConfig;
       const resolvedModel = resolveProviderModelId(provider, model) || model;
       resolvedModelOverride = resolveProviderModelId(
         provider,
@@ -182,7 +183,8 @@ export class StreamingService {
         personality,
         parameters,
         isDebateMode,
-        webSearchEnabled
+        webSearchEnabled,
+        groupChat,
       };
       // Use the new createWithModel method to get the correct adapter
       adapter = AdapterFactory.createWithModel(adapterConfig, resolvedModel);
