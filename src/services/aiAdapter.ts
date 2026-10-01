@@ -7,6 +7,7 @@ import { resolveProviderModelId } from '../config/modelConfigs';
 import { PersonalityOption } from '../config/personalities';
 import { AdapterFactory, BaseAdapter } from './ai';
 import type { AIAdapterConfig, ResumptionContext } from './ai';
+import type { StreamFinishReason } from './ai/types/adapter.types';
 import APIKeyService from './APIKeyService';
 import { isDemoModeEnabled } from './demo/demoMode';
 
@@ -174,7 +175,7 @@ export class AIService {
     resumptionContextOrModel?: ResumptionContext | string,
     attachmentsOrParams?: MessageAttachment[] | Partial<ModelParameters>,
     modelOrDebateMode?: string | boolean
-  ): Promise<{ response: string; modelUsed?: string }> {
+  ): Promise<{ response: string; modelUsed?: string; finishReason?: StreamFinishReason }> {
     // Handle overloaded parameters based on type checking
     let isDebateMode: boolean | undefined;
     let personality: PersonalityConfig | undefined;

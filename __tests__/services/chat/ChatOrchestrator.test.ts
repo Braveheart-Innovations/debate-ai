@@ -527,4 +527,217 @@ describe('ChatOrchestrator', () => {
       expect(call.adapterConfig.groupChat).toBeUndefined();
     });
   });
+
+  describe('replies cut off at the length limit', () => {
+    const updates = () => dispatchMock.mock.calls
+      .map(call => call[0])
+      .filter(action => action?.type === updateMessage.type)
+      .map(action => action.payload);
+
+    const continueParams = (messages: Message[], messageId: string) => ({
+      messageId,
+      messages,
+      aiPersonalities: { claude: 'persona' },
+      selectedModels: { claude: 'claude-3-opus' },
+      apiKeys: { claude: 'key-1' },
+      expertModeConfigs: {},
+      streamingPreferences: { claude: { enabled: true } },
+      globalStreamingEnabled: true,
+      allowStreaming: true,
+      isDemo: false,
+    });
+
+    const truncatedReply = (content: string): Message => ({
+      id: 'msg-claude',
+      sender: 'Claude',
+      senderType: 'ai',
+      content,
+      timestamp: Date.now(),
+      metadata: {
+        aiId: 'claude',
+        providerId: 'claude',
+        lifecycle: { status: 'truncated', reason: 'length', partial: content.length > 0, retryable: true },
+      },
+    });
+
+    const setup = () => {
+      const { adapter, service } = mockAIService();
+      const orchestrator = new ChatOrchestrator(service, dispatch);
+      orchestrator.updateSession(session);
+      jest.spyOn(ChatOrchestrator.prototype as unknown as { sleep: (ms: number) => Promise<void> }, 'sleep').mockResolvedValue(undefined);
+      return { adapter, service, orchestrator };
+    };
+
+    it('marks a streamed reply that stopped at the token limit as truncated', async () => {
+      const { orchestrator } = setup();
+      mockStreamingService.streamResponse.mockImplementation(async (_config, onChunk, onComplete, _onError, onEvent) => {
+        onChunk?.('The first half');
+        onEvent?.({ type: 'finish', reason: 'length' });
+        onComplete?.('The first half');
+      });
+
+      await orchestrator.processUserMessage(buildParams());
+
+      expect(updates()).toContainEqual(expect.objectContaining({
+        content: 'The first half',
+        metadata: expect.objectContaining({
+          lifecycle: { status: 'truncated', reason: 'length', partial: true, retryable: true },
+        }),
+      }));
+    });
+
+    it('leaves a reply that finished normally untagged', async () => {
+      const { orchestrator } = setup();
+      mockStreamingService.streamResponse.mockImplementation(async (_config, onChunk, onComplete, _onError, onEvent) => {
+        onChunk?.('Done.');
+        onEvent?.({ type: 'finish', reason: 'stop' });
+        onComplete?.('Done.');
+      });
+
+      await orchestrator.processUserMessage(buildParams());
+
+      expect(updates().some(update => update.metadata?.lifecycle)).toBe(false);
+    });
+
+    it('marks a non-streamed reply with finishReason length as truncated', async () => {
+      const { service, orchestrator } = setup();
+      (service.sendMessage as jest.Mock).mockResolvedValue({ response: 'Partial answer', finishReason: 'length' });
+
+      await orchestrator.processUserMessage(buildParams({ streamingPreferences: { claude: { enabled: false } } }));
+
+      const added = dispatchMock.mock.calls
+        .map(call => call[0])
+        .find(action => action?.type === addMessage.type);
+      expect(added.payload.metadata.lifecycle).toEqual({
+        status: 'truncated', reason: 'length', partial: true, retryable: true,
+      });
+    });
+
+    it('keeps a truncated reply out of the next AI in the round', async () => {
+      const { orchestrator } = setup();
+      const gpt: AI = { id: 'openai', provider: 'openai', name: 'ChatGPT', model: 'gpt-5' } as AI;
+      orchestrator.updateSession({ ...session, selectedAIs: [baseAI, gpt] });
+      let call = 0;
+      mockStreamingService.streamResponse.mockImplementation(async (_config, onChunk, onComplete, _onError, onEvent) => {
+        call += 1;
+        const text = call === 1 ? 'Half of Claude' : 'ChatGPT reply';
+        onChunk?.(text);
+        if (call === 1) onEvent?.({ type: 'finish', reason: 'length' });
+        onComplete?.(text);
+      });
+
+      await orchestrator.processUserMessage(buildParams({
+        apiKeys: { claude: 'key-1', openai: 'key-2' },
+        selectedModels: { claude: 'claude-3-opus', openai: 'gpt-5' },
+        streamingPreferences: { claude: { enabled: true }, openai: { enabled: true } },
+      }));
+
+      const secondCall = mockStreamingService.streamResponse.mock.calls[1][0];
+      expect(secondCall.message).not.toContain('Half of Claude');
+    });
+
+    it('continues a cut-off reply in the same message and clears the tag when it finishes', async () => {
+      const { orchestrator } = setup();
+      const userTurn: Message = { ...userMessage };
+      const reply = truncatedReply('The answer is to nar');
+      mockStreamingService.streamResponse.mockImplementation(async (_config, onChunk, onComplete, _onError, onEvent) => {
+        onChunk?.('row it down.');
+        onEvent?.({ type: 'finish', reason: 'stop' });
+        onComplete?.('row it down.');
+      });
+
+      await orchestrator.continueResponse(continueParams([userTurn, reply], reply.id));
+
+      const [config] = mockStreamingService.streamResponse.mock.calls[0];
+      expect(config.messageId).toBe(reply.id);
+      expect(config.message).toContain('Continue it exactly where it stopped');
+      expect(config.adapterConfig.webSearchEnabled).toBe(false);
+      // The partial reply rides along as the AI's own turn, without the lifecycle tag that
+      // otherwise keeps it out of context.
+      expect(config.conversationHistory).toHaveLength(2);
+      expect(config.conversationHistory[1]).toMatchObject({ id: reply.id, content: 'The answer is to nar' });
+      expect(config.conversationHistory[1].metadata.lifecycle).toBeUndefined();
+
+      expect(updates()).toContainEqual({
+        id: reply.id,
+        content: 'The answer is to narrow it down.',
+        metadata: { lifecycle: undefined },
+      });
+    });
+
+    it('keeps the reply continuable when the continuation is cut off again', async () => {
+      const { orchestrator } = setup();
+      const reply = truncatedReply('Part one. ');
+      mockStreamingService.streamResponse.mockImplementation(async (_config, onChunk, onComplete, _onError, onEvent) => {
+        onChunk?.('Part two');
+        onEvent?.({ type: 'finish', reason: 'length' });
+        onComplete?.('Part two');
+      });
+
+      await orchestrator.continueResponse(continueParams([userMessage, reply], reply.id));
+
+      expect(updates()).toContainEqual({
+        id: reply.id,
+        content: 'Part one. Part two',
+        metadata: { lifecycle: { status: 'truncated', reason: 'length', partial: true, retryable: true } },
+      });
+    });
+
+    it('re-asks the question when the cut-off reply has no text', async () => {
+      const { orchestrator } = setup();
+      const reply = truncatedReply('');
+      mockStreamingService.streamResponse.mockImplementation(async (_config, onChunk, onComplete) => {
+        onChunk?.('A shorter answer.');
+        onComplete?.('A shorter answer.');
+      });
+
+      await orchestrator.continueResponse(continueParams([userMessage, reply], reply.id));
+
+      const [config] = mockStreamingService.streamResponse.mock.calls[0];
+      expect(config.message).toContain('Answer my last message again');
+      expect(config.conversationHistory.map((message: Message) => message.id)).toEqual([userMessage.id]);
+      expect(updates()).toContainEqual({ id: reply.id, content: 'A shorter answer.', metadata: { lifecycle: undefined } });
+    });
+
+    it('keeps the partial text and the tag when the continuation fails', async () => {
+      const { orchestrator } = setup();
+      const reply = truncatedReply('Half done');
+      mockStreamingService.streamResponse.mockImplementation(async (_config, _onChunk, _onComplete, onError) => {
+        onError?.(new Error('network down'));
+      });
+
+      await orchestrator.continueResponse(continueParams([userMessage, reply], reply.id));
+
+      expect(updates()).toContainEqual({
+        id: reply.id,
+        content: 'Half done',
+        metadata: { lifecycle: { status: 'truncated', reason: 'length', partial: true, retryable: true } },
+      });
+      expect(getStreamingContentSnapshot(reply.id).exists).toBe(false);
+    });
+
+    it('continues on the non-streaming path when streaming is off', async () => {
+      const { service, orchestrator } = setup();
+      (service.sendMessage as jest.Mock).mockResolvedValue({ response: ' and the rest.', finishReason: 'stop' });
+      const reply = truncatedReply('The start');
+
+      await orchestrator.continueResponse({
+        ...continueParams([userMessage, reply], reply.id),
+        streamingPreferences: { claude: { enabled: false } },
+      });
+
+      expect(mockStreamingService.streamResponse).not.toHaveBeenCalled();
+      expect(updates()).toContainEqual({ id: reply.id, content: 'The start and the rest.', metadata: { lifecycle: undefined } });
+    });
+
+    it('ignores messages that are not cut off', async () => {
+      const { orchestrator } = setup();
+      const reply: Message = { ...truncatedReply('Complete'), metadata: { aiId: 'claude' } };
+
+      await orchestrator.continueResponse(continueParams([userMessage, reply], reply.id));
+
+      expect(mockStreamingService.streamResponse).not.toHaveBeenCalled();
+      expect(updates()).toHaveLength(0);
+    });
+  });
 });

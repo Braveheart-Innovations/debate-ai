@@ -201,9 +201,11 @@ export interface MessageMetadata {
   // Debate TTS generation metadata
   debateAudio?: DebateAudioMetadata;
 
-  // Local lifecycle recovery metadata for interrupted or cancelled work
+  // Local lifecycle recovery metadata for interrupted, cancelled, failed, or
+  // cut-off work. 'truncated' = the provider stopped at its output token limit
+  // (finish reason "length"); the partial text is kept and can be continued.
   lifecycle?: {
-    status: 'interrupted' | 'cancelled' | 'failed';
+    status: 'interrupted' | 'cancelled' | 'failed' | 'truncated';
     reason?: string;
     interruptedAt?: number;
     partial?: boolean;
