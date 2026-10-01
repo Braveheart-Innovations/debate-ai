@@ -1,0 +1,8 @@
+Symposium AI 2.2
+
+• New models: Claude Sonnet 5.5 & Opus 5.5, GPT-6.1 Sol, Gemini 3.8 Flash, Grok 4.7, DeepSeek Flash & more
+• Create: GPT Image 2.5, plus 21:9 & 5:2 for Grok Imagine
+• Multi-AI chat: each AI keeps track of who said what
+• Fixes: Sonar Deep Research answers, Claude replies dropping letters, clearer out-of-credit errors
+
+Keys stay private on your device.
