@@ -3,6 +3,7 @@ import { OpenAICompatibleAdapter } from '../../base/OpenAICompatibleAdapter';
 import { ProviderConfig, ResumptionContext, SendMessageResponse } from '../../types/adapter.types';
 import { getDefaultModel, resolveModelAlias } from '../../../../config/providers/modelRegistry';
 import { processPerplexityResponse } from '../../../../utils/responseProcessor';
+import { normalizeFinishReason } from '../../utils/normalizeFinishReason';
 
 // Perplexity-specific content part types
 type PerplexityContentPart =
@@ -149,7 +150,9 @@ export class PerplexityAdapter extends OpenAICompatibleAdapter {
           model: resolvedModel,
           messages,
           temperature: this.config.parameters?.temperature ?? 0.7,
-          max_tokens: this.config.parameters?.maxTokens || 2048,
+          // Floored per model: Sonar Deep Research returns no text below its
+          // minOutputTokens because reasoning shares the budget.
+          max_tokens: this.resolveMaxTokens(resolvedModel, 2048),
           top_p: this.config.parameters?.topP,
           stream: false,
           // Perplexity-specific parameters
@@ -175,6 +178,7 @@ export class PerplexityAdapter extends OpenAICompatibleAdapter {
       return {
         response: processed.content,
         modelUsed: data.model,
+        finishReason: normalizeFinishReason(data.choices[0].finish_reason),
         usage: data.usage ? {
           promptTokens: data.usage.prompt_tokens,
           completionTokens: data.usage.completion_tokens,
@@ -219,6 +223,7 @@ export class PerplexityAdapter extends OpenAICompatibleAdapter {
     // Extract content and citations from response
     const content = typeof response === 'string' ? response : response.response;
     const citations = typeof response === 'object' ? response.metadata?.citations : undefined;
+    const finishReason = typeof response === 'object' ? response.finishReason : undefined;
 
     const chunkSize = 64;
 
@@ -232,6 +237,12 @@ export class PerplexityAdapter extends OpenAICompatibleAdapter {
         type: 'citations',
         citations,
       });
+    }
+
+    // Same finish contract as the real SSE adapters, so a "length" stop is
+    // treated as an unfinished turn rather than a complete answer.
+    if (finishReason && onEvent) {
+      onEvent({ type: 'finish', reason: finishReason });
     }
   }
 }

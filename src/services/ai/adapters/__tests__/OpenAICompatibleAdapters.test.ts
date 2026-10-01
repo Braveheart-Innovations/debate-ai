@@ -57,13 +57,13 @@ const cases: AdapterCase[] = [
   {
     name: 'MistralAdapter',
     Adapter: MistralAdapter,
-    config: { provider: 'mistral', apiKey: 'test-key', model: 'mistral-large-2512', parameters: { temperature: 0.7, maxTokens: 2048 } },
+    config: { provider: 'mistral', apiKey: 'test-key', model: 'mistral-medium-2604', parameters: { temperature: 0.7, maxTokens: 2048 } },
     expectedUrl: 'https://api.mistral.ai/v1/chat/completions',
   },
   {
     name: 'DeepSeekAdapter',
     Adapter: DeepSeekAdapter,
-    config: { provider: 'deepseek', apiKey: 'test-key', model: 'deepseek-v4-flash', parameters: { temperature: 0.7, maxTokens: 2048 } },
+    config: { provider: 'deepseek', apiKey: 'test-key', model: 'deepseek-flash', parameters: { temperature: 0.7, maxTokens: 2048 } },
     expectedUrl: 'https://api.deepseek.com/v1/chat/completions',
   },
   {
@@ -81,7 +81,7 @@ const cases: AdapterCase[] = [
   {
     name: 'ZaiAdapter',
     Adapter: ZaiAdapter,
-    config: { provider: 'zai', apiKey: 'test-key', model: 'glm-5.2', parameters: { temperature: 0.7, maxTokens: 2048 } },
+    config: { provider: 'zai', apiKey: 'test-key', model: 'glm-5.3', parameters: { temperature: 0.7, maxTokens: 2048 } },
     expectedUrl: 'https://api.z.ai/api/paas/v4/chat/completions',
   },
 ];

@@ -63,7 +63,7 @@ describe('ImageService', () => {
       headers: expect.objectContaining({ Authorization: 'Bearer key' }),
     }));
     const body = JSON.parse((mockedFetch.mock.calls[0][1] as RequestInit).body as string);
-    expect(body).toMatchObject({ model: 'gpt-image-2', prompt: 'a cat', size: '1024x1024' });
+    expect(body).toMatchObject({ model: 'gpt-image-2.5-flare', prompt: 'a cat', size: '1024x1024' });
     expect(mockedPersistImageUri).toHaveBeenCalledWith('https://example.com/image.png', {
       mimeType: 'image/png',
       prefix: 'generated',
@@ -89,7 +89,7 @@ describe('ImageService', () => {
 
     const body = JSON.parse((mockedFetch.mock.calls[0][1] as RequestInit).body as string);
     expect(body).toMatchObject({
-      model: 'gpt-image-2',
+      model: 'gpt-image-2.5-flare',
       prompt: 'a product render',
       size: '1024x1024',
       n: 3,
@@ -120,7 +120,7 @@ describe('ImageService', () => {
 
     const body = JSON.parse((mockedFetch.mock.calls[0][1] as RequestInit).body as string);
     expect(body).toMatchObject({
-      model: 'gpt-image-2',
+      model: 'gpt-image-2.5-flare',
       prompt: 'a legacy image',
       n: 4,
       quality: 'high',

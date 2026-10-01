@@ -614,7 +614,7 @@ describe('DebateOrchestrator', () => {
       expect.any(Object),
       undefined,
       expect.objectContaining({ maxTokens: 1536 }),
-      'claude-sonnet-5'
+      'claude-sonnet-5-5'
     );
     expect(mcAdapter.sendMessage.mock.invocationCallOrder[0]).toBeLessThan(
       aiService.sendMessage.mock.invocationCallOrder[0]
@@ -827,7 +827,7 @@ describe('DebateOrchestrator', () => {
       getCapabilities: jest.fn(() => ({ streaming: true })),
       sendMessage: jest.fn().mockResolvedValue({
         response: VALID_SPEECH,
-        modelUsed: 'claude-sonnet-5',
+        modelUsed: 'claude-sonnet-5-5',
       }),
       setTemporaryPersonality: jest.fn(),
       debugGetSystemPrompt: jest.fn(() => ''),
@@ -865,7 +865,7 @@ describe('DebateOrchestrator', () => {
       [],
       undefined,
       undefined,
-      'claude-sonnet-5'
+      'claude-sonnet-5-5'
     );
     expect(completedEvents).toHaveLength(1);
     expect(completedEvents[0]).toEqual(expect.objectContaining({
@@ -1760,7 +1760,7 @@ describe('DebateOrchestrator', () => {
 
       expect(session.webSearchEnabled).toBe(true);
       expect(mockMergeAvailabilitiesStrict).toHaveBeenCalledWith([
-        { provider: 'claude', model: 'claude-sonnet-5' },
+        { provider: 'claude', model: 'claude-sonnet-5-5' },
         { provider: 'openai', model: 'gpt-4.1-mini' },
       ]);
     });
@@ -1959,7 +1959,7 @@ describe('DebateOrchestrator', () => {
       }),
       undefined,
       expect.objectContaining({ maxTokens: 6144 }),
-      'claude-sonnet-5'
+      'claude-sonnet-5-5'
     );
       expect(completedEvents[0]).toEqual(expect.objectContaining({
         webSearchEnabled: true,

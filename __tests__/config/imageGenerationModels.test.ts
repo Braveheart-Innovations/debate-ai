@@ -19,14 +19,16 @@ describe('Image generation model config', () => {
   });
 
   it('resolves defaults and explicit model selections safely', () => {
-    expect(resolveImageModelId('openai')).toBe('gpt-image-2');
-    expect(resolveImageModelId('openai', 'unknown-openai-image-model')).toBe('gpt-image-2');
-    expect(resolveImageModelId('openai', 'gpt-image-latest')).toBe('gpt-image-2');
+    expect(resolveImageModelId('openai')).toBe('gpt-image-2.5-flare');
+    expect(resolveImageModelId('openai', 'unknown-openai-image-model')).toBe('gpt-image-2.5-flare');
+    expect(resolveImageModelId('openai', 'gpt-image-latest')).toBe('gpt-image-2.5-flare');
+    expect(resolveImageModelId('openai', 'gpt-image-2.5-sunburst-2026-09-08')).toBe('gpt-image-2.5-sunburst');
+    expect(resolveImageModelId('openai', 'gpt-image-2')).toBe('gpt-image-2');
     expect(resolveImageModelId('google', 'imagen-4.0-generate-001')).toBe('imagen-4.0-generate-001');
     expect(resolveImageModelId('google', 'gemini-3.1-flash-image-preview')).toBe('gemini-3.1-flash-image');
     expect(resolveImageModelId('google', 'gemini-3-pro-image-preview')).toBe('gemini-3-pro-image');
     expect(resolveImageModelId('google', 'nano-banana-2-lite')).toBe('gemini-3.1-flash-lite-image');
-    expect(resolveImageModelId('openai', 'dall-e-3')).toBe('gpt-image-2');
+    expect(resolveImageModelId('openai', 'dall-e-3')).toBe('gpt-image-2.5-flare');
   });
 
   it('exposes model-aware labels and capabilities', () => {
@@ -34,8 +36,9 @@ describe('Image generation model config', () => {
     expect(getImageProviderDisplayName('openai', {
       includeModel: true,
       modelId: 'unknown-openai-image-model',
-    })).toBe('ChatGPT (GPT Image 2)');
-    expect(getImageModelDisplayName('openai', 'unknown-openai-image-model')).toBe('GPT Image 2');
+    })).toBe('ChatGPT (GPT Image 2.5 Flare)');
+    expect(getImageModelDisplayName('openai', 'unknown-openai-image-model')).toBe('GPT Image 2.5 Flare');
+    expect(supportsImageInput('openai', 'gpt-image-2.5-sunburst')).toBe(true);
     expect(supportsImageInput('openai', 'gpt-image-2')).toBe(true);
     expect(supportsImageInput('openai', 'unknown-openai-image-model')).toBe(true);
     expect(supportsImageInput('google', 'imagen-4.0-generate-001')).toBe(false);

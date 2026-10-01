@@ -34,13 +34,13 @@ export interface ProviderDefinition {
   };
 }
 
-// Model aliases for version management and persisted-session compatibility - Updated July 2026
+// Model aliases for version management and persisted-session compatibility - Updated September 2026
 export const MODEL_ALIASES: Record<string, string> = {
   // Claude aliases
-  'claude-latest': 'claude-sonnet-5',
-  'claude-fable-latest': 'claude-fable-5',
-  'claude-opus-latest': 'claude-opus-5',
-  'claude-sonnet-latest': 'claude-sonnet-5',
+  'claude-latest': 'claude-sonnet-5-5',
+  'claude-fable-latest': 'claude-fable-5-1',
+  'claude-opus-latest': 'claude-opus-5-5',
+  'claude-sonnet-latest': 'claude-sonnet-5-5',
   'claude-haiku-latest': 'claude-haiku-4-5-20251001',
   'claude-opus-4-8-20260520': 'claude-opus-4-8',
   'claude-opus-4-8-20260528': 'claude-opus-4-8',
@@ -50,7 +50,8 @@ export const MODEL_ALIASES: Record<string, string> = {
   'claude-haiku-4-5': 'claude-haiku-4-5-20251001',
 
   // OpenAI aliases
-  'gpt-latest': 'gpt-5.6-sol',
+  'gpt-latest': 'gpt-6.1-sol',
+  'gpt-6-latest': 'gpt-6-astra',
   'gpt-5.6-latest': 'gpt-5.6-sol',
   'gpt-5-latest': 'gpt-5.5',
   'gpt-5.5-latest': 'gpt-5.5',
@@ -75,11 +76,12 @@ export const MODEL_ALIASES: Record<string, string> = {
 
   // Google aliases (mobile resolves gemini-*-latest to concrete IDs; there is
   // no unknown-ID passthrough here, unlike the web app)
-  'gemini-latest': 'gemini-3.7-flash',
+  'gemini-latest': 'gemini-3.8-flash',
   'gemini-pro-latest': 'gemini-3.1-pro-preview',
   'gemini-flash-latest': 'gemini-3.6-flash',
   'gemini-flash-lite-latest': 'gemini-3.5-flash-lite',
-  'gemini-3-latest': 'gemini-3.7-flash',
+  'gemini-3-latest': 'gemini-3.8-flash',
+  'gemini-3.8-latest': 'gemini-3.8-flash',
   'gemini-3.7-latest': 'gemini-3.7-flash',
   'gemini-3.6-latest': 'gemini-3.6-flash',
   'gemini-3.5-latest': 'gemini-3.5-flash',
@@ -119,7 +121,10 @@ export const MODEL_ALIASES: Record<string, string> = {
   'sonar-research-latest': 'sonar-deep-research',
 
   // Mistral aliases
-  'mistral-latest': 'mistral-large-2512',
+  // Medium 3.5 is the default (Large 3 is paid-tier only); the Mistral API
+  // itself now serves Medium 3.5 for the retired Devstral 2 and Medium 3.1
+  // ids, so route them the same way.
+  'mistral-latest': 'mistral-medium-2604',
   'mistral-large-latest': 'mistral-large-2512',
   'mistral-medium-latest': 'mistral-medium-2604',
   // mistral-medium-3-5 was a mobile-only ID; the live API ID is mistral-medium-2604
@@ -127,10 +132,13 @@ export const MODEL_ALIASES: Record<string, string> = {
   'mistral-medium-3.5': 'mistral-medium-2604',
   'mistral-medium-c21211-r0-75': 'mistral-medium-2604',
   'mistral-small-latest': 'mistral-small-2603',
-  'devstral-medium-2512': 'devstral-2512',
+  'devstral-medium-2512': 'mistral-medium-2604',
+  'devstral-2512': 'mistral-medium-2604',
+  'mistral-medium-2508': 'mistral-medium-2604',
   'magistral-latest': 'mistral-small-2603',
-  // magistral-medium-2509 was retired by the Mistral API; fall back like magistral-latest
-  'magistral-medium-latest': 'mistral-small-2603',
+  // magistral-medium-2509 was retired; the Mistral API now resolves
+  // magistral-medium-latest to mistral-medium-latest (verified 2026-09-30).
+  'magistral-medium-latest': 'mistral-medium-2604',
   'codestral-latest': 'codestral-2508',
   'pixtral-large-latest': 'pixtral-large-2411',
 
@@ -141,36 +149,41 @@ export const MODEL_ALIASES: Record<string, string> = {
   'command-a-vision-latest': 'command-a-vision-07-2025',
   'command-a-latest': 'command-a-03-2025',
   'command-a-translate-latest': 'command-a-translate-08-2025',
+  'north-small-translate-latest': 'north-small-translate-09-2026',
   'command-r-plus-latest': 'command-a-reasoning-08-2025',
   'command-r-latest': 'command-r-08-2024',
   'command-light-latest': 'command-r7b-12-2024',
 
   // DeepSeek aliases
-  'deepseek-chat': 'deepseek-v4-flash',
-  'deepseek-reasoner': 'deepseek-v4-flash',
-  'deepseek-chat-latest': 'deepseek-v4-flash',
-  'deepseek-reasoner-latest': 'deepseek-v4-flash',
-  'deepseek-latest': 'deepseek-v4-flash',
+  // DeepSeek retired the V4 Flash names on 2026-09-10; all of them (and the
+  // legacy chat/reasoner names) are served as V4.1 Flash = deepseek-flash.
+  'deepseek-chat': 'deepseek-flash',
+  'deepseek-reasoner': 'deepseek-flash',
+  'deepseek-chat-latest': 'deepseek-flash',
+  'deepseek-reasoner-latest': 'deepseek-flash',
+  'deepseek-latest': 'deepseek-flash',
+  'deepseek-v4-flash': 'deepseek-flash',
+  'deepseek-v4-flash-vision-exp': 'deepseek-flash',
 };
 
 export const resolveModelAlias = (modelId: string): string => {
   return MODEL_ALIASES[modelId] || modelId;
 };
 
-// Default model per provider - Updated July 2026, verified live model IDs.
+// Default model per provider - Updated September 2026, verified live model IDs.
 // Exported as a plain map so tooling (scripts/discover-provider-models.mjs)
 // can statically parse it.
 export const DEFAULT_PROVIDER_MODELS: Record<string, string> = {
-  claude: 'claude-sonnet-5',
-  openai: 'gpt-5.6-sol',
-  google: 'gemini-3.7-flash',
+  claude: 'claude-sonnet-5-5',
+  openai: 'gpt-6.1-sol',
+  google: 'gemini-3.8-flash',
   grok: 'grok-4.3',
   perplexity: 'sonar-pro',
-  mistral: 'mistral-large-2512',
+  mistral: 'mistral-medium-2604',
   cohere: 'command-a-reasoning-08-2025',
-  deepseek: 'deepseek-v4-flash',
+  deepseek: 'deepseek-flash',
   moonshot: 'kimi-k3',
-  zai: 'glm-5.2',
+  zai: 'glm-5.3',
 };
 
 // Helper function to get default model for a provider

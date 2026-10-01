@@ -12,6 +12,11 @@ export interface ModelConfig {
   contextLength: number;
   contextLabel?: string | null; // Optional UI label when the provider publishes a friendly label or no numeric window
   maxOutputTokens?: number; // Maximum output tokens the model supports
+  // Floor for the max_tokens sent with each request, for models whose hidden
+  // reasoning spends the same budget as the visible answer: below it they stop
+  // with finish_reason "length" before writing any text. Settings can raise the
+  // budget above the floor, never below it.
+  minOutputTokens?: number;
   isDefault?: boolean;
   isPreview?: boolean;
   supportsVision?: boolean;
@@ -33,12 +38,12 @@ export interface ProviderModels {
   [providerId: string]: ModelConfig[];
 }
 
-// Updated July 2026 using verified live model IDs plus current provider docs.
+// Updated September 2026 using verified live model IDs plus current provider docs.
 export const AI_MODELS: ProviderModels = {
   claude: [
     {
-      id: "claude-sonnet-5",
-      name: "Claude Sonnet 5",
+      id: "claude-sonnet-5-5",
+      name: "Claude Sonnet 5.5",
       description: "Latest balanced Claude model with adaptive thinking and effort control for chat, coding, and agentic work",
       contextLength: 1000000,
       maxOutputTokens: 128000,
@@ -52,9 +57,51 @@ export const AI_MODELS: ProviderModels = {
       unsupportedParams: ["temperature", "topP"],
     },
     {
+      id: "claude-opus-5-5",
+      name: "Claude Opus 5.5",
+      description: "Current Claude Opus model for complex agentic coding, deep reasoning, and enterprise work",
+      contextLength: 1000000,
+      maxOutputTokens: 128000,
+      supportsVision: true,
+      supportsImageInput: true,
+      supportsDocuments: true,
+      supportsFunctions: true,
+      supportsWebSearch: true,
+      supportsThinking: true,
+      unsupportedParams: ["temperature", "topP"],
+    },
+    {
+      id: "claude-sonnet-5",
+      name: "Claude Sonnet 5",
+      description: "Previous balanced Claude model with adaptive thinking and effort control for chat, coding, and agentic work",
+      contextLength: 1000000,
+      maxOutputTokens: 128000,
+      supportsVision: true,
+      supportsImageInput: true,
+      supportsDocuments: true,
+      supportsFunctions: true,
+      supportsWebSearch: true,
+      supportsThinking: true,
+      unsupportedParams: ["temperature", "topP"],
+    },
+    {
+      id: "claude-fable-5-1",
+      name: "Claude Fable 5.1",
+      description: "Anthropic's most capable widely released model for the most demanding reasoning and long-horizon agentic work",
+      contextLength: 1000000,
+      maxOutputTokens: 128000,
+      supportsVision: true,
+      supportsImageInput: true,
+      supportsDocuments: true,
+      supportsFunctions: true,
+      supportsWebSearch: true,
+      supportsThinking: true,
+      unsupportedParams: ["temperature", "topP"],
+    },
+    {
       id: "claude-fable-5",
       name: "Claude Fable 5",
-      description: "Anthropic's most capable widely released model for demanding reasoning and long-horizon agentic work",
+      description: "Previous Fable-tier model, still served by Anthropic for demanding reasoning and long-horizon agentic work",
       contextLength: 1000000,
       maxOutputTokens: 128000,
       supportsVision: true,
@@ -68,7 +115,7 @@ export const AI_MODELS: ProviderModels = {
     {
       id: "claude-opus-5",
       name: "Claude Opus 5",
-      description: "Current Claude Opus model for complex agentic coding, deep reasoning, and enterprise work",
+      description: "Previous Claude Opus model for complex agentic coding, deep reasoning, and enterprise work",
       contextLength: 1000000,
       maxOutputTokens: 128000,
       supportsVision: true,
@@ -240,12 +287,75 @@ export const AI_MODELS: ProviderModels = {
   ],
   openai: [
     {
-      id: "gpt-5.6-sol",
-      name: "GPT-5.6 Sol",
-      description: "Flagship GPT-5.6 model for complex reasoning, coding, and professional work",
-      contextLength: 1000000,
+      // GPT-6 family (live-verified 2026-09-30): temperature must be 1. Chat
+      // completions serve plain chat; web search goes through the Responses
+      // API like every other OpenAI web-search request.
+      id: "gpt-6.1-sol",
+      name: "GPT-6.1 Sol",
+      description: "Latest GPT-6 Sol model with near-Astra reasoning, coding, and professional work at a fraction of the cost",
+      contextLength: 1050000,
       maxOutputTokens: 128000,
       isDefault: true,
+      supportsVision: true,
+      supportsImageInput: true,
+      supportsDocuments: true,
+      supportsFunctions: true,
+      supportsWebSearch: true,
+      supportsThinking: true,
+      requiresTemperature1: true,
+      useMaxCompletionTokens: true,
+    },
+    {
+      id: "gpt-6-astra",
+      name: "GPT-6 Astra",
+      description: "OpenAI's most capable model for the hardest end-to-end reasoning, coding, and research work",
+      contextLength: 1050000,
+      maxOutputTokens: 128000,
+      supportsVision: true,
+      supportsImageInput: true,
+      supportsDocuments: true,
+      supportsFunctions: true,
+      supportsWebSearch: true,
+      supportsThinking: true,
+      requiresTemperature1: true,
+      useMaxCompletionTokens: true,
+    },
+    {
+      id: "gpt-6-sol",
+      name: "GPT-6 Sol",
+      description: "GPT-6 Sol model for complex reasoning, coding, and professional work",
+      contextLength: 1050000,
+      maxOutputTokens: 128000,
+      supportsVision: true,
+      supportsImageInput: true,
+      supportsDocuments: true,
+      supportsFunctions: true,
+      supportsWebSearch: true,
+      supportsThinking: true,
+      requiresTemperature1: true,
+      useMaxCompletionTokens: true,
+    },
+    {
+      id: "gpt-6-luna",
+      name: "GPT-6 Luna",
+      description: "Fast, affordable GPT-6 model for high-volume tasks",
+      contextLength: 1050000,
+      maxOutputTokens: 128000,
+      supportsVision: true,
+      supportsImageInput: true,
+      supportsDocuments: true,
+      supportsFunctions: true,
+      supportsWebSearch: true,
+      supportsThinking: true,
+      requiresTemperature1: true,
+      useMaxCompletionTokens: true,
+    },
+    {
+      id: "gpt-5.6-sol",
+      name: "GPT-5.6 Sol",
+      description: "Previous flagship GPT-5.6 model for complex reasoning, coding, and professional work",
+      contextLength: 1000000,
+      maxOutputTokens: 128000,
       supportsVision: true,
       supportsImageInput: true,
       supportsDocuments: true,
@@ -509,9 +619,25 @@ export const AI_MODELS: ProviderModels = {
       useMaxCompletionTokens: true,
     },
     {
+      id: "gpt-image-2.5-flare",
+      name: "GPT Image 2.5 Flare",
+      description: "Fastest OpenAI image model for high-quality everyday generation and edits",
+      contextLength: 0,
+      supportsImageInput: true,
+      supportsImageGeneration: true,
+    },
+    {
+      id: "gpt-image-2.5-sunburst",
+      name: "GPT Image 2.5 Sunburst",
+      description: "Precision OpenAI image model for premium creative work and detailed edits",
+      contextLength: 0,
+      supportsImageInput: true,
+      supportsImageGeneration: true,
+    },
+    {
       id: "gpt-image-2",
       name: "GPT Image 2",
-      description: "OpenAI state-of-the-art image generation and editing model",
+      description: "Previous OpenAI image generation and editing model",
       contextLength: 0,
       supportsImageInput: true,
       supportsImageGeneration: true,
@@ -543,9 +669,9 @@ export const AI_MODELS: ProviderModels = {
   ],
   google: [
     {
-      id: "gemini-3.7-flash",
-      name: "Gemini 3.7 Flash",
-      description: "Current stable Gemini default for fast frontier-class agentic and multimodal work",
+      id: "gemini-3.8-flash",
+      name: "Gemini 3.8 Flash",
+      description: "Current stable Gemini default for fast frontier-class agentic, coding, and multimodal work",
       contextLength: 1048576,
       maxOutputTokens: 65536,
       isDefault: true,
@@ -557,9 +683,22 @@ export const AI_MODELS: ProviderModels = {
       supportsThinking: true,
     },
     {
+      id: "gemini-3.7-flash",
+      name: "Gemini 3.7 Flash",
+      description: "Previous stable fast Gemini default retained while available from Google",
+      contextLength: 1048576,
+      maxOutputTokens: 65536,
+      supportsVision: true,
+      supportsImageInput: true,
+      supportsDocuments: true,
+      supportsFunctions: true,
+      supportsWebSearch: true,
+      supportsThinking: true,
+    },
+    {
       id: "gemini-3.6-flash",
       name: "Gemini 3.6 Flash",
-      description: "Previous stable fast Gemini default retained while available from Google",
+      description: "Older stable Gemini Flash release still served by Google; out of the picker but resolvable for existing sessions",
       contextLength: 1048576,
       maxOutputTokens: 65536,
       supportsVision: true,
@@ -759,57 +898,66 @@ export const AI_MODELS: ProviderModels = {
       supportsThinking: true,
     },
     {
+      // Live-verified 2026-09-30: a full report is ~13K completion tokens on
+      // top of ~80-110K reasoning tokens. max_tokens 512/2048 returned empty
+      // text and 8000 a cut-off report (finish_reason "length"); 128000 was
+      // accepted and finished ("stop"). Cost is billed on tokens used.
       id: "sonar-deep-research",
       name: "Sonar Deep Research",
       description: "Expert research model for exhaustive searches and comprehensive reports",
       contextLength: 128000,
       contextLabel: "Context unpublished",
-      maxOutputTokens: 8000,
+      maxOutputTokens: 128000,
+      minOutputTokens: 32768,
       supportsWebSearch: true,
       supportsThinking: true,
     },
   ],
   mistral: [
     {
+      // Tier-gated: free (Experiment) keys get 403 tier_not_allowed and it
+      // drops out of their /v1/models, but paid keys list it and chat works
+      // (live-verified 2026-09-30). Selectable; Medium 3.5 is the default.
       id: "mistral-large-2512",
       name: "Mistral Large 3",
-      description: "Current Mistral flagship multimodal model with 256K context",
+      description: "Open-weight Mistral flagship multimodal model with 256K context (paid Mistral API tiers)",
       contextLength: 262144,
-      isDefault: true,
       supportsVision: true,
       supportsImageInput: true,
       supportsDocuments: true,
       supportsFunctions: true,
     },
     {
+      // Reasoning prompt mode is rejected ("not enabled for this model"), so
+      // no supportsThinking; chat, tools, and image input are live-verified.
       id: "mistral-medium-2604",
       name: "Mistral Medium 3.5",
-      description: "Current Mistral Medium reasoning model with vision and 256K context",
+      description: "Current Mistral default: frontier-class multimodal model for agentic and coding work with 256K context",
+      contextLength: 262144,
+      isDefault: true,
+      supportsVision: true,
+      supportsImageInput: true,
+      supportsFunctions: true,
+    },
+    {
+      id: "mistral-medium-2508",
+      name: "Mistral Medium 3.1",
+      description: "Legacy Mistral Medium 3.1 id; the Mistral API now serves Mistral Medium 3.5 for it",
+      contextLength: 131072,
+      supportsVision: true,
+      supportsImageInput: true,
+      supportsFunctions: true,
+      isDeprecated: true,
+    },
+    {
+      id: "mistral-small-2603",
+      name: "Mistral Small 4",
+      description: "Efficient hybrid Mistral model for instruct, reasoning, and coding with 256K context",
       contextLength: 262144,
       supportsVision: true,
       supportsImageInput: true,
       supportsFunctions: true,
       supportsThinking: true,
-    },
-    {
-      id: "mistral-medium-2508",
-      name: "Mistral Medium 3.1",
-      description: "Previous multimodal Mistral Medium model released August 2025",
-      contextLength: 131072,
-      supportsVision: true,
-      supportsImageInput: true,
-      supportsFunctions: true,
-    },
-    {
-      id: "mistral-small-2603",
-      name: "Mistral Small 4",
-      description: "Efficient hybrid Mistral model for instruct, reasoning, and coding",
-      contextLength: 128000,
-      supportsVision: true,
-      supportsImageInput: true,
-      supportsFunctions: true,
-      supportsThinking: true,
-      isDeprecated: true,
     },
     {
       id: "mistral-small-2506",
@@ -871,9 +1019,10 @@ export const AI_MODELS: ProviderModels = {
     {
       id: "devstral-2512",
       name: "Devstral 2",
-      description: "Mistral code-agent model for software engineering tasks",
+      description: "Retired by Mistral on 2026-07-31; the Mistral API now serves Mistral Medium 3.5 for this id",
       contextLength: 262144,
       supportsFunctions: true,
+      isDeprecated: true,
     },
     {
       id: "codestral-2508",
@@ -935,6 +1084,15 @@ export const AI_MODELS: ProviderModels = {
       supportsFunctions: true,
     },
     {
+      // Released 2026-09-10. Chat-only: tool use is rejected with
+      // TOOL_USE_NOT_SUPPORTED (live-verified 2026-09-10).
+      id: "north-small-translate-09-2026",
+      name: "North Small Translate",
+      description: "Cohere translation model covering 50+ languages, succeeding Command A Translate",
+      contextLength: 32768,
+      maxOutputTokens: 16000,
+    },
+    {
       id: "command-a-vision-07-2025",
       name: "Command A Vision",
       description: "Current Cohere multimodal model with image inputs",
@@ -962,28 +1120,47 @@ export const AI_MODELS: ProviderModels = {
   ],
   deepseek: [
     {
-      id: "deepseek-v4-flash",
-      name: "DeepSeek V4 Flash",
-      description: "Current DeepSeek default supporting non-thinking and thinking modes",
+      // DeepSeek V4.1 Flash (2026-09-10): natively multimodal, thinking on by
+      // default; tools, vision, streaming, and sampling params live-verified.
+      id: "deepseek-flash",
+      name: "DeepSeek Flash",
+      description: "DeepSeek V4.1 Flash: multimodal default with thinking and non-thinking modes, tools, and a 1M-token context",
       contextLength: 1000000,
       maxOutputTokens: 384000,
       isDefault: true,
+      supportsVision: true,
+      supportsImageInput: true,
       supportsFunctions: true,
       supportsThinking: true,
     },
     {
+      // From 2026-09-14 DeepSeek routes every deepseek-v4-pro request to V4.1
+      // Flash at Flash pricing until a V4.1 Pro ships.
       id: "deepseek-v4-pro",
       name: "DeepSeek V4 Pro",
-      description: "Higher-capability DeepSeek V4 model for demanding workloads",
+      description: "Retiring DeepSeek V4 model; served as DeepSeek V4.1 Flash from 2026-09-14",
       contextLength: 1000000,
       maxOutputTokens: 384000,
       supportsFunctions: true,
       supportsThinking: true,
+      isDeprecated: true,
+    },
+    {
+      id: "deepseek-v4-flash",
+      name: "DeepSeek V4 Flash",
+      description: "Retired DeepSeek name; temporarily served as DeepSeek V4.1 Flash for compatibility",
+      contextLength: 1000000,
+      maxOutputTokens: 384000,
+      supportsVision: true,
+      supportsImageInput: true,
+      supportsFunctions: true,
+      supportsThinking: true,
+      isDeprecated: true,
     },
     {
       id: "deepseek-chat",
       name: "DeepSeek Chat",
-      description: "Deprecated DeepSeek compatibility name; maps to DeepSeek V4 Flash non-thinking mode",
+      description: "Deprecated DeepSeek compatibility name; maps to DeepSeek V4.1 Flash non-thinking mode",
       contextLength: 1000000,
       maxOutputTokens: 384000,
       supportsFunctions: true,
@@ -992,7 +1169,7 @@ export const AI_MODELS: ProviderModels = {
     {
       id: "deepseek-reasoner",
       name: "DeepSeek Reasoner",
-      description: "Deprecated DeepSeek compatibility name; maps to DeepSeek V4 Flash thinking mode until 2026-07-24",
+      description: "Deprecated DeepSeek compatibility name; maps to DeepSeek V4.1 Flash thinking mode",
       contextLength: 1000000,
       maxOutputTokens: 384000,
       supportsThinking: true,
@@ -1014,9 +1191,21 @@ export const AI_MODELS: ProviderModels = {
       unsupportedParams: ["frequencyPenalty", "presencePenalty", "stopSequences"],
     },
     {
+      id: "grok-4.7",
+      name: "Grok 4.7",
+      description: "xAI flagship for coding, agents, and knowledge work with always-on configurable reasoning and 500K context",
+      contextLength: 500000,
+      supportsVision: true,
+      supportsImageInput: true,
+      supportsFunctions: true,
+      supportsWebSearch: true,
+      supportsThinking: true,
+      unsupportedParams: ["frequencyPenalty", "presencePenalty", "stopSequences"],
+    },
+    {
       id: "grok-4.6",
       name: "Grok 4.6",
-      description: "Latest xAI model for coding, agents, and knowledge work with configurable reasoning and 500K context",
+      description: "Previous xAI model for coding, agents, and knowledge work with configurable reasoning and 500K context",
       contextLength: 500000,
       supportsVision: true,
       supportsImageInput: true,
@@ -1145,7 +1334,7 @@ export const AI_MODELS: ProviderModels = {
       requiresTemperature1: true,
       name: "Kimi K3",
       description: "Moonshot flagship multimodal reasoning model with a 1M-token context window",
-      contextLength: 1000000,
+      contextLength: 1048576,
       isDefault: true,
       supportsVision: true,
       supportsImageInput: true,
@@ -1157,7 +1346,7 @@ export const AI_MODELS: ProviderModels = {
       requiresTemperature1: true,
       name: "Kimi K2.7 Code",
       description: "Dedicated Moonshot coding model with reasoning and vision input",
-      contextLength: 256000,
+      contextLength: 262144,
       supportsVision: true,
       supportsImageInput: true,
       supportsFunctions: true,
@@ -1168,7 +1357,7 @@ export const AI_MODELS: ProviderModels = {
       requiresTemperature1: true,
       name: "Kimi K2.7 Code High-Speed",
       description: "High-throughput variant of Kimi K2.7 Code (~180 tokens/s output)",
-      contextLength: 256000,
+      contextLength: 262144,
       supportsVision: true,
       supportsImageInput: true,
       supportsFunctions: true,
@@ -1179,7 +1368,7 @@ export const AI_MODELS: ProviderModels = {
       requiresTemperature1: true,
       name: "Kimi K2.6",
       description: "Previous-generation Kimi multimodal model with thinking modes and agent support",
-      contextLength: 256000,
+      contextLength: 262144,
       supportsVision: true,
       supportsImageInput: true,
       supportsFunctions: true,
@@ -1188,9 +1377,11 @@ export const AI_MODELS: ProviderModels = {
   ],
   zai: [
     {
-      id: "glm-5.2",
-      name: "GLM-5.2",
-      description: "Z.ai flagship coding and agentic model with up to 1M context",
+      // Standard-key access opened in September 2026 (chat, tools, and
+      // thinking live-verified; image input is rejected — text only).
+      id: "glm-5.3",
+      name: "GLM-5.3",
+      description: "Current Z.ai flagship for coding and agentic work with up to 1M context (text only)",
       contextLength: 1000000,
       maxOutputTokens: 128000,
       isDefault: true,
@@ -1198,15 +1389,33 @@ export const AI_MODELS: ProviderModels = {
       supportsThinking: true,
     },
     {
-      // Listed by the Z.ai catalog but API access is gated to GLM Coding Plan
-      // subscribers (permission error 1220 on chat completions, verified
-      // 2026-08-17). Not curated until BYOK keys can reach it.
-      id: "glm-5.3",
-      name: "GLM-5.3",
-      description: "Newest GLM flagship; Z.ai has not yet opened Model API access for standard API keys",
+      id: "glm-5.3-flash",
+      name: "GLM-5.3 Flash",
+      description: "Fast natively multimodal GLM with image and video input, tool calling, and always-on thinking",
       contextLength: 1000000,
       maxOutputTokens: 128000,
-      isPreview: true,
+      supportsVision: true,
+      supportsImageInput: true,
+      supportsFunctions: true,
+      supportsThinking: true,
+    },
+    {
+      id: "glm-5.3-flashx",
+      name: "GLM-5.3 FlashX",
+      description: "High-speed GLM-5.3 Flash with image and video input, tool calling, and always-on thinking",
+      contextLength: 1000000,
+      maxOutputTokens: 128000,
+      supportsVision: true,
+      supportsImageInput: true,
+      supportsFunctions: true,
+      supportsThinking: true,
+    },
+    {
+      id: "glm-5.2",
+      name: "GLM-5.2",
+      description: "Previous GLM flagship for coding and agentic work with up to 1M context",
+      contextLength: 1000000,
+      maxOutputTokens: 128000,
       supportsFunctions: true,
       supportsThinking: true,
     },
@@ -1245,26 +1454,29 @@ export const AI_MODELS: ProviderModels = {
 // Model IDs shown in selectors. Keep this aligned with the verified runtime catalog.
 export const CURATED_MODEL_IDS: { [providerId: string]: string[] } = {
   claude: [
+    "claude-sonnet-5-5",
+    "claude-opus-5-5",
+    "claude-fable-5-1",
     "claude-sonnet-5",
-    "claude-fable-5",
     "claude-opus-5",
     "claude-sonnet-4-6",
-    "claude-opus-4-8",
-    "claude-opus-4-7",
     "claude-haiku-4-5-20251001",
   ],
+  // Mobile caps pickers at 7. gpt-6-sol (same price as its 6.1 successor) is
+  // left out so gpt-4.1 stays: it is the only curated OpenAI model that takes
+  // a temperature, which Expert Mode's sampling controls rely on.
   openai: [
+    "gpt-6.1-sol",
+    "gpt-6-astra",
+    "gpt-6-luna",
     "gpt-5.6-sol",
     "gpt-5.6-terra",
     "gpt-5.6-luna",
-    "gpt-5.5",
-    "gpt-5.5-pro",
     "gpt-4.1",
-    "o3",
   ],
   google: [
+    "gemini-3.8-flash",
     "gemini-3.7-flash",
-    "gemini-3.6-flash",
     "gemini-3.5-flash",
     "gemini-3.1-pro-preview",
     "gemini-3.5-flash-lite",
@@ -1278,10 +1490,10 @@ export const CURATED_MODEL_IDS: { [providerId: string]: string[] } = {
     "sonar-deep-research",
   ],
   mistral: [
-    "mistral-large-2512",
     "mistral-medium-2604",
+    "mistral-large-2512",
     "mistral-small-2603",
-    "devstral-2512",
+    "ministral-14b-2512",
     "codestral-2508",
   ],
   cohere: [
@@ -1289,13 +1501,14 @@ export const CURATED_MODEL_IDS: { [providerId: string]: string[] } = {
     "command-a-reasoning-08-2025",
     "command-a-03-2025",
     "command-a-translate-08-2025",
+    "north-small-translate-09-2026",
     "command-a-vision-07-2025",
     "command-r-08-2024",
-    "command-r7b-12-2024",
   ],
-  deepseek: ["deepseek-v4-flash", "deepseek-v4-pro"],
+  deepseek: ["deepseek-flash"],
   grok: [
     "grok-4.3",
+    "grok-4.7",
     "grok-4.6",
     "grok-4.5",
     "grok-build-0.1",
@@ -1303,7 +1516,7 @@ export const CURATED_MODEL_IDS: { [providerId: string]: string[] } = {
     "grok-4.20-0309-reasoning",
   ],
   moonshot: ["kimi-k3", "kimi-k2.7-code", "kimi-k2.6"],
-  zai: ["glm-5.2", "glm-5-turbo", "glm-5.1"],
+  zai: ["glm-5.3", "glm-5.3-flash", "glm-5.3-flashx", "glm-5.2", "glm-5-turbo", "glm-5.1"],
 };
 
 export const DEFAULT_PARAMETERS: ModelParameters = {

@@ -156,7 +156,7 @@ describe('ImageRefinementModal', () => {
       expect(onRefine).toHaveBeenCalledWith({
         instructions: 'Make it better',
         provider: 'openai',
-        modelId: 'gpt-image-2',
+        modelId: 'gpt-image-2.5-flare',
       });
     });
 

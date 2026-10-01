@@ -23,6 +23,8 @@ describe('Provider capability matrix', () => {
       supported: true,
       supportsImageInput: true,
       models: [
+        'gpt-image-2.5-flare',
+        'gpt-image-2.5-sunburst',
         'gpt-image-2',
         'gpt-image-1.5',
         'gpt-image-1',
@@ -79,7 +81,8 @@ describe('Provider capability matrix', () => {
       supported: true,
       supportsImageInput: true,
       models: ['grok-imagine-image-2.0', 'grok-imagine-image', 'grok-imagine-image-quality'],
-      sizes: ['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3', '2:1', '1:2', '19.5:9', '9:19.5', '20:9', '9:20'],
+      // Grok Imagine 2.0 (listed first) adds 21:9 and 5:2.
+      sizes: ['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3', '2:1', '1:2', '21:9', '5:2', '19.5:9', '9:19.5', '20:9', '9:20'],
       maxPromptLength: 8000,
     }));
     expect(capabilities.videoGeneration).toEqual({ supported: false });
