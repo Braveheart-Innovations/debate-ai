@@ -153,10 +153,10 @@ jest.mock('@/hooks/debate', () => ({
 }));
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text } = require('react-native') as typeof import('react-native');
   return {
-    KeyboardAvoider: ({ children }: { children?: import('react').ReactNode }) => require('react').createElement(require('react').Fragment, null, children),
+    KeyboardAvoider: ({ children }: { children?: import('react').ReactNode }) => children,
     get ContextBar() {
       return mockContextBar.Stub;
     },
@@ -165,8 +165,8 @@ jest.mock('@/components/molecules', () => {
 });
 
 jest.mock('@/components/organisms', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text } = require('react-native') as typeof import('react-native');
   return {
     get Header() {
       return mockHeader.Stub;

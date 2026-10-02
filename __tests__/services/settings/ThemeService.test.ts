@@ -80,12 +80,9 @@ const setupThemeService = async (prefs?: Partial<StoredThemePreferences> & { mod
 
   const themeServiceModule = require('@/services/settings/ThemeService') as typeof import('@/services/settings/ThemeService');
   const themeService = themeServiceModule.default;
-  const AsyncStorageModule = require('@react-native-async-storage/async-storage');
-  const AsyncStorage = (AsyncStorageModule.default || AsyncStorageModule) as {
-    getItem: jest.Mock;
-    setItem: jest.Mock;
-    removeItem: jest.Mock;
-  };
+  const AsyncStorageModule = require('@react-native-async-storage/async-storage') as typeof import('@react-native-async-storage/async-storage');
+  // The doMock above defines `default`, matching how ThemeService imports it.
+  const AsyncStorage = jest.mocked(AsyncStorageModule.default);
 
   return {
     themeService,

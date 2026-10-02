@@ -8,6 +8,7 @@
  * 4. ToastNotification component receives and displays error
  */
 
+import type { Animated } from 'react-native';
 import { fireEvent, act } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../test-utils/renderWithProviders';
 import { ErrorCode } from '@/errors/codes/ErrorCodes';
@@ -18,7 +19,7 @@ import { addError, dismissError, clearErrors } from '@/store/errorSlice';
 // Mock dependencies for ToastNotification
 jest.mock('@expo/vector-icons', () => ({
   Ionicons: ({ name, testID }: { name: string; testID?: string }) => {
-    const { Text } = require('react-native');
+    const { Text } = require('react-native') as typeof import('react-native');
     return <Text testID={testID || `icon-${name}`}>{name}</Text>;
   },
 }));
@@ -28,19 +29,26 @@ jest.mock('react-native-safe-area-context', () => ({
 }));
 
 jest.mock('react-native', () => {
-  const RN = jest.requireActual('react-native');
-  RN.Animated.timing = jest.fn(() => ({
-    start: jest.fn((callback) => callback && callback()),
-  }));
-  RN.Animated.spring = jest.fn(() => ({
-    start: jest.fn((callback) => callback && callback()),
-  }));
-  RN.Animated.parallel = jest.fn((animations: Array<{ start: () => void }>) => ({
-    start: jest.fn((callback?: () => void) => {
-      animations.forEach((anim) => anim.start());
-      callback?.();
+  const RN = jest.requireActual<typeof import('react-native')>('react-native');
+  // Animations finish synchronously so toasts settle within a test tick.
+  const instant = (): Animated.CompositeAnimation => ({
+    start: (callback) => callback?.({ finished: true }),
+    stop: () => {},
+    reset: () => {},
+  });
+  // Animated's members are read-only bindings, so they are replaced via Object.assign.
+  Object.assign(RN.Animated, {
+    timing: instant,
+    spring: instant,
+    parallel: (animations: Animated.CompositeAnimation[]): Animated.CompositeAnimation => ({
+      start: (callback) => {
+        animations.forEach((anim) => anim.start());
+        callback?.({ finished: true });
+      },
+      stop: () => {},
+      reset: () => {},
     }),
-  }));
+  });
   return RN;
 });
 

@@ -5,8 +5,8 @@ import { LazyMarkdownRenderer, createMarkdownStyles } from '@/components/molecul
 import { lightTheme } from '@/theme';
 
 jest.mock('react-native-markdown-display', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text } = require('react-native') as typeof import('react-native');
   return {
     __esModule: true,
     default: ({ children }: { children: string }) =>
@@ -15,8 +15,8 @@ jest.mock('react-native-markdown-display', () => {
 });
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text } = require('react-native') as typeof import('react-native');
   return {
     Typography: ({ children }: { children: React.ReactNode }) =>
       React.createElement(Text, null, children),

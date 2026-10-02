@@ -6,7 +6,7 @@ import { malformed } from '@test-utils/queries';
 
 jest.mock('@expo/vector-icons', () => ({
   Ionicons: ({ name }: { name: string }) => {
-    const { Text } = require('react-native');
+    const { Text } = require('react-native') as typeof import('react-native');
     return <Text testID={`icon-${name}`}>{name}</Text>;
   },
 }));

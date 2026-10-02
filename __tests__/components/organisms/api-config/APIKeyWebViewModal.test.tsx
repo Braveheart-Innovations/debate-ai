@@ -205,7 +205,7 @@ describe('APIKeyWebViewModal', () => {
     });
 
     it('calls onKeyObtained when I\'ve Copied My Key is pressed', () => {
-      const Haptics = require('expo-haptics');
+      const Haptics = require('expo-haptics') as typeof import('expo-haptics');
       const { getByText } = renderWithProviders(
         <APIKeyWebViewModal
           visible={true}

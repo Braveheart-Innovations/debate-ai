@@ -3,8 +3,8 @@ import { renderWithProviders } from '../../../../test-utils/renderWithProviders'
 import { PricingBadge } from '@/components/molecules/subscription/PricingBadge';
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text } = require('react-native') as typeof import('react-native');
   return {
     Typography: ({ children }: { children: React.ReactNode }) =>
       React.createElement(Text, null, children),

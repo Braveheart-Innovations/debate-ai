@@ -89,8 +89,8 @@ jest.mock('@/components/organisms', () => ({
 }));
 
 jest.mock('@/components/molecules/subscription/TrialBanner', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text } = require('react-native') as typeof import('react-native');
   return {
     TrialBanner: () => React.createElement(Text, { testID: 'trial-banner' }, 'trial-banner'),
     __esModule: true,

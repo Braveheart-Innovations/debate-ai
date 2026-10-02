@@ -10,7 +10,7 @@ import { requireDefined } from '../../../test-utils/queries';
 // Mock useFocusEffect to behave like useEffect (run callback once on mount)
 jest.mock('@react-navigation/native', () => ({
   useFocusEffect: (callback: () => (() => void) | void) => {
-    const { useEffect } = require('react');
+    const { useEffect } = require('react') as typeof import('react');
     useEffect(() => {
       const cleanup = callback();
       return cleanup;

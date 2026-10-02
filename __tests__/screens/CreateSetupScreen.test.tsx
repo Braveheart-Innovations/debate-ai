@@ -35,7 +35,7 @@ jest.mock('@react-navigation/native', () => ({
     goBack: jest.fn(),
   }),
   useFocusEffect: (cb: () => (() => void) | void) => {
-    const { useEffect } = require('react');
+    const { useEffect } = require('react') as typeof import('react');
     useEffect(() => {
       const cleanup = cb();
       return cleanup;
@@ -77,16 +77,16 @@ jest.mock('expo-haptics', () => ({
 }));
 
 jest.mock('@expo/vector-icons', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text } = require('react-native') as typeof import('react-native');
   return {
     Ionicons: (props: { name: string }) => React.createElement(Text, { testID: `icon-${props.name}` }, props.name),
   };
 });
 
 jest.mock('@react-native-community/slider', () => {
-  const React = require('react');
-  const { View } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { View } = require('react-native') as typeof import('react-native');
   const Slider = (props: Record<string, unknown>) => React.createElement(View, props);
   return { __esModule: true, default: Slider };
 });
@@ -99,8 +99,8 @@ jest.mock('react-native-safe-area-context', () => ({
 // Header/HeaderActions stay stubbed; the Studio's own composer stack renders
 // for real so pills, sheets, and the status card are exercised end-to-end.
 jest.mock('@/components/organisms', () => {
-  const React = require('react');
-  const { Text, View } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text, View } = require('react-native') as typeof import('react-native');
   const { CreateComposer } = jest.requireActual<typeof import('@/components/organisms/create/CreateComposer')>('@/components/organisms/create/CreateComposer');
   const { CreateEmptyState } = jest.requireActual<typeof import('@/components/organisms/create/CreateEmptyState')>('@/components/organisms/create/CreateEmptyState');
   const {
@@ -132,16 +132,16 @@ jest.mock('@/components/organisms', () => {
 });
 
 jest.mock('@/components/organisms/common/AIAvatar', () => {
-  const React = require('react');
-  const { View } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { View } = require('react-native') as typeof import('react-native');
   return { AIAvatar: (props: { providerId?: string }) => React.createElement(View, { testID: `ai-avatar-${props.providerId || ''}` }) };
 });
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text, TouchableOpacity, View } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text, TouchableOpacity, View } = require('react-native') as typeof import('react-native');
   return {
-    KeyboardAvoider: ({ children }: { children?: import('react').ReactNode }) => require('react').createElement(require('react').Fragment, null, children),
+    KeyboardAvoider: ({ children }: { children?: import('react').ReactNode }) => children,
     Typography: ({ children, testID }: { children: React.ReactNode; testID?: string }) =>
       React.createElement(Text, { testID }, children),
     Badge: ({ label }: { label: string }) =>

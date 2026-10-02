@@ -138,7 +138,7 @@ describe('Button', () => {
       // Title should not be visible when loading
       expect(queryByText('Loading')).toBeNull();
       // ActivityIndicator should be present
-      const ActivityIndicator = require('react-native').ActivityIndicator;
+      const ActivityIndicator = (require('react-native') as typeof import('react-native')).ActivityIndicator;
       expect(UNSAFE_getByType(ActivityIndicator)).toBeTruthy();
     });
 

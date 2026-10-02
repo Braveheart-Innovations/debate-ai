@@ -13,8 +13,8 @@ jest.mock('@/services/crashlytics', () => ({
 }));
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text, TouchableOpacity } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text, TouchableOpacity } = require('react-native') as typeof import('react-native');
   return {
     Typography: ({ children, ...props }: { children: React.ReactNode }) => React.createElement(Text, props, children),
     Button: ({ title, onPress }: { title: string; onPress: () => void }) => (
@@ -28,8 +28,8 @@ jest.mock('@/components/molecules', () => {
 });
 
 jest.mock('@/components/atoms', () => {
-  const React = require('react');
-  const { View } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { View } = require('react-native') as typeof import('react-native');
   return {
     Box: ({ children, ...props }: { children: React.ReactNode }) => React.createElement(View, props, children),
   };

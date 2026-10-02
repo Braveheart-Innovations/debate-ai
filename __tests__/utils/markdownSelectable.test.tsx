@@ -5,8 +5,8 @@ import { Linking, TextStyle } from 'react-native';
 // Mock CodeBlock to avoid ThemeProvider dependency
 jest.mock('@/components/molecules/common/CodeBlock', () => ({
   CodeBlock: ({ code, language }: { code: string; language?: string }) => {
-    const React = require('react');
-    const { Text, View } = require('react-native');
+    const React = require('react') as typeof import('react');
+    const { Text, View } = require('react-native') as typeof import('react-native');
     return React.createElement(
       View,
       { testID: 'code-block' },

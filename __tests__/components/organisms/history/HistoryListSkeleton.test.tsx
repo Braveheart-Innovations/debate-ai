@@ -5,7 +5,7 @@ import type { Box } from '@/components/atoms';
 
 jest.mock('@/components/atoms', () => ({
   Box: ({ children, style }: PropsOf<typeof Box>) => {
-    const React = require('react');
+    const React = require('react') as typeof import('react');
     const { View, StyleSheet } = jest.requireActual<typeof import('react-native')>('react-native');
     const flat = StyleSheet.flatten(style);
     const isSkeletonCard = flat?.marginBottom === 12 && flat?.padding === 16;

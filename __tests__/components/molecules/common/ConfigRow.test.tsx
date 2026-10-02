@@ -19,7 +19,7 @@ describe('ConfigRow', () => {
 
     fireEvent.press(getByTestId('config-row'));
     expect(onPress).toHaveBeenCalledTimes(1);
-    expect(require('expo-haptics').impactAsync).toHaveBeenCalled();
+    expect((require('expo-haptics') as typeof import('expo-haptics')).impactAsync).toHaveBeenCalled();
   });
 
   it('shows the indicator dot only when requested', () => {

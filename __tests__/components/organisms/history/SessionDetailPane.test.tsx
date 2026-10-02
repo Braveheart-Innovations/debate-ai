@@ -16,8 +16,8 @@ jest.mock('@/services/history', () => ({
 // Mock atoms
 jest.mock('@/components/atoms', () => ({
   Box: ({ children, style, testID }: PropsOf<typeof Box>) => {
-    const React = require('react');
-    const { View } = require('react-native');
+    const React = require('react') as typeof import('react');
+    const { View } = require('react-native') as typeof import('react-native');
     return React.createElement(View, { testID, style }, children);
   },
 }));
@@ -25,14 +25,14 @@ jest.mock('@/components/atoms', () => ({
 // Mock molecules (Typography, Button and Card take no testID; the stubs use fixed ones)
 jest.mock('@/components/molecules', () => ({
   Typography: ({ children }: PropsOf<typeof Typography>) => {
-    const React = require('react');
-    const { Text } = require('react-native');
+    const React = require('react') as typeof import('react');
+    const { Text } = require('react-native') as typeof import('react-native');
     return React.createElement(Text, null, children);
   },
 
   Button: ({ title, onPress }: PropsOf<typeof Button>) => {
-    const React = require('react');
-    const { TouchableOpacity, Text } = require('react-native');
+    const React = require('react') as typeof import('react');
+    const { TouchableOpacity, Text } = require('react-native') as typeof import('react-native');
     return React.createElement(
       TouchableOpacity,
       { testID: 'action-button', onPress },
@@ -41,8 +41,8 @@ jest.mock('@/components/molecules', () => ({
   },
 
   Card: ({ children }: PropsOf<typeof Card>) => {
-    const React = require('react');
-    const { View } = require('react-native');
+    const React = require('react') as typeof import('react');
+    const { View } = require('react-native') as typeof import('react-native');
     return React.createElement(View, { testID: 'card' }, children);
   },
 }));

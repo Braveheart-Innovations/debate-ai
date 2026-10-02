@@ -17,8 +17,8 @@ jest.mock('@expo/vector-icons', () => ({
 }));
 
 jest.mock('expo-blur', () => {
-  const React = require('react');
-  const { View } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { View } = require('react-native') as typeof import('react-native');
   return {
     BlurView: ({ children, ...props }: { children: React.ReactNode }) =>
       React.createElement(View, props, children),
@@ -26,8 +26,8 @@ jest.mock('expo-blur', () => {
 });
 
 jest.mock('expo-linear-gradient', () => {
-  const React = require('react');
-  const { View } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { View } = require('react-native') as typeof import('react-native');
   return {
     LinearGradient: ({ children, ...props }: { children: React.ReactNode }) =>
       React.createElement(View, props, children),

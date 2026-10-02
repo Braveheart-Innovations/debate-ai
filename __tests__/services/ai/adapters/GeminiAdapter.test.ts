@@ -14,6 +14,13 @@ jest.mock('react-native-sse', () => {
   }));
 });
 
+/** This file mocks react-native-sse as a constructor mock returning fake event sources. */
+type FakeEventSource = {
+  addEventListener: jest.Mock<void, [eventType: string, handler: (evt: unknown) => void]>;
+  close: jest.Mock<void, []>;
+};
+type EventSourceMock = jest.Mock<FakeEventSource, [url: string, options: unknown]>;
+
 /** A real 200 JSON Response for the non-streaming generateContent call. */
 const jsonResponse = (body: unknown): Response =>
   new Response(JSON.stringify(body), {
@@ -479,7 +486,7 @@ describe('GeminiAdapter - Web Search & Citations', () => {
       const config = { ...baseConfig, webSearchEnabled: false };
       adapter = new GeminiAdapter(config);
 
-      const EventSource = require('react-native-sse');
+      const EventSource = jest.requireMock<EventSourceMock>('react-native-sse');
       let mockEventSource: {
         addEventListener: jest.Mock;
         close: jest.Mock;

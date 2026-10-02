@@ -4,8 +4,8 @@ import { renderWithProviders } from '../../../../test-utils/renderWithProviders'
 import { RichTopicInput } from '@/components/organisms/debate/RichTopicInput';
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { View, Text } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { View, Text } = require('react-native') as typeof import('react-native');
   return {
     GlassCard: ({ children }: { children: React.ReactNode }) => React.createElement(View, null, children),
     Typography: ({ children }: { children: React.ReactNode }) => React.createElement(Text, null, children),

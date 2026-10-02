@@ -15,8 +15,8 @@ jest.mock('@/components/organisms/subscription/ActualPricing', () => ({
 }));
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text } = require('react-native') as typeof import('react-native');
   return {
     Typography: ({ children, ...props }: { children: React.ReactNode }) => React.createElement(Text, props, children),
     InfoButton: ({ topicId }: { topicId: string }) => React.createElement(Text, { testID: `info-${topicId}` }, 'info'),

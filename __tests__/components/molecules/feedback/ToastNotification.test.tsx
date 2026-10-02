@@ -6,7 +6,7 @@ import { ToastNotification } from '@/components/molecules/feedback/ToastNotifica
 // Mock dependencies
 jest.mock('@expo/vector-icons', () => ({
   Ionicons: ({ name, testID }: { name: string; testID?: string }) => {
-    const { Text } = require('react-native');
+    const { Text } = require('react-native') as typeof import('react-native');
     return <Text testID={testID || `icon-${name}`}>{name}</Text>;
   }
 }));

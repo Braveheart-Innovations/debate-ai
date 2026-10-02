@@ -5,8 +5,8 @@ import type { Card } from '@/components/molecules';
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null, MaterialIcons: () => null }));
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text } = require('react-native') as typeof import('react-native');
   const { stubComponent } = jest.requireActual<
     typeof import('@test-utils/mockComponents')
   >('@test-utils/mockComponents');

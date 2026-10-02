@@ -27,7 +27,7 @@ const mockHeader = jest.fn(({ title, onBack }: { title: string; onBack?: () => v
 ));
 
 jest.mock('react-native-safe-area-context', () => {
-  const { View } = require('react-native');
+  const { View } = require('react-native') as typeof import('react-native');
   return {
     SafeAreaView: ({ children, style }: { children: React.ReactNode; style?: object | object[] }) => (
       <View style={style}>{children}</View>
@@ -48,11 +48,11 @@ jest.mock('@/components/organisms', () => ({
 
 jest.mock('@/components/molecules/charts', () => ({
   ChartLegend: () => {
-    const { Text } = require('react-native');
+    const { Text } = require('react-native') as typeof import('react-native');
     return <Text testID="chart-legend">Legend</Text>;
   },
   LineChart: () => {
-    const { Text } = require('react-native');
+    const { Text } = require('react-native') as typeof import('react-native');
     return <Text testID="line-chart">Line Chart</Text>;
   },
 }));

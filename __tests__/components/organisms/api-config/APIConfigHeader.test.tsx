@@ -4,8 +4,8 @@ import { renderWithProviders } from '../../../../test-utils/renderWithProviders'
 import { APIConfigHeader } from '@/components/organisms/api-config/APIConfigHeader';
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text, TouchableOpacity } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text, TouchableOpacity } = require('react-native') as typeof import('react-native');
   return {
     Typography: ({ children }: { children: React.ReactNode }) => React.createElement(Text, null, children),
     Button: ({ title, onPress }: { title: string; onPress: () => void }) => (

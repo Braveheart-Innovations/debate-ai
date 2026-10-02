@@ -16,8 +16,8 @@ jest.mock('expo-linear-gradient', () => ({
 }));
 
 jest.mock('@/components/organisms/debate/ShareModal', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text } = require('react-native') as typeof import('react-native');
   return ({ visible }: { visible: boolean }) => (
     visible ? React.createElement(Text, { testID: 'share-modal' }, 'share-modal') : null
   );

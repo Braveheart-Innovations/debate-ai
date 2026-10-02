@@ -13,8 +13,8 @@ jest.mock('expo-blur', () => ({
 }));
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text } = require('react-native') as typeof import('react-native');
   return {
     Typography: ({ children }: { children: React.ReactNode }) => React.createElement(Text, null, children),
     AIProviderTile: ({ ai, onPress }: { ai: AI; onPress: () => void }) => (

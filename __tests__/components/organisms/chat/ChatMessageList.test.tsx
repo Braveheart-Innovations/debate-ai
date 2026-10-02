@@ -18,16 +18,16 @@ jest.mock('../../../../src/theme', () => ({
 }));
 
 jest.mock('@expo/vector-icons', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text } = require('react-native') as typeof import('react-native');
   return {
     Ionicons: ({ name }: { name: string }) => React.createElement(Text, null, `Ionicons:${name}`),
   };
 });
 
 jest.mock('../../../../src/components/molecules', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text } = require('react-native') as typeof import('react-native');
   return {
     Typography: ({ children }: { children: React.ReactNode }) =>
       React.createElement(Text, null, children),
@@ -63,8 +63,8 @@ jest.mock('../../../../src/hooks/useResponsive', () => ({
 
 jest.mock('@/components/organisms/common/MessageBubble', () => ({
   MessageBubble: ({ message, onReportContent }: { message: Message; onReportContent?: (message: Message) => void }) => {
-    const React = require('react');
-    const { Text, TouchableOpacity, View } = require('react-native');
+    const React = require('react') as typeof import('react');
+    const { Text, TouchableOpacity, View } = require('react-native') as typeof import('react-native');
     return React.createElement(
       View,
       { testID: `message-${message.id}` },
@@ -78,8 +78,8 @@ jest.mock('@/components/organisms/common/MessageBubble', () => ({
 
 jest.mock('../../../../src/components/organisms/chat/ImageMessageRow', () => ({
   ImageMessageRow: ({ message, onReportContent }: { message: Message; onReportContent?: (message: Message) => void }) => {
-    const React = require('react');
-    const { Text, TouchableOpacity, View } = require('react-native');
+    const React = require('react') as typeof import('react');
+    const { Text, TouchableOpacity, View } = require('react-native') as typeof import('react-native');
     return React.createElement(
       View,
       { testID: `image-row-${message.id}` },
@@ -93,8 +93,8 @@ jest.mock('../../../../src/components/organisms/chat/ImageMessageRow', () => ({
 
 jest.mock('../../../../src/components/organisms/chat/ImageGeneratingRow', () => ({
   ImageGeneratingRow: ({ message }: { message: Message }) => {
-    const React = require('react');
-    const { Text } = require('react-native');
+    const React = require('react') as typeof import('react');
+    const { Text } = require('react-native') as typeof import('react-native');
     return React.createElement(Text, { testID: `generating-${message.id}` }, 'Generating Image...');
   },
 }));

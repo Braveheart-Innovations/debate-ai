@@ -4,8 +4,8 @@ import { ChatMentionSuggestions } from '@/components/organisms/chat/ChatMentionS
 import type { AI } from '@/types';
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { TouchableOpacity, Text } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { TouchableOpacity, Text } = require('react-native') as typeof import('react-native');
   return {
     Button: ({ title, onPress }: { title: string; onPress: () => void }) => (
       React.createElement(TouchableOpacity, { onPress, testID: `button-${title}` }, React.createElement(Text, null, title))

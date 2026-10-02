@@ -7,14 +7,14 @@ import { capturePropsOf } from '@test-utils/mockComponents';
 import type { GradientButton } from '@/components/molecules';
 
 jest.mock('expo-linear-gradient', () => {
-  const { View } = require('react-native');
+  const { View } = require('react-native') as typeof import('react-native');
   return {
     LinearGradient: ({ children }: { children: React.ReactNode }) => <View>{children}</View>,
   };
 });
 
 jest.mock('@expo/vector-icons', () => {
-  const { Text } = require('react-native');
+  const { Text } = require('react-native') as typeof import('react-native');
   return {
     Ionicons: () => <Text>Ionicon</Text>,
     MaterialIcons: () => <Text>MaterialIcon</Text>,
@@ -29,7 +29,7 @@ const mockGradientButton = capturePropsOf<typeof GradientButton>(({ title, onPre
 ));
 
 jest.mock('@/components/molecules', () => {
-  const { Text } = require('react-native');
+  const { Text } = require('react-native') as typeof import('react-native');
   return {
     get GradientButton() {
       return mockGradientButton.Stub;

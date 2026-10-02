@@ -11,8 +11,8 @@ jest.mock('expo-clipboard', () => ({
 // Mock Ionicons
 jest.mock('@expo/vector-icons', () => ({
   Ionicons: ({ name, testID }: { name: string; testID?: string }) => {
-    const React = require('react');
-    const { Text } = require('react-native');
+    const React = require('react') as typeof import('react');
+    const { Text } = require('react-native') as typeof import('react-native');
     return React.createElement(Text, { testID: testID || name }, name);
   },
 }));

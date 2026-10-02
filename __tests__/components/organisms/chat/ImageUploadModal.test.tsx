@@ -18,10 +18,10 @@ jest.mock('@/services/errors/ErrorService', () => ({
 
 // Mock molecules
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text, TouchableOpacity, View } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text, TouchableOpacity, View } = require('react-native') as typeof import('react-native');
   return {
-    KeyboardAvoider: ({ children }: { children?: import('react').ReactNode }) => require('react').createElement(require('react').Fragment, null, children),
+    KeyboardAvoider: ({ children }: { children?: import('react').ReactNode }) => children,
     Typography: ({ children }: { children: React.ReactNode }) => React.createElement(Text, null, children),
     SheetHeader: ({ title, onClose }: { title: string; onClose: () => void }) => (
       React.createElement(View, null,
@@ -586,7 +586,7 @@ describe('ImageUploadModal', () => {
         />
       );
 
-      const modal = UNSAFE_getByType(require('react-native').Modal);
+      const modal = UNSAFE_getByType((require('react-native') as typeof import('react-native')).Modal);
       modal.props.onRequestClose();
 
       expect(mockOnClose).toHaveBeenCalledTimes(1);

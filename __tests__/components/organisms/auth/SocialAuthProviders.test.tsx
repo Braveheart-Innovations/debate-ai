@@ -18,16 +18,16 @@ jest.mock('@/services/errors/ErrorService', () => ({
 }));
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text } = require('react-native') as typeof import('react-native');
   return {
     Typography: ({ children, ...props }: { children: React.ReactNode }) => React.createElement(Text, props, children),
   };
 });
 
 jest.mock('expo-apple-authentication', () => {
-  const React = require('react');
-  const { TouchableOpacity, Text } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { TouchableOpacity, Text } = require('react-native') as typeof import('react-native');
   const AppleButton = ({ onPress, testID }: { onPress: () => void; testID?: string }) => (
     React.createElement(
       TouchableOpacity,
@@ -44,8 +44,8 @@ jest.mock('expo-apple-authentication', () => {
 });
 
 jest.mock('@react-native-google-signin/google-signin', () => {
-  const React = require('react');
-  const { TouchableOpacity, Text } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { TouchableOpacity, Text } = require('react-native') as typeof import('react-native');
   const GoogleButton = ({ onPress, disabled, testID }: { onPress: () => void; disabled?: boolean; testID?: string }) => (
     React.createElement(
       TouchableOpacity,

@@ -25,8 +25,8 @@ jest.mock('@expo/vector-icons', () => {
 });
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text } = require('react-native') as typeof import('react-native');
   return {
     Typography: ({ children, ...props }: { children: React.ReactNode }) => React.createElement(Text, props, children),
   };
@@ -49,8 +49,8 @@ jest.mock('@/utils/markdown', () => ({
 jest.mock('@/utils/markdownSelectable', () => ({ selectableMarkdownRules: {} }));
 
 jest.mock('@/components/molecules/common/LazyMarkdownRenderer', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text } = require('react-native') as typeof import('react-native');
   return {
     LazyMarkdownRenderer: ({ content }: { content: string }) => React.createElement(Text, { testID: 'lazy-markdown' }, content),
     createMarkdownStyles: () => ({}),
@@ -58,8 +58,8 @@ jest.mock('@/components/molecules/common/LazyMarkdownRenderer', () => {
 });
 
 jest.mock('react-native-markdown-display', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text } = require('react-native') as typeof import('react-native');
   return {
     __esModule: true,
     default: ({ children }: { children: React.ReactNode }) => React.createElement(Text, { testID: 'markdown' }, children),
@@ -67,16 +67,16 @@ jest.mock('react-native-markdown-display', () => {
 });
 
 jest.mock('@/components/organisms/chat/ImageBubble', () => {
-  const React = require('react');
-  const { View } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { View } = require('react-native') as typeof import('react-native');
   return {
     ImageBubble: () => React.createElement(View, { testID: 'image-bubble' }),
   };
 });
 
 jest.mock('@/components/organisms/common/StreamingIndicator', () => {
-  const React = require('react');
-  const { View } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { View } = require('react-native') as typeof import('react-native');
   return {
     StreamingIndicator: () => React.createElement(View, { testID: 'streaming-indicator' }),
   };

@@ -26,7 +26,7 @@ describe('TypingDots', () => {
 
   it('renders three animated dots', () => {
     const { UNSAFE_getAllByType } = render(<TypingDots />);
-    const View = require('react-native').View;
+    const View = (require('react-native') as typeof import('react-native')).View;
     const views = UNSAFE_getAllByType(View);
 
     // Should have 1 container + 3 dots = 4 views
@@ -35,7 +35,7 @@ describe('TypingDots', () => {
 
   it('applies correct styling to dots', () => {
     const { UNSAFE_getAllByType } = render(<TypingDots />);
-    const View = require('react-native').View;
+    const View = (require('react-native') as typeof import('react-native')).View;
     const views = UNSAFE_getAllByType(View);
 
     // The first view is the container with flexDirection: 'row'
@@ -48,7 +48,7 @@ describe('TypingDots', () => {
 
   it('uses theme colors for dots', () => {
     const { UNSAFE_getAllByType } = render(<TypingDots />);
-    const View = require('react-native').View;
+    const View = (require('react-native') as typeof import('react-native')).View;
     const views = UNSAFE_getAllByType(View);
 
     // Check that dots use the theme color
@@ -64,7 +64,7 @@ describe('TypingDots', () => {
 
   it('applies correct dot dimensions', () => {
     const { UNSAFE_getAllByType } = render(<TypingDots />);
-    const View = require('react-native').View;
+    const View = (require('react-native') as typeof import('react-native')).View;
     const views = UNSAFE_getAllByType(View);
 
     // Check dot dimensions on at least one dot

@@ -23,7 +23,7 @@ jest.mock('react-redux', () => {
 });
 
 jest.mock('expo-linear-gradient', () => {
-  const { View } = require('react-native');
+  const { View } = require('react-native') as typeof import('react-native');
   return {
     LinearGradient: ({ children }: { children: React.ReactNode }) => <View>{children}</View>,
   };

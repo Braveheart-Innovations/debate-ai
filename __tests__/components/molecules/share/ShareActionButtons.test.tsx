@@ -11,7 +11,7 @@ import type { Button, Card } from '@/components/molecules';
 jest.mock('@expo/vector-icons', () => ({
   Ionicons: () => null,
   MaterialCommunityIcons: ({ name, testID }: { name: string; testID?: string }) => {
-    const { Text } = require('react-native');
+    const { Text } = require('react-native') as typeof import('react-native');
     return <Text testID={testID || `icon-${name}`}>{name}</Text>;
   }
 }));
@@ -33,8 +33,8 @@ jest.spyOn(Linking, 'canOpenURL').mockResolvedValue(true);
 jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text } = require('react-native') as typeof import('react-native');
   const { stubComponent } = jest.requireActual<
     typeof import('@test-utils/mockComponents')
   >('@test-utils/mockComponents');

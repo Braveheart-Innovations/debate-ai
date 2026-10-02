@@ -3,7 +3,7 @@ import mockSafeAreaContext from 'react-native-safe-area-context/jest/mock';
 
 jest.mock('react-native-safe-area-context', () => mockSafeAreaContext);
 jest.mock('react-native-reanimated', () => {
-  const View = require('react-native').View;
+  const View = (require('react-native') as typeof import('react-native')).View;
   // Create a chainable animation mock where any method returns `this`
   const createAnimMock = (): Record<string, jest.Mock> => {
     const mock: Record<string, jest.Mock> = {};
@@ -24,14 +24,14 @@ jest.mock('react-native-reanimated', () => {
     __esModule: true,
     default: {
       View,
-      Text: require('react-native').Text,
-      Image: require('react-native').Image,
-      ScrollView: require('react-native').ScrollView,
-      FlatList: require('react-native').FlatList,
+      Text: (require('react-native') as typeof import('react-native')).Text,
+      Image: (require('react-native') as typeof import('react-native')).Image,
+      ScrollView: (require('react-native') as typeof import('react-native')).ScrollView,
+      FlatList: (require('react-native') as typeof import('react-native')).FlatList,
       createAnimatedComponent: (component: unknown) => component,
     },
     // Stable across renders like the real hook, so it is safe in effect deps
-    useSharedValue: (init: unknown) => require('react').useRef({ value: init }).current,
+    useSharedValue: (init: unknown) => (require('react') as typeof import('react')).useRef({ value: init }).current,
     useAnimatedStyle: jest.fn((fn: () => unknown) => fn()),
     useDerivedValue: jest.fn((fn: () => unknown) => ({ value: fn() })),
     useAnimatedScrollHandler: jest.fn(() => jest.fn()),
@@ -75,7 +75,7 @@ jest.mock('react-native-gesture-handler', () => require('react-native-gesture-ha
 jest.mock('react-native-keyboard-controller', () => require('react-native-keyboard-controller/jest'));
 jest.mock('@expo/vector-icons', () => {
   const React = require('react') as typeof import('react');
-  const { Text } = require('react-native');
+  const { Text } = require('react-native') as typeof import('react-native');
 
   const createIcon = (family: string) => {
     const Icon = ({ name, ...props }: { name?: string }) => (
@@ -109,7 +109,7 @@ jest.mock('react-native/Libraries/Modal/Modal', () => {
   return ModalMock;
 });
 
-const modalModule = require('react-native/Libraries/Modal/Modal');
+const modalModule = require('react-native/Libraries/Modal/Modal') as typeof import('react-native/Libraries/Modal/Modal');
 if (!modalModule) {
   console.warn('Modal mock missing module', modalModule);
 } else if (!(modalModule as { default?: unknown }).default) {
@@ -148,7 +148,7 @@ jest.mock('expo-image-manipulator', () => ({
 
 jest.mock('expo-video', () => {
   const React = require('react') as typeof import('react');
-  const { View } = require('react-native');
+  const { View } = require('react-native') as typeof import('react-native');
   const createPlayer = () => {
     const listeners: Record<string, Array<(payload?: unknown) => void>> = {};
     const player = {
@@ -293,7 +293,7 @@ jest.mock('expo-haptics', () => ({
 }));
 
 jest.mock('@react-native-async-storage/async-storage', () =>
-  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+  (require('@react-native-async-storage/async-storage/jest/async-storage-mock') as typeof import('@react-native-async-storage/async-storage/jest/async-storage-mock'))
 );
 
 jest.mock('@react-native-firebase/auth', () => {

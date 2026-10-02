@@ -93,7 +93,7 @@ npm run android        # Run on Android emulator
 
 ### Testing Conventions
 - **No new escape hatches anywhere**, including test stubs: no `any`, `as unknown as`, `as never`, `@ts-expect-error`, skipped tests, or `eslint-disable` without a `-- reason`.
-- **Load modules typed**: prefer `import`; when a `require` must run after mock setup, write `require('x') as typeof import('x')` (or `jest.requireActual<typeof import('x')>('x')`). A bare `require` makes the subject `any` and silently switches off type checking.
+- **Load modules typed** (app modules *and* packages, incl. `require('react')` inside `jest.mock` factories): prefer `import`; when a `require` must run after mock setup, write `require('x') as typeof import('x')` (or `jest.requireActual<typeof import('x')>('x')`; for a module this file mocks with its own shape, `jest.requireMock<Shape>('x')`). A bare `require` makes the result `any` and silently switches off type checking.
 - **Component stubs** in `jest.mock` factories: use `stubComponent` / `capturePropsOf` from `@test-utils/mockComponents` (props typed from the real component), never `(props: any) =>`.
 - **Domain fixtures**: use the `createMock*` builders in `@test-utils/fixtures` (`AIConfig`, `Message`, `ChatSession`, `MessageAttachment`, debate speech, scoreboard, user, auth state) instead of hand-written object literals.
 - **Mocked functions**: `jest.mocked(fn)`, not `fn as unknown as jest.Mock`.

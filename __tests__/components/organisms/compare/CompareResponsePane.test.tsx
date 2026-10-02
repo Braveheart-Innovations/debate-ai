@@ -12,7 +12,7 @@ import type { CompareImageGeneratingPane } from '@/components/organisms/compare/
 import type { CompareImageDisplay } from '@/components/organisms/compare/CompareImageDisplay';
 
 jest.mock('@expo/vector-icons', () => {
-  const { Text } = require('react-native');
+  const { Text } = require('react-native') as typeof import('react-native');
   return {
     Ionicons: ({ name }: { name: string }) => <Text testID={`ionicon-${name}`}>{name}</Text>,
   };
@@ -56,8 +56,8 @@ jest.mock('@/components/organisms/compare/CompareImageDisplay', () => ({
 }));
 
 jest.mock('react-native-markdown-display', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text } = require('react-native') as typeof import('react-native');
   return {
     __esModule: true,
     default: ({ children }: { children: string }) =>
@@ -67,8 +67,8 @@ jest.mock('react-native-markdown-display', () => {
 
 jest.mock('@/components/molecules/common/LazyMarkdownRenderer', () => ({
   LazyMarkdownRenderer: ({ content }: { content: string }) => {
-    const React = require('react');
-    const { Text } = require('react-native');
+    const React = require('react') as typeof import('react');
+    const { Text } = require('react-native') as typeof import('react-native');
     return React.createElement(Text, { testID: 'lazy-markdown' }, content);
   },
   createMarkdownStyles: () => ({}),

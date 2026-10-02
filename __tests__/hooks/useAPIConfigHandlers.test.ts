@@ -35,7 +35,7 @@ jest.mock('expo-haptics', () => ({
   impactAsync: jest.fn().mockResolvedValue(undefined),
 }));
 
-const { impactAsync } = require('expo-haptics');
+const { impactAsync } = require('expo-haptics') as typeof import('expo-haptics');
 
 describe('useAPIConfigHandlers', () => {
   const apiKeys = { claude: 'anthropic-key' };
