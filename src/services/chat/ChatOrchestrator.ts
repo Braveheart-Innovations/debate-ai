@@ -863,9 +863,9 @@ export class ChatOrchestrator {
     this.aiService.setPersonality(ai.id, runtime.personalityConfig);
 
     const expert = getExpertOverrides(
-      settings.expertModeConfigs as unknown as Record<string, { enabled?: boolean; parameters?: ModelParameters; model?: string }>,
+      settings.expertModeConfigs,
       ai.provider
-    ) as ExpertOverrides;
+    );
     const runtimeParameters = mergeRuntimeModelParameters(
       expert?.enabled,
       expert?.parameters,

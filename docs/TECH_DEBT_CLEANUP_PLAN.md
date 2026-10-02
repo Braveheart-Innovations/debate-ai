@@ -20,9 +20,9 @@
 | A | Test `no-explicit-any` | ✅ **0** | — | Hard lint error (budget script deleted) |
 | B | Test type errors | ✅ **0** | — | Hard: `typecheck` runs `tsc -p tsconfig.tests.json` (budget script deleted) |
 | C1 | `as any` / `no-explicit-any` disables in `src/` | ✅ **0** (Phase 0) | — | `no-explicit-any` error + `lint:escape-hatches` |
-| C2 | `as unknown as` in `src/` | **62** | concentrated in `services/ai` adapters; rest scattered (the earlier 97 also counted text inside demo-recording JSON) | Ratchet (`lint:escape-hatches`) |
+| C2 | `as unknown as` in `src/` | ✅ **0** (Phase 3) | — | Hard lint error (`no-restricted-syntax`) + ratchet at 0 |
 | C3 | Other `eslint-disable` in `src/` | ✅ **3**, each with a `-- reason` (Phase 0) | `nativeModule.ts` lazy IAP require, `PromptDebugLogger` verbatim dump, `citationUtils` NUL-delimiter regex | Ratchet + `require-description` |
-| D1 | `as unknown as` in tests | **118** | `__tests__/`, `src/**/__tests__` | Ratchet (`lint:escape-hatches`) |
+| D1 | `as unknown as` in tests | **117** | `__tests__/`, `src/**/__tests__` | Ratchet (`lint:escape-hatches`) |
 | D2 | `@ts-expect-error` / `@ts-ignore` / `@ts-nocheck` | ✅ **0** | — | Hard lint error (`ban-ts-comment`) |
 | D3 | Skipped tests | ✅ **0**: `validatePurchase` harness ported to Functions v2 and un-skipped | — | Ratchet at 0 (`lint:escape-hatches`) |
 | D4 | Untyped `require()` of app modules in tests | ✅ **0** (typed-requires batch) | — | Ratchet at 0 (`lint:escape-hatches`) |
@@ -73,7 +73,7 @@ With Phase 0 helpers, most of this is replacing stubs.
 
 **Exit:** budget 0 → delete `check-no-explicit-any-budget.mjs`, remove the `no-explicit-any: 'warn'` test override (it becomes an error like everywhere else), drop the `--rule` flag from `lint:tests`.
 
-### Phase 3: `src/` escape hatches, C2 → 0
+### Phase 3: `src/` escape hatches, C2 → 0 ✅ done
 C1 and C3 were cleared in Phase 0: the `as any`s were unnecessary (`'ping'` was already a typed SSE event; `__DEV__` is declared by RN; `RenderRules`/`Theme` existed), the four `exhaustive-deps` disables became stable shared-value deps, image `require()`s became `import`s, and the one commented-out `as any` was dead code. The 3 remaining disables are justified and described.
 - **C2 (63)**:
   - `services/ai` adapters: replace casts on provider responses with response types + type guards at the adapter boundary. This is where unvalidated API shapes hide.
@@ -156,3 +156,4 @@ After each PR, update the counts in the Inventory table and note the PR number:
 | 2026-10-02 | Batch 2 | 0 | 0 | 62 | 120 | all remaining test files; A/B/D2 now hard rules; D4 untyped requires (93) + D5 malformed() (7) tracked |
 | 2026-10-02 | Typed requires | 0 | 0 | 62 | 118 | D4 93 → 0 (~85 type errors the bare requires had hidden, now fixed); D6 package requires (324) now tracked |
 | 2026-10-02 | Typed package requires | 0 | 0 | 62 | 118 | D6 324 → 0; 5 mock-shape casts moved into `requireMock<T>` / `jest.mocked`; ErrorFlow Animated mocks typed |
+| 2026-10-02 | Phase 3 | 0 | 0 | 0 | 117 | src `as unknown as` 62 → 0, now a lint error: demo recordings validated by guards, typed SSE events, real settings/session-index validation, 13 unnecessary casts removed |

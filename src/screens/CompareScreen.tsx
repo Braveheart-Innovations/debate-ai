@@ -1424,7 +1424,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
                 try {
                   const res = RecordController.stop();
                   if (res && res.session) {
-                    const sessionData = res.session as { id?: string };
+                    const sessionData = res.session;
                     const json = JSON.stringify(sessionData, null, 2);
                     console.warn('[DEMO_RECORDING_COMPARE]', json);
                     try { await Clipboard.setStringAsync(json); } catch (_e) { console.warn('clipboard failed', _e); }

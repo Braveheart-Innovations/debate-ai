@@ -1,9 +1,14 @@
-import type { DemoChat, DemoCompare, DemoDebate } from '@/types/demo';
-import type { DemoRecordingEntry, DemoRecordingType } from '@/assets/demo/recordingsManifest';
+import type {
+  DemoChatEntry,
+  DemoCompareEntry,
+  DemoDebateEntry,
+  DemoRecordingEntry,
+  DemoRecordingType,
+} from '@/assets/demo/recordingsManifest';
 
 const mockSortProviders = (providers: string[]) => [...providers].sort().join('+');
 
-const chatEntries: DemoRecordingEntry<DemoChat>[] = [
+const chatEntries: DemoChatEntry[] = [
   {
     id: 'chat-1',
     type: 'chat',
@@ -20,7 +25,7 @@ const chatEntries: DemoRecordingEntry<DemoChat>[] = [
   },
 ];
 
-const compareEntries: DemoRecordingEntry<DemoCompare>[] = [
+const compareEntries: DemoCompareEntry[] = [
   {
     id: 'compare-1',
     type: 'compare',
@@ -30,7 +35,7 @@ const compareEntries: DemoRecordingEntry<DemoCompare>[] = [
   },
 ];
 
-const debateEntries: DemoRecordingEntry<DemoDebate>[] = [
+const debateEntries: DemoDebateEntry[] = [
   {
     id: 'debate-1',
     type: 'debate',

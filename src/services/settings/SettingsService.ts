@@ -38,6 +38,16 @@ export const DEFAULT_SETTINGS: AppSettings = {
   version: '1.0.0',
 };
 
+const THEME_MODES: readonly AppSettings['themeMode'][] = ['light', 'dark', 'system'];
+const FONT_SIZES: readonly AppSettings['accessibility']['fontSize'][] = ['small', 'medium', 'large'];
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+const booleanOr = (value: unknown, fallback: boolean): boolean =>
+  typeof value === 'boolean' ? value : fallback;
+const oneOf = <T extends string>(value: unknown, allowed: readonly T[], fallback: T): T =>
+  allowed.find((option) => option === value) ?? fallback;
+
 class SettingsService {
   private static readonly SETTINGS_KEY = '@settings';
   private static readonly SETTINGS_VERSION = '1.0.0';
@@ -56,7 +66,7 @@ class SettingsService {
         return DEFAULT_SETTINGS;
       }
 
-      const settings = JSON.parse(settingsJson) as AppSettings;
+      const settings = this.validateSettings(JSON.parse(settingsJson));
       
       // Migrate settings if needed
       const migratedSettings = await this.migrateSettings(settings);
@@ -136,10 +146,8 @@ class SettingsService {
    */
   async importSettings(settingsJson: string): Promise<void> {
     try {
-      const settings = JSON.parse(settingsJson) as unknown as Record<string, unknown>;
-      
       // Validate imported settings
-      const validatedSettings = this.validateSettings(settings);
+      const validatedSettings = this.validateSettings(JSON.parse(settingsJson));
       
       await this.saveSettings(validatedSettings);
     } catch (error) {
@@ -174,39 +182,34 @@ class SettingsService {
   }
 
   /**
-   * Validate settings structure
+   * Validate settings structure: every field is type-checked and falls back to
+   * its default when missing or of the wrong type (stored/imported JSON is untyped).
    */
-  private validateSettings(settings: Record<string, unknown>): AppSettings {
-    try {
-      // Merge with defaults to ensure all required fields exist
-      const notificationsData = settings.notifications as Record<string, unknown> | undefined;
-      const privacyData = settings.privacy as Record<string, unknown> | undefined;
-      const accessibilityData = settings.accessibility as Record<string, unknown> | undefined;
+  private validateSettings(input: unknown): AppSettings {
+    const settings = isRecord(input) ? input : {};
+    const notifications = isRecord(settings.notifications) ? settings.notifications : {};
+    const privacy = isRecord(settings.privacy) ? settings.privacy : {};
+    const accessibility = isRecord(settings.accessibility) ? settings.accessibility : {};
+    const defaults = DEFAULT_SETTINGS;
 
-      const validatedSettings: AppSettings = {
-        themeMode: (settings.themeMode as AppSettings['themeMode']) || DEFAULT_SETTINGS.themeMode,
-        notifications: {
-          enabled: notificationsData?.enabled as boolean ?? DEFAULT_SETTINGS.notifications.enabled,
-          soundEnabled: notificationsData?.soundEnabled as boolean ?? DEFAULT_SETTINGS.notifications.soundEnabled,
-          vibrationEnabled: notificationsData?.vibrationEnabled as boolean ?? DEFAULT_SETTINGS.notifications.vibrationEnabled,
-        },
-        privacy: {
-          analyticsEnabled: privacyData?.analyticsEnabled as boolean ?? DEFAULT_SETTINGS.privacy.analyticsEnabled,
-          crashReportingEnabled: privacyData?.crashReportingEnabled as boolean ?? DEFAULT_SETTINGS.privacy.crashReportingEnabled,
-        },
-        accessibility: {
-          fontSize: (accessibilityData?.fontSize as AppSettings['accessibility']['fontSize']) || DEFAULT_SETTINGS.accessibility.fontSize,
-          highContrast: accessibilityData?.highContrast as boolean ?? DEFAULT_SETTINGS.accessibility.highContrast,
-          reducedMotion: accessibilityData?.reducedMotion as boolean ?? DEFAULT_SETTINGS.accessibility.reducedMotion,
-        },
-        version: (settings.version as string) || DEFAULT_SETTINGS.version,
-      };
-
-      return validatedSettings;
-    } catch (error) {
-      console.warn('Settings validation failed, using defaults:', error);
-      return DEFAULT_SETTINGS;
-    }
+    return {
+      themeMode: oneOf(settings.themeMode, THEME_MODES, defaults.themeMode),
+      notifications: {
+        enabled: booleanOr(notifications.enabled, defaults.notifications.enabled),
+        soundEnabled: booleanOr(notifications.soundEnabled, defaults.notifications.soundEnabled),
+        vibrationEnabled: booleanOr(notifications.vibrationEnabled, defaults.notifications.vibrationEnabled),
+      },
+      privacy: {
+        analyticsEnabled: booleanOr(privacy.analyticsEnabled, defaults.privacy.analyticsEnabled),
+        crashReportingEnabled: booleanOr(privacy.crashReportingEnabled, defaults.privacy.crashReportingEnabled),
+      },
+      accessibility: {
+        fontSize: oneOf(accessibility.fontSize, FONT_SIZES, defaults.accessibility.fontSize),
+        highContrast: booleanOr(accessibility.highContrast, defaults.accessibility.highContrast),
+        reducedMotion: booleanOr(accessibility.reducedMotion, defaults.accessibility.reducedMotion),
+      },
+      version: typeof settings.version === 'string' && settings.version ? settings.version : defaults.version,
+    };
   }
 
   /**
@@ -221,7 +224,7 @@ class SettingsService {
 
         // Perform migration logic here if needed
         const migratedSettings = {
-          ...this.validateSettings(settings as unknown as Record<string, unknown>),
+          ...this.validateSettings(settings),
           version: SettingsService.SETTINGS_VERSION,
         };
 

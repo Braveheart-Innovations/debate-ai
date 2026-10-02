@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { EntryExitAnimationFunction } from 'react-native-reanimated';
+import type { EntryOrExitLayoutType } from 'react-native-reanimated';
 import { 
   StatsCard,
   StatsCardHeader,
@@ -64,7 +64,7 @@ export interface StatsLeaderboardItemProps {
   aiId: string;
   aiInfo: AIInfo;
   stats: AIStats;
-  entering?: EntryExitAnimationFunction;
+  entering?: EntryOrExitLayoutType;
 }
 
 export const StatsLeaderboardItem: React.FC<StatsLeaderboardItemProps> = ({

@@ -12,6 +12,8 @@ import {
   extractResponsesCitations,
   extractTextFromResponsesOutput,
   type ChatStyleMessage,
+  RESPONSES_STREAM_EVENTS,
+  type ResponsesStreamEvent,
 } from '../../utils/responsesApi';
 import { normalizeFinishReason } from '../../utils/normalizeFinishReason';
 import { extractSSEErrorMessage } from '../../utils/extractSSEErrorMessage';
@@ -165,7 +167,7 @@ export class GrokAdapter extends OpenAICompatibleAdapter {
     const input = await this.buildWebSearchInput(message, conversationHistory, resumptionContext, attachments);
     const body = this.buildWebSearchBody(resolvedModel, input, true);
 
-    const es = new EventSource(`${config.baseUrl}/responses`, {
+    const es = new EventSource<ResponsesStreamEvent>(`${config.baseUrl}/responses`, {
       method: 'POST',
       headers: {
         ...config.headers(this.config.apiKey),
@@ -240,21 +242,13 @@ export class GrokAdapter extends OpenAICompatibleAdapter {
       } catch { /* ignore parse issues */ }
     };
 
-    const esAny = es as unknown as { addEventListener: (type: string, cb: (evt: unknown) => void) => void };
-    for (const eventName of [
-      'response.output_text.delta',
-      'response.output_text.done',
-      'response.completed',
-      'response.incomplete',
-      'response.delta',
-      'response.error',
-    ]) {
-      esAny.addEventListener(eventName, (evt) => {
-        handle((evt as { data?: string | null })?.data, eventName);
+    for (const eventName of RESPONSES_STREAM_EVENTS) {
+      es.addEventListener(eventName, (evt) => {
+        handle(evt.data, eventName);
       });
     }
     es.addEventListener('message', (evt) => {
-      handle((evt as unknown as { data: string | null })?.data, 'message');
+      handle(evt.data, 'message');
     });
     es.addEventListener('error', (e: unknown) => {
       errorMsg = extractSSEErrorMessage(e, 'Connection failed');

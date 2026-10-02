@@ -8,8 +8,8 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const BUDGETS = {
-  'src: `as unknown as`': 62,
-  'tests: `as unknown as`': 118,
+  'src: `as unknown as`': 0,
+  'tests: `as unknown as`': 117,
   'src: eslint-disable': 3,
   'tests: eslint-disable': 1,
   'tests: skipped or todo tests': 0,

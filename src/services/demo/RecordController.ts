@@ -1,7 +1,19 @@
 import { Platform } from 'react-native';
 import { startRecording, recordEvent, stopRecording } from '@/services/demo/Recorder';
 import { DemoContentService } from '@/services/demo/DemoContentService';
-import type { DemoMessageEvent, DemoRecordingSession } from '@/types/demo';
+import type { DemoCompare, DemoCompareRun, DemoMessageEvent } from '@/types/demo';
+
+const DEMO_SPEAKERS = ['claude', 'openai', 'google'] as const;
+type DemoSpeaker = (typeof DEMO_SPEAKERS)[number];
+const isDemoSpeaker = (provider: string): provider is DemoSpeaker =>
+  (DEMO_SPEAKERS as readonly string[]).includes(provider);
+
+type RecorderSession = NonNullable<ReturnType<typeof stopRecording>>['session'];
+/** The session `stop()` returns for export; compare/debate sessions carry their extra fields. */
+export type RecordedSession =
+  | RecorderSession
+  | (RecorderSession & { type: 'compare'; runs: DemoCompareRun[]; category: DemoCompare['category'] })
+  | (RecorderSession & { type: 'debate'; topic: string; participants: string[] });
 
 type ChatStartOpts = { id: string; title: string; comboKey?: string };
 type DebateStartOpts = { id: string; topic: string; comboKey?: string; participants?: string[] };
@@ -17,7 +29,7 @@ let current:
 // Compare turn aggregation
 let compareTurns: Array<{
   user?: string;
-  responses: Record<'claude' | 'openai' | 'google', string>;
+  responses: Record<DemoSpeaker, string>;
 }> = [];
 
 export const RecordController = {
@@ -35,7 +47,7 @@ export const RecordController = {
     };
     // Start underlying recorder first, then write metadata divider
     startRecording({ type: 'chat', id: opts.id, title: opts.title, comboKey: opts.comboKey });
-    recordEvent({ type: 'divider', meta } as DemoMessageEvent);
+    recordEvent({ type: 'divider', meta });
     current = { type: 'chat', id: opts.id, title: opts.title, comboKey: opts.comboKey };
     active = true;
   },
@@ -50,8 +62,8 @@ export const RecordController = {
       participants: opts.participants,
       topic: opts.topic,
     };
-    startRecording({ type: 'debate', id: opts.id, title: opts.topic, comboKey: opts.comboKey } as unknown as { type: 'debate'; id: string; title: string; comboKey?: string });
-    recordEvent({ type: 'divider', meta } as DemoMessageEvent);
+    startRecording({ type: 'debate', id: opts.id, title: opts.topic, comboKey: opts.comboKey });
+    recordEvent({ type: 'divider', meta });
     // Record a motion marker as a user message for context (optional)
     const topic = opts.topic || '';
     const motionContent = topic.trim().toLowerCase().startsWith('motion:') ? topic : `Motion: ${topic}`;
@@ -68,8 +80,8 @@ export const RecordController = {
       comboKey: opts.comboKey,
       platform: Platform.OS,
     };
-    startRecording({ type: 'compare', id: opts.id, title: opts.title, comboKey: opts.comboKey } as unknown as { type: 'compare'; id: string; title: string; comboKey?: string });
-    recordEvent({ type: 'divider', meta } as DemoMessageEvent);
+    startRecording({ type: 'compare', id: opts.id, title: opts.title, comboKey: opts.comboKey });
+    recordEvent({ type: 'divider', meta });
     current = { type: 'compare', id: opts.id, title: opts.title, comboKey: opts.comboKey };
     compareTurns = [];
     active = true;
@@ -86,25 +98,25 @@ export const RecordController = {
 
   recordAssistantChunk(provider: string, chunk: string): void {
     if (!active) return;
-    const sp = (provider as 'claude' | 'openai' | 'google');
-    const ev: DemoMessageEvent = { type: 'stream', role: 'assistant', content: chunk, speakerProvider: sp };
+    const speaker = isDemoSpeaker(provider) ? provider : undefined;
+    const ev: DemoMessageEvent = { type: 'stream', role: 'assistant', content: chunk, speakerProvider: speaker };
     recordEvent(ev);
     if (current && current.type === 'compare' && compareTurns.length > 0) {
       const turn = compareTurns[compareTurns.length - 1];
-      const p = (provider as 'claude' | 'openai' | 'google') || 'openai';
-      turn.responses[p] = (turn.responses[p] || '') + chunk;
+      const column = speaker ?? (provider ? undefined : 'openai');
+      if (column) turn.responses[column] = (turn.responses[column] || '') + chunk;
     }
   },
 
   recordAssistantMessage(provider: string, content: string): void {
     if (!active) return;
-    const sp = (provider as 'claude' | 'openai' | 'google');
-    const ev: DemoMessageEvent = { type: 'message', role: 'assistant', content, speakerProvider: sp };
+    const speaker = isDemoSpeaker(provider) ? provider : undefined;
+    const ev: DemoMessageEvent = { type: 'message', role: 'assistant', content, speakerProvider: speaker };
     recordEvent(ev);
     if (current && current.type === 'compare' && compareTurns.length > 0) {
       const turn = compareTurns[compareTurns.length - 1];
-      const p = (provider as 'claude' | 'openai' | 'google') || 'openai';
-      turn.responses[p] = (turn.responses[p] || '') + content;
+      const column = speaker ?? (provider ? undefined : 'openai');
+      if (column) turn.responses[column] = (turn.responses[column] || '') + content;
     }
   },
 
@@ -116,36 +128,41 @@ export const RecordController = {
     recordEvent(ev);
   },
 
-  stop(): { session: unknown } | null {
+  stop(): { session: RecordedSession } | null {
     if (!active) return null;
     const res = stopRecording();
+    const recording = current;
+    active = false;
+    current = null;
+    if (!res) return null;
+
+    let session: RecordedSession = res.session;
     // For compare, enrich session with runs built from turns
-    if (res && current && current.type === 'compare') {
-      const runs = compareTurns.map((t, idx) => ({
+    if (recording?.type === 'compare') {
+      const assistantEvent = (content: string, speakerProvider: DemoSpeaker): DemoMessageEvent => ({
+        type: 'message',
+        role: 'assistant',
+        content,
+        speakerProvider,
+      });
+      const runs: DemoCompareRun[] = compareTurns.map((t, idx) => ({
         id: `r${idx + 1}`,
         label: 'providers',
         ...(t.user ? { prompt: t.user } : {}),
         columns: [
-          ...(t.responses.claude?.trim() ? [{ name: 'Claude', events: [{ type: 'message', role: 'assistant', content: t.responses.claude, speakerProvider: 'claude' }] }] : []),
-          ...(t.responses.openai?.trim() ? [{ name: 'OpenAI', events: [{ type: 'message', role: 'assistant', content: t.responses.openai, speakerProvider: 'openai' }] }] : []),
-          ...(t.responses.google?.trim() ? [{ name: 'Gemini', events: [{ type: 'message', role: 'assistant', content: t.responses.google, speakerProvider: 'google' }] }] : []),
+          ...(t.responses.claude?.trim() ? [{ name: 'Claude', events: [assistantEvent(t.responses.claude, 'claude')] }] : []),
+          ...(t.responses.openai?.trim() ? [{ name: 'OpenAI', events: [assistantEvent(t.responses.openai, 'openai')] }] : []),
+          ...(t.responses.google?.trim() ? [{ name: 'Gemini', events: [assistantEvent(t.responses.google, 'google')] }] : []),
         ],
       }));
-      (res as unknown as { session: { runs?: unknown[]; category?: string } }).session.runs = runs as unknown[];
-      (res as unknown as { session: { runs?: unknown[]; category?: string } }).session.category = 'provider';
+      session = { ...res.session, type: 'compare', runs, category: 'provider' };
     }
     // For debate, ensure topic/participants bubble through
-    if (res && current && current.type === 'debate') {
-      (res as unknown as { session: { topic?: string; participants?: string[] } }).session.topic = current.topic;
-      (res as unknown as { session: { topic?: string; participants?: string[] } }).session.participants = current.participants || [];
+    if (recording?.type === 'debate') {
+      session = { ...res.session, type: 'debate', topic: recording.topic, participants: recording.participants || [] };
     }
-    active = false;
-    current = null;
-    const result = res as { session: unknown } | null;
-    if (result?.session) {
-      void DemoContentService.ingestRecording(result.session as DemoRecordingSession);
-    }
-    return result;
+    void DemoContentService.ingestRecording(session);
+    return { session };
   },
 };
 

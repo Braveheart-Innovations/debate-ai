@@ -3,7 +3,11 @@ import { OpenAICompatibleAdapter } from '../../base/OpenAICompatibleAdapter';
 import { ProviderConfig, ResumptionContext, SendMessageResponse } from '../../types/adapter.types';
 import { getModelById } from '../../../../config/modelConfigs';
 import { getDefaultModel, resolveModelAlias } from '../../../../config/providers/modelRegistry';
-import { normalizeInlineCitations } from '../../utils/responsesApi';
+import {
+  normalizeInlineCitations,
+  RESPONSES_STREAM_EVENTS,
+  type ResponsesStreamEvent,
+} from '../../utils/responsesApi';
 import EventSource from 'react-native-sse';
 import { extractSSEErrorMessage } from '../../utils/extractSSEErrorMessage';
 import { normalizeFinishReason } from '../../utils/normalizeFinishReason';
@@ -632,7 +636,7 @@ export class ChatGPTAdapter extends OpenAICompatibleAdapter {
     }
 
     // Create EventSource (POST-SSE)
-    const es = new EventSource('https://api.openai.com/v1/responses', {
+    const es = new EventSource<ResponsesStreamEvent>('https://api.openai.com/v1/responses', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.config.apiKey}`,
@@ -814,35 +818,14 @@ export class ChatGPTAdapter extends OpenAICompatibleAdapter {
     };
 
     // Listen to named Responses events (primary path)
-    const esAny = es as unknown as { addEventListener: (type: string, cb: (evt: unknown) => void) => void };
-    esAny.addEventListener('response.output_text.delta', (evt) => {
-      const anyEvt = evt as unknown as { data: string | null };
-      handleEventData(anyEvt?.data, 'response.output_text.delta');
-    });
-    esAny.addEventListener('response.output_text.done', (evt) => {
-      const anyEvt = evt as unknown as { data: string | null };
-      handleEventData(anyEvt?.data, 'response.output_text.done');
-    });
-    esAny.addEventListener('response.completed', (evt) => {
-      const anyEvt = evt as unknown as { data: string | null };
-      handleEventData(anyEvt?.data, 'response.completed');
-    });
-    esAny.addEventListener('response.incomplete', (evt) => {
-      const anyEvt = evt as unknown as { data: string | null };
-      handleEventData(anyEvt?.data, 'response.incomplete');
-    });
-    esAny.addEventListener('response.delta', (evt) => {
-      const anyEvt = evt as unknown as { data: string | null };
-      handleEventData(anyEvt?.data, 'response.delta');
-    });
-    esAny.addEventListener('response.error', (evt) => {
-      const anyEvt = evt as unknown as { data: string | null };
-      handleEventData(anyEvt?.data, 'response.error');
-    });
+    for (const eventName of RESPONSES_STREAM_EVENTS) {
+      es.addEventListener(eventName, (evt) => {
+        handleEventData(evt.data, eventName);
+      });
+    }
     // Fallback: some deployments emit unnamed events
     es.addEventListener('message', (evt) => {
-      const anyEvt = evt as unknown as { data: string | null };
-      handleEventData(anyEvt?.data, 'message');
+      handleEventData(evt.data, 'message');
     });
 
     es.addEventListener('error', (e: unknown) => {

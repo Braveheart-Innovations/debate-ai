@@ -189,7 +189,7 @@ export default function UpgradeScreen() {
           title={getTitle()}
           showBackButton
           onBack={() => {
-            try { (navigation as unknown as { goBack: () => void }).goBack(); } catch { /* noop */ }
+            try { navigation.goBack(); } catch { /* noop */ }
           }}
           animated
         />
@@ -370,7 +370,7 @@ export default function UpgradeScreen() {
                 const result = await PurchaseService.restorePurchases();
                 if (result.success && result.restored) {
                   ErrorService.showSuccess('Your purchases have been restored.', 'subscription');
-                  (navigation as unknown as { goBack: () => void }).goBack();
+                  navigation.goBack();
                 } else if (result.success && !result.restored) {
                   // Check if there's a specific message (e.g., "already active")
                   const message = 'userMessage' in result && result.userMessage

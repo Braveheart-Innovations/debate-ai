@@ -51,7 +51,7 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
   );
 
   if (variant === 'gradient') {
-    const [c1, c2] = theme.colors.gradients.premium as unknown as [string, string];
+    const [c1, c2] = theme.colors.gradients.premium;
     return (
       <LinearGradient
         colors={[c1, c2]}

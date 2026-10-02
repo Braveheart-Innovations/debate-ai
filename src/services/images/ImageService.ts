@@ -294,7 +294,7 @@ export class ImageService {
         uri: fileUri,
         type: source.mimeType,
         name: `image_${index + 1}.png`,
-      } as unknown as Blob);
+      });
     }
 
     const res = await fetch('https://api.openai.com/v1/images/edits', {

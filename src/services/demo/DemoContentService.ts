@@ -1,22 +1,25 @@
-import type { DemoChat, DemoCompare, DemoDebate, DemoRecordingSession } from '@/types/demo';
+import type { DemoChat, DemoCompare, DemoDebate } from '@/types/demo';
 import {
   comboKey as manifestComboKey,
   getRecordingsByProviders,
   recordingsById,
-  type DemoRecordingEntry,
+  type DemoRecordingEntryOf,
+  type DemoRecordingType,
 } from '@/assets/demo/recordingsManifest';
 
 const rotationState: Record<string, number> = {};
 const listeners = new Set<() => void>();
 
-function cloneRecording<T extends DemoChat | DemoCompare | DemoDebate>(
-  entry: DemoRecordingEntry<T>
-): T {
+interface DemoDataByType {
+  chat: DemoChat;
+  compare: DemoCompare;
+  debate: DemoDebate;
+}
+
+function cloneRecording<K extends DemoRecordingType>(entry: DemoRecordingEntryOf<K>): DemoDataByType[K] {
   // Deep clone so callers can safely mutate without affecting the manifest copy
-  const cloned = JSON.parse(JSON.stringify(entry.data)) as T;
-  if (cloned && typeof cloned === 'object') {
-    (cloned as { id?: string }).id = entry.id;
-  }
+  const cloned: DemoDataByType[K] = JSON.parse(JSON.stringify(entry.data));
+  cloned.id = entry.id;
   return cloned;
 }
 
@@ -35,11 +38,11 @@ export class DemoContentService {
     return manifestComboKey(providers);
   }
 
-  private static rotateSample<T extends DemoChat | DemoCompare | DemoDebate>(
-    type: 'chat' | 'compare' | 'debate',
+  private static rotateSample<K extends DemoRecordingType>(
+    type: K,
     providers: string[]
-  ): T | null {
-    const available = getRecordingsByProviders<T>(type, providers);
+  ): DemoDataByType[K] | null {
+    const available = getRecordingsByProviders(type, providers);
     if (available.length === 0) return null;
 
     const key = `${type}:${this.comboKey(providers)}`;
@@ -50,50 +53,50 @@ export class DemoContentService {
   }
 
   static async getChatSampleForProviders(providers: string[]): Promise<DemoChat | null> {
-    return this.rotateSample<DemoChat>('chat', providers);
+    return this.rotateSample('chat', providers);
   }
 
   static listChatSamples(
     providers: string[],
     _options: { includeDrafts?: boolean } = {}
   ): Array<{ id: string; title: string }> {
-    return getRecordingsByProviders<DemoChat>('chat', providers).map((entry) => ({
+    return getRecordingsByProviders('chat', providers).map((entry) => ({
       id: entry.id,
       title: entry.title || entry.id,
     }));
   }
 
   static async findChatById(id: string): Promise<DemoChat | null> {
-    const entry = recordingsById.get(id) as DemoRecordingEntry<DemoChat> | undefined;
+    const entry = recordingsById.get(id);
     if (!entry || entry.type !== 'chat') return null;
-    return cloneRecording(entry);
+    return cloneRecording<'chat'>(entry);
   }
 
   static async getCompareSampleForProviders(providers: string[]): Promise<DemoCompare | null> {
-    return this.rotateSample<DemoCompare>('compare', providers);
+    return this.rotateSample('compare', providers);
   }
 
   static listCompareSamples(
     providers: string[],
     _options: { includeDrafts?: boolean } = {}
   ): Array<{ id: string; title: string }> {
-    return getRecordingsByProviders<DemoCompare>('compare', providers).map((entry) => ({
+    return getRecordingsByProviders('compare', providers).map((entry) => ({
       id: entry.id,
       title: entry.title || entry.id,
     }));
   }
 
   static async findCompareById(id: string): Promise<DemoCompare | null> {
-    const entry = recordingsById.get(id) as DemoRecordingEntry<DemoCompare> | undefined;
+    const entry = recordingsById.get(id);
     if (!entry || entry.type !== 'compare') return null;
-    return cloneRecording(entry);
+    return cloneRecording<'compare'>(entry);
   }
 
   static async getDebateSampleForProviders(
     providers: string[],
     _persona?: string
   ): Promise<DemoDebate | null> {
-    return this.rotateSample<DemoDebate>('debate', providers);
+    return this.rotateSample('debate', providers);
   }
 
   static listDebateSamples(
@@ -101,7 +104,7 @@ export class DemoContentService {
     _persona?: string,
     _options: { includeDrafts?: boolean } = {}
   ): Array<{ id: string; title: string; topic: string }> {
-    return getRecordingsByProviders<DemoDebate>('debate', providers).map((entry) => ({
+    return getRecordingsByProviders('debate', providers).map((entry) => ({
       id: entry.id,
       title: entry.title || entry.topic || entry.id,
       topic: entry.topic || entry.title || entry.id,
@@ -109,9 +112,9 @@ export class DemoContentService {
   }
 
   static async findDebateById(id: string): Promise<DemoDebate | null> {
-    const entry = recordingsById.get(id) as DemoRecordingEntry<DemoDebate> | undefined;
+    const entry = recordingsById.get(id);
     if (!entry || entry.type !== 'debate') return null;
-    return cloneRecording(entry);
+    return cloneRecording<'debate'>(entry);
   }
 
   static subscribe(listener: () => void): () => void {
@@ -126,7 +129,7 @@ export class DemoContentService {
     notifyListeners();
   }
 
-  static async ingestRecording(_session: DemoRecordingSession | null | undefined): Promise<void> {
+  static async ingestRecording(_session: object | null | undefined): Promise<void> {
     // Recordings are built from the filesystem manifest; runtime ingestion is no-op.
     if (process.env.NODE_ENV === 'development') {
       console.warn('[DemoContentService] Recording captured. Run `node scripts/demo/build-recordings-manifest.js` to regenerate the manifest.');

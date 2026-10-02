@@ -455,7 +455,7 @@ export const HelpSheet: React.FC<HelpSheetProps> = ({ onClose }) => {
             Made with
           </Typography>
           <Image
-            source={BraveheartLogo as unknown as number}
+            source={BraveheartLogo}
             style={styles.braveheartLogo}
             resizeMode="contain"
           />
