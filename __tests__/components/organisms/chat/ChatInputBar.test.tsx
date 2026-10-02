@@ -1,4 +1,3 @@
-import React from 'react';
 import { act, fireEvent } from '@testing-library/react-native';
 import * as speechRecognition from 'expo-speech-recognition';
 import { TouchableOpacity } from 'react-native';

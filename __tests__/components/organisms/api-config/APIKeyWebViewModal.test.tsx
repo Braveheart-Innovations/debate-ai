@@ -1,4 +1,3 @@
-import React from 'react';
 import { fireEvent, waitFor } from '@testing-library/react-native';
 import { Alert, Linking } from 'react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';

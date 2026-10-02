@@ -1,4 +1,3 @@
-import React from 'react';
 import { act } from '@testing-library/react-native';
 import HomeScreen from '@/screens/HomeScreen';
 import { renderWithProviders } from '../../test-utils/renderWithProviders';

@@ -1,4 +1,3 @@
-import React from 'react';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { DebateTeamsCard, type DebateTeamSlotDescriptor } from '@/components/organisms/debate/DebateTeamsCard';

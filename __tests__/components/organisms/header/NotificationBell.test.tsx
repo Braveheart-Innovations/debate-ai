@@ -1,4 +1,3 @@
-import React from 'react';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { NotificationBell } from '@/components/organisms/header/NotificationBell';
 

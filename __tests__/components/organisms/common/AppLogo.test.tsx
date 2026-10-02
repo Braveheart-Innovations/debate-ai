@@ -1,4 +1,3 @@
-import React from 'react';
 import { View } from 'react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { AppLogo } from '@/components/organisms/common/AppLogo';

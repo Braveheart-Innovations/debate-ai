@@ -1,4 +1,3 @@
-import React from 'react';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { CompareImageGeneratingPane } from '@/components/organisms/compare/CompareImageGeneratingPane';
 import { AIConfig } from '@/types';

@@ -1,4 +1,3 @@
-import React from 'react';
 import { act, fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { DebateSlotConfigSheet } from '@/components/organisms/debate/DebateSlotConfigSheet';

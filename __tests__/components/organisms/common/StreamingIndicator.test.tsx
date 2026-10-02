@@ -1,4 +1,3 @@
-import React from 'react';
 import Animated from 'react-native-reanimated';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { StreamingIndicator } from '@/components/organisms/common/StreamingIndicator';

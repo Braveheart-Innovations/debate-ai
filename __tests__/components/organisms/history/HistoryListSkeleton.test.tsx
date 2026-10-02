@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import React from 'react';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { HistoryListSkeleton } from '@/components/organisms/history/HistoryListSkeleton';
 

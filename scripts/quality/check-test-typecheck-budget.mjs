@@ -5,7 +5,7 @@
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-const DEFAULT_TEST_TYPE_ERROR_BUDGET = 492;
+const DEFAULT_TEST_TYPE_ERROR_BUDGET = 393;
 const envBudget = process.env.TEST_TYPE_ERROR_BUDGET;
 const budget = envBudget === undefined ? DEFAULT_TEST_TYPE_ERROR_BUDGET : Number(envBudget);
 

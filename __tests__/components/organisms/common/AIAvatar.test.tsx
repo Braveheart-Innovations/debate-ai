@@ -1,4 +1,3 @@
-import React from 'react';
 import { Image } from 'react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { AIAvatar } from '@/components/organisms/common/AIAvatar';

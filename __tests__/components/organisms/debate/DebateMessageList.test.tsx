@@ -3,7 +3,6 @@
  * Comprehensive tests for the debate message list component
  */
 
-import React from 'react';
 import { act, fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { DebateMessageList } from '@/components/organisms/debate/DebateMessageList';

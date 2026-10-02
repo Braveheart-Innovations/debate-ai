@@ -1,4 +1,3 @@
-import React from 'react';
 import { renderHook, act } from '@testing-library/react-native';
 import { SheetProvider, useSheet, useProfileSheet } from '@/contexts/SheetContext';
 

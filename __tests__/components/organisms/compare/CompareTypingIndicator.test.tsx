@@ -1,4 +1,3 @@
-import React from 'react';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { CompareTypingIndicator } from '@/components/organisms/compare/CompareTypingIndicator';
 

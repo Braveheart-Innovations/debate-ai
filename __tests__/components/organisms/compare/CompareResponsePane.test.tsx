@@ -1,4 +1,3 @@
-import React from 'react';
 import { Text, TouchableOpacity } from 'react-native';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';

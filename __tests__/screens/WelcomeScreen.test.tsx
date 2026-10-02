@@ -4,7 +4,6 @@ import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../test-utils/renderWithProviders';
 
 jest.mock('expo-linear-gradient', () => {
-  const React = require('react');
   const { View } = require('react-native');
   return {
     LinearGradient: ({ children }: { children: React.ReactNode }) => <View>{children}</View>,

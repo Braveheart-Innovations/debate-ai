@@ -1,4 +1,3 @@
-import React from 'react';
 import { fireEvent, act } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 
