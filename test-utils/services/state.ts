@@ -1,27 +1,27 @@
 import { createAppStore, store, type RootState } from '@/store';
 
-type PartialRootState = Partial<RootState>;
+/** Per-slice partial overrides, e.g. `{ auth: { isPremium: true } }`. */
+export type RootStateOverrides = { [K in keyof RootState]?: Partial<RootState[K]> };
 
-export const buildRootState = (overrides: PartialRootState = {}): RootState => {
-  const baseState = createAppStore().getState();
-  const nextState = { ...baseState } as RootState;
+const mergeSlice = <K extends keyof RootState>(
+  state: RootState,
+  key: K,
+  override: Partial<RootState[K]>
+): void => {
+  state[key] = Object.assign({}, state[key], override);
+};
 
-  for (const key of Object.keys(overrides) as Array<keyof RootState>) {
+/** The real initial store state with each overridden slice shallow-merged in. */
+export const buildRootState = (overrides: RootStateOverrides = {}): RootState => {
+  const state: RootState = { ...createAppStore().getState() };
+  (Object.keys(overrides) as Array<keyof RootState>).forEach((key) => {
     const override = overrides[key];
-    if (override && typeof override === 'object' && !Array.isArray(override)) {
-      nextState[key] = {
-        ...(baseState[key] as Record<string, unknown>),
-        ...(override as Record<string, unknown>),
-      } as RootState[typeof key];
-    } else {
-      nextState[key] = override as RootState[typeof key];
-    }
-  }
-
-  return nextState;
+    if (override) mergeSlice(state, key, override);
+  });
+  return state;
 };
 
-export const mockStoreState = (overrides: PartialRootState = {}): jest.SpiedFunction<typeof store.getState> => {
-  const state = buildRootState(overrides);
-  return jest.spyOn(store, 'getState').mockReturnValue(state);
-};
+export const mockStoreState = (
+  overrides: RootStateOverrides = {}
+): jest.SpiedFunction<typeof store.getState> =>
+  jest.spyOn(store, 'getState').mockReturnValue(buildRootState(overrides));
