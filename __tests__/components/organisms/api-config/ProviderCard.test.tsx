@@ -7,8 +7,8 @@ import * as Haptics from 'expo-haptics';
 import { Linking, Alert } from 'react-native';
 
 jest.mock('expo-linear-gradient', () => {
-  const React = require('react');
-  const { View } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { View } = require('react-native') as typeof import('react-native');
   return {
     LinearGradient: ({ children, ...props }: { children: React.ReactNode }) => React.createElement(View, props, children),
   };
@@ -22,8 +22,8 @@ jest.mock('expo-haptics', () => ({
 }));
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text, TouchableOpacity } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text, TouchableOpacity } = require('react-native') as typeof import('react-native');
   return {
     Typography: ({ children, ...props }: { children: React.ReactNode }) => React.createElement(Text, props, children),
     GradientButton: ({
@@ -52,8 +52,8 @@ jest.mock('@/components/molecules', () => {
 
 jest.mock('@/components/organisms/subscription/ActualPricing', () => ({
   ActualPricing: ({ freeInfo }: { freeInfo?: unknown }) => {
-    const React = require('react');
-    const { Text } = require('react-native');
+    const React = require('react') as typeof import('react');
+    const { Text } = require('react-native') as typeof import('react-native');
     return React.createElement(Text, null, freeInfo ? 'Pricing Info' : 'No Pricing');
   },
 }));

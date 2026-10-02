@@ -75,7 +75,7 @@ const defaultState = () => ({
 }) satisfies RootStateOverrides;
 
 jest.mock('react-redux', () => {
-  const actual = jest.requireActual('react-redux');
+  const actual = jest.requireActual<typeof import('react-redux')>('react-redux');
   return {
     ...actual,
     useDispatch: () => mockDispatch,
@@ -111,7 +111,7 @@ jest.mock('@/hooks/debate', () => ({
 
 jest.mock('@react-navigation/native', () => ({
   useFocusEffect: (cb: () => (() => void) | void) => {
-    const { useEffect } = require('react');
+    const { useEffect } = require('react') as typeof import('react');
     useEffect(() => {
       const cleanup = cb();
       return cleanup;
@@ -138,8 +138,8 @@ jest.mock('@/hooks/useFeatureAccess', () => ({
 
 jest.mock('@/components/molecules/subscription/TrialBanner', () => ({
   TrialBanner: () => {
-    const React = require('react');
-    const { Text } = require('react-native');
+    const React = require('react') as typeof import('react');
+    const { Text } = require('react-native') as typeof import('react-native');
     return React.createElement(Text, { testID: 'trial-banner' }, 'trial-banner');
   },
 }));
@@ -209,8 +209,8 @@ jest.mock('@/components/organisms/debate/FormatModal', () => ({
 }));
 
 jest.mock('@/components/organisms', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text } = require('react-native') as typeof import('react-native');
   const { stubComponent } = jest.requireActual<
     typeof import('@test-utils/mockComponents')
   >('@test-utils/mockComponents');
@@ -224,8 +224,8 @@ jest.mock('@/components/organisms', () => {
 });
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text, View } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text, View } = require('react-native') as typeof import('react-native');
   const { stubComponent } = jest.requireActual<
     typeof import('@test-utils/mockComponents')
   >('@test-utils/mockComponents');

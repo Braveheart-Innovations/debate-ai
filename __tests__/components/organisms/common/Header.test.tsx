@@ -16,7 +16,7 @@ jest.mock('react-native-safe-area-context', () => ({
 }));
 
 jest.mock('react-native-svg', () => {
-  const React = require('react');
+  const React = require('react') as typeof import('react');
   const Mock = (props: { children?: React.ReactNode } & Record<string, unknown>) =>
     React.createElement('svg', props, props.children);
   return {
@@ -36,16 +36,16 @@ jest.mock('react-native-svg', () => {
 // jest.setup.ts mocks the hook module that react-native's `useWindowDimensions` getter returns.
 const mockUseWindowDimensions = jest.mocked(useWindowDimensions);
 jest.mock('@/components/atoms', () => {
-  const React = require('react');
-  const { View } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { View } = require('react-native') as typeof import('react-native');
   return {
     Box: ({ children, ...props }: { children: React.ReactNode }) => React.createElement(View, props, children),
   };
 });
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text, TouchableOpacity } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text, TouchableOpacity } = require('react-native') as typeof import('react-native');
   return {
     Typography: ({ children, ...props }: { children: React.ReactNode }) => React.createElement(Text, props, children),
     Button: ({ title, onPress }: { title: string; onPress: () => void }) => (

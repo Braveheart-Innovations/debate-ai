@@ -6,8 +6,8 @@ import type { PropsOf } from '@test-utils/mockComponents';
 import type { Button } from '@/components/molecules';
 
 jest.mock('@expo/vector-icons', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text } = require('react-native') as typeof import('react-native');
   return {
     Ionicons: ({ name, ...props }: { name: string }) =>
       React.createElement(Text, { ...props, testID: `ion-${name}` }, name),
@@ -17,16 +17,16 @@ jest.mock('@expo/vector-icons', () => {
 });
 
 jest.mock('@/components/atoms', () => {
-  const React = require('react');
-  const { View } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { View } = require('react-native') as typeof import('react-native');
   return {
     Box: ({ children }: { children: React.ReactNode }) => React.createElement(View, null, children),
   };
 });
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text } = require('react-native') as typeof import('react-native');
   return {
     Typography: ({ children }: { children: React.ReactNode }) => React.createElement(Text, null, children),
     Button: ({ title, onPress, style }: PropsOf<typeof Button>) =>

@@ -20,21 +20,21 @@ jest.mock('expo-file-system/legacy', () => ({
 
 import MediaSaveService from '@/services/media/MediaSaveService';
 
-const MediaLibrary = jest.requireMock('expo-media-library') as {
+const MediaLibrary = jest.requireMock<{
   getPermissionsAsync: jest.Mock;
   requestPermissionsAsync: jest.Mock;
   createAssetAsync: jest.Mock;
   getAlbumAsync: jest.Mock;
   addAssetsToAlbumAsync: jest.Mock;
   createAlbumAsync: jest.Mock;
-};
+}>('expo-media-library');
 
-const FileSystem = jest.requireMock('expo-file-system/legacy') as {
+const FileSystem = jest.requireMock<{
   cacheDirectory: string;
   writeAsStringAsync: jest.Mock;
   downloadAsync: jest.Mock;
   EncodingType: { Base64: string };
-};
+}>('expo-file-system/legacy');
 
 describe('MediaSaveService', () => {
   beforeEach(() => {

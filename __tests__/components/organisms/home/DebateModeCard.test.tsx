@@ -9,8 +9,8 @@ import type { GradientButton } from '@/components/molecules';
 
 jest.mock('expo-linear-gradient', () => ({
   LinearGradient: ({ children }: PropsOf<typeof LinearGradient>) => {
-    const React = require('react');
-    const { View } = require('react-native');
+    const React = require('react') as typeof import('react');
+    const { View } = require('react-native') as typeof import('react-native');
     return React.createElement(View, { testID: 'gradient' }, children);
   },
 }));
@@ -21,8 +21,8 @@ jest.mock('expo-haptics', () => ({
 }));
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text } = require('react-native') as typeof import('react-native');
   return {
     GradientButton: ({ title, onPress }: PropsOf<typeof GradientButton>) =>
       React.createElement(
@@ -36,8 +36,8 @@ jest.mock('@/components/molecules', () => {
 
 jest.mock('@/components/organisms/common/AIAvatar', () => ({
   AIAvatar: () => {
-    const React = require('react');
-    const { View } = require('react-native');
+    const React = require('react') as typeof import('react');
+    const { View } = require('react-native') as typeof import('react-native');
     return React.createElement(View, { testID: 'ai-avatar' });
   },
 }));
@@ -78,7 +78,7 @@ describe('DebateModeCard', () => {
     fireEvent.press(button);
 
     expect(onStartDebate).toHaveBeenCalled();
-    expect(require('expo-haptics').impactAsync).toHaveBeenCalled();
+    expect((require('expo-haptics') as typeof import('expo-haptics')).impactAsync).toHaveBeenCalled();
     expect(getByText('Ready to debate! Choose a topic below')).toBeTruthy();
   });
 });

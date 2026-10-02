@@ -6,36 +6,36 @@ import { DebugMenu } from '@/components/organisms/debug';
 // Mock child components
 jest.mock('@/components/organisms/debug/LogViewer', () => ({
   LogViewer: () => {
-    const { Text } = require('react-native');
+    const { Text } = require('react-native') as typeof import('react-native');
     return <Text>LogViewer</Text>;
   },
 }));
 
 jest.mock('@/components/organisms/debug/NetworkInspector', () => ({
   NetworkInspector: () => {
-    const { Text } = require('react-native');
+    const { Text } = require('react-native') as typeof import('react-native');
     return <Text>NetworkInspector</Text>;
   },
 }));
 
 jest.mock('@/components/organisms/debug/StateInspector', () => ({
   StateInspector: () => {
-    const { Text } = require('react-native');
+    const { Text } = require('react-native') as typeof import('react-native');
     return <Text>StateInspector</Text>;
   },
 }));
 
 jest.mock('@/components/organisms/debug/FeatureFlags', () => ({
   FeatureFlags: () => {
-    const { Text } = require('react-native');
+    const { Text } = require('react-native') as typeof import('react-native');
     return <Text>FeatureFlags</Text>;
   },
 }));
 
 // Mock atoms and molecules
 jest.mock('@/components/atoms', () => {
-  const React = require('react');
-  const { View } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { View } = require('react-native') as typeof import('react-native');
   return {
     Box: ({ children, ...props }: { children: React.ReactNode }) =>
       React.createElement(View, props, children),
@@ -43,8 +43,8 @@ jest.mock('@/components/atoms', () => {
 });
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text } = require('react-native') as typeof import('react-native');
   return {
     Typography: ({ children, ...props }: { children: React.ReactNode }) =>
       React.createElement(Text, props, children),

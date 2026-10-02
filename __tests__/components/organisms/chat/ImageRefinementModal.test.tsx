@@ -5,15 +5,15 @@ import { ImageRefinementModal, RefinementProvider } from '@/components/organisms
 
 jest.mock('expo-blur', () => ({
   BlurView: ({ children }: { children: React.ReactNode }) => {
-    const { View } = require('react-native');
+    const { View } = require('react-native') as typeof import('react-native');
     return <View testID="blur-view">{children}</View>;
   },
 }));
 
 jest.mock('@/components/molecules', () => {
-  const { Text, TouchableOpacity, View } = require('react-native');
+  const { Text, TouchableOpacity, View } = require('react-native') as typeof import('react-native');
   return {
-    KeyboardAvoider: ({ children }: { children?: import('react').ReactNode }) => require('react').createElement(require('react').Fragment, null, children),
+    KeyboardAvoider: ({ children }: { children?: import('react').ReactNode }) => children,
     Typography: ({ children }: { children: React.ReactNode }) => <Text>{children}</Text>,
     GradientButton: ({
       title,
@@ -50,7 +50,7 @@ jest.mock('@/components/molecules', () => {
 });
 
 jest.mock('@expo/vector-icons', () => {
-  const { Text } = require('react-native');
+  const { Text } = require('react-native') as typeof import('react-native');
   return {
     Ionicons: ({ name }: { name: string }) => <Text>{name}</Text>,
   };

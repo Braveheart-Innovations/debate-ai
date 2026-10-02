@@ -22,8 +22,8 @@ jest.mock('@/services/media/MediaSaveService', () => ({
 
 jest.mock('@/components/organisms/chat/ImageBubble', () => ({
   ImageBubble: ({ uris, onPressImage, canRefine, onRefine }: PropsOf<typeof ImageBubble>) => {
-    const React = require('react');
-    const { TouchableOpacity, Text, View } = require('react-native');
+    const React = require('react') as typeof import('react');
+    const { TouchableOpacity, Text, View } = require('react-native') as typeof import('react-native');
     const children = [
       React.createElement(TouchableOpacity, { key: 'image', onPress: () => onPressImage?.(uris[0]), testID: 'image-bubble' }, React.createElement(Text, null, 'Image')),
     ];
@@ -40,8 +40,8 @@ jest.mock('@/components/organisms/chat/ImageLightboxModal', () => ({
 }));
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text } = require('react-native') as typeof import('react-native');
   return {
     Typography: ({ children }: { children: React.ReactNode }) => React.createElement(Text, null, children),
   };
@@ -129,7 +129,7 @@ describe('ImageMessageRow', () => {
   });
 
   it('calls Sharing API when Share is pressed', async () => {
-    const Sharing = require('expo-sharing');
+    const Sharing = require('expo-sharing') as typeof import('expo-sharing');
     const { getByText } = renderWithProviders(<ImageMessageRow message={mockMessage} />);
 
     fireEvent.press(getByText('Share'));

@@ -4,8 +4,8 @@ import { malformed } from '@test-utils/queries';
 
 jest.mock('@/components/molecules/common/Badge', () => ({
   Badge: ({ label }: { label: string }) => {
-    const React = require('react');
-    const { Text } = require('react-native');
+    const React = require('react') as typeof import('react');
+    const { Text } = require('react-native') as typeof import('react-native');
     return React.createElement(Text, null, label);
   },
 }));

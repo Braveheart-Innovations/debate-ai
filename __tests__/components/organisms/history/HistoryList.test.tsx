@@ -12,8 +12,8 @@ import type {
 } from '@/components/molecules/history';
 
 jest.mock('react-native-gesture-handler', () => {
-  const React = require('react');
-  const { View } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { View } = require('react-native') as typeof import('react-native');
   // HistoryList's renderRightActions ignores the gesture args, so the stub calls it bare.
   return {
     Swipeable: ({

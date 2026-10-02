@@ -4,8 +4,8 @@ import { CodeBlock } from '@/components/molecules/common/CodeBlock';
 
 // Mock Typography
 jest.mock('@/components/molecules/common/Typography', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text } = require('react-native') as typeof import('react-native');
   return {
     Typography: ({ children, style }: { children: React.ReactNode; style?: object }) =>
       React.createElement(Text, { style, testID: 'language-tag' }, children),

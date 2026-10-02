@@ -13,14 +13,14 @@ jest.mock('expo-haptics', () => ({
 
 jest.mock('@expo/vector-icons', () => ({
   Ionicons: ({ name }: { name: string }) => {
-    const { Text } = require('react-native');
+    const { Text } = require('react-native') as typeof import('react-native');
     return <Text>{name}</Text>;
   },
 }));
 
 jest.mock('@/components/molecules/feedback/ToastNotification', () => ({
   ToastNotification: ({ message, visible }: { message: string; visible: boolean }) => {
-    const { Text } = require('react-native');
+    const { Text } = require('react-native') as typeof import('react-native');
     return visible ? <Text testID="local-success-toast">{message}</Text> : null;
   },
 }));

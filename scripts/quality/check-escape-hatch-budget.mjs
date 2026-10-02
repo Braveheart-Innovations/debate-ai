@@ -14,7 +14,7 @@ const BUDGETS = {
   'tests: eslint-disable': 1,
   'tests: skipped or todo tests': 0,
   'tests: untyped require() of app modules': 0,
-  'tests: untyped require() of packages': 324,
+  'tests: untyped require() of packages': 0,
   'tests: malformed() inputs': 7,
 };
 const CODE = /\.(ts|tsx)$/;
@@ -40,7 +40,10 @@ const APP_REQUIRE = /require(?:Actual|Mock)?\(\s*['"](?:@\/|@test-utils\/|\.\.?\
 const TYPED_REQUIRE = /as typeof import\(|require(?:Actual|Mock)</;
 // Same for packages (e.g. `require('react')` inside a jest.mock factory makes
 // every stub built from it untyped): `require('react') as typeof import('react')`.
-const PACKAGE_REQUIRE = /require(?:Actual|Mock)?\(\s*['"](?!@\/|@test-utils\/|\.)[^'"]+['"]/;
+// Vendor jest-setup entry points (e.g. 'react-native-gesture-handler/jestSetup')
+// ship no type declarations and are passed straight through as mock factories,
+// so they are exempt.
+const PACKAGE_REQUIRE = /require(?:Actual|Mock)?\(\s*['"](?!@\/|@test-utils\/|\.)(?![^'"]*\/jest(?:Setup)?['"])[^'"]+['"]/;
 const countUntyped = (pattern) => (text) =>
   text.split('\n').filter((line) => pattern.test(line) && !TYPED_REQUIRE.test(line)).length;
 

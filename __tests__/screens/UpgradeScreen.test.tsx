@@ -52,7 +52,7 @@ jest.mock('@react-navigation/native', () => ({
 }));
 
 jest.mock('expo-linear-gradient', () => {
-  const { View } = require('react-native');
+  const { View } = require('react-native') as typeof import('react-native');
   return {
     LinearGradient: ({ children }: { children: React.ReactNode }) => <View testID="gradient">{children}</View>,
   };
@@ -70,7 +70,7 @@ const mockButton = capturePropsOf<typeof Button>(({ title, onPress }) => (
 ));
 
 jest.mock('@/components/molecules', () => {
-  const { Text } = require('react-native');
+  const { Text } = require('react-native') as typeof import('react-native');
   return {
     get GradientButton() {
       return mockGradientButton.Stub;

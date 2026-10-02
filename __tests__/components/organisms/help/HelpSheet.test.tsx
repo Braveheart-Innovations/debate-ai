@@ -31,8 +31,8 @@ jest.mock('react-native/Libraries/Linking/Linking', () => ({
 
 // Mock the molecules
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text, TouchableOpacity } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text, TouchableOpacity } = require('react-native') as typeof import('react-native');
   return {
     Typography: ({ children }: PropsOf<typeof Typography>) =>
       React.createElement(Text, null, children),
@@ -47,8 +47,8 @@ jest.mock('@/components/molecules', () => {
 
 // Mock help molecules
 jest.mock('@/components/molecules/help/HelpTopicCard', () => {
-  const React = require('react');
-  const { Text, TouchableOpacity } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text, TouchableOpacity } = require('react-native') as typeof import('react-native');
   return {
     HelpTopicCard: ({ topic, isExpanded, onPress, testID }: PropsOf<typeof HelpTopicCard>) =>
       React.createElement(
@@ -65,8 +65,8 @@ jest.mock('@/components/molecules/help/HelpTopicCard', () => {
 });
 
 jest.mock('@/components/molecules/help/FAQItem', () => {
-  const React = require('react');
-  const { Text, TouchableOpacity } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text, TouchableOpacity } = require('react-native') as typeof import('react-native');
   return {
     FAQItem: ({ question, answer, isExpanded, onToggle, testID }: PropsOf<typeof FAQItem>) =>
       React.createElement(

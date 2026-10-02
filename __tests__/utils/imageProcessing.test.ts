@@ -29,16 +29,16 @@ const {
   getReadableFileSize,
 } = imageProcessing;
 
-const ImageManipulator = jest.requireMock('expo-image-manipulator') as {
+const ImageManipulator = jest.requireMock<{
   manipulateAsync: jest.Mock;
   SaveFormat: { PNG: string; JPEG: string };
-};
+}>('expo-image-manipulator');
 
-const FileSystem = jest.requireMock('expo-file-system/legacy') as {
+const FileSystem = jest.requireMock<{
   readAsStringAsync: jest.Mock;
   getInfoAsync: jest.Mock;
   EncodingType: { Base64: string };
-};
+}>('expo-file-system/legacy');
 
 describe('imageProcessing utilities', () => {
   const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});

@@ -200,7 +200,7 @@ jest.mock('@react-native-google-signin/google-signin', () => ({
 jest.mock('expo-device', () => ({ isDevice: true }));
 
 jest.mock('react-native', () => {
-  const actual = jest.requireActual('react-native');
+  const actual = jest.requireActual<typeof import('react-native')>('react-native');
   actual.Platform.OS = 'ios';
   return actual;
 });

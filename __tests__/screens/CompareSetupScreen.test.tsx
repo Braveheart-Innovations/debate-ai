@@ -34,7 +34,7 @@ const mockButton = capturePropsOf<typeof Button>((props) => (
 ));
 
 jest.mock('react-redux', () => {
-  const actual = jest.requireActual('react-redux');
+  const actual = jest.requireActual<typeof import('react-redux')>('react-redux');
   return {
     ...actual,
     useDispatch: () => mockDispatch,
@@ -64,8 +64,8 @@ jest.mock('@/hooks/useGreeting', () => ({
 
 jest.mock('@/components/molecules/subscription/TrialBanner', () => ({
   TrialBanner: () => {
-    const React = require('react');
-    const { Text } = require('react-native');
+    const React = require('react') as typeof import('react');
+    const { Text } = require('react-native') as typeof import('react-native');
     return React.createElement(Text, { testID: 'trial-banner' }, 'trial-banner');
   },
 }));
@@ -96,10 +96,10 @@ jest.mock('@/components/organisms', () => {
 });
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text } = require('react-native') as typeof import('react-native');
   return {
-    KeyboardAvoider: ({ children }: { children?: import('react').ReactNode }) => require('react').createElement(require('react').Fragment, null, children),
+    KeyboardAvoider: ({ children }: { children?: import('react').ReactNode }) => children,
     get Button() {
       return mockButton.Stub;
     },

@@ -26,7 +26,7 @@
 | D2 | `@ts-expect-error` / `@ts-ignore` / `@ts-nocheck` | ✅ **0** | — | Hard lint error (`ban-ts-comment`) |
 | D3 | Skipped tests | ✅ **0**: `validatePurchase` harness ported to Functions v2 and un-skipped | — | Ratchet at 0 (`lint:escape-hatches`) |
 | D4 | Untyped `require()` of app modules in tests | ✅ **0** (typed-requires batch) | — | Ratchet at 0 (`lint:escape-hatches`) |
-| D6 | Untyped `require()` of packages in tests | **324** | mostly `require('react')` / `require('react-native')` inside `jest.mock` factories, which leaves every stub built in the factory untyped. Fix: `require('react') as typeof import('react')` (no behavior change), then fix what surfaces | Ratchet (`lint:escape-hatches`) |
+| D6 | Untyped `require()` of packages in tests | ✅ **0** (330 sites typed; vendor jest-setup entry points without type declarations are exempt) | — | Ratchet at 0 (`lint:escape-hatches`) |
 | D5 | `malformed()` inputs | 7 | the sanctioned, counted way to feed type-forbidden values to runtime guards (`@test-utils/queries`); not a 0 target — each must have a reason, and an unreachable guard should be deleted with its test | Ratchet (`lint:escape-hatches`) |
 | E | `functions/` has no ESLint | 61 explicit `any`, 3 disables | `functions/src` | Only `tsc` (strict) + tests |
 | F | Dead code / stale TODOs | 2 orphaned components, 4 TODOs | `ImageGenerationModal`, `SubscriptionSheet`; `SubscriptionService` (3 "implement purchase logic" TODOs while `PurchaseService` is the real path), `analytics/index.ts:90` (ChatScreen's dead TODOs and commented-out video handler removed in Phase 0) | ❌ none |
@@ -155,3 +155,4 @@ After each PR, update the counts in the Inventory table and note the PR number:
 | 2026-10-02 | Hotspots 1 | 267 | 198 | 62 | 164 | 20 hottest test files to zero (Phase 1+2); validatePurchase un-skipped; `test-utils/queries` |
 | 2026-10-02 | Batch 2 | 0 | 0 | 62 | 120 | all remaining test files; A/B/D2 now hard rules; D4 untyped requires (93) + D5 malformed() (7) tracked |
 | 2026-10-02 | Typed requires | 0 | 0 | 62 | 118 | D4 93 → 0 (~85 type errors the bare requires had hidden, now fixed); D6 package requires (324) now tracked |
+| 2026-10-02 | Typed package requires | 0 | 0 | 62 | 118 | D6 324 → 0; 5 mock-shape casts moved into `requireMock<T>` / `jest.mocked`; ErrorFlow Animated mocks typed |

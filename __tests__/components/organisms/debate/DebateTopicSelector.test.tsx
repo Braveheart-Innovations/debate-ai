@@ -4,8 +4,8 @@ import { renderWithProviders } from '../../../../test-utils/renderWithProviders'
 import { DebateTopicSelector } from '@/components/organisms/debate/DebateTopicSelector';
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { View, TouchableOpacity, Text } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { View, TouchableOpacity, Text } = require('react-native') as typeof import('react-native');
   return {
     Typography: ({ children }: { children: React.ReactNode }) => React.createElement(Text, null, children),
     Button: ({ title, onPress }: { title: string; onPress: () => void }) =>

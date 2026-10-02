@@ -140,7 +140,7 @@ let focusEffectCleanup: (() => void) | undefined;
 jest.mock('@react-navigation/native', () => ({
   useFocusEffect: (cb: () => void | (() => void)) => {
     focusEffectCallback = cb;
-    const { useEffect } = require('react');
+    const { useEffect } = require('react') as typeof import('react');
     useEffect(() => {
       const cleanup = cb();
       focusEffectCleanup = typeof cleanup === 'function' ? cleanup : undefined;

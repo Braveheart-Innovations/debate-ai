@@ -22,7 +22,7 @@ const mockTheme = {
 
 jest.mock('@/theme', () => {
   const actual = jest.requireActual<typeof import('@/theme')>('@/theme');
-  const React = require('react');
+  const React = require('react') as typeof import('react');
   return {
     ...actual,
     ThemeProvider: ({ children }: { children: React.ReactNode }) => React.createElement(React.Fragment, null, children),
@@ -46,8 +46,8 @@ jest.mock('react-native/Libraries/EventEmitter/NativeEventEmitter', () => {
 });
 
 jest.mock('@expo/vector-icons', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text } = require('react-native') as typeof import('react-native');
   return {
     Ionicons: ({ name, onPress }: PropsOf<typeof Ionicons>) =>
       React.createElement(
@@ -66,8 +66,8 @@ jest.mock('react-native-safe-area-context', () => ({
 }));
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text } = require('react-native') as typeof import('react-native');
   return {
     SheetHeader: ({ title }: PropsOf<typeof SheetHeader>) => React.createElement(Text, null, title),
     Typography: ({ children }: { children: React.ReactNode }) => React.createElement(Text, null, children),
@@ -89,7 +89,7 @@ describe('SupportSheet', () => {
 
     fireEvent.press(getByText('Contact Support'));
 
-    const { Linking } = require('react-native');
+    const { Linking } = require('react-native') as typeof import('react-native');
     await waitFor(() => expect(Linking.openURL).toHaveBeenCalled());
   });
 
@@ -98,7 +98,7 @@ describe('SupportSheet', () => {
 
     fireEvent.press(getByText('FAQs'));
 
-    const { Linking } = require('react-native');
+    const { Linking } = require('react-native') as typeof import('react-native');
     await waitFor(() =>
       expect(Linking.openURL).toHaveBeenCalledWith('https://www.symposiumai.app/faq')
     );
@@ -110,7 +110,7 @@ describe('SupportSheet', () => {
     fireEvent.press(getByText('Privacy Policy'));
     fireEvent.press(getByText('Terms of Service'));
 
-    const { Linking } = require('react-native');
+    const { Linking } = require('react-native') as typeof import('react-native');
     await waitFor(() =>
       expect(Linking.openURL).toHaveBeenCalledWith('https://www.symposiumai.app/privacy')
     );

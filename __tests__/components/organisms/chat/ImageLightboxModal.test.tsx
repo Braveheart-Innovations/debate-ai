@@ -24,8 +24,8 @@ jest.mock('@expo/vector-icons', () => {
 });
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text } = require('react-native') as typeof import('react-native');
   return {
     Typography: ({ children }: { children: React.ReactNode }) => React.createElement(Text, null, children),
   };
@@ -69,7 +69,7 @@ describe('ImageLightboxModal', () => {
   });
 
   it('calls sharing API when Share button is pressed', async () => {
-    const Sharing = require('expo-sharing');
+    const Sharing = require('expo-sharing') as typeof import('expo-sharing');
     const { getByText } = renderWithProviders(
       <ImageLightboxModal visible={true} uri={mockUri} onClose={mockOnClose} />
     );

@@ -4,8 +4,8 @@ import { ParameterSlider } from '@/components/organisms/api-config/ParameterSlid
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text, TouchableOpacity } = require('react-native');
+  const React = require('react') as typeof import('react');
+  const { Text, TouchableOpacity } = require('react-native') as typeof import('react-native');
   return {
     Typography: ({ children, ...props }: { children: React.ReactNode }) => React.createElement(Text, props, children),
     ParameterLabel: ({ name, value, description }: { name: string; value: number; description?: string }) => (

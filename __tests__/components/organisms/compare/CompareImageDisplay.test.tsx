@@ -58,7 +58,7 @@ describe('CompareImageDisplay', () => {
       />
     );
 
-    const Image = require('react-native').Image;
+    const Image = (require('react-native') as typeof import('react-native')).Image;
     const image = UNSAFE_getByType(Image);
     expect(image.props.source.uri).toBe(testUri);
   });
@@ -118,7 +118,7 @@ describe('CompareImageDisplay', () => {
       />
     );
 
-    const TouchableOpacity = require('react-native').TouchableOpacity;
+    const TouchableOpacity = (require('react-native') as typeof import('react-native')).TouchableOpacity;
     const touchables = UNSAFE_getAllByType(TouchableOpacity);
     // First touchable is the image wrapper
     fireEvent.press(touchables[0]);

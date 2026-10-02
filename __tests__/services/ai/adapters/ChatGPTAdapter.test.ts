@@ -10,6 +10,13 @@ jest.mock('react-native-sse', () => {
   }));
 });
 
+/** This file mocks react-native-sse as a constructor mock returning fake event sources. */
+type FakeEventSource = {
+  addEventListener: jest.Mock<void, [eventType: string, handler: (evt: unknown) => void]>;
+  close: jest.Mock<void, []>;
+};
+type EventSourceMock = jest.Mock<FakeEventSource, [url: string, options: unknown]>;
+
 describe('ChatGPTAdapter - Web Search & Citations', () => {
   let adapter: ChatGPTAdapter;
   const baseConfig: AdapterConfig = {
@@ -190,7 +197,7 @@ describe('ChatGPTAdapter - Web Search & Citations', () => {
       const config = { ...baseConfig, webSearchEnabled: false };
       adapter = new ChatGPTAdapter(config);
 
-      const EventSource = require('react-native-sse');
+      const EventSource = jest.requireMock<EventSourceMock>('react-native-sse');
 
       EventSource.mockImplementationOnce((_url: string, options: unknown) => {
         const body = (options as { body: string }).body;
@@ -210,7 +217,7 @@ describe('ChatGPTAdapter - Web Search & Citations', () => {
       const config = { ...baseConfig }; // webSearchEnabled not set
       adapter = new ChatGPTAdapter(config);
 
-      const EventSource = require('react-native-sse');
+      const EventSource = jest.requireMock<EventSourceMock>('react-native-sse');
 
       EventSource.mockImplementationOnce((_url: string, options: unknown) => {
         const body = (options as { body: string }).body;
