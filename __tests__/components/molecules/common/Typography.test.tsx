@@ -1,6 +1,6 @@
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { Typography } from '@/components/molecules/common/Typography';
 
-const { Typography } = require('@/components/molecules/common/Typography');
 
 describe('Typography', () => {
   describe('rendering', () => {

@@ -21,7 +21,7 @@ const mockGenerateCreateImages = jest.fn((payload) => ({
 }));
 
 jest.mock('react-redux', () => {
-  const actual = jest.requireActual('react-redux');
+  const actual = jest.requireActual<typeof import('react-redux')>('react-redux');
   return {
     ...actual,
     useDispatch: () => mockDispatch,
@@ -101,16 +101,16 @@ jest.mock('react-native-safe-area-context', () => ({
 jest.mock('@/components/organisms', () => {
   const React = require('react');
   const { Text, View } = require('react-native');
-  const { CreateComposer } = jest.requireActual('@/components/organisms/create/CreateComposer');
-  const { CreateEmptyState } = jest.requireActual('@/components/organisms/create/CreateEmptyState');
+  const { CreateComposer } = jest.requireActual<typeof import('@/components/organisms/create/CreateComposer')>('@/components/organisms/create/CreateComposer');
+  const { CreateEmptyState } = jest.requireActual<typeof import('@/components/organisms/create/CreateEmptyState')>('@/components/organisms/create/CreateEmptyState');
   const {
     CreateGenerationStatusCard,
-  } = jest.requireActual('@/components/organisms/create/CreateGenerationStatusCard');
-  const { CreateMediaTabs } = jest.requireActual('@/components/organisms/create/CreateMediaTabs');
-  const { CreateOptionsSheet } = jest.requireActual('@/components/organisms/create/CreateOptionsSheet');
-  const { CreateMediaStatusCard } = jest.requireActual('@/components/organisms/create/CreateMediaStatusCard');
-  const { VideoConfigSheet } = jest.requireActual('@/components/organisms/create/VideoConfigSheet');
-  const { AudioConfigSheet } = jest.requireActual('@/components/organisms/create/AudioConfigSheet');
+  } = jest.requireActual<typeof import('@/components/organisms/create/CreateGenerationStatusCard')>('@/components/organisms/create/CreateGenerationStatusCard');
+  const { CreateMediaTabs } = jest.requireActual<typeof import('@/components/organisms/create/CreateMediaTabs')>('@/components/organisms/create/CreateMediaTabs');
+  const { CreateOptionsSheet } = jest.requireActual<typeof import('@/components/organisms/create/CreateOptionsSheet')>('@/components/organisms/create/CreateOptionsSheet');
+  const { CreateMediaStatusCard } = jest.requireActual<typeof import('@/components/organisms/create/CreateMediaStatusCard')>('@/components/organisms/create/CreateMediaStatusCard');
+  const { VideoConfigSheet } = jest.requireActual<typeof import('@/components/organisms/create/VideoConfigSheet')>('@/components/organisms/create/VideoConfigSheet');
+  const { AudioConfigSheet } = jest.requireActual<typeof import('@/components/organisms/create/AudioConfigSheet')>('@/components/organisms/create/AudioConfigSheet');
   return {
     Header: (props: { title?: string; rightElement?: import('react').ReactNode }) =>
       React.createElement(
@@ -374,7 +374,7 @@ jest.mock('@/services/media/MediaGenerationService', () => ({
   },
 }));
 
-const CreateSetupScreen = require('@/screens/CreateSetupScreen').default;
+const CreateSetupScreen = (require('@/screens/CreateSetupScreen') as typeof import('@/screens/CreateSetupScreen')).default;
 
 describe('CreateSetupScreen', () => {
   const baseCreateSelection = {

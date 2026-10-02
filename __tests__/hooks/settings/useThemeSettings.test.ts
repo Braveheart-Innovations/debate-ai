@@ -5,7 +5,7 @@ import { themeService } from '@/services/settings';
 import { lightTheme, useTheme } from '@/theme';
 
 jest.mock('@/services/settings', () => {
-  const actual = jest.requireActual('@/services/settings');
+  const actual = jest.requireActual<typeof import('@/services/settings')>('@/services/settings');
   return {
     ...actual,
     themeService: {
@@ -19,7 +19,7 @@ jest.mock('@/services/settings', () => {
 });
 
 jest.mock('@/theme', () => {
-  const actual = jest.requireActual('@/theme');
+  const actual = jest.requireActual<typeof import('@/theme')>('@/theme');
   return {
     ...actual,
     useTheme: jest.fn(),

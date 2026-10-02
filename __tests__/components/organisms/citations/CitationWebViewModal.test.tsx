@@ -2,6 +2,7 @@ import { fireEvent, waitFor } from '@testing-library/react-native';
 import { Linking } from 'react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import type { Citation } from '@/types';
+import { CitationWebViewModal } from '@/components/organisms/citations/CitationWebViewModal';
 
 // Mock react-native-webview
 jest.mock('react-native-webview', () => ({
@@ -16,8 +17,6 @@ jest.mock('react-native-safe-area-context', () => ({
 
 // Mock Linking.openURL
 jest.spyOn(Linking, 'openURL').mockImplementation(() => Promise.resolve());
-
-const { CitationWebViewModal } = require('@/components/organisms/citations/CitationWebViewModal');
 
 describe('CitationWebViewModal', () => {
   const mockOnClose = jest.fn();

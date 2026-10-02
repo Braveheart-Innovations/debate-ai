@@ -68,7 +68,7 @@ const buildDebateSample = (): DemoDebate => ({
 const loadRouter = () => {
   let module: typeof import('@/services/demo/DemoPlaybackRouter');
   jest.isolateModules(() => {
-    module = require('@/services/demo/DemoPlaybackRouter');
+    module = require('@/services/demo/DemoPlaybackRouter') as typeof import('@/services/demo/DemoPlaybackRouter');
   });
   return module!;
 };

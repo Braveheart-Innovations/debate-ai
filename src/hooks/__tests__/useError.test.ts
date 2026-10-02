@@ -8,38 +8,42 @@ import { ErrorCode } from '../../errors/codes/ErrorCodes';
 import { AppError } from '../../errors/types/AppError';
 
 // Mock ErrorService
-jest.mock('../../services/errors/ErrorService', () => ({
-  ErrorService: {
-    handleError: jest.fn((error, _options) => {
-      const appError = new (jest.requireActual('../../errors/types/AppError').AppError)({
-        code: 'E9999',
-        message: error.message || 'Test error',
-        userMessage: 'Something went wrong',
-        severity: 'error',
-        recoverable: true,
-        retryable: false,
-      });
-      return appError;
-    }),
-    handleSilent: jest.fn((error) => {
-      const appError = new (jest.requireActual('../../errors/types/AppError').AppError)({
-        code: 'E9999',
-        message: error.message || 'Test error',
-        userMessage: 'Something went wrong',
-      });
-      return appError;
-    }),
-    logError: jest.fn((code, message) => {
-      const appError = new (jest.requireActual('../../errors/types/AppError').AppError)({
-        code,
-        message,
-        userMessage: 'Something went wrong',
-      });
-      return appError;
-    }),
-    getUserMessage: jest.fn(() => 'User-friendly error message'),
-  },
-}));
+jest.mock('../../services/errors/ErrorService', () => {
+  const { AppError: ActualAppError } = jest.requireActual<typeof import('../../errors/types/AppError')>('../../errors/types/AppError');
+  const { ErrorCode: ActualErrorCode } = jest.requireActual<typeof import('../../errors/codes/ErrorCodes')>('../../errors/codes/ErrorCodes');
+  return {
+    ErrorService: {
+      handleError: jest.fn((error: unknown, _options?: unknown) => {
+        const appError = new ActualAppError({
+          code: ActualErrorCode.UNKNOWN,
+          message: (error instanceof Error && error.message) || 'Test error',
+          userMessage: 'Something went wrong',
+          severity: 'error',
+          recoverable: true,
+          retryable: false,
+        });
+        return appError;
+      }),
+      handleSilent: jest.fn((error: unknown) => {
+        const appError = new ActualAppError({
+          code: ActualErrorCode.UNKNOWN,
+          message: (error instanceof Error && error.message) || 'Test error',
+          userMessage: 'Something went wrong',
+        });
+        return appError;
+      }),
+      logError: jest.fn((code: import('../../errors/codes/ErrorCodes').ErrorCode, message: string) => {
+        const appError = new ActualAppError({
+          code,
+          message,
+          userMessage: 'Something went wrong',
+        });
+        return appError;
+      }),
+      getUserMessage: jest.fn(() => 'User-friendly error message'),
+    },
+  };
+});
 
 // Import after mocking
 import { ErrorService } from '../../services/errors/ErrorService';

@@ -1,6 +1,7 @@
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import * as Haptics from 'expo-haptics';
+import { IconButton } from '@/components/molecules/common/IconButton';
 
 jest.mock('expo-haptics', () => ({
   impactAsync: jest.fn(),
@@ -10,8 +11,6 @@ jest.mock('expo-haptics', () => ({
     Heavy: 'heavy',
   },
 }));
-
-const { IconButton } = require('@/components/molecules/common/IconButton');
 
 describe('IconButton', () => {
   beforeEach(() => {

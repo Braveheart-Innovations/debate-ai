@@ -2,6 +2,7 @@ import React from 'react';
 import { Text, View, TouchableOpacity } from 'react-native';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../test-utils/renderWithProviders';
+import StatsScreen from '@/screens/StatsScreen';
 
 const mockUseDebateStats = jest.fn();
 const mockUseStatsRollups = jest.fn();
@@ -154,8 +155,6 @@ const createEmptyRollupReturn = () => ({
   getTrendData: jest.fn(() => []),
   hasRollups: false,
 });
-
-const StatsScreen = require('@/screens/StatsScreen').default;
 
 describe('StatsScreen', () => {
   const navigation = { goBack: jest.fn() };

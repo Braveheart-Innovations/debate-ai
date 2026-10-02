@@ -52,7 +52,7 @@ jest.mock('@/services/chat', () => ({
 }));
 
 jest.mock('@/store', () => {
-  const actual = jest.requireActual('@/store');
+  const actual = jest.requireActual<typeof import('@/store')>('@/store');
   return {
     ...actual,
     loadSession: (...args: unknown[]) => {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { InputField } from '@/components/molecules/common/InputField';
 
 jest.mock('@/components/molecules', () => {
   const React = require('react');
@@ -10,8 +11,6 @@ jest.mock('@/components/molecules', () => {
       React.createElement(Text, null, children),
   };
 });
-
-const { InputField } = require('@/components/molecules/common/InputField');
 
 describe('InputField', () => {
   it('renders input field', () => {

@@ -9,11 +9,12 @@ import { fileURLToPath } from 'node:url';
 
 const BUDGETS = {
   'src: `as unknown as`': 62,
-  'tests: `as unknown as`': 120,
+  'tests: `as unknown as`': 118,
   'src: eslint-disable': 3,
   'tests: eslint-disable': 1,
   'tests: skipped or todo tests': 0,
-  'tests: untyped require() of app modules': 93,
+  'tests: untyped require() of app modules': 0,
+  'tests: untyped require() of packages': 324,
   'tests: malformed() inputs': 7,
 };
 const CODE = /\.(ts|tsx)$/;
@@ -37,8 +38,11 @@ const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclud
 // `any` and everything the test does with it escapes the type checker.
 const APP_REQUIRE = /require(?:Actual|Mock)?\(\s*['"](?:@\/|@test-utils\/|\.\.?\/)/;
 const TYPED_REQUIRE = /as typeof import\(|require(?:Actual|Mock)</;
-const countUntypedRequires = (text) =>
-  text.split('\n').filter((line) => APP_REQUIRE.test(line) && !TYPED_REQUIRE.test(line)).length;
+// Same for packages (e.g. `require('react')` inside a jest.mock factory makes
+// every stub built from it untyped): `require('react') as typeof import('react')`.
+const PACKAGE_REQUIRE = /require(?:Actual|Mock)?\(\s*['"](?!@\/|@test-utils\/|\.)[^'"]+['"]/;
+const countUntyped = (pattern) => (text) =>
+  text.split('\n').filter((line) => pattern.test(line) && !TYPED_REQUIRE.test(line)).length;
 
 const counters = {
   'src: `as unknown as`': { pattern: /\bas unknown as\b/g, scope: (f) => !isTestPath(f) },
@@ -49,7 +53,8 @@ const counters = {
     pattern: /\b(?:(?:it|test|describe)\.(?:skip|todo)|x(?:it|test|describe))\(/g,
     scope: isTestPath,
   },
-  'tests: untyped require() of app modules': { count: countUntypedRequires, scope: isTestPath },
+  'tests: untyped require() of app modules': { count: countUntyped(APP_REQUIRE), scope: isTestPath },
+  'tests: untyped require() of packages': { count: countUntyped(PACKAGE_REQUIRE), scope: isTestPath },
   // The sanctioned way to feed type-forbidden input to runtime guards
   // (test-utils/queries.ts). Not a target of 0 — kept visible and deliberate.
   'tests: malformed() inputs': {

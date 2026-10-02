@@ -1,6 +1,7 @@
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { CompareImageDisplay } from '@/components/organisms/compare/CompareImageDisplay';
+import MediaSaveService from '@/services/media/MediaSaveService';
 import { AIConfig } from '@/types';
 
 jest.mock('expo-sharing', () => ({
@@ -126,7 +127,6 @@ describe('CompareImageDisplay', () => {
   });
 
   it('calls save service when Save is pressed', async () => {
-    const MediaSaveService = require('@/services/media/MediaSaveService').default;
     const { getByText } = renderWithProviders(
       <CompareImageDisplay
         ai={mockAI}

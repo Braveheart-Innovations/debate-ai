@@ -1,6 +1,6 @@
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { Badge } from '@/components/molecules/common/Badge';
 
-const { Badge } = require('@/components/molecules/common/Badge');
 
 describe('Badge', () => {
   it('renders label correctly', () => {

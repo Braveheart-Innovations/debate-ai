@@ -1,6 +1,5 @@
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
-
-const { DemoEmptyState } = require('@/components/organisms/demo/DemoEmptyState');
+import { DemoEmptyState } from '@/components/organisms/demo/DemoEmptyState';
 
 describe('DemoEmptyState', () => {
   describe('default rendering', () => {

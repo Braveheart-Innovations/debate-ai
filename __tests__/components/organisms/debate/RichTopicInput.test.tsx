@@ -1,6 +1,5 @@
 import React from 'react';
 import { act, fireEvent } from '@testing-library/react-native';
-import * as speechRecognition from 'expo-speech-recognition';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { RichTopicInput } from '@/components/organisms/debate/RichTopicInput';
 
@@ -10,7 +9,7 @@ jest.mock('@/components/molecules', () => {
   return {
     GlassCard: ({ children }: { children: React.ReactNode }) => React.createElement(View, null, children),
     Typography: ({ children }: { children: React.ReactNode }) => React.createElement(Text, null, children),
-    MicButton: jest.requireActual('@/components/molecules/composer/MicButton').MicButton,
+    MicButton: jest.requireActual<typeof import('@/components/molecules/composer/MicButton')>('@/components/molecules/composer/MicButton').MicButton,
   };
 });
 
@@ -19,11 +18,12 @@ jest.mock('expo-haptics', () => ({
   ImpactFeedbackStyle: { Light: 'light' },
 }));
 
-// Root __mocks__/expo-speech-recognition.ts adds these test helpers.
-const speech = speechRecognition as unknown as {
-  __emit: (eventName: string, payload?: unknown) => void;
-  __reset: () => void;
-};
+// Root __mocks__/expo-speech-recognition.ts adds these test helpers; requireMock returns the
+// registry instance the component sees, typed from the mock file.
+jest.mock('expo-speech-recognition');
+const speech = jest.requireMock<typeof import('../../../../__mocks__/expo-speech-recognition')>(
+  'expo-speech-recognition'
+);
 
 describe('RichTopicInput', () => {
   const mockOnChange = jest.fn();
@@ -104,7 +104,7 @@ describe('RichTopicInput', () => {
     });
 
     it('shows a dictation error inline', async () => {
-      (speechRecognition.ExpoSpeechRecognitionModule.requestPermissionsAsync as jest.Mock)
+      speech.ExpoSpeechRecognitionModule.requestPermissionsAsync
         .mockResolvedValueOnce({ granted: false, canAskAgain: false, expires: 'never', status: 'denied' });
       const { getByTestId, getByText } = renderWithProviders(
         <RichTopicInput value="" onChange={mockOnChange} />
@@ -116,7 +116,7 @@ describe('RichTopicInput', () => {
     });
 
     it('hides the mic when the device has no recognizer', () => {
-      (speechRecognition.ExpoSpeechRecognitionModule.isRecognitionAvailable as jest.Mock)
+      speech.ExpoSpeechRecognitionModule.isRecognitionAvailable
         .mockReturnValue(false);
       const { queryByTestId } = renderWithProviders(
         <RichTopicInput value="" onChange={mockOnChange} />

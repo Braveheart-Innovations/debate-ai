@@ -1,6 +1,6 @@
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { SelectionIndicator } from '@/components/molecules/common/SelectionIndicator';
 
-const { SelectionIndicator } = require('@/components/molecules/common/SelectionIndicator');
 
 describe('SelectionIndicator', () => {
   it('renders when isSelected is true', () => {

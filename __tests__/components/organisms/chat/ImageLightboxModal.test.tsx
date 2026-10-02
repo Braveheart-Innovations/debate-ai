@@ -3,6 +3,7 @@ import { fireEvent, waitFor } from '@testing-library/react-native';
 import { Alert, TouchableOpacity, Image } from 'react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { ImageLightboxModal } from '@/components/organisms/chat/ImageLightboxModal';
+import MediaSaveService from '@/services/media/MediaSaveService';
 
 jest.mock('expo-sharing', () => ({
   isAvailableAsync: jest.fn(() => Promise.resolve(true)),
@@ -81,7 +82,6 @@ describe('ImageLightboxModal', () => {
   });
 
   it('calls MediaSaveService and shows alert when Save button is pressed', async () => {
-    const MediaSaveService = require('@/services/media/MediaSaveService').default;
     const { getByText } = renderWithProviders(
       <ImageLightboxModal visible={true} uri={mockUri} onClose={mockOnClose} />
     );
@@ -95,8 +95,7 @@ describe('ImageLightboxModal', () => {
   });
 
   it('shows error alert when save fails', async () => {
-    const MediaSaveService = require('@/services/media/MediaSaveService').default;
-    MediaSaveService.saveFileUri.mockRejectedValueOnce(new Error('Permission denied'));
+    jest.mocked(MediaSaveService.saveFileUri).mockRejectedValueOnce(new Error('Permission denied'));
 
     const { getByText } = renderWithProviders(
       <ImageLightboxModal visible={true} uri={mockUri} onClose={mockOnClose} />

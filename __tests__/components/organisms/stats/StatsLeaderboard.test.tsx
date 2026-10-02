@@ -1,6 +1,8 @@
 import React from 'react';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { StatsLeaderboard } from '@/components/organisms/stats/StatsLeaderboard';
+import { useSortedStats } from '@/hooks/stats';
+import type { SortedAIStats } from '@/types/stats';
 
 jest.mock('@/components/molecules', () => {
   const React = require('react');
@@ -28,31 +30,53 @@ jest.mock('@/hooks/stats', () => ({
 
 jest.mock('@/services/stats', () => ({ formatDate: jest.fn(() => 'Jan 1'), }));
 
+// Full useSortedStats result for the given rows (the component reads sortedStats/isEmpty).
+const createSortedStatsResult = (sortedStats: SortedAIStats[]): ReturnType<typeof useSortedStats> => {
+  const helpers = {
+    sortedStats,
+    sortBy: 'winRate' as const,
+    getTopPerformers: (count: number) => sortedStats.slice(0, count),
+    getAIRank: (aiId: string) => sortedStats.find((item) => item.aiId === aiId)?.rank ?? null,
+    isInTopN: (aiId: string, n: number) => sortedStats.some((item) => item.aiId === aiId && item.rank <= n),
+    isEmpty: sortedStats.length === 0,
+    hasSingleAI: sortedStats.length === 1,
+    hasMultipleAIs: sortedStats.length > 1,
+  };
+  const [topPerformer] = sortedStats;
+  if (!topPerformer) {
+    return { ...helpers, topPerformer: null, averageWinRate: 0, totalActiveAIs: 0, competitiveBalance: 0 };
+  }
+  return {
+    ...helpers,
+    topPerformer,
+    averageWinRate: topPerformer.stats.winRate,
+    totalActiveAIs: sortedStats.length,
+    competitiveBalance: 100,
+  };
+};
+
 describe('StatsLeaderboard', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it('returns null when stats empty', () => {
-    const { useSortedStats } = require('@/hooks/stats');
-    useSortedStats.mockReturnValue({ sortedStats: [], isEmpty: true });
+    jest.mocked(useSortedStats).mockReturnValue(createSortedStatsResult([]));
 
     const { toJSON } = renderWithProviders(<StatsLeaderboard />);
     expect(toJSON()).toBeNull();
   });
 
   it('renders leaderboard items when stats available', () => {
-    const { useSortedStats } = require('@/hooks/stats');
-    useSortedStats.mockReturnValue({
-      sortedStats: [
+    jest.mocked(useSortedStats).mockReturnValue(
+      createSortedStatsResult([
         {
           aiId: 'ai-1',
           rank: 1,
-          stats: { winRate: 75, roundWinRate: 70, totalDebates: 4, overallWins: 3, overallLosses: 1, roundsWon: 8, roundsLost: 4, lastDebated: Date.now() },
+          stats: { winRate: 75, roundWinRate: 70, totalDebates: 4, overallWins: 3, overallLosses: 1, roundsWon: 8, roundsLost: 4, lastDebated: Date.now(), topics: {} },
         },
-      ],
-      isEmpty: false,
-    });
+      ])
+    );
 
     const { getByText } = renderWithProviders(<StatsLeaderboard />);
 

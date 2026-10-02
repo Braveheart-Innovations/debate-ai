@@ -247,7 +247,7 @@ jest.mock('@/components/organisms/report/GeneratedContentReportModal', () => ({
   },
 }));
 
-const CompareScreen: typeof CompareScreenComponent = require('@/screens/CompareScreen').default;
+const CompareScreen = (require('@/screens/CompareScreen') as typeof import('@/screens/CompareScreen')).default;
 
 type CompareScreenProps = ComponentProps<typeof CompareScreenComponent>;
 type CompareRouteParams = CompareScreenProps['route']['params'];

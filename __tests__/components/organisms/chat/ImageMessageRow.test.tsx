@@ -2,6 +2,7 @@ import React from 'react';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { ImageMessageRow } from '@/components/organisms/chat/ImageMessageRow';
+import MediaSaveService from '@/services/media/MediaSaveService';
 import type { Message } from '@/types';
 import type { PropsOf } from '@test-utils/mockComponents';
 import { createMockAttachment } from '@test-utils/fixtures';
@@ -114,7 +115,6 @@ describe('ImageMessageRow', () => {
   });
 
   it('calls MediaSaveService when Save is pressed', async () => {
-    const MediaSaveService = require('@/services/media/MediaSaveService').default;
     const { getByText } = renderWithProviders(<ImageMessageRow message={mockMessage} />);
 
     fireEvent.press(getByText('Save'));

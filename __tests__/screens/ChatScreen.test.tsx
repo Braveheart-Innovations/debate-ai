@@ -238,7 +238,7 @@ jest.mock('@/services/lifecycle/ActiveSessionPersistenceService', () => ({
   },
 }));
 
-const ChatScreen: typeof ChatScreenComponent = require('@/screens/ChatScreen').default;
+const ChatScreen = (require('@/screens/ChatScreen') as typeof import('@/screens/ChatScreen')).default;
 
 describe('ChatScreen', () => {
   let consoleWarnSpy: jest.SpyInstance;

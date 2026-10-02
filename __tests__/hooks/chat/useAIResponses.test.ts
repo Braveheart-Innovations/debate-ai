@@ -7,7 +7,7 @@ import { renderHookWithProviders } from '../../../test-utils/renderHookWithProvi
 const orchestratorInstances: Array<{ processUserMessage: jest.Mock; updateSession: jest.Mock }> = [];
 
 jest.mock('@/services/chat', () => {
-  const actual = jest.requireActual('@/services/chat');
+  const actual = jest.requireActual<typeof import('@/services/chat')>('@/services/chat');
   return {
     ...actual,
     ChatOrchestrator: jest.fn(() => {

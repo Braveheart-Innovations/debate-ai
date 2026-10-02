@@ -1,7 +1,7 @@
 import { Text } from 'react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { Card } from '@/components/molecules/common/Card';
 
-const { Card } = require('@/components/molecules/common/Card');
 
 describe('Card', () => {
   describe('rendering', () => {

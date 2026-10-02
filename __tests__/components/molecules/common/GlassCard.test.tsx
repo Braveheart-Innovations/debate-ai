@@ -2,12 +2,11 @@ import React from 'react';
 import { Text } from 'react-native';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { GlassCard } from '@/components/molecules/common/GlassCard';
 
 jest.mock('expo-blur', () => ({
   BlurView: ({ children }: { children: React.ReactNode }) => children,
 }));
-
-const { GlassCard } = require('@/components/molecules/common/GlassCard');
 
 describe('GlassCard', () => {
   beforeEach(() => {

@@ -6,7 +6,8 @@ import type { AIService } from '@/services/aiAdapter';
 import type { AI, DebateVoiceConfig, Message } from '@/types';
 import type { AdapterCapabilities, FormattedMessage, SendMessageResponse } from '@/services/ai/types/adapter.types';
 import { setProviderVerificationError } from '@/store/streamingSlice';
-import { createMockAIConfig } from '@test-utils/fixtures';
+import { createMockAIConfig, createMockUser } from '@test-utils/fixtures';
+import { buildRootState } from '@test-utils/services/state';
 
 // A realistic-length debate speech for stubs (above the assessTurn short-fragment floor).
 const VALID_SPEECH = 'Cancel culture, properly understood, is communities choosing to withdraw their support from people who have caused real and demonstrable harm. That is a feature of free association, not a flaw, and the proposition has offered no principled reason why ordinary citizens should be compelled to keep platforming those who abuse their influence.';
@@ -47,29 +48,33 @@ jest.mock('@/services/streaming/StreamingService', () => ({
   isStreamInterruptedError: jest.fn(() => false),
 }));
 
+// The orchestrator only reads `store`; `createAppStore` stays real so
+// buildRootState can derive a complete RootState for getState() stubs.
 jest.mock('@/store', () => ({
+  createAppStore: jest.requireActual<typeof import('@/store')>('@/store').createAppStore,
   store: {
     dispatch: jest.fn(),
     getState: jest.fn(),
   },
 }));
 
-const { store } = jest.requireMock('@/store');
+const { store } = jest.requireMock<typeof import('@/store')>('@/store');
 
-const defaultState = {
-  user: { currentUser: { subscription: 'free' } },
-  streaming: {
-    streamingPreferences: {
-      claude: { enabled: true },
-      'gpt-4': { enabled: true },
+const buildDefaultState = () =>
+  buildRootState({
+    user: { currentUser: createMockUser({ subscription: 'free' }) },
+    streaming: {
+      streamingPreferences: {
+        claude: { enabled: true, supported: true },
+        'gpt-4': { enabled: true, supported: true },
+      },
+      globalStreamingEnabled: true,
+      providerVerificationErrors: {},
     },
-    globalStreamingEnabled: true,
-    providerVerificationErrors: {},
-  },
-  settings: {
-    expertMode: {},
-  },
-};
+    settings: {
+      expertMode: {},
+    },
+  });
 
 const participants: AI[] = [
   createMockAIConfig({
@@ -119,7 +124,7 @@ class FormattingDebateAdapter extends BaseAdapter {
 describe('DebateOrchestrator', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    store.getState.mockReturnValue(defaultState);
+    jest.mocked(store.getState).mockReturnValue(buildDefaultState());
     mockStreamingService.streamResponse.mockReset();
     mockStreamingService.cancelAllStreams.mockReset();
     mockStreamingService.cancelStream.mockReset();

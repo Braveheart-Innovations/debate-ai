@@ -1,7 +1,7 @@
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { Button } from '@/components/molecules/common/Button';
 
-const { Button } = require('@/components/molecules/common/Button');
 
 describe('Button', () => {
   const mockOnPress = jest.fn();

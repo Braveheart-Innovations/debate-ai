@@ -5,6 +5,7 @@ import { Linking } from 'react-native';
 import { ThemeProvider } from '@/theme';
 import { createAppStore } from '@/store';
 import type { Citation } from '@/types';
+import { CitationPreviewProvider, useCitationPreview } from '@/providers/CitationPreviewProvider';
 
 // Mock react-native-webview
 jest.mock('react-native-webview', () => ({
@@ -19,8 +20,6 @@ jest.mock('react-native-safe-area-context', () => ({
 
 // Mock Linking.openURL
 jest.spyOn(Linking, 'openURL').mockImplementation(() => Promise.resolve());
-
-const { CitationPreviewProvider, useCitationPreview } = require('@/providers/CitationPreviewProvider');
 
 describe('CitationPreviewProvider', () => {
   const mockCitation: Citation = {

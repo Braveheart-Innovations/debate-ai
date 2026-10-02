@@ -1,5 +1,8 @@
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { DemoBanner } from '@/components/molecules/subscription/DemoBanner';
+import useFeatureAccess from '@/hooks/useFeatureAccess';
+import { createMockFeatureAccess } from '@test-utils/fixtures';
 
 // Mock the useFeatureAccess hook
 jest.mock('@/hooks/useFeatureAccess', () => ({
@@ -11,20 +14,17 @@ jest.mock('@/hooks/useFeatureAccess', () => ({
   })),
 }));
 
-const { DemoBanner } = require('@/components/molecules/subscription/DemoBanner');
-const useFeatureAccess = require('@/hooks/useFeatureAccess').default;
-
 describe('DemoBanner', () => {
   const mockOnPress = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
     // Reset to default mock values
-    useFeatureAccess.mockReturnValue({
+    jest.mocked(useFeatureAccess).mockReturnValue(createMockFeatureAccess({
       isDemo: true,
       hasUsedTrial: false,
       canStartTrial: true,
-    });
+    }));
   });
 
   describe('visibility', () => {
@@ -36,11 +36,11 @@ describe('DemoBanner', () => {
     });
 
     it('returns null when isDemo is false', () => {
-      useFeatureAccess.mockReturnValue({
+      jest.mocked(useFeatureAccess).mockReturnValue(createMockFeatureAccess({
         isDemo: false,
         hasUsedTrial: false,
         canStartTrial: true,
-      });
+      }));
       const { queryByText } = renderWithProviders(
         <DemoBanner onPress={mockOnPress} />
       );
@@ -80,11 +80,11 @@ describe('DemoBanner', () => {
 
   describe('trial ended state', () => {
     beforeEach(() => {
-      useFeatureAccess.mockReturnValue({
+      jest.mocked(useFeatureAccess).mockReturnValue(createMockFeatureAccess({
         isDemo: true,
         hasUsedTrial: true,
         canStartTrial: false,
-      });
+      }));
     });
 
     it('displays Trial Ended title when trial has been used', () => {
@@ -130,11 +130,11 @@ describe('DemoBanner', () => {
 
   describe('can start trial state', () => {
     it('shows trial CTA when canStartTrial is true', () => {
-      useFeatureAccess.mockReturnValue({
+      jest.mocked(useFeatureAccess).mockReturnValue(createMockFeatureAccess({
         isDemo: true,
         hasUsedTrial: false,
         canStartTrial: true,
-      });
+      }));
       const { getByText } = renderWithProviders(
         <DemoBanner onPress={mockOnPress} />
       );
@@ -142,11 +142,11 @@ describe('DemoBanner', () => {
     });
 
     it('shows upgrade CTA when canStartTrial is false', () => {
-      useFeatureAccess.mockReturnValue({
+      jest.mocked(useFeatureAccess).mockReturnValue(createMockFeatureAccess({
         isDemo: true,
         hasUsedTrial: false,
         canStartTrial: false,
-      });
+      }));
       const { getByText } = renderWithProviders(
         <DemoBanner onPress={mockOnPress} />
       );

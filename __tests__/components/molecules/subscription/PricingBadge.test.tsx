@@ -1,5 +1,6 @@
 import React from 'react';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { PricingBadge } from '@/components/molecules/subscription/PricingBadge';
 
 jest.mock('@/components/molecules', () => {
   const React = require('react');
@@ -9,8 +10,6 @@ jest.mock('@/components/molecules', () => {
       React.createElement(Text, null, children),
   };
 });
-
-const { PricingBadge } = require('@/components/molecules/subscription/PricingBadge');
 
 describe('PricingBadge', () => {
   it('renders cost per message', () => {

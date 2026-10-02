@@ -1,8 +1,8 @@
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import type { Citation } from '@/types';
+import { CitationPreviewTooltip } from '@/components/molecules/citations/CitationPreviewTooltip';
 
-const { CitationPreviewTooltip } = require('@/components/molecules/citations/CitationPreviewTooltip');
 
 describe('CitationPreviewTooltip', () => {
   const mockCitation: Citation = {

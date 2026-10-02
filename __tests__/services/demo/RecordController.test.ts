@@ -21,7 +21,7 @@ jest.mock('@/services/demo/DemoContentService', () => ({
 const loadController = () => {
   let controller: typeof import('@/services/demo/RecordController').RecordController;
   jest.isolateModules(() => {
-    controller = require('@/services/demo/RecordController').RecordController;
+    controller = (require('@/services/demo/RecordController') as typeof import('@/services/demo/RecordController')).RecordController;
   });
   return controller!;
 };

@@ -1,6 +1,7 @@
 import React from 'react';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { SegmentedControl } from '@/components/molecules/common/SegmentedControl';
 
 jest.mock('@/components/molecules', () => {
   const React = require('react');
@@ -10,8 +11,6 @@ jest.mock('@/components/molecules', () => {
       React.createElement(Text, null, children),
   };
 });
-
-const { SegmentedControl } = require('@/components/molecules/common/SegmentedControl');
 
 describe('SegmentedControl', () => {
   const stringOptions = [
