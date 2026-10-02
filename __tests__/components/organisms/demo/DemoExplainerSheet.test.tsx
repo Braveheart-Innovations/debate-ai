@@ -1,13 +1,15 @@
-import React from 'react';
+import type { ReactNode } from 'react';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { DemoExplainerSheet } from '@/components/organisms/demo/DemoExplainerSheet';
+import type { Button, ContextBar, GradientButton, Typography } from '@/components/molecules';
+import type { Header } from '@/components/organisms';
 
 const mockUseFeatureAccess = jest.fn();
 
 // Mock expo-linear-gradient
 jest.mock('expo-linear-gradient', () => ({
-  LinearGradient: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  LinearGradient: ({ children }: { children?: ReactNode }) => <>{children}</>,
 }));
 
 // Mock @expo/vector-icons
@@ -21,48 +23,55 @@ jest.mock('@expo/vector-icons', () => {
 
 // Mock molecules
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text, TouchableOpacity } = require('react-native');
+  const RN = jest.requireActual<typeof import('react-native')>('react-native');
   return {
-    Typography: ({ children, testID }: { children: React.ReactNode; testID?: string }) =>
-      React.createElement(Text, { testID }, children),
-    Button: ({ title, onPress, testID }: { title: string; onPress: () => void; testID?: string }) =>
-      React.createElement(TouchableOpacity, { onPress, testID: testID || 'button' }, React.createElement(Text, null, title)),
-    GradientButton: ({ title, onPress, testID }: { title: string; onPress: () => void; testID?: string }) =>
-      React.createElement(TouchableOpacity, { onPress, testID: testID || 'gradient-button' }, React.createElement(Text, null, title)),
-    ContextBar: ({ title, subtitle }: { title?: string; subtitle?: string }) =>
-      React.createElement(
-        React.Fragment,
-        null,
-        title ? React.createElement(Text, null, title) : null,
-        subtitle ? React.createElement(Text, null, subtitle) : null
-      ),
+    Typography: ({ children }: Parameters<typeof Typography>[0]) => <RN.Text>{children}</RN.Text>,
+    Button: ({ title, onPress }: Parameters<typeof Button>[0]) => (
+      <RN.TouchableOpacity onPress={onPress} testID="button">
+        <RN.Text>{title}</RN.Text>
+      </RN.TouchableOpacity>
+    ),
+    GradientButton: ({ title, onPress, testID }: Parameters<typeof GradientButton>[0]) => (
+      <RN.TouchableOpacity onPress={onPress} testID={testID || 'gradient-button'}>
+        <RN.Text>{title}</RN.Text>
+      </RN.TouchableOpacity>
+    ),
+    ContextBar: ({ title, subtitle }: Parameters<typeof ContextBar>[0]) => (
+      <>
+        {title ? <RN.Text>{title}</RN.Text> : null}
+        {subtitle ? <RN.Text>{subtitle}</RN.Text> : null}
+      </>
+    ),
   };
 });
 
 // Mock Header organism
 jest.mock('@/components/organisms', () => {
-  const React = require('react');
-  const { View, Text, TouchableOpacity } = require('react-native');
+  const RN = jest.requireActual<typeof import('react-native')>('react-native');
   return {
-    Header: ({ title, subtitle, onBack, testID }: any) =>
-      React.createElement(
-        View,
-        { testID: testID || 'header' },
-        React.createElement(Text, null, title),
-        subtitle ? React.createElement(Text, null, subtitle) : null,
-        onBack ? React.createElement(TouchableOpacity, { onPress: onBack, testID: 'header-back-button' }, React.createElement(Text, null, 'Back')) : null
-      ),
+    Header: ({ title, subtitle, onBack, testID }: Parameters<typeof Header>[0]) => (
+      <RN.View testID={testID || 'header'}>
+        <RN.Text>{title}</RN.Text>
+        {subtitle ? <RN.Text>{subtitle}</RN.Text> : null}
+        {onBack ? (
+          <RN.TouchableOpacity onPress={onBack} testID="header-back-button">
+            <RN.Text>Back</RN.Text>
+          </RN.TouchableOpacity>
+        ) : null}
+      </RN.View>
+    ),
   };
 });
 
 // Mock UnlockEverythingBanner
 jest.mock('@/components/organisms/subscription/UnlockEverythingBanner', () => {
-  const React = require('react');
-  const { View, Text } = require('react-native');
+  const RN = jest.requireActual<typeof import('react-native')>('react-native');
   return {
-    UnlockEverythingBanner: () =>
-      React.createElement(View, { testID: 'unlock-everything-banner' }, React.createElement(Text, null, 'Unlock Everything')),
+    UnlockEverythingBanner: () => (
+      <RN.View testID="unlock-everything-banner">
+        <RN.Text>Unlock Everything</RN.Text>
+      </RN.View>
+    ),
   };
 });
 

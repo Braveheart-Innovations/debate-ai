@@ -62,7 +62,7 @@ npm run check:app       # The CI gate: typecheck (app + tests), lint (all scopes
                         # debt budgets, and Jest. Run this, not tsc/lint alone.
 npm run check:functions # When functions/ changed: build + tests
 ```
-Debt budgets (`lint:any-budget`, `typecheck:tests`, `lint:escape-hatches`) are strict ratchets: they fail if a count rises **or** falls below its ceiling. When you reduce debt, lower the ceiling to the printed count in the same commit. The plan to drive every counter to zero is `docs/TECH_DEBT_CLEANUP_PLAN.md`.
+Test code is type-checked (`tsconfig.tests.json`) and linted to the same zero-error, zero-warning, zero-`any` bar as `src/`; TS suppression comments are banned by lint. The remaining escape hatches (`as unknown as`, `eslint-disable`, untyped `require()` of app modules, `malformed()` inputs) are held by `lint:escape-hatches`, a strict ratchet: it fails if a count rises **or** falls below its ceiling — when you reduce one, lower the ceiling to the printed count in the same commit. Plan: `docs/TECH_DEBT_CLEANUP_PLAN.md`.
 
 ### Running the App
 ```bash
@@ -92,11 +92,15 @@ npm run android        # Run on Android emulator
 - ✅ Test affected screens after changes
 
 ### Testing Conventions
-- **No new escape hatches anywhere**, including test stubs: no `any`, `as unknown as`, `@ts-expect-error`, skipped tests, or `eslint-disable` without a `-- reason`.
+- **No new escape hatches anywhere**, including test stubs: no `any`, `as unknown as`, `as never`, `@ts-expect-error`, skipped tests, or `eslint-disable` without a `-- reason`.
+- **Load modules typed**: prefer `import`; when a `require` must run after mock setup, write `require('x') as typeof import('x')` (or `jest.requireActual<typeof import('x')>('x')`). A bare `require` makes the subject `any` and silently switches off type checking.
 - **Component stubs** in `jest.mock` factories: use `stubComponent` / `capturePropsOf` from `@test-utils/mockComponents` (props typed from the real component), never `(props: any) =>`.
 - **Domain fixtures**: use the `createMock*` builders in `@test-utils/fixtures` (`AIConfig`, `Message`, `ChatSession`, `MessageAttachment`, debate speech, scoreboard, user, auth state) instead of hand-written object literals.
 - **Mocked functions**: `jest.mocked(fn)`, not `fn as unknown as jest.Mock`.
 - **Store state**: `renderWithProviders(ui, { preloadedState: { auth: { isPremium: true } } })` — per-slice partial overrides are merged into the real initial state.
+- **Optional callbacks a test depends on**: `requireDefined(props.onPress, 'onPress')()` (`@test-utils/queries`), never `props.onPress?.()`, which silently skips.
+- **Malformed input for runtime guards** (values the types forbid, e.g. from persisted JSON): `malformed<T>(value, 'reason')` from `@test-utils/queries` — the only sanctioned way; it is counted.
+- **Firebase Functions v2 callables**: `@test-utils/functionsHarness` (`createOnCallMock`, `MockHttpsError`, `createInvoker`).
 
 ### Git Commit Format
 ```

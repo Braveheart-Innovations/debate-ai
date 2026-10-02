@@ -7,6 +7,9 @@ import {
   getDebateVoicePackCandidates,
 } from '@/services/debate/debateVoicePack';
 import type { AI, Message } from '@/types';
+import { createMockDebateSpeech } from '@test-utils/fixtures';
+
+type CopyAsync = typeof FileSystem.copyAsync;
 
 const createDebateMessage = (overrides: Partial<Message>): Message => ({
   id: 'msg_1_openai',
@@ -16,10 +19,7 @@ const createDebateMessage = (overrides: Partial<Message>): Message => ({
   timestamp: 1000,
   metadata: {
     providerId: 'openai',
-    debateSpeech: {
-      speaker: 'aff',
-      label: 'Opening statement',
-    },
+    debateSpeech: createMockDebateSpeech({ speaker: 'aff', label: 'Opening statement' }),
   },
   ...overrides,
 });
@@ -32,7 +32,7 @@ describe('debateVoicePack', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (FileSystem.getInfoAsync as jest.Mock).mockResolvedValue({ exists: false });
+    jest.mocked(FileSystem.getInfoAsync).mockImplementation(async (uri) => ({ exists: false, uri, isDirectory: false }));
   });
 
   it('collects ready and unavailable debate voice pack candidates', () => {
@@ -41,7 +41,7 @@ describe('debateVoicePack', () => {
       attachments: [{ type: 'audio', uri: 'file:///ready.mp3', mimeType: 'audio/mpeg' }],
       metadata: {
         providerId: 'openai',
-        debateSpeech: { speaker: 'aff', label: 'Opening statement' },
+        debateSpeech: createMockDebateSpeech({ speaker: 'aff', label: 'Opening statement' }),
         debateAudio: {
           status: 'ready',
           voiceId: 'voice_1',
@@ -56,7 +56,7 @@ describe('debateVoicePack', () => {
       sender: 'Gemini (Default)',
       metadata: {
         providerId: 'google',
-        debateSpeech: { speaker: 'neg', label: 'Opening response' },
+        debateSpeech: createMockDebateSpeech({ speaker: 'neg', label: 'Opening response' }),
         debateAudio: {
           status: 'failed',
           voiceId: 'voice_2',
@@ -142,7 +142,7 @@ describe('debateVoicePack', () => {
         attachments: [{ type: 'audio', uri: 'file:///debate/msg_1.mp3', mimeType: 'audio/mpeg' }],
         metadata: {
           providerId: 'openai',
-          debateSpeech: { speaker: 'aff', label: 'Opening statement' },
+          debateSpeech: createMockDebateSpeech({ speaker: 'aff', label: 'Opening statement' }),
           debateAudio: {
             status: 'ready',
             voiceId: 'voice_1',
@@ -159,7 +159,7 @@ describe('debateVoicePack', () => {
         attachments: [{ type: 'audio', uri: 'file:///debate/msg_2.mp3', mimeType: 'audio/mpeg' }],
         metadata: {
           providerId: 'google',
-          debateSpeech: { speaker: 'neg', label: 'Opening response' },
+          debateSpeech: createMockDebateSpeech({ speaker: 'neg', label: 'Opening response' }),
           debateAudio: {
             status: 'ready',
             voiceId: 'voice_2',
@@ -171,7 +171,7 @@ describe('debateVoicePack', () => {
       }),
     ];
     const candidates = getDebateVoicePackCandidates(readyMessages);
-    const copyAsync = jest.fn().mockResolvedValue(undefined) as unknown as typeof FileSystem.copyAsync;
+    const copyAsync = jest.fn<ReturnType<CopyAsync>, Parameters<CopyAsync>>().mockResolvedValue(undefined);
 
     const entry = await createDebateVoicePackGalleryEntry({
       sessionId: 'debate_1',
@@ -238,7 +238,7 @@ describe('debateVoicePack', () => {
       attachments: [{ type: 'audio', uri: 'file:///debate/msg_1.mp3', mimeType: 'audio/mpeg' }],
       metadata: {
         providerId: 'openai',
-        debateSpeech: { speaker: 'aff', label: 'Opening statement' },
+        debateSpeech: createMockDebateSpeech({ speaker: 'aff', label: 'Opening statement' }),
         debateAudio: {
           status: 'ready',
           voiceId: 'voice_1',
@@ -249,7 +249,7 @@ describe('debateVoicePack', () => {
       },
     });
     const candidates = getDebateVoicePackCandidates([mcMessage, debaterMessage]);
-    const copyAsync = jest.fn().mockResolvedValue(undefined) as unknown as typeof FileSystem.copyAsync;
+    const copyAsync = jest.fn<ReturnType<CopyAsync>, Parameters<CopyAsync>>().mockResolvedValue(undefined);
 
     const entry = await createDebateVoicePackGalleryEntry({
       sessionId: 'debate_1',
@@ -282,7 +282,7 @@ describe('debateVoicePack', () => {
         attachments: [{ type: 'audio', uri: 'file:///debate/msg_1.mp3', mimeType: 'audio/mpeg' }],
         metadata: {
           providerId: 'openai',
-          debateSpeech: { speaker: 'aff', label: 'Opening statement' },
+          debateSpeech: createMockDebateSpeech({ speaker: 'aff', label: 'Opening statement' }),
           debateAudio: {
             status: 'ready',
             voiceId: 'voice_1',
@@ -299,7 +299,7 @@ describe('debateVoicePack', () => {
         attachments: [{ type: 'audio', uri: 'file:///debate/msg_2.mp3', mimeType: 'audio/mpeg' }],
         metadata: {
           providerId: 'google',
-          debateSpeech: { speaker: 'neg', label: 'Opening response' },
+          debateSpeech: createMockDebateSpeech({ speaker: 'neg', label: 'Opening response' }),
           debateAudio: {
             status: 'ready',
             voiceId: 'voice_2',
@@ -361,7 +361,7 @@ describe('debateVoicePack', () => {
       attachments: [{ type: 'audio', uri: 'file:///debate/msg_1.mp3', mimeType: 'audio/mpeg' }],
       metadata: {
         providerId: 'openai',
-        debateSpeech: { speaker: 'aff', label: 'Opening statement' },
+        debateSpeech: createMockDebateSpeech({ speaker: 'aff', label: 'Opening statement' }),
         debateAudio: {
           status: 'ready',
           voiceId: 'voice_1',
@@ -397,7 +397,7 @@ describe('debateVoicePack', () => {
           attachments: [{ type: 'audio', uri: 'file:///debate/msg_1.mp3', mimeType: 'audio/mpeg' }],
           metadata: {
             providerId: 'openai',
-            debateSpeech: { speaker: 'aff', label: 'Opening statement' },
+            debateSpeech: createMockDebateSpeech({ speaker: 'aff', label: 'Opening statement' }),
             debateAudio: {
               status: 'ready',
               voiceId: 'voice_1',

@@ -6,6 +6,8 @@ import type {
   MessageAttachment,
   User,
 } from '@/types';
+import type { ScaledSize } from 'react-native';
+import type { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import type { RootState } from '@/store';
 import type { ScoreBoard } from '@/services/debate/VotingService';
 
@@ -128,5 +130,32 @@ export const createMockAuthState = (overrides: Partial<AuthState> = {}): AuthSta
   lastAuthMethod: null,
   socialAuthLoading: false,
   socialAuthError: null,
+  ...overrides,
+});
+
+/** A complete `useWindowDimensions()` result, e.g. phone `(375, 812)` or tablet `(820, 1180)`. */
+export const createMockWindowSize = (width: number, height: number): ScaledSize => ({
+  width,
+  height,
+  scale: 2,
+  fontScale: 1,
+});
+
+type FeatureAccess = ReturnType<typeof useFeatureAccess>;
+
+/** `useFeatureAccess()` for a demo user by default; override fields for premium/trial cases. */
+export const createMockFeatureAccess = (overrides: Partial<FeatureAccess> = {}): FeatureAccess => ({
+  loading: false,
+  membershipStatus: 'demo',
+  trialDaysRemaining: null,
+  hasUsedTrial: false,
+  canStartTrial: false,
+  canAccessLiveAI: false,
+  isEmailVerified: true,
+  requiresEmailVerification: false,
+  isInTrial: false,
+  isPremium: false,
+  isDemo: true,
+  refresh: async () => {},
   ...overrides,
 });

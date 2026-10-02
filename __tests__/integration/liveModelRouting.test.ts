@@ -37,7 +37,9 @@ type LiveSuccess = {
   keyEnv: string;
 };
 
-const ALL_PROVIDERS: AIProvider[] = [
+// Every provider with a live adapter. `chatgpt` is a legacy alias of `openai` in
+// AIProvider and has no key of its own, so it is not a live smoke target.
+const ALL_PROVIDERS = [
   'claude',
   'openai',
   'google',
@@ -48,9 +50,14 @@ const ALL_PROVIDERS: AIProvider[] = [
   'grok',
   'moonshot',
   'zai',
-];
+] as const satisfies readonly AIProvider[];
 
-const PROVIDER_KEY_ENV_VARS: Record<AIProvider, string[]> = {
+type LiveProvider = (typeof ALL_PROVIDERS)[number];
+
+const isLiveProvider = (provider: string): provider is LiveProvider =>
+  ALL_PROVIDERS.some((candidate) => candidate === provider);
+
+const PROVIDER_KEY_ENV_VARS: Record<LiveProvider, string[]> = {
   claude: ['CLAUDE_API_KEY', 'ANTHROPIC_API_KEY'],
   openai: ['OPENAI_API_KEY'],
   google: ['GEMINI_API_KEY', 'GOOGLE_API_KEY'],
@@ -71,7 +78,7 @@ const DEFAULT_TIMEOUT_MS = 180000;
 const LONG_RUNNING_MODELS = new Set(['sonar-deep-research']);
 const LONG_RUNNING_TIMEOUT_MS = 600000;
 
-const demoModeMock = isDemoModeEnabled as jest.MockedFunction<typeof isDemoModeEnabled>;
+const demoModeMock = jest.mocked(isDemoModeEnabled);
 // jest-expo 57's setup installs expo/src/winter, which replaces globalThis.fetch
 // with expo/fetch over a stubbed native module — unusable for real network
 // calls. Requiring undici inside the jest sandbox does not help either: it
@@ -134,10 +141,10 @@ const parseScope = (): LiveModelScope => {
   );
 };
 
-const parseProviders = (): AIProvider[] => {
-  const rawProviders = process.env.LIVE_MODEL_PROVIDERS?.trim();
+const parseProviders = (): LiveProvider[] => {
+  const rawProviders: string | undefined = process.env.LIVE_MODEL_PROVIDERS?.trim();
   if (!rawProviders) {
-    return ALL_PROVIDERS;
+    return [...ALL_PROVIDERS];
   }
 
   const requested = rawProviders
@@ -145,16 +152,14 @@ const parseProviders = (): AIProvider[] => {
     .map((provider) => provider.trim())
     .filter(Boolean);
 
-  const invalid = requested.filter(
-    (provider): provider is string => !ALL_PROVIDERS.includes(provider as AIProvider)
-  );
+  const invalid = requested.filter((provider) => !isLiveProvider(provider));
   if (invalid.length > 0) {
     throw new Error(
       `Unsupported LIVE_MODEL_PROVIDERS value(s): ${invalid.join(', ')}.`
     );
   }
 
-  return requested as AIProvider[];
+  return requested.filter(isLiveProvider);
 };
 
 const resolveTimeoutMs = (caseCount: number): number => {
@@ -223,7 +228,7 @@ const selectModelsForProvider = (
 };
 
 const resolveApiKey = (
-  provider: AIProvider
+  provider: LiveProvider
 ): { apiKey: string; keyEnv: string } | null => {
   const candidateEnvVars = PROVIDER_KEY_ENV_VARS[provider];
   for (const keyEnv of candidateEnvVars) {
@@ -338,8 +343,13 @@ describeLive('Live model routing smoke', () => {
 
   afterAll(() => {
     if (successfulRuns.length > 0) {
-      // eslint-disable-next-line no-console -- live runs print per-model latency for human review
-      console.table(successfulRuns);
+      // Live runs print per-model latency for human review.
+      const report = successfulRuns
+        .map(({ provider, model, modelUsed, durationMs, keyEnv }) => (
+          `${provider}/${model} -> ${modelUsed}: ${durationMs}ms (${keyEnv})`
+        ))
+        .join('\n');
+      process.stdout.write(`\nLive model smoke results:\n${report}\n`);
     }
   });
 

@@ -1,9 +1,14 @@
-const mockGetFirestore = jest.fn();
-const mockGetAuth = jest.fn(() => ({ }));
-const mockConnectAuthEmulator = jest.fn();
-const mockConnectFirestoreEmulator = jest.fn();
-const mockTerminate = jest.fn();
-const mockClearIndexedDbPersistence = jest.fn();
+const mockGetFirestore = jest.fn<object, unknown[]>();
+const mockGetAuth = jest.fn<object, unknown[]>(() => ({ }));
+const mockConnectAuthEmulator = jest.fn<void, unknown[]>();
+const mockConnectFirestoreEmulator = jest.fn<void, unknown[]>();
+const mockTerminate = jest.fn<Promise<void>, unknown[]>();
+const mockClearIndexedDbPersistence = jest.fn<Promise<void>, unknown[]>();
+
+// `__DEV__` is declared as a read-only global; tests flip it via Reflect.
+const setDev = (value: boolean): void => {
+  Reflect.set(globalThis, '__DEV__', value);
+};
 
 jest.mock('@react-native-firebase/app', () => ({
   getApp: jest.fn(),
@@ -23,8 +28,8 @@ jest.mock('@react-native-firebase/firestore', () => ({
 
 describe('initializeFirebase', () => {
   const originalEnv = { ...process.env };
-  const originalDev = (global as any).__DEV__;
-  const originalFetch = global.fetch;
+  const originalDev = __DEV__;
+  let fetchSpy: jest.SpiedFunction<typeof fetch>;
   const consoleWarn = jest.spyOn(console, 'warn').mockImplementation(() => {});
   const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
   const consoleLog = jest.spyOn(console, 'log').mockImplementation(() => {});
@@ -41,16 +46,15 @@ describe('initializeFirebase', () => {
     jest.useFakeTimers();
     jest.clearAllMocks();
     process.env = { ...originalEnv };
-    (global as any).__DEV__ = false;
+    setDev(false);
     mockGetFirestore.mockReturnValue({});
-    global.fetch = jest.fn();
-    (global as any).__FIREBASE_EMULATORS_CONNECTED__ = undefined;
+    fetchSpy = jest.spyOn(global, 'fetch');
+    global.__FIREBASE_EMULATORS_CONNECTED__ = undefined;
   });
 
   afterAll(() => {
     process.env = originalEnv;
-    (global as any).__DEV__ = originalDev;
-    global.fetch = originalFetch;
+    setDev(originalDev);
     consoleWarn.mockRestore();
     consoleError.mockRestore();
     consoleLog.mockRestore();
@@ -58,6 +62,7 @@ describe('initializeFirebase', () => {
 
   afterEach(() => {
     jest.useRealTimers();
+    fetchSpy.mockRestore();
   });
 
   it('initializes without emulator when not in dev mode', async () => {
@@ -69,13 +74,13 @@ describe('initializeFirebase', () => {
   });
 
   it('connects to emulators when available', async () => {
-    (global as any).__DEV__ = true;
+    setDev(true);
     process.env.EXPO_PUBLIC_USE_FIREBASE_EMULATOR = '1';
     const initializeFirebase = loadInitialize();
     mockGetFirestore.mockReturnValue({});
     mockTerminate.mockResolvedValue(undefined);
     mockClearIndexedDbPersistence.mockResolvedValue(undefined);
-    (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: true });
+    fetchSpy.mockResolvedValueOnce(new Response(null, { status: 200 }));
 
     await initializeFirebase();
     const warnMessages = consoleWarn.mock.calls.map(call => call[0]);
@@ -86,10 +91,10 @@ describe('initializeFirebase', () => {
   });
 
   it('falls back when emulator unavailable', async () => {
-    (global as any).__DEV__ = true;
+    setDev(true);
     process.env.EXPO_PUBLIC_USE_FIREBASE_EMULATOR = 'true';
     const initializeFirebase = loadInitialize();
-    (global.fetch as jest.Mock).mockImplementationOnce(() => Promise.reject(new Error('offline')));
+    fetchSpy.mockImplementationOnce(() => Promise.reject(new Error('offline')));
 
     await initializeFirebase();
     expect(mockConnectAuthEmulator).not.toHaveBeenCalled();

@@ -4,6 +4,8 @@ import { useGreeting } from '@/hooks/home/useGreeting';
 import { GREETING_POOLS } from '@/utils/home/greetingGenerator';
 import type { RootState } from '@/store';
 import { setUser } from '@/store';
+import { createMockUser } from '../../../test-utils/fixtures';
+import { requireDefined } from '../../../test-utils/queries';
 
 // Mock useFocusEffect to behave like useEffect (run callback once on mount)
 jest.mock('@react-navigation/native', () => ({
@@ -17,14 +19,12 @@ jest.mock('@react-navigation/native', () => ({
 }));
 
 const buildUserState = (overrides: Partial<RootState['user']> = {}): RootState['user'] => ({
-  currentUser: {
-    id: 'user-1',
+  currentUser: createMockUser({
     email: 'test@example.com',
     subscription: 'pro',
-    uiMode: 'simple',
     preferences: { theme: 'light', fontSize: 'medium' },
     ...(overrides.currentUser ?? {}),
-  },
+  }),
   isAuthenticated: overrides.isAuthenticated ?? true,
   uiMode: overrides.uiMode ?? 'simple',
 });
@@ -154,23 +154,22 @@ describe('useGreeting', () => {
     expect(result.current.welcomeMessage.length).toBeGreaterThan(0);
 
     act(() => {
-      store.dispatch(setUser({
-        id: 'user-1',
+      store.dispatch(setUser(createMockUser({
         email: 'new@example.com',
         subscription: 'business',
-        uiMode: 'simple',
         preferences: { theme: 'dark', fontSize: 'large' },
-      }));
+      })));
     });
 
-    rerender();
+    rerender({});
 
-    let refreshed: ReturnType<typeof result.current.refreshGreeting>;
+    let refreshed: ReturnType<typeof result.current.refreshGreeting> | undefined;
     act(() => {
       refreshed = result.current.refreshGreeting();
     });
-    expect(typeof refreshed!.welcomeMessage).toBe('string');
-    expect(refreshed!.welcomeMessage.length).toBeGreaterThan(0);
+    const greeting = requireDefined(refreshed, 'refreshed greeting');
+    expect(typeof greeting.welcomeMessage).toBe('string');
+    expect(greeting.welcomeMessage.length).toBeGreaterThan(0);
   });
 
   it('provides accurate time period detection via getTimePeriod', () => {

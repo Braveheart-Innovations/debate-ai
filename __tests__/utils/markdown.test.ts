@@ -4,11 +4,12 @@ import {
   splitForLazyRender,
   analyzeMarkdownSafety,
 } from '@/utils/markdown';
+import { malformed } from '@test-utils/queries';
+
 
 describe('markdown utils', () => {
   it('returns empty string when input is falsy', () => {
-    // @ts-expect-error testing falsy input
-    expect(sanitizeMarkdown(undefined)).toBe('');
+    expect(sanitizeMarkdown(malformed<string>(undefined, 'absent message content'))).toBe('');
     expect(sanitizeMarkdown('')).toBe('');
   });
 

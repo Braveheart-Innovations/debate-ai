@@ -1,12 +1,20 @@
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import type { ReactNode } from 'react';
+import type { Circle, Path } from 'react-native-svg';
+import type { PropsOf } from '@test-utils/mockComponents';
+import type { Typography } from '@/components/molecules';
+import type { ChartLegend, DonutChart } from '@/components/molecules/charts';
+import { WinRateDonutSection } from '@/components/organisms/stats/WinRateDonutSection';
 
 jest.mock('react-native-svg', () => {
-  const React = require('react');
+  const React = jest.requireActual<typeof import('react')>('react');
+  const container = (name: string) => ({ children }: { children?: ReactNode }) =>
+    React.createElement(name, null, children);
   return {
-    Svg: ({ children }: any) => React.createElement('Svg', null, children),
-    Path: (props: any) => React.createElement('Path', props),
-    Circle: (props: any) => React.createElement('Circle', props),
-    G: ({ children }: any) => React.createElement('G', null, children),
+    Svg: container('Svg'),
+    Path: (props: PropsOf<typeof Path>) => React.createElement('Path', props),
+    Circle: (props: PropsOf<typeof Circle>) => React.createElement('Circle', props),
+    G: container('G'),
   };
 });
 
@@ -39,25 +47,29 @@ jest.mock('@/hooks/stats', () => ({
 }));
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const { stubComponent } = jest.requireActual<
+    typeof import('@test-utils/mockComponents')
+  >('@test-utils/mockComponents');
   return {
-    Typography: ({ children }: any) => React.createElement(Text, null, children),
+    Typography: stubComponent<typeof Typography>('typography', { text: (p) => p.children }),
   };
 });
 
 jest.mock('@/components/molecules/charts', () => {
-  const React = require('react');
-  const { View, Text } = require('react-native');
+  const { stubComponent } = jest.requireActual<
+    typeof import('@test-utils/mockComponents')
+  >('@test-utils/mockComponents');
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+  const React = jest.requireActual<typeof import('react')>('react');
   return {
-    DonutChart: ({ centerContent }: any) => React.createElement(View, null, centerContent),
-    ChartLegend: ({ items }: any) => React.createElement(View, null,
-      items.map((item: any, i: number) => React.createElement(Text, { key: i }, item.label))
-    ),
+    DonutChart: stubComponent<typeof DonutChart>('donut-chart', {
+      render: ({ centerContent }) => centerContent,
+    }),
+    ChartLegend: stubComponent<typeof ChartLegend>('chart-legend', {
+      render: ({ items }) => items.map((item, i) => React.createElement(Text, { key: i }, item.label)),
+    }),
   };
 });
-
-const { WinRateDonutSection } = require('@/components/organisms/stats/WinRateDonutSection');
 
 describe('WinRateDonutSection', () => {
   it('renders without crashing', () => {

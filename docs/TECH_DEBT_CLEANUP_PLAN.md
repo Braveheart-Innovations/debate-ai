@@ -17,14 +17,16 @@
 
 | # | Item | Count | Where | Enforced today |
 |---|---|---|---|---|
-| A | Test `no-explicit-any` | **267** in 95 files | `__tests__/` | Ratchet (`lint:any-budget`) |
-| B | Test type errors | **198** in 71 files | `__tests__/` (`test-utils/` now clean) | Ratchet (`typecheck:tests`) |
+| A | Test `no-explicit-any` | ✅ **0** | — | Hard lint error (budget script deleted) |
+| B | Test type errors | ✅ **0** | — | Hard: `typecheck` runs `tsc -p tsconfig.tests.json` (budget script deleted) |
 | C1 | `as any` / `no-explicit-any` disables in `src/` | ✅ **0** (Phase 0) | — | `no-explicit-any` error + `lint:escape-hatches` |
 | C2 | `as unknown as` in `src/` | **62** | concentrated in `services/ai` adapters; rest scattered (the earlier 97 also counted text inside demo-recording JSON) | Ratchet (`lint:escape-hatches`) |
 | C3 | Other `eslint-disable` in `src/` | ✅ **3**, each with a `-- reason` (Phase 0) | `nativeModule.ts` lazy IAP require, `PromptDebugLogger` verbatim dump, `citationUtils` NUL-delimiter regex | Ratchet + `require-description` |
-| D1 | `as unknown as` in tests | **164** | `__tests__/`, `src/**/__tests__` | Ratchet (`lint:escape-hatches`) |
-| D2 | `@ts-expect-error` in tests | 5 | markdown, documentProcessing ×2, DemoPlaybackRouter, AppendToPackService | Ratchet (`lint:escape-hatches`) |
+| D1 | `as unknown as` in tests | **120** | `__tests__/`, `src/**/__tests__` | Ratchet (`lint:escape-hatches`) |
+| D2 | `@ts-expect-error` / `@ts-ignore` / `@ts-nocheck` | ✅ **0** | — | Hard lint error (`ban-ts-comment`) |
 | D3 | Skipped tests | ✅ **0**: `validatePurchase` harness ported to Functions v2 and un-skipped | — | Ratchet at 0 (`lint:escape-hatches`) |
+| D4 | Untyped `require()` of app modules in tests | **93** | `const { X } = require('@/...')` makes X `any`, so a file can show 0 type errors while its subject is unchecked (this hid 12+ errors in batch 2). Fix: `import`, or `require(...) as typeof import(...)` when it must run after mock setup | Ratchet (`lint:escape-hatches`) |
+| D5 | `malformed()` inputs | 7 | the sanctioned, counted way to feed type-forbidden values to runtime guards (`@test-utils/queries`); not a 0 target — each must have a reason, and an unreachable guard should be deleted with its test | Ratchet (`lint:escape-hatches`) |
 | E | `functions/` has no ESLint | 61 explicit `any`, 3 disables | `functions/src` | Only `tsc` (strict) + tests |
 | F | Dead code / stale TODOs | 2 orphaned components, 4 TODOs | `ImageGenerationModal`, `SubscriptionSheet`; `SubscriptionService` (3 "implement purchase logic" TODOs while `PurchaseService` is the real path), `analytics/index.ts:90` (ChatScreen's dead TODOs and commented-out video handler removed in Phase 0) | ❌ none |
 | G1 | Dependabot backlog | 10 open PRs | oldest #99 (Jun 1), #144 (Aug 1), #174; 7 opened 2026-10-01 incl. majors (`@babel/core` 8, `firebase-admin` 14, RN group) | ❌ none |
@@ -52,7 +54,7 @@ Most debt in A and B comes from the same few patterns. Build the typed tools onc
 
 **Exit:** helpers merged with their own tests, all new budgets wired into `check:app` + pre-commit.
 
-### Phase 1: Test type errors, B 393 → 0
+### Phase 1: Test type errors, B → 0 ✅ done (#192, batch 2)
 Fix in order of value. Errors that reveal a test exercising code that no longer exists come first.
 
 1. **TS2554 wrong argument count (23)** and **TS2339 missing property (53)**: most likely tests calling outdated APIs. Each is either a stale test to update or a real gap in coverage.
@@ -62,7 +64,7 @@ Fix in order of value. Errors that reveal a test exercising code that no longer 
 
 **Exit:** budget 0 → delete `check-test-typecheck-budget.mjs`, make `typecheck` run `tsc -p tsconfig.json && tsc -p tsconfig.tests.json` as a hard gate.
 
-### Phase 2: Test `any`, A 495 → 0
+### Phase 2: Test `any`, A → 0 ✅ done (#192, batch 2)
 With Phase 0 helpers, most of this is replacing stubs.
 
 - By directory: `components/organisms` (166), `components/molecules` (66), screens (`DebateSetupScreen` 35, `DebateScreen` 23, `ChatScreen` 21, `HistoryScreen` 20, `CompareScreen` 19, `CompareSetupScreen` 18, `HomeScreen` 16), `services/debug` (22: `NetworkInterceptor` 18), `services/aiAdapter` (14), then the long tail.
@@ -132,7 +134,15 @@ Test-quality issues surfaced while typing tests. Fix when touching the file (rul
 - `HistoryScreen.test` "shows demo indicators" sets `featureAccess.isDemo`, which `HistoryScreen` never reads, so the test passes regardless.
 - `ChatMessageList.test` "configures FlatList with proper virtualization settings" only asserts the tree rendered.
 - `UseSessionStatsReturn` (`src/types/history.ts`) marks `formattedStats` / `activityInsights` / `usagePatterns` optional though the hook always returns them; make them required.
-- Promote to `test-utils` when a second consumer appears: the typed `AIService` fake (`DebateOrchestrator.test`), the Functions v2 `invoke`/`TestCallableRequest` harness (two `__tests__/functions` suites; `userData.test.ts` still uses the old cast pattern), chat hook-mock builders (`ChatScreen.test`), history hook-state builders (`HistoryScreen.test`), `readStyle` for Reanimated styles, `createPickerAsset`.
+- **Possible production bug — investigate first:** `BaseAdapter.getSystemPrompt`'s `debateProfile`/`tone` branch is unreachable through typed APIs: `AIAdapterConfig.personality` is `PersonalityConfig`, and `setTemporaryPersonality` drops `debateProfile` when converting a `PersonalityOption`. Debate-profile guidance may never reach providers.
+- `ImageBubble`'s `!uris` guard is unreachable from typed callers (both pass arrays); either make `uris` optional or delete the guard and its `malformed()` test.
+- `src/services/demo/RecordController.ts`: `as unknown as` in `startDebate`/`startCompare`/`stop()`, and `stop()` returns `session: unknown` (counted in C2).
+- Untyped `jest.fn()` (`jest.Mock<any, any>`) is a hidden `any` the counters don't see (e.g. HomeScreen's `mockUseFeatureAccess` returns partial objects). Type mocks with `jest.fn<Return, Args>()` or `jest.mocked`; consider a counter.
+- `imageProcessing.test.ts` reads mocked modules via `jest.requireMock(...) as { …: jest.Mock }`; move to `jest.mocked` on real imports.
+- Tests that can pass without asserting (found in batch 2): TranscriptModal ×3 and ImageBubble "calls onRefine" wrap assertions in `if (…)`; ShareModal "onRequestClose" (if/else) and "native share" (no share assertion); DebateMessageBubble "does not re-render" (no assertion); PresetTopicsModal/FormatModal "highlights …" only check existence; ImageMessageRow "filters non-image attachments" doesn't check `uris`; useFeatureAccess "maps free/canceled/past_due" only covers `canceled`; AIServiceProvider "initializes with API keys" checks no-arg construction; CompareMessageBubble "accepts onOpenLightbox" only checks sanitize. Many chart/stats/molecule tests only assert the tree rendered.
+- Dead mocks: several tests mock `@/components/molecules` while the component imports `../common/Typography` directly (AIProviderTile, DebateTopicCard, DebateTypingIndicator, DebateMessageBubble).
+- ScoreDisplay light-theme test isn't discriminating (light is the default theme); "handles nomi provider" refers to a removed provider.
+- Promoted in batch 2: `createMockWindowSize`, `createMockFeatureAccess` (fixtures), `requireDefined`/`collectTestIds`/`malformed` (queries), Functions v2 harness (`functionsHarness`), RNTL matcher types (`test-utils/types`). Still duplicated, promote next: Firebase `User` builders (auth.test, SocialAuthProviders), `HttpsCallable` stubs (auth, accountDeletion, debateAudioCompileService), `DebateSession`/real-orchestrator wrapper (useDebateFlow, useDebateVoting), `BrandColor` fixture (TopicBadge, DebateHistoryItem), shared `@/components/molecules` stub set, theme-mode helper (ScoreDisplay), `AIService` fake, chat/history hook-mock builders.
 
 ## Tracking
 After each PR, update the counts in the Inventory table and note the PR number:
@@ -142,3 +152,4 @@ After each PR, update the counts in the Inventory table and note the PR number:
 | 2026-10-01 | #189 | 495 | 393 | 97 | 165 | baseline; gates added |
 | 2026-10-02 | #191 Phase 0 | 495 | 388 | 63 | 203 | helpers + escape-hatch ratchet; C1/C3 cleared; C2/D1 recounted (code files only) |
 | 2026-10-02 | Hotspots 1 | 267 | 198 | 62 | 164 | 20 hottest test files to zero (Phase 1+2); validatePurchase un-skipped; `test-utils/queries` |
+| 2026-10-02 | Batch 2 | 0 | 0 | 62 | 120 | all remaining test files; A/B/D2 now hard rules; D4 untyped requires (93) + D5 malformed() (7) tracked |

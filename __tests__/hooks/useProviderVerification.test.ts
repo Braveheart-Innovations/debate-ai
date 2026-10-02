@@ -1,22 +1,15 @@
 import { act } from '@testing-library/react-native';
 import { renderHookWithProviders } from '../../test-utils/renderHookWithProviders';
 import { useProviderVerification } from '@/hooks/useProviderVerification';
-import type { RootState } from '@/store';
+import type { RootStateOverrides } from '../../test-utils/services/state';
 import VerificationService from '@/services/VerificationService';
 
 describe('useProviderVerification', () => {
-  const baseState: Partial<RootState> = {
+  const baseState: RootStateOverrides = {
     settings: {
-      theme: 'auto',
-      fontSize: 'medium',
-      apiKeys: {},
-      realtimeRelayUrl: undefined,
       verifiedProviders: ['openai'],
       verificationTimestamps: { openai: 123456 },
       verificationModels: { openai: 'gpt-4.1-mini' },
-      expertMode: {},
-      hasCompletedOnboarding: false,
-      recordModeEnabled: false,
     },
   };
 

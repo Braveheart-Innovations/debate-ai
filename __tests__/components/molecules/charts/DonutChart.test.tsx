@@ -1,21 +1,23 @@
 import { Text } from 'react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import type { ReactNode } from 'react';
+import type { Circle, Path } from 'react-native-svg';
+import type { PropsOf } from '@test-utils/mockComponents';
+import { DonutChart } from '@/components/molecules/charts/DonutChart';
 
 jest.mock('react-native-svg', () => {
-  const React = require('react');
-  const { View } = require('react-native');
-  const SvgMock = ({ children }: any) => React.createElement(View, null, children);
+  const React = jest.requireActual<typeof import('react')>('react');
+  const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+  const container = ({ children }: { children?: ReactNode }) => React.createElement(View, null, children);
   return {
     __esModule: true,
-    default: SvgMock,
-    Svg: SvgMock,
-    Path: (props: any) => React.createElement(View, props),
-    Circle: (props: any) => React.createElement(View, props),
-    G: ({ children }: any) => React.createElement(View, null, children),
+    default: container,
+    Svg: container,
+    Path: (props: PropsOf<typeof Path>) => React.createElement('Path', props),
+    Circle: (props: PropsOf<typeof Circle>) => React.createElement('Circle', props),
+    G: container,
   };
 });
-
-const { DonutChart } = require('@/components/molecules/charts/DonutChart');
 
 describe('DonutChart', () => {
   const defaultSegments = [

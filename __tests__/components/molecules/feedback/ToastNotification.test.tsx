@@ -1,5 +1,7 @@
 import { fireEvent, act } from '@testing-library/react-native';
+import type { Animated } from 'react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { ToastNotification } from '@/components/molecules/feedback/ToastNotification';
 
 // Mock dependencies
 jest.mock('@expo/vector-icons', () => ({
@@ -13,24 +15,26 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 44, bottom: 34, left: 0, right: 0 }),
 }));
 
+// Animations complete synchronously so show/hide effects settle immediately
 jest.mock('react-native', () => {
-  const RN = jest.requireActual('react-native');
-  RN.Animated.timing = jest.fn(() => ({
-    start: jest.fn((callback) => callback && callback()),
-  }));
-  RN.Animated.spring = jest.fn(() => ({
-    start: jest.fn((callback) => callback && callback()),
-  }));
-  RN.Animated.parallel = jest.fn((animations) => ({
-    start: jest.fn((callback) => {
-      animations.forEach((anim: any) => anim.start());
-      callback?.();
+  const RN = jest.requireActual<typeof import('react-native')>('react-native');
+  const instant = (run: () => void = () => {}): Animated.CompositeAnimation => ({
+    start: jest.fn((callback?: Animated.EndCallback) => {
+      run();
+      callback?.({ finished: true });
     }),
-  }));
+    stop: jest.fn(),
+    reset: jest.fn(),
+  });
+  Object.assign(RN.Animated, {
+    timing: jest.fn<Animated.CompositeAnimation, Parameters<typeof RN.Animated.timing>>(() => instant()),
+    spring: jest.fn<Animated.CompositeAnimation, Parameters<typeof RN.Animated.spring>>(() => instant()),
+    parallel: jest.fn<Animated.CompositeAnimation, Parameters<typeof RN.Animated.parallel>>((animations) =>
+      instant(() => animations.forEach((anim) => anim.start()))
+    ),
+  });
   return RN;
 });
-
-const { ToastNotification } = require('@/components/molecules/feedback/ToastNotification');
 
 describe('ToastNotification', () => {
   const defaultProps = {

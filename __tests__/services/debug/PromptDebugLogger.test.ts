@@ -1,13 +1,18 @@
 import { PromptDebugLogger } from '@/services/debug/PromptDebugLogger';
 
+// `__DEV__` is declared as a read-only global; tests flip it via Reflect.
+const setDev = (value: boolean): void => {
+  Reflect.set(globalThis, '__DEV__', value);
+};
+
 describe('PromptDebugLogger', () => {
   const originalEnv = { ...process.env };
-  const originalDev = (global as any).__DEV__;
+  const originalDev = __DEV__;
   const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
   afterEach(() => {
     process.env = { ...originalEnv };
-    (global as any).__DEV__ = originalDev;
+    setDev(originalDev);
     consoleSpy.mockClear();
   });
 
@@ -16,9 +21,10 @@ describe('PromptDebugLogger', () => {
   });
 
   it('is disabled by default', () => {
-    delete process.env.NODE_ENV;
+    // NODE_ENV is typed as always present; Reflect removes it for this case.
+    Reflect.deleteProperty(process.env, 'NODE_ENV');
     delete process.env.DEBUG_PROMPTS;
-    (global as any).__DEV__ = false;
+    setDev(false);
     expect(PromptDebugLogger.enabled()).toBe(false);
     PromptDebugLogger.logTurn('test', { aiId: 'id', aiName: 'Test' });
     expect(consoleSpy).not.toHaveBeenCalled();
@@ -40,7 +46,7 @@ describe('PromptDebugLogger', () => {
   });
 
   it('logs when __DEV__ is true', () => {
-    (global as any).__DEV__ = true;
+    setDev(true);
     PromptDebugLogger.logTurn('dev', { aiId: 'a', aiName: 'AI' });
     expect(consoleSpy).toHaveBeenCalled();
   });

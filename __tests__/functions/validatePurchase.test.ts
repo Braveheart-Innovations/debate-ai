@@ -1,3 +1,4 @@
+import { createInvoker, createOnCallMock, MockHttpsError, registeredHandlersOf } from '@test-utils/functionsHarness';
 // Harness for the Firebase Functions v2 `onCall` (mirroring
 // __tests__/functions/authRateLimiting.test.ts: the mocked `onCall` hands each
 // handler back so tests invoke it directly).
@@ -16,18 +17,12 @@ type TestCallableRequest = {
   };
   auth?: { uid: string; token?: { email?: string } };
 };
-type TestCallableHandler = (request: TestCallableRequest) => Promise<unknown>;
-type TestCallableOptions = { secrets?: Array<{ name: string }> };
 
 type MockSnapshot = { exists: boolean; data: () => Record<string, unknown> | undefined };
 type MockQuerySnapshot = { empty: boolean; docs: Array<{ id: string; data: () => Record<string, unknown> }> };
 type MockDocRef = { path: string; get: () => Promise<MockSnapshot>; set: typeof mockSetDoc };
 
-const mockOnCall = jest.fn(
-  (optionsOrHandler: TestCallableOptions | TestCallableHandler, maybeHandler?: TestCallableHandler) => (
-    typeof optionsOrHandler === 'function' ? optionsOrHandler : maybeHandler
-  )
-);
+const mockOnCall = createOnCallMock<TestCallableRequest>();
 const mockSecretValue = jest.fn((): string => 'shared-secret');
 
 const mockSetDoc = jest.fn(
@@ -86,15 +81,7 @@ const mockGoogleAuthInstance = { getClient: jest.fn(async () => ({})) };
 
 jest.mock('firebase-functions/v2/https', () => ({
   onCall: mockOnCall,
-  HttpsError: class HttpsError extends Error {
-    code: string;
-
-    constructor(code: string, message: string) {
-      super(message);
-      this.code = code;
-      this.name = 'HttpsError';
-    }
-  },
+  HttpsError: MockHttpsError,
 }), { virtual: true });
 
 jest.mock('firebase-functions/params', () => ({
@@ -133,18 +120,10 @@ jest.mock('googleapis', () => ({
 const { validatePurchase } = require('../../functions/src/validatePurchase') as typeof import('../../functions/src/validatePurchase');
 
 // Captured at load: resetting the mock wipes `mock.results`.
-const registeredHandlers = mockOnCall.mock.results.flatMap((result) => (
-  result.type === 'return' && result.value ? [result.value] : []
-));
+const registeredHandlers = registeredHandlersOf(mockOnCall);
 
 /** Runs the handler the mocked `onCall` registered for `callable`. */
-function invoke(callable: object, req: TestCallableRequest): Promise<unknown> {
-  const handler = registeredHandlers.find((candidate) => candidate === callable);
-  if (!handler) {
-    throw new Error('invoke: callable was not registered through onCall');
-  }
-  return handler(req);
-}
+const invoke = createInvoker(registeredHandlers);
 
 describe('validatePurchase (Firebase callable)', () => {
   const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});

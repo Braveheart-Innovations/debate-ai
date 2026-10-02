@@ -1,21 +1,12 @@
-jest.mock('@/store', () => ({
-  store: {
-    getState: jest.fn(() => ({ user: { currentUser: null } })),
-  },
-}));
-
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import subscriptionService from '@/services/settings/SubscriptionService';
-import { store } from '@/store';
+import { createMockUser } from '@test-utils/fixtures';
+import { mockStoreState } from '@test-utils/services/state';
 
 const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-const storage = AsyncStorage as unknown as {
-  getItem: jest.Mock;
-  setItem: jest.Mock;
-  removeItem: jest.Mock;
-};
+const storage = jest.mocked(AsyncStorage);
 
 describe('SubscriptionService', () => {
   beforeEach(() => {
@@ -26,7 +17,7 @@ describe('SubscriptionService', () => {
     storage.removeItem.mockReset();
     storage.setItem.mockResolvedValue(undefined);
     storage.removeItem.mockResolvedValue(undefined);
-    (store.getState as jest.Mock).mockReturnValue({ user: { currentUser: null } });
+    mockStoreState({ user: { currentUser: null } });
     consoleErrorSpy.mockImplementation(() => {});
     consoleWarnSpy.mockImplementation(() => {});
   });
@@ -42,7 +33,7 @@ describe('SubscriptionService', () => {
   });
 
   it('returns subscription from Redux store when available', async () => {
-    (store.getState as jest.Mock).mockReturnValue({ user: { currentUser: { subscription: 'pro' } } });
+    mockStoreState({ user: { currentUser: createMockUser({ subscription: 'pro' }) } });
 
     const subscription = await subscriptionService.getCurrentSubscription();
 
@@ -91,7 +82,7 @@ describe('SubscriptionService', () => {
       isActive: true,
       willRenew: true,
       features: ['customTopics'],
-    } as any);
+    });
 
     expect(await subscriptionService.isPremiumUser()).toBe(true);
     expect(await subscriptionService.canAccessFeature('customTopics')).toBe(true);
@@ -108,15 +99,15 @@ describe('SubscriptionService', () => {
   it('handles cancellation, expiry info, and status updates', async () => {
     const getCurrent = jest.spyOn(subscriptionService, 'getCurrentSubscription');
     getCurrent
-      .mockResolvedValueOnce({ plan: 'pro', isActive: true, willRenew: true, features: [] } as any)
+      .mockResolvedValueOnce({ plan: 'pro', isActive: true, willRenew: true, features: [] })
       .mockResolvedValueOnce({
         plan: 'pro',
         isActive: true,
         willRenew: true,
         features: [],
         expiresAt: new Date('2025-02-10T00:00:00Z'),
-      } as any)
-      .mockResolvedValue({ plan: 'pro', isActive: true, willRenew: true, features: [] } as any);
+      })
+      .mockResolvedValue({ plan: 'pro', isActive: true, willRenew: true, features: [] });
 
     await subscriptionService.cancelSubscription();
     expect(storage.setItem).toHaveBeenCalled();
@@ -134,7 +125,7 @@ describe('SubscriptionService', () => {
       isActive: true,
       features: [],
       willRenew: false,
-    } as any);
+    });
 
     await expect(subscriptionService.cancelSubscription()).rejects.toThrow('Unable to cancel subscription');
   });

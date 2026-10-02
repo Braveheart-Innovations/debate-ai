@@ -2,6 +2,9 @@ import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { SessionDetailPane } from '@/components/organisms/history/SessionDetailPane';
 import type { ChatSession, AIConfig, Message } from '@/types';
+import type { PropsOf } from '@test-utils/mockComponents';
+import type { Box } from '@/components/atoms';
+import type { Button, Card, Typography } from '@/components/molecules';
 
 // Mock the service
 jest.mock('@/services/history', () => ({
@@ -12,45 +15,35 @@ jest.mock('@/services/history', () => ({
 
 // Mock atoms
 jest.mock('@/components/atoms', () => ({
-
-  Box: ({ children, style, testID }: any) => {
-
+  Box: ({ children, style, testID }: PropsOf<typeof Box>) => {
     const React = require('react');
-
     const { View } = require('react-native');
     return React.createElement(View, { testID, style }, children);
   },
 }));
 
-// Mock molecules
+// Mock molecules (Typography, Button and Card take no testID; the stubs use fixed ones)
 jest.mock('@/components/molecules', () => ({
-
-  Typography: ({ children, testID }: any) => {
-
+  Typography: ({ children }: PropsOf<typeof Typography>) => {
     const React = require('react');
-
     const { Text } = require('react-native');
-    return React.createElement(Text, { testID }, children);
+    return React.createElement(Text, null, children);
   },
 
-  Button: ({ title, onPress, testID }: any) => {
-
+  Button: ({ title, onPress }: PropsOf<typeof Button>) => {
     const React = require('react');
-
     const { TouchableOpacity, Text } = require('react-native');
     return React.createElement(
       TouchableOpacity,
-      { testID: testID || 'action-button', onPress },
+      { testID: 'action-button', onPress },
       React.createElement(Text, null, title)
     );
   },
 
-  Card: ({ children, testID }: any) => {
-
+  Card: ({ children }: PropsOf<typeof Card>) => {
     const React = require('react');
-
     const { View } = require('react-native');
-    return React.createElement(View, { testID: testID || 'card' }, children);
+    return React.createElement(View, { testID: 'card' }, children);
   },
 }));
 

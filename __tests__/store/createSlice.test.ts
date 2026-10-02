@@ -477,6 +477,9 @@ describe('createSlice', () => {
         refinementInstructions: 'Improve the lighting',
       }));
       expect(actionResult.type).toBe('create/generateCreateImages/rejected');
+      if (!generateCreateImages.rejected.match(actionResult)) {
+        throw new Error('expected generateCreateImages to reject');
+      }
       expect(actionResult.error.message).toContain('Imagen 4 does not support image refinement.');
 
       expect(store.getState().create.lastImageGenerationResult).toMatchObject({
@@ -519,14 +522,14 @@ describe('createSlice', () => {
 
       state = reducer(state, updateMediaGeneration({
         mediaType: 'video',
-        status: 'processing',
+        status: 'running',
         phase: 'rendering',
         providerTaskId: 'task_1',
         message: 'Rendering video...',
       }));
 
       expect(state.mediaGeneration.video).toMatchObject({
-        status: 'processing',
+        status: 'running',
         phase: 'rendering',
         providerTaskId: 'task_1',
         message: 'Rendering video...',

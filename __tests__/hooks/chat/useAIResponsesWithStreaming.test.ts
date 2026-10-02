@@ -1,11 +1,18 @@
 import { act, waitFor } from '@testing-library/react-native';
 import type { Message } from '@/types';
-import type { RootState } from '@/store';
 import { useAIResponsesWithStreaming } from '@/hooks/chat/useAIResponsesWithStreaming';
 import { renderHookWithProviders } from '../../../test-utils/renderHookWithProviders';
+import type { RootStateOverrides } from '../../../test-utils/services/state';
+import {
+  createMockAIConfig,
+  createMockAttachment,
+  createMockChatSession,
+  createMockMessage,
+} from '../../../test-utils/fixtures';
 import { ChatOrchestrator } from '@/services/chat';
 import useFeatureAccess from '@/hooks/useFeatureAccess';
 import { useAIService } from '@/providers/AIServiceProvider';
+import { createMockFeatureAccess } from '@test-utils/fixtures';
 
 jest.mock('@/services/chat', () => {
   const actual = jest.requireActual('@/services/chat');
@@ -50,61 +57,44 @@ jest.mock('@/hooks/usePersonality', () => ({
   usePersonalityById: () => null,
 }));
 
-const baseMessage: Message = {
-  id: 'user-1',
-  sender: 'You',
-  senderType: 'user',
-  content: 'Hello',
-  timestamp: 1,
-};
+const baseMessage: Message = createMockMessage({ id: 'user-1', timestamp: 1 });
 
-const baseState: Partial<RootState> = {
+const buildState = (messages: Message[] = []): RootStateOverrides => ({
   chat: {
-    currentSession: {
-      id: 'session-1',
-      selectedAIs: [{ id: 'claude', provider: 'claude', name: 'Claude', model: 'claude-3-opus' }],
-      messages: [],
-      isActive: true,
+    currentSession: createMockChatSession({
+      selectedAIs: [createMockAIConfig({ model: 'claude-3-opus' })],
+      messages,
       createdAt: 0,
-      sessionType: 'chat',
-    },
-    sessions: [],
-    typingAIs: [],
-    isLoading: false,
+    }),
     aiPersonalities: { claude: 'default' },
     selectedModels: { claude: 'claude-3-opus' },
   },
   settings: {
     theme: 'light',
-    fontSize: 'medium',
-    apiKeys: {},
-    expertMode: {},
-    verifiedProviders: [],
-    verificationTimestamps: {},
-    verificationModels: {},
     hasCompletedOnboarding: true,
   },
   streaming: {
-    streamingPreferences: { claude: { enabled: true } },
+    streamingPreferences: { claude: { enabled: true, supported: true } },
     globalStreamingEnabled: true,
-    streamingMessages: {},
-    activeStreamCount: 0,
-    totalStreamsCompleted: 0,
-    providerVerificationErrors: {},
   },
-} as Partial<RootState>;
+});
 
-const getOrchestratorInstance = () =>
-  (ChatOrchestrator as jest.Mock).mock.results.at(-1)?.value as {
-    processUserMessage: jest.Mock;
-    updateSession: jest.Mock;
-  };
+const baseState = buildState();
+
+const featureAccess = (isDemo: boolean): ReturnType<typeof useFeatureAccess> =>
+  createMockFeatureAccess(
+    isDemo
+      ? {}
+      : { membershipStatus: 'premium', canAccessLiveAI: true, isPremium: true, isDemo: false }
+  );
+
+const getOrchestratorInstance = () => jest.mocked(ChatOrchestrator).mock.results.at(-1)?.value;
 
 describe('useAIResponsesWithStreaming', () => {
   beforeEach(() => {
-    (ChatOrchestrator as jest.Mock).mockClear();
-    (useAIService as jest.Mock).mockClear();
-    (useFeatureAccess as jest.Mock).mockReturnValue({ isDemo: false });
+    jest.mocked(ChatOrchestrator).mockClear();
+    jest.mocked(useAIService).mockClear();
+    jest.mocked(useFeatureAccess).mockReturnValue(featureAccess(false));
   });
 
   it('enables streaming with preferences from state', async () => {
@@ -123,7 +113,7 @@ describe('useAIResponsesWithStreaming', () => {
     expect(orchestrator.processUserMessage).toHaveBeenLastCalledWith(
       expect.objectContaining({
         allowStreaming: true,
-        streamingPreferences: { claude: { enabled: true } },
+        streamingPreferences: { claude: { enabled: true, supported: true } },
         globalStreamingEnabled: true,
       })
     );
@@ -155,13 +145,11 @@ describe('useAIResponsesWithStreaming', () => {
   });
 
   it('carries staged attachments on the quick start message and orchestrator call', async () => {
-    const attachment = {
-      type: 'image' as const,
+    const attachment = createMockAttachment({
       uri: 'file://a.png',
-      mimeType: 'image/png',
       base64: 'abc',
       fileName: 'a.png',
-    };
+    });
     const { result, store } = renderHookWithProviders(() => useAIResponsesWithStreaming(), {
       preloadedState: baseState,
     });
@@ -188,7 +176,13 @@ describe('useAIResponsesWithStreaming', () => {
   });
 
   it('logs an error when AI service is not ready', async () => {
-    (useAIService as jest.Mock).mockReturnValueOnce({ aiService: null, isInitialized: false });
+    jest.mocked(useAIService).mockReturnValueOnce({
+      aiService: null,
+      isInitialized: false,
+      isLoading: false,
+      error: null,
+      reinitialize: jest.fn(),
+    });
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     const { result } = renderHookWithProviders(() => useAIResponsesWithStreaming(), {
@@ -209,16 +203,7 @@ describe('useAIResponsesWithStreaming', () => {
       { ...baseMessage, id: 'ai-1', sender: 'Claude', senderType: 'ai', content: 'Response', timestamp: 2 },
     ];
 
-    const resumingState: Partial<RootState> = {
-      ...baseState,
-      chat: {
-        ...baseState.chat!,
-        currentSession: {
-          ...baseState.chat!.currentSession!,
-          messages: messageHistory,
-        },
-      },
-    };
+    const resumingState = buildState(messageHistory);
 
     const { result } = renderHookWithProviders(() => useAIResponsesWithStreaming(true), {
       preloadedState: resumingState,
@@ -242,7 +227,7 @@ describe('useAIResponsesWithStreaming', () => {
   });
 
   it('respects demo gating by disabling streaming', async () => {
-    (useFeatureAccess as jest.Mock).mockReturnValueOnce({ isDemo: true });
+    jest.mocked(useFeatureAccess).mockReturnValueOnce(featureAccess(true));
 
     const { result } = renderHookWithProviders(() => useAIResponsesWithStreaming(), {
       preloadedState: baseState,

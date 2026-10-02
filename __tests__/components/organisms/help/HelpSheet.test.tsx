@@ -1,7 +1,14 @@
 import { fireEvent, waitFor } from '@testing-library/react-native';
+import type { ReactTestInstance } from 'react-test-renderer';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { buildRootState } from '@test-utils/services/state';
+import { requireDefined } from '@test-utils/queries';
+import type { PropsOf } from '@test-utils/mockComponents';
 import { HelpSheet } from '@/components/organisms/help/HelpSheet';
 import { createAppStore } from '@/store';
+import type { SheetHeader, Typography } from '@/components/molecules';
+import type { HelpTopicCard } from '@/components/molecules/help/HelpTopicCard';
+import type { FAQItem } from '@/components/molecules/help/FAQItem';
 import { HELP_CATEGORIES, HELP_TOPICS } from '@/config/help/topics';
 
 // Mock expo modules
@@ -27,9 +34,9 @@ jest.mock('@/components/molecules', () => {
   const React = require('react');
   const { Text, TouchableOpacity } = require('react-native');
   return {
-    Typography: ({ children, testID }: any) =>
-      React.createElement(Text, { testID }, children),
-    SheetHeader: ({ title, onClose, testID }: any) =>
+    Typography: ({ children }: PropsOf<typeof Typography>) =>
+      React.createElement(Text, null, children),
+    SheetHeader: ({ title, onClose, testID }: PropsOf<typeof SheetHeader>) =>
       React.createElement(
         TouchableOpacity,
         { testID: testID || 'sheet-header', onPress: onClose },
@@ -43,7 +50,7 @@ jest.mock('@/components/molecules/help/HelpTopicCard', () => {
   const React = require('react');
   const { Text, TouchableOpacity } = require('react-native');
   return {
-    HelpTopicCard: ({ topic, isExpanded, onPress, testID }: any) =>
+    HelpTopicCard: ({ topic, isExpanded, onPress, testID }: PropsOf<typeof HelpTopicCard>) =>
       React.createElement(
         TouchableOpacity,
         {
@@ -61,7 +68,7 @@ jest.mock('@/components/molecules/help/FAQItem', () => {
   const React = require('react');
   const { Text, TouchableOpacity } = require('react-native');
   return {
-    FAQItem: ({ question, answer, isExpanded, onToggle, testID }: any) =>
+    FAQItem: ({ question, answer, isExpanded, onToggle, testID }: PropsOf<typeof FAQItem>) =>
       React.createElement(
         TouchableOpacity,
         {
@@ -75,6 +82,10 @@ jest.mock('@/components/molecules/help/FAQItem', () => {
   };
 });
 
+/** The link row two levels above a link label (label Text -> Typography -> row). */
+const pressableRowOf = (label: ReactTestInstance): ReactTestInstance =>
+  requireDefined(label.parent?.parent ?? undefined, 'link row');
+
 describe('HelpSheet', () => {
   const mockOnClose = jest.fn();
 
@@ -83,14 +94,16 @@ describe('HelpSheet', () => {
   });
 
   const renderHelpSheet = (storeOverrides?: { sheetData?: Record<string, unknown> }) => {
-    const store = createAppStore({
-      navigation: {
-        activeSheet: 'help',
-        sheetVisible: true,
-        sheetData: storeOverrides?.sheetData,
-        helpWebViewUrl: null,
-      },
-    });
+    const store = createAppStore(
+      buildRootState({
+        navigation: {
+          activeSheet: 'help',
+          sheetVisible: true,
+          sheetData: storeOverrides?.sheetData,
+          helpWebViewUrl: undefined,
+        },
+      })
+    );
 
     return renderWithProviders(<HelpSheet onClose={mockOnClose} />, { store });
   };
@@ -295,14 +308,16 @@ describe('HelpSheet', () => {
     });
 
     it('dispatches showHelpWebView for Privacy Policy', async () => {
-      const store = createAppStore({
-        navigation: {
-          activeSheet: 'help',
-          sheetVisible: true,
-          sheetData: undefined,
-          helpWebViewUrl: undefined,
-        },
-      });
+      const store = createAppStore(
+        buildRootState({
+          navigation: {
+            activeSheet: 'help',
+            sheetVisible: true,
+            sheetData: undefined,
+            helpWebViewUrl: undefined,
+          },
+        })
+      );
 
       const { getByText } = renderWithProviders(<HelpSheet onClose={mockOnClose} />, { store });
 
@@ -316,7 +331,7 @@ describe('HelpSheet', () => {
 
       // Press Privacy Policy
       const privacyPolicy = getByText('Privacy Policy');
-      fireEvent.press(privacyPolicy.parent?.parent as any);
+      fireEvent.press(pressableRowOf(privacyPolicy));
 
       await waitFor(() => {
         const state = store.getState().navigation;
@@ -325,14 +340,16 @@ describe('HelpSheet', () => {
     });
 
     it('dispatches showHelpWebView for Terms of Service', async () => {
-      const store = createAppStore({
-        navigation: {
-          activeSheet: 'help',
-          sheetVisible: true,
-          sheetData: undefined,
-          helpWebViewUrl: undefined,
-        },
-      });
+      const store = createAppStore(
+        buildRootState({
+          navigation: {
+            activeSheet: 'help',
+            sheetVisible: true,
+            sheetData: undefined,
+            helpWebViewUrl: undefined,
+          },
+        })
+      );
 
       const { getByText } = renderWithProviders(<HelpSheet onClose={mockOnClose} />, { store });
 
@@ -346,7 +363,7 @@ describe('HelpSheet', () => {
 
       // Press Terms of Service
       const termsOfService = getByText('Terms of Service');
-      fireEvent.press(termsOfService.parent?.parent as any);
+      fireEvent.press(pressableRowOf(termsOfService));
 
       await waitFor(() => {
         const state = store.getState().navigation;

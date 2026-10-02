@@ -1,13 +1,14 @@
-import type { ReactNode } from 'react';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { HistoryListSkeleton } from '@/components/organisms/history/HistoryListSkeleton';
+import type { PropsOf } from '@test-utils/mockComponents';
+import type { Box } from '@/components/atoms';
 
 jest.mock('@/components/atoms', () => ({
-  Box: ({ children, style }: { children: ReactNode; style?: any }) => {
+  Box: ({ children, style }: PropsOf<typeof Box>) => {
     const React = require('react');
-    const { View } = require('react-native');
-    const styleArray = Array.isArray(style) ? style : [style];
-    const isSkeletonCard = styleArray.some((s) => s?.marginBottom === 12 && s?.padding === 16);
+    const { View, StyleSheet } = jest.requireActual<typeof import('react-native')>('react-native');
+    const flat = StyleSheet.flatten(style);
+    const isSkeletonCard = flat?.marginBottom === 12 && flat?.padding === 16;
     return React.createElement(
       View,
       { testID: isSkeletonCard ? 'history-skeleton-card' : undefined, style },

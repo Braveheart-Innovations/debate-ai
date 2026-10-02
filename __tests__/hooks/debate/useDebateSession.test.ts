@@ -2,9 +2,12 @@ import { act, waitFor } from '@testing-library/react-native';
 import type { DebateSession } from '@/services/debate';
 import { DebateStatus } from '@/services/debate';
 import type { AI } from '@/types';
-import type { RootState } from '@/store';
+import { buildApiKeyStatus } from '@/store';
+import type { RootStateOverrides } from '../../../test-utils/services/state';
+import { createMockAIConfig } from '../../../test-utils/fixtures';
 import { renderHookWithProviders } from '../../../test-utils/renderHookWithProviders';
 import { getFormat, getPresetForFormat } from '@/config/debate/formats';
+import { useDebateSession } from '@/hooks/debate/useDebateSession';
 
 const mockInitializeDebate = jest.fn();
 const mockReset = jest.fn();
@@ -36,8 +39,8 @@ jest.mock('@/services/debate', () => {
 
 describe('useDebateSession', () => {
   const participants: AI[] = [
-    { id: 'claude', provider: 'claude', name: 'Claude', model: 'claude-3' },
-    { id: 'gpt4', provider: 'openai', name: 'GPT-4o', model: 'gpt-4o' },
+    createMockAIConfig({ model: 'claude-3' }),
+    createMockAIConfig({ id: 'gpt4', provider: 'openai', name: 'GPT-4o', model: 'gpt-4o' }),
   ];
 
   const mockSession: DebateSession = {
@@ -60,20 +63,11 @@ describe('useDebateSession', () => {
     stances: {},
   };
 
-  const baseState: Partial<RootState> = {
+  const baseState: RootStateOverrides = {
     settings: {
-      theme: 'auto',
-      fontSize: 'medium',
-      apiKeys: { claude: 'key' },
-      realtimeRelayUrl: undefined,
-      verifiedProviders: [],
-      verificationTimestamps: {},
-      verificationModels: {},
-      expertMode: {},
-      hasCompletedOnboarding: false,
-      recordModeEnabled: false,
+      apiKeys: { claude: buildApiKeyStatus('key') },
     },
-  } as Partial<RootState>;
+  };
 
   beforeEach(() => {
     mockInitializeDebate.mockResolvedValue(mockSession);
@@ -85,7 +79,7 @@ describe('useDebateSession', () => {
   });
 
   it('initializes debate session and updates redux state', async () => {
-    const { result, store } = renderHookWithProviders(() => require('@/hooks/debate/useDebateSession').useDebateSession(participants), {
+    const { result, store } = renderHookWithProviders(() => useDebateSession(participants), {
       preloadedState: baseState,
     });
 

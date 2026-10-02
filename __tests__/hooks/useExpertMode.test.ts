@@ -2,8 +2,7 @@ import { act } from '@testing-library/react-native';
 import { renderHookWithProviders } from '../../test-utils/renderHookWithProviders';
 import { useExpertMode } from '@/hooks/useExpertMode';
 import { DEFAULT_PARAMETERS } from '@/config/modelConfigs';
-import { getEnabledProviders } from '@/config/aiProviders';
-import type { RootState } from '@/store';
+import { getEnabledProviders, type AIProvider as ProviderConfig } from '@/config/aiProviders';
 import type { AIProvider } from '@/types';
 
 jest.mock('@/config/aiProviders', () => ({
@@ -11,27 +10,14 @@ jest.mock('@/config/aiProviders', () => ({
 }));
 
 describe('useExpertMode', () => {
-  const getEnabledProvidersMock = getEnabledProviders as jest.MockedFunction<typeof getEnabledProviders>;
+  const getEnabledProvidersMock = jest.mocked(getEnabledProviders);
 
-  const baseSettingsState: RootState['settings'] = {
-    theme: 'auto',
-    fontSize: 'medium',
-    apiKeys: {},
-    realtimeRelayUrl: undefined,
-    verifiedProviders: [],
-    verificationTimestamps: {},
-    verificationModels: {},
-    expertMode: {},
-    hasCompletedOnboarding: false,
-    recordModeEnabled: false,
-  };
-
-  const stubProvider = (id: AIProvider) => ({
+  const stubProvider = (id: AIProvider): ProviderConfig => ({
     id,
     name: id,
     company: 'Test Co',
     color: '#000000',
-    gradient: ['#000000', '#111111'] as [string, string],
+    gradient: ['#000000', '#111111'],
     apiKeyPrefix: '',
     apiKeyPlaceholder: '',
     docsUrl: '',
@@ -57,7 +43,6 @@ describe('useExpertMode', () => {
     const { result } = renderHookWithProviders(() => useExpertMode(), {
       preloadedState: {
         settings: {
-          ...baseSettingsState,
           expertMode: {},
         },
       },
@@ -75,7 +60,6 @@ describe('useExpertMode', () => {
     const { result, store } = renderHookWithProviders(() => useExpertMode(), {
       preloadedState: {
         settings: {
-          ...baseSettingsState,
           expertMode: {
             claude: {
               enabled: true,
@@ -139,7 +123,6 @@ describe('useExpertMode', () => {
     const { result } = renderHookWithProviders(() => useExpertMode(), {
       preloadedState: {
         settings: {
-          ...baseSettingsState,
           expertMode: {
             claude: {
               enabled: true,

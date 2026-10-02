@@ -1,18 +1,22 @@
 import { render } from '@testing-library/react-native';
-import { Text } from 'react-native';
+import { StyleSheet, Text, useWindowDimensions, type ViewStyle } from 'react-native';
+import type { ReactTestRendererJSON } from 'react-test-renderer';
 import { ResponsiveContainer } from '@/components/atoms/layout/ResponsiveContainer';
-import useWindowDimensions from 'react-native/Libraries/Utilities/useWindowDimensions';
+import { createMockWindowSize } from '@test-utils/fixtures';
 
-const mockUseWindowDimensions = useWindowDimensions as jest.Mock;
+// jest.setup mocks the useWindowDimensions module that react-native re-exports
+const mockUseWindowDimensions = jest.mocked(useWindowDimensions);
 
+/** A full window size for the mocked hook (only width/height drive layout). */
 // Helper to extract styles from the component tree
-const getContainerStyles = (tree: any) => {
+const getContainerStyles = (
+  tree: ReactTestRendererJSON | ReactTestRendererJSON[] | null
+): ViewStyle => {
   // The container is the root View
-  const styles = tree.props?.style;
-  if (Array.isArray(styles)) {
-    return Object.assign({}, ...styles.filter(Boolean));
+  if (!tree || Array.isArray(tree)) {
+    throw new Error('Expected a single root element');
   }
-  return styles || {};
+  return StyleSheet.flatten<ViewStyle>(tree.props.style) ?? {};
 };
 
 describe('ResponsiveContainer', () => {
@@ -23,7 +27,7 @@ describe('ResponsiveContainer', () => {
   describe('phone behavior', () => {
     beforeEach(() => {
       // Use dimensions where max < 768 for phone classification
-      mockUseWindowDimensions.mockReturnValue({ width: 375, height: 667 });
+      mockUseWindowDimensions.mockReturnValue(createMockWindowSize(375, 667));
     });
 
     it('renders children correctly', () => {
@@ -62,7 +66,7 @@ describe('ResponsiveContainer', () => {
 
   describe('tablet behavior', () => {
     beforeEach(() => {
-      mockUseWindowDimensions.mockReturnValue({ width: 768, height: 1024 });
+      mockUseWindowDimensions.mockReturnValue(createMockWindowSize(768, 1024));
     });
 
     it('applies maxWidth on tablet with default lg size', () => {
@@ -164,7 +168,7 @@ describe('ResponsiveContainer', () => {
 
   describe('custom styles', () => {
     it('merges custom style prop', () => {
-      mockUseWindowDimensions.mockReturnValue({ width: 768, height: 1024 });
+      mockUseWindowDimensions.mockReturnValue(createMockWindowSize(768, 1024));
 
       const { toJSON } = render(
         <ResponsiveContainer style={{ backgroundColor: 'red', padding: 20 }}>
@@ -179,7 +183,7 @@ describe('ResponsiveContainer', () => {
     });
 
     it('custom styles merge with maxWidth on tablet', () => {
-      mockUseWindowDimensions.mockReturnValue({ width: 768, height: 1024 });
+      mockUseWindowDimensions.mockReturnValue(createMockWindowSize(768, 1024));
 
       const { toJSON } = render(
         <ResponsiveContainer maxWidth="md" style={{ padding: 20 }}>
@@ -196,7 +200,7 @@ describe('ResponsiveContainer', () => {
 
   describe('iPad Pro scenarios', () => {
     it('applies maxWidth on iPad Pro 11" portrait', () => {
-      mockUseWindowDimensions.mockReturnValue({ width: 834, height: 1194 });
+      mockUseWindowDimensions.mockReturnValue(createMockWindowSize(834, 1194));
 
       const { toJSON } = render(
         <ResponsiveContainer maxWidth="lg">
@@ -210,7 +214,7 @@ describe('ResponsiveContainer', () => {
     });
 
     it('applies maxWidth on iPad Pro 12.9" landscape', () => {
-      mockUseWindowDimensions.mockReturnValue({ width: 1366, height: 1024 });
+      mockUseWindowDimensions.mockReturnValue(createMockWindowSize(1366, 1024));
 
       const { toJSON } = render(
         <ResponsiveContainer maxWidth="xl">

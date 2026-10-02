@@ -1,9 +1,13 @@
-import React from 'react';
 import { Text, TouchableOpacity } from 'react-native';
 import { act, fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import type { RootStateOverrides } from '../../../../test-utils/services/state';
+import { createMockAuthState } from '@test-utils/fixtures';
+import type { PropsOf } from '@test-utils/mockComponents';
+import { requireDefined } from '@test-utils/queries';
+import type { Button, SettingRow, SheetHeader, Typography } from '@/components/molecules';
+import { buildApiKeyStatus } from '@/store';
 import { SettingsContent } from '@/components/organisms/settings/SettingsContent';
-import type { RootState } from '@/store';
 
 const mockThemeSettings = {
   isDark: false,
@@ -15,27 +19,27 @@ jest.mock('@/hooks/settings', () => ({
   useThemeSettings: jest.fn(() => mockThemeSettings),
 }));
 
-const mockSettingRow = jest.fn(({ title, onPress, rightElement, disabled }: any) => (
+const mockSettingRow = jest.fn(({ title, onPress, rightElement, disabled }: PropsOf<typeof SettingRow>) => (
   <TouchableOpacity testID={`setting-${title}`} onPress={disabled ? undefined : onPress}>
     <Text>{title}</Text>
     {rightElement}
   </TouchableOpacity>
 ));
 
-const mockButton = jest.fn(({ title, onPress, disabled }: any) => (
+const mockButton = jest.fn(({ title, onPress, disabled }: PropsOf<typeof Button>) => (
   <Text accessibilityRole="button" onPress={disabled ? undefined : onPress}>
     {title}
   </Text>
 ));
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = jest.requireActual<typeof import('react')>('react');
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
-    SheetHeader: ({ title }: any) => React.createElement(Text, null, title),
-    Typography: ({ children }: { children: React.ReactNode }) => React.createElement(Text, null, children),
-    SettingRow: (props: any) => mockSettingRow(props),
-    Button: (props: any) => mockButton(props),
+    SheetHeader: ({ title }: PropsOf<typeof SheetHeader>) => React.createElement(Text, null, title),
+    Typography: ({ children }: PropsOf<typeof Typography>) => React.createElement(Text, null, children),
+    SettingRow: (props: PropsOf<typeof SettingRow>) => mockSettingRow(props),
+    Button: (props: PropsOf<typeof Button>) => mockButton(props),
   };
 });
 
@@ -49,12 +53,11 @@ describe('SettingsContent', () => {
     const onNavigateToExpertMode = jest.fn();
     const onClose = jest.fn();
 
-    const preloadedState: Partial<RootState> = {
+    const preloadedState: RootStateOverrides = {
       settings: {
         theme: 'light',
         fontSize: 'medium',
-        apiKeys: { openai: 'key' },
-        realtimeRelayUrl: '',
+        apiKeys: { openai: buildApiKeyStatus('key') },
         verifiedProviders: [],
         verificationTimestamps: {},
         verificationModels: {},
@@ -70,19 +73,8 @@ describe('SettingsContent', () => {
         totalStreamsCompleted: 0,
         providerVerificationErrors: {},
       },
-      auth: {
-        user: null,
-        isAuthenticated: false,
-        isPremium: false,
-        authLoading: false,
-        authModalVisible: false,
-        userProfile: null,
-        isAnonymous: false,
-        lastAuthMethod: null,
-        socialAuthLoading: false,
-        socialAuthError: null,
-      },
-    } as any;
+      auth: createMockAuthState(),
+    };
 
     const { getByTestId, store } = renderWithProviders(
       <SettingsContent
@@ -90,7 +82,7 @@ describe('SettingsContent', () => {
         onNavigateToAPIConfig={onNavigateToAPIConfig}
         onNavigateToExpertMode={onNavigateToExpertMode}
       />,
-      { preloadedState: preloadedState as RootState }
+      { preloadedState }
     );
 
     fireEvent.press(getByTestId('setting-Manage API Keys'));
@@ -100,9 +92,12 @@ describe('SettingsContent', () => {
     fireEvent.press(getByTestId('setting-Model Defaults'));
     expect(onNavigateToExpertMode).toHaveBeenCalled();
 
-    const toggleStreamingButtonCall = mockButton.mock.calls.find(([props]: any) => props.title === 'On');
+    const toggleStreamingButtonCall = requireDefined(
+      mockButton.mock.calls.find(([props]) => props.title === 'On'),
+      'streaming toggle Button render'
+    );
     act(() => {
-      toggleStreamingButtonCall?.[0].onPress();
+      toggleStreamingButtonCall[0].onPress();
     });
     expect(store.getState().streaming.globalStreamingEnabled).toBe(false);
 

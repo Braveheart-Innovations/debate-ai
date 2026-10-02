@@ -1,9 +1,22 @@
 import { act } from '@testing-library/react-native';
 import { Alert, Share } from 'react-native';
 import { useSessionActions } from '@/hooks/history/useSessionActions';
-import { createMockSession } from '../../test-utils/hooks/historyFixtures';
+import {
+  createMockAIConfig,
+  createMockMessage,
+  createMockSession,
+} from '../../test-utils/hooks/historyFixtures';
 import { renderHookWithProviders } from '../../test-utils/renderHookWithProviders';
 import type { ChatSession } from '@/types';
+import type { HistoryScreenNavigationProps } from '@/types/history';
+
+// Comparison sessions carry divergence flags the hook reads off the session at runtime.
+type ComparisonSession = ChatSession & { hasDiverged: boolean; continuedWithAI?: string };
+
+const comparisonAIs = [
+  createMockAIConfig({ id: 'left', name: 'Lefty', provider: 'claude', model: 'claude' }),
+  createMockAIConfig({ id: 'right', name: 'Righty', provider: 'openai', model: 'gpt4' }),
+];
 
 // Mock ErrorService
 const mockHandleWithToast = jest.fn();
@@ -50,7 +63,11 @@ jest.mock('@/store', () => {
 });
 
 describe('useSessionActions', () => {
-  const navigation = { navigate: jest.fn() } as unknown as Parameters<typeof useSessionActions>[0];
+  const navigation: HistoryScreenNavigationProps = {
+    navigate: jest.fn(),
+    goBack: jest.fn(),
+    setParams: jest.fn(),
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -139,15 +156,11 @@ describe('useSessionActions', () => {
 
   it('provides comparison resume options for divergent sessions', () => {
     mockUseFeatureAccess.mockReturnValue({ isDemo: false });
-    const comparisonSession: ChatSession = {
-      ...createMockSession({ sessionType: 'comparison' }),
+    const comparisonSession: ComparisonSession = {
+      ...createMockSession({ sessionType: 'comparison', selectedAIs: comparisonAIs }),
       hasDiverged: true,
       continuedWithAI: 'Claude',
-      selectedAIs: [
-        { id: 'left', name: 'Lefty', provider: 'anthropic', model: 'claude' },
-        { id: 'right', name: 'Righty', provider: 'openai', model: 'gpt4' },
-      ],
-    } as ChatSession & { hasDiverged: boolean; continuedWithAI: string };
+    };
 
     const alertSpy = jest.spyOn(Alert, 'alert');
     const { result } = renderHookWithProviders(() => useSessionActions(navigation));
@@ -170,23 +183,20 @@ describe('useSessionActions', () => {
   });
 
   it('resumes comparison sessions that have not diverged', () => {
-    const comparisonSession = {
-      ...createMockSession({ sessionType: 'comparison' }),
+    const comparisonSession: ComparisonSession = {
+      ...createMockSession({
+        sessionType: 'comparison',
+        selectedAIs: comparisonAIs,
+        messages: [
+          createMockMessage({
+            id: 'message-compare',
+            content: 'Compare output please',
+            timestamp: 1700000000000,
+          }),
+        ],
+      }),
       hasDiverged: false,
-      selectedAIs: [
-        { id: 'left', name: 'Lefty', provider: 'anthropic', model: 'claude' },
-        { id: 'right', name: 'Righty', provider: 'openai', model: 'gpt4' },
-      ],
-      messages: [
-        {
-          id: 'message-compare',
-          sender: 'You',
-          senderType: 'user',
-          content: 'Compare output please',
-          timestamp: 1700000000000,
-        },
-      ],
-    } as unknown as ChatSession & { hasDiverged: boolean };
+    };
 
     const alertSpy = jest.spyOn(Alert, 'alert');
     const { result } = renderHookWithProviders(() => useSessionActions(navigation));
@@ -208,28 +218,28 @@ describe('useSessionActions', () => {
 
   it('summarises debates when resuming debate sessions', () => {
     const debateHostMessages = [
-      {
+      createMockMessage({
         id: 'host-1',
         sender: 'Debate Host',
-        senderType: 'ai' as const,
+        senderType: 'ai',
         content: '"The future of AI" Opening remarks...'
-      },
-      {
+      }),
+      createMockMessage({
         id: 'host-2',
         sender: 'Debate Host',
-        senderType: 'ai' as const,
+        senderType: 'ai',
         content: 'OVERALL WINNER: Claude!'
-      }
+      }),
     ];
 
-    const debateSession: ChatSession = {
-      ...createMockSession({ sessionType: 'debate' }),
+    const debateSession: ChatSession = createMockSession({
+      sessionType: 'debate',
       selectedAIs: [
-        { id: 'claude', name: 'Claude', provider: 'anthropic', model: 'claude-3' },
-        { id: 'gpt4', name: 'GPT-4', provider: 'openai', model: 'gpt-4' },
+        createMockAIConfig({ id: 'claude', name: 'Claude', provider: 'claude', model: 'claude-3' }),
+        createMockAIConfig({ id: 'gpt4', name: 'GPT-4', provider: 'openai', model: 'gpt-4' }),
       ],
-      messages: debateHostMessages as unknown as ChatSession['messages'],
-    };
+      messages: debateHostMessages,
+    });
 
     const alertSpy = jest.spyOn(Alert, 'alert');
     const { result } = renderHookWithProviders(() => useSessionActions(navigation));
@@ -271,8 +281,8 @@ describe('useSessionActions', () => {
   });
 
   it('exports sessions for sharing, trimming to the last 10 messages', async () => {
-    const shareSpy = jest.spyOn(Share, 'share').mockResolvedValue({} as never);
-    const messages = Array.from({ length: 12 }, (_, index) => ({
+    const shareSpy = jest.spyOn(Share, 'share').mockResolvedValue({ action: Share.sharedAction });
+    const messages = Array.from({ length: 12 }, (_, index) => createMockMessage({
       id: `msg-${index}`,
       sender: index % 2 === 0 ? 'You' : 'Claude',
       senderType: index % 2 === 0 ? 'user' : 'ai',
@@ -281,9 +291,7 @@ describe('useSessionActions', () => {
     }));
     const session = createMockSession({
       id: 'share-1',
-      selectedAIs: [
-        { id: 'claude', name: 'Claude', provider: 'anthropic', model: 'claude-3' },
-      ],
+      selectedAIs: [createMockAIConfig({ id: 'claude', name: 'Claude', provider: 'claude', model: 'claude-3' })],
       messages,
     });
 

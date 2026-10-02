@@ -2,17 +2,23 @@ import React from 'react';
 import { Text } from 'react-native';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../test-utils/renderWithProviders';
-import { showSheet, updateExpertMode } from '@/store';
+import { buildApiKeyStatus, showSheet, updateExpertMode } from '@/store';
+import type { RootState } from '@/store';
+import ExpertModeScreen from '@/screens/ExpertModeScreen';
+import { capturePropsOf, type PropsOf } from '@test-utils/mockComponents';
+import { requireDefined } from '@test-utils/queries';
+import { buildRootState } from '@test-utils/services/state';
+import type { Header, ProviderExpertSettings } from '@/components/organisms';
 
 const mockDispatch = jest.fn();
-const mockUseSelector = jest.fn();
+const mockUseSelector = jest.fn<unknown, [(state: RootState) => unknown]>();
 
 jest.mock('react-redux', () => {
-  const actual = jest.requireActual('react-redux');
+  const actual = jest.requireActual<typeof import('react-redux')>('react-redux');
   return {
     ...actual,
     useDispatch: () => mockDispatch,
-    useSelector: (selector: (state: any) => any) => mockUseSelector(selector),
+    useSelector: (selector: (state: RootState) => unknown) => mockUseSelector(selector),
   };
 });
 
@@ -38,21 +44,25 @@ jest.mock('@/utils/aiProviderAssets', () => ({
   getAIProviderIcon: () => ({ iconType: 'letter', icon: 'C' }),
 }));
 
-const providerProps: Record<string, any> = {};
-const mockProviderExpertSettings = jest.fn((props) => {
+const providerProps: Partial<Record<string, PropsOf<typeof ProviderExpertSettings>>> = {};
+const mockProviderExpertSettings = capturePropsOf<typeof ProviderExpertSettings>((props) => {
   providerProps[props.providerId] = props;
   return <Text testID={`settings-${props.providerId}`}>settings</Text>;
 });
 
-const mockHeader = jest.fn(({ title, onBack }: { title: string; onBack: () => void }) => (
+const mockHeader = capturePropsOf<typeof Header>(({ title, onBack }) => (
   <Text testID="header" onPress={onBack}>
     {title}
   </Text>
 ));
 
 jest.mock('@/components/organisms', () => ({
-  Header: (props: any) => mockHeader(props),
-  ProviderExpertSettings: (props: any) => mockProviderExpertSettings(props),
+  get Header() {
+    return mockHeader.Stub;
+  },
+  get ProviderExpertSettings() {
+    return mockProviderExpertSettings.Stub;
+  },
 }));
 
 // Mock useFeatureAccess to allow premium features
@@ -69,25 +79,25 @@ jest.mock('@/hooks/useFeatureAccess', () => ({
   }),
 }));
 
-const ExpertModeScreen = require('@/screens/ExpertModeScreen').default;
-
 describe('ExpertModeScreen', () => {
   const navigation = { goBack: jest.fn() };
-  const baseState = {
+  const baseState = buildRootState({
     settings: {
-      apiKeys: { claude: 'key-1', openai: 'key-2' },
+      apiKeys: { claude: buildApiKeyStatus('key-1'), openai: buildApiKeyStatus('key-2') },
       expertMode: {
         claude: { enabled: true, selectedModel: 'claude-model', parameters: { temperature: 0.8 } },
         openai: { enabled: false, selectedModel: undefined, parameters: {} },
       },
     },
-  } as any;
+  });
 
   beforeEach(() => {
     jest.clearAllMocks();
     mockDispatch.mockClear();
     navigation.goBack.mockClear();
     Object.keys(providerProps).forEach((key) => delete providerProps[key]);
+    mockProviderExpertSettings.reset();
+    mockHeader.reset();
     mockUseSelector.mockImplementation((selector) => selector(baseState));
   });
 
@@ -103,7 +113,7 @@ describe('ExpertModeScreen', () => {
       selectedModel: 'claude-model',
     });
 
-    providerProps.claude.onToggle(false);
+    requireDefined(providerProps.claude, 'claude settings props').onToggle(false);
     expect(mockDispatch).toHaveBeenCalledWith(updateExpertMode({
       provider: 'claude',
       config: expect.objectContaining({ enabled: false }),

@@ -3,6 +3,12 @@ import type { AdapterCapabilities, FormattedMessage, ResumptionContext } from '@
 import type { Message, PersonalityConfig } from '@/types';
 import type { PersonalityOption } from '@/config/personalities';
 
+/** The text of a formatted message; history entries here are always plain strings. */
+const textOf = (message: FormattedMessage): string => {
+  if (typeof message.content !== 'string') throw new Error('Expected plain-text message content');
+  return message.content;
+};
+
 class TestAdapter extends BaseAdapter {
   sendMessage = jest.fn();
 
@@ -20,13 +26,13 @@ class TestAdapter extends BaseAdapter {
   format(history: Message[], resumption?: ResumptionContext): FormattedMessage[] {
     // Access the protected helper for assertions
 
-    return (this as any).formatHistory(history, resumption);
+    return this.formatHistory(history, resumption);
   }
 
   // Expose getSystemPrompt for testing
   getSystemPromptPublic(): string {
 
-    return (this as any).getSystemPrompt();
+    return this.getSystemPrompt();
   }
 }
 
@@ -76,7 +82,7 @@ describe('BaseAdapter.formatHistory', () => {
       role: 'user',
       content: expect.stringContaining('[Continuation note] Previously started with'),
     });
-    expect((formatted[0].content as string).length).toBeLessThan(200);
+    expect(textOf(formatted[0]).length).toBeLessThan(200);
   });
 
   it('remaps opponent messages to user role in debate mode and merges consecutive roles', () => {
@@ -211,7 +217,7 @@ describe('BaseAdapter.formatHistory', () => {
 
     const formatted = adapter.format(longHistory);
     expect(formatted.length).toBeLessThanOrEqual(11);
-    expect((formatted[0].content as string)).toContain('message-2');
+    expect(textOf(formatted[0])).toContain('message-2');
   });
 });
 
@@ -231,7 +237,7 @@ describe('BaseAdapter.getSystemPrompt', () => {
       systemPrompt: 'You are a witty assistant.',
       traits: { formality: 0.5, humor: 0.5, technicality: 0.5, empathy: 0.5 },
       isPremium: false,
-    } as PersonalityConfig);
+    });
 
     const prompt = adapter.getSystemPromptPublic();
     expect(prompt).toContain('You are a witty assistant.');
@@ -246,7 +252,7 @@ describe('BaseAdapter.getSystemPrompt', () => {
       systemPrompt: 'You are a witty assistant.',
       traits: { formality: 0.5, humor: 0.5, technicality: 0.5, empathy: 0.5 },
       isPremium: false,
-    } as PersonalityConfig);
+    });
     expect(adapter.getSystemPromptPublic()).toContain('witty assistant');
 
     adapter.setTemporaryPersonality({
@@ -273,7 +279,7 @@ describe('BaseAdapter.getSystemPrompt', () => {
       systemPrompt: 'You are an expert.',
       traits: { formality: 0.8, humor: 0.2, technicality: 0.8, empathy: 0.3 },
       isPremium: false,
-    } as PersonalityConfig);
+    });
 
     const prompt = adapter.getSystemPromptPublic();
     expect(prompt).toContain('[Style:');
@@ -284,7 +290,7 @@ describe('BaseAdapter.getSystemPrompt', () => {
   it('applies tone modifiers from PersonalityOption with tone field', () => {
     const adapter = new TestAdapter({ provider: 'claude', apiKey: 'key', model: 'opus' });
     // Simulate PersonalityOption with tone field
-    const personalityOption = {
+    const personalityOption: PersonalityOption = {
       id: 'casual',
       name: 'Casual',
       emoji: '😊',
@@ -292,8 +298,9 @@ describe('BaseAdapter.getSystemPrompt', () => {
       description: 'Casual and friendly',
       bio: 'A casual persona',
       systemPrompt: 'You are friendly.',
+      signatureMoves: [],
       tone: { formality: 0.2, humor: 0.8, energy: 0.7, empathy: 0.6, technicality: 0.3 },
-    } as PersonalityOption;
+    };
 
     adapter.setTemporaryPersonality(personalityOption);
     const prompt = adapter.getSystemPromptPublic();
@@ -311,7 +318,7 @@ describe('BaseAdapter.getSystemPrompt', () => {
       systemPrompt: 'You are balanced.',
       traits: { formality: 0.5, humor: 0.5, technicality: 0.5, empathy: 0.5 },
       isPremium: false,
-    } as PersonalityConfig);
+    });
 
     const prompt = adapter.getSystemPromptPublic();
     expect(prompt).toBe('You are balanced.');
@@ -333,7 +340,7 @@ describe('BaseAdapter.getSystemPrompt', () => {
       systemPrompt: 'You argue with passion.',
       traits: { formality: 0.7, humor: 0.3, technicality: 0.6, empathy: 0.4 },
       isPremium: false,
-    } as PersonalityConfig);
+    });
 
     const prompt = adapter.getSystemPromptPublic();
     expect(prompt).toContain('You are participating in a structured debate');
@@ -344,13 +351,19 @@ describe('BaseAdapter.getSystemPrompt', () => {
     const adapter = new TestAdapter({ provider: 'claude', apiKey: 'key', model: 'opus', isDebateMode: true });
     // Directly set personality with debateProfile (setTemporaryPersonality converts to PersonalityConfig)
 
-    (adapter.config as any).personality = {
+    // The adapter config is typed as PersonalityConfig, but getSystemPrompt also honours
+    // PersonalityOption tone/debateProfile fields when they are present at runtime.
+    const personality: PersonalityConfig & Pick<PersonalityOption, 'tone' | 'debateProfile'> = {
       id: 'aggressive-debater',
       name: 'Aggressive Debater',
+      description: 'Debates fiercely',
       systemPrompt: 'You debate fiercely.',
+      traits: { formality: 0.6, humor: 0.2, technicality: 0.5, empathy: 0.3 },
+      isPremium: false,
       tone: { formality: 0.6, humor: 0.2, energy: 0.8, empathy: 0.3, technicality: 0.5 },
-      debateProfile: { argumentStyle: 'logical' as const, aggression: 0.9, concession: 0.1 },
+      debateProfile: { argumentStyle: 'logical', aggression: 0.9, concession: 0.1 },
     };
+    adapter.config.personality = personality;
 
     const prompt = adapter.getSystemPromptPublic();
     expect(prompt).toContain('[Debate style:');
@@ -452,10 +465,10 @@ describe('BaseAdapter multi-AI chat attribution', () => {
     });
 
     it('composes after a persona prompt', () => {
-      const personality = {
+      const personality: PersonalityConfig = {
         id: 'devlin', name: 'Devlin', description: 'd', systemPrompt: 'You are Devlin.',
         traits: { formality: 0.5, humor: 0.5, technicality: 0.5, empathy: 0.5 }, isPremium: false,
-      } as PersonalityConfig;
+      };
       const prompt = makeAdapter({ groupChat, personality }).getSystemPromptPublic();
       expect(prompt.indexOf('You are Devlin.')).toBe(0);
       expect(prompt.indexOf('You appear in this group chat as Claude')).toBeGreaterThan(0);

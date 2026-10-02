@@ -1,16 +1,13 @@
 import { SessionSortService } from '@/services/history/SessionSortService';
-import type { ChatSession } from '@/types';
+import type { AIProvider, ChatSession } from '@/types';
+import { createMockAIConfig } from '@test-utils/fixtures';
 
-const createAI = (id: string, name: string) => ({
-  id,
-  provider: id as ChatSession['selectedAIs'][number]['provider'],
-  name,
-  model: 'test-model',
-});
+const createAI = (id: string, name: string, provider: AIProvider) =>
+  createMockAIConfig({ id, provider, name, model: 'test-model' });
 
 const createSession = (overrides: Partial<ChatSession>): ChatSession => ({
   id: 'session',
-  selectedAIs: [createAI('claude', 'Claude')],
+  selectedAIs: [createAI('claude', 'Claude', 'claude')],
   messages: [],
   isActive: true,
   createdAt: Date.now(),
@@ -25,7 +22,8 @@ describe('SessionSortService', () => {
   const now = new Date('2025-01-10T10:00:00Z').getTime();
 
   beforeEach(() => {
-    (SessionSortService as unknown as { instance?: SessionSortService }).instance = undefined;
+    // Reset the private static singleton (no public reset API exists)
+    Reflect.set(SessionSortService, 'instance', undefined);
     service = SessionSortService.getInstance();
     jest.spyOn(Date, 'now').mockReturnValue(now);
 
@@ -41,7 +39,7 @@ describe('SessionSortService', () => {
           content: 'Message',
           timestamp: now,
         })),
-        selectedAIs: [createAI('claude', 'Claude'), createAI('gemini', 'Gemini')],
+        selectedAIs: [createAI('claude', 'Claude', 'claude'), createAI('gemini', 'Gemini', 'google')],
       }),
       createSession({
         id: 's2',
@@ -54,7 +52,7 @@ describe('SessionSortService', () => {
           content: 'Short',
           timestamp: now,
         })),
-        selectedAIs: [createAI('gpt', 'GPT-5')],
+        selectedAIs: [createAI('gpt', 'GPT-5', 'openai')],
       }),
       createSession({
         id: 's3',
@@ -66,7 +64,7 @@ describe('SessionSortService', () => {
           content: 'Long conversation',
           timestamp: now,
         })),
-        selectedAIs: [createAI('claude', 'Claude'), createAI('grok', 'Grok'), createAI('perplexity', 'Perplexity')],
+        selectedAIs: [createAI('claude', 'Claude', 'claude'), createAI('grok', 'Grok', 'grok'), createAI('perplexity', 'Perplexity', 'perplexity')],
       }),
     ];
   });
@@ -107,7 +105,7 @@ describe('SessionSortService', () => {
     expect(fallback[0].id).toBe('s1');
     expect(warnSpy).toHaveBeenCalled();
 
-    service.registerStrategy({ name: 'custom', compareFn: (a, b) => a.id.localeCompare(b.id) });
+    service.registerStrategy({ name: 'custom', field: 'id', direction: 'asc', compareFn: (a, b) => a.id.localeCompare(b.id) });
     const custom = service.sortByStrategy(sessions, 'custom');
     expect(custom.map(s => s.id)).toEqual(['s1', 's2', 's3']);
   });

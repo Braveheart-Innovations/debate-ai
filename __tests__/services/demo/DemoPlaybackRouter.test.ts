@@ -1,17 +1,19 @@
-import type { DemoChat, DemoCompare, DemoDebate, DemoMessageEvent } from '@/types/demo';
+import type { DemoChat, DemoCompare, DemoDebate } from '@/types/demo';
 
 const buildPrimeChatSample = (): DemoChat => ({
   id: 'chat-prime',
+  title: 'Prime Chat',
   events: [
     { type: 'message', role: 'user', content: 'Hello' },
     { type: 'message', role: 'assistant', content: 'Claude intro', speakerProvider: 'claude' },
     { type: 'stream', role: 'assistant', content: ' detail', speakerProvider: 'claude' },
     { type: 'message', role: 'assistant', content: 'OpenAI intro', speakerProvider: 'openai' },
-  ] as DemoMessageEvent[],
-} as unknown as DemoChat);
+  ],
+});
 
 const buildChatScriptSample = (): DemoChat => ({
   id: 'chat-1',
+  title: 'Chat Script',
   events: [
     { type: 'message', role: 'user', content: 'Intro question' },
     { type: 'message', role: 'assistant', content: 'Claude intro', speakerProvider: 'claude' },
@@ -21,14 +23,17 @@ const buildChatScriptSample = (): DemoChat => ({
     { type: 'stream', role: 'assistant', content: 'continued', speakerProvider: 'claude' },
     { type: 'message', role: 'assistant', content: 'Answer from OpenAI', speakerProvider: 'openai' },
     { type: 'message', role: 'assistant', content: 'Gemini reply', speakerProvider: 'google' },
-  ] as DemoMessageEvent[],
-} as unknown as DemoChat);
+  ],
+});
 
 const buildCompareSample = (): DemoCompare => ({
   id: 'compare-1',
   title: 'Compare Run',
+  category: 'provider',
   runs: [
     {
+      id: 'r1',
+      label: 'providers',
       prompt: 'Run prompt',
       columns: [
         {
@@ -47,23 +52,24 @@ const buildCompareSample = (): DemoCompare => ({
       ],
     },
   ],
-} as unknown as DemoCompare);
+});
 
 const buildDebateSample = (): DemoDebate => ({
   id: 'debate-1',
+  topic: 'Debate Topic',
+  participants: ['claude', 'openai'],
   events: [
     { type: 'stream', role: 'assistant', content: 'First ', speakerProvider: 'claude' },
     { type: 'stream', role: 'assistant', content: 'turn', speakerProvider: 'claude' },
     { type: 'message', role: 'assistant', content: 'OpenAI reply', speakerProvider: 'openai' },
   ],
-} as unknown as DemoDebate);
+});
 
 const loadRouter = () => {
   let module: typeof import('@/services/demo/DemoPlaybackRouter');
   jest.isolateModules(() => {
     module = require('@/services/demo/DemoPlaybackRouter');
   });
-    // @ts-expect-error set by isolateModules
   return module!;
 };
 

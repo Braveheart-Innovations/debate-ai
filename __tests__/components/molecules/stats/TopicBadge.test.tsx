@@ -1,7 +1,14 @@
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import type { LinearGradient } from 'expo-linear-gradient';
+import type { BrandColor } from '@/constants/aiColors';
+import type { PropsOf } from '@test-utils/mockComponents';
+import { truncateTopic } from '@/services/stats';
+import { TopicBadge, TopicBadgeList, TopicPerformance } from '@/components/molecules/stats/TopicBadge';
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null, MaterialIcons: () => null }));
-jest.mock('expo-linear-gradient', () => ({ LinearGradient: ({ children }: any) => children }));
+jest.mock('expo-linear-gradient', () => ({
+  LinearGradient: ({ children }: PropsOf<typeof LinearGradient>) => children,
+}));
 
 jest.mock('@/services/stats', () => ({
   truncateTopic: jest.fn((topic: string, maxLength: number) =>
@@ -12,12 +19,6 @@ jest.mock('@/services/stats', () => ({
   ),
 }));
 
-const {
-  TopicBadge,
-  TopicBadgeList,
-  TopicPerformance
-} = require('@/components/molecules/stats/TopicBadge');
-
 describe('TopicBadge', () => {
   const defaultProps = {
     topic: 'AI Ethics',
@@ -25,12 +26,17 @@ describe('TopicBadge', () => {
     participations: 5,
   };
 
-  const brandColorObject = {
+  const brandColorObject: BrandColor = {
     50: '#f0fdf4',
+    100: '#dcfce7',
     200: '#bbf7d0',
+    300: '#86efac',
+    400: '#4ade80',
     500: '#22c55e',
     600: '#16a34a',
     700: '#15803d',
+    800: '#166534',
+    900: '#14532d',
   };
 
   describe('TopicBadge Component', () => {
@@ -106,7 +112,6 @@ describe('TopicBadge', () => {
     });
 
     it('uses default maxLength of 35', () => {
-      const { truncateTopic } = require('@/services/stats');
       renderWithProviders(
         <TopicBadge {...defaultProps} />
       );
@@ -253,7 +258,6 @@ describe('TopicBadge', () => {
     });
 
     it('truncates long topic names', () => {
-      const { truncateTopic } = require('@/services/stats');
       const longTopic = 'A'.repeat(50);
       renderWithProviders(
         <TopicPerformance {...performanceProps} topic={longTopic} />

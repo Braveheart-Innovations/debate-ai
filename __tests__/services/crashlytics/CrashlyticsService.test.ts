@@ -30,8 +30,8 @@ jest.mock('@react-native-firebase/crashlytics', () => ({
 describe('CrashlyticsService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Reset the initialized state by accessing private property
-    (CrashlyticsService as any).initialized = false;
+    // Reset the private static `initialized` flag (no public reset API exists)
+    Reflect.set(CrashlyticsService, 'initialized', false);
   });
 
   describe('initialize', () => {

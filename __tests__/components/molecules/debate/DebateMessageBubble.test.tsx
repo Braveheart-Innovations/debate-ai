@@ -1,37 +1,56 @@
-import React from 'react';
 import { fireEvent, waitFor } from '@testing-library/react-native';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, useWindowDimensions } from 'react-native';
+import type { LinearGradient } from 'expo-linear-gradient';
+import type Slider from '@react-native-community/slider';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
-import useWindowDimensions from 'react-native/Libraries/Utilities/useWindowDimensions';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import { resetBackgroundAudioPlaybackForTesting } from '@/services/audio/backgroundAudioPlayback';
+import { DebateMessageBubble } from '@/components/molecules/debate/DebateMessageBubble';
+import type { Button, Card, GlassCard, Typography } from '@/components/molecules';
+import { shouldLazyRender } from '@/utils/markdown';
+import type { Message } from '@/types';
+import { createMockMessage, createMockWindowSize } from '@test-utils/fixtures';
+import { requireDefined } from '@test-utils/queries';
 
-const mockUseWindowDimensions = useWindowDimensions as jest.Mock;
-const mockedSetAudioModeAsync = setAudioModeAsync as jest.Mock;
-const mockedUseAudioPlayer = useAudioPlayer as jest.Mock;
-
+const mockUseWindowDimensions = jest.mocked(useWindowDimensions);
+const mockedSetAudioModeAsync = jest.mocked(setAudioModeAsync);
+const mockedUseAudioPlayer = jest.mocked(useAudioPlayer);
 // Mock Clipboard
-const mockSetStringAsync = jest.fn().mockResolvedValue(undefined);
+const mockSetStringAsync = jest.fn<Promise<boolean>, [string]>().mockResolvedValue(true);
 jest.mock('expo-clipboard', () => ({
-  setStringAsync: mockSetStringAsync,
+  setStringAsync: (text: string) => mockSetStringAsync(text),
   getStringAsync: jest.fn(),
 }));
 
 jest.mock('@expo/vector-icons', () => ({
   Ionicons: ({ name, testID }: { name: string; testID?: string }) => {
-    const { Text } = require('react-native');
+    const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
     return <Text testID={testID || `icon-${name}`}>{name}</Text>;
   },
   MaterialIcons: () => null,
 }));
-jest.mock('expo-linear-gradient', () => ({ LinearGradient: ({ children }: any) => children }));
+jest.mock('expo-linear-gradient', () => {
+  const { stubComponent } = jest.requireActual<
+    typeof import('@test-utils/mockComponents')
+  >('@test-utils/mockComponents');
+  return {
+    LinearGradient: stubComponent<typeof LinearGradient>('linear-gradient', {
+      render: (p) => p.children,
+    }),
+  };
+});
 jest.mock('react-native-markdown-display', () => {
-  const { Text } = require('react-native');
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
   return ({ children }: { children: string }) => <Text>{children}</Text>;
 });
 jest.mock('@react-native-community/slider', () => {
-  const { View } = require('react-native');
-  return { __esModule: true, default: (props: any) => require('react').createElement(View, props) };
+  const { stubComponent } = jest.requireActual<
+    typeof import('@test-utils/mockComponents')
+  >('@test-utils/mockComponents');
+  return {
+    __esModule: true,
+    default: stubComponent<typeof Slider>('slider', { testID: (p) => p.testID ?? 'slider' }),
+  };
 });
 
 jest.mock('@/utils/markdown', () => ({
@@ -59,44 +78,43 @@ jest.mock('@/hooks/useMessageBubbleAnimation', () => ({
 }));
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const { stubComponent } = jest.requireActual<
+    typeof import('@test-utils/mockComponents')
+  >('@test-utils/mockComponents');
   return {
-    Typography: ({ children }: { children: React.ReactNode }) => React.createElement(Text, null, children),
-    Card: ({ children }: any) => children,
-    GlassCard: ({ children }: any) => children,
-    Button: ({ title }: any) => React.createElement(Text, null, title),
+    Typography: stubComponent<typeof Typography>('typography', { text: (p) => p.children }),
+    Card: stubComponent<typeof Card>('card', { render: (p) => p.children }),
+    GlassCard: stubComponent<typeof GlassCard>('glass-card', { render: (p) => p.children }),
+    Button: stubComponent<typeof Button>('button', { text: (p) => p.title }),
   };
 });
 
 jest.mock('@/components/organisms/common/StreamingIndicator', () => ({
   StreamingIndicator: ({ visible, variant }: { visible: boolean; variant: string }) => {
-    const { Text } = require('react-native');
+    const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
     return visible ? <Text testID={`streaming-${variant}`}>{variant}</Text> : null;
   },
 }));
 
 jest.mock('@/components/molecules/common/LazyMarkdownRenderer', () => ({
   LazyMarkdownRenderer: ({ content }: { content: string }) => {
-    const { Text } = require('react-native');
+    const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
     return <Text>{content}</Text>;
   },
   createMarkdownStyles: jest.fn(() => ({})),
 }));
 
-const { DebateMessageBubble } = require('@/components/molecules/debate/DebateMessageBubble');
-
 describe('DebateMessageBubble', () => {
-  const createMessage = (overrides = {}) => ({
-    id: 'msg-1',
-    aiId: 'claude',
-    role: 'assistant' as const,
-    content: 'Test message content',
-    timestamp: Date.now(),
-    sender: 'Claude (Analytical)',
-    metadata: {},
-    ...overrides,
-  });
+  const createMessage = (overrides: Partial<Message> = {}): Message =>
+    createMockMessage({
+      id: 'msg-1',
+      senderType: 'ai',
+      content: 'Test message content',
+      timestamp: Date.now(),
+      sender: 'Claude (Analytical)',
+      metadata: {},
+      ...overrides,
+    });
 
   const defaultProps = {
     message: createMessage(),
@@ -104,7 +122,7 @@ describe('DebateMessageBubble', () => {
   };
 
   beforeEach(() => {
-    mockUseWindowDimensions.mockReturnValue({ width: 375, height: 812 });
+    mockUseWindowDimensions.mockReturnValue(createMockWindowSize(375, 812));
     resetBackgroundAudioPlaybackForTesting();
     mockStreamingState = {
       content: 'Test message',
@@ -276,7 +294,7 @@ describe('DebateMessageBubble', () => {
       const { getByTestId } = renderWithProviders(
         <DebateMessageBubble message={message} index={0} />
       );
-      const player = mockedUseAudioPlayer.mock.results[0].value;
+      const player = requireDefined(mockedUseAudioPlayer.mock.results[0], 'useAudioPlayer result').value;
 
       fireEvent.press(getByTestId('debate-audio-play'));
 
@@ -382,7 +400,7 @@ describe('DebateMessageBubble', () => {
 
   describe('Responsive Width', () => {
     it('renders correctly on phone', () => {
-      mockUseWindowDimensions.mockReturnValue({ width: 375, height: 812 });
+      mockUseWindowDimensions.mockReturnValue(createMockWindowSize(375, 812));
       const result = renderWithProviders(
         <DebateMessageBubble {...defaultProps} />
       );
@@ -390,7 +408,7 @@ describe('DebateMessageBubble', () => {
     });
 
     it('renders correctly on tablet portrait', () => {
-      mockUseWindowDimensions.mockReturnValue({ width: 768, height: 1024 });
+      mockUseWindowDimensions.mockReturnValue(createMockWindowSize(768, 1024));
       const result = renderWithProviders(
         <DebateMessageBubble {...defaultProps} />
       );
@@ -398,7 +416,7 @@ describe('DebateMessageBubble', () => {
     });
 
     it('renders correctly on tablet landscape', () => {
-      mockUseWindowDimensions.mockReturnValue({ width: 1024, height: 768 });
+      mockUseWindowDimensions.mockReturnValue(createMockWindowSize(1024, 768));
       const result = renderWithProviders(
         <DebateMessageBubble {...defaultProps} />
       );
@@ -409,8 +427,6 @@ describe('DebateMessageBubble', () => {
   describe('Host Messages', () => {
     const hostMessage = createMessage({
       id: 'host-1',
-      aiId: 'system',
-      role: 'system',
       content: 'Welcome to the debate',
       sender: 'Debate Host',
     });
@@ -423,7 +439,7 @@ describe('DebateMessageBubble', () => {
     });
 
     it('renders host message on phone', () => {
-      mockUseWindowDimensions.mockReturnValue({ width: 375, height: 812 });
+      mockUseWindowDimensions.mockReturnValue(createMockWindowSize(375, 812));
       const result = renderWithProviders(
         <DebateMessageBubble message={hostMessage} index={0} />
       );
@@ -431,7 +447,7 @@ describe('DebateMessageBubble', () => {
     });
 
     it('renders host message on tablet', () => {
-      mockUseWindowDimensions.mockReturnValue({ width: 768, height: 1024 });
+      mockUseWindowDimensions.mockReturnValue(createMockWindowSize(768, 1024));
       const result = renderWithProviders(
         <DebateMessageBubble message={hostMessage} index={0} />
       );
@@ -734,8 +750,7 @@ describe('DebateMessageBubble', () => {
 
   describe('Long Content', () => {
     it('uses LazyMarkdownRenderer for long content', () => {
-      const { shouldLazyRender } = require('@/utils/markdown');
-      shouldLazyRender.mockReturnValue(true);
+      jest.mocked(shouldLazyRender).mockReturnValue(true);
 
       const message = createMessage({
         content: 'A'.repeat(5000),

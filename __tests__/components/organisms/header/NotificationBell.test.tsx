@@ -1,17 +1,19 @@
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { capturePropsOf } from '@test-utils/mockComponents';
 import { NotificationBell } from '@/components/organisms/header/NotificationBell';
+import type { HeaderIcon } from '@/components/molecules';
 
-const mockHeaderIcon = jest.fn(() => null);
+const mockHeaderIcon = capturePropsOf<typeof HeaderIcon>();
 
-jest.mock('@/components/molecules', () => {
-  return {
-    HeaderIcon: (props: any) => mockHeaderIcon(props),
-  };
-});
+jest.mock('@/components/molecules', () => ({
+  get HeaderIcon() {
+    return mockHeaderIcon.Stub;
+  },
+}));
 
 describe('NotificationBell', () => {
   beforeEach(() => {
-    mockHeaderIcon.mockClear();
+    mockHeaderIcon.reset();
   });
 
   it('renders HeaderIcon with notifications icon', () => {
@@ -21,7 +23,7 @@ describe('NotificationBell', () => {
       <NotificationBell onPress={onPress} color="#123456" testID="notification" />
     );
 
-    expect(mockHeaderIcon).toHaveBeenCalledWith(expect.objectContaining({
+    expect(mockHeaderIcon.latest()).toEqual(expect.objectContaining({
       name: 'notifications-outline',
       onPress,
       color: '#123456',

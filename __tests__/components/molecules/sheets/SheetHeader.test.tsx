@@ -1,9 +1,10 @@
 import React from 'react';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { SheetHeader } from '@/components/molecules/sheets/SheetHeader';
 
 jest.mock('expo-linear-gradient', () => ({
-  LinearGradient: ({ children }: any) => children,
+  LinearGradient: ({ children }: { children?: React.ReactNode }) => children,
 }));
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }));
@@ -16,8 +17,6 @@ jest.mock('@/components/molecules', () => {
       React.createElement(Text, null, children),
   };
 });
-
-const { SheetHeader } = require('@/components/molecules/sheets/SheetHeader');
 
 describe('SheetHeader', () => {
   it('renders title', () => {

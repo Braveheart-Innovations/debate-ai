@@ -1,18 +1,22 @@
 import React from 'react';
 import { Text, Linking } from 'react-native';
 import { fireEvent, waitFor } from '@testing-library/react-native';
+import TermsOfServiceScreen from '@/screens/TermsOfServiceScreen';
 import { renderWithProviders } from '../../test-utils/renderWithProviders';
+import { capturePropsOf } from '@test-utils/mockComponents';
+import type { Header } from '@/components/organisms';
 
-const mockHeader = jest.fn(({ title, onBack }: { title: string; onBack: () => void }) => (
+const mockHeader = capturePropsOf<typeof Header>(({ title, onBack }) => (
   <Text testID="header" onPress={onBack}>
     {title}
   </Text>
 ));
-const mockHeaderActions = jest.fn(() => null);
 
 jest.mock('@/components/organisms', () => ({
-  Header: (props: any) => mockHeader(props),
-  HeaderActions: () => mockHeaderActions(),
+  get Header() {
+    return mockHeader.Stub;
+  },
+  HeaderActions: () => null,
 }));
 
 jest.mock('@/components/molecules', () => {
@@ -29,18 +33,17 @@ jest.mock('@/components/molecules', () => {
   };
 });
 
-const TermsOfServiceScreen = require('@/screens/TermsOfServiceScreen').default;
-
 describe('TermsOfServiceScreen', () => {
   let navigation: { goBack: jest.Mock };
-  let canOpenSpy: jest.SpyInstance;
-  let openUrlSpy: jest.SpyInstance;
+  let canOpenSpy: jest.SpiedFunction<typeof Linking.canOpenURL>;
+  let openUrlSpy: jest.SpiedFunction<typeof Linking.openURL>;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockHeader.reset();
     navigation = { goBack: jest.fn() };
     canOpenSpy = jest.spyOn(Linking, 'canOpenURL').mockResolvedValue(true);
-    openUrlSpy = jest.spyOn(Linking, 'openURL').mockResolvedValue();
+    openUrlSpy = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -64,6 +67,6 @@ describe('TermsOfServiceScreen', () => {
 
     fireEvent.press(getByTestId('header'));
     expect(navigation.goBack).toHaveBeenCalledTimes(1);
-    expect(mockHeader).toHaveBeenCalledWith(expect.objectContaining({ title: 'Terms of Service' }));
+    expect(mockHeader.calls).toContainEqual(expect.objectContaining({ title: 'Terms of Service' }));
   });
 });

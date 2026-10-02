@@ -1,32 +1,35 @@
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import type { ReactNode } from 'react';
+import type { Circle, Line, Path, Stop } from 'react-native-svg';
+import type { PropsOf } from '@test-utils/mockComponents';
+import type { Typography } from '@/components/molecules/common/Typography';
+import { LineChart } from '@/components/molecules/charts/LineChart';
 
 jest.mock('react-native-svg', () => {
-  const React = require('react');
-  const { View } = require('react-native');
-  const SvgMock = ({ children }: any) => React.createElement(View, null, children);
+  const React = jest.requireActual<typeof import('react')>('react');
+  const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+  const container = ({ children }: { children?: ReactNode }) => React.createElement(View, null, children);
   return {
     __esModule: true,
-    default: SvgMock,
-    Svg: SvgMock,
-    Path: (props: any) => React.createElement(View, props),
-    Circle: (props: any) => React.createElement(View, props),
-    Line: (props: any) => React.createElement(View, props),
-    G: ({ children }: any) => React.createElement(View, null, children),
-    Defs: ({ children }: any) => React.createElement(View, null, children),
-    LinearGradient: ({ children }: any) => React.createElement(View, null, children),
-    Stop: (props: any) => React.createElement(View, props),
+    default: container,
+    Svg: container,
+    Path: (props: PropsOf<typeof Path>) => React.createElement('Path', props),
+    Circle: (props: PropsOf<typeof Circle>) => React.createElement('Circle', props),
+    Line: (props: PropsOf<typeof Line>) => React.createElement('Line', props),
+    G: container,
+    Defs: container,
+    LinearGradient: container,
+    Stop: (props: PropsOf<typeof Stop>) => React.createElement('Stop', props),
   };
 });
 
 jest.mock('@/components/molecules/common/Typography', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = jest.requireActual<typeof import('react')>('react');
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
-    Typography: ({ children }: any) => React.createElement(Text, null, children),
+    Typography: ({ children }: PropsOf<typeof Typography>) => React.createElement(Text, null, children),
   };
 });
-
-const { LineChart } = require('@/components/molecules/charts/LineChart');
 
 describe('LineChart', () => {
   const defaultLines = [

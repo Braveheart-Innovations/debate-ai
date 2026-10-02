@@ -1,10 +1,10 @@
 import React from 'react';
 import { fireEvent } from '@testing-library/react-native';
-import { Text } from 'react-native';
-import useWindowDimensions from 'react-native/Libraries/Utilities/useWindowDimensions';
+import { Text, useWindowDimensions } from 'react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { Header } from '@/components/organisms/common/Header';
 import * as Haptics from 'expo-haptics';
+import { createMockWindowSize } from '@test-utils/fixtures';
 
 jest.mock('expo-haptics', () => ({
   impactAsync: jest.fn(),
@@ -33,8 +33,8 @@ jest.mock('react-native-svg', () => {
   };
 });
 
-const mockUseWindowDimensions = useWindowDimensions as jest.Mock;
-
+// jest.setup.ts mocks the hook module that react-native's `useWindowDimensions` getter returns.
+const mockUseWindowDimensions = jest.mocked(useWindowDimensions);
 jest.mock('@/components/atoms', () => {
   const React = require('react');
   const { View } = require('react-native');
@@ -69,7 +69,7 @@ jest.mock('@/hooks/home/useGreeting', () => ({
 describe('Header', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseWindowDimensions.mockReturnValue({ width: 375, height: 812 });
+    mockUseWindowDimensions.mockReturnValue(createMockWindowSize(375, 812));
   });
 
   it('renders title, subtitle, and back button triggers haptics', () => {
@@ -210,7 +210,7 @@ describe('Header', () => {
   });
 
   it('keeps iPad gradient title and subtitle inside the header bounds', () => {
-    mockUseWindowDimensions.mockReturnValue({ width: 820, height: 1180 });
+    mockUseWindowDimensions.mockReturnValue(createMockWindowSize(820, 1180));
 
     const { getByTestId } = renderWithProviders(
       <Header

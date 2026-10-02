@@ -22,25 +22,15 @@ if ! command -v npm >/dev/null 2>&1; then
   exit 1
 fi
 
-# TypeScript typecheck
+# TypeScript typecheck (app + tests)
 npm run -s typecheck || {
   echo "Typecheck failed. Aborting commit." >&2
-  exit 1
-}
-
-npm run -s typecheck:tests || {
-  echo "Test typecheck budget failed. Aborting commit." >&2
   exit 1
 }
 
 # ESLint
 npm run -s lint || {
   echo "Lint failed. Aborting commit." >&2
-  exit 1
-}
-
-npm run -s lint:any-budget || {
-  echo "Lint warning budget failed. Aborting commit." >&2
   exit 1
 }
 

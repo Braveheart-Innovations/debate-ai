@@ -1,18 +1,19 @@
 import { Text } from 'react-native';
 import { renderWithProviders } from '../../test-utils/renderWithProviders';
 import type { ChatSession } from '@/types';
+import DebateTranscriptScreen from '@/screens/DebateTranscriptScreen';
+import { capturePropsOf } from '@test-utils/mockComponents';
+import type { TranscriptModal } from '@/components/organisms/debate/TranscriptModal';
 
-let lastTranscriptProps: any;
-const mockTranscriptModal = jest.fn((props) => {
-  lastTranscriptProps = props;
-  return <Text testID="transcript">Transcript</Text>;
-});
+const mockTranscriptModal = capturePropsOf<typeof TranscriptModal>(() => (
+  <Text testID="transcript">Transcript</Text>
+));
 
 jest.mock('@/components/organisms/debate/TranscriptModal', () => ({
-  TranscriptModal: (props: any) => mockTranscriptModal(props),
+  get TranscriptModal() {
+    return mockTranscriptModal.Stub;
+  },
 }));
-
-const DebateTranscriptScreen = require('@/screens/DebateTranscriptScreen').default;
 
 describe('DebateTranscriptScreen', () => {
   const navigation = { goBack: jest.fn() };
@@ -20,7 +21,7 @@ describe('DebateTranscriptScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     navigation.goBack.mockClear();
-    lastTranscriptProps = undefined;
+    mockTranscriptModal.reset();
   });
 
   it('passes session data to transcript modal and handles close', () => {
@@ -62,7 +63,7 @@ describe('DebateTranscriptScreen', () => {
     );
 
     expect(getByTestId('transcript')).toBeTruthy();
-    expect(lastTranscriptProps).toMatchObject({
+    expect(mockTranscriptModal.latest()).toMatchObject({
       topic: 'AI Ethics',
       participants: [
         { id: 'ai-1', name: 'Claude' },
@@ -81,12 +82,12 @@ describe('DebateTranscriptScreen', () => {
       ],
     });
 
-    expect(lastTranscriptProps.scores).toMatchObject({
+    expect(mockTranscriptModal.latest().scores).toMatchObject({
       'ai-1': { name: 'Claude', roundWins: 3 },
       'ai-2': { name: 'GPT-5', roundWins: 1 },
     });
 
-    lastTranscriptProps.onClose();
+    mockTranscriptModal.latest().onClose();
     expect(navigation.goBack).toHaveBeenCalledTimes(1);
   });
 
@@ -118,9 +119,9 @@ describe('DebateTranscriptScreen', () => {
       <DebateTranscriptScreen navigation={navigation} route={{ params: { session } }} />
     );
 
-    expect(lastTranscriptProps.topic).toBe('AI Rights');
-    expect(lastTranscriptProps.winner).toEqual({ id: 'ai-2', name: 'GPT-5' });
-    expect(lastTranscriptProps.scores).toMatchObject({
+    expect(mockTranscriptModal.latest().topic).toBe('AI Rights');
+    expect(mockTranscriptModal.latest().winner).toEqual({ id: 'ai-2', name: 'GPT-5' });
+    expect(mockTranscriptModal.latest().scores).toMatchObject({
       'ai-1': { name: 'Claude', roundWins: 2 },
       'ai-2': { name: 'GPT-5', roundWins: 4 },
     });
@@ -155,9 +156,9 @@ describe('DebateTranscriptScreen', () => {
       <DebateTranscriptScreen navigation={navigation} route={{ params: { session } }} />
     );
 
-    expect(lastTranscriptProps.topic).toBe('AI vs Humanity');
-    expect(lastTranscriptProps.winner).toBeUndefined();
-    expect(lastTranscriptProps.scores).toMatchObject({
+    expect(mockTranscriptModal.latest().topic).toBe('AI vs Humanity');
+    expect(mockTranscriptModal.latest().winner).toBeUndefined();
+    expect(mockTranscriptModal.latest().scores).toMatchObject({
       'ai-1': { name: 'Claude', roundWins: 0 },
       'ai-2': { name: 'GPT-5', roundWins: 0 },
     });

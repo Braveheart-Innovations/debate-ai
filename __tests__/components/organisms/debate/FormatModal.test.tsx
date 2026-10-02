@@ -3,25 +3,28 @@
  * Comprehensive tests for the debate format selection modal
  */
 
-import React from 'react';
+import type { ReactNode } from 'react';
+import { Modal, TouchableOpacity } from 'react-native';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
-import { FormatModal } from '@/components/organisms/debate/FormatModal';
-import { DebateFormatId } from '@/config/debate/formats';
+import { FormatModal, type FormatModalProps } from '@/components/organisms/debate/FormatModal';
+import type { SheetHeader, Typography } from '@/components/molecules';
 
 // Mock dependencies
 jest.mock('expo-blur', () => ({
-  BlurView: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  BlurView: ({ children }: { children?: ReactNode }) => <>{children}</>,
 }));
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const { stubComponent } = jest.requireActual<
+    typeof import('@test-utils/mockComponents')
+  >('@test-utils/mockComponents');
   return {
-    Typography: ({ children, ...props }: any) =>
-      React.createElement(Text, { testID: props.testID || 'typography' }, children),
-    SheetHeader: ({ title, onClose }: any) =>
-      React.createElement(Text, { testID: 'sheet-header', onPress: onClose }, title),
+    Typography: stubComponent<typeof Typography>('typography', { text: (p) => p.children }),
+    SheetHeader: stubComponent<typeof SheetHeader>('sheet-header', {
+      onPress: (p) => p.onClose,
+      text: (p) => p.title,
+    }),
   };
 });
 
@@ -29,9 +32,9 @@ describe('FormatModal', () => {
   const mockOnSelect = jest.fn();
   const mockOnClose = jest.fn();
 
-  const defaultProps = {
+  const defaultProps: FormatModalProps = {
     visible: true,
-    selected: 'oxford' as DebateFormatId,
+    selected: 'oxford',
     onSelect: mockOnSelect,
     onClose: mockOnClose,
   };
@@ -158,7 +161,6 @@ describe('FormatModal', () => {
 
     it('calls onClose when backdrop is pressed', () => {
       const { UNSAFE_getAllByType } = renderWithProviders(<FormatModal {...defaultProps} />);
-      const TouchableOpacity = require('react-native').TouchableOpacity;
 
       const touchables = UNSAFE_getAllByType(TouchableOpacity);
       // First TouchableOpacity is the backdrop
@@ -182,7 +184,6 @@ describe('FormatModal', () => {
         <FormatModal {...defaultProps} visible={false} />
       );
 
-      const Modal = require('react-native').Modal;
       const modal = UNSAFE_getByType(Modal);
 
       expect(modal.props.visible).toBe(false);
@@ -193,7 +194,6 @@ describe('FormatModal', () => {
     it('sets correct modal properties for accessibility', () => {
       const { UNSAFE_getByType } = renderWithProviders(<FormatModal {...defaultProps} />);
 
-      const Modal = require('react-native').Modal;
       const modal = UNSAFE_getByType(Modal);
 
       expect(modal.props.animationType).toBe('fade');
@@ -203,7 +203,6 @@ describe('FormatModal', () => {
     it('handles onRequestClose callback', () => {
       const { UNSAFE_getByType } = renderWithProviders(<FormatModal {...defaultProps} />);
 
-      const Modal = require('react-native').Modal;
       const modal = UNSAFE_getByType(Modal);
 
       modal.props.onRequestClose();

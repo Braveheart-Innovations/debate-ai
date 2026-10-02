@@ -35,16 +35,16 @@ jest.mock('react-native', () => {
   RN.Animated.spring = jest.fn(() => ({
     start: jest.fn((callback) => callback && callback()),
   }));
-  RN.Animated.parallel = jest.fn((animations) => ({
-    start: jest.fn((callback) => {
-      animations.forEach((anim: any) => anim.start());
+  RN.Animated.parallel = jest.fn((animations: Array<{ start: () => void }>) => ({
+    start: jest.fn((callback?: () => void) => {
+      animations.forEach((anim) => anim.start());
       callback?.();
     }),
   }));
   return RN;
 });
 
-const { ToastNotification } = require('@/components/molecules/feedback/ToastNotification');
+const { ToastNotification } = require('@/components/molecules/feedback/ToastNotification') as typeof import('@/components/molecules/feedback/ToastNotification');
 
 describe('Error System Integration', () => {
   beforeEach(() => {

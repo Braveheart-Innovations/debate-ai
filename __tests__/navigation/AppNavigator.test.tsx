@@ -5,7 +5,18 @@ import { renderWithProviders } from '../../test-utils/renderWithProviders';
 import { createAppStore } from '@/store';
 import type { RootState } from '@/store';
 
-let mockNavigationContainerProps: Record<string, unknown> | undefined;
+/**
+ * What the NavigationContainer stub records. AppNavigator's onStateChange projects
+ * whatever it receives through sanitizeNavigationStateForPersistence (typed
+ * `unknown`), so tests feed it minimal partial states, not full NavigationState.
+ */
+type CapturedContainerProps = {
+  children: React.ReactNode;
+  initialState?: unknown;
+  onStateChange?: (state: unknown) => void;
+};
+
+let mockNavigationContainerProps: CapturedContainerProps | undefined;
 const mockLifecycleHandlers: Array<Record<string, unknown>> = [];
 const mockLifecycleStart = jest.fn();
 const mockLifecycleRegister = jest.fn((handler: Record<string, unknown>) => {
@@ -33,8 +44,8 @@ jest.mock('react-native-view-shot', () => ({
 }));
 
 jest.mock('@react-navigation/native', () => ({
-  NavigationContainer: (props: { children: React.ReactNode }) => {
-    mockNavigationContainerProps = props as unknown as Record<string, unknown>;
+  NavigationContainer: (props: CapturedContainerProps) => {
+    mockNavigationContainerProps = props;
     return <>{props.children}</>;
   },
   DefaultTheme: {},
@@ -134,10 +145,19 @@ jest.mock('@/hooks/usePersonality', () => ({
   usePersonalityById: () => null,
 }));
 
-const AppNavigator = require('@/navigation/AppNavigator').default;
 const {
+  default: AppNavigator,
   sanitizeNavigationStateForPersistence,
-} = require('@/navigation/AppNavigator');
+} = require('@/navigation/AppNavigator') as typeof import('@/navigation/AppNavigator');
+
+/** Fires the onStateChange handler AppNavigator passed to NavigationContainer. */
+const emitStateChange = (state: unknown) => {
+  const onStateChange = mockNavigationContainerProps?.onStateChange;
+  if (!onStateChange) {
+    throw new Error('NavigationContainer was rendered without onStateChange');
+  }
+  onStateChange(state);
+};
 
 const mainTabsStateFor = (activeTab: string) => ({
   name: 'MainTabs',
@@ -161,7 +181,6 @@ describe('AppNavigator', () => {
     theme: 'auto',
     fontSize: 'medium',
     apiKeys: {},
-    realtimeRelayUrl: undefined,
     verifiedProviders: [],
     verificationTimestamps: {},
     verificationModels: {},
@@ -369,7 +388,7 @@ describe('AppNavigator', () => {
     await waitFor(() => {
       expect(mockNavigationContainerProps?.onStateChange).toBeDefined();
     });
-    (mockNavigationContainerProps?.onStateChange as (state: unknown) => void)(currentState);
+    emitStateChange(currentState);
 
     await expect(AsyncStorage.getItem('navigationState_v2')).resolves.toBe(JSON.stringify({
       index: 1,
@@ -412,7 +431,7 @@ describe('AppNavigator', () => {
     await waitFor(() => {
       expect(mockNavigationContainerProps?.onStateChange).toBeDefined();
     });
-    (mockNavigationContainerProps?.onStateChange as (state: unknown) => void)(currentState);
+    emitStateChange(currentState);
 
     const raw = await AsyncStorage.getItem('navigationState_v2');
     expect(raw).toBe(JSON.stringify({
@@ -444,7 +463,7 @@ describe('AppNavigator', () => {
     await waitFor(() => {
       expect(mockNavigationContainerProps?.onStateChange).toBeDefined();
     });
-    (mockNavigationContainerProps?.onStateChange as (state: unknown) => void)({
+    emitStateChange({
       index: 0,
       routes: [{ name: 'NotARealRoute', params: { blob: 'x'.repeat(1024) } }],
     });

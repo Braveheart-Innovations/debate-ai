@@ -1,26 +1,27 @@
-import { View } from 'react-native';
+import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { capturePropsOf } from '@test-utils/mockComponents';
 import { AppLogo } from '@/components/organisms/common/AppLogo';
 import { AI_PROVIDERS } from '@/config/aiProviders';
+import type { LinearGradient } from 'expo-linear-gradient';
+import type { MaterialCommunityIcons } from '@expo/vector-icons';
 
-const mockGradientCalls: any[] = [];
-const mockIconCalls: any[] = [];
+const mockGradient = capturePropsOf<typeof LinearGradient>((props) => (
+  <View {...props}>{props.children}</View>
+));
+const mockIcon = capturePropsOf<typeof MaterialCommunityIcons>();
 
 jest.mock('expo-linear-gradient', () => ({
   __esModule: true,
-  LinearGradient: (props: any) => {
-    const React = require('react');
-    const { View } = require('react-native');
-    mockGradientCalls.push(props);
-    return React.createElement(View, props, props.children);
+  get LinearGradient() {
+    return mockGradient.Stub;
   },
 }));
 
 jest.mock('@expo/vector-icons', () => ({
   __esModule: true,
-  MaterialCommunityIcons: (props: any) => {
-    mockIconCalls.push(props);
-    return null;
+  get MaterialCommunityIcons() {
+    return mockIcon.Stub;
   },
 }));
 
@@ -28,12 +29,11 @@ jest.mock('@/components/molecules', () => ({}));
 
 describe('AppLogo', () => {
   beforeEach(() => {
-    mockGradientCalls.length = 0;
-    mockIconCalls.length = 0;
+    mockGradient.reset();
+    mockIcon.reset();
   });
 
-  const extractStyle = (style: unknown) =>
-    Array.isArray(style) ? Object.assign({}, ...style) : (style || {});
+  const extractStyle = (style: StyleProp<ViewStyle>): ViewStyle => StyleSheet.flatten(style) ?? {};
 
   it('renders orbit nodes for each provider color', () => {
     const { UNSAFE_queryAllByType } = renderWithProviders(<AppLogo size={120} />);
@@ -57,13 +57,13 @@ describe('AppLogo', () => {
   it('passes gradient colors and icon sizing based on the provided size', () => {
     renderWithProviders(<AppLogo size={200} />);
 
-    expect(mockGradientCalls.length).toBeGreaterThan(0);
-    const gradientProps = mockGradientCalls[0];
+    expect(mockGradient.calls.length).toBeGreaterThan(0);
+    const gradientProps = mockGradient.calls[0];
     expect(Array.isArray(gradientProps.colors)).toBe(true);
     expect(gradientProps.colors.length).toBeGreaterThan(0);
 
-    expect(mockIconCalls.length).toBeGreaterThan(0);
-    const iconProps = mockIconCalls[0];
+    expect(mockIcon.calls.length).toBeGreaterThan(0);
+    const iconProps = mockIcon.calls[0];
     expect(iconProps).toMatchObject({ name: 'brain', color: 'white', size: 200 * 0.16 });
   });
 });

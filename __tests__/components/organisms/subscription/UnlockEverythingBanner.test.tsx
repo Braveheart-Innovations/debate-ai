@@ -1,26 +1,29 @@
-import React from 'react';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import type { LinearGradient } from 'expo-linear-gradient';
+import type { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
+import type { PropsOf } from '@test-utils/mockComponents';
+import type { Typography } from '@/components/molecules';
 import { UnlockEverythingBanner } from '@/components/organisms/subscription/UnlockEverythingBanner';
 
 jest.mock('expo-linear-gradient', () => {
-  const { View } = require('react-native');
+  const { View } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
-    LinearGradient: ({ children }: any) => <View>{children}</View>,
+    LinearGradient: ({ children }: PropsOf<typeof LinearGradient>) => <View>{children}</View>,
   };
 });
 
 jest.mock('@expo/vector-icons', () => {
-  const { Text } = require('react-native');
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
-    MaterialIcons: ({ children }: any) => <Text>{children}</Text>,
-    MaterialCommunityIcons: ({ children }: any) => <Text>{children}</Text>,
+    MaterialIcons: ({ children }: PropsOf<typeof MaterialIcons>) => <Text>{children}</Text>,
+    MaterialCommunityIcons: ({ children }: PropsOf<typeof MaterialCommunityIcons>) => <Text>{children}</Text>,
   };
 });
 
 jest.mock('@/components/molecules', () => {
-  const { Text } = require('react-native');
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
-    Typography: ({ children }: { children: React.ReactNode }) => <Text>{children}</Text>,
+    Typography: ({ children }: PropsOf<typeof Typography>) => <Text>{children}</Text>,
   };
 });
 

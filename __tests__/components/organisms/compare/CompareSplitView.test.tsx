@@ -1,33 +1,38 @@
 import { Text } from 'react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { CompareSplitView } from '@/components/organisms/compare/CompareSplitView';
-import type { AIConfig, Message } from '@/types';
+import { capturePropsOf } from '@test-utils/mockComponents';
+import { createMockAIConfig, createMockAIMessage } from '@test-utils/fixtures';
+import type { CompareResponsePane } from '@/components/organisms/compare/CompareResponsePane';
 
-const mockResponsePane = jest.fn((props: any) => (
+const mockResponsePane = capturePropsOf<typeof CompareResponsePane>((props) => (
   <Text testID={`pane-${props.side}`}>{props.ai.name}</Text>
 ));
 
 jest.mock('@/components/organisms/compare/CompareResponsePane', () => ({
-  CompareResponsePane: (props: any) => mockResponsePane(props),
+  get CompareResponsePane() {
+    return mockResponsePane.Stub;
+  },
 }));
 
-const baseAI: AIConfig = {
+const baseAI = createMockAIConfig({
   id: 'ai',
   name: 'Test AI',
   provider: 'claude',
   model: 'haiku',
-};
+});
 
-const leftAI: AIConfig = { ...baseAI, id: 'left', name: 'Left AI' };
-const rightAI: AIConfig = { ...baseAI, id: 'right', name: 'Right AI' };
+const leftAI = { ...baseAI, id: 'left', name: 'Left AI' };
+const rightAI = { ...baseAI, id: 'right', name: 'Right AI' };
 
-const messages: Message[] = [
-  { id: 'm1', sender: 'Left', senderType: 'ai', content: 'Hi', timestamp: 1 },
+const messages = [
+  createMockAIMessage({ id: 'm1', sender: 'Left', content: 'Hi', timestamp: 1 }),
 ];
 
 describe('CompareSplitView', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockResponsePane.reset();
   });
 
   it('renders both panes in split view', () => {
@@ -53,8 +58,8 @@ describe('CompareSplitView', () => {
 
     expect(getByTestId('pane-left')).toBeTruthy();
     expect(getByTestId('pane-right')).toBeTruthy();
-    expect(mockResponsePane).toHaveBeenNthCalledWith(1, expect.objectContaining({ side: 'left', isExpanded: false, onReportContent }));
-    expect(mockResponsePane).toHaveBeenNthCalledWith(2, expect.objectContaining({ side: 'right', isExpanded: false, isDisabled: false, onReportContent }));
+    expect(mockResponsePane.calls[0]).toEqual(expect.objectContaining({ side: 'left', isExpanded: false, onReportContent }));
+    expect(mockResponsePane.calls[1]).toEqual(expect.objectContaining({ side: 'right', isExpanded: false, isDisabled: false, onReportContent }));
   });
 
   it('renders only left pane in left-only mode', () => {
@@ -99,8 +104,7 @@ describe('CompareSplitView', () => {
       />
     );
 
-    const lastCall = mockResponsePane.mock.calls.pop();
-    expect(lastCall?.[0]).toEqual(expect.objectContaining({ side: 'right', isExpanded: true, isDisabled: true }));
+    expect(mockResponsePane.latest()).toEqual(expect.objectContaining({ side: 'right', isExpanded: true, isDisabled: true }));
   });
 
   // Note: Image state props tests removed - image generation moved to Create mode

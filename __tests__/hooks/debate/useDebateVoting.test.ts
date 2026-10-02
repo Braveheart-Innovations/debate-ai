@@ -1,16 +1,53 @@
 import { act } from '@testing-library/react-native';
 import { useDebateVoting } from '@/hooks/debate/useDebateVoting';
-import type { DebateEvent, ScoreBoard } from '@/services/debate';
-import type { RootState } from '@/store';
+import {
+  DebateOrchestrator,
+  DebateStatus,
+  VotingService,
+  type DebateEvent,
+  type DebateEventHandler,
+  type DebateSession,
+  type ScoreBoard,
+  type VoteRecord,
+} from '@/services/debate';
+import { AIService } from '@/services/aiAdapter';
 import { startDebate } from '@/store';
+import type { AI } from '@/types';
+import { getFormat, getPresetForFormat } from '@/config/debate/formats';
 import { renderHookWithProviders } from '../../../test-utils/renderHookWithProviders';
+import type { RootStateOverrides } from '../../../test-utils/services/state';
 
+const createDebateSession = (overrides: Partial<DebateSession> = {}): DebateSession => {
+  const preset = getPresetForFormat('oxford', 'short');
+  return {
+    id: 'debate-1',
+    topic: 'AI',
+    participants: [],
+    personalities: {},
+    startTime: 0,
+    status: DebateStatus.ACTIVE,
+    currentRound: 1,
+    messageCount: 0,
+    messageIndex: 0,
+    currentAIIndex: 0,
+    totalRounds: 3,
+    totalMessages: preset.messages.length,
+    civility: 3,
+    format: getFormat('oxford'),
+    preset,
+    presetId: preset.id,
+    stances: {},
+    ...overrides,
+  };
+};
+
+/** A real VotingService whose read methods are stubbed from mutable test fields. */
 class MockVotingService {
   public prompt = 'Who had the stronger opening?';
   public scores: ScoreBoard = {
     claude: { name: 'Claude', roundWins: 1, roundsWon: [1], isOverallWinner: false },
   };
-  public voteRecords = [
+  public voteRecords: VoteRecord[] = [
     {
       round: 1,
       winnerId: 'claude',
@@ -21,60 +58,55 @@ class MockVotingService {
     },
   ];
   public voted = new Set<number>();
+  public readonly instance = new VotingService([], getPresetForFormat('oxford', 'short'));
 
-  calculateScores = jest.fn(() => this.scores);
-  getVotingPrompt = jest.fn(() => this.prompt);
-  getVoteCriterion = jest.fn(() => 'Opening: choose who framed the motion more clearly.');
-  getAudienceVotingPrompt = jest.fn((stage: string) => `${stage} audience prompt`);
-  getAudienceVoteCriterion = jest.fn((stage: string) => `${stage} audience criterion`);
-  getVotingLabel = jest.fn(() => 'Opening');
-  getVoteRecords = jest.fn(() => this.voteRecords);
-  hasVotedForRound = jest.fn((round: number) => this.voted.has(round));
+  calculateScores = jest.spyOn(this.instance, 'calculateScores').mockImplementation(() => this.scores);
+  getVotingPrompt = jest.spyOn(this.instance, 'getVotingPrompt').mockImplementation(() => this.prompt);
+  getVoteCriterion = jest
+    .spyOn(this.instance, 'getVoteCriterion')
+    .mockImplementation(() => 'Opening: choose who framed the motion more clearly.');
+  getAudienceVotingPrompt = jest
+    .spyOn(this.instance, 'getAudienceVotingPrompt')
+    .mockImplementation((stage) => `${stage} audience prompt`);
+  getAudienceVoteCriterion = jest
+    .spyOn(this.instance, 'getAudienceVoteCriterion')
+    .mockImplementation((stage) => `${stage} audience criterion`);
+  getVotingLabel = jest.spyOn(this.instance, 'getVotingLabel').mockImplementation(() => 'Opening');
+  getVoteRecords = jest.spyOn(this.instance, 'getVoteRecords').mockImplementation(() => this.voteRecords);
+  hasVotedForRound = jest
+    .spyOn(this.instance, 'hasVotedForRound')
+    .mockImplementation((round) => this.voted.has(round));
 }
 
-type EventHandler = (event: DebateEvent) => void;
-
+/**
+ * A real DebateOrchestrator (no AI keys) with its voting service, vote recording,
+ * session, and event bus stubbed so tests can drive the hook by emitting events.
+ */
 class MockOrchestrator {
+  public readonly instance = new DebateOrchestrator(new AIService());
   public votingService = new MockVotingService();
-  public session = {
-    status: 'active',
-    currentRound: 1,
-    totalRounds: 3,
-  };
-  public recordVote = jest.fn(async () => undefined);
-  private handlers = new Set<EventHandler>();
+  public session = createDebateSession();
+  public recordVote = jest.spyOn(this.instance, 'recordVote').mockResolvedValue(undefined);
+  private handlers = new Set<DebateEventHandler>();
 
-  addEventListener(handler: EventHandler) {
-    this.handlers.add(handler);
-  }
-
-  removeEventListener(handler: EventHandler) {
-    this.handlers.delete(handler);
+  constructor() {
+    jest.spyOn(this.instance, 'getVotingService').mockImplementation(() => this.votingService.instance);
+    jest.spyOn(this.instance, 'getSession').mockImplementation(() => this.session);
+    jest.spyOn(this.instance, 'addEventListener').mockImplementation((handler) => {
+      this.handlers.add(handler);
+    });
+    jest.spyOn(this.instance, 'removeEventListener').mockImplementation((handler) => {
+      this.handlers.delete(handler);
+    });
   }
 
   emit(event: DebateEvent) {
     this.handlers.forEach(handler => handler(event));
   }
-
-  getVotingService() {
-    return this.votingService;
-  }
-
-  getSession() {
-    return this.session;
-  }
-
-  getCurrentAudienceVoteStage() {
-    return undefined;
-  }
-
-  getCurrentVoteIndex() {
-    return undefined;
-  }
 }
 
 describe('useDebateVoting', () => {
-  const baseState = {} as Partial<RootState>;
+  const baseState: RootStateOverrides = {};
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -82,7 +114,7 @@ describe('useDebateVoting', () => {
 
   it('updates voting state from orchestrator events and records votes', async () => {
     const orchestrator = new MockOrchestrator();
-    const { result, store } = renderHookWithProviders(() => useDebateVoting(orchestrator as unknown as never, []), {
+    const { result, store } = renderHookWithProviders(() => useDebateVoting(orchestrator.instance, []), {
       preloadedState: baseState,
     });
 
@@ -170,7 +202,7 @@ describe('useDebateVoting', () => {
 
   it('handles Oxford audience stance voting without recording round winners', async () => {
     const orchestrator = new MockOrchestrator();
-    const { result, store } = renderHookWithProviders(() => useDebateVoting(orchestrator as unknown as never, []), {
+    const { result, store } = renderHookWithProviders(() => useDebateVoting(orchestrator.instance, []), {
       preloadedState: baseState,
     });
 
@@ -227,12 +259,12 @@ describe('useDebateVoting', () => {
   });
 
   it('handles missing orchestrator, vote failures, and helper fallbacks', async () => {
-    let currentOrchestrator: MockOrchestrator | null = null;
-    const participants = [];
+    const participants: AI[] = [];
+    const initialProps: { orchestrator: DebateOrchestrator | null } = { orchestrator: null };
 
     const { result, rerender } = renderHookWithProviders(
-      () => useDebateVoting(currentOrchestrator as unknown as MockOrchestrator | null, participants),
-      { preloadedState: baseState },
+      ({ orchestrator }) => useDebateVoting(orchestrator, participants),
+      { initialProps, preloadedState: baseState },
     );
 
     expect(result.current.getVotingPrompt()).toBe('');
@@ -247,10 +279,8 @@ describe('useDebateVoting', () => {
 
     const orchestrator = new MockOrchestrator();
     orchestrator.recordVote.mockRejectedValueOnce(new Error('vote-failed'));
-    currentOrchestrator = orchestrator;
-
     await act(async () => {
-      rerender();
+      rerender({ orchestrator: orchestrator.instance });
       await Promise.resolve();
     });
 

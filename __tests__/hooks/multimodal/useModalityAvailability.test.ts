@@ -10,10 +10,8 @@ import * as providerCapabilities from '@/config/providerCapabilities';
 jest.mock('@/config/modelConfigs');
 jest.mock('@/config/providerCapabilities');
 
-const mockGetModelById = modelConfigs.getModelById as jest.MockedFunction<typeof modelConfigs.getModelById>;
-const mockGetProviderCapabilities = providerCapabilities.getProviderCapabilities as jest.MockedFunction<
-  typeof providerCapabilities.getProviderCapabilities
->;
+const mockGetModelById = jest.mocked(modelConfigs.getModelById);
+const mockGetProviderCapabilities = jest.mocked(providerCapabilities.getProviderCapabilities);
 
 describe('useModalityAvailability - Web Search', () => {
   beforeEach(() => {
@@ -33,7 +31,6 @@ describe('useModalityAvailability - Web Search', () => {
       });
 
       mockGetProviderCapabilities.mockReturnValue({
-        streaming: true,
         imageGeneration: { supported: false },
       });
 
@@ -52,7 +49,6 @@ describe('useModalityAvailability - Web Search', () => {
       });
 
       mockGetProviderCapabilities.mockReturnValue({
-        streaming: true,
         imageGeneration: { supported: false },
       });
 
@@ -71,7 +67,6 @@ describe('useModalityAvailability - Web Search', () => {
       });
 
       mockGetProviderCapabilities.mockReturnValue({
-        streaming: true,
         imageGeneration: { supported: false },
       });
 
@@ -100,7 +95,6 @@ describe('useModalityAvailability - Web Search', () => {
         });
 
       mockGetProviderCapabilities.mockReturnValue({
-        streaming: true,
         imageGeneration: { supported: false },
       });
 
@@ -130,7 +124,6 @@ describe('useModalityAvailability - Web Search', () => {
         });
 
       mockGetProviderCapabilities.mockReturnValue({
-        streaming: true,
         imageGeneration: { supported: false },
       });
 
@@ -154,7 +147,6 @@ describe('useModalityAvailability - Web Search', () => {
       });
 
       mockGetProviderCapabilities.mockReturnValue({
-        streaming: true,
         imageGeneration: { supported: false },
       });
 

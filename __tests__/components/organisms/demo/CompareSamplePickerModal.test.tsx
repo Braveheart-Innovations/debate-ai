@@ -1,6 +1,8 @@
-import React from 'react';
+import type { ReactNode } from 'react';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import type { ReactTestInstance } from 'react-test-renderer';
 import { CompareSamplePickerModal } from '@/components/organisms/demo/CompareSamplePickerModal';
+import type { SheetHeader, Typography } from '@/components/molecules';
 
 const mockTheme = {
   spacing: { xs: 4, sm: 8, md: 12, lg: 16 },
@@ -20,11 +22,10 @@ const mockTheme = {
 };
 
 jest.mock('@/theme', () => {
-  const actual = jest.requireActual('@/theme');
-  const React = require('react');
+  const actual = jest.requireActual<typeof import('@/theme')>('@/theme');
   return {
     ...actual,
-    ThemeProvider: ({ children }: { children: React.ReactNode }) => React.createElement(React.Fragment, null, children),
+    ThemeProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
     useTheme: () => ({ theme: mockTheme }),
   };
 });
@@ -38,47 +39,46 @@ jest.mock('@testing-library/react-native/build/helpers/host-component-names', ()
     scrollView: 'ScrollView',
     modal: 'Modal',
   };
-  const matches = (element: any, key: keyof typeof hostComponentNames) => element?.type === hostComponentNames[key];
+  const matches = (element: ReactTestInstance | null | undefined, key: keyof typeof hostComponentNames) => element?.type === hostComponentNames[key];
   return {
     configureHostComponentNamesIfNeeded: () => {},
     getHostComponentNames: () => hostComponentNames,
-    isHostText: (element: any) => matches(element, 'text'),
-    isHostTextInput: (element: any) => matches(element, 'textInput'),
-    isHostImage: (element: any) => matches(element, 'image'),
-    isHostSwitch: (element: any) => matches(element, 'switch'),
-    isHostScrollView: (element: any) => matches(element, 'scrollView'),
-    isHostModal: (element: any) => matches(element, 'modal'),
+    isHostText: (element?: ReactTestInstance | null) => matches(element, 'text'),
+    isHostTextInput: (element?: ReactTestInstance | null) => matches(element, 'textInput'),
+    isHostImage: (element?: ReactTestInstance | null) => matches(element, 'image'),
+    isHostSwitch: (element?: ReactTestInstance | null) => matches(element, 'switch'),
+    isHostScrollView: (element?: ReactTestInstance | null) => matches(element, 'scrollView'),
+    isHostModal: (element?: ReactTestInstance | null) => matches(element, 'modal'),
   };
 });
 
 jest.mock('react-native/Libraries/Modal/Modal', () => {
-  const React = require('react');
-  const { View } = require('react-native');
-  return ({ children }: { children: React.ReactNode }) =>
-    React.createElement(View, { testID: 'modal-wrapper' }, children);
+  const RN = jest.requireActual<typeof import('react-native')>('react-native');
+  return ({ children }: { children?: ReactNode }) => (
+    <RN.View testID="modal-wrapper">{children}</RN.View>
+  );
 });
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text, View } = require('react-native');
+  const { stubComponent } = jest.requireActual<
+    typeof import('@test-utils/mockComponents')
+  >('@test-utils/mockComponents');
+  const RN = jest.requireActual<typeof import('react-native')>('react-native');
   return {
-    Typography: ({ children }: { children: React.ReactNode }) => React.createElement(Text, null, children),
-    SheetHeader: ({ title, onClose }: { title: string; onClose: () => void }) =>
-      React.createElement(
-        View,
-        null,
-        React.createElement(Text, null, title),
-        React.createElement(Text, { onPress: onClose }, 'close')
-      ),
+    Typography: stubComponent<typeof Typography>('typography', { text: (p) => p.children }),
+    SheetHeader: stubComponent<typeof SheetHeader>('sheet-header', {
+      text: (p) => p.title,
+      render: (p) => <RN.Text onPress={p.onClose}>close</RN.Text>,
+    }),
   };
 });
 
-const mockListCompareSamples = jest.fn();
-const mockSubscribe = jest.fn(() => jest.fn());
+const mockListCompareSamples = jest.fn<Array<{ id: string; title: string }>, [string[]]>();
+const mockSubscribe = jest.fn<() => void, [() => void]>(() => jest.fn());
 
 jest.mock('@/services/demo/DemoContentService', () => ({
   DemoContentService: {
-    listCompareSamples: (...args: any[]) => mockListCompareSamples(...args),
+    listCompareSamples: (providers: string[]) => mockListCompareSamples(providers),
     subscribe: (callback: () => void) => mockSubscribe(callback),
   },
 }));
@@ -89,7 +89,7 @@ describe('CompareSamplePickerModal', () => {
   });
 
   it('renders samples and invokes onSelect', async () => {
-    mockListCompareSamples.mockResolvedValue([
+    mockListCompareSamples.mockReturnValue([
       { id: 'sample-1', title: 'Sample One' },
     ]);
 
@@ -112,7 +112,7 @@ describe('CompareSamplePickerModal', () => {
   });
 
   it('shows empty state when no samples returned', async () => {
-    mockListCompareSamples.mockResolvedValue([]);
+    mockListCompareSamples.mockReturnValue([]);
 
     const { getByText } = render(
       <CompareSamplePickerModal

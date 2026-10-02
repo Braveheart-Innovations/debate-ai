@@ -1,7 +1,10 @@
 import React from 'react';
 import { Text } from 'react-native';
 import { fireEvent } from '@testing-library/react-native';
+import WelcomeScreen from '@/screens/WelcomeScreen';
 import { renderWithProviders } from '../../test-utils/renderWithProviders';
+import { capturePropsOf } from '@test-utils/mockComponents';
+import type { GradientButton } from '@/components/molecules';
 
 jest.mock('expo-linear-gradient', () => {
   const { View } = require('react-native');
@@ -19,7 +22,7 @@ jest.mock('@expo/vector-icons', () => {
   };
 });
 
-const mockGradientButton = jest.fn(({ title, onPress }: { title: string; onPress: () => void }) => (
+const mockGradientButton = capturePropsOf<typeof GradientButton>(({ title, onPress }) => (
   <Text accessibilityRole="button" onPress={onPress}>
     {title}
   </Text>
@@ -28,26 +31,29 @@ const mockGradientButton = jest.fn(({ title, onPress }: { title: string; onPress
 jest.mock('@/components/molecules', () => {
   const { Text } = require('react-native');
   return {
-    GradientButton: (props: any) => mockGradientButton(props),
+    get GradientButton() {
+      return mockGradientButton.Stub;
+    },
     Typography: ({ children }: { children: React.ReactNode }) => <Text>{children}</Text>,
   };
 });
 
-const WelcomeScreen = require('@/screens/WelcomeScreen').default;
-
 describe('WelcomeScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockGradientButton.reset();
   });
 
   it('marks onboarding complete when CTA is pressed', () => {
-    const { getByText, store } = renderWithProviders(<WelcomeScreen />);
+    const { getByText, store } = renderWithProviders(
+      <WelcomeScreen navigation={{ replace: jest.fn() }} />
+    );
 
     expect(store.getState().settings.hasCompletedOnboarding).toBe(false);
 
     fireEvent.press(getByText('Start Your AI Journey'));
 
     expect(store.getState().settings.hasCompletedOnboarding).toBe(true);
-    expect(mockGradientButton).toHaveBeenCalledWith(expect.objectContaining({ title: 'Start Your AI Journey' }));
+    expect(mockGradientButton.calls).toContainEqual(expect.objectContaining({ title: 'Start Your AI Journey' }));
   });
 });

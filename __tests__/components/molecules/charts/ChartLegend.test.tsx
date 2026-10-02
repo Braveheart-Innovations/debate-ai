@@ -1,15 +1,16 @@
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import type { PropsOf } from '@test-utils/mockComponents';
+import type { Typography } from '@/components/molecules/common/Typography';
+import { ChartLegend } from '@/components/molecules/charts/ChartLegend';
 import { fireEvent } from '@testing-library/react-native';
 
 jest.mock('@/components/molecules/common/Typography', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = jest.requireActual<typeof import('react')>('react');
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
-    Typography: ({ children }: any) => React.createElement(Text, null, children),
+    Typography: ({ children }: PropsOf<typeof Typography>) => React.createElement(Text, null, children),
   };
 });
-
-const { ChartLegend } = require('@/components/molecules/charts/ChartLegend');
 
 describe('ChartLegend', () => {
   const defaultItems = [

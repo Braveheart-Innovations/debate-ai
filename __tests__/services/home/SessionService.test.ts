@@ -4,8 +4,9 @@ jest.mock('@/utils/home/sessionIdGenerator', () => ({
 
 import { SessionService } from '@/services/home/SessionService';
 import { generateSimpleSessionId } from '@/utils/home/sessionIdGenerator';
+import { createMockAIConfig } from '@test-utils/fixtures';
 
-const baseAI = {
+const baseAI = createMockAIConfig({
   id: 'claude',
   provider: 'claude',
   name: 'Claude',
@@ -15,7 +16,7 @@ const baseAI = {
   icon: 'icon',
   iconType: 'letter',
   color: '#fff',
-};
+});
 
 describe('SessionService', () => {
   it('creates sessions with generated IDs and timestamps', () => {

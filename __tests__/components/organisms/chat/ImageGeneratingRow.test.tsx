@@ -1,6 +1,9 @@
 import React from 'react';
+import { View } from 'react-native';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { createMockAIMessage } from '@test-utils/fixtures';
+import { requireDefined } from '@test-utils/queries';
 import { ImageGeneratingRow } from '@/components/organisms/chat/ImageGeneratingRow';
 import type { Message } from '@/types';
 
@@ -21,14 +24,14 @@ describe('ImageGeneratingRow', () => {
   const mockOnRetry = jest.fn();
 
   // Use a getter so timestamp is fresh for each test
-  const getBaseMessage = (): Message => ({
-    id: 'msg1',
-    text: 'Generate an image',
-    sender: 'Claude',
-    senderId: 'claude',
-    timestamp: Date.now(),
-    metadata: {},
-  });
+  const getBaseMessage = (): Message =>
+    createMockAIMessage({
+      id: 'msg1',
+      content: 'Generate an image',
+      sender: 'Claude',
+      timestamp: Date.now(),
+      metadata: {},
+    });
 
   let baseMessage: Message;
 
@@ -171,11 +174,15 @@ describe('ImageGeneratingRow', () => {
   });
 
   it('handles onLayout event for container width', () => {
-    const { UNSAFE_getByType } = renderWithProviders(
+    const { UNSAFE_getAllByType } = renderWithProviders(
       <ImageGeneratingRow message={baseMessage} onCancel={mockOnCancel} />
     );
 
-    const view = UNSAFE_getByType('View');
+    // The skeleton View measures the container width via onLayout.
+    const view = requireDefined(
+      UNSAFE_getAllByType(View).find((node) => typeof node.props.onLayout === 'function'),
+      'onLayout view'
+    );
     fireEvent(view, 'layout', {
       nativeEvent: { layout: { width: 300, height: 200 } },
     });

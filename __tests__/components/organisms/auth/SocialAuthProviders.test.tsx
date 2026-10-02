@@ -67,38 +67,95 @@ jest.mock('@/services/firebase/auth', () => ({
 const originalPlatform = Platform.OS;
 const originalDev = __DEV__;
 
+const mockIsAppleAuthAvailable = jest.mocked(AppleAuthentication.isAvailableAsync);
+const mockSignInWithApple = jest.mocked(signInWithApple);
+const mockSignInWithGoogle = jest.mocked(signInWithGoogle);
+const mockToAuthUser = jest.mocked(toAuthUser);
+
+/** `__DEV__` is a declared global constant; tests flip the runtime value. */
+const setDev = (value: boolean) => {
+  Reflect.set(globalThis, '__DEV__', value);
+};
+
+type SocialSignInResult = Awaited<ReturnType<typeof signInWithApple>>;
+type FirebaseUser = SocialSignInResult['user'];
+type SignInProfile = SocialSignInResult['profile'];
+
+/** Raw Firebase user handed to (mocked) toAuthUser; only uid matters to these tests. */
+const createFirebaseUser = (overrides: Partial<FirebaseUser> = {}): FirebaseUser => ({
+  uid: 'firebase-user',
+  displayName: null,
+  email: null,
+  phoneNumber: null,
+  photoURL: null,
+  providerId: 'firebase',
+  emailVerified: false,
+  isAnonymous: false,
+  metadata: {},
+  providerData: [],
+  refreshToken: '',
+  tenantId: null,
+  delete: jest.fn(),
+  getIdToken: jest.fn(),
+  getIdTokenResult: jest.fn(),
+  reload: jest.fn(),
+  toJSON: jest.fn(),
+  ...overrides,
+});
+
+const createSignInProfile = (overrides: Partial<SignInProfile> = {}): SignInProfile => ({
+  uid: 'firebase-user',
+  email: null,
+  displayName: null,
+  photoURL: null,
+  createdAt: null,
+  membershipStatus: 'free',
+  isPremium: false,
+  authProvider: 'firebase',
+  preferences: {},
+  ...overrides,
+});
+
+const createAuthUser = (uid: string): ReturnType<typeof toAuthUser> => ({
+  uid,
+  email: null,
+  displayName: null,
+  photoURL: null,
+  emailVerified: false,
+});
+
 describe('SocialAuthProviders', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockHandleError.mockClear();
     Object.defineProperty(Platform, 'OS', { value: originalPlatform });
-    (AppleAuthentication.isAvailableAsync as jest.Mock).mockReset();
-    (signInWithApple as jest.Mock).mockReset();
-    (signInWithGoogle as jest.Mock).mockReset();
-    (toAuthUser as jest.Mock).mockReset();
-    (global as any).__DEV__ = originalDev;
+    mockIsAppleAuthAvailable.mockReset();
+    mockSignInWithApple.mockReset();
+    mockSignInWithGoogle.mockReset();
+    mockToAuthUser.mockReset();
+    setDev(originalDev);
   });
 
   afterAll(() => {
     Object.defineProperty(Platform, 'OS', { value: originalPlatform });
-    (global as any).__DEV__ = originalDev;
+    setDev(originalDev);
   });
 
   it('renders Apple sign-in on iOS when available and handles success', async () => {
     Object.defineProperty(Platform, 'OS', { value: 'ios' });
-    (AppleAuthentication.isAvailableAsync as jest.Mock).mockResolvedValue(true);
-    (signInWithApple as jest.Mock).mockResolvedValue({
-      user: { uid: 'apple-user-raw', isAnonymous: false },
-      profile: {
+    mockIsAppleAuthAvailable.mockResolvedValue(true);
+    mockSignInWithApple.mockResolvedValue({
+      user: createFirebaseUser({ uid: 'apple-user-raw', isAnonymous: false }),
+      profile: createSignInProfile({
         email: 'apple@example.com',
         displayName: 'Apple User',
         photoURL: 'photo.png',
         createdAt: 1700000000000,
         membershipStatus: 'premium',
         preferences: { theme: 'dark' },
-      },
+      }),
     });
-    (toAuthUser as jest.Mock).mockReturnValue({ uid: 'apple-user', isAnonymous: false });
+    mockToAuthUser.mockReturnValue(createAuthUser('apple-user'));
 
     const onSuccess = jest.fn();
     const { findByTestId, store } = renderWithProviders(
@@ -122,17 +179,17 @@ describe('SocialAuthProviders', () => {
 
   it('falls back to Google sign-in and updates state on success', async () => {
     Object.defineProperty(Platform, 'OS', { value: 'android' });
-    (signInWithGoogle as jest.Mock).mockResolvedValue({
-      user: { uid: 'google-user-raw', isAnonymous: false },
-      profile: {
+    mockSignInWithGoogle.mockResolvedValue({
+      user: createFirebaseUser({ uid: 'google-user-raw', isAnonymous: false }),
+      profile: createSignInProfile({
         email: 'google@example.com',
         displayName: 'Google User',
         photoURL: 'gphoto.png',
         membershipStatus: 'free',
         preferences: { locale: 'en' },
-      },
+      }),
     });
-    (toAuthUser as jest.Mock).mockReturnValue({ uid: 'google-user', isAnonymous: false });
+    mockToAuthUser.mockReturnValue(createAuthUser('google-user'));
 
     const onSuccess = jest.fn();
     const { getByTestId, store } = renderWithProviders(
@@ -155,7 +212,7 @@ describe('SocialAuthProviders', () => {
   it('invokes error callback and shows error toast when Google sign-in fails', async () => {
     Object.defineProperty(Platform, 'OS', { value: 'android' });
     const error = new Error('Network issue');
-    (signInWithGoogle as jest.Mock).mockRejectedValue(error);
+    mockSignInWithGoogle.mockRejectedValue(error);
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     const onError = jest.fn();
@@ -180,8 +237,8 @@ describe('SocialAuthProviders', () => {
 
   it('shows simulator notice when Apple auth unavailable in dev', async () => {
     Object.defineProperty(Platform, 'OS', { value: 'ios' });
-    (global as any).__DEV__ = true;
-    (AppleAuthentication.isAvailableAsync as jest.Mock).mockResolvedValue(false);
+    setDev(true);
+    mockIsAppleAuthAvailable.mockResolvedValue(false);
     const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
     const { findByText } = renderWithProviders(<SocialAuthProviders />);

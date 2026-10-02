@@ -3,15 +3,17 @@
  * Comprehensive tests for the preset topics selection modal
  */
 
-import React from 'react';
+import type { ReactNode } from 'react';
+import { Modal, TouchableOpacity } from 'react-native';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { PresetTopicsModal } from '@/components/organisms/debate/PresetTopicsModal';
 import { TopicService } from '@/services/debate/TopicService';
+import type { Button, SheetHeader, Typography } from '@/components/molecules';
 
 // Mock dependencies
 jest.mock('expo-blur', () => ({
-  BlurView: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  BlurView: ({ children }: { children?: ReactNode }) => <>{children}</>,
 }));
 
 jest.mock('@/services/debate/TopicService', () => ({
@@ -30,21 +32,20 @@ jest.mock('@/services/debate/TopicService', () => ({
 }));
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text, TouchableOpacity } = require('react-native');
+  const { stubComponent } = jest.requireActual<
+    typeof import('@test-utils/mockComponents')
+  >('@test-utils/mockComponents');
   return {
-    Typography: ({ children, ...props }: any) =>
-      React.createElement(Text, { testID: props.testID || 'typography' }, children),
-    SheetHeader: ({ title, onClose }: any) =>
-      React.createElement(TouchableOpacity, { testID: 'sheet-header', onPress: onClose },
-        React.createElement(Text, null, title)
-      ),
-    Button: ({ title, onPress, variant }: any) =>
-      React.createElement(TouchableOpacity, {
-        testID: `category-${title.toLowerCase().replace(/\s+/g, '-')}`,
-        onPress,
-        'data-variant': variant,
-      }, React.createElement(Text, null, title)),
+    Typography: stubComponent<typeof Typography>('typography', { text: (p) => p.children }),
+    SheetHeader: stubComponent<typeof SheetHeader>('sheet-header', {
+      onPress: (p) => p.onClose,
+      text: (p) => p.title,
+    }),
+    Button: stubComponent<typeof Button>('button', {
+      testID: (p) => `category-${p.title.toLowerCase().replace(/\s+/g, '-')}`,
+      onPress: (p) => p.onPress,
+      text: (p) => p.title,
+    }),
   };
 });
 
@@ -110,7 +111,6 @@ describe('PresetTopicsModal', () => {
         <PresetTopicsModal {...defaultProps} visible={false} />
       );
 
-      const Modal = require('react-native').Modal;
       const modal = UNSAFE_getByType(Modal);
 
       expect(modal.props.visible).toBe(false);
@@ -128,7 +128,6 @@ describe('PresetTopicsModal', () => {
 
     it('calls onClose when backdrop is pressed', () => {
       const { UNSAFE_getAllByType } = renderWithProviders(<PresetTopicsModal {...defaultProps} />);
-      const TouchableOpacity = require('react-native').TouchableOpacity;
 
       const touchables = UNSAFE_getAllByType(TouchableOpacity);
       // First TouchableOpacity is the backdrop
@@ -147,7 +146,7 @@ describe('PresetTopicsModal', () => {
     });
 
     it('switches categories when category chip is pressed', () => {
-      (TopicService.getTopicsByCategory as jest.Mock)
+      jest.mocked(TopicService.getTopicsByCategory)
         .mockReturnValueOnce(['Is pineapple on pizza acceptable?'])
         .mockReturnValueOnce(['AI topic 1', 'AI topic 2']);
 
@@ -167,7 +166,7 @@ describe('PresetTopicsModal', () => {
     it('updates topics when category changes', () => {
       const { getByTestId } = renderWithProviders(<PresetTopicsModal {...defaultProps} />);
 
-      (TopicService.getTopicsByCategory as jest.Mock).mockClear();
+      jest.mocked(TopicService.getTopicsByCategory).mockClear();
 
       fireEvent.press(getByTestId('category-technology'));
 
@@ -238,7 +237,6 @@ describe('PresetTopicsModal', () => {
     it('sets correct modal properties for accessibility', () => {
       const { UNSAFE_getByType } = renderWithProviders(<PresetTopicsModal {...defaultProps} />);
 
-      const Modal = require('react-native').Modal;
       const modal = UNSAFE_getByType(Modal);
 
       expect(modal.props.animationType).toBe('fade');
@@ -248,7 +246,6 @@ describe('PresetTopicsModal', () => {
     it('handles onRequestClose callback', () => {
       const { UNSAFE_getByType } = renderWithProviders(<PresetTopicsModal {...defaultProps} />);
 
-      const Modal = require('react-native').Modal;
       const modal = UNSAFE_getByType(Modal);
 
       modal.props.onRequestClose();
@@ -259,7 +256,7 @@ describe('PresetTopicsModal', () => {
 
   describe('Edge Cases', () => {
     it('handles empty categories array', () => {
-      (TopicService.getCategories as jest.Mock).mockReturnValueOnce([]);
+      jest.mocked(TopicService.getCategories).mockReturnValueOnce([]);
 
       const { getByText } = renderWithProviders(<PresetTopicsModal {...defaultProps} />);
 
@@ -267,7 +264,7 @@ describe('PresetTopicsModal', () => {
     });
 
     it('handles empty topics array', () => {
-      (TopicService.getTopicsByCategory as jest.Mock).mockReturnValueOnce([]);
+      jest.mocked(TopicService.getTopicsByCategory).mockReturnValueOnce([]);
 
       const { getByText } = renderWithProviders(<PresetTopicsModal {...defaultProps} />);
 

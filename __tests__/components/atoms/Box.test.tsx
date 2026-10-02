@@ -1,14 +1,9 @@
 import { render } from '@testing-library/react-native';
-import { Text } from 'react-native';
+import { StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native';
 import { Box } from '@/components/atoms/layout/Box';
 
-// Helper to extract first style object from style array
-const getStyle = (styleArray: any) => {
-  if (Array.isArray(styleArray)) {
-    return Object.assign({}, ...styleArray.filter(Boolean));
-  }
-  return styleArray;
-};
+// Helper to merge a (possibly nested / falsy-holed) style array into one object
+const getStyle = (style: StyleProp<ViewStyle>): ViewStyle => StyleSheet.flatten(style);
 
 describe('Box', () => {
   it('renders children correctly', () => {

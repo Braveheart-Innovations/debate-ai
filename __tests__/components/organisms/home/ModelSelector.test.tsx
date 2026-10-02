@@ -2,14 +2,15 @@ import React from 'react';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { ModelSelector } from '@/components/organisms/home/ModelSelector';
+import { capturePropsOf } from '@test-utils/mockComponents';
 import type { ModelConfig } from '@/config/modelConfigs';
+import type { ActualPricing } from '@/components/organisms/subscription/ActualPricing';
 
-const mockActualPricing = jest.fn(() => null);
+const mockActualPricing = capturePropsOf<typeof ActualPricing>();
 
 jest.mock('@/components/organisms/subscription/ActualPricing', () => ({
-  ActualPricing: (props: any) => {
-    mockActualPricing(props);
-    return null;
+  get ActualPricing() {
+    return mockActualPricing.Stub;
   },
 }));
 
@@ -52,6 +53,7 @@ const models: ModelConfig[] = [
 describe('ModelSelector', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockActualPricing.reset();
   });
 
   it('toggles model selection on press', () => {
@@ -82,7 +84,7 @@ describe('ModelSelector', () => {
       />
     );
 
-    expect(mockActualPricing).toHaveBeenCalledWith(expect.objectContaining({
+    expect(mockActualPricing.latest()).toEqual(expect.objectContaining({
       inputPricePerM: 1,
       outputPricePerM: 2,
       freeInfo: 'Free usage',

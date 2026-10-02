@@ -1,4 +1,6 @@
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { ProviderFeatures } from '@/components/molecules/api-config/ProviderFeatures';
+import { malformed } from '@test-utils/queries';
 
 jest.mock('@/components/molecules/common/Badge', () => ({
   Badge: ({ label }: { label: string }) => {
@@ -8,7 +10,6 @@ jest.mock('@/components/molecules/common/Badge', () => ({
   },
 }));
 
-const { ProviderFeatures } = require('@/components/molecules/api-config/ProviderFeatures');
 
 describe('ProviderFeatures', () => {
   const mockFeatures = ['Chat', 'Image Generation', 'Voice', 'Code', 'Analysis'];
@@ -44,10 +45,10 @@ describe('ProviderFeatures', () => {
 
   it('renders nothing when features is null or undefined', () => {
     const { queryByTestId: query1 } = renderWithProviders(
-      <ProviderFeatures features={null as any} testID="provider-features-1" />
+      <ProviderFeatures features={malformed<string[]>(null, 'features missing from provider data')} testID="provider-features-1" />
     );
     const { queryByTestId: query2 } = renderWithProviders(
-      <ProviderFeatures features={undefined as any} testID="provider-features-2" />
+      <ProviderFeatures features={malformed<string[]>(undefined, 'features missing from provider data')} testID="provider-features-2" />
     );
 
     expect(query1('provider-features-1')).toBeNull();
