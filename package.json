@@ -122,7 +122,7 @@
     "react-syntax-highlighter": "^16.1.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.25.2",
+    "@babel/core": "^8.0.6",
     "@eslint-community/eslint-plugin-eslint-comments": "^4.8.1",
     "@eslint/compat": "^2.1.1",
     "@eslint/js": "^9.33.0",
