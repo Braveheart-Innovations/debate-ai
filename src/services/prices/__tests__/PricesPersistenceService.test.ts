@@ -352,6 +352,88 @@ describe('PricesPersistenceService', () => {
 
         expect(result.monthly.trial).toBeUndefined();
       });
+
+      it('should report the base price, not the intro price, for a trial -> intro -> base offer', async () => {
+        const mockSubscription: Partial<ProductSubscriptionAndroid> = {
+          id: 'symposiumai_monthly',
+          subscriptionOfferDetailsAndroid: [
+            createOffer('trial-intro-offer', [
+              {
+                priceAmountMicros: '0',
+                billingPeriod: 'P1W',
+                formattedPrice: 'Free',
+                priceCurrencyCode: 'USD',
+                recurrenceMode: 2,
+                billingCycleCount: 1,
+              },
+              {
+                priceAmountMicros: '2990000',
+                billingPeriod: 'P1M',
+                formattedPrice: '$2.99',
+                priceCurrencyCode: 'USD',
+                recurrenceMode: 2,
+                billingCycleCount: 6,
+              },
+              {
+                priceAmountMicros: '5990000',
+                billingPeriod: 'P1M',
+                formattedPrice: '$5.99',
+                priceCurrencyCode: 'USD',
+                recurrenceMode: 1,
+                billingCycleCount: 0,
+              },
+            ]),
+          ],
+        };
+
+        mockFetchProducts.mockImplementation(({ type }: { skus: string[]; type: string }) => {
+          if (type === 'subs') return Promise.resolve([mockSubscription]);
+          return Promise.resolve([]);
+        });
+
+        const result = await fetchAndPersistPrices();
+
+        expect(result.monthly.localizedPrice).toBe('$5.99');
+        expect(result.monthly.price).toBe('5.99');
+        expect(result.monthly.intro).toEqual({ localizedPrice: '$2.99', durationText: '6 months' });
+        expect(result.monthly.trial?.durationText).toBe('1 week');
+      });
+
+      it('should not set intro when the trial goes straight to the base price', async () => {
+        const mockSubscription: Partial<ProductSubscriptionAndroid> = {
+          id: 'symposiumai_annual',
+          subscriptionOfferDetailsAndroid: [
+            createOffer('trial-offer', [
+              {
+                priceAmountMicros: '0',
+                billingPeriod: 'P1W',
+                formattedPrice: 'Free',
+                priceCurrencyCode: 'USD',
+                recurrenceMode: 2,
+                billingCycleCount: 1,
+              },
+              {
+                priceAmountMicros: '49990000',
+                billingPeriod: 'P1Y',
+                formattedPrice: '$49.99',
+                priceCurrencyCode: 'USD',
+                recurrenceMode: 1,
+                billingCycleCount: 0,
+              },
+            ]),
+          ],
+        };
+
+        mockFetchProducts.mockImplementation(({ type }: { skus: string[]; type: string }) => {
+          if (type === 'subs') return Promise.resolve([mockSubscription]);
+          return Promise.resolve([]);
+        });
+
+        const result = await fetchAndPersistPrices();
+
+        expect(result.annual.localizedPrice).toBe('$49.99');
+        expect(result.annual.intro).toBeUndefined();
+      });
     });
 
     describe('iOS trial extraction', () => {
@@ -477,7 +559,7 @@ describe('PricesPersistenceService', () => {
       await fetchAndPersistPrices();
 
       expect(mockSetItem).toHaveBeenCalledWith(
-        '@store_prices',
+        '@store_prices_v2',
         expect.any(String)
       );
 
