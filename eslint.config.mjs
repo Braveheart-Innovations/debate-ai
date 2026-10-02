@@ -42,6 +42,21 @@ export default tseslint.config(
     },
   },
   {
+    // Test-support code is held to the src bar: no `any` budget here. Only
+    // require() is allowed, since jest.mock factories are hoisted above imports.
+    files: ['jest.setup.ts', 'jest.setupAfterEnv.ts', 'test-utils/**/*.{ts,tsx}', '__mocks__/**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+    },
+  },
+  {
+    files: ['__mocks__/**/*.js'],
+    languageOptions: {
+      sourceType: 'commonjs',
+      globals: { module: 'writable' },
+    },
+  },
+  {
     ignores: ['node_modules/', 'dist/', '.expo/', 'babel.config.js', 'metro.config.js'],
   }
 );

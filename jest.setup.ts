@@ -94,7 +94,11 @@ jest.mock('@expo/vector-icons', () => {
 jest.mock('react-native/Libraries/Modal/Modal', () => {
   const React = require('react');
 
-  const ModalMock = ({ children, visible = true, ...rest }: any = {}) => {
+  const ModalMock = ({
+    children,
+    visible = true,
+    ...rest
+  }: { children?: import('react').ReactNode; visible?: boolean; [prop: string]: unknown } = {}) => {
     if (!visible) return null;
     return React.createElement('Modal', { hardwareAccelerated: false, ...rest, visible }, children);
   };
@@ -107,10 +111,8 @@ jest.mock('react-native/Libraries/Modal/Modal', () => {
 
 const modalModule = require('react-native/Libraries/Modal/Modal');
 if (!modalModule) {
-  // eslint-disable-next-line no-console
   console.warn('Modal mock missing module', modalModule);
 } else if (!(modalModule as { default?: unknown }).default) {
-  // eslint-disable-next-line no-console
   console.warn('Modal mock missing default', Object.keys(modalModule));
 }
 
