@@ -25,6 +25,7 @@ import { getFirestore, doc, getDoc } from '@react-native-firebase/firestore';
 import { TrialBanner } from '@/components/molecules/subscription/TrialBanner';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { useStorePrices } from '@/hooks/useStorePrices';
+import { describePostTrialPricing } from '@/utils/subscriptionTerms';
 import PurchaseService from '@/services/iap/PurchaseService';
 import { deleteAccount } from '@/services/firebase/accountDeletion';
 import { ErrorService } from '@/services/errors/ErrorService';
@@ -623,7 +624,7 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({
             {/* Trial Terms Disclosure - Required for Play Store compliance */}
             <View style={[styles.trialTerms, { backgroundColor: theme.colors.surface }]}>
               <Typography variant="caption" color="secondary" style={styles.trialTermsText}>
-                {trialDuration} free trial ends {trialEndDate}. Then {monthly.localizedPrice}/month unless canceled. Cancel anytime: {cancelInstructions}
+                {trialDuration} free trial ends {trialEndDate}. Then {describePostTrialPricing(monthly, 'month')} unless canceled. Cancel anytime: {cancelInstructions}
               </Typography>
             </View>
           </View>

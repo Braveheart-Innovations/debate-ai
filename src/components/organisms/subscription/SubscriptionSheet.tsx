@@ -6,6 +6,7 @@ import { GradientButton, Button, Typography } from "@/components/molecules";
 import { useTheme } from "@/theme";
 import { PurchaseService } from "@/services/iap/PurchaseService";
 import { useStorePrices } from "@/hooks/useStorePrices";
+import { describeRenewal, firstChargePrice } from "@/utils/subscriptionTerms";
 import { useFeatureAccess } from "@/hooks/useFeatureAccess";
 import { ENABLED_API_CONFIG_PROVIDER_COUNT } from "@/config/apiConfigProviders";
 import { ErrorService } from "@/services/errors/ErrorService";
@@ -89,10 +90,10 @@ export const SubscriptionSheet: React.FC<SubscriptionSheetProps> = ({
               {'\u2022'} {trialDuration} free trial ends on {trialEndDate}
             </Typography>
             <Typography variant="caption" color="secondary" style={{ marginBottom: 4 }}>
-              {'\u2022'} First charge: {monthly.localizedPrice} on {trialEndDate} unless canceled
+              {'\u2022'} First charge: {firstChargePrice(monthly)} on {trialEndDate} unless canceled
             </Typography>
             <Typography variant="caption" color="secondary" style={{ marginBottom: 4 }}>
-              {'\u2022'} Subscription auto-renews monthly at {monthly.localizedPrice}
+              {'\u2022'} {describeRenewal(monthly, 'month')}
             </Typography>
             <Typography variant="caption" color="secondary">
               {'\u2022'} Cancel anytime: {cancelInstructions}
