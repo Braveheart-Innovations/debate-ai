@@ -58,9 +58,11 @@ src/
 
 ### Quality Checks (MUST PASS BEFORE ANY COMMIT)
 ```bash
-npx tsc --noEmit        # TypeScript compilation - ZERO errors allowed
-npm run lint            # ESLint - ZERO errors or warnings allowed
+npm run check:app       # The CI gate: typecheck (app + tests), lint (all scopes, zero warnings),
+                        # debt budgets, and Jest. Run this, not tsc/lint alone.
+npm run check:functions # When functions/ changed: build + tests
 ```
+Debt budgets (`lint:any-budget`, `typecheck:tests`, `lint:escape-hatches`) are strict ratchets: they fail if a count rises **or** falls below its ceiling. When you reduce debt, lower the ceiling to the printed count in the same commit. The plan to drive every counter to zero is `docs/TECH_DEBT_CLEANUP_PLAN.md`.
 
 ### Running the App
 ```bash
@@ -88,6 +90,13 @@ npm run android        # Run on Android emulator
 - ✅ All components must follow atomic design principles
 - ✅ Commit only clean, working code
 - ✅ Test affected screens after changes
+
+### Testing Conventions
+- **No new escape hatches anywhere**, including test stubs: no `any`, `as unknown as`, `@ts-expect-error`, skipped tests, or `eslint-disable` without a `-- reason`.
+- **Component stubs** in `jest.mock` factories: use `stubComponent` / `capturePropsOf` from `@test-utils/mockComponents` (props typed from the real component), never `(props: any) =>`.
+- **Domain fixtures**: use the `createMock*` builders in `@test-utils/fixtures` (`AIConfig`, `Message`, `ChatSession`, `MessageAttachment`, debate speech, scoreboard, user, auth state) instead of hand-written object literals.
+- **Mocked functions**: `jest.mocked(fn)`, not `fn as unknown as jest.Mock`.
+- **Store state**: `renderWithProviders(ui, { preloadedState: { auth: { isPremium: true } } })` — per-slice partial overrides are merged into the real initial state.
 
 ### Git Commit Format
 ```
