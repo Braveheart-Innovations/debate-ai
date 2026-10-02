@@ -6,6 +6,9 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
+
+const ts = createRequire(import.meta.url)('typescript');
 
 const BUDGETS = {
   'src: `as unknown as`': 0,
@@ -15,6 +18,9 @@ const BUDGETS = {
   'tests: skipped or todo tests': 0,
   'tests: untyped require() of app modules': 0,
   'tests: untyped require() of packages': 0,
+  'src: single `as` casts': 521,
+  'tests: single `as` casts': 415,
+  'tests: untyped bare jest.fn()': 1577,
   'tests: malformed() inputs': 7,
 };
 const CODE = /\.(ts|tsx)$/;
@@ -47,6 +53,55 @@ const PACKAGE_REQUIRE = /require(?:Actual|Mock)?\(\s*['"](?!@\/|@test-utils\/|\.
 const countUntyped = (pattern) => (text) =>
   text.split('\n').filter((line) => pattern.test(line) && !TYPED_REQUIRE.test(line)).length;
 
+// AST-based counters (regex can't tell `import * as X` from a cast).
+const parse = (text, file) =>
+  ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+
+const isConstAssertion = (type) => ts.isTypeReferenceNode(type) && type.typeName.getText() === 'const';
+const isTypeofImport = (type) => ts.isImportTypeNode(type) && type.isTypeOf;
+const isUnknown = (type) => type.kind === ts.SyntaxKind.UnknownKeyword;
+
+/**
+ * Single type assertions (`x as T`, `<T>x`). Excluded: `as const`, the sanctioned
+ * `require(...) as typeof import(...)`, and `as unknown as` pairs (counted separately).
+ */
+const countSingleCasts = (text, file) => {
+  let count = 0;
+  const visit = (node) => {
+    if (ts.isAsExpression(node) || ts.isTypeAssertionExpression(node)) {
+      let inner = node.expression;
+      while (ts.isParenthesizedExpression(inner)) inner = inner.expression;
+      const partOfDoubleCast =
+        isUnknown(node.type) || ((ts.isAsExpression(inner) || ts.isTypeAssertionExpression(inner)) && isUnknown(inner.type));
+      if (!partOfDoubleCast && !isConstAssertion(node.type) && !isTypeofImport(node.type)) count += 1;
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(parse(text, file));
+  return count;
+};
+
+/** `jest.fn()` with neither type arguments nor an implementation is `jest.Mock<any, any>`. */
+const countBareJestFn = (text, file) => {
+  let count = 0;
+  const visit = (node) => {
+    if (
+      ts.isCallExpression(node) &&
+      node.arguments.length === 0 &&
+      !node.typeArguments &&
+      ts.isPropertyAccessExpression(node.expression) &&
+      node.expression.name.text === 'fn' &&
+      ts.isIdentifier(node.expression.expression) &&
+      node.expression.expression.text === 'jest'
+    ) {
+      count += 1;
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(parse(text, file));
+  return count;
+};
+
 const counters = {
   'src: `as unknown as`': { pattern: /\bas unknown as\b/g, scope: (f) => !isTestPath(f) },
   'tests: `as unknown as`': { pattern: /\bas unknown as\b/g, scope: isTestPath },
@@ -60,6 +115,9 @@ const counters = {
   'tests: untyped require() of packages': { count: countUntyped(PACKAGE_REQUIRE), scope: isTestPath },
   // The sanctioned way to feed type-forbidden input to runtime guards
   // (test-utils/queries.ts). Not a target of 0 — kept visible and deliberate.
+  'src: single `as` casts': { count: countSingleCasts, scope: (f) => !isTestPath(f) },
+  'tests: single `as` casts': { count: countSingleCasts, scope: isTestPath },
+  'tests: untyped bare jest.fn()': { count: countBareJestFn, scope: isTestPath },
   'tests: malformed() inputs': {
     pattern: /\bmalformed</g,
     scope: (f) => isTestPath(f) && f !== 'test-utils/queries.ts',
@@ -74,7 +132,7 @@ for (const [name, { pattern, count: countFn, scope }] of Object.entries(counters
   for (const file of files) {
     if (file === selfRelative || !scope(file)) continue;
     const text = readFileSync(file, 'utf8');
-    const count = countFn ? countFn(text) : (text.match(pattern)?.length ?? 0);
+    const count = countFn ? countFn(text, file) : (text.match(pattern)?.length ?? 0);
     if (count > 0) hits.push([file, count]);
   }
   const count = hits.reduce((sum, [, n]) => sum + n, 0);

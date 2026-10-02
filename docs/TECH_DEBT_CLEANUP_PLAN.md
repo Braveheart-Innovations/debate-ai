@@ -22,18 +22,21 @@
 | C1 | `as any` / `no-explicit-any` disables in `src/` | ✅ **0** (Phase 0) | — | `no-explicit-any` error + `lint:escape-hatches` |
 | C2 | `as unknown as` in `src/` | ✅ **0** (Phase 3) | — | Hard lint error (`no-restricted-syntax`) + ratchet at 0 |
 | C3 | Other `eslint-disable` in `src/` | ✅ **3**, each with a `-- reason` (Phase 0) | `nativeModule.ts` lazy IAP require, `PromptDebugLogger` verbatim dump, `citationUtils` NUL-delimiter regex | Ratchet + `require-description` |
+| C4 | Single `as` casts in `src/` (`x as T`, `<T>x`; excl. `as const`, typed requires) | **521** | hotspots: `CompareScreen` 40, `markdownSelectable` 37, `ChatGPTAdapter` 28, `PurchaseService` 23, `useDebateFlow` 21, `createSlice` 21, `MediaGenerationService` 20, `ChatOrchestrator` 14. Mostly inline `as { … }` / `as Record<string, unknown>` on parsed API/JSON data, string → union narrowing (`as AIProvider`, `as ProviderId`) with no check, and style casts (`as TextStyle`) | Ratchet (`lint:escape-hatches`, AST-counted) |
 | D1 | `as unknown as` in tests | **117** | `__tests__/`, `src/**/__tests__` | Ratchet (`lint:escape-hatches`) |
 | D2 | `@ts-expect-error` / `@ts-ignore` / `@ts-nocheck` | ✅ **0** | — | Hard lint error (`ban-ts-comment`) |
 | D3 | Skipped tests | ✅ **0**: `validatePurchase` harness ported to Functions v2 and un-skipped | — | Ratchet at 0 (`lint:escape-hatches`) |
 | D4 | Untyped `require()` of app modules in tests | ✅ **0** (typed-requires batch) | — | Ratchet at 0 (`lint:escape-hatches`) |
 | D6 | Untyped `require()` of packages in tests | ✅ **0** (330 sites typed; vendor jest-setup entry points without type declarations are exempt) | — | Ratchet at 0 (`lint:escape-hatches`) |
+| D7 | Single `as` casts in tests | **415** | hotspots: `DebateOrchestrator.test` 38, `ImageService.test` 35, `ImageUploadModal.test` 31, `MediaGenerationService.test` 17 | Ratchet (AST-counted) |
+| D8 | Untyped bare `jest.fn()` in tests | **1577** | a `jest.fn()` with neither type arguments nor an implementation is `jest.Mock<any, any>` — an `any` the lint rule can't see. Hotspots: `DebateOrchestrator.test` 84, `DebateScreen.test` 70, `jest.setup.ts` 65, `ChatScreen.test` 62, `CompareScreen.test` 45. Fix: `jest.fn<Return, Args>()`, an implementation, or `jest.mocked` on a real import | Ratchet (AST-counted) |
 | D5 | `malformed()` inputs | 7 | the sanctioned, counted way to feed type-forbidden values to runtime guards (`@test-utils/queries`); not a 0 target — each must have a reason, and an unreachable guard should be deleted with its test | Ratchet (`lint:escape-hatches`) |
-| E | `functions/` has no ESLint | 61 explicit `any`, 3 disables | `functions/src` | Only `tsc` (strict) + tests |
+| E | `functions/` has no ESLint | 61 explicit `any`, 7 `as unknown as`, 3 disables | `functions/src` | Only `tsc` (strict) + tests |
 | F | Dead code / stale TODOs | 2 orphaned components, 4 TODOs | `ImageGenerationModal`, `SubscriptionSheet`; `SubscriptionService` (3 "implement purchase logic" TODOs while `PurchaseService` is the real path), `analytics/index.ts:90` (ChatScreen's dead TODOs and commented-out video handler removed in Phase 0) | ❌ none |
-| G1 | Dependabot backlog | 10 open PRs | oldest #99 (Jun 1), #144 (Aug 1), #174; 7 opened 2026-10-01 incl. majors (`@babel/core` 8, `firebase-admin` 14, RN group) | ❌ none |
+| G1 | Dependabot backlog | 10 open PRs | stale: #99 (`jest`, Jun 1), #144 (RNTL 14, Aug 1), #174 (Sep 25); 7 opened 2026-10-01: #180 RN group (24 updates), #181 `@babel/core` 8, #182 `firebase-admin` 14, #183 `google-auth-library` 11, #184 `firebase-functions` 7.4, #185 `@google-cloud/tasks` 7, #186 `vega-embed` | ❌ none |
 | G2 | Audit allowlist | 4 advisories | `image-size` ×2 (metro), `decode-uri-component` (react-navigation), `node-forge` (Expo CLI, unpatched) | Documented with removal triggers |
 | G3 | Redundant direct pin | 1 | root `package.json` `"node-forge": "^1.3.3"` (forced a transitive version in 2025; nothing imports it) | ❌ none |
-| H | Convention drift | 5 test files under `src/` | `src/hooks/__tests__`, `src/errors/__tests__`, `src/services/errors/__tests__` | ❌ none |
+| H | Convention drift: test files under `src/` | **42** (the earlier "5" missed most) | `src/services/ai/adapters/__tests__` 9, `src/store` 4, `src/services/stats` 4, `src/services/history` 3, `src/services` 3, `src/errors` 3, `src/utils` 2, `src/services/iap` 2, … | ❌ none |
 
 ## Phases
 
@@ -81,11 +84,12 @@ C1 and C3 were cleared in Phase 0: the `as any`s were unnecessary (`'ping'` was 
 
 **Exit:** `src/` budgets 0; inline `as unknown as` banned in `src/` via `no-restricted-syntax`.
 
-### Phase 4: Test hygiene, D1–D3, H → 0
-- D1: finish converting casts to `jest.mocked` / typed builders. Ban `as unknown as` in tests via lint once at 0.
-- D2: replace each `@ts-expect-error` with a typed alternative (e.g. `jest.replaceProperty`, typed `globalThis` overrides).
-- D3: implement Functions v2 callable mocking for `validatePurchase` or move that coverage into `functions/test`. No `describe.skip` left. The live-model suites (`liveModelRouting`, `liveGroupChat`) are intentionally gated on API keys. Keep them, but give them a named `describe.live` helper so they aren't counted as skips.
-- H: move the 5 `src/**/__tests__` files into `__tests__/` and add a lint rule rejecting test files under `src/`.
+### Phase 4: Test hygiene, D1, D7, D8, H → 0
+D2 (TS suppressions) and D3 (skipped tests) are done. Remaining:
+- **D8 bare `jest.fn()` (1577):** give every mock its signature — `jest.fn<Return, Args>()`, an implementation, or `jest.mocked(realImport)`. Start with `jest.setup.ts` (65; shared by every test) and the screen/orchestrator hotspots. Add a lint rule or keep the counter at 0 once there.
+- **D1 `as unknown as` (117) and D7 single casts (415)** in tests: same tools — builders, `jest.mocked`, typed fakes (`capturePropsOf`, the `AIService`/Functions harnesses). Ban `as unknown as` in tests via the same `no-restricted-syntax` rule as `src/` once D1 is 0.
+- **H (42 files):** move `src/**/__tests__` into `__tests__/` mirroring the source path, then add a lint/CI rule rejecting test files under `src/`.
+- Do these file by file with the Phase 1/2 batch method (parallel agents, per-file baseline parity, cast review).
 
 ### Phase 5: `functions/` lint, E → 0
 `functions/` is shared with web-repo work, so coordinate before starting.
@@ -97,7 +101,7 @@ C1 and C3 were cleared in Phase 0: the `as any`s were unnecessary (`'ping'` was 
 ### Phase 6: Dead code and TODOs, F → 0
 - Verify and delete `SubscriptionService` + `useSubscriptionSettings` if `PurchaseService` fully replaced them (the TODOs say the purchase logic was never implemented there).
 - Delete or wire up `ImageGenerationModal` and `SubscriptionSheet` (orphan scan).
-- Resolve the `ChatScreen` continuation TODOs (implement or remove the dead params) and the analytics TODO (backend decision or delete).
+- Resolve the analytics TODO (`analytics/index.ts:90`: backend decision or delete). The `ChatScreen` continuation TODOs were removed in Phase 0.
 - Add `node scripts/find-orphaned-components.js` to CI as a failing check once orphans are 0, and ban bare `TODO`/`FIXME` without an issue reference.
 
 ### Phase 7: Dependencies and advisories, G → 0
@@ -109,9 +113,21 @@ C1 and C3 were cleared in Phase 0: the `as any`s were unnecessary (`'ping'` was 
 - Remove the redundant direct `node-forge` pin (G3).
 - Set a standing rule: no Dependabot PR older than 2 weeks.
 
+### Phase 8: Single casts in `src/`, C4 → 0
+An `as` tells the compiler to trust us; Phase 3 showed many were never needed and others hid real gaps. Triage by kind, highest risk first:
+1. **String → union narrowing with no check** (`as AIProvider`, `as ProviderId`, `as 'chat'`, …): replace with type guards (`isAIProvider(x)`) or typed sources. These are the casts most likely to be lying at runtime.
+2. **Parsed data shapes** (`as { … }`, `as Record<string, unknown>` on API responses / JSON / storage): validate at the boundary with guards, as Phase 3 did for demo recordings and settings. Provider adapters (`ChatGPTAdapter`, `ClaudeAdapter`, `responsesApi`, `MediaGenerationService`) are the biggest cluster.
+3. **Style casts** (`as TextStyle`, `as RNStyles`): fix the style prop types / use `StyleSheet.create` typing.
+4. **`catch (e) { e as Error }`**: narrow with `instanceof Error`.
+5. **Generic `as T` and the rest**: redesign the API so the type flows (as `getRecordingsByProviders` was in Phase 3).
+First step for every cast: delete it and let `tsc` answer — in Phase 3, 13 of 62 needed nothing else.
+
+**Exit:** C4 at 0 → enable `@typescript-eslint/consistent-type-assertions` with `assertionStyle: 'never'` for `src/` (escape valve: a documented, validating boundary helper), delete the counter.
+
 ## End state
 - **All budget scripts deleted.** Every counter is a hard lint/type error with no override.
-- `check:app` = `typecheck` (app + tests) + `lint` (all scopes, zero warnings) + Jest + orphan scan.
+- `check:app` = `typecheck` (app + tests) + `lint` (all scopes, zero warnings, no type assertions in `src/`) + Jest + orphan scan.
+- Tests: no `any`-typed mocks (bare `jest.fn()`), no double casts, no test files under `src/`.
 - `check:functions` = build + lint + tests.
 - Audit allowlist contains only advisories with no upstream fix, each with a dated removal trigger.
 
@@ -123,10 +139,11 @@ C1 and C3 were cleared in Phase 0: the `as any`s were unnecessary (`'ping'` was 
 | 1 Test types | 0 | 6–8 PRs |
 | 2 Test `any` | 0 (pairs well with 1) | 6–8 PRs |
 | 3 `src/` escapes | 0 | 3–4 PRs |
-| 4 Test hygiene | 1, 2 | 2 PRs |
+| 4 Test hygiene (D1, D7, D8, H) | 1, 2 | 4–6 PRs (batches) |
 | 5 `functions/` lint | coordination with web | 2–3 PRs |
 | 6 Dead code | n/a, any time | 1–2 PRs |
 | 7 Dependencies | n/a, ongoing | continuous |
+| 8 `src/` single casts | 3 | 4–6 PRs |
 
 Phases 1 and 2 touch the same files. Do them together, file by file, so each test file is opened once.
 
@@ -157,3 +174,4 @@ After each PR, update the counts in the Inventory table and note the PR number:
 | 2026-10-02 | Typed requires | 0 | 0 | 62 | 118 | D4 93 → 0 (~85 type errors the bare requires had hidden, now fixed); D6 package requires (324) now tracked |
 | 2026-10-02 | Typed package requires | 0 | 0 | 62 | 118 | D6 324 → 0; 5 mock-shape casts moved into `requireMock<T>` / `jest.mocked`; ErrorFlow Animated mocks typed |
 | 2026-10-02 | Phase 3 | 0 | 0 | 0 | 117 | src `as unknown as` 62 → 0, now a lint error: demo recordings validated by guards, typed SSE events, real settings/session-index validation, 13 unnecessary casts removed |
+| 2026-10-02 | Re-inventory | 0 | 0 | 0 | 117 | new AST-counted ratchets: C4 src single casts 521, D7 test single casts 415, D8 bare `jest.fn()` 1577; H recounted 42; G1 refreshed |
