@@ -102,8 +102,7 @@
         "expo-audio",
         {
           "enableBackgroundPlayback": true,
-          "microphonePermission": false,
-          "recordAudioAndroid": false
+          "microphonePermission": "Allow Symposium AI to use the microphone so you can dictate messages."
         }
       ],
       "expo-sharing",
@@ -115,6 +114,14 @@
           "image": "./assets/splash-icon.png",
           "resizeMode": "contain",
           "backgroundColor": "#1A1A1A"
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow Symposium AI to use the microphone so you can dictate messages.",
+          "speechRecognitionPermission": "Allow Symposium AI to convert your speech to text so you can dictate messages.",
+          "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
         }
       ]
     ],

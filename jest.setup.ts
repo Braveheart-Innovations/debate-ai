@@ -40,6 +40,7 @@ jest.mock('react-native-reanimated', () => {
     withDelay: jest.fn((_: unknown, val: unknown) => val),
     withSequence: jest.fn((...vals: unknown[]) => vals[vals.length - 1]),
     withRepeat: jest.fn((val: unknown) => val),
+    useReducedMotion: jest.fn(() => false),
     interpolate: jest.fn(),
     Extrapolation: { CLAMP: 'clamp', EXTEND: 'extend', IDENTITY: 'identity' },
     Extrapolate: { CLAMP: 'clamp', EXTEND: 'extend', IDENTITY: 'identity' },

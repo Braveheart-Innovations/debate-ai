@@ -91,4 +91,5 @@ export * from './create';
 export { AIPill } from './composer/AIPill';
 export { AddAIPill } from './composer/AddAIPill';
 export { ComposerValidationHint } from './composer/ComposerValidationHint';
+export { MicButton } from './composer/MicButton';
 export { AttachmentChip } from './composer/AttachmentChip';

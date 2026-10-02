@@ -9,7 +9,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/theme';
-import { AIPill, AddAIPill, ComposerValidationHint } from '@/components/molecules';
+import { AIPill, AddAIPill, ComposerValidationHint, MicButton } from '@/components/molecules';
+import { useDictation } from '@/hooks/useDictation';
 
 /** A pill already resolved to display values — the shell knows no catalogs. */
 export interface ComposerPillDescriptor {
@@ -39,6 +40,8 @@ export interface ComposerShellProps {
   placeholder?: string;
   maxLength?: number;
   disabled?: boolean;
+  /** Show the mic button for speech-to-text (hidden where the device has no recognizer). */
+  dictationEnabled?: boolean;
   testID?: string;
   /** Bottom sheets owned by the wrapper (picker/config), kept inside the surface. */
   children?: React.ReactNode;
@@ -65,13 +68,28 @@ export const ComposerShell: React.FC<ComposerShellProps> = ({
   placeholder = 'Ask anything…',
   maxLength,
   disabled = false,
+  dictationEnabled = true,
   testID,
   children,
 }) => {
   const { theme } = useTheme();
+  const dictation = useDictation({
+    text: inputText,
+    onTextChange: onChangeText,
+    maxLength,
+    enabled: dictationEnabled && !disabled,
+  });
+  const showMic = dictationEnabled && dictation.isAvailable;
+
+  const handleChangeText = (text: string) => {
+    if (dictation.error) dictation.clearError();
+    onChangeText(text);
+  };
 
   const handleSend = () => {
     if (!canSend) return;
+    // Late recognizer results must not refill the input the wrapper just cleared.
+    dictation.cancel();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     onSend(inputText.trim());
   };
@@ -91,7 +109,7 @@ export const ComposerShell: React.FC<ComposerShellProps> = ({
 
       <TextInput
         value={inputText}
-        onChangeText={onChangeText}
+        onChangeText={handleChangeText}
         placeholder={placeholder}
         placeholderTextColor={theme.colors.text.disabled}
         multiline
@@ -135,6 +153,14 @@ export const ComposerShell: React.FC<ComposerShellProps> = ({
           />
         )}
         <View style={styles.rowSpacer} />
+        {showMic && (
+          <MicButton
+            isListening={dictation.isListening}
+            onPress={dictation.toggle}
+            disabled={disabled}
+            testID={testID ? `${testID}-mic` : undefined}
+          />
+        )}
         <TouchableOpacity
           onPress={handleSend}
           disabled={!canSend}
@@ -158,9 +184,9 @@ export const ComposerShell: React.FC<ComposerShellProps> = ({
         </TouchableOpacity>
       </View>
 
-      {validationMessage && (
+      {(validationMessage || dictation.error) && (
         <ComposerValidationHint
-          message={validationMessage}
+          message={validationMessage || dictation.error || ''}
           testID={testID ? `${testID}-validation` : undefined}
         />
       )}

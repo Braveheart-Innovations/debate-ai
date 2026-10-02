@@ -199,6 +199,8 @@ jest.mock('@/components/molecules', () => {
       ),
     ComposerValidationHint: (props: any) =>
       React.createElement(Text, { testID: props.testID }, props.message),
+    MicButton: (props: { testID?: string; onPress?: () => void }) =>
+      React.createElement(TouchableOpacity, { testID: props.testID, onPress: props.onPress }),
     AttachmentChip: (props: any) =>
       React.createElement(
         View,

@@ -1,5 +1,6 @@
 import React from 'react';
-import { fireEvent } from '@testing-library/react-native';
+import { act, fireEvent } from '@testing-library/react-native';
+import * as speechRecognition from 'expo-speech-recognition';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { RichTopicInput } from '@/components/organisms/debate/RichTopicInput';
 
@@ -9,8 +10,20 @@ jest.mock('@/components/molecules', () => {
   return {
     GlassCard: ({ children }: { children: React.ReactNode }) => React.createElement(View, null, children),
     Typography: ({ children }: { children: React.ReactNode }) => React.createElement(Text, null, children),
+    MicButton: jest.requireActual('@/components/molecules/composer/MicButton').MicButton,
   };
 });
+
+jest.mock('expo-haptics', () => ({
+  impactAsync: jest.fn().mockResolvedValue(undefined),
+  ImpactFeedbackStyle: { Light: 'light' },
+}));
+
+// Root __mocks__/expo-speech-recognition.ts adds these test helpers.
+const speech = speechRecognition as unknown as {
+  __emit: (eventName: string, payload?: unknown) => void;
+  __reset: () => void;
+};
 
 describe('RichTopicInput', () => {
   const mockOnChange = jest.fn();
@@ -66,5 +79,49 @@ describe('RichTopicInput', () => {
     
     rerender(<RichTopicInput value="Hello World" onChange={mockOnChange} maxLength={200} />);
     expect(getByText('11/200')).toBeTruthy();
+  });
+
+  describe('dictation', () => {
+    beforeEach(() => speech.__reset());
+
+    it('dictates the motion within the character limit', async () => {
+      const { getByTestId, getByLabelText } = renderWithProviders(
+        <RichTopicInput value="Resolved:" onChange={mockOnChange} maxLength={20} />
+      );
+      await act(async () => {
+        fireEvent.press(getByTestId('topic-input-mic'));
+      });
+      act(() => speech.__emit('start'));
+      expect(getByLabelText('Stop dictation')).toBeTruthy();
+
+      act(() =>
+        speech.__emit('result', {
+          isFinal: true,
+          results: [{ transcript: 'cities should ban cars', confidence: 1, segments: [] }],
+        })
+      );
+      expect(mockOnChange).toHaveBeenLastCalledWith('Resolved: cities sho');
+    });
+
+    it('shows a dictation error inline', async () => {
+      (speechRecognition.ExpoSpeechRecognitionModule.requestPermissionsAsync as jest.Mock)
+        .mockResolvedValueOnce({ granted: false, canAskAgain: false, expires: 'never', status: 'denied' });
+      const { getByTestId, getByText } = renderWithProviders(
+        <RichTopicInput value="" onChange={mockOnChange} />
+      );
+      await act(async () => {
+        fireEvent.press(getByTestId('topic-input-mic'));
+      });
+      expect(getByText(/Microphone access is off/)).toBeTruthy();
+    });
+
+    it('hides the mic when the device has no recognizer', () => {
+      (speechRecognition.ExpoSpeechRecognitionModule.isRecognitionAvailable as jest.Mock)
+        .mockReturnValue(false);
+      const { queryByTestId } = renderWithProviders(
+        <RichTopicInput value="" onChange={mockOnChange} />
+      );
+      expect(queryByTestId('topic-input-mic')).toBeNull();
+    });
   });
 });

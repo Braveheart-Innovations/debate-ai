@@ -5,7 +5,8 @@
 
 import React, { useState } from 'react';
 import { View, TextInput, StyleSheet, ViewStyle } from 'react-native';
-import { GlassCard, Typography } from '@/components/molecules';
+import { GlassCard, MicButton, Typography } from '@/components/molecules';
+import { useDictation } from '@/hooks/useDictation';
 import { useTheme } from '../../../theme';
 
 export interface RichTopicInputProps {
@@ -23,8 +24,10 @@ export const RichTopicInput: React.FC<RichTopicInputProps> = ({
 }) => {
   const { theme } = useTheme();
   const [isFocused, setIsFocused] = useState(false);
-  
+  const dictation = useDictation({ text: value, onTextChange: onChange, maxLength });
+
   const handleTextChange = (text: string) => {
+    if (dictation.error) dictation.clearError();
     onChange(text);
   };
   
@@ -59,6 +62,23 @@ export const RichTopicInput: React.FC<RichTopicInputProps> = ({
         borderTopColor: theme.colors.border,
         backgroundColor: theme.colors.overlays.subtle,
       }]}>
+        {dictation.isAvailable && (
+          <MicButton
+            isListening={dictation.isListening}
+            onPress={dictation.toggle}
+            testID="topic-input-mic"
+          />
+        )}
+        <View
+          style={styles.toolbarMessage}
+          accessibilityRole={dictation.error ? 'alert' : undefined}
+        >
+          {dictation.error && (
+            <Typography variant="caption" style={{ color: theme.colors.warning[600] }}>
+              {dictation.error}
+            </Typography>
+          )}
+        </View>
         <Typography 
           variant="caption" 
           color="secondary"
@@ -88,11 +108,14 @@ const styles = StyleSheet.create({
   },
   simplifiedToolbar: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
     alignItems: 'center',
+    gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderTopWidth: 1,
+  },
+  toolbarMessage: {
+    flex: 1,
   },
   counter: {
     fontSize: 12,
