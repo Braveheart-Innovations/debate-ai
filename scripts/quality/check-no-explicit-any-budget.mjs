@@ -3,7 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
-const DEFAULT_TEST_ANY_WARNING_BUDGET = 584;
+const DEFAULT_TEST_ANY_WARNING_BUDGET = 495;
 const envBudget = process.env.NO_EXPLICIT_ANY_TEST_WARNINGS_BUDGET;
 const budget = envBudget === undefined ? DEFAULT_TEST_ANY_WARNING_BUDGET : Number(envBudget);
 
