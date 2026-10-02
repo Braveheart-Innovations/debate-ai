@@ -4,6 +4,7 @@ import reactPlugin from 'eslint-plugin-react';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
 import globals from 'globals';
 import { includeIgnoreFile } from '@eslint/compat';
+import eslintComments from '@eslint-community/eslint-plugin-eslint-comments/configs';
 import { fileURLToPath } from 'node:url';
 
 export default tseslint.config(
@@ -12,6 +13,16 @@ export default tseslint.config(
   // check:app depend on whatever happens to be on disk.
   includeIgnoreFile(fileURLToPath(new URL('.gitignore', import.meta.url))),
   js.configs.recommended,
+  // Every suppression must say why, may not blanket a whole file, and must
+  // still be needed (docs/TECH_DEBT_CLEANUP_PLAN.md, Phase 0).
+  eslintComments.recommended,
+  {
+    rules: {
+      '@eslint-community/eslint-comments/require-description': 'error',
+      '@eslint-community/eslint-comments/no-unlimited-disable': 'error',
+      '@eslint-community/eslint-comments/no-unused-disable': 'error',
+    },
+  },
   ...tseslint.configs.recommended,
   {
     files: ['**/*.{ts,tsx}'],

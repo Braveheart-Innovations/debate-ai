@@ -24,7 +24,6 @@ import { GeneratedContentReportModal } from '@/components/organisms/report/Gener
 import { getImageInputModels, getImageProviderDisplayName } from '../config/imageGenerationModels';
 import { loadBase64FromFileUri } from '../services/images/fileCache';
 import APIKeyService from '../services/APIKeyService';
-// import VideoService from '../services/videos/VideoService';
 
 // Chat-specific hooks
 import {
@@ -130,8 +129,6 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
     userPrompt, 
     autoSend,
     resuming,
-    // selectedAIs, // TODO: Implement continuation from Compare
-    // initialMessages // TODO: Implement continuation from Compare
   } = route.params;
 
   // Redux and streaming state
@@ -621,24 +618,6 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
       }));
     }
   }, [isDemo, dispatch, refinementImageUri, refinementOriginalPrompt, refinementMessageId, subscriptionUnlockMessage]);
-
-  /* const handleGenerateVideo = async (opts: { prompt: string; resolution: '720p' | '1080p'; duration: 5 | 10 | 15 }) => {
-    try {
-      const providerAI = session.selectedAIs[0];
-      const apiKey = await APIKeyService.getKey(providerAI.provider);
-      if (!apiKey) throw new Error(`${providerAI.provider} API key not configured`);
-      const videos = await VideoService.generateVideo({ provider: providerAI.provider as any, apiKey, prompt: opts.prompt, resolution: opts.resolution, duration: opts.duration });
-      if (videos && videos.length > 0) {
-        const messageId = `msg_${Date.now()}_${providerAI.id}`;
-        const v = videos[0];
-        dispatch(addMessage({ id: messageId, sender: providerAI.name, senderType: 'ai', content: '', timestamp: Date.now(), attachments: [{ type: 'video', uri: v.uri, mimeType: v.mimeType }] }));
-      }
-    } catch (e) {
-      const err = e instanceof Error ? e.message : 'Video generation failed';
-      alert(err);
-    }
-  };
-*/
 
   // Handle message sending
   const handleSendMessage = useCallback(async (messageText?: string, attachments?: MessageAttachment[]): Promise<void> => {

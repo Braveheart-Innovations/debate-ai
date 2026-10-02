@@ -461,8 +461,7 @@ export class ClaudeAdapter extends BaseAdapter {
         }
       } catch { /* ignore parse issues */ }
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    es.addEventListener('ping' as any, () => {}); // Keep-alive signals
+    es.addEventListener('ping', () => {}); // Keep-alive signals
     
     // Support external cancellation quickly
     const abortHandler = () => {

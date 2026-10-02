@@ -10,6 +10,7 @@ import {
 import { GradientButton, Typography } from '../components/molecules';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AppIcon from '../../assets/icon.png';
+import BraveheartLogo from '../../assets/BraveheartInnovationsLogoNoText.png';
 import { useTheme } from '../theme';
 import Animated, {
   useSharedValue,
@@ -106,8 +107,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
       -1,
       true
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [opacity, pulseScale, scale, translateY]); // shared values are stable; runs once on mount
 
   const animatedLogoStyle = useAnimatedStyle(() => ({
     transform: [
@@ -370,8 +370,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
               Built with
             </Typography>
             <Image
-              // eslint-disable-next-line @typescript-eslint/no-require-imports
-              source={require('../../assets/BraveheartInnovationsLogoNoText.png') as number}
+              source={BraveheartLogo}
               style={{ width: 32, height: 32, marginHorizontal: 8 }}
               resizeMode="contain"
             />

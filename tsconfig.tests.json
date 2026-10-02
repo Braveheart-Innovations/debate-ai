@@ -7,6 +7,9 @@
       ],
       "react-native-safe-area-context/jest/mock": [
         "./test-utils/types/safe-area-context-jest-mock.d.ts"
+      ],
+      "@test-utils/*": [
+        "./test-utils/*"
       ]
     }
   },

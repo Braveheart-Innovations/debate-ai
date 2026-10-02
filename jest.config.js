@@ -9,6 +9,7 @@ module.exports = {
   ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^@test-utils/(.*)$': '<rootDir>/test-utils/$1',
     '\\.(jpg|jpeg|png|gif|mp4|mp3|svg)$': '<rootDir>/__mocks__/fileMock.js',
     // Ensure functions folder uses root axios so mocks work correctly
     '^axios$': '<rootDir>/node_modules/axios',

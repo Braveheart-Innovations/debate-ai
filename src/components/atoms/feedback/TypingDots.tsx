@@ -52,8 +52,7 @@ export const TypingDots: React.FC = () => {
         -1
       )
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [dot1Opacity, dot2Opacity, dot3Opacity]); // shared values are stable; runs once on mount
 
   const dot1Style = useAnimatedStyle(() => ({
     opacity: dot1Opacity.value,

@@ -44,4 +44,9 @@ npm run -s lint:any-budget || {
   exit 1
 }
 
+npm run -s lint:escape-hatches || {
+  echo "Escape-hatch budget failed. Aborting commit." >&2
+  exit 1
+}
+
 echo "All pre-commit checks passed."

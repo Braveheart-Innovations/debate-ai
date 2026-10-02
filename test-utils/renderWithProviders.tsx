@@ -1,14 +1,15 @@
 import type { PropsWithChildren, ReactElement } from 'react';
 import { Provider } from 'react-redux';
 import { render, type RenderOptions } from '@testing-library/react-native';
-import type { PreloadedState } from '@reduxjs/toolkit';
 import { createAppStore } from '@/store';
-import type { AppStore, RootState } from '@/store';
+import type { AppStore } from '@/store';
+import { buildRootState, type RootStateOverrides } from './services/state';
 import { ThemeProvider } from '@/theme';
 import { CitationPreviewProvider } from '@/providers/CitationPreviewProvider';
 
 interface ExtendedRenderOptions extends RenderOptions {
-  preloadedState?: PreloadedState<RootState>;
+  /** Per-slice partial overrides merged into the real initial state. */
+  preloadedState?: RootStateOverrides;
   store?: AppStore;
 }
 
@@ -24,7 +25,7 @@ function Providers({ children, store }: PropsWithChildren<{ store: AppStore }>) 
 
 export function renderWithProviders(
   ui: ReactElement,
-  { preloadedState, store = createAppStore(preloadedState), ...renderOptions }: ExtendedRenderOptions = {}
+  { preloadedState, store = createAppStore(buildRootState(preloadedState)), ...renderOptions }: ExtendedRenderOptions = {}
 ) {
   return {
     store,

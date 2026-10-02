@@ -18,15 +18,15 @@
 | # | Item | Count | Where | Enforced today |
 |---|---|---|---|---|
 | A | Test `no-explicit-any` | **495** in 110 files | `__tests__/` | Ratchet (`lint:any-budget`) |
-| B | Test type errors | **393** in 93 files | `__tests__/`, `test-utils/` | Ratchet (`typecheck:tests`) |
-| C1 | `as any` / `no-explicit-any` disables in `src/` | 3 casts + 5 disables | `ChatScreen.tsx:630`, `ClaudeAdapter.ts:464`, `PromptDebugLogger.ts:23`, `LazyMarkdownRenderer.tsx` ×2, `src/hooks/__tests__/useError.test.ts` | Disables bypass the lint |
-| C2 | `as unknown as` in `src/` | **97** | 33 `services/ai`, 29 `assets/demo`, 7 `services/history`, 6 `services/demo`, rest scattered | ❌ none |
-| C3 | Other `eslint-disable` in `src/` | 4 `exhaustive-deps`, 4 `no-require-imports`, 1 `no-console` | WelcomeScreen, TypingDots, VotingInterface, HistoryListSkeleton, asset requires, PromptDebugLogger | ❌ none |
-| D1 | `as unknown as` in tests | **165** | `__tests__/`, `test-utils/` | ❌ none |
-| D2 | `@ts-expect-error` in tests | 5 | markdown, documentProcessing ×2, DemoPlaybackRouter, AppendToPackService | ❌ none |
-| D3 | Skipped tests | 1 suite (4 tests) | `__tests__/functions/validatePurchase.test.ts` `describe.skip` "until Firebase Functions v2 mocking" | ❌ none |
+| B | Test type errors | **388** in 87 files | `__tests__/` (`test-utils/` now clean) | Ratchet (`typecheck:tests`) |
+| C1 | `as any` / `no-explicit-any` disables in `src/` | ✅ **0** (Phase 0) | — | `no-explicit-any` error + `lint:escape-hatches` |
+| C2 | `as unknown as` in `src/` | **63** | concentrated in `services/ai` adapters; rest scattered (the earlier 97 also counted text inside demo-recording JSON) | Ratchet (`lint:escape-hatches`) |
+| C3 | Other `eslint-disable` in `src/` | ✅ **3**, each with a `-- reason` (Phase 0) | `nativeModule.ts` lazy IAP require, `PromptDebugLogger` verbatim dump, `citationUtils` NUL-delimiter regex | Ratchet + `require-description` |
+| D1 | `as unknown as` in tests | **203** | `__tests__/`, `src/**/__tests__` | Ratchet (`lint:escape-hatches`) |
+| D2 | `@ts-expect-error` in tests | 5 | markdown, documentProcessing ×2, DemoPlaybackRouter, AppendToPackService | Ratchet (`lint:escape-hatches`) |
+| D3 | Skipped tests | 1 suite (4 tests) | `__tests__/functions/validatePurchase.test.ts` `describe.skip` "until Firebase Functions v2 mocking" | Ratchet (`lint:escape-hatches`) |
 | E | `functions/` has no ESLint | 61 explicit `any`, 3 disables | `functions/src` | Only `tsc` (strict) + tests |
-| F | Dead code / stale TODOs | 2 orphaned components, 6 TODOs | `ImageGenerationModal`, `SubscriptionSheet`; `SubscriptionService` (3 "implement purchase logic" TODOs while `PurchaseService` is the real path), `ChatScreen.tsx:133-134`, `analytics/index.ts:90` | ❌ none |
+| F | Dead code / stale TODOs | 2 orphaned components, 4 TODOs | `ImageGenerationModal`, `SubscriptionSheet`; `SubscriptionService` (3 "implement purchase logic" TODOs while `PurchaseService` is the real path), `analytics/index.ts:90` (ChatScreen's dead TODOs and commented-out video handler removed in Phase 0) | ❌ none |
 | G1 | Dependabot backlog | 10 open PRs | oldest #99 (Jun 1), #144 (Aug 1), #174; 7 opened 2026-10-01 incl. majors (`@babel/core` 8, `firebase-admin` 14, RN group) | ❌ none |
 | G2 | Audit allowlist | 4 advisories | `image-size` ×2 (metro), `decode-uri-component` (react-navigation), `node-forge` (Expo CLI, unpatched) | Documented with removal triggers |
 | G3 | Redundant direct pin | 1 | root `package.json` `"node-forge": "^1.3.3"` (forced a transitive version in 2025; nothing imports it) | ❌ none |
@@ -34,7 +34,10 @@
 
 ## Phases
 
-### Phase 0: Foundations (1 PR, do first)
+### Phase 0: Foundations ✅ done
+Shipped: `@test-utils/*` alias; `stubComponent` / `capturePropsOf` (`test-utils/mockComponents.tsx`); typed `createMock*` builders (`test-utils/fixtures.ts`); `renderWithProviders`/`renderHookWithProviders` `preloadedState` now per-slice partial **merged** into the real initial state (previously it replaced whole slices, so tests passing `{ auth: { isPremium: true } }` ran with every other auth field undefined); `test-utils/` itself type-clean (removed dead `debateFixtures`, rebuilt `historyFixtures` on the shared builders); `lint:escape-hatches` ratchet; eslint-comments `require-description` / `no-unlimited-disable` / `no-unused-disable`. Along the way C1 and C3 were cleared and ChatScreen's dead code removed. Conventions are in CLAUDE.md → Testing Conventions.
+
+Original scope:
 Most debt in A and B comes from the same few patterns. Build the typed tools once, then the burn-down is mechanical.
 
 - **Typed mock-component helper** in `test-utils/`. 229 of the 495 test `any`s are `(props: any) =>` stubs inside `jest.mock` factories. Provide `mockComponent<P>(testID, render?)` typed from the real component's props (`React.ComponentProps<typeof Real>`), usable inside factories through `jest.requireActual`.
@@ -67,21 +70,11 @@ With Phase 0 helpers, most of this is replacing stubs.
 
 **Exit:** budget 0 → delete `check-no-explicit-any-budget.mjs`, remove the `no-explicit-any: 'warn'` test override (it becomes an error like everywhere else), drop the `--rule` flag from `lint:tests`.
 
-### Phase 3: `src/` escape hatches, C1–C3 → 0
-- **C1 (8)**:
-  - `ChatScreen.tsx:630`: type `providerAI.provider` against `VideoService` providers.
-  - `ClaudeAdapter.ts:464`: extend the SSE event-name type for `'ping'`.
-  - `PromptDebugLogger.ts:23`: use `__DEV__` directly (typed by RN).
-  - `LazyMarkdownRenderer`: type the lazy module.
-  - `useError.test.ts`: fixed as part of H.
-- **C2 (97)**:
-  - `services/ai` (33): replace casts on provider responses with response types + type guards at the adapter boundary. This is where unvalidated API shapes hide.
-  - `assets/demo` (29): give recordings a typed JSON declaration instead of casting.
+### Phase 3: `src/` escape hatches, C2 → 0
+C1 and C3 were cleared in Phase 0: the `as any`s were unnecessary (`'ping'` was already a typed SSE event; `__DEV__` is declared by RN; `RenderRules`/`Theme` existed), the four `exhaustive-deps` disables became stable shared-value deps, image `require()`s became `import`s, and the one commented-out `as any` was dead code. The 3 remaining disables are justified and described.
+- **C2 (63)**:
+  - `services/ai` adapters: replace casts on provider responses with response types + type guards at the adapter boundary. This is where unvalidated API shapes hide.
   - Rest case by case. A cast that is genuinely a boundary assertion stays only as a documented `assertX()` helper, never inline.
-- **C3 (9)**:
-  - `exhaustive-deps` ×4: fix the deps (ref/callback pattern) or restructure.
-  - `require()` for images ×4: allowed RN pattern, so keep them with a `-- reason` description.
-  - `no-console` ×1: route through `logger`.
 
 **Exit:** `src/` budgets 0; inline `as unknown as` banned in `src/` via `no-restricted-syntax`.
 
@@ -140,3 +133,4 @@ After each PR, update the counts in the Inventory table and note the PR number:
 | Date | PR | A any | B type errs | C2 src casts | D1 test casts | Notes |
 |---|---|---|---|---|---|---|
 | 2026-10-01 | #189 | 495 | 393 | 97 | 165 | baseline; gates added |
+| 2026-10-01 | Phase 0 | 495 | 388 | 63 | 203 | helpers + escape-hatch ratchet; C1/C3 cleared; C2/D1 recounted (code files only) |

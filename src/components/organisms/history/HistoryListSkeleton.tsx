@@ -39,8 +39,7 @@ const SkeletonCard: React.FC<{ index: number }> = React.memo(({ index }) => {
       animationRef.current?.stop();
       animationRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Dependencies intentionally omitted to prevent recreation
+  }, [animatedValue, index]); // both stable per card, so the loop is created once
 
   const shimmerOpacity = animatedValue.interpolate({
     inputRange: [0, 1],

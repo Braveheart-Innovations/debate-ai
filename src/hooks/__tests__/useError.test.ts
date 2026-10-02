@@ -53,8 +53,7 @@ const createTestStore = () =>
 
 const wrapper = ({ children }: { children: React.ReactNode }) => {
   const store = createTestStore();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return React.createElement(Provider, { store } as any, children);
+  return React.createElement(Provider, { store, children });
 };
 
 describe('useError', () => {

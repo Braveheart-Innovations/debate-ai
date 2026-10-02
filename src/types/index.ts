@@ -318,8 +318,6 @@ export type RootStackParamList = {
     userPrompt?: string;
     autoSend?: boolean;
     demoSampleId?: string;
-    selectedAIs?: AIConfig[];
-    initialMessages?: Message[];
     aiPersonalities?: { [aiId: string]: string };
     selectedModels?: { [aiId: string]: string };
   };

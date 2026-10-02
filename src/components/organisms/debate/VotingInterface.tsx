@@ -53,8 +53,7 @@ export const VotingInterface: React.FC<VotingInterfaceProps> = ({
   useEffect(() => {
     containerScale.value = withSpring(1, { damping: 15 });
     titleOpacity.value = withTiming(1, { duration: 500 });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [containerScale, titleOpacity]); // shared values are stable; runs once on mount
 
 
   const renderCurrentScores = () => {
