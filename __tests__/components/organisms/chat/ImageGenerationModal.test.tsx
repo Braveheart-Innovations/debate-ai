@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react-native';
 import { ImageGenerationModal } from '../../../../src/components/organisms/chat/ImageGenerationModal';
 import { useTheme } from '../../../../src/theme';
+import { lightTheme } from '../../../../src/theme/types';
 
 // Mock molecules
 jest.mock('@/components/molecules', () => {
@@ -35,21 +36,11 @@ jest.mock('react-native-safe-area-context', () => ({
 }));
 
 describe('ImageGenerationModal', () => {
-  const mockTheme = {
-    colors: {
-      primary: {
-        50: '#f0f9ff',
-        500: '#0ea5e9',
-        600: '#0284c7',
-      },
-      background: '#ffffff',
-      surface: '#f8f9fa',
-      border: '#e0e0e0',
-      text: {
-        primary: '#000000',
-        secondary: '#666666',
-      },
-    },
+  const mockTheme: ReturnType<typeof useTheme> = {
+    theme: lightTheme,
+    themeMode: 'light',
+    setThemeMode: jest.fn(),
+    isDark: false,
   };
 
   const mockOnClose = jest.fn();
@@ -57,7 +48,7 @@ describe('ImageGenerationModal', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (useTheme as jest.Mock).mockReturnValue({ theme: mockTheme });
+    jest.mocked(useTheme).mockReturnValue(mockTheme);
   });
 
   describe('Rendering', () => {
@@ -502,10 +493,7 @@ describe('ImageGenerationModal', () => {
         <ImageGenerationModal
           visible={true}
           mode="compare"
-          providers={[
-            { provider: 'openai', supportsImageGen: true, supportsImg2Img: true },
-            { provider: 'google', supportsImageGen: true, supportsImg2Img: true },
-          ]}
+          providers={['openai', 'google']}
           onClose={mockOnClose}
           onGenerate={mockOnGenerate}
         />

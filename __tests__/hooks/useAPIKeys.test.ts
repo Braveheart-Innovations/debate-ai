@@ -2,7 +2,8 @@ import { act } from '@testing-library/react-native';
 import { renderHookWithProviders } from '../../test-utils/renderHookWithProviders';
 import { useAPIKeys } from '@/hooks/useAPIKeys';
 import APIKeyService from '@/services/APIKeyService';
-import type { RootState } from '@/store';
+import { buildApiKeyStatus } from '@/store';
+import type { RootStateOverrides } from '../../test-utils/services/state';
 
 jest.mock('@/services/APIKeyService', () => ({
   __esModule: true,
@@ -20,25 +21,19 @@ jest.mock('@/services/APIKeyService', () => ({
   },
 }));
 
-const mockedService = APIKeyService as jest.Mocked<any>;
+const mockedService = jest.mocked(APIKeyService);
 
-const createPreloadedState = (keys: Record<string, string> = {}) => ({
+// The settings slice stores masked ApiKeyStatus metadata, never raw keys.
+const createPreloadedState = (keys: Record<string, string> = {}): RootStateOverrides => ({
   settings: {
-    theme: 'auto',
-    fontSize: 'medium',
-    apiKeys: keys,
-    realtimeRelayUrl: undefined,
-    verifiedProviders: [],
-    verificationTimestamps: {},
-    verificationModels: {},
-    expertMode: {},
-    hasCompletedOnboarding: false,
-    recordModeEnabled: false,
+    apiKeys: Object.fromEntries(
+      Object.entries(keys).map(([providerId, key]) => [providerId, buildApiKeyStatus(key)])
+    ),
   },
-} as Partial<RootState>);
+});
 
 describe('useAPIKeys', () => {
-  const existingKeys = { claude: 'anthropic-key', openai: 'sk-test' };
+  const existingKeys: Record<string, string> = { claude: 'anthropic-key', openai: 'sk-test' };
   let consoleErrorSpy: jest.SpyInstance;
 
   beforeEach(() => {
@@ -88,16 +83,10 @@ describe('useAPIKeys', () => {
       preloadedState: createPreloadedState(existingKeys),
     });
 
-    let caught: Error | null = null;
     await act(async () => {
-      try {
-        await result.current.updateKey('claude', 'bad-key');
-      } catch (err) {
-        caught = err as Error;
-      }
+      await expect(result.current.updateKey('claude', 'bad-key')).rejects.toThrow('save failed');
     });
 
-    expect(caught?.message).toBe('save failed');
     expect(result.current.apiKeys.claude).toBe('anth•••••-key');
     expect(result.current.error).toBe('Failed to update claude API key');
   });
@@ -115,19 +104,13 @@ describe('useAPIKeys', () => {
 
     mockedService.deleteKey.mockRejectedValueOnce(new Error('boom'));
 
-    let caught: Error | null = null;
     await act(async () => {
-      try {
-        await result.current.deleteKey('claude');
-      } catch (err) {
-        caught = err as Error;
-      }
+      await expect(result.current.deleteKey('claude')).rejects.toThrow('boom');
     });
 
     await act(async () => {});
     expect(result.current.apiKeys.claude).toBe('anth•••••-key');
     expect(result.current.error).toBe('Failed to delete claude API key');
-    expect(caught?.message).toBe('boom');
   });
 
   it('refreshes keys from storage and sets loading state', async () => {
@@ -165,16 +148,10 @@ describe('useAPIKeys', () => {
     mockedService.clearAllKeys.mockRejectedValueOnce(new Error('clear failed'));
     mockedService.loadKeys.mockResolvedValueOnce(existingKeys);
 
-    let caught: Error | null = null;
     await act(async () => {
-      try {
-        await result.current.clearAll();
-      } catch (err) {
-        caught = err as Error;
-      }
+      await expect(result.current.clearAll()).rejects.toThrow('clear failed');
     });
 
-    expect(caught?.message).toBe('clear failed');
     expect(mockedService.loadKeys).toHaveBeenCalled();
     expect(result.current.apiKeys.claude).toBe('anth•••••-key');
   });

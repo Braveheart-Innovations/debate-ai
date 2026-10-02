@@ -1,8 +1,9 @@
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { HighlightedText } from '@/components/molecules/history/HighlightedText';
+import { malformed } from '@test-utils/queries';
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null, MaterialIcons: () => null }));
 
-const { HighlightedText } = require('@/components/molecules/history/HighlightedText');
 
 describe('HighlightedText', () => {
   describe('Basic Rendering', () => {
@@ -31,7 +32,7 @@ describe('HighlightedText', () => {
 
     it('renders plain text when searchTerm is undefined', () => {
       const { getByText } = renderWithProviders(
-        <HighlightedText text="Sample text content" searchTerm={undefined as any} />
+        <HighlightedText text="Sample text content" searchTerm={malformed<string>(undefined, 'search term absent from untyped caller')} />
       );
       expect(getByText('Sample text content')).toBeTruthy();
     });

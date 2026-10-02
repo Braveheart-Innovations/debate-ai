@@ -162,7 +162,8 @@ describe('CompareStreamSynchronizer', () => {
 
   describe('error handling', () => {
     it('should handle left stream error', () => {
-      let leftError: Error | null = null;
+      // A holder object keeps TS from narrowing the callback-assigned value to `null`.
+      const leftCaptured: { error: Error | null } = { error: null };
       synchronizer = new CompareStreamSynchronizer(
         { syncIntervalMs: 80, maxBufferSizeChars: 200, startDelayMs: 150, startTimeoutMs: 500 },
         {
@@ -170,18 +171,19 @@ describe('CompareStreamSynchronizer', () => {
           onRightFlush: (content) => rightFlushes.push(content),
           onLeftComplete: (content) => { leftComplete = content; },
           onRightComplete: (content) => { rightComplete = content; },
-          onLeftError: (error) => { leftError = error; },
+          onLeftError: (error) => { leftCaptured.error = error; },
         }
       );
 
       synchronizer.appendLeft('Content');
       synchronizer.errorLeft(new Error('Left failed'));
 
-      expect(leftError?.message).toBe('Left failed');
+      expect(leftCaptured.error?.message).toBe('Left failed');
     });
 
     it('should handle right stream error', () => {
-      let rightError: Error | null = null;
+      // A holder object keeps TS from narrowing the callback-assigned value to `null`.
+      const rightCaptured: { error: Error | null } = { error: null };
       synchronizer = new CompareStreamSynchronizer(
         { syncIntervalMs: 80, maxBufferSizeChars: 200, startDelayMs: 150, startTimeoutMs: 500 },
         {
@@ -189,14 +191,14 @@ describe('CompareStreamSynchronizer', () => {
           onRightFlush: (content) => rightFlushes.push(content),
           onLeftComplete: (content) => { leftComplete = content; },
           onRightComplete: (content) => { rightComplete = content; },
-          onRightError: (error) => { rightError = error; },
+          onRightError: (error) => { rightCaptured.error = error; },
         }
       );
 
       synchronizer.appendRight('Content');
       synchronizer.errorRight(new Error('Right failed'));
 
-      expect(rightError?.message).toBe('Right failed');
+      expect(rightCaptured.error?.message).toBe('Right failed');
     });
   });
 

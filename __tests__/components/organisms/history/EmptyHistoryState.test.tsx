@@ -2,6 +2,8 @@ import React from 'react';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { EmptyHistoryState } from '@/components/organisms/history/EmptyHistoryState';
+import type { PropsOf } from '@test-utils/mockComponents';
+import type { Button } from '@/components/molecules';
 
 jest.mock('@expo/vector-icons', () => {
   const React = require('react');
@@ -27,7 +29,7 @@ jest.mock('@/components/molecules', () => {
   const { Text } = require('react-native');
   return {
     Typography: ({ children }: { children: React.ReactNode }) => React.createElement(Text, null, children),
-    Button: ({ title, onPress, style }: { title: string; onPress: () => void; style?: any }) =>
+    Button: ({ title, onPress, style }: PropsOf<typeof Button>) =>
       React.createElement(
         Text,
         { accessibilityRole: 'button', style, onPress },

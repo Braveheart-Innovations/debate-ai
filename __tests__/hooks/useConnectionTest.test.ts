@@ -12,7 +12,7 @@ jest.mock('@/services/ConnectionTestService', () => ({
   },
 }));
 
-const mockedService = ConnectionTestService as jest.Mocked<typeof ConnectionTestService>;
+const mockedService = jest.mocked(ConnectionTestService);
 
 const successResult = { success: true, message: 'ok', model: 'gpt', responseTime: 1234 };
 const failureResult = { success: false, message: 'invalid', error: { code: 'INVALID', message: 'invalid' } };
@@ -111,18 +111,12 @@ describe('useConnectionTest', () => {
 
     const { result } = renderHook(() => useConnectionTest());
 
-    let caught: Error | null = null;
     await act(async () => {
-      try {
-        await result.current.testMultipleProviders([
-          { providerId: 'openai', apiKey: 'key-1' },
-        ]);
-      } catch (err) {
-        caught = err as Error;
-      }
+      await expect(
+        result.current.testMultipleProviders([{ providerId: 'openai', apiKey: 'key-1' }])
+      ).rejects.toThrow('batch fail');
     });
 
-    expect(caught?.message).toBe('batch fail');
     expect(result.current.testStatuses.openai).toMatchObject({ status: 'failed', message: 'batch fail' });
   });
 

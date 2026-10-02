@@ -1,14 +1,28 @@
+import type { ReactNode } from 'react';
 import { Text, TouchableOpacity } from 'react-native';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { capturePropsOf } from '@test-utils/mockComponents';
+import { createMockAIConfig, createMockChatSession } from '@test-utils/fixtures';
 import { HistoryList } from '@/components/organisms/history/HistoryList';
-import type { ChatSession, AIConfig } from '@/types';
+import type {
+  LoadMoreIndicator,
+  SessionCard,
+  SwipeableActions,
+} from '@/components/molecules/history';
 
 jest.mock('react-native-gesture-handler', () => {
   const React = require('react');
   const { View } = require('react-native');
+  // HistoryList's renderRightActions ignores the gesture args, so the stub calls it bare.
   return {
-    Swipeable: ({ children, renderRightActions }: any) =>
+    Swipeable: ({
+      children,
+      renderRightActions,
+    }: {
+      children?: ReactNode;
+      renderRightActions?: () => ReactNode;
+    }) =>
       React.createElement(
         View,
         null,
@@ -24,24 +38,26 @@ jest.mock('react-native-gesture-handler', () => {
   };
 });
 
-const mockSessionCard = jest.fn(({ session, onPress, onLongPress, isSelected, selectionMode, testID }: any) => (
-  <TouchableOpacity
-    testID={testID}
-    onPress={() => onPress(session)}
-    onLongPress={() => onLongPress?.(session)}
-  >
-    <Text>{`${session.id}:${selectionMode ? 'selecting' : 'normal'}:${isSelected ? 'selected' : 'unselected'}`}</Text>
-  </TouchableOpacity>
-));
+const mockSessionCard = capturePropsOf<typeof SessionCard>(
+  ({ session, onPress, onLongPress, isSelected, selectionMode, testID }) => (
+    <TouchableOpacity
+      testID={testID}
+      onPress={() => onPress(session)}
+      onLongPress={() => onLongPress?.(session)}
+    >
+      <Text>{`${session.id}:${selectionMode ? 'selecting' : 'normal'}:${isSelected ? 'selected' : 'unselected'}`}</Text>
+    </TouchableOpacity>
+  )
+);
 
-const mockSwipeableActions = jest.fn(({ onDelete }: any) => (
+const mockSwipeableActions = capturePropsOf<typeof SwipeableActions>(({ onDelete }) => (
   <Text testID="swipe-delete" onPress={onDelete}>
     delete
   </Text>
 ));
 
-const mockLoadMoreIndicator = jest.fn(
-  ({ onLoadMore, hasMore, isLoading }: { onLoadMore: () => void; hasMore?: boolean; isLoading?: boolean }) =>
+const mockLoadMoreIndicator = capturePropsOf<typeof LoadMoreIndicator>(
+  ({ onLoadMore, hasMore, isLoading }) =>
     hasMore
       ? (
           <Text testID="load-more" onPress={onLoadMore}>
@@ -52,38 +68,47 @@ const mockLoadMoreIndicator = jest.fn(
 );
 
 jest.mock('@/components/molecules/history', () => ({
-  SessionCard: (props: any) => mockSessionCard(props),
-  SwipeableActions: (props: any) => mockSwipeableActions(props),
-  LoadMoreIndicator: (props: any) => mockLoadMoreIndicator(props),
+  get SessionCard() {
+    return mockSessionCard.Stub;
+  },
+  get SwipeableActions() {
+    return mockSwipeableActions.Stub;
+  },
+  get LoadMoreIndicator() {
+    return mockLoadMoreIndicator.Stub;
+  },
 }));
 
-const sampleAI: AIConfig = {
+const sampleAI = createMockAIConfig({
   id: 'ai-1',
   provider: 'claude',
   name: 'Claude',
   model: 'haiku',
-};
+});
 
-const sessions: ChatSession[] = [
-  {
+const sessions = [
+  createMockChatSession({
     id: 'session-1',
     selectedAIs: [sampleAI],
     messages: [],
     isActive: false,
     createdAt: 1,
-  },
-  {
+  }),
+  createMockChatSession({
     id: 'session-2',
     selectedAIs: [sampleAI],
     messages: [],
     isActive: false,
     createdAt: 2,
-  },
+  }),
 ];
 
 describe('HistoryList', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockSessionCard.reset();
+    mockSwipeableActions.reset();
+    mockLoadMoreIndicator.reset();
   });
 
   it('renders sessions and handles press callbacks', () => {
@@ -147,7 +172,7 @@ describe('HistoryList', () => {
     );
 
     expect(queryAllByTestId('swipe-delete')).toHaveLength(0);
-    expect(mockSessionCard).toHaveBeenCalledWith(expect.objectContaining({
+    expect(mockSessionCard.calls).toContainEqual(expect.objectContaining({
       session: sessions[1],
       isSelected: true,
       selectionMode: true,

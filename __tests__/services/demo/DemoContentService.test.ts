@@ -1,86 +1,68 @@
 import type { DemoChat, DemoCompare, DemoDebate } from '@/types/demo';
+import type { DemoRecordingEntry, DemoRecordingType } from '@/assets/demo/recordingsManifest';
 
-type DemoEntry<T> = {
-  id: string;
-  type: 'chat' | 'compare' | 'debate';
-  providers: string[];
-  title?: string;
-  topic?: string;
-  data: T;
-};
+const mockSortProviders = (providers: string[]) => [...providers].sort().join('+');
 
-const sortProviders = (providers: string[]) => [...providers].sort().join('+');
-
-const chatEntries: DemoEntry<DemoChat>[] = [
+const chatEntries: DemoRecordingEntry<DemoChat>[] = [
   {
     id: 'chat-1',
     type: 'chat',
     providers: ['anthropic', 'openai'],
     title: 'Philosophy Debate',
-    data: { id: 'chat-1', messages: [] } as unknown as DemoChat,
+    data: { id: 'chat-1', title: 'Philosophy Debate', events: [] },
   },
   {
     id: 'chat-2',
     type: 'chat',
     providers: ['anthropic', 'openai'],
     title: 'Tech Talk',
-    data: { id: 'chat-2', messages: [] } as unknown as DemoChat,
+    data: { id: 'chat-2', title: 'Tech Talk', events: [] },
   },
 ];
 
-const compareEntries: DemoEntry<DemoCompare>[] = [
+const compareEntries: DemoRecordingEntry<DemoCompare>[] = [
   {
     id: 'compare-1',
     type: 'compare',
     providers: ['openai', 'anthropic'],
     title: 'Model Showdown',
-    data: { id: 'compare-1', prompts: [] } as unknown as DemoCompare,
+    data: { id: 'compare-1', title: 'Model Showdown', category: 'model', runs: [] },
   },
 ];
 
-const debateEntries: DemoEntry<DemoDebate>[] = [
+const debateEntries: DemoRecordingEntry<DemoDebate>[] = [
   {
     id: 'debate-1',
     type: 'debate',
     providers: ['openai', 'anthropic'],
     title: 'Climate',
     topic: 'Is climate change reversible?',
-    data: { id: 'debate-1', rounds: [] } as unknown as DemoDebate,
+    data: { id: 'debate-1', topic: 'Is climate change reversible?', participants: [], events: [] },
   },
 ];
 
-const mockRecordingsIndex: Record<string, Record<string, DemoEntry<any>[]>> = {
-  chat: { [sortProviders(chatEntries[0].providers)]: chatEntries },
-  compare: { [sortProviders(compareEntries[0].providers)]: compareEntries },
-  debate: { [sortProviders(debateEntries[0].providers)]: debateEntries },
+const mockRecordingsIndex: Record<DemoRecordingType, Record<string, DemoRecordingEntry[]>> = {
+  chat: { [mockSortProviders(chatEntries[0].providers)]: chatEntries },
+  compare: { [mockSortProviders(compareEntries[0].providers)]: compareEntries },
+  debate: { [mockSortProviders(debateEntries[0].providers)]: debateEntries },
 };
 
-const mockRecordingsByIdMap = new Map<string, DemoEntry<any>>(
+const mockRecordingsByIdMap = new Map<string, DemoRecordingEntry>(
   [...chatEntries, ...compareEntries, ...debateEntries].map(entry => [entry.id, entry]),
 );
 
-const comboKeyMock = jest.fn((providers: string[]) => sortProviders(providers));
-const getRecordingsByProvidersMock = jest.fn(
-  (type: 'chat' | 'compare' | 'debate', providers: string[]) =>
-    mockRecordingsIndex[type]?.[sortProviders(providers)] || [],
+const mockComboKey = jest.fn((providers: string[]) => mockSortProviders(providers));
+const mockGetRecordingsByProviders = jest.fn(
+  (type: DemoRecordingType, providers: string[]) =>
+    mockRecordingsIndex[type]?.[mockSortProviders(providers)] || [],
 );
 
 jest.mock('@/assets/demo/recordingsManifest', () => ({
-  comboKey: jest.fn((providers: string[]) => sortProviders(providers)),
-  getRecordingsByProviders: jest.fn((type: string, providers: string[]) =>
-    mockRecordingsIndex[type]?.[sortProviders(providers)] || [],
-  ),
+  comboKey: (providers: string[]) => mockComboKey(providers),
+  getRecordingsByProviders: (type: DemoRecordingType, providers: string[]) =>
+    mockGetRecordingsByProviders(type, providers),
   recordingsById: mockRecordingsByIdMap,
 }));
-
-const { comboKey } = require('@/assets/demo/recordingsManifest') as {
-  comboKey: jest.Mock;
-};
-comboKey.mockImplementation(comboKeyMock);
-const { getRecordingsByProviders } = require('@/assets/demo/recordingsManifest') as {
-  getRecordingsByProviders: jest.Mock;
-};
-getRecordingsByProviders.mockImplementation(getRecordingsByProvidersMock);
 
 const loadDemoContentService = () => {
   let svc: typeof import('@/services/demo/DemoContentService').DemoContentService;
@@ -98,8 +80,8 @@ describe('DemoContentService', () => {
   it('delegates combo key generation to manifest helper', () => {
     const DemoContentService = loadDemoContentService();
     const key = DemoContentService.comboKey(['openai', 'anthropic']);
-    expect(comboKeyMock).toHaveBeenCalledWith(['openai', 'anthropic']);
-    expect(key).toBe(sortProviders(['openai', 'anthropic']));
+    expect(mockComboKey).toHaveBeenCalledWith(['openai', 'anthropic']);
+    expect(key).toBe(mockSortProviders(['openai', 'anthropic']));
   });
 
   it('rotates chat samples for repeated requests', async () => {
@@ -118,7 +100,8 @@ describe('DemoContentService', () => {
 
     const compare = await DemoContentService.findCompareById('compare-1');
     expect(compare).not.toBeNull();
-    (compare as DemoCompare).id = 'mutated';
+    if (!compare) throw new Error('expected compare-1 to resolve');
+    compare.id = 'mutated';
 
     const compareAgain = await DemoContentService.findCompareById('compare-1');
     expect(compareAgain?.id).toBe('compare-1');

@@ -1,31 +1,40 @@
-import React from 'react';
+import type { LinearGradient } from 'expo-linear-gradient';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { AIProviderTile } from '@/components/molecules/debate/AIProviderTile';
+import type { Button, Card, GlassCard, Typography } from '@/components/molecules';
+import { createMockAIConfig } from '@test-utils/fixtures';
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null, MaterialIcons: () => null }));
-jest.mock('expo-linear-gradient', () => ({ LinearGradient: ({ children }: any) => children }));
-jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+jest.mock('expo-linear-gradient', () => {
+  const { stubComponent } = jest.requireActual<
+    typeof import('@test-utils/mockComponents')
+  >('@test-utils/mockComponents');
   return {
-    Typography: ({ children }: { children: React.ReactNode }) => React.createElement(Text, null, children),
-    Card: ({ children }: any) => children,
-    GlassCard: ({ children }: any) => children,
-    Button: ({ title }: any) => React.createElement(Text, null, title),
+    LinearGradient: stubComponent<typeof LinearGradient>('linear-gradient', {
+      render: (p) => p.children,
+    }),
+  };
+});
+jest.mock('@/components/molecules', () => {
+  const { stubComponent } = jest.requireActual<
+    typeof import('@test-utils/mockComponents')
+  >('@test-utils/mockComponents');
+  return {
+    Typography: stubComponent<typeof Typography>('typography', { text: (p) => p.children }),
+    Card: stubComponent<typeof Card>('card', { render: (p) => p.children }),
+    GlassCard: stubComponent<typeof GlassCard>('glass-card', { render: (p) => p.children }),
+    Button: stubComponent<typeof Button>('button', { text: (p) => p.title }),
   };
 });
 
-const { AIProviderTile } = require('@/components/molecules/debate/AIProviderTile');
-
 describe('AIProviderTile', () => {
-  const mockAI = {
+  const mockAI = createMockAIConfig({
     id: 'claude',
     name: 'Claude',
-    provider: 'anthropic',
+    provider: 'claude',
     icon: '🤖',
     color: '#6366F1',
-    isAvailable: true,
-    models: []
-  };
+  });
 
   it('renders without crashing', () => {
     const result = renderWithProviders(

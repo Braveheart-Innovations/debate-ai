@@ -2,17 +2,19 @@ import { act, fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { DebateSlotConfigSheet } from '@/components/organisms/debate/DebateSlotConfigSheet';
 import { getProviderModels } from '@/config/modelConfigs';
+import type { DebateVoicePicker } from '@/components/organisms/debate/DebateVoicePicker';
 import type { AIConfig } from '@/types';
+import { capturePropsOf } from '@test-utils/mockComponents';
+import { requireDefined } from '@test-utils/queries';
 
 jest.mock('@/components/organisms/help/HelpModalHost', () => ({
   HelpModalHost: () => null,
 }));
 
-let voicePickerProps: any;
+const mockVoicePicker = capturePropsOf<typeof DebateVoicePicker>();
 jest.mock('@/components/organisms/debate/DebateVoicePicker', () => ({
-  DebateVoicePicker: (props: any) => {
-    voicePickerProps = props;
-    return null;
+  get DebateVoicePicker() {
+    return mockVoicePicker.Stub;
   },
 }));
 
@@ -43,7 +45,7 @@ const baseProps = {
 describe('DebateSlotConfigSheet', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    voicePickerProps = undefined;
+    mockVoicePicker.reset();
   });
 
   it('renders the root page with model, personality, provider, and remove rows', () => {
@@ -129,14 +131,17 @@ describe('DebateSlotConfigSheet', () => {
       />
     );
 
-    expect(voicePickerProps.visible).toBe(false);
+    expect(mockVoicePicker.latest().visible).toBe(false);
     fireEvent.press(getByTestId('debate-slot-voice-row'));
-    expect(voicePickerProps.visible).toBe(true);
-    expect(voicePickerProps.target).toEqual({ kind: 'single', label: 'Claude — Affirmative 1' });
-    expect(voicePickerProps.currentVoiceId).toBe('voice-1');
+    expect(mockVoicePicker.latest().visible).toBe(true);
+    expect(mockVoicePicker.latest().target).toEqual({ kind: 'single', label: 'Claude — Affirmative 1' });
+    expect(mockVoicePicker.latest().currentVoiceId).toBe('voice-1');
 
     act(() => {
-      voicePickerProps.onSelectVoice({ id: 'voice-2', name: 'Voice Two' });
+      requireDefined(mockVoicePicker.latest().onSelectVoice, 'onSelectVoice')({
+        id: 'voice-2',
+        name: 'Voice Two',
+      });
     });
     expect(onSelectVoice).toHaveBeenCalledWith({ id: 'voice-2', name: 'Voice Two' });
   });

@@ -17,7 +17,7 @@ describe('Logger', () => {
     jest.clearAllMocks();
     // Create a fresh Logger instance for each test
     // Access the private constructor via getInstance pattern reset
-    (Logger as any).instance = undefined;
+    Reflect.set(Logger, 'instance', undefined);
     logger = Logger.getInstance();
     // Enable console output for testing
     logger.setConsoleOutput(false); // Disable to prevent noise in tests

@@ -1,18 +1,20 @@
-import React from 'react';
 import { Text } from 'react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import type { PropsOf } from '@test-utils/mockComponents';
+import type { DebateHistoryHeader, DebateHistoryItem, Typography } from '@/components/molecules';
+import { useDebateStats } from '@/hooks/stats';
 import { RecentDebatesSection } from '@/components/organisms/stats/RecentDebatesSection';
 
-const mockDebateHistoryHeader = jest.fn(() => <Text>Header</Text>);
-const mockDebateHistoryItem = jest.fn(() => <Text>Item</Text>);
+const mockDebateHistoryHeader = jest.fn((_props: PropsOf<typeof DebateHistoryHeader>) => <Text>Header</Text>);
+const mockDebateHistoryItem = jest.fn((_props: PropsOf<typeof DebateHistoryItem>) => <Text>Item</Text>);
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = jest.requireActual<typeof import('react')>('react');
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
-    DebateHistoryHeader: (props: any) => mockDebateHistoryHeader(props),
-    DebateHistoryItem: (props: any) => mockDebateHistoryItem(props),
-    Typography: ({ children }: { children: React.ReactNode }) => React.createElement(Text, null, children),
+    DebateHistoryHeader: (props: PropsOf<typeof DebateHistoryHeader>) => mockDebateHistoryHeader(props),
+    DebateHistoryItem: (props: PropsOf<typeof DebateHistoryItem>) => mockDebateHistoryItem(props),
+    Typography: ({ children }: PropsOf<typeof Typography>) => React.createElement(Text, null, children),
   };
 });
 
@@ -36,22 +38,41 @@ jest.mock('@/services/stats', () => ({
   }])),
 }));
 
+type DebateStatsResult = ReturnType<typeof useDebateStats>;
+type DebateHistoryEntry = DebateStatsResult['history'][number];
+
+/** Full `useDebateStats` result for the given history (no per-AI stats). */
+const createDebateStatsResult = (history: DebateHistoryEntry[]): DebateStatsResult => ({
+  stats: {},
+  history,
+  currentDebate: undefined,
+  hasStats: false,
+  hasHistory: history.length > 0,
+  totalActiveAIs: 0,
+  totalDebates: 0,
+  totalRounds: 0,
+  preservedTopic: null,
+  preservedTopicMode: 'preset',
+});
+
 describe('RecentDebatesSection', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it('returns null when no history', () => {
-    const { useDebateStats } = require('@/hooks/stats');
-    useDebateStats.mockReturnValue({ history: [], hasHistory: false });
+    jest.mocked(useDebateStats).mockReturnValue(createDebateStatsResult([]));
 
     const { toJSON } = renderWithProviders(<RecentDebatesSection />);
     expect(toJSON()).toBeNull();
   });
 
   it('renders debates when history available', () => {
-    const { useDebateStats } = require('@/hooks/stats');
-    useDebateStats.mockReturnValue({ history: [{ debateId: 'd1' }], hasHistory: true });
+    jest.mocked(useDebateStats).mockReturnValue(
+      createDebateStatsResult([
+        { debateId: 'd1', topic: 'Climate', participants: [], roundWinners: {}, timestamp: 123 },
+      ])
+    );
 
     renderWithProviders(<RecentDebatesSection showElapsedTime showCount />);
 

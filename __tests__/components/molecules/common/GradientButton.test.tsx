@@ -1,5 +1,8 @@
 import React from 'react';
 import { fireEvent } from '@testing-library/react-native';
+import * as Haptics from 'expo-haptics';
+import type { Ionicons } from '@expo/vector-icons';
+import { GradientButton } from '@/components/molecules/common/GradientButton';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 
 jest.mock('expo-linear-gradient', () => ({
@@ -11,9 +14,12 @@ jest.mock('expo-haptics', () => ({
   ImpactFeedbackStyle: { Light: 'light' },
 }));
 
-jest.mock('@expo/vector-icons', () => ({
-  Ionicons: 'Ionicons',
-}));
+jest.mock('@expo/vector-icons', () => {
+  const { stubComponent } = jest.requireActual<
+    typeof import('@test-utils/mockComponents')
+  >('@test-utils/mockComponents');
+  return { Ionicons: stubComponent<typeof Ionicons>('ionicon') };
+});
 
 jest.mock('@/components/molecules', () => {
   const React = require('react');
@@ -23,8 +29,6 @@ jest.mock('@/components/molecules', () => {
       React.createElement(Text, null, children),
   };
 });
-
-const { GradientButton } = require('@/components/molecules/common/GradientButton');
 
 describe('GradientButton', () => {
   beforeEach(() => {
@@ -140,7 +144,7 @@ describe('GradientButton', () => {
 
   describe('trailing icon', () => {
     it('renders trailing icon when trailingIcon and onTrailingIconPress provided', () => {
-      const { UNSAFE_getAllByType } = renderWithProviders(
+      const { getAllByTestId } = renderWithProviders(
         <GradientButton
           title="With Icon"
           onPress={jest.fn()}
@@ -150,12 +154,12 @@ describe('GradientButton', () => {
       );
 
       // Icon should be rendered (Ionicons mock)
-      const icons = UNSAFE_getAllByType('Ionicons' as any);
+      const icons = getAllByTestId('ionicon');
       expect(icons.length).toBeGreaterThan(0);
     });
 
     it('does not render trailing icon when onTrailingIconPress is undefined', () => {
-      const { UNSAFE_queryAllByType } = renderWithProviders(
+      const { queryAllByTestId } = renderWithProviders(
         <GradientButton
           title="No Icon"
           onPress={jest.fn()}
@@ -163,13 +167,13 @@ describe('GradientButton', () => {
         />
       );
 
-      const icons = UNSAFE_queryAllByType('Ionicons' as any);
+      const icons = queryAllByTestId('ionicon');
       expect(icons.length).toBe(0);
     });
 
     it('calls onTrailingIconPress when trailing icon pressed', () => {
       const onTrailingIconPress = jest.fn();
-      const { UNSAFE_getAllByType } = renderWithProviders(
+      const { getAllByTestId } = renderWithProviders(
         <GradientButton
           title="Clickable Icon"
           onPress={jest.fn()}
@@ -178,17 +182,16 @@ describe('GradientButton', () => {
         />
       );
 
-      const icons = UNSAFE_getAllByType('Ionicons' as any);
-      const iconTouchable = icons[0].parent;
-      fireEvent.press(iconTouchable);
+      // Pressing the icon bubbles to its enclosing trailing touchable
+      fireEvent.press(getAllByTestId('ionicon')[0]);
 
       expect(onTrailingIconPress).toHaveBeenCalledTimes(1);
-      expect(require('expo-haptics').impactAsync).toHaveBeenCalled();
+      expect(jest.mocked(Haptics.impactAsync)).toHaveBeenCalled();
     });
 
     it('does not call onTrailingIconPress when trailingIconDisabled', () => {
       const onTrailingIconPress = jest.fn();
-      const { UNSAFE_getAllByType } = renderWithProviders(
+      const { getAllByTestId } = renderWithProviders(
         <GradientButton
           title="Disabled Icon"
           onPress={jest.fn()}
@@ -198,16 +201,15 @@ describe('GradientButton', () => {
         />
       );
 
-      const icons = UNSAFE_getAllByType('Ionicons' as any);
-      const iconTouchable = icons[0].parent;
-      fireEvent.press(iconTouchable);
+      // Pressing the icon bubbles to its enclosing trailing touchable
+      fireEvent.press(getAllByTestId('ionicon')[0]);
 
       expect(onTrailingIconPress).not.toHaveBeenCalled();
     });
 
     it('does not call onTrailingIconPress when button is disabled', () => {
       const onTrailingIconPress = jest.fn();
-      const { UNSAFE_getAllByType } = renderWithProviders(
+      const { getAllByTestId } = renderWithProviders(
         <GradientButton
           title="Disabled Button"
           onPress={jest.fn()}
@@ -217,9 +219,8 @@ describe('GradientButton', () => {
         />
       );
 
-      const icons = UNSAFE_getAllByType('Ionicons' as any);
-      const iconTouchable = icons[0].parent;
-      fireEvent.press(iconTouchable);
+      // Pressing the icon bubbles to its enclosing trailing touchable
+      fireEvent.press(getAllByTestId('ionicon')[0]);
 
       expect(onTrailingIconPress).not.toHaveBeenCalled();
     });

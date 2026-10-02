@@ -3,11 +3,22 @@
  * Comprehensive tests for the debate share modal component
  */
 
-import React from 'react';
+import type { ReactNode } from 'react';
+import { Modal, TouchableOpacity } from 'react-native';
 import { fireEvent, waitFor } from '@testing-library/react-native';
+import * as Sharing from 'expo-sharing';
+import type { ViewShotProperties, ViewShotRef } from 'react-native-view-shot';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { ShareModal } from '@/components/organisms/debate/ShareModal';
-import { AI, Message } from '@/types';
+import type {
+  KeyboardAvoider,
+  SheetHeader,
+  ShareActionButtons,
+  SharePreviewCard,
+  Typography,
+} from '@/components/molecules';
+import type { AI, Message } from '@/types';
+import { createMockAIConfig, createMockMessage } from '@test-utils/fixtures';
 
 // Mock ErrorService
 const mockShowWarning = jest.fn();
@@ -23,18 +34,19 @@ jest.mock('@/services/errors/ErrorService', () => ({
 
 // Mock dependencies
 jest.mock('expo-blur', () => ({
-  BlurView: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  BlurView: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
 jest.mock('react-native-view-shot', () => {
-  const mockReact = require('react');
+  const mockReact = jest.requireActual<typeof import('react')>('react');
+  const RN = jest.requireActual<typeof import('react-native')>('react-native');
   return {
     __esModule: true,
-    default: mockReact.forwardRef((props: any, ref: any) => {
+    default: mockReact.forwardRef<Pick<ViewShotRef, 'capture'>, ViewShotProperties>((props, ref) => {
       mockReact.useImperativeHandle(ref, () => ({
-        capture: jest.fn().mockResolvedValue('mock-uri'),
+        capture: jest.fn<Promise<string>, []>().mockResolvedValue('mock-uri'),
       }));
-      return mockReact.createElement('View', props, props.children);
+      return <RN.View style={props.style}>{props.children}</RN.View>;
     }),
   };
 });
@@ -52,34 +64,36 @@ jest.mock('expo-haptics', () => ({
 }));
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text, TouchableOpacity } = require('react-native');
+  const { stubComponent } = jest.requireActual<
+    typeof import('@test-utils/mockComponents')
+  >('@test-utils/mockComponents');
+  const RN = jest.requireActual<typeof import('react-native')>('react-native');
   return {
-    KeyboardAvoider: ({ children }: { children?: import('react').ReactNode }) => require('react').createElement(require('react').Fragment, null, children),
-    Typography: ({ children, ...props }: any) =>
-      React.createElement(Text, { testID: props.testID || 'typography' }, children),
-    SheetHeader: ({ title, onClose }: any) =>
-      React.createElement(TouchableOpacity, { testID: 'sheet-header', onPress: onClose },
-        React.createElement(Text, null, title)
-      ),
-    SharePreviewCard: ({ topic }: any) =>
-      React.createElement(Text, { testID: 'share-preview-card' }, topic),
-    ShareActionButtons: ({ onShareImage, onCopyLink, onMoreOptions, isGenerating }: any) =>
-      React.createElement('View', { testID: 'share-action-buttons' },
-        React.createElement(TouchableOpacity, {
-          testID: 'share-image-button',
-          onPress: onShareImage,
-          disabled: isGenerating
-        }),
-        React.createElement(TouchableOpacity, {
-          testID: 'copy-link-button',
-          onPress: onCopyLink
-        }),
-        React.createElement(TouchableOpacity, {
-          testID: 'more-options-button',
-          onPress: onMoreOptions
-        })
-      ),
+    KeyboardAvoider: ({ children }: Parameters<typeof KeyboardAvoider>[0]) => <>{children}</>,
+    Typography: stubComponent<typeof Typography>('typography', { text: (p) => p.children }),
+    SheetHeader: stubComponent<typeof SheetHeader>('sheet-header', {
+      onPress: (p) => p.onClose,
+      text: (p) => p.title,
+    }),
+    SharePreviewCard: ({ topic }: Parameters<typeof SharePreviewCard>[0]) => (
+      <RN.Text testID="share-preview-card">{topic}</RN.Text>
+    ),
+    ShareActionButtons: ({
+      onShareImage,
+      onCopyLink,
+      onMoreOptions,
+      isGenerating,
+    }: Parameters<typeof ShareActionButtons>[0]) => (
+      <RN.View testID="share-action-buttons">
+        <RN.TouchableOpacity
+          testID="share-image-button"
+          onPress={onShareImage}
+          disabled={isGenerating}
+        />
+        <RN.TouchableOpacity testID="copy-link-button" onPress={onCopyLink} />
+        <RN.TouchableOpacity testID="more-options-button" onPress={onMoreOptions} />
+      </RN.View>
+    ),
   };
 });
 
@@ -88,13 +102,19 @@ describe('ShareModal', () => {
   const mockOnClose = jest.fn();
 
   const mockParticipants: AI[] = [
-    { id: 'claude', name: 'Claude', provider: 'anthropic', color: '#6366F1' },
-    { id: 'chatgpt', name: 'ChatGPT', provider: 'openai', color: '#10A37F' },
+    createMockAIConfig({ id: 'claude', name: 'Claude', provider: 'claude', color: '#6366F1' }),
+    createMockAIConfig({
+      id: 'chatgpt',
+      name: 'ChatGPT',
+      provider: 'openai',
+      model: 'gpt-5',
+      color: '#10A37F',
+    }),
   ];
 
   const mockMessages: Message[] = [
-    { id: '1', sender: 'Claude', content: 'Opening argument', timestamp: new Date() },
-    { id: '2', sender: 'ChatGPT', content: 'Counter argument', timestamp: new Date() },
+    createMockMessage({ id: '1', sender: 'Claude', senderType: 'ai', content: 'Opening argument', timestamp: Date.now() }),
+    createMockMessage({ id: '2', sender: 'ChatGPT', senderType: 'ai', content: 'Counter argument', timestamp: Date.now() }),
   ];
 
   const mockWinner: AI = mockParticipants[0];
@@ -168,7 +188,6 @@ describe('ShareModal', () => {
         <ShareModal {...defaultProps} visible={false} />
       );
 
-      const Modal = require('react-native').Modal;
       const modal = UNSAFE_getByType(Modal);
 
       expect(modal.props.visible).toBe(false);
@@ -186,7 +205,6 @@ describe('ShareModal', () => {
 
     it('calls onClose when backdrop is pressed', () => {
       const { UNSAFE_getAllByType } = renderWithProviders(<ShareModal {...defaultProps} />);
-      const TouchableOpacity = require('react-native').TouchableOpacity;
 
       const touchables = UNSAFE_getAllByType(TouchableOpacity);
       // First TouchableOpacity is the backdrop
@@ -197,7 +215,6 @@ describe('ShareModal', () => {
 
     it('does not close modal when content is pressed', () => {
       const { UNSAFE_getAllByType } = renderWithProviders(<ShareModal {...defaultProps} />);
-      const TouchableOpacity = require('react-native').TouchableOpacity;
 
       const touchables = UNSAFE_getAllByType(TouchableOpacity);
       // Second TouchableOpacity is the content container
@@ -209,7 +226,6 @@ describe('ShareModal', () => {
 
   describe('Share Image Functionality', () => {
     it('generates and shares image when share button is pressed', async () => {
-      const Sharing = require('expo-sharing');
       const { getByTestId } = renderWithProviders(<ShareModal {...defaultProps} />);
 
       fireEvent.press(getByTestId('share-image-button'));
@@ -230,8 +246,7 @@ describe('ShareModal', () => {
     });
 
     it('shows warning when sharing is not available', async () => {
-      const Sharing = require('expo-sharing');
-      Sharing.isAvailableAsync.mockResolvedValueOnce(false);
+      jest.mocked(Sharing.isAvailableAsync).mockResolvedValueOnce(false);
 
       const { getByTestId } = renderWithProviders(<ShareModal {...defaultProps} />);
 
@@ -246,8 +261,7 @@ describe('ShareModal', () => {
     });
 
     it('shows error toast when share fails', async () => {
-      const Sharing = require('expo-sharing');
-      Sharing.shareAsync.mockRejectedValueOnce(new Error('Share failed'));
+      jest.mocked(Sharing.shareAsync).mockRejectedValueOnce(new Error('Share failed'));
 
       const { getByTestId } = renderWithProviders(<ShareModal {...defaultProps} />);
 
@@ -292,7 +306,6 @@ describe('ShareModal', () => {
     it('sets correct modal properties for accessibility', () => {
       const { UNSAFE_getByType } = renderWithProviders(<ShareModal {...defaultProps} />);
 
-      const Modal = require('react-native').Modal;
       const modal = UNSAFE_getByType(Modal);
 
       expect(modal.props.visible).toBe(true);
@@ -302,7 +315,6 @@ describe('ShareModal', () => {
     it('handles onRequestClose callback', () => {
       const { UNSAFE_getByType } = renderWithProviders(<ShareModal {...defaultProps} />);
 
-      const Modal = require('react-native').Modal;
       const modal = UNSAFE_getByType(Modal);
 
       if (modal.props.onRequestClose) {

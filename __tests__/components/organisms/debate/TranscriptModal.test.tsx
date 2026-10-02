@@ -3,11 +3,18 @@
  * Comprehensive tests for the debate transcript modal component
  */
 
-import React from 'react';
+import type { ReactNode } from 'react';
+import { Modal } from 'react-native';
 import { fireEvent, waitFor } from '@testing-library/react-native';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system/legacy';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { TranscriptModal } from '@/components/organisms/debate/TranscriptModal';
-import { Message } from '@/types';
+import type { GradientButton, SheetHeader, Typography } from '@/components/molecules';
+import type { Message } from '@/types';
+import { createMockMessage } from '@test-utils/fixtures';
+import { requireDefined } from '@test-utils/queries';
 
 // Mock ErrorService
 const mockShowSuccess = jest.fn();
@@ -24,11 +31,11 @@ jest.mock('@/services/errors/ErrorService', () => ({
 
 // Mock dependencies
 jest.mock('expo-blur', () => ({
-  BlurView: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  BlurView: ({ children }: { children?: ReactNode }) => <>{children}</>,
 }));
 
 jest.mock('expo-linear-gradient', () => ({
-  LinearGradient: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  LinearGradient: ({ children }: { children?: ReactNode }) => <>{children}</>,
 }));
 
 jest.mock('expo-print', () => ({
@@ -46,23 +53,31 @@ jest.mock('expo-sharing', () => ({
 }));
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text, TouchableOpacity } = require('react-native');
+  const { stubComponent } = jest.requireActual<
+    typeof import('@test-utils/mockComponents')
+  >('@test-utils/mockComponents');
   return {
-    Typography: ({ children, testID }: { children?: unknown; testID?: string }) =>
-      React.createElement(Text, { testID: testID || 'typography' }, children),
-    SheetHeader: ({ title, onClose }: { title: string; onClose: () => void }) =>
-      React.createElement(TouchableOpacity, { testID: 'sheet-header', onPress: onClose },
-        React.createElement(Text, null, title)
-      ),
-    GradientButton: ({ title, onPress, disabled }: { title: string; onPress: () => void; disabled?: boolean }) =>
-      React.createElement(TouchableOpacity, {
-        testID: title.includes('Save') ? 'save-button' : 'share-button',
-        onPress,
-        disabled
-      }, React.createElement(Text, null, title)),
+    Typography: stubComponent<typeof Typography>('typography', { text: (p) => p.children }),
+    SheetHeader: stubComponent<typeof SheetHeader>('sheet-header', {
+      onPress: (p) => p.onClose,
+      text: (p) => p.title,
+    }),
+    GradientButton: stubComponent<typeof GradientButton>('gradient-button', {
+      testID: (p) => (p.title.includes('Save') ? 'save-button' : 'share-button'),
+      onPress: (p) => (p.disabled ? undefined : p.onPress),
+      text: (p) => p.title,
+    }),
   };
 });
+
+/** HTML passed to the first printToFileAsync call. */
+const printedHtml = (): string | undefined => {
+  const [options] = requireDefined(
+    jest.mocked(Print.printToFileAsync).mock.calls[0],
+    'printToFileAsync call'
+  );
+  return requireDefined(options, 'printToFileAsync options').html;
+};
 
 describe('TranscriptModal', () => {
   const mockOnClose = jest.fn();
@@ -73,10 +88,10 @@ describe('TranscriptModal', () => {
   ];
 
   const mockMessages: Message[] = [
-    { id: '1', sender: 'Claude', content: 'Opening argument', timestamp: new Date() },
-    { id: '2', sender: 'ChatGPT', content: 'Counter argument', timestamp: new Date() },
-    { id: '3', sender: 'Debate Host', content: 'Round complete', timestamp: new Date() },
-    { id: '4', sender: 'System', content: 'Debate ended', timestamp: new Date() },
+    createMockMessage({ id: '1', sender: 'Claude', senderType: 'ai', content: 'Opening argument', timestamp: Date.now() }),
+    createMockMessage({ id: '2', sender: 'ChatGPT', senderType: 'ai', content: 'Counter argument', timestamp: Date.now() }),
+    createMockMessage({ id: '3', sender: 'Debate Host', senderType: 'ai', content: 'Round complete', timestamp: Date.now() }),
+    createMockMessage({ id: '4', sender: 'System', senderType: 'ai', content: 'Debate ended', timestamp: Date.now() }),
   ];
 
   const mockWinner = { id: 'claude', name: 'Claude' };
@@ -284,7 +299,6 @@ describe('TranscriptModal', () => {
         <TranscriptModal {...defaultProps} visible={true} />
       );
 
-      const Modal = require('react-native').Modal;
       const modal = UNSAFE_queryByType(Modal);
 
       if (modal) {
@@ -303,8 +317,6 @@ describe('TranscriptModal', () => {
     });
 
     it('saves PDF when save button is pressed', async () => {
-      const Print = require('expo-print');
-      const FileSystem = require('expo-file-system/legacy');
 
       const { getByTestId } = renderWithProviders(<TranscriptModal {...defaultProps} />);
 
@@ -317,8 +329,6 @@ describe('TranscriptModal', () => {
     });
 
     it('shares PDF when share button is pressed', async () => {
-      const Print = require('expo-print');
-      const Sharing = require('expo-sharing');
 
       const { getByTestId } = renderWithProviders(<TranscriptModal {...defaultProps} />);
 
@@ -346,7 +356,6 @@ describe('TranscriptModal', () => {
     });
 
     it('generates proper filename when saving', async () => {
-      const FileSystem = require('expo-file-system/legacy');
 
       const { getByTestId } = renderWithProviders(<TranscriptModal {...defaultProps} />);
 
@@ -363,7 +372,6 @@ describe('TranscriptModal', () => {
     });
 
     it('includes citations in generated PDF HTML', async () => {
-      const Print = require('expo-print') as { printToFileAsync: jest.Mock };
       const citedMessages: Message[] = [
         {
           ...mockMessages[0],
@@ -391,7 +399,7 @@ describe('TranscriptModal', () => {
         expect(Print.printToFileAsync).toHaveBeenCalled();
       });
 
-      const html = Print.printToFileAsync.mock.calls[0][0].html;
+      const html = printedHtml();
       expect(html).toContain('Sources (1)');
       expect(html).toContain('Example Source');
       expect(html).toContain('https://example.com/source');
@@ -399,7 +407,6 @@ describe('TranscriptModal', () => {
     });
 
     it('includes speech labels in generated PDF HTML', async () => {
-      const Print = require('expo-print') as { printToFileAsync: jest.Mock };
       const speechMessages: Message[] = [
         {
           ...mockMessages[0],
@@ -427,13 +434,12 @@ describe('TranscriptModal', () => {
         expect(Print.printToFileAsync).toHaveBeenCalled();
       });
 
-      const html = Print.printToFileAsync.mock.calls[0][0].html;
+      const html = printedHtml();
       expect(html).toContain('Affirmative Rebuttal (AR)');
     });
 
     it('shows error toast when save fails', async () => {
-      const Print = require('expo-print');
-      Print.printToFileAsync.mockRejectedValueOnce(new Error('Save failed'));
+      jest.mocked(Print.printToFileAsync).mockRejectedValueOnce(new Error('Save failed'));
 
       const { getByTestId } = renderWithProviders(<TranscriptModal {...defaultProps} />);
 
@@ -450,7 +456,6 @@ describe('TranscriptModal', () => {
 
   describe('Share Functionality', () => {
     it('shares PDF file when sharing is available', async () => {
-      const Sharing = require('expo-sharing');
 
       const { getByTestId } = renderWithProviders(<TranscriptModal {...defaultProps} />);
 
@@ -467,8 +472,7 @@ describe('TranscriptModal', () => {
     });
 
     it('shows warning when sharing is not available', async () => {
-      const Sharing = require('expo-sharing');
-      Sharing.isAvailableAsync.mockResolvedValueOnce(false);
+      jest.mocked(Sharing.isAvailableAsync).mockResolvedValueOnce(false);
 
       const { getByTestId } = renderWithProviders(<TranscriptModal {...defaultProps} />);
 
@@ -483,8 +487,7 @@ describe('TranscriptModal', () => {
     });
 
     it('shows error toast when share fails', async () => {
-      const Sharing = require('expo-sharing');
-      Sharing.shareAsync.mockRejectedValueOnce(new Error('Share failed'));
+      jest.mocked(Sharing.shareAsync).mockRejectedValueOnce(new Error('Share failed'));
 
       const { getByTestId } = renderWithProviders(<TranscriptModal {...defaultProps} />);
 
@@ -503,7 +506,6 @@ describe('TranscriptModal', () => {
     it('sets correct modal properties', () => {
       const { UNSAFE_queryByType } = renderWithProviders(<TranscriptModal {...defaultProps} />);
 
-      const Modal = require('react-native').Modal;
       const modal = UNSAFE_queryByType(Modal);
 
       if (modal) {
@@ -514,7 +516,6 @@ describe('TranscriptModal', () => {
     it('handles onRequestClose callback', () => {
       const { UNSAFE_queryByType } = renderWithProviders(<TranscriptModal {...defaultProps} />);
 
-      const Modal = require('react-native').Modal;
       const modal = UNSAFE_queryByType(Modal);
 
       if (modal && modal.props.onRequestClose) {

@@ -1,23 +1,24 @@
-import React from 'react';
+import type { ReactNode } from 'react';
 import { fireEvent, waitFor, act } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { ChatTopicPickerModal } from '@/components/organisms/demo/ChatTopicPickerModal';
+import type { Button, InputField, SheetHeader, Typography } from '@/components/molecules';
 
 // Mock DemoContentService
-const mockListChatSamples = jest.fn();
-const mockSubscribe = jest.fn();
+const mockListChatSamples = jest.fn<Array<{ id: string; title: string }>, [string[]]>();
+const mockSubscribe = jest.fn<() => void, [() => void]>();
 const mockUnsubscribe = jest.fn();
 
 jest.mock('@/services/demo/DemoContentService', () => ({
   DemoContentService: {
-    listChatSamples: (...args: any[]) => mockListChatSamples(...args),
-    subscribe: (...args: any[]) => mockSubscribe(...args),
+    listChatSamples: (providers: string[]) => mockListChatSamples(providers),
+    subscribe: (listener: () => void) => mockSubscribe(listener),
   },
 }));
 
 // Mock expo modules
 jest.mock('expo-linear-gradient', () => ({
-  LinearGradient: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  LinearGradient: ({ children }: { children?: ReactNode }) => <>{children}</>,
 }));
 
 jest.mock('@expo/vector-icons', () => {
@@ -30,22 +31,33 @@ jest.mock('@expo/vector-icons', () => {
 
 // Mock molecules
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text, TouchableOpacity, View, TextInput } = require('react-native');
+  const { stubComponent } = jest.requireActual<
+    typeof import('@test-utils/mockComponents')
+  >('@test-utils/mockComponents');
+  const RN = jest.requireActual<typeof import('react-native')>('react-native');
   return {
-    Typography: ({ children, testID }: { children: React.ReactNode; testID?: string }) =>
-      React.createElement(Text, { testID }, children),
-    Button: ({ title, onPress, testID }: { title: string; onPress: () => void; testID?: string }) =>
-      React.createElement(TouchableOpacity, { onPress, testID: testID || 'button' }, React.createElement(Text, null, title)),
-    SheetHeader: ({ title, onClose, testID }: any) =>
-      React.createElement(
-        View,
-        { testID: testID || 'sheet-header' },
-        React.createElement(Text, null, title),
-        React.createElement(TouchableOpacity, { onPress: onClose, testID: 'sheet-header-close' }, React.createElement(Text, null, 'Close'))
+    Typography: ({ children }: Parameters<typeof Typography>[0]) => <RN.Text>{children}</RN.Text>,
+    Button: stubComponent<typeof Button>('button', {
+      onPress: (p) => p.onPress,
+      text: (p) => p.title,
+    }),
+    SheetHeader: stubComponent<typeof SheetHeader>('sheet-header', {
+      testID: (p) => p.testID || 'sheet-header',
+      text: (p) => p.title,
+      render: (p) => (
+        <RN.TouchableOpacity onPress={p.onClose} testID="sheet-header-close">
+          <RN.Text>Close</RN.Text>
+        </RN.TouchableOpacity>
       ),
-    InputField: ({ placeholder, value, onChangeText, testID }: any) =>
-      React.createElement(TextInput, { placeholder, value, onChangeText, testID: testID || 'input-field' }),
+    }),
+    InputField: ({ placeholder, value, onChangeText, testID }: Parameters<typeof InputField>[0]) => (
+      <RN.TextInput
+        placeholder={placeholder}
+        value={value}
+        onChangeText={onChangeText}
+        testID={testID || 'input-field'}
+      />
+    ),
   };
 });
 

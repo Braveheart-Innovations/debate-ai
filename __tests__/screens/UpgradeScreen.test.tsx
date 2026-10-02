@@ -1,7 +1,11 @@
 import React from 'react';
 import { Text } from 'react-native';
 import { fireEvent, waitFor } from '@testing-library/react-native';
+import UpgradeScreen from '@/screens/UpgradeScreen';
 import { renderWithProviders } from '../../test-utils/renderWithProviders';
+import { capturePropsOf } from '@test-utils/mockComponents';
+import type { Header } from '@/components/organisms';
+import type { Button, GradientButton } from '@/components/molecules';
 
 // Mock ErrorService
 const mockShowSuccess = jest.fn();
@@ -19,18 +23,19 @@ jest.mock('@/services/errors/ErrorService', () => ({
   },
 }));
 
-const mockHeader = jest.fn(({ title, subtitle, onBack }: { title: string; subtitle?: string; onBack: () => void }) => (
+const mockHeader = capturePropsOf<typeof Header>(({ title, subtitle, onBack }) => (
   <Text testID="header" onPress={onBack}>
     {title} {subtitle}
   </Text>
 ));
-const mockHeaderActions = jest.fn(() => null);
 
 const mockGoBack = jest.fn();
 
 jest.mock('@/components/organisms', () => ({
-  Header: (props: any) => mockHeader(props),
-  HeaderActions: () => mockHeaderActions(),
+  get Header() {
+    return mockHeader.Stub;
+  },
+  HeaderActions: () => null,
   TrialTermsSheet: () => null,
 }));
 
@@ -53,12 +58,12 @@ jest.mock('expo-linear-gradient', () => {
   };
 });
 
-const mockGradientButton = jest.fn(({ title, onPress }: { title: string; onPress: () => void }) => (
+const mockGradientButton = capturePropsOf<typeof GradientButton>(({ title, onPress }) => (
   <Text accessibilityRole="button" onPress={onPress}>
     {title}
   </Text>
 ));
-const mockButton = jest.fn(({ title, onPress }: { title: string; onPress: () => void }) => (
+const mockButton = capturePropsOf<typeof Button>(({ title, onPress }) => (
   <Text accessibilityRole="button" onPress={onPress}>
     {title}
   </Text>
@@ -67,8 +72,12 @@ const mockButton = jest.fn(({ title, onPress }: { title: string; onPress: () => 
 jest.mock('@/components/molecules', () => {
   const { Text } = require('react-native');
   return {
-    GradientButton: (props: any) => mockGradientButton(props),
-    Button: (props: any) => mockButton(props),
+    get GradientButton() {
+      return mockGradientButton.Stub;
+    },
+    get Button() {
+      return mockButton.Stub;
+    },
     Typography: ({ children }: { children: React.ReactNode }) => <Text>{children}</Text>,
     ContextBar: ({ title, subtitle }: { title?: string; subtitle?: string }) => (
       <>
@@ -96,7 +105,7 @@ jest.mock('@/hooks/useFeatureAccess', () => ({
 // Mock PurchaseService to avoid actual purchase flow
 const mockPurchaseSubscription = jest.fn();
 const mockRestorePurchases = jest.fn();
-const mockOnPurchaseError = jest.fn(() => jest.fn()); // Returns unsubscribe function
+const mockOnPurchaseError = jest.fn<() => void, [unknown]>(() => jest.fn()); // Returns unsubscribe function
 
 jest.mock('@/services/iap/PurchaseService', () => ({
   PurchaseService: {
@@ -106,11 +115,12 @@ jest.mock('@/services/iap/PurchaseService', () => ({
   },
 }));
 
-const UpgradeScreen = require('@/screens/UpgradeScreen').default;
-
 describe('UpgradeScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockHeader.reset();
+    mockGradientButton.reset();
+    mockButton.reset();
     mockGoBack.mockReset();
     mockShowSuccess.mockClear();
     mockShowInfo.mockClear();
@@ -143,7 +153,7 @@ describe('UpgradeScreen', () => {
   it('calls purchaseSubscription when plan card button is pressed', async () => {
     const { getAllByText } = renderWithProviders(<UpgradeScreen />, {
       preloadedState: {
-        auth: { isAuthenticated: true, user: null, loading: false, error: null },
+        auth: { isAuthenticated: true, user: null },
       },
     });
 
@@ -170,7 +180,7 @@ describe('UpgradeScreen', () => {
 
     const { getAllByText } = renderWithProviders(<UpgradeScreen />, {
       preloadedState: {
-        auth: { isAuthenticated: true, user: null, loading: false, error: null },
+        auth: { isAuthenticated: true, user: null },
       },
     });
 
@@ -185,7 +195,7 @@ describe('UpgradeScreen', () => {
   it('calls restorePurchases when Restore Purchases is pressed (authenticated)', async () => {
     const { getByText } = renderWithProviders(<UpgradeScreen />, {
       preloadedState: {
-        auth: { isAuthenticated: true, user: null, loading: false, error: null },
+        auth: { isAuthenticated: true, user: null },
       },
     });
 
@@ -202,7 +212,7 @@ describe('UpgradeScreen', () => {
 
     const { getAllByText } = renderWithProviders(<UpgradeScreen />, {
       preloadedState: {
-        auth: { isAuthenticated: true, user: null, loading: false, error: null },
+        auth: { isAuthenticated: true, user: null },
       },
     });
 
@@ -230,7 +240,7 @@ describe('UpgradeScreen', () => {
 
     const { getAllByText } = renderWithProviders(<UpgradeScreen />, {
       preloadedState: {
-        auth: { isAuthenticated: true, user: null, loading: false, error: null },
+        auth: { isAuthenticated: true, user: null },
       },
     });
 
@@ -251,7 +261,7 @@ describe('UpgradeScreen', () => {
 
     const { getAllByText } = renderWithProviders(<UpgradeScreen />, {
       preloadedState: {
-        auth: { isAuthenticated: true, user: null, loading: false, error: null },
+        auth: { isAuthenticated: true, user: null },
       },
     });
 

@@ -2,6 +2,8 @@ import React from 'react';
 import { Alert } from 'react-native';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { EmailAuthForm } from '@/components/molecules/auth/EmailAuthForm';
+import type { Button } from '@/components/molecules';
 
 jest.mock('@expo/vector-icons', () => ({
   Ionicons: () => null,
@@ -18,20 +20,20 @@ jest.mock('@/services/firebase/auth', () => ({
 
 jest.mock('@/components/molecules', () => {
   const React = require('react');
-  const { Text, TouchableOpacity } = require('react-native');
+  const { Text } = require('react-native');
+  const { stubComponent } = jest.requireActual<
+    typeof import('@test-utils/mockComponents')
+  >('@test-utils/mockComponents');
   return {
     Typography: ({ children }: { children: React.ReactNode }) =>
       React.createElement(Text, null, children),
-    Button: ({ title, onPress, loading }: any) =>
-      React.createElement(
-        TouchableOpacity,
-        { onPress, disabled: loading },
-        React.createElement(Text, null, loading ? 'Loading...' : title)
-      ),
+    // A loading button is not pressable, like the real one
+    Button: stubComponent<typeof Button>('button', {
+      onPress: (p) => (p.loading ? undefined : p.onPress),
+      text: (p) => (p.loading ? 'Loading...' : p.title),
+    }),
   };
 });
-
-const { EmailAuthForm } = require('@/components/molecules/auth/EmailAuthForm');
 
 describe('EmailAuthForm', () => {
   const mockOnSubmit = jest.fn();

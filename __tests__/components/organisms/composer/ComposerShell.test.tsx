@@ -1,46 +1,67 @@
 import { Text } from 'react-native';
 import { act, fireEvent } from '@testing-library/react-native';
+import type { ReactTestInstance } from 'react-test-renderer';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { capturePropsOf, type PropsCapture } from '@test-utils/mockComponents';
+import { requireDefined } from '@test-utils/queries';
 import { ComposerShell } from '@/components/organisms/composer/ComposerShell';
 import { AIComposer } from '@/components/organisms/composer/AIComposer';
 import { getProviderDefaultModel } from '@/config/modelConfigs';
 import type { AISelectionConfig } from '@/types/aiSelection';
 import type { MessageAttachment } from '@/types';
-import * as speechRecognition from 'expo-speech-recognition';
+import type { ProviderPickerSheet } from '@/components/organisms/composer/ProviderPickerSheet';
+import type { AIConfigSheet } from '@/components/organisms/composer/AIConfigSheet';
+import type { ImageUploadModal } from '@/components/organisms/chat/ImageUploadModal';
+import type { DocumentUploadModal } from '@/components/organisms/chat/DocumentUploadModal';
 
-// Root __mocks__/expo-speech-recognition.ts adds these test helpers.
-const speech = speechRecognition as unknown as {
-  __emit: (eventName: string, payload?: unknown) => void;
-  __reset: () => void;
-};
-const speechModule = speechRecognition.ExpoSpeechRecognitionModule as unknown as {
-  [K in keyof typeof speechRecognition.ExpoSpeechRecognitionModule]: jest.Mock;
-};
+// Root __mocks__/expo-speech-recognition.ts adds the __emit/__reset test helpers.
+// Mocking explicitly routes both the component's import and requireMock through
+// the mock registry, so `speech` is the instance useDictation sees, typed from the mock file.
+jest.mock('expo-speech-recognition');
+const speech = jest.requireMock<typeof import('../../../../__mocks__/expo-speech-recognition')>(
+  'expo-speech-recognition'
+);
+const speechModule = speech.ExpoSpeechRecognitionModule;
 
 jest.mock('expo-haptics', () => ({
   impactAsync: jest.fn().mockResolvedValue(undefined),
   ImpactFeedbackStyle: { Light: 'light', Medium: 'medium' },
 }));
 
-const mockPickerSheet = jest.fn(() => null);
-const mockConfigSheet = jest.fn(() => null);
-const mockImageUploadModal = jest.fn(() => null);
-const mockDocUploadModal = jest.fn(() => null);
+const mockPickerSheet = capturePropsOf<typeof ProviderPickerSheet>();
+const mockConfigSheet = capturePropsOf<typeof AIConfigSheet>();
+const mockImageUploadModal = capturePropsOf<typeof ImageUploadModal>();
+const mockDocUploadModal = capturePropsOf<typeof DocumentUploadModal>();
+
+const resetSheetCaptures = () => {
+  mockPickerSheet.reset();
+  mockConfigSheet.reset();
+  mockImageUploadModal.reset();
+  mockDocUploadModal.reset();
+};
 
 jest.mock('@/components/organisms/composer/ProviderPickerSheet', () => ({
-  ProviderPickerSheet: (props: unknown) => mockPickerSheet(props),
+  get ProviderPickerSheet() {
+    return mockPickerSheet.Stub;
+  },
 }));
 
 jest.mock('@/components/organisms/composer/AIConfigSheet', () => ({
-  AIConfigSheet: (props: unknown) => mockConfigSheet(props),
+  get AIConfigSheet() {
+    return mockConfigSheet.Stub;
+  },
 }));
 
 jest.mock('@/components/organisms/chat/ImageUploadModal', () => ({
-  ImageUploadModal: (props: unknown) => mockImageUploadModal(props),
+  get ImageUploadModal() {
+    return mockImageUploadModal.Stub;
+  },
 }));
 
 jest.mock('@/components/organisms/chat/DocumentUploadModal', () => ({
-  DocumentUploadModal: (props: unknown) => mockDocUploadModal(props),
+  get DocumentUploadModal() {
+    return mockDocUploadModal.Stub;
+  },
 }));
 
 const shellProps = {
@@ -59,7 +80,10 @@ const shellProps = {
 };
 
 describe('ComposerShell', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    resetSheetCaptures();
+  });
 
   it('renders a pill per descriptor plus the add pill', () => {
     const { getByText, getByTestId } = renderWithProviders(<ComposerShell {...shellProps} />);
@@ -116,12 +140,13 @@ describe('ComposerShell', () => {
 describe('ComposerShell dictation', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    resetSheetCaptures();
     speech.__reset();
   });
 
-  const startDictation = async (getByTestId: (id: string) => unknown) => {
+  const startDictation = async (getByTestId: (id: string) => ReactTestInstance) => {
     await act(async () => {
-      fireEvent.press(getByTestId('shell-mic') as never);
+      fireEvent.press(getByTestId('shell-mic'));
     });
     act(() => speech.__emit('start'));
   };
@@ -207,7 +232,10 @@ describe('ComposerShell dictation', () => {
 });
 
 describe('AIComposer (wrapper parity)', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    resetSheetCaptures();
+  });
 
   const configs: AISelectionConfig[] = [
     { providerId: 'claude', modelId: 'claude-x', personalityId: 'default' },
@@ -259,23 +287,26 @@ describe('AIComposer (wrapper parity)', () => {
   it('opens the config sheet for the tapped pill config', () => {
     const { getByTestId } = renderWithProviders(<AIComposer {...composerProps} />);
     fireEvent.press(getByTestId('composer-pill-1'));
-    expect(mockConfigSheet).toHaveBeenLastCalledWith(
+    expect(mockConfigSheet.latest()).toEqual(
       expect.objectContaining({ visible: true, config: configs[1] })
     );
   });
 
   it('passes compare duplicate policy through to the picker sheet', () => {
     renderWithProviders(<AIComposer {...composerProps} mode="compare" minAIs={2} maxAIs={2} />);
-    expect(mockPickerSheet).toHaveBeenLastCalledWith(
+    expect(mockPickerSheet.latest()).toEqual(
       expect.objectContaining({ allowDuplicates: true })
     );
   });
 });
 
 describe('AIComposer attachments', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    resetSheetCaptures();
+  });
 
-  const visionModel = getProviderDefaultModel('claude')?.id as string;
+  const visionModel = requireDefined(getProviderDefaultModel('claude'), 'claude default model').id;
   const capableConfigs: AISelectionConfig[] = [
     { providerId: 'claude', modelId: visionModel, personalityId: 'default' },
   ];
@@ -314,10 +345,9 @@ describe('AIComposer attachments', () => {
     testID: 'composer',
   };
 
-  const lastUploadHandler = (mock: jest.Mock): ((atts: MessageAttachment[]) => void) => {
-    const call = mock.mock.calls[mock.mock.calls.length - 1];
-    return (call[0] as { onUpload: (atts: MessageAttachment[]) => void }).onUpload;
-  };
+  const lastUploadHandler = (
+    capture: PropsCapture<typeof ImageUploadModal> | PropsCapture<typeof DocumentUploadModal>
+  ): ((atts: MessageAttachment[]) => void) => capture.latest().onUpload;
 
   it('hides the attach button unless allowAttachments is set', () => {
     const { queryByTestId } = renderWithProviders(
@@ -341,7 +371,7 @@ describe('AIComposer attachments', () => {
 
     fireEvent.press(getByTestId('composer-attach'));
     fireEvent.press(getByLabelText('Image'));
-    expect(mockImageUploadModal).toHaveBeenLastCalledWith(
+    expect(mockImageUploadModal.latest()).toEqual(
       expect.objectContaining({ visible: true })
     );
 

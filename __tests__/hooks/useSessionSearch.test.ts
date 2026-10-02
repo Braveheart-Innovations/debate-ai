@@ -1,6 +1,12 @@
 import { act, renderHook } from '@testing-library/react-native';
 import { useSessionSearch } from '@/hooks/history/useSessionSearch';
-import { buildSessionList, createMockSession } from '../../test-utils/hooks/historyFixtures';
+import {
+  buildSessionList,
+  createMockAIConfig,
+  createMockSession,
+} from '../../test-utils/hooks/historyFixtures';
+import { createMockAIMessage } from '../../test-utils/fixtures';
+import { requireDefined } from '../../test-utils/queries';
 import type { ChatSession } from '@/types';
 
 const mockFilterBySearchTerm = jest.fn();
@@ -18,13 +24,14 @@ jest.mock('@/services/history', () => ({
 }));
 
 describe('useSessionSearch', () => {
-  const sessions: ChatSession[] = buildSessionList(3, index => ({
-    messages: [{ id: `m-${index}`, role: 'assistant', content: `Response ${index}`, createdAt: 1 }],
-    selectedAIs: [
-      { id: `ai-${index}`, name: `AI ${index}`, provider: 'anthropic', model: 'claude' },
-    ],
-    topic: index === 1 ? 'AI Policy' : undefined,
-  }));
+  const sessions: ChatSession[] = buildSessionList(3, index => {
+    const ai = createMockAIConfig({ id: `ai-${index}`, name: `AI ${index}` });
+    return {
+      messages: [createMockAIMessage({ id: `m-${index}`, content: `Response ${index}` }, ai)],
+      selectedAIs: [ai],
+      topic: index === 1 ? 'AI Policy' : undefined,
+    };
+  });
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -60,7 +67,7 @@ describe('useSessionSearch', () => {
     expect(result.current.filteredSessions).toEqual([sessions[1]]);
     expect(result.current.searchMatches).toHaveLength(1);
     expect(result.current.hasActiveFilters).toBe(true);
-    expect(result.current.searchStats.filteredCount).toBe(1);
+    expect(requireDefined(result.current.searchStats, 'searchStats').filteredCount).toBe(1);
 
     act(() => {
       result.current.clearSearch();
@@ -73,24 +80,27 @@ describe('useSessionSearch', () => {
   it('supports advanced and smart search helpers', () => {
     const { result } = renderHook(() => useSessionSearch(sessions));
 
-    const advanced = result.current.advancedSearch({
+    const advancedSearch = requireDefined(result.current.advancedSearch, 'advancedSearch');
+    const smartSearch = requireDefined(result.current.smartSearch, 'smartSearch');
+
+    const advanced = advancedSearch({
       query: 'AI',
-      aiProviders: ['anthropic'],
+      aiProviders: ['claude'],
     });
 
     expect(mockFilterBySearchTerm).toHaveBeenCalledWith(expect.any(Array), 'AI');
     expect(mockFilterByOptions).toHaveBeenCalled();
     expect(Array.isArray(advanced)).toBe(true);
 
-    const smart = result.current.smartSearch('policy');
+    const smart = smartSearch('policy');
     expect(mockSmartSearch).toHaveBeenCalledWith(sessions, 'policy');
     expect(smart).toEqual([sessions[0]]);
 
-    const emptySmart = result.current.smartSearch('');
+    const emptySmart = smartSearch('');
     expect(emptySmart).toEqual(sessions);
 
     const freshSession = createMockSession({ topic: 'New Topic' });
     const { result: resultWithNew } = renderHook(() => useSessionSearch([freshSession]));
-    expect(resultWithNew.current.searchStats.totalSessions).toBe(1);
+    expect(requireDefined(resultWithNew.current.searchStats, 'searchStats').totalSessions).toBe(1);
   });
 });

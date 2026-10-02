@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react-native';
 import { useSessionPagination } from '@/hooks/history/useSessionPagination';
-import { buildSessionList } from '../../test-utils/hooks/historyFixtures';
+import { buildSessionList, createMockMessage } from '../../test-utils/hooks/historyFixtures';
 
 describe('useSessionPagination', () => {
   afterEach(() => {
@@ -18,7 +18,11 @@ describe('useSessionPagination', () => {
 
   it('paginates sessions and resets correctly', () => {
     jest.useFakeTimers();
-    const sessions = buildSessionList(12, index => ({ messages: Array(index + 1).fill({}).map((_, i) => ({ id: `msg-${index}-${i}`, role: 'user', content: 'hi', createdAt: Date.now() })) }));
+    const sessions = buildSessionList(12, index => ({
+      messages: Array.from({ length: index + 1 }, (_, i) =>
+        createMockMessage({ id: `msg-${index}-${i}`, content: 'hi', timestamp: Date.now() })
+      ),
+    }));
 
     const { result } = renderHook(() => useSessionPagination({ sessions, pageSize: 4, initialPageSize: 4 }));
 

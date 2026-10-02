@@ -1,16 +1,16 @@
 import React from 'react';
+import type { StyleProp, TextStyle } from 'react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { SearchHighlight } from '@/components/molecules/common/SearchHighlight';
 
 jest.mock('@/components/molecules', () => {
   const React = require('react');
   const { Text } = require('react-native');
   return {
-    Typography: ({ children, style }: { children: React.ReactNode; style?: any }) =>
+    Typography: ({ children, style }: { children: React.ReactNode; style?: StyleProp<TextStyle> }) =>
       React.createElement(Text, { style }, children),
   };
 });
-
-const { SearchHighlight } = require('@/components/molecules/common/SearchHighlight');
 
 describe('SearchHighlight', () => {
   it('renders text without highlighting when no searchTerm', () => {

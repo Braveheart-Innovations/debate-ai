@@ -1,3 +1,4 @@
+import { createInvoker, createOnCallMock, MockHttpsError, registeredHandlersOf, type CallableOptions } from '@test-utils/functionsHarness';
 /**
  * The request fields these callables read. The real `CallableRequest` also
  * demands a full Express `rawRequest`; the mocked `onCall` below hands each
@@ -11,14 +12,9 @@ type TestCallableRequest = {
     ip: string;
   };
 };
-type TestCallableHandler = (request: TestCallableRequest) => Promise<unknown>;
-type TestCallableOptions = { secrets?: Array<{ name: string }> };
+type TestCallableOptions = CallableOptions;
 
-const mockOnCall = jest.fn(
-  (optionsOrHandler: TestCallableOptions | TestCallableHandler, maybeHandler?: TestCallableHandler) => (
-    typeof optionsOrHandler === 'function' ? optionsOrHandler : maybeHandler
-  )
-);
+const mockOnCall = createOnCallMock<TestCallableRequest>();
 
 const mockAxiosPost = jest.fn();
 const mockAxiosIsAxiosError = jest.fn((error: unknown) => (
@@ -57,15 +53,7 @@ const mockTimestampFromMillis = jest.fn((ms: number) => ({
 
 jest.mock('firebase-functions/v2/https', () => ({
   onCall: mockOnCall,
-  HttpsError: class HttpsError extends Error {
-    code: string;
-
-    constructor(code: string, message: string) {
-      super(message);
-      this.code = code;
-      this.name = 'HttpsError';
-    }
-  },
+  HttpsError: MockHttpsError,
 }), { virtual: true });
 
 jest.mock('firebase-admin', () => ({
@@ -106,18 +94,9 @@ const registeredSecretOptions = mockOnCall.mock.calls
     typeof optionsOrHandler !== 'function' && optionsOrHandler.secrets !== undefined
   ));
 // Captured at load: `jest.clearAllMocks()` in beforeEach wipes `mock.results`.
-const registeredHandlers = mockOnCall.mock.results.flatMap((result) => (
-  result.type === 'return' && result.value ? [result.value] : []
-));
+const registeredHandlers = registeredHandlersOf(mockOnCall);
 
-/** Runs the handler a mocked `onCall` registered for `callable`. */
-function invoke(callable: object, req: TestCallableRequest): Promise<unknown> {
-  const handler = registeredHandlers.find((candidate) => candidate === callable);
-  if (!handler) {
-    throw new Error('invoke: callable was not registered through onCall');
-  }
-  return handler(req);
-}
+const invoke = createInvoker(registeredHandlers);
 
 function request(data: Record<string, unknown>, auth?: TestCallableRequest['auth']): TestCallableRequest {
   return {

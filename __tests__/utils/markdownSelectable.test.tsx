@@ -1,6 +1,6 @@
+import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
-import { TextStyle } from 'react-native';
-import Linking from 'react-native/Libraries/Linking/Linking';
+import { Linking, TextStyle } from 'react-native';
 
 // Mock CodeBlock to avoid ThemeProvider dependency
 jest.mock('@/components/molecules/common/CodeBlock', () => ({
@@ -34,28 +34,43 @@ const styles = {
   link: { color: 'blue' },
 };
 
-type RuleName = keyof typeof selectableMarkdownRules;
+type MarkdownNode = Parameters<typeof selectableMarkdownRules.text>[0];
+
+/** Shared signature of the textual rules exercised via `renderRule` (link has its own tests). */
+type TextualRule = (
+  node: MarkdownNode,
+  children: React.ReactNode,
+  parent: MarkdownNode[],
+  styles: unknown,
+  inheritedStyles?: TextStyle
+) => React.ReactElement;
+
+const textualRules = {
+  text: selectableMarkdownRules.text,
+  strong: selectableMarkdownRules.strong,
+  em: selectableMarkdownRules.em,
+  s: selectableMarkdownRules.s,
+  code_block: selectableMarkdownRules.code_block,
+  fence: selectableMarkdownRules.fence,
+  hardbreak: selectableMarkdownRules.hardbreak,
+  softbreak: selectableMarkdownRules.softbreak,
+} satisfies Record<string, TextualRule>;
+
+type RuleName = keyof typeof textualRules;
 
 const renderRule = (
   rule: RuleName,
   nodeOverrides: Partial<{ content: string; attributes: Record<string, string> }> = {},
-  inheritedStyles?: TextStyle,
-  onLinkPress?: (url: string) => boolean | void
+  inheritedStyles?: TextStyle
 ) => {
-  const node = {
+  const node: MarkdownNode = {
     key: `${rule}-node`,
     content: nodeOverrides.content,
     attributes: nodeOverrides.attributes,
   };
 
-  const element = selectableMarkdownRules[rule](
-    node,
-    <>{node.content}</>,
-    [],
-    styles,
-    inheritedStyles,
-    onLinkPress
-  );
+  const ruleFn: TextualRule = textualRules[rule];
+  const element = ruleFn(node, <>{node.content}</>, [], styles, inheritedStyles);
   return render(element);
 };
 
@@ -100,7 +115,7 @@ describe('selectableMarkdownRules', () => {
   it('opens links through Linking.openURL by default', () => {
     const openUrlSpy = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
     const element = selectableMarkdownRules.link(
-      { key: 'link', attributes: { href: 'https://example.com' } } as any,
+      { key: 'link', attributes: { href: 'https://example.com' } },
       <>Docs</>,
       [],
       styles
@@ -116,7 +131,7 @@ describe('selectableMarkdownRules', () => {
     const openUrlSpy = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
     const onLinkPress = jest.fn(() => false);
     const element = selectableMarkdownRules.link(
-      { key: 'link-2', attributes: { href: 'https://blocked.com' } } as any,
+      { key: 'link-2', attributes: { href: 'https://blocked.com' } },
       <>Cancel</>,
       [],
       styles,

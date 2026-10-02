@@ -1,28 +1,31 @@
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import type { ReactNode } from 'react';
+import type { Line, Rect } from 'react-native-svg';
+import type { PropsOf } from '@test-utils/mockComponents';
+import type { Typography } from '@/components/molecules/common/Typography';
+import { BarChart } from '@/components/molecules/charts/BarChart';
 
 jest.mock('react-native-svg', () => {
-  const React = require('react');
-  const { View } = require('react-native');
-  const SvgMock = ({ children }: any) => React.createElement(View, null, children);
+  const React = jest.requireActual<typeof import('react')>('react');
+  const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+  const container = ({ children }: { children?: ReactNode }) => React.createElement(View, null, children);
   return {
     __esModule: true,
-    default: SvgMock,
-    Svg: SvgMock,
-    Rect: (props: any) => React.createElement(View, props),
-    Line: (props: any) => React.createElement(View, props),
-    G: ({ children }: any) => React.createElement(View, null, children),
+    default: container,
+    Svg: container,
+    Rect: (props: PropsOf<typeof Rect>) => React.createElement('Rect', props),
+    Line: (props: PropsOf<typeof Line>) => React.createElement('Line', props),
+    G: container,
   };
 });
 
 jest.mock('@/components/molecules/common/Typography', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = jest.requireActual<typeof import('react')>('react');
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
-    Typography: ({ children }: any) => React.createElement(Text, null, children),
+    Typography: ({ children }: PropsOf<typeof Typography>) => React.createElement(Text, null, children),
   };
 });
-
-const { BarChart } = require('@/components/molecules/charts/BarChart');
 
 describe('BarChart', () => {
   const defaultBars = [

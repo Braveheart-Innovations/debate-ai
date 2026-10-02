@@ -1,6 +1,6 @@
 import { renderHookWithProviders } from '../../../test-utils/renderHookWithProviders';
 import { usePreDebateValidation } from '@/hooks/debate/usePreDebateValidation';
-import type { RootState } from '@/store';
+import { buildApiKeyStatus } from '@/store';
 
 // Mock useFeatureAccess to control isDemo state
 const mockIsDemo = jest.fn().mockReturnValue(false);
@@ -15,19 +15,6 @@ jest.mock('@/hooks/useFeatureAccess', () => ({
 }));
 
 describe('usePreDebateValidation', () => {
-  const baseSettingsState: RootState['settings'] = {
-    theme: 'auto',
-    fontSize: 'medium',
-    apiKeys: {},
-    realtimeRelayUrl: undefined,
-    verifiedProviders: [],
-    verificationTimestamps: {},
-    verificationModels: {},
-    expertMode: {},
-    hasCompletedOnboarding: false,
-    recordModeEnabled: false,
-  };
-
   beforeEach(() => {
     mockIsDemo.mockReturnValue(false);
   });
@@ -40,8 +27,7 @@ describe('usePreDebateValidation', () => {
     const { result } = renderHookWithProviders(() => usePreDebateValidation(), {
       preloadedState: {
         settings: {
-          ...baseSettingsState,
-          apiKeys: { claude: 'key-1' },
+          apiKeys: { claude: buildApiKeyStatus('key-1') },
         },
       },
     });
@@ -55,8 +41,7 @@ describe('usePreDebateValidation', () => {
     const { result } = renderHookWithProviders(() => usePreDebateValidation(), {
       preloadedState: {
         settings: {
-          ...baseSettingsState,
-          apiKeys: { claude: 'key-1', openai: 'key-2' },
+          apiKeys: { claude: buildApiKeyStatus('key-1'), openai: buildApiKeyStatus('key-2') },
         },
       },
     });
@@ -70,8 +55,7 @@ describe('usePreDebateValidation', () => {
     const { result } = renderHookWithProviders(() => usePreDebateValidation(), {
       preloadedState: {
         settings: {
-          ...baseSettingsState,
-          apiKeys: { claude: 'key-1', openai: 'key-2', google: 'key-3' },
+          apiKeys: { claude: buildApiKeyStatus('key-1'), openai: buildApiKeyStatus('key-2'), google: buildApiKeyStatus('key-3') },
         },
       },
     });
@@ -84,7 +68,6 @@ describe('usePreDebateValidation', () => {
     const { result } = renderHookWithProviders(() => usePreDebateValidation(), {
       preloadedState: {
         settings: {
-          ...baseSettingsState,
           apiKeys: {},
         },
       },
@@ -100,7 +83,6 @@ describe('usePreDebateValidation', () => {
     const { result } = renderHookWithProviders(() => usePreDebateValidation(), {
       preloadedState: {
         settings: {
-          ...baseSettingsState,
           apiKeys: {}, // No API keys
         },
       },
@@ -115,8 +97,7 @@ describe('usePreDebateValidation', () => {
     const { result } = renderHookWithProviders(() => usePreDebateValidation(), {
       preloadedState: {
         settings: {
-          ...baseSettingsState,
-          apiKeys: { claude: 'key-1', openai: '', google: null as unknown as string },
+          apiKeys: { claude: buildApiKeyStatus('key-1'), openai: buildApiKeyStatus(''), google: undefined },
         },
       },
     });

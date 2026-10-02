@@ -1,6 +1,9 @@
 import React from 'react';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import { SupportSheet } from '@/components/organisms/support/SupportSheet';
+import type { PropsOf } from '@test-utils/mockComponents';
+import type { Ionicons } from '@expo/vector-icons';
+import type { SheetHeader } from '@/components/molecules';
 
 const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -46,7 +49,7 @@ jest.mock('@expo/vector-icons', () => {
   const React = require('react');
   const { Text } = require('react-native');
   return {
-    Ionicons: ({ name, onPress }: any) =>
+    Ionicons: ({ name, onPress }: PropsOf<typeof Ionicons>) =>
       React.createElement(
         Text,
         {
@@ -66,7 +69,7 @@ jest.mock('@/components/molecules', () => {
   const React = require('react');
   const { Text } = require('react-native');
   return {
-    SheetHeader: ({ title }: any) => React.createElement(Text, null, title),
+    SheetHeader: ({ title }: PropsOf<typeof SheetHeader>) => React.createElement(Text, null, title),
     Typography: ({ children }: { children: React.ReactNode }) => React.createElement(Text, null, children),
   };
 });

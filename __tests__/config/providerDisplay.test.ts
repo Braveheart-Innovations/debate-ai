@@ -1,5 +1,7 @@
 import { LOGO_CONFIGS, getLogoConfig } from '@/config/logoConfig';
 import { getProviderCapabilities } from '@/config/providerCapabilities';
+import { malformed } from '@test-utils/queries';
+
 
 describe('Provider logo configuration', () => {
   it('returns known provider configuration verbatim', () => {
@@ -89,7 +91,7 @@ describe('Provider capability matrix', () => {
   });
 
   it('returns disabled capabilities for unknown providers', () => {
-    expect(getProviderCapabilities('mystery')).toEqual({
+    expect(getProviderCapabilities(malformed<Parameters<typeof getProviderCapabilities>[0]>('mystery', 'unknown provider id from persisted data'))).toEqual({
       imageGeneration: { supported: false },
     });
   });

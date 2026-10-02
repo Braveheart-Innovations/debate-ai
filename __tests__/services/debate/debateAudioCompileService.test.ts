@@ -1,5 +1,5 @@
 import * as FileSystem from 'expo-file-system/legacy';
-import { getFunctions, httpsCallable } from '@react-native-firebase/functions';
+import { getFunctions, httpsCallable, type HttpsCallableResult } from '@react-native-firebase/functions';
 import {
   buildCompileSessionRequest,
   compileDebateVoicePack,
@@ -9,6 +9,37 @@ import {
   DEBATE_AUDIO_UPLOAD_TIMEOUT_MS,
 } from '@/services/debate/debateAudioCompileService';
 import type { DebateVoicePackManifest } from '@/types/media';
+
+type GetInfoAsync = typeof FileSystem.getInfoAsync;
+type UploadAsync = typeof FileSystem.uploadAsync;
+type DownloadAsync = typeof FileSystem.downloadAsync;
+type MakeDirectoryAsync = typeof FileSystem.makeDirectoryAsync;
+
+/** getInfoAsync fake reporting every clip as an existing file of `sizeFor(uri)` bytes. */
+const mockGetInfoAsync = (sizeFor: (uri: string) => number) =>
+  jest.fn<ReturnType<GetInfoAsync>, Parameters<GetInfoAsync>>(async (uri) => ({
+    exists: true,
+    uri,
+    size: sizeFor(uri),
+    isDirectory: false,
+    modificationTime: 0,
+  }));
+
+const mockUploadAsync = () =>
+  jest.fn<ReturnType<UploadAsync>, Parameters<UploadAsync>>()
+    .mockResolvedValue({ status: 200, body: '', headers: {}, mimeType: null });
+
+const mockDownloadAsync = () => jest.fn<ReturnType<DownloadAsync>, Parameters<DownloadAsync>>();
+
+const mockMakeDirectoryAsync = () =>
+  jest.fn<ReturnType<MakeDirectoryAsync>, Parameters<MakeDirectoryAsync>>().mockResolvedValue(undefined);
+
+/** A Firebase HttpsCallable stub resolving with `data`. */
+const mockCallable = (data: unknown) =>
+  Object.assign(
+    jest.fn<Promise<HttpsCallableResult<unknown>>, [unknown?]>().mockResolvedValue({ data }),
+    { stream: jest.fn() }
+  );
 
 describe('debateAudioCompileService', () => {
   const manifest: DebateVoicePackManifest = {
@@ -55,13 +86,7 @@ describe('debateAudioCompileService', () => {
   });
 
   it('builds compile session clip metadata from local files', async () => {
-    const getInfoAsync = jest.fn(async (uri: string) => ({
-      exists: true,
-      uri,
-      size: uri.endsWith('001.mp3') ? 1024 : 2048,
-      isDirectory: false,
-      modificationTime: 0,
-    })) as unknown as typeof FileSystem.getInfoAsync;
+    const getInfoAsync = mockGetInfoAsync((uri) => (uri.endsWith('001.mp3') ? 1024 : 2048));
 
     await expect(buildCompileSessionRequest(manifest, getInfoAsync)).resolves.toEqual({
       topic: manifest.topic,
@@ -85,16 +110,11 @@ describe('debateAudioCompileService', () => {
   });
 
   it('uploads clips, compiles the pack, and downloads the single MP3', async () => {
-    const getInfoAsync = jest.fn(async (uri: string) => ({
-      exists: true,
-      uri,
-      size: 1024,
-      isDirectory: false,
-      modificationTime: 0,
-    })) as unknown as typeof FileSystem.getInfoAsync;
-    const uploadAsync = jest.fn().mockResolvedValue({ status: 200, body: '', headers: {} }) as unknown as typeof FileSystem.uploadAsync;
-    const downloadAsync = jest.fn().mockResolvedValue({ uri: 'file:///packs/debate_1/compiled_job-1.mp3', status: 200, headers: {} }) as unknown as typeof FileSystem.downloadAsync;
-    const makeDirectoryAsync = jest.fn().mockResolvedValue(undefined) as unknown as typeof FileSystem.makeDirectoryAsync;
+    const getInfoAsync = mockGetInfoAsync(() => 1024);
+    const uploadAsync = mockUploadAsync();
+    const downloadAsync = mockDownloadAsync()
+      .mockResolvedValue({ uri: 'file:///packs/debate_1/compiled_job-1.mp3', status: 200, headers: {}, mimeType: null });
+    const makeDirectoryAsync = mockMakeDirectoryAsync();
     const onStageChange = jest.fn();
     const createSession = jest.fn().mockResolvedValue({
       jobId: 'job-1',
@@ -176,52 +196,44 @@ describe('debateAudioCompileService', () => {
   });
 
   it('uses the static Firebase Functions callable path for podcast compile', async () => {
-    const functions = {} as ReturnType<typeof getFunctions>;
-    const createCallable = jest.fn().mockResolvedValue({
-      data: {
-        jobId: 'job-1',
-        outputMimeType: 'audio/mpeg',
-        uploadUrls: [
-          {
-            clipId: 'clip_1',
-            uploadUrl: 'https://upload.example/clip-1',
-            storagePath: 'tmp/clip-1.mp3',
-            expiresAt: 2000,
-            contentType: 'audio/mpeg',
-          },
-          {
-            clipId: 'clip_2',
-            uploadUrl: 'https://upload.example/clip-2',
-            storagePath: 'tmp/clip-2.mp3',
-            expiresAt: 2000,
-            contentType: 'audio/mpeg',
-          },
-        ],
-      },
+    // The jest.setup.ts functions mock's own instance, pinned so call args can be matched.
+    const functions = getFunctions();
+    const createCallable = mockCallable({
+      jobId: 'job-1',
+      outputMimeType: 'audio/mpeg',
+      uploadUrls: [
+        {
+          clipId: 'clip_1',
+          uploadUrl: 'https://upload.example/clip-1',
+          storagePath: 'tmp/clip-1.mp3',
+          expiresAt: 2000,
+          contentType: 'audio/mpeg',
+        },
+        {
+          clipId: 'clip_2',
+          uploadUrl: 'https://upload.example/clip-2',
+          storagePath: 'tmp/clip-2.mp3',
+          expiresAt: 2000,
+          contentType: 'audio/mpeg',
+        },
+      ],
     });
-    const compileCallable = jest.fn().mockResolvedValue({
-      data: {
-        jobId: 'job-1',
-        downloadUrl: 'https://download.example/output.mp3',
-        storagePath: 'tmp/output.mp3',
-        mimeType: 'audio/mpeg',
-        sizeBytes: 4096,
-        expiresAt: 3000,
-      },
+    const compileCallable = mockCallable({
+      jobId: 'job-1',
+      downloadUrl: 'https://download.example/output.mp3',
+      storagePath: 'tmp/output.mp3',
+      mimeType: 'audio/mpeg',
+      sizeBytes: 4096,
+      expiresAt: 3000,
     });
-    const getInfoAsync = jest.fn(async (uri: string) => ({
-      exists: true,
-      uri,
-      size: 1024,
-      isDirectory: false,
-      modificationTime: 0,
-    })) as unknown as typeof FileSystem.getInfoAsync;
-    const uploadAsync = jest.fn().mockResolvedValue({ status: 200, body: '', headers: {} }) as unknown as typeof FileSystem.uploadAsync;
-    const downloadAsync = jest.fn().mockResolvedValue({ uri: 'file:///packs/debate_1/compiled_job-1.mp3', status: 200, headers: {} }) as unknown as typeof FileSystem.downloadAsync;
-    const makeDirectoryAsync = jest.fn().mockResolvedValue(undefined) as unknown as typeof FileSystem.makeDirectoryAsync;
+    const getInfoAsync = mockGetInfoAsync(() => 1024);
+    const uploadAsync = mockUploadAsync();
+    const downloadAsync = mockDownloadAsync()
+      .mockResolvedValue({ uri: 'file:///packs/debate_1/compiled_job-1.mp3', status: 200, headers: {}, mimeType: null });
+    const makeDirectoryAsync = mockMakeDirectoryAsync();
 
-    (getFunctions as unknown as jest.Mock).mockReturnValue(functions);
-    (httpsCallable as unknown as jest.Mock)
+    jest.mocked(getFunctions).mockReturnValue(functions);
+    jest.mocked(httpsCallable)
       .mockReturnValueOnce(createCallable)
       .mockReturnValueOnce(compileCallable);
 
@@ -253,16 +265,10 @@ describe('debateAudioCompileService', () => {
   });
 
   it('rejects instead of spinning forever when the compile callable does not settle', async () => {
-    const getInfoAsync = jest.fn(async (uri: string) => ({
-      exists: true,
-      uri,
-      size: 1024,
-      isDirectory: false,
-      modificationTime: 0,
-    })) as unknown as typeof FileSystem.getInfoAsync;
-    const uploadAsync = jest.fn().mockResolvedValue({ status: 200, body: '', headers: {} }) as unknown as typeof FileSystem.uploadAsync;
-    const downloadAsync = jest.fn() as unknown as typeof FileSystem.downloadAsync;
-    const makeDirectoryAsync = jest.fn().mockResolvedValue(undefined) as unknown as typeof FileSystem.makeDirectoryAsync;
+    const getInfoAsync = mockGetInfoAsync(() => 1024);
+    const uploadAsync = mockUploadAsync();
+    const downloadAsync = mockDownloadAsync();
+    const makeDirectoryAsync = mockMakeDirectoryAsync();
     const createSession = jest.fn().mockResolvedValue({
       jobId: 'job-1',
       outputMimeType: 'audio/mpeg',
@@ -283,7 +289,7 @@ describe('debateAudioCompileService', () => {
         },
       ],
     });
-    const compilePack = jest.fn(() => new Promise(() => undefined));
+    const compilePack = jest.fn(() => new Promise<never>(() => undefined));
 
     const promise = compileDebateVoicePack(manifest, {
       getInfoAsync,

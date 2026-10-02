@@ -1,17 +1,11 @@
 import { renderHook } from '@testing-library/react-native';
 
-const enabledProvider = { id: 'claude', enabled: true } as any;
-const secondProvider = { id: 'openai', enabled: true } as any;
-
-const mockGetEnabledProviders = jest.fn(() => [enabledProvider, secondProvider]);
-
 jest.mock('@/config/aiProviders', () => ({
   AI_PROVIDERS: [
     { id: 'claude', enabled: true },
     { id: 'openai', enabled: true },
     { id: 'perplexity', enabled: false },
   ],
-  getEnabledProviders: () => mockGetEnabledProviders(),
 }));
 
 const mockUseAPIKeys = jest.fn();
@@ -36,12 +30,16 @@ jest.mock('@/hooks/useProviderVerification', () => ({
 }));
 
 import { useAPIConfigData } from '@/hooks/useAPIConfigData';
+import { buildApiKeyStatus } from '@/store';
 
 describe('useAPIConfigData', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    mockUseAPIKeys.mockReturnValue({ apiKeys: { claude: 'key-1', openai: 'key-2' } });
+    mockUseAPIKeys.mockReturnValue({
+      apiKeys: { claude: 'key-1', openai: 'key-2' },
+      apiKeyStatuses: { claude: buildApiKeyStatus('key-1'), openai: buildApiKeyStatus('key-2') },
+    });
     mockUseConnectionTest.mockReturnValue({
       testStatuses: {
         claude: { status: 'testing', message: 'please wait' },
@@ -61,8 +59,8 @@ describe('useAPIConfigData', () => {
     const { result } = renderHook(() => useAPIConfigData());
 
     expect(result.current.enabledProviders.map(provider => provider.id)).toEqual([
-      enabledProvider.id,
-      secondProvider.id,
+      'claude',
+      'openai',
       'runway',
       'elevenlabs',
     ]);

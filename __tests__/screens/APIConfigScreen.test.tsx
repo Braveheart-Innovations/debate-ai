@@ -2,11 +2,19 @@ import { Platform, Text } from 'react-native';
 import { act, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '../../test-utils/renderWithProviders';
 import { showSheet } from '@/store';
+import APIConfigScreen from '@/screens/APIConfigScreen';
+import { capturePropsOf } from '@test-utils/mockComponents';
+import type {
+  APIComingSoon,
+  APIConfigProgress,
+  APIProviderList,
+  Header,
+} from '@/components/organisms';
 
 const mockDispatch = jest.fn();
 
 jest.mock('react-redux', () => {
-  const actual = jest.requireActual('react-redux');
+  const actual = jest.requireActual<typeof import('react-redux')>('react-redux');
   return {
     ...actual,
     useDispatch: () => mockDispatch,
@@ -18,7 +26,10 @@ const mockClearAllVerifications = jest.fn(() => Promise.resolve());
 const mockHandleKeyChange = jest.fn();
 const mockHandleTestConnection = jest.fn();
 const mockHandleSaveKey = jest.fn();
-const mockHandleToggleExpand = jest.fn();
+const mockHandleToggleExpand = jest.fn<
+  void,
+  [string, string | null, (value: string | null) => void]
+>();
 
 jest.mock('@/hooks/useAPIKeys', () => ({
   useAPIKeys: () => ({
@@ -56,36 +67,36 @@ jest.mock('@/hooks/useAPIConfigData', () => ({
   }),
 }));
 
-const mockHeader = jest.fn(({ title, onBack }: { title: string; onBack: () => void }) => (
+const mockHeader = capturePropsOf<typeof Header>(({ title, onBack }) => (
   <Text testID="header" onPress={onBack}>
     {title}
   </Text>
 ));
-
-let lastProgressProps: any;
-let lastProviderListProps: any;
-let lastComingSoonProps: any;
-
-const mockAPIConfigProgress = jest.fn((props) => {
-  lastProgressProps = props;
-  return <Text testID="progress">progress</Text>;
-});
-const mockAPIProviderList = jest.fn((props) => {
-  lastProviderListProps = props;
-  return <Text testID="provider-list">providers</Text>;
-});
-const mockAPISecurityNote = jest.fn(() => <Text>security</Text>);
-const mockAPIComingSoon = jest.fn((props) => {
-  lastComingSoonProps = props;
-  return <Text testID="coming-soon">coming soon</Text>;
-});
+const mockAPIConfigProgress = capturePropsOf<typeof APIConfigProgress>(() => (
+  <Text testID="progress">progress</Text>
+));
+const mockAPIProviderList = capturePropsOf<typeof APIProviderList>(() => (
+  <Text testID="provider-list">providers</Text>
+));
+const mockAPISecurityNote = () => <Text>security</Text>;
+const mockAPIComingSoon = capturePropsOf<typeof APIComingSoon>(() => (
+  <Text testID="coming-soon">coming soon</Text>
+));
 
 jest.mock('@/components/organisms', () => ({
-  Header: (props: any) => mockHeader(props),
-  APIConfigProgress: (props: any) => mockAPIConfigProgress(props),
-  APIProviderList: (props: any) => mockAPIProviderList(props),
+  get Header() {
+    return mockHeader.Stub;
+  },
+  get APIConfigProgress() {
+    return mockAPIConfigProgress.Stub;
+  },
+  get APIProviderList() {
+    return mockAPIProviderList.Stub;
+  },
   APISecurityNote: () => mockAPISecurityNote(),
-  APIComingSoon: (props: any) => mockAPIComingSoon(props),
+  get APIComingSoon() {
+    return mockAPIComingSoon.Stub;
+  },
   APIKeyGuidanceModal: () => null,
   APIKeyWebViewModal: () => null,
 }));
@@ -104,14 +115,16 @@ jest.mock('@/hooks/useFeatureAccess', () => ({
   }),
 }));
 
-const APIConfigScreen = require('@/screens/APIConfigScreen').default;
-
 describe('APIConfigScreen', () => {
   const navigation = { goBack: jest.fn() };
 
   beforeEach(() => {
     jest.clearAllMocks();
     mockDispatch.mockClear();
+    mockHeader.reset();
+    mockAPIConfigProgress.reset();
+    mockAPIProviderList.reset();
+    mockAPIComingSoon.reset();
   });
 
   it('renders API configuration layout and wires actions', async () => {
@@ -123,18 +136,18 @@ describe('APIConfigScreen', () => {
     expect(getByTestId('provider-list')).toBeTruthy();
     expect(getByTestId('coming-soon')).toBeTruthy();
 
-    expect(lastProgressProps).toMatchObject({ configuredCount: 1, totalCount: 1 });
-    await lastProgressProps.onClearAll();
+    expect(mockAPIConfigProgress.latest()).toMatchObject({ configuredCount: 1, totalCount: 1 });
+    await mockAPIConfigProgress.latest().onClearAll();
     expect(mockClearAll).toHaveBeenCalledTimes(1);
     expect(mockClearAllVerifications).toHaveBeenCalledTimes(1);
 
-    expect(lastProviderListProps).toMatchObject({
+    expect(mockAPIProviderList.latest()).toMatchObject({
       providers: expect.arrayContaining([expect.objectContaining({ id: 'claude' })]),
       apiKeys: { claude: 'key-1' },
       verificationStatus: { claude: 'verified' },
     });
 
-    expect(lastComingSoonProps).toMatchObject({ providers: expect.arrayContaining([expect.objectContaining({ id: 'openai' })]) });
+    expect(mockAPIComingSoon.latest()).toMatchObject({ providers: expect.arrayContaining([expect.objectContaining({ id: 'openai' })]) });
 
     fireEvent.press(getByTestId('header'));
     expect(navigation.goBack).toHaveBeenCalledTimes(1);
@@ -144,10 +157,10 @@ describe('APIConfigScreen', () => {
   it('forwards toggle expand calls with current expanded state', async () => {
     renderWithProviders(<APIConfigScreen navigation={navigation} />);
 
-    expect(lastProviderListProps.expandedProvider).toBeNull();
+    expect(mockAPIProviderList.latest().expandedProvider).toBeNull();
 
     await act(async () => {
-      lastProviderListProps.onToggleExpand('claude');
+      mockAPIProviderList.latest().onToggleExpand('claude');
     });
 
     expect(mockHandleToggleExpand).toHaveBeenCalledWith(
@@ -163,13 +176,13 @@ describe('APIConfigScreen', () => {
     });
 
     await waitFor(() => {
-      expect(lastProviderListProps.expandedProvider).toBe('claude');
+      expect(mockAPIProviderList.latest().expandedProvider).toBe('claude');
     });
 
     mockHandleToggleExpand.mockClear();
 
     await act(async () => {
-      lastProviderListProps.onToggleExpand('claude');
+      mockAPIProviderList.latest().onToggleExpand('claude');
     });
 
     expect(mockHandleToggleExpand).toHaveBeenCalledWith(
@@ -185,7 +198,7 @@ describe('APIConfigScreen', () => {
 
     renderWithProviders(<APIConfigScreen navigation={navigation} />);
 
-    expect(lastProviderListProps).toBeDefined();
+    expect(mockAPIProviderList.latest()).toBeDefined();
 
     Platform.OS = originalOS;
   });

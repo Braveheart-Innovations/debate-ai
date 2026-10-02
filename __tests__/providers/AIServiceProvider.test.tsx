@@ -2,7 +2,7 @@ import React from 'react';
 import { act, waitFor, renderHook } from '@testing-library/react-native';
 import { Provider } from 'react-redux';
 import { ThemeProvider } from '@/theme';
-import { createAppStore } from '@/store';
+import { buildApiKeyStatus, createAppStore } from '@/store';
 import type { RootState } from '@/store';
 
 const mockFeatureAccess = jest.fn();
@@ -13,7 +13,7 @@ const mockAiServiceInstance = {
   getAllAdapters: jest.fn(() => new Map()),
 };
 
-const mockAIServiceConstructor = jest.fn(() => mockAiServiceInstance);
+const mockAIServiceConstructor = jest.fn((..._args: unknown[]) => mockAiServiceInstance);
 
 jest.mock('@/hooks/useFeatureAccess', () => {
   const mock = mockFeatureAccess;
@@ -45,14 +45,14 @@ jest.mock('@/config/aiProviders', () => ({
   ],
 }));
 
-const { AIServiceProvider, useAIService } = require('@/providers/AIServiceProvider');
+// Required after the mocks: the useFeatureAccess factory reads `mockFeatureAccess` eagerly.
+const { AIServiceProvider, useAIService } = require('@/providers/AIServiceProvider') as typeof import('@/providers/AIServiceProvider');
 
 describe('AIServiceProvider', () => {
   const baseSettings: RootState['settings'] = {
     theme: 'auto',
     fontSize: 'medium',
-    apiKeys: { claude: 'key-123' },
-    realtimeRelayUrl: undefined,
+    apiKeys: { claude: buildApiKeyStatus('key-123') },
     verifiedProviders: [],
     verificationTimestamps: {},
     verificationModels: {},

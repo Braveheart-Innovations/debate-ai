@@ -1,19 +1,19 @@
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import type { LinearGradient } from 'expo-linear-gradient';
+import type { AIInfo } from '@/types/stats';
+import type { PropsOf } from '@test-utils/mockComponents';
+import { formatDateTime } from '@/services/stats';
+import { DebateHistoryItem, CompactDebateHistoryItem, DebateHistoryList, DebateHistoryHeader } from '@/components/molecules/stats/DebateHistoryItem';
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null, MaterialIcons: () => null }));
-jest.mock('expo-linear-gradient', () => ({ LinearGradient: ({ children }: any) => children }));
+jest.mock('expo-linear-gradient', () => ({
+  LinearGradient: ({ children }: PropsOf<typeof LinearGradient>) => children,
+}));
 
 jest.mock('@/services/stats', () => ({
   formatDateTime: jest.fn((timestamp: number) => new Date(timestamp).toLocaleDateString()),
   formatTimeElapsed: jest.fn(() => '2 hours ago'),
 }));
-
-const {
-  DebateHistoryItem,
-  CompactDebateHistoryItem,
-  DebateHistoryList,
-  DebateHistoryHeader
-} = require('@/components/molecules/stats/DebateHistoryItem');
 
 describe('DebateHistoryItem', () => {
   const defaultProps = {
@@ -23,14 +23,25 @@ describe('DebateHistoryItem', () => {
     winner: null,
   };
 
-  const winnerWithStringColor = {
+  const winnerWithStringColor: AIInfo = {
     name: 'Claude',
     color: '#7C3AED',
   };
 
-  const winnerWithBrandColor = {
+  const winnerWithBrandColor: AIInfo = {
     name: 'ChatGPT',
-    color: { 50: '#f0fdf4', 600: '#16a34a', 700: '#15803d' },
+    color: {
+      50: '#f0fdf4',
+      100: '#dcfce7',
+      200: '#bbf7d0',
+      300: '#86efac',
+      400: '#4ade80',
+      500: '#22c55e',
+      600: '#16a34a',
+      700: '#15803d',
+      800: '#166534',
+      900: '#14532d',
+    },
   };
 
   describe('DebateHistoryItem Component', () => {
@@ -85,7 +96,6 @@ describe('DebateHistoryItem', () => {
     });
 
     it('shows formatted date when showElapsedTime is false', () => {
-      const { formatDateTime } = require('@/services/stats');
       renderWithProviders(
         <DebateHistoryItem {...defaultProps} showElapsedTime={false} />
       );

@@ -17,6 +17,7 @@ jest.mock('expo-file-system/legacy', () => ({
 }));
 
 import * as imageProcessing from '@/utils/imageProcessing';
+import { createMockAttachment } from '@test-utils/fixtures';
 
 const {
   isImageFormatSupported,
@@ -206,10 +207,10 @@ describe('imageProcessing utilities', () => {
 
   it('processes multiple images, ignoring non-image attachments', async () => {
     const attachments = [
-      { type: 'image', uri: 'file://one.png', mimeType: 'image/png', fileName: 'one.png' },
-      { type: 'document', uri: 'file://doc.pdf', mimeType: 'application/pdf' },
-      { type: 'image', uri: 'file://two.jpg', mimeType: 'image/jpeg' },
-    ] as any;
+      createMockAttachment({ type: 'image', uri: 'file://one.png', mimeType: 'image/png', fileName: 'one.png' }),
+      createMockAttachment({ type: 'document', uri: 'file://doc.pdf', mimeType: 'application/pdf', fileName: undefined }),
+      createMockAttachment({ type: 'image', uri: 'file://two.jpg', mimeType: 'image/jpeg', fileName: undefined }),
+    ];
 
     ImageManipulator.manipulateAsync.mockImplementation(async (uri: string) => ({
       width: 800,
@@ -247,11 +248,11 @@ describe('imageProcessing utilities', () => {
   });
 
   it('enforces maximum attachment limit', async () => {
-    const attachments = Array.from({ length: 21 }, (_, index) => ({
+    const attachments = Array.from({ length: 21 }, (_, index) => createMockAttachment({
       type: 'image',
       uri: `file://${index}.png`,
       mimeType: 'image/png',
-    })) as any[];
+    }));
 
     await expect(imageProcessing.processMultipleImagesForClaude(attachments)).rejects.toThrow(
       'Maximum 20 images allowed per message'

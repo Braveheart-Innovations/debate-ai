@@ -1,8 +1,10 @@
 import { renderHook } from '@testing-library/react-native';
 import { useResponsive } from '@/hooks/useResponsive';
-import useWindowDimensions from 'react-native/Libraries/Utilities/useWindowDimensions';
+import { useWindowDimensions } from 'react-native';
+import { createMockWindowSize } from '@test-utils/fixtures';
 
-const mockUseWindowDimensions = useWindowDimensions as jest.Mock;
+// jest.setup mocks the module behind react-native's useWindowDimensions export.
+const mockUseWindowDimensions = jest.mocked(useWindowDimensions);
 
 describe('useResponsive', () => {
   afterEach(() => {
@@ -11,7 +13,7 @@ describe('useResponsive', () => {
 
   describe('device info passthrough', () => {
     it('includes all properties from useDeviceType', () => {
-      mockUseWindowDimensions.mockReturnValue({ width: 768, height: 1024 });
+      mockUseWindowDimensions.mockReturnValue(createMockWindowSize(768, 1024));
 
       const { result } = renderHook(() => useResponsive());
 
@@ -28,7 +30,7 @@ describe('useResponsive', () => {
 
   describe('responsive() helper', () => {
     it('returns phone value on phone devices', () => {
-      mockUseWindowDimensions.mockReturnValue({ width: 375, height: 667 });
+      mockUseWindowDimensions.mockReturnValue(createMockWindowSize(375, 667));
 
       const { result } = renderHook(() => useResponsive());
       const value = result.current.responsive(10, 20, 30);
@@ -37,7 +39,7 @@ describe('useResponsive', () => {
     });
 
     it('returns tablet value on tablet in portrait', () => {
-      mockUseWindowDimensions.mockReturnValue({ width: 768, height: 1024 });
+      mockUseWindowDimensions.mockReturnValue(createMockWindowSize(768, 1024));
 
       const { result } = renderHook(() => useResponsive());
       const value = result.current.responsive(10, 20, 30);
@@ -46,7 +48,7 @@ describe('useResponsive', () => {
     });
 
     it('returns tabletLandscape value on tablet in landscape', () => {
-      mockUseWindowDimensions.mockReturnValue({ width: 1024, height: 768 });
+      mockUseWindowDimensions.mockReturnValue(createMockWindowSize(1024, 768));
 
       const { result } = renderHook(() => useResponsive());
       const value = result.current.responsive(10, 20, 30);
@@ -55,7 +57,7 @@ describe('useResponsive', () => {
     });
 
     it('falls back to tablet value when tabletLandscape not provided', () => {
-      mockUseWindowDimensions.mockReturnValue({ width: 1024, height: 768 });
+      mockUseWindowDimensions.mockReturnValue(createMockWindowSize(1024, 768));
 
       const { result } = renderHook(() => useResponsive());
       const value = result.current.responsive(10, 20);
@@ -64,7 +66,7 @@ describe('useResponsive', () => {
     });
 
     it('works with string values', () => {
-      mockUseWindowDimensions.mockReturnValue({ width: 768, height: 1024 });
+      mockUseWindowDimensions.mockReturnValue(createMockWindowSize(768, 1024));
 
       const { result } = renderHook(() => useResponsive());
       const value = result.current.responsive('small', 'medium', 'large');
@@ -73,7 +75,7 @@ describe('useResponsive', () => {
     });
 
     it('works with object values', () => {
-      mockUseWindowDimensions.mockReturnValue({ width: 1024, height: 768 });
+      mockUseWindowDimensions.mockReturnValue(createMockWindowSize(1024, 768));
 
       const { result } = renderHook(() => useResponsive());
       const value = result.current.responsive(
@@ -88,7 +90,7 @@ describe('useResponsive', () => {
 
   describe('rs() responsive spacing', () => {
     it('returns phone spacing values on phone', () => {
-      mockUseWindowDimensions.mockReturnValue({ width: 375, height: 667 });
+      mockUseWindowDimensions.mockReturnValue(createMockWindowSize(375, 667));
 
       const { result } = renderHook(() => useResponsive());
 
@@ -102,7 +104,7 @@ describe('useResponsive', () => {
     });
 
     it('returns tablet spacing values (1.25x) on tablet', () => {
-      mockUseWindowDimensions.mockReturnValue({ width: 768, height: 1024 });
+      mockUseWindowDimensions.mockReturnValue(createMockWindowSize(768, 1024));
 
       const { result } = renderHook(() => useResponsive());
 
@@ -118,7 +120,7 @@ describe('useResponsive', () => {
 
   describe('fontSize() responsive typography', () => {
     it('returns phone font sizes on phone', () => {
-      mockUseWindowDimensions.mockReturnValue({ width: 375, height: 667 });
+      mockUseWindowDimensions.mockReturnValue(createMockWindowSize(375, 667));
 
       const { result } = renderHook(() => useResponsive());
 
@@ -131,7 +133,7 @@ describe('useResponsive', () => {
     });
 
     it('returns tablet font sizes (1.15x) on tablet', () => {
-      mockUseWindowDimensions.mockReturnValue({ width: 768, height: 1024 });
+      mockUseWindowDimensions.mockReturnValue(createMockWindowSize(768, 1024));
 
       const { result } = renderHook(() => useResponsive());
 
@@ -146,7 +148,7 @@ describe('useResponsive', () => {
 
   describe('gridColumns() helper', () => {
     it('returns phone columns on phone', () => {
-      mockUseWindowDimensions.mockReturnValue({ width: 375, height: 667 });
+      mockUseWindowDimensions.mockReturnValue(createMockWindowSize(375, 667));
 
       const { result } = renderHook(() => useResponsive());
       const cols = result.current.gridColumns(2, 3, 4);
@@ -155,7 +157,7 @@ describe('useResponsive', () => {
     });
 
     it('returns tablet columns on tablet portrait', () => {
-      mockUseWindowDimensions.mockReturnValue({ width: 768, height: 1024 });
+      mockUseWindowDimensions.mockReturnValue(createMockWindowSize(768, 1024));
 
       const { result } = renderHook(() => useResponsive());
       const cols = result.current.gridColumns(2, 3, 4);
@@ -164,7 +166,7 @@ describe('useResponsive', () => {
     });
 
     it('returns tabletLandscape columns on tablet landscape', () => {
-      mockUseWindowDimensions.mockReturnValue({ width: 1024, height: 768 });
+      mockUseWindowDimensions.mockReturnValue(createMockWindowSize(1024, 768));
 
       const { result } = renderHook(() => useResponsive());
       const cols = result.current.gridColumns(2, 3, 4);
@@ -173,7 +175,7 @@ describe('useResponsive', () => {
     });
 
     it('falls back to tablet columns when landscape not specified', () => {
-      mockUseWindowDimensions.mockReturnValue({ width: 1024, height: 768 });
+      mockUseWindowDimensions.mockReturnValue(createMockWindowSize(1024, 768));
 
       const { result } = renderHook(() => useResponsive());
       const cols = result.current.gridColumns(2, 3);
@@ -185,7 +187,7 @@ describe('useResponsive', () => {
   describe('combined usage scenarios', () => {
     it('provides correct values for phone layout', () => {
       // Use dimensions where max < 768 for true phone classification
-      mockUseWindowDimensions.mockReturnValue({ width: 375, height: 667 });
+      mockUseWindowDimensions.mockReturnValue(createMockWindowSize(375, 667));
 
       const { result } = renderHook(() => useResponsive());
 
@@ -207,7 +209,7 @@ describe('useResponsive', () => {
     });
 
     it('provides correct values for iPad portrait', () => {
-      mockUseWindowDimensions.mockReturnValue({ width: 810, height: 1080 });
+      mockUseWindowDimensions.mockReturnValue(createMockWindowSize(810, 1080));
 
       const { result } = renderHook(() => useResponsive());
 
@@ -229,7 +231,7 @@ describe('useResponsive', () => {
     });
 
     it('provides correct values for iPad landscape', () => {
-      mockUseWindowDimensions.mockReturnValue({ width: 1080, height: 810 });
+      mockUseWindowDimensions.mockReturnValue(createMockWindowSize(1080, 810));
 
       const { result } = renderHook(() => useResponsive());
 
@@ -253,7 +255,7 @@ describe('useResponsive', () => {
 
   describe('memoization', () => {
     it('returns stable functions when dimensions unchanged', () => {
-      mockUseWindowDimensions.mockReturnValue({ width: 768, height: 1024 });
+      mockUseWindowDimensions.mockReturnValue(createMockWindowSize(768, 1024));
 
       const { result, rerender } = renderHook(() => useResponsive());
       const firstRs = result.current.rs;

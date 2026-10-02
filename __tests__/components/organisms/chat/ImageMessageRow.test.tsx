@@ -3,6 +3,9 @@ import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { ImageMessageRow } from '@/components/organisms/chat/ImageMessageRow';
 import type { Message } from '@/types';
+import type { PropsOf } from '@test-utils/mockComponents';
+import { createMockAttachment } from '@test-utils/fixtures';
+import type { ImageBubble } from '@/components/organisms/chat/ImageBubble';
 
 jest.mock('expo-sharing', () => ({
   isAvailableAsync: jest.fn(() => Promise.resolve(true)),
@@ -17,7 +20,7 @@ jest.mock('@/services/media/MediaSaveService', () => ({
 }));
 
 jest.mock('@/components/organisms/chat/ImageBubble', () => ({
-  ImageBubble: ({ uris, onPressImage, canRefine, onRefine }: any) => {
+  ImageBubble: ({ uris, onPressImage, canRefine, onRefine }: PropsOf<typeof ImageBubble>) => {
     const React = require('react');
     const { TouchableOpacity, Text, View } = require('react-native');
     const children = [
@@ -141,8 +144,17 @@ describe('ImageMessageRow', () => {
     const mixedMessage: Message = {
       ...mockMessage,
       attachments: [
-        { type: 'video', uri: 'https://example.com/video.mp4' },
-        { type: 'image', uri: 'https://example.com/image.jpg' },
+        createMockAttachment({
+          type: 'video',
+          uri: 'https://example.com/video.mp4',
+          mimeType: 'video/mp4',
+          fileName: 'video.mp4',
+        }),
+        createMockAttachment({
+          uri: 'https://example.com/image.jpg',
+          mimeType: 'image/jpeg',
+          fileName: 'image.jpg',
+        }),
       ],
     };
 

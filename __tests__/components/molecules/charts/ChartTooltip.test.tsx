@@ -1,14 +1,15 @@
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import type { PropsOf } from '@test-utils/mockComponents';
+import type { Typography } from '@/components/molecules/common/Typography';
+import { ChartTooltip, TooltipContent } from '@/components/molecules/charts/ChartTooltip';
 
 jest.mock('@/components/molecules/common/Typography', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = jest.requireActual<typeof import('react')>('react');
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
-    Typography: ({ children }: any) => React.createElement(Text, null, children),
+    Typography: ({ children }: PropsOf<typeof Typography>) => React.createElement(Text, null, children),
   };
 });
-
-const { ChartTooltip, TooltipContent } = require('@/components/molecules/charts/ChartTooltip');
 
 describe('ChartTooltip', () => {
   it('renders nothing when not visible', () => {

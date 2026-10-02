@@ -1,11 +1,12 @@
-import React from 'react';
+import type { ReactNode } from 'react';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { DemoDebatePickerModal } from '@/components/organisms/demo/DemoDebatePickerModal';
+import type { Button, SheetHeader, Typography } from '@/components/molecules';
 
 // Mock expo modules
 jest.mock('expo-linear-gradient', () => ({
-  LinearGradient: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  LinearGradient: ({ children }: { children?: ReactNode }) => <>{children}</>,
 }));
 
 jest.mock('@expo/vector-icons', () => {
@@ -18,20 +19,22 @@ jest.mock('@expo/vector-icons', () => {
 
 // Mock molecules
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text, TouchableOpacity, View } = require('react-native');
+  const RN = jest.requireActual<typeof import('react-native')>('react-native');
   return {
-    Typography: ({ children, testID }: { children: React.ReactNode; testID?: string }) =>
-      React.createElement(Text, { testID }, children),
-    Button: ({ title, onPress, testID }: { title: string; onPress: () => void; testID?: string }) =>
-      React.createElement(TouchableOpacity, { onPress, testID: testID || 'button' }, React.createElement(Text, null, title)),
-    SheetHeader: ({ title, onClose, testID }: any) =>
-      React.createElement(
-        View,
-        { testID: testID || 'sheet-header' },
-        React.createElement(Text, null, title),
-        React.createElement(TouchableOpacity, { onPress: onClose, testID: 'sheet-header-close' }, React.createElement(Text, null, 'Close'))
-      ),
+    Typography: ({ children }: Parameters<typeof Typography>[0]) => <RN.Text>{children}</RN.Text>,
+    Button: ({ title, onPress }: Parameters<typeof Button>[0]) => (
+      <RN.TouchableOpacity onPress={onPress} testID="button">
+        <RN.Text>{title}</RN.Text>
+      </RN.TouchableOpacity>
+    ),
+    SheetHeader: ({ title, onClose, testID }: Parameters<typeof SheetHeader>[0]) => (
+      <RN.View testID={testID || 'sheet-header'}>
+        <RN.Text>{title}</RN.Text>
+        <RN.TouchableOpacity onPress={onClose} testID="sheet-header-close">
+          <RN.Text>Close</RN.Text>
+        </RN.TouchableOpacity>
+      </RN.View>
+    ),
   };
 });
 

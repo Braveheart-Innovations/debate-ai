@@ -2,8 +2,7 @@ import { act, waitFor } from '@testing-library/react-native';
 import { renderHookWithProviders } from '../../../test-utils/renderHookWithProviders';
 import { useThemeSettings } from '@/hooks/settings/useThemeSettings';
 import { themeService } from '@/services/settings';
-import { useTheme } from '@/theme';
-import type { Theme, ThemeMode } from '@/theme';
+import { lightTheme, useTheme } from '@/theme';
 
 jest.mock('@/services/settings', () => {
   const actual = jest.requireActual('@/services/settings');
@@ -28,14 +27,8 @@ jest.mock('@/theme', () => {
 });
 
 describe('useThemeSettings', () => {
-  const mockThemeService = themeService as unknown as {
-    getSystemTheme: jest.Mock;
-    getThemeMode: jest.Mock;
-    initializeTheme: jest.Mock;
-    setThemeMode: jest.Mock;
-    addThemeChangeListener: jest.Mock;
-  };
-  const mockUseTheme = useTheme as jest.MockedFunction<typeof useTheme>;
+  const mockThemeService = jest.mocked(themeService);
+  const mockUseTheme = jest.mocked(useTheme);
   const mockThemeContextSetter = jest.fn();
   let capturedListener: ((theme: 'light' | 'dark') => void) | null = null;
 
@@ -46,14 +39,14 @@ describe('useThemeSettings', () => {
     mockThemeService.initializeTheme.mockResolvedValue('light');
     mockThemeService.setThemeMode.mockResolvedValue(undefined);
     capturedListener = null;
-    mockThemeService.addThemeChangeListener.mockImplementation((listener: (theme: 'light' | 'dark') => void) => {
+    mockThemeService.addThemeChangeListener.mockImplementation((listener) => {
       capturedListener = listener;
       return jest.fn();
     });
 
     mockUseTheme.mockReturnValue({
-      theme: { colors: { primary: '#123456' } } as Theme,
-      themeMode: 'system' as ThemeMode,
+      theme: lightTheme,
+      themeMode: 'auto',
       setThemeMode: mockThemeContextSetter,
       isDark: false,
     });
@@ -109,7 +102,7 @@ describe('useThemeSettings', () => {
 
   it('subscribes to theme changes and updates context accordingly', async () => {
     const unsubscribe = jest.fn();
-    mockThemeService.addThemeChangeListener.mockImplementation((listener: (theme: 'light' | 'dark') => void) => {
+    mockThemeService.addThemeChangeListener.mockImplementation((listener) => {
       capturedListener = listener;
       return unsubscribe;
     });

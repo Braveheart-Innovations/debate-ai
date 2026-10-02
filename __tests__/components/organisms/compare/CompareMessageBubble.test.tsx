@@ -2,8 +2,14 @@ import React from 'react';
 import { Text } from 'react-native';
 import { act, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { capturePropsOf } from '@test-utils/mockComponents';
+import { createMockAIMessage } from '@test-utils/fixtures';
 import { CompareMessageBubble } from '@/components/organisms/compare/CompareMessageBubble';
+import { useStreamingMessage, type StreamingMessageHook } from '@/hooks/streaming';
+import { sanitizeMarkdown, shouldLazyRender } from '@/utils/markdown';
+import * as Clipboard from 'expo-clipboard';
 import type { Message } from '@/types';
+import type { LazyMarkdownRenderer } from '@/components/molecules/common/LazyMarkdownRenderer';
 
 jest.mock('@/services/media/MediaSaveService', () => ({
   __esModule: true,
@@ -43,12 +49,14 @@ jest.mock('@expo/vector-icons', () => {
   };
 });
 
-const mockLazyRenderer = jest.fn(({ content }: { content: string }) => (
+const mockLazyRenderer = capturePropsOf<typeof LazyMarkdownRenderer>(({ content }) => (
   <Text testID="lazy-markdown">{content}</Text>
 ));
 
 jest.mock('@/components/molecules/common/LazyMarkdownRenderer', () => ({
-  LazyMarkdownRenderer: (props: any) => mockLazyRenderer(props),
+  get LazyMarkdownRenderer() {
+    return mockLazyRenderer.Stub;
+  },
   createMarkdownStyles: jest.fn(() => ({ body: { color: 'black' } })),
 }));
 
@@ -81,29 +89,41 @@ jest.mock('expo-haptics', () => ({
 
 jest.mock('@/hooks/useFeatureAccess', () => jest.fn(() => ({ isDemo: false })));
 
-const mockUseStreamingMessage = require('@/hooks/streaming').useStreamingMessage as jest.Mock;
-const mockShouldLazyRender = require('@/utils/markdown').shouldLazyRender as jest.Mock;
-const mockSanitizeMarkdown = require('@/utils/markdown').sanitizeMarkdown as jest.Mock;
-const Clipboard = require('expo-clipboard');
+const mockUseStreamingMessage = jest.mocked(useStreamingMessage);
+const mockShouldLazyRender = jest.mocked(shouldLazyRender);
+const mockSanitizeMarkdown = jest.mocked(sanitizeMarkdown);
 
-const baseMessage: Message = {
+/** Idle streaming state; override the fields a test drives. */
+const createStreamingState = (
+  overrides: Partial<StreamingMessageHook> = {}
+): StreamingMessageHook => ({
+  content: '',
+  isStreaming: false,
+  cursorVisible: false,
+  chunksReceived: 0,
+  bytesReceived: 0,
+  appendChunk: jest.fn(),
+  completeStream: jest.fn(),
+  handleError: jest.fn(),
+  clearStream: jest.fn(),
+  ...overrides,
+});
+
+const baseMessage = createMockAIMessage({
   id: 'msg-1',
   sender: 'Claude',
-  senderType: 'ai',
   content: 'Hello world',
   timestamp: Date.now(),
-};
+  metadata: undefined,
+});
 
 jest.useFakeTimers();
 
 describe('CompareMessageBubble', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseStreamingMessage.mockReturnValue({
-      content: null,
-      isStreaming: false,
-      error: null,
-    });
+    mockLazyRenderer.reset();
+    mockUseStreamingMessage.mockReturnValue(createStreamingState());
     mockShouldLazyRender.mockReturnValue(false);
   });
 
@@ -129,11 +149,9 @@ describe('CompareMessageBubble', () => {
   });
 
   it('uses lazy renderer when content is long and prefers streaming error content', () => {
-    mockUseStreamingMessage.mockReturnValue({
-      content: 'partial stream',
-      isStreaming: false,
-      error: new Error('fail'),
-    });
+    mockUseStreamingMessage.mockReturnValue(
+      createStreamingState({ content: 'partial stream', error: 'fail' })
+    );
     mockShouldLazyRender.mockReturnValue(true);
 
     const { getByTestId } = renderWithProviders(
@@ -144,7 +162,7 @@ describe('CompareMessageBubble', () => {
       />
     );
 
-    expect(mockLazyRenderer).toHaveBeenCalled();
+    expect(mockLazyRenderer.calls.length).toBeGreaterThan(0);
     expect(getByTestId('lazy-markdown').props.children).toBe('sanitized:partial stream');
   });
 

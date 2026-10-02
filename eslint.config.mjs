@@ -45,6 +45,11 @@ export default tseslint.config(
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
+      // No TS suppressions of any kind (reached 0 during the debt burn-down).
+      '@typescript-eslint/ban-ts-comment': [
+        'error',
+        { 'ts-expect-error': true, 'ts-ignore': true, 'ts-nocheck': true, 'ts-check': false },
+      ],
     },
     settings: {
       react: {
@@ -55,7 +60,6 @@ export default tseslint.config(
   {
     files: ['__tests__/**/*.{ts,tsx}'],
     rules: {
-      '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-require-imports': 'off',
     },
   },

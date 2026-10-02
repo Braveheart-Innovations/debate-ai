@@ -1,5 +1,9 @@
 import { GeminiAdapter } from '@/services/ai/adapters/google/GeminiAdapter';
-import type { AdapterConfig } from '@/services/ai/types/adapter.types';
+import type {
+  AdapterConfig,
+  AdapterResponse,
+  SendMessageResponse,
+} from '@/services/ai/types/adapter.types';
 import type { Message } from '@/types';
 
 // Mock react-native-sse
@@ -10,8 +14,20 @@ jest.mock('react-native-sse', () => {
   }));
 });
 
-// Mock fetch for non-streaming tests
-global.fetch = jest.fn();
+/** A real 200 JSON Response for the non-streaming generateContent call. */
+const jsonResponse = (body: unknown): Response =>
+  new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+/** Web-search replies come back as structured responses, never bare strings. */
+const asAdapterResponse = (result: SendMessageResponse): AdapterResponse => {
+  if (typeof result === 'string') throw new Error('Expected a structured AdapterResponse');
+  return result;
+};
+
+type GeminiRequestBody = { tools?: unknown; contents?: unknown };
 
 describe('GeminiAdapter - Web Search & Citations', () => {
   let adapter: GeminiAdapter;
@@ -21,9 +37,24 @@ describe('GeminiAdapter - Web Search & Citations', () => {
     model: 'gemini-2.5-pro',
   };
 
+  // Mock fetch for non-streaming tests
+  let fetchMock: jest.SpiedFunction<typeof fetch>;
+
+  /** Parses the JSON body of the nth fetch call. */
+  const requestBodyOf = (callIndex = 0): GeminiRequestBody => {
+    const body = fetchMock.mock.calls[callIndex]?.[1]?.body;
+    if (typeof body !== 'string') throw new Error('Expected a JSON string request body');
+    const parsed: GeminiRequestBody = JSON.parse(body);
+    return parsed;
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
-    (global.fetch as jest.Mock).mockReset();
+    fetchMock = jest.spyOn(global, 'fetch');
+  });
+
+  afterEach(() => {
+    fetchMock.mockRestore();
   });
 
   describe('extractCitationsFromGrounding', () => {
@@ -62,12 +93,9 @@ describe('GeminiAdapter - Web Search & Citations', () => {
         },
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
+      fetchMock.mockResolvedValueOnce(jsonResponse(mockResponse));
 
-      const result = await adapter.sendMessage('Test message');
+      const result = asAdapterResponse(await adapter.sendMessage('Test message'));
 
       expect(result.metadata?.citations).toHaveLength(2);
       expect(result.metadata?.citations).toEqual([
@@ -111,14 +139,11 @@ describe('GeminiAdapter - Web Search & Citations', () => {
         usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 20, totalTokenCount: 30 },
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
+      fetchMock.mockResolvedValueOnce(jsonResponse(mockResponse));
 
-      const result = await adapter.sendMessage('Test message');
+      const result = asAdapterResponse(await adapter.sendMessage('Test message'));
 
-      const response = typeof result === 'string' ? result : result.response;
+      const response = result.response;
       expect(response).toBe('Fact one.[1] Fact two.[2]');
       expect(result.metadata?.citations).toHaveLength(2);
     });
@@ -142,12 +167,9 @@ describe('GeminiAdapter - Web Search & Citations', () => {
         },
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
+      fetchMock.mockResolvedValueOnce(jsonResponse(mockResponse));
 
-      const result = await adapter.sendMessage('Test message');
+      const result = asAdapterResponse(await adapter.sendMessage('Test message'));
 
       expect(result.metadata?.citations).toBeUndefined();
     });
@@ -174,12 +196,9 @@ describe('GeminiAdapter - Web Search & Citations', () => {
         },
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
+      fetchMock.mockResolvedValueOnce(jsonResponse(mockResponse));
 
-      const result = await adapter.sendMessage('Test message');
+      const result = asAdapterResponse(await adapter.sendMessage('Test message'));
 
       expect(result.metadata?.citations).toBeUndefined();
     });
@@ -213,12 +232,9 @@ describe('GeminiAdapter - Web Search & Citations', () => {
         },
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
+      fetchMock.mockResolvedValueOnce(jsonResponse(mockResponse));
 
-      const result = await adapter.sendMessage('Test message');
+      const result = asAdapterResponse(await adapter.sendMessage('Test message'));
 
       expect(result.metadata?.citations).toEqual([
         {
@@ -258,12 +274,9 @@ describe('GeminiAdapter - Web Search & Citations', () => {
         },
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
+      fetchMock.mockResolvedValueOnce(jsonResponse(mockResponse));
 
-      const result = await adapter.sendMessage('Test message');
+      const result = asAdapterResponse(await adapter.sendMessage('Test message'));
 
       expect(result.metadata?.citations).toEqual([
         {
@@ -296,14 +309,11 @@ describe('GeminiAdapter - Web Search & Citations', () => {
         },
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
+      fetchMock.mockResolvedValueOnce(jsonResponse(mockResponse));
 
       await adapter.sendMessage('Test message');
 
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(fetchMock).toHaveBeenCalledWith(
         expect.stringContaining('generateContent'),
         expect.objectContaining({
           method: 'POST',
@@ -311,8 +321,7 @@ describe('GeminiAdapter - Web Search & Citations', () => {
         })
       );
 
-      const callArgs = (global.fetch as jest.Mock).mock.calls[0];
-      const requestBody = JSON.parse(callArgs[1].body);
+      const requestBody = requestBodyOf(0);
 
       expect(requestBody.tools).toEqual([{ google_search: {} }]);
     });
@@ -336,15 +345,11 @@ describe('GeminiAdapter - Web Search & Citations', () => {
         },
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
+      fetchMock.mockResolvedValueOnce(jsonResponse(mockResponse));
 
       await adapter.sendMessage('Test message');
 
-      const callArgs = (global.fetch as jest.Mock).mock.calls[0];
-      const requestBody = JSON.parse(callArgs[1].body);
+      const requestBody = requestBodyOf(0);
 
       expect(requestBody.tools).toBeUndefined();
     });
@@ -368,15 +373,11 @@ describe('GeminiAdapter - Web Search & Citations', () => {
         },
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
+      fetchMock.mockResolvedValueOnce(jsonResponse(mockResponse));
 
       await adapter.sendMessage('Test message');
 
-      const callArgs = (global.fetch as jest.Mock).mock.calls[0];
-      const requestBody = JSON.parse(callArgs[1].body);
+      const requestBody = requestBodyOf(0);
 
       expect(requestBody.tools).toBeUndefined();
     });
@@ -412,10 +413,7 @@ describe('GeminiAdapter - Web Search & Citations', () => {
         },
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
+      fetchMock.mockResolvedValueOnce(jsonResponse(mockResponse));
 
       const onEvent = jest.fn();
       const generator = adapter.streamMessage('Test', [], undefined, undefined, undefined, undefined, onEvent);
@@ -463,10 +461,7 @@ describe('GeminiAdapter - Web Search & Citations', () => {
         },
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
+      fetchMock.mockResolvedValueOnce(jsonResponse(mockResponse));
 
       const generator = adapter.streamMessage('Test');
 
@@ -560,12 +555,9 @@ describe('GeminiAdapter - Web Search & Citations', () => {
         },
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
+      fetchMock.mockResolvedValueOnce(jsonResponse(mockResponse));
 
-      const result = await adapter.sendMessage('Test');
+      const result = asAdapterResponse(await adapter.sendMessage('Test'));
 
       expect(result.metadata).toEqual({
         citations: [
@@ -604,12 +596,9 @@ describe('GeminiAdapter - Web Search & Citations', () => {
         },
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
+      fetchMock.mockResolvedValueOnce(jsonResponse(mockResponse));
 
-      const result = await adapter.sendMessage('Test');
+      const result = asAdapterResponse(await adapter.sendMessage('Test'));
 
       expect(result.metadata).toBeUndefined();
     });
@@ -653,15 +642,11 @@ describe('GeminiAdapter - Web Search & Citations', () => {
         },
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
+      fetchMock.mockResolvedValueOnce(jsonResponse(mockResponse));
 
       await adapter.sendMessage('Tell me more', history);
 
-      const callArgs = (global.fetch as jest.Mock).mock.calls[0];
-      const requestBody = JSON.parse(callArgs[1].body);
+      const requestBody = requestBodyOf(0);
 
       // Verify tools are included
       expect(requestBody.tools).toEqual([{ google_search: {} }]);

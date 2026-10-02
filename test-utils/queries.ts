@@ -29,3 +29,18 @@ export const collectTestIds = (
   node.children?.forEach((child) => collectTestIds(child, ids));
   return ids;
 };
+
+/**
+ * Feeds a value the declared type forbids, to test a runtime guard against
+ * malformed data (persisted JSON, remote payloads, untyped callers) — e.g.
+ * `sanitizeMarkdown(malformed<string>(undefined, 'absent content from storage'))`.
+ *
+ * This is the ONLY sanctioned way to do that in tests: it keeps the one cast
+ * here, forces a reason at every call site, and is counted by
+ * `lint:escape-hatches`. If a guard can never see such a value, delete the
+ * guard and its test instead.
+ */
+export const malformed = <T>(value: unknown, reason: string): T => {
+  if (!reason) throw new Error('malformed() requires a reason');
+  return value as T;
+};

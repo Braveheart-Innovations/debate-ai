@@ -1,77 +1,176 @@
 // Use mocks from jest.setup.ts and override as needed
 import {
   getAuth,
-  signInWithEmailAndPassword as mockSignInWithEmailAndPassword,
-  createUserWithEmailAndPassword as mockCreateUserWithEmailAndPassword,
-  signOut as mockSignOut,
-  onAuthStateChanged as mockOnAuthStateChanged,
-  signInWithCredential as mockSignInWithCredential,
-  getIdToken as mockFirebaseGetIdToken,
-  updateProfile as mockUpdateProfile,
-  GoogleAuthProvider,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  onAuthStateChanged as firebaseOnAuthStateChanged,
+  signInWithCredential,
+  getIdToken as firebaseGetIdToken,
+  updateProfile,
   AppleAuthProvider,
+  type User as FirebaseUser,
+  type UserCredential,
 } from '@react-native-firebase/auth';
-import { getFunctions, httpsCallable } from '@react-native-firebase/functions';
+import { getFunctions, httpsCallable, type HttpsCallableResult } from '@react-native-firebase/functions';
 import {
-  getFirestore,
-  collection,
   doc,
   getDoc,
   setDoc,
   onSnapshot,
   serverTimestamp,
+  type CollectionReference,
+  type DocumentData,
+  type DocumentReference,
+  type DocumentSnapshot,
+  type FieldValue,
+  type Firestore,
+  type FirestoreDataConverter,
+  type QueryDocumentSnapshot,
 } from '@react-native-firebase/firestore';
+import type { SignInSuccessResponse, User as GoogleUser } from '@react-native-google-signin/google-signin';
+import type { AppleAuthenticationCredential } from 'expo-apple-authentication';
 
 const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
 const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-// Create typed mock references
-const mockGetAuth = getAuth as jest.MockedFunction<typeof getAuth>;
-const mockAuthState = { currentUser: null as { uid: string } | null };
-
-// Set up mockGetAuth to return mockAuthState
-mockGetAuth.mockReturnValue(mockAuthState as never);
+// The jest.setup.ts auth mock hands every getAuth() caller the same instance.
+const authInstance = getAuth();
 
 const mockAuthModule = {
-  getAuth: mockGetAuth,
-  signInWithEmailAndPassword: mockSignInWithEmailAndPassword as jest.MockedFunction<typeof mockSignInWithEmailAndPassword>,
-  createUserWithEmailAndPassword: mockCreateUserWithEmailAndPassword as jest.MockedFunction<typeof mockCreateUserWithEmailAndPassword>,
-  signOut: mockSignOut as jest.MockedFunction<typeof mockSignOut>,
-  onAuthStateChanged: mockOnAuthStateChanged as jest.MockedFunction<typeof mockOnAuthStateChanged>,
-  signInWithCredential: mockSignInWithCredential as jest.MockedFunction<typeof mockSignInWithCredential>,
-  getIdToken: mockFirebaseGetIdToken as jest.MockedFunction<typeof mockFirebaseGetIdToken>,
-  updateProfile: mockUpdateProfile as jest.MockedFunction<typeof mockUpdateProfile>,
-  GoogleAuthProvider,
+  signInWithEmailAndPassword: jest.mocked(signInWithEmailAndPassword),
+  createUserWithEmailAndPassword: jest.mocked(createUserWithEmailAndPassword),
+  signOut: jest.mocked(firebaseSignOut),
+  onAuthStateChanged: jest.mocked(firebaseOnAuthStateChanged),
+  signInWithCredential: jest.mocked(signInWithCredential),
+  getIdToken: jest.mocked(firebaseGetIdToken),
+  updateProfile: jest.mocked(updateProfile),
   AppleAuthProvider,
 };
 
 const mockFunctionsModule = {
-  getFunctions: getFunctions as jest.MockedFunction<typeof getFunctions>,
-  httpsCallable: httpsCallable as jest.MockedFunction<typeof httpsCallable>,
+  getFunctions: jest.mocked(getFunctions),
+  httpsCallable: jest.mocked(httpsCallable),
 };
 
-const mockCallables: Record<string, jest.Mock> = {
-  verifyEmailPasswordSignIn: jest.fn(),
-  clearLoginAttempts: jest.fn(),
-  requestPasswordResetEmail: jest.fn(),
+/** A callable stub matching firebase's HttpsCallable (call signature + `stream`). */
+const createCallable = () =>
+  Object.assign(
+    jest.fn<Promise<HttpsCallableResult<unknown>>, [unknown?]>(),
+    { stream: jest.fn() }
+  );
+
+const mockCallables: Record<string, ReturnType<typeof createCallable>> = {
+  verifyEmailPasswordSignIn: createCallable(),
+  clearLoginAttempts: createCallable(),
+  requestPasswordResetEmail: createCallable(),
 };
 
 const mockFirestoreModule = {
-  getFirestore: getFirestore as jest.MockedFunction<typeof getFirestore>,
-  collection: collection as jest.MockedFunction<typeof collection>,
-  doc: doc as jest.MockedFunction<typeof doc>,
-  getDoc: getDoc as jest.MockedFunction<typeof getDoc>,
-  setDoc: setDoc as jest.MockedFunction<typeof setDoc>,
-  onSnapshot: onSnapshot as jest.MockedFunction<typeof onSnapshot>,
-  serverTimestamp: serverTimestamp as jest.MockedFunction<typeof serverTimestamp>,
+  doc: jest.mocked(doc),
+  getDoc: jest.mocked(getDoc),
+  setDoc: jest.mocked(setDoc),
+  onSnapshot: jest.mocked(onSnapshot),
+  serverTimestamp: jest.mocked(serverTimestamp),
 };
 
-// Setup collection and doc to return objects that can be chained
-(mockFirestoreModule.collection as jest.MockedFunction<typeof collection>).mockImplementation(
-  (db, name) => ({ db, name } as never)
-);
-(mockFirestoreModule.doc as jest.MockedFunction<typeof doc>).mockImplementation(
-  (col, id) => ({ col, id } as never)
+const notUsedByTheseTests = (member: string): never => {
+  throw new Error(`${member} is not exercised by the auth tests`);
+};
+
+/** Minimal Firestore document reference: only `id`/`path` are observed by these tests. */
+class FakeDocumentReference implements DocumentReference {
+  readonly type = 'document';
+  converter: FirestoreDataConverter<DocumentData, DocumentData> | null = null;
+  path: string;
+
+  constructor(public id: string) {
+    this.path = `users/${id}`;
+  }
+
+  get firestore(): Firestore {
+    return notUsedByTheseTests('DocumentReference.firestore');
+  }
+
+  get parent(): CollectionReference {
+    return notUsedByTheseTests('DocumentReference.parent');
+  }
+
+  withConverter(converter: null): DocumentReference;
+  withConverter<NewAppModelType, NewDbModelType extends DocumentData = DocumentData>(
+    converter: FirestoreDataConverter<NewAppModelType, NewDbModelType>
+  ): DocumentReference<NewAppModelType, NewDbModelType>;
+  withConverter(): never {
+    return notUsedByTheseTests('DocumentReference.withConverter');
+  }
+}
+
+/** Firestore snapshot whose existence mirrors whether `payload` was provided. */
+class FakeDocumentSnapshot implements DocumentSnapshot {
+  readonly metadata = { fromCache: false, hasPendingWrites: false, isEqual: () => true };
+
+  constructor(private readonly payload: DocumentData | undefined) {}
+
+  exists(): this is QueryDocumentSnapshot {
+    return this.payload !== undefined;
+  }
+
+  data(): DocumentData | undefined {
+    return this.payload;
+  }
+
+  get(fieldPath: string): unknown {
+    return this.payload?.[fieldPath];
+  }
+
+  get id(): string {
+    return 'user';
+  }
+
+  get ref(): DocumentReference {
+    return notUsedByTheseTests('DocumentSnapshot.ref');
+  }
+}
+
+/** Complete Firebase Auth user; override only the identity fields a test cares about. */
+const createFirebaseUser = (overrides: Partial<FirebaseUser> = {}): FirebaseUser => ({
+  uid: 'user',
+  displayName: null,
+  email: null,
+  phoneNumber: null,
+  photoURL: null,
+  providerId: 'firebase',
+  emailVerified: false,
+  isAnonymous: false,
+  metadata: {},
+  providerData: [],
+  refreshToken: 'refresh-token',
+  tenantId: null,
+  delete: async () => undefined,
+  getIdToken: async () => 'token',
+  getIdTokenResult: async () => ({
+    authTime: '',
+    expirationTime: '',
+    issuedAtTime: '',
+    signInProvider: null,
+    signInSecondFactor: null,
+    token: 'token',
+    claims: {},
+  }),
+  reload: async () => undefined,
+  toJSON: () => ({}),
+  ...overrides,
+});
+
+const createUserCredential = (user: FirebaseUser): UserCredential => ({
+  user,
+  providerId: null,
+  operationType: 'signIn',
+});
+
+// Setup doc to return references that carry their id for assertions
+mockFirestoreModule.doc.mockImplementation(
+  (_parent, id) => new FakeDocumentReference(id)
 );
 
 jest.mock('expo-apple-authentication', () => ({
@@ -81,6 +180,11 @@ jest.mock('expo-apple-authentication', () => ({
     EMAIL: 'email',
     FULL_NAME: 'full_name',
   },
+  AppleAuthenticationUserDetectionStatus: {
+    UNSUPPORTED: 0,
+    UNKNOWN: 1,
+    LIKELY_REAL: 2,
+  },
 }));
 
 jest.mock('@react-native-google-signin/google-signin', () => ({
@@ -89,7 +193,7 @@ jest.mock('@react-native-google-signin/google-signin', () => ({
     hasPlayServices: jest.fn(async () => true),
     signIn: jest.fn(async () => ({})),
     getTokens: jest.fn(async () => ({ idToken: 'token' })),
-    getCurrentUser: jest.fn(async () => ({ user: { email: 'user@example.com', name: 'User Name', photo: 'photo.png' } })),
+    getCurrentUser: jest.fn(() => ({ user: { email: 'user@example.com', name: 'User Name', photo: 'photo.png' } })),
   },
 }));
 
@@ -107,9 +211,42 @@ const originalEnv = { ...process.env };
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
-// Cast to mocked types
-const mockAppleAuthModule = AppleAuthentication as jest.Mocked<typeof AppleAuthentication>;
-const mockGoogleSignin = GoogleSignin as jest.Mocked<typeof GoogleSignin>;
+const mockAppleAuthModule = jest.mocked(AppleAuthentication);
+const mockGoogleSignin = jest.mocked(GoogleSignin);
+
+const googleUser: GoogleUser = {
+  user: {
+    id: 'google-user',
+    name: 'User Name',
+    email: 'user@example.com',
+    photo: 'photo.png',
+    familyName: 'Name',
+    givenName: 'User',
+  },
+  scopes: [],
+  idToken: 'token',
+  serverAuthCode: null,
+};
+
+const googleSignInSuccess: SignInSuccessResponse = { type: 'success', data: googleUser };
+
+/** Apple's credential echoing the requested `state`, as the real native flow does. */
+const createAppleCredential = (state: string | null): AppleAuthenticationCredential => ({
+  user: 'apple-user',
+  state,
+  fullName: {
+    namePrefix: null,
+    givenName: 'Apple',
+    middleName: null,
+    familyName: 'User',
+    nameSuffix: null,
+    nickname: null,
+  },
+  email: 'apple@example.com',
+  realUserStatus: AppleAuthentication.AppleAuthenticationUserDetectionStatus.LIKELY_REAL,
+  identityToken: 'token',
+  authorizationCode: null,
+});
 
 import {
   signInWithEmail,
@@ -129,7 +266,11 @@ import {
 import { Platform } from 'react-native';
 import * as Crypto from 'expo-crypto';
 
-const mockCryptoModule = Crypto as jest.Mocked<typeof Crypto>;
+const mockCryptoModule = jest.mocked(Crypto);
+
+const setCurrentUser = (user: FirebaseUser | null) => {
+  jest.replaceProperty(authInstance, 'currentUser', user);
+};
 
 const resetMocks = () => {
   jest.clearAllMocks();
@@ -146,34 +287,26 @@ const resetMocks = () => {
   });
   process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID = 'web-client';
   process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID = 'ios-client';
-  mockAuthState.currentUser = null;
+  setCurrentUser(null);
   mockGoogleSignin.configure.mockImplementation(() => {});
   mockGoogleSignin.hasPlayServices.mockImplementation(async () => true);
-  mockGoogleSignin.signIn.mockImplementation(async () => ({}));
-  mockGoogleSignin.getTokens.mockImplementation(async () => ({ idToken: 'token' }));
-  mockGoogleSignin.getCurrentUser.mockImplementation(async () => ({
-    user: { email: 'user@example.com', name: 'User Name', photo: 'photo.png' },
-  }));
+  mockGoogleSignin.signIn.mockImplementation(async () => googleSignInSuccess);
+  mockGoogleSignin.getTokens.mockImplementation(async () => ({ idToken: 'token', accessToken: 'access-token' }));
+  mockGoogleSignin.getCurrentUser.mockImplementation(() => googleUser);
   mockAppleAuthModule.isAvailableAsync.mockImplementation(async () => true);
   mockCryptoModule.getRandomBytes.mockImplementation((byteCount: number) => (
     Uint8Array.from({ length: byteCount }, (_, index) => index % 256)
   ));
   mockCryptoModule.digestStringAsync.mockResolvedValue('hashed-nonce');
   mockAppleAuthModule.signInAsync.mockReset();
-  mockAppleAuthModule.signInAsync.mockImplementation(async (options?: { state?: string }) => ({
-    identityToken: 'token',
-    email: 'apple@example.com',
-    fullName: { givenName: 'Apple', familyName: 'User' },
-    state: options?.state,
-  }));
+  mockAppleAuthModule.signInAsync.mockImplementation(async (options) => createAppleCredential(options?.state ?? null));
   mockFirestoreModule.onSnapshot.mockImplementation(() => jest.fn());
-  mockFunctionsModule.getFunctions.mockReturnValue({} as never);
   mockFunctionsModule.httpsCallable.mockImplementation((_functions, name) => {
     const callable = mockCallables[String(name)];
     if (!callable) {
       throw new Error(`Unexpected callable: ${String(name)}`);
     }
-    return callable as never;
+    return callable;
   });
   mockCallables.verifyEmailPasswordSignIn.mockResolvedValue({ data: { credentialAllowed: true } });
   mockCallables.clearLoginAttempts.mockResolvedValue({ data: { success: true } });
@@ -181,14 +314,11 @@ const resetMocks = () => {
 };
 
 const setUser = (uid: string | null) => {
-  mockAuthState.currentUser = uid ? { uid } : null;
+  setCurrentUser(uid ? createFirebaseUser({ uid }) : null);
 };
 
-const setDocData = (data?: Partial<Record<string, unknown>>) => {
-  mockFirestoreModule.getDoc.mockResolvedValue({
-    exists: () => (data !== undefined),
-    data: () => data,
-  });
+const setDocData = (data?: DocumentData) => {
+  mockFirestoreModule.getDoc.mockResolvedValue(new FakeDocumentSnapshot(data));
 };
 
 describe('firebase auth service', () => {
@@ -200,8 +330,8 @@ describe('firebase auth service', () => {
   });
 
   it('handles email sign-in success and specific errors', async () => {
-    const user = { uid: 'user' };
-    mockAuthModule.signInWithEmailAndPassword.mockResolvedValue({ user });
+    const user = createFirebaseUser({ uid: 'user' });
+    mockAuthModule.signInWithEmailAndPassword.mockResolvedValue(createUserCredential(user));
     await expect(signInWithEmail('user@example.com', 'pw')).resolves.toBe(user);
     expect(mockCallables.verifyEmailPasswordSignIn).toHaveBeenCalledWith({
       email: 'user@example.com',
@@ -229,8 +359,8 @@ describe('firebase auth service', () => {
   });
 
   it('creates user on signup and writes Firestore doc', async () => {
-    const user = { uid: 'new', email: 'new@example.com' };
-    mockAuthModule.createUserWithEmailAndPassword.mockResolvedValue({ user });
+    const user = createFirebaseUser({ uid: 'new', email: 'new@example.com' });
+    mockAuthModule.createUserWithEmailAndPassword.mockResolvedValue(createUserCredential(user));
     mockFirestoreModule.setDoc.mockResolvedValue(undefined);
     await expect(signUpWithEmail('new@example.com', 'secretpw')).resolves.toBe(user);
     expect(mockFirestoreModule.setDoc).toHaveBeenCalled();
@@ -261,8 +391,9 @@ describe('firebase auth service', () => {
   });
 
   it('returns current user and ID tokens', async () => {
-    setUser('user');
-    expect(getCurrentUser()).toEqual({ uid: 'user' });
+    const currentUser = createFirebaseUser({ uid: 'user' });
+    setCurrentUser(currentUser);
+    expect(getCurrentUser()).toBe(currentUser);
 
     mockAuthModule.getIdToken.mockResolvedValue('token');
     await expect(getIdToken()).resolves.toBe('token');
@@ -276,20 +407,28 @@ describe('firebase auth service', () => {
   });
 
   it('updates the current user display name in Firebase Auth and Firestore', async () => {
-    const user = {
+    const user = createFirebaseUser({
       uid: 'profile-user',
       email: 'profile@example.com',
       displayName: 'Old Name',
       photoURL: null,
       emailVerified: false,
-      providerData: [{ providerId: 'password' }],
+      providerData: [{
+        uid: 'profile-user',
+        displayName: 'Old Name',
+        email: 'profile@example.com',
+        phoneNumber: null,
+        photoURL: null,
+        providerId: 'password',
+      }],
       providerId: 'firebase',
-    };
-    mockAuthState.currentUser = user as never;
-    mockAuthModule.updateProfile.mockImplementation(async (target, updates) => {
-      Object.assign(target as object, updates);
     });
-    mockFirestoreModule.serverTimestamp.mockReturnValue('server-time' as never);
+    setCurrentUser(user);
+    mockAuthModule.updateProfile.mockImplementation(async (target, updates) => {
+      Object.assign(target, updates);
+    });
+    const serverTime: FieldValue = { _type: 'timestamp', _elements: undefined, isEqual: () => false };
+    mockFirestoreModule.serverTimestamp.mockReturnValue(serverTime);
     mockFirestoreModule.setDoc.mockResolvedValue(undefined);
 
     await expect(updateCurrentUserDisplayName('  Store Tester  ')).resolves.toEqual(
@@ -308,7 +447,7 @@ describe('firebase auth service', () => {
       expect.objectContaining({ id: 'profile-user' }),
       {
         displayName: 'Store Tester',
-        updatedAt: 'server-time',
+        updatedAt: serverTime,
       },
       { merge: true }
     );
@@ -319,7 +458,7 @@ describe('firebase auth service', () => {
     mockAuthModule.onAuthStateChanged.mockReturnValue(unsub);
     const callback = jest.fn();
     const result = onAuthStateChanged(callback);
-    expect(mockAuthModule.onAuthStateChanged).toHaveBeenCalledWith(mockAuthState, callback);
+    expect(mockAuthModule.onAuthStateChanged).toHaveBeenCalledWith(authInstance, callback);
     expect(result).toBe(unsub);
   });
 
@@ -376,13 +515,10 @@ describe('firebase auth service', () => {
     Platform.OS = 'ios';
     setUser(null);
     setDocData({ displayName: 'Existing', createdAt: { toDate: () => new Date() }, membershipStatus: 'free' });
-    mockAppleAuthModule.signInAsync.mockImplementation(async (options?: { state?: string }) => ({
-      identityToken: 'token',
-      email: 'apple@example.com',
-      fullName: { givenName: 'Apple', familyName: 'User' },
-      state: options?.state,
-    }));
-    mockAuthModule.signInWithCredential.mockResolvedValue({ user: { uid: 'appleUser', displayName: null } });
+    mockAppleAuthModule.signInAsync.mockImplementation(async (options) => createAppleCredential(options?.state ?? null));
+    mockAuthModule.signInWithCredential.mockResolvedValue(
+      createUserCredential(createFirebaseUser({ uid: 'appleUser', displayName: null }))
+    );
 
     const result = await signInWithApple();
     expect(mockAppleAuthModule.signInAsync).toHaveBeenCalledWith(expect.objectContaining({
@@ -414,7 +550,9 @@ describe('firebase auth service', () => {
     Platform.OS = 'android';
     setUser(null);
     setDocData(undefined);
-    mockAuthModule.signInWithCredential.mockResolvedValue({ user: { uid: 'googleUser', email: null, displayName: null, photoURL: null } });
+    mockAuthModule.signInWithCredential.mockResolvedValue(
+      createUserCredential(createFirebaseUser({ uid: 'googleUser', email: null, displayName: null, photoURL: null }))
+    );
     mockFirestoreModule.setDoc.mockResolvedValue(undefined);
 
     const result = await signInWithGoogle();

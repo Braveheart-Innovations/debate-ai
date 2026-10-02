@@ -1,11 +1,19 @@
 import { act } from '@testing-library/react-native';
 import { useDebateFlow } from '@/hooks/debate/useDebateFlow';
-import { DebateStatus, type DebateEvent, type DebateOrchestrator } from '@/services/debate';
-import type { RootState } from '@/store';
+import {
+  DebateOrchestrator,
+  DebateStatus,
+  type DebateEventHandler,
+  type DebateEvent,
+  type DebateSession,
+} from '@/services/debate';
+import { AIService } from '@/services/aiAdapter';
 import type { Message } from '@/types';
 import { RecordController } from '@/services/demo/RecordController';
 import { renderHookWithProviders } from '../../../test-utils/renderHookWithProviders';
-import { getPresetForFormat } from '@/config/debate/formats';
+import { createMockChatSession, createMockMessage } from '../../../test-utils/fixtures';
+import type { RootStateOverrides } from '../../../test-utils/services/state';
+import { getFormat, getPresetForFormat } from '@/config/debate/formats';
 import {
   getStreamingContentSnapshot,
   resetStreamingContentStore,
@@ -23,43 +31,61 @@ jest.mock('@/services/demo/RecordController', () => {
   };
 });
 
-type EventHandler = (event: DebateEvent) => void;
-
-class MockOrchestrator {
-  public session = {
-    status: DebateStatus.PENDING,
+const createDebateSession = (overrides: Partial<DebateSession> = {}): DebateSession => {
+  const preset = getPresetForFormat('oxford', 'short');
+  return {
+    id: 'debate-1',
+    topic: 'AI',
+    participants: [],
+    personalities: {},
+    startTime: 0,
+    status: DebateStatus.IDLE,
     currentRound: 1,
-    totalRounds: 3,
+    messageCount: 0,
     messageIndex: 0,
-    totalMessages: getPresetForFormat('oxford', 'short').messages.length,
-    preset: getPresetForFormat('oxford', 'short'),
+    currentAIIndex: 0,
+    totalRounds: 3,
+    totalMessages: preset.messages.length,
+    civility: 3,
+    format: getFormat('oxford'),
+    preset,
+    presetId: preset.id,
+    stances: {},
+    ...overrides,
   };
-  public startDebate = jest.fn(async () => undefined);
-  public continueDebate = jest.fn();
-  public submitAudienceQuestions = jest.fn();
-  public getPendingContinuation = jest.fn(() => null);
-  public getPendingAudienceQuestions = jest.fn(() => null);
-  private handlers = new Set<EventHandler>();
+};
 
-  addEventListener(handler: EventHandler) {
-    this.handlers.add(handler);
-  }
+/**
+ * A real DebateOrchestrator (no AI keys) whose session, lifecycle calls, and
+ * event bus are stubbed so tests can drive the hook by emitting events.
+ */
+class MockOrchestrator {
+  public readonly instance = new DebateOrchestrator(new AIService());
+  public session = createDebateSession();
+  private handlers = new Set<DebateEventHandler>();
+  public startDebate = jest.spyOn(this.instance, 'startDebate').mockResolvedValue(undefined);
+  public continueDebate = jest.spyOn(this.instance, 'continueDebate').mockImplementation(() => undefined);
+  public submitAudienceQuestions = jest
+    .spyOn(this.instance, 'submitAudienceQuestions')
+    .mockImplementation(() => undefined);
 
-  removeEventListener(handler: EventHandler) {
-    this.handlers.delete(handler);
+  constructor() {
+    jest.spyOn(this.instance, 'getSession').mockImplementation(() => this.session);
+    jest.spyOn(this.instance, 'addEventListener').mockImplementation((handler) => {
+      this.handlers.add(handler);
+    });
+    jest.spyOn(this.instance, 'removeEventListener').mockImplementation((handler) => {
+      this.handlers.delete(handler);
+    });
   }
 
   emit(event: DebateEvent) {
     this.handlers.forEach(handler => handler(event));
   }
-
-  getSession() {
-    return this.session;
-  }
 }
 
 describe('useDebateFlow', () => {
-  const recordController = RecordController as jest.Mocked<typeof RecordController>;
+  const recordController = jest.mocked(RecordController);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -71,30 +97,24 @@ describe('useDebateFlow', () => {
   });
 
   const initialMessages: Message[] = [
-    { id: 'user-1', sender: 'You', senderType: 'user', content: 'Let us debate', timestamp: 1 },
+    createMockMessage({ id: 'user-1', content: 'Let us debate', timestamp: 1 }),
   ];
 
-  const baseState: Partial<RootState> = {
+  const baseState: RootStateOverrides = {
     chat: {
-      currentSession: {
+      currentSession: createMockChatSession({
         id: 'debate-session',
         selectedAIs: [],
         messages: initialMessages,
-        isActive: true,
         createdAt: 0,
         sessionType: 'debate',
-      },
-      sessions: [],
-      typingAIs: [],
-      isLoading: false,
-      aiPersonalities: {},
-      selectedModels: {},
+      }),
     },
-  } as Partial<RootState>;
+  };
 
   it('links orchestrator events to redux state and starts debate once', async () => {
     const orchestrator = new MockOrchestrator();
-    const { result, store } = renderHookWithProviders(() => useDebateFlow(orchestrator as unknown as never), {
+    const { result, store } = renderHookWithProviders(() => useDebateFlow(orchestrator.instance), {
       preloadedState: baseState,
     });
 
@@ -183,7 +203,7 @@ describe('useDebateFlow', () => {
 
   it('handles message, typing, streaming, and error events', () => {
     const orchestrator = new MockOrchestrator();
-    const { result, store } = renderHookWithProviders(() => useDebateFlow(orchestrator as unknown as never), {
+    const { result, store } = renderHookWithProviders(() => useDebateFlow(orchestrator.instance), {
       preloadedState: baseState,
     });
 
@@ -303,7 +323,7 @@ describe('useDebateFlow', () => {
 
   it('surfaces continuation prompts and resumes the orchestrator on request', () => {
     const orchestrator = new MockOrchestrator();
-    const { result } = renderHookWithProviders(() => useDebateFlow(orchestrator as unknown as never), {
+    const { result } = renderHookWithProviders(() => useDebateFlow(orchestrator.instance), {
       preloadedState: baseState,
     });
 
@@ -342,7 +362,7 @@ describe('useDebateFlow', () => {
 
   it('surfaces audience question prompts and submits questions to the orchestrator', () => {
     const orchestrator = new MockOrchestrator();
-    const { result } = renderHookWithProviders(() => useDebateFlow(orchestrator as unknown as never), {
+    const { result } = renderHookWithProviders(() => useDebateFlow(orchestrator.instance), {
       preloadedState: baseState,
     });
 
@@ -389,7 +409,7 @@ describe('useDebateFlow', () => {
   it('handles start errors, retries, and early exits', async () => {
     const orchestrator = new MockOrchestrator();
     orchestrator.startDebate.mockRejectedValueOnce(new Error('start failed'));
-    const { result } = renderHookWithProviders(() => useDebateFlow(orchestrator as unknown as never), {
+    const { result } = renderHookWithProviders(() => useDebateFlow(orchestrator.instance), {
       preloadedState: baseState,
     });
 
@@ -434,11 +454,13 @@ describe('useDebateFlow', () => {
     orchestratorB.session.currentRound = 5;
     orchestratorB.session.totalRounds = 5;
 
-    let current: MockOrchestrator | null = orchestratorA;
-
-    const { result, rerender } = renderHookWithProviders(() => useDebateFlow(current as unknown as DebateOrchestrator | null), {
-      preloadedState: baseState,
-    });
+    const { result, rerender } = renderHookWithProviders(
+      ({ orchestrator }: { orchestrator: DebateOrchestrator | null }) => useDebateFlow(orchestrator),
+      {
+        initialProps: { orchestrator: orchestratorA.instance },
+        preloadedState: baseState,
+      }
+    );
 
     await act(async () => {
       await Promise.resolve();
@@ -463,10 +485,8 @@ describe('useDebateFlow', () => {
     expect(result.current.currentRound).toBe(3);
     expect(result.current.maxRounds).toBe(6);
 
-    current = orchestratorB;
-
     await act(async () => {
-      rerender();
+      rerender({ orchestrator: orchestratorB.instance });
       await Promise.resolve();
     });
 

@@ -1,13 +1,21 @@
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import type { ReactNode } from 'react';
+import type { Line, Rect } from 'react-native-svg';
+import type { PropsOf } from '@test-utils/mockComponents';
+import type { Typography } from '@/components/molecules';
+import type { BarChart, ChartLegend } from '@/components/molecules/charts';
+import { PerformanceBarSection } from '@/components/organisms/stats/PerformanceBarSection';
 import { fireEvent } from '@testing-library/react-native';
 
 jest.mock('react-native-svg', () => {
-  const React = require('react');
+  const React = jest.requireActual<typeof import('react')>('react');
+  const container = (name: string) => ({ children }: { children?: ReactNode }) =>
+    React.createElement(name, null, children);
   return {
-    Svg: ({ children }: any) => React.createElement('Svg', null, children),
-    Rect: (props: any) => React.createElement('Rect', props),
-    Line: (props: any) => React.createElement('Line', props),
-    G: ({ children }: any) => React.createElement('G', null, children),
+    Svg: container('Svg'),
+    Rect: (props: PropsOf<typeof Rect>) => React.createElement('Rect', props),
+    Line: (props: PropsOf<typeof Line>) => React.createElement('Line', props),
+    G: container('G'),
   };
 });
 
@@ -25,27 +33,29 @@ jest.mock('@/hooks/stats/useChartData', () => ({
 }));
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const { stubComponent } = jest.requireActual<
+    typeof import('@test-utils/mockComponents')
+  >('@test-utils/mockComponents');
   return {
-    Typography: ({ children }: any) => React.createElement(Text, null, children),
+    Typography: stubComponent<typeof Typography>('typography', { text: (p) => p.children }),
   };
 });
 
 jest.mock('@/components/molecules/charts', () => {
-  const React = require('react');
-  const { View, Text } = require('react-native');
+  const { stubComponent } = jest.requireActual<
+    typeof import('@test-utils/mockComponents')
+  >('@test-utils/mockComponents');
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+  const React = jest.requireActual<typeof import('react')>('react');
   return {
-    BarChart: ({ bars }: any) => React.createElement(View, null,
-      bars.map((bar: any, i: number) => React.createElement(Text, { key: i }, bar.label))
-    ),
-    ChartLegend: ({ items }: any) => React.createElement(View, null,
-      items.map((item: any, i: number) => React.createElement(Text, { key: i }, item.label))
-    ),
+    BarChart: stubComponent<typeof BarChart>('bar-chart', {
+      render: ({ bars }) => bars.map((bar, i) => React.createElement(Text, { key: i }, bar.label)),
+    }),
+    ChartLegend: stubComponent<typeof ChartLegend>('chart-legend', {
+      render: ({ items }) => items.map((item, i) => React.createElement(Text, { key: i }, item.label)),
+    }),
   };
 });
-
-const { PerformanceBarSection } = require('@/components/organisms/stats/PerformanceBarSection');
 
 describe('PerformanceBarSection', () => {
   it('renders without crashing', () => {

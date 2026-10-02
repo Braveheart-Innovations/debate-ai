@@ -1,9 +1,10 @@
 import React from 'react';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { ModalHeader } from '@/components/molecules/sheets/ModalHeader';
 
 jest.mock('expo-linear-gradient', () => ({
-  LinearGradient: ({ children }: any) => children,
+  LinearGradient: ({ children }: { children?: React.ReactNode }) => children,
 }));
 
 jest.mock('@/components/molecules', () => {
@@ -14,8 +15,6 @@ jest.mock('@/components/molecules', () => {
       React.createElement(Text, null, children),
   };
 });
-
-const { ModalHeader } = require('@/components/molecules/sheets/ModalHeader');
 
 describe('ModalHeader', () => {
   it('renders title', () => {

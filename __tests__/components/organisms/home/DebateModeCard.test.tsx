@@ -3,9 +3,12 @@ import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { DebateModeCard } from '@/components/organisms/home/DebateModeCard';
 import type { AIConfig } from '@/types';
+import type { PropsOf } from '@test-utils/mockComponents';
+import type { LinearGradient } from 'expo-linear-gradient';
+import type { GradientButton } from '@/components/molecules';
 
 jest.mock('expo-linear-gradient', () => ({
-  LinearGradient: ({ children }: any) => {
+  LinearGradient: ({ children }: PropsOf<typeof LinearGradient>) => {
     const React = require('react');
     const { View } = require('react-native');
     return React.createElement(View, { testID: 'gradient' }, children);
@@ -21,7 +24,7 @@ jest.mock('@/components/molecules', () => {
   const React = require('react');
   const { Text } = require('react-native');
   return {
-    GradientButton: ({ title, onPress }: any) =>
+    GradientButton: ({ title, onPress }: PropsOf<typeof GradientButton>) =>
       React.createElement(
         Text,
         { accessibilityRole: 'button', onPress },

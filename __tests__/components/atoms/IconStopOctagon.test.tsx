@@ -2,14 +2,17 @@ import { render } from '@testing-library/react-native';
 import IconStopOctagon from '@/components/atoms/icons/IconStopOctagon';
 
 // Mock react-native-svg
+// Host-element stand-ins keep every prop the icon passes so tests can read them.
 jest.mock('react-native-svg', () => {
-  const { View } = require('react-native');
+  const React = jest.requireActual<typeof import('react')>('react');
+  const hostMock = (testID: string) => (props: Record<string, unknown>) =>
+    React.createElement('mock-svg-element', { ...props, testID });
 
   return {
     __esModule: true,
-    default: (props: any) => <View {...props} testID="svg" />,
-    Svg: (props: any) => <View {...props} testID="svg" />,
-    Path: (props: any) => <View {...props} testID="path" />,
+    default: hostMock('svg'),
+    Svg: hostMock('svg'),
+    Path: hostMock('path'),
   };
 });
 

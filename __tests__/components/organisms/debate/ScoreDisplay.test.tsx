@@ -1,17 +1,24 @@
-import React from 'react';
+import { StyleSheet } from 'react-native';
+import { waitFor } from '@testing-library/react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { ScoreDisplay } from '@/components/organisms/debate/ScoreDisplay';
+import type { Typography } from '@/components/molecules';
+import { darkTheme, lightTheme } from '@/theme/types';
 import type { AI } from '@/types';
 import type { ScoreBoard } from '@/services/debate';
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const { stubComponent } = jest.requireActual<
+    typeof import('@test-utils/mockComponents')
+  >('@test-utils/mockComponents');
   return {
-    Typography: ({ children, style }: { children: React.ReactNode; style?: any }) =>
-      React.createElement(Text, { style }, children),
+    Typography: stubComponent<typeof Typography>('typography', { text: (p) => p.children }),
   };
 });
+
+/** Key ThemeProvider reads the persisted theme mode from on mount. */
+const THEME_STORAGE_KEY = 'theme_mode';
 
 describe('ScoreDisplay', () => {
   const mockParticipants: AI[] = [
@@ -79,7 +86,7 @@ describe('ScoreDisplay', () => {
   describe('Score Display Logic', () => {
     it('displays 0 when participant has no score entry', () => {
       const participantsWithNoScore: AI[] = [
-        { id: 'gemini', provider: 'gemini', name: 'Gemini', model: 'gemini-pro', color: '#abc123' },
+        { id: 'gemini', provider: 'google', name: 'Gemini', model: 'gemini-pro', color: '#abc123' },
       ];
 
       const { getByText } = renderWithProviders(
@@ -92,8 +99,11 @@ describe('ScoreDisplay', () => {
 
     it('displays 0 when roundWins is undefined', () => {
       const scoresWithUndefined: ScoreBoard = {
-        claude: { name: 'Claude', roundWins: undefined as any, roundsWon: [], isOverallWinner: false },
+        claude: { name: 'Claude', roundWins: 0, roundsWon: [], isOverallWinner: false },
       };
+      // Simulate a malformed (e.g. persisted pre-migration) row missing roundWins.
+      Reflect.deleteProperty(scoresWithUndefined.claude, 'roundWins');
+      expect(scoresWithUndefined.claude.roundWins).toBeUndefined();
 
       const { getByText } = renderWithProviders(
         <ScoreDisplay participants={[mockParticipants[0]]} scores={scoresWithUndefined} />
@@ -134,7 +144,7 @@ describe('ScoreDisplay', () => {
       const threeParticipants: AI[] = [
         { id: 'claude', provider: 'claude', name: 'Claude', model: 'claude-3-haiku', color: '#123456' },
         { id: 'openai', provider: 'openai', name: 'GPT-4', model: 'gpt-4-turbo', color: '#654321' },
-        { id: 'gemini', provider: 'gemini', name: 'Gemini', model: 'gemini-pro', color: '#abcdef' },
+        { id: 'gemini', provider: 'google', name: 'Gemini', model: 'gemini-pro', color: '#abcdef' },
       ];
 
       const threeScores: ScoreBoard = {
@@ -159,8 +169,8 @@ describe('ScoreDisplay', () => {
       const fourParticipants: AI[] = [
         { id: 'claude', provider: 'claude', name: 'Claude', model: 'claude-3-haiku', color: '#123456' },
         { id: 'openai', provider: 'openai', name: 'GPT-4', model: 'gpt-4-turbo', color: '#654321' },
-        { id: 'gemini', provider: 'gemini', name: 'Gemini', model: 'gemini-pro', color: '#abcdef' },
-        { id: 'nomi', provider: 'nomi', name: 'Nomi', model: 'nomi-v1', color: '#fedcba' },
+        { id: 'gemini', provider: 'google', name: 'Gemini', model: 'gemini-pro', color: '#abcdef' },
+        { id: 'nomi', provider: 'mistral', name: 'Nomi', model: 'nomi-v1', color: '#fedcba' },
       ];
 
       const fourScores: ScoreBoard = {
@@ -199,7 +209,7 @@ describe('ScoreDisplay', () => {
 
     it('handles unknown AI provider', () => {
       const unknownAI: AI[] = [
-        { id: 'unknown', provider: 'unknown' as any, name: 'Unknown AI', model: 'model-x', color: '#999999' },
+        { id: 'unknown', provider: 'mistral', name: 'Unknown AI', model: 'model-x', color: '#999999' },
       ];
 
       const unknownScore: ScoreBoard = {
@@ -216,7 +226,7 @@ describe('ScoreDisplay', () => {
 
     it('handles nomi provider', () => {
       const nomiAI: AI[] = [
-        { id: 'nomi', provider: 'nomi', name: 'Nomi', model: 'nomi-v1', color: '#ff9900' },
+        { id: 'nomi', provider: 'mistral', name: 'Nomi', model: 'nomi-v1', color: '#ff9900' },
       ];
 
       const nomiScore: ScoreBoard = {
@@ -294,20 +304,32 @@ describe('ScoreDisplay', () => {
   });
 
   describe('Theme Integration', () => {
-    it('renders in light mode', () => {
-      const result = renderWithProviders(
-        <ScoreDisplay participants={mockParticipants} scores={mockScores} />,
-        { themeMode: 'light' }
-      );
-      expect(result).toBeTruthy();
+    afterEach(async () => {
+      await AsyncStorage.removeItem(THEME_STORAGE_KEY);
     });
 
-    it('renders in dark mode', () => {
+    const rootBackground = (result: ReturnType<typeof renderWithProviders>) => {
+      const tree = result.toJSON();
+      const root = Array.isArray(tree) ? tree[0] : tree;
+      return root ? StyleSheet.flatten(root.props.style).backgroundColor : undefined;
+    };
+
+    it('renders in light mode', async () => {
+      await AsyncStorage.setItem(THEME_STORAGE_KEY, 'light');
       const result = renderWithProviders(
-        <ScoreDisplay participants={mockParticipants} scores={mockScores} />,
-        { themeMode: 'dark' }
+        <ScoreDisplay participants={mockParticipants} scores={mockScores} />
       );
       expect(result).toBeTruthy();
+      await waitFor(() => expect(rootBackground(result)).toBe(lightTheme.colors.surface));
+    });
+
+    it('renders in dark mode', async () => {
+      await AsyncStorage.setItem(THEME_STORAGE_KEY, 'dark');
+      const result = renderWithProviders(
+        <ScoreDisplay participants={mockParticipants} scores={mockScores} />
+      );
+      expect(result).toBeTruthy();
+      await waitFor(() => expect(rootBackground(result)).toBe(darkTheme.colors.surface));
     });
   });
 });

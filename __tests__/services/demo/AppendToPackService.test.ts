@@ -7,60 +7,54 @@ jest.mock('@/services/demo/DemoContentService', () => ({
   },
 }));
 
-const mockIngest = DemoContentService.ingestRecording as jest.MockedFunction<typeof DemoContentService.ingestRecording>;
+const mockIngest = jest.mocked(DemoContentService.ingestRecording);
+
+const okResponse = (): Response => new Response(null, { status: 200 });
 
 describe('AppendToPackService', () => {
-  const originalFetch = global.fetch;
+  let fetchSpy: jest.SpiedFunction<typeof fetch>;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // @ts-expect-error override fetch
-    global.fetch = jest.fn();
+    fetchSpy = jest.spyOn(global, 'fetch');
   });
 
   afterEach(() => {
-    global.fetch = originalFetch;
+    fetchSpy.mockRestore();
   });
 
   it('appends session when health check and post succeed', async () => {
-    const responseSequence = [
-      { ok: true },
-      { ok: true, text: jest.fn() },
-    ];
     mockIngest.mockImplementationOnce(() => { throw new Error('ingest fail'); });
-    (global.fetch as jest.Mock).mockImplementation(async () => responseSequence.shift());
+    fetchSpy
+      .mockResolvedValueOnce(okResponse())
+      .mockResolvedValueOnce(okResponse());
 
     const result = await AppendToPackService.append({ id: 'session-1' });
     expect(result).toEqual({ ok: true });
-    expect(global.fetch).toHaveBeenNthCalledWith(1, 'http://127.0.0.1:8889/health', expect.any(Object));
-    expect(global.fetch).toHaveBeenNthCalledWith(2, 'http://127.0.0.1:8889/append', expect.objectContaining({ method: 'POST' }));
+    expect(fetchSpy).toHaveBeenNthCalledWith(1, 'http://127.0.0.1:8889/health', expect.any(Object));
+    expect(fetchSpy).toHaveBeenNthCalledWith(2, 'http://127.0.0.1:8889/append', expect.objectContaining({ method: 'POST' }));
     expect(mockIngest).toHaveBeenCalled();
   });
 
   it('returns packer unavailable error when health check fails', async () => {
-    (global.fetch as jest.Mock).mockResolvedValue({ ok: false });
+    fetchSpy.mockResolvedValue(new Response(null, { status: 503 }));
     const res = await AppendToPackService.append({}, 'http://localhost:9999/append');
     expect(res).toEqual({ ok: false, error: expect.stringContaining('Demo packer dev server not reachable') });
-    expect(global.fetch).toHaveBeenCalledWith('http://localhost:9999/health', expect.any(Object));
+    expect(fetchSpy).toHaveBeenCalledWith('http://localhost:9999/health', expect.any(Object));
   });
 
   it('returns error when POST request fails', async () => {
-    const responses = [
-      { ok: true },
-      { ok: false, status: 500, text: jest.fn().mockResolvedValue('server down') },
-    ];
-    (global.fetch as jest.Mock).mockImplementation(async () => responses.shift());
+    fetchSpy
+      .mockResolvedValueOnce(okResponse())
+      .mockResolvedValueOnce(new Response('server down', { status: 500 }));
     const result = await AppendToPackService.append({});
     expect(result).toEqual({ ok: false, error: 'HTTP 500: server down' });
   });
 
   it('propagates fetch exceptions as error messages', async () => {
-    const responses = [
-      { ok: true },
-    ];
-    (global.fetch as jest.Mock)
-      .mockImplementationOnce(async () => responses.shift())
-      .mockImplementationOnce(async () => { throw new Error('boom'); });
+    fetchSpy
+      .mockResolvedValueOnce(okResponse())
+      .mockRejectedValueOnce(new Error('boom'));
     const result = await AppendToPackService.append({ id: 'x' });
     expect(result).toEqual({ ok: false, error: 'boom' });
   });

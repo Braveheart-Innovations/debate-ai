@@ -1,16 +1,13 @@
 import { Text } from 'react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import type { LinearGradient } from 'expo-linear-gradient';
+import type { PropsOf } from '@test-utils/mockComponents';
+import { StatsCard, StatsCardHeader, StatsCardRow, StatItem, WinRateDisplay } from '@/components/molecules/stats/StatsCard';
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null, MaterialIcons: () => null }));
-jest.mock('expo-linear-gradient', () => ({ LinearGradient: ({ children }: any) => children }));
-
-const {
-  StatsCard,
-  StatsCardHeader,
-  StatsCardRow,
-  StatItem,
-  WinRateDisplay
-} = require('@/components/molecules/stats/StatsCard');
+jest.mock('expo-linear-gradient', () => ({
+  LinearGradient: ({ children }: PropsOf<typeof LinearGradient>) => children,
+}));
 
 describe('StatsCard Components', () => {
   describe('StatsCard', () => {

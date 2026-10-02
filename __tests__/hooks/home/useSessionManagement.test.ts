@@ -1,7 +1,8 @@
 import { renderHookWithProviders } from '../../../test-utils/renderHookWithProviders';
 import { resolveProviderModelId } from '@/config/modelConfigs';
 import { useSessionManagement } from '@/hooks/home/useSessionManagement';
-import type { RootState } from '@/store';
+import type { RootStateOverrides } from '../../../test-utils/services/state';
+import { createMockAIConfig } from '../../../test-utils/fixtures';
 import type { AIConfig } from '@/types';
 import { SessionService } from '@/services/home/SessionService';
 
@@ -15,32 +16,21 @@ jest.mock('@/services/home/SessionService', () => ({
 }));
 
 describe('useSessionManagement', () => {
-  const mockValidateSessionAIs = SessionService.validateSessionAIs as jest.MockedFunction<typeof SessionService.validateSessionAIs>;
-  const mockPrepareSessionData = SessionService.prepareSessionData as jest.MockedFunction<typeof SessionService.prepareSessionData>;
-  const mockCalculateSessionLimits = SessionService.calculateSessionLimits as jest.MockedFunction<typeof SessionService.calculateSessionLimits>;
-  const mockValidateSessionConfiguration = SessionService.validateSessionConfiguration as jest.MockedFunction<typeof SessionService.validateSessionConfiguration>;
+  const mockValidateSessionAIs = jest.mocked(SessionService.validateSessionAIs);
+  const mockPrepareSessionData = jest.mocked(SessionService.prepareSessionData);
+  const mockCalculateSessionLimits = jest.mocked(SessionService.calculateSessionLimits);
+  const mockValidateSessionConfiguration = jest.mocked(SessionService.validateSessionConfiguration);
 
   const selectedAIs: AIConfig[] = [
-    {
-      id: 'claude',
-      provider: 'claude',
-      name: 'Claude',
-      model: 'claude-3-opus',
-      personality: 'default',
-      color: '#f5f5f5',
-    },
+    createMockAIConfig({ model: 'claude-3-opus', personality: 'default', color: '#f5f5f5' }),
   ];
 
-  const baseState: Partial<RootState> = {
+  const baseState: RootStateOverrides = {
     chat: {
-      currentSession: null,
-      sessions: [],
-      typingAIs: [],
-      isLoading: false,
       aiPersonalities: { claude: 'analyst' },
       selectedModels: { claude: 'claude-3-sonnet' },
     },
-  } as Partial<RootState>;
+  };
 
   beforeEach(() => {
     jest.useFakeTimers();
@@ -49,7 +39,7 @@ describe('useSessionManagement', () => {
     mockPrepareSessionData.mockImplementation((ais, personalities, models) => ({
       selectedAIs: ais,
       aiPersonalities: personalities,
-      selectedModels: models,
+      selectedModels: models ?? {},
     }));
     mockCalculateSessionLimits.mockReturnValue(3);
     mockValidateSessionConfiguration.mockReturnValue(true);

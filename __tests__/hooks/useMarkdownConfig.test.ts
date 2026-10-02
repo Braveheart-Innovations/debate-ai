@@ -153,7 +153,7 @@ describe('useMarkdownConfig', () => {
     });
 
     it('handles URL open errors gracefully', async () => {
-      (Linking.openURL as jest.Mock).mockRejectedValueOnce(new Error('Failed'));
+      jest.mocked(Linking.openURL).mockRejectedValueOnce(new Error('Failed'));
 
       const { result } = renderHook(() => useMarkdownConfig());
 
@@ -169,7 +169,7 @@ describe('useMarkdownConfig', () => {
       const { result, rerender } = renderHook(() => useMarkdownConfig());
 
       const firstStyles = result.current.styles;
-      rerender();
+      rerender({});
 
       // Check that styles have the same structure
       expect(result.current.styles).toStrictEqual(firstStyles);
@@ -179,7 +179,7 @@ describe('useMarkdownConfig', () => {
       const { result, rerender } = renderHook(() => useMarkdownConfig());
 
       const firstOnLinkPress = result.current.onLinkPress;
-      rerender();
+      rerender({});
 
       expect(result.current.onLinkPress).toBe(firstOnLinkPress);
     });

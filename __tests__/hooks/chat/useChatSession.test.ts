@@ -4,20 +4,14 @@ import { useChatSession } from '@/hooks/chat/useChatSession';
 import { StorageService } from '@/services/chat';
 import type { RootState } from '@/store';
 import type { ChatSession } from '@/types';
+import {
+  createMockAIConfig,
+  createMockAuthState,
+  createMockChatSession,
+} from '../../../test-utils/fixtures';
 
 describe('useChatSession', () => {
-  const baseAuthState: RootState['auth'] = {
-    user: null,
-    isAuthenticated: false,
-    isPremium: false,
-    authLoading: false,
-    authModalVisible: false,
-    userProfile: null,
-    isAnonymous: false,
-    lastAuthMethod: null,
-    socialAuthLoading: false,
-    socialAuthError: null,
-  };
+  const baseAuthState: RootState['auth'] = createMockAuthState();
 
   const baseChatState: RootState['chat'] = {
     currentSession: null,
@@ -28,24 +22,12 @@ describe('useChatSession', () => {
     selectedModels: {},
   };
 
-  const createSession = (overrides: Partial<ChatSession> = {}): ChatSession => ({
-    id: overrides.id ?? 'session-1',
-    selectedAIs: overrides.selectedAIs ?? [
-      {
-        id: 'ai-1',
-        name: 'Alpha',
-        provider: 'claude',
-        model: 'claude-3-opus',
-      },
-    ],
-    messages: overrides.messages ?? [],
-    isActive: overrides.isActive ?? true,
-    createdAt: overrides.createdAt ?? 123,
-    lastMessageAt: overrides.lastMessageAt,
-    sessionType: overrides.sessionType ?? 'chat',
-    topic: overrides.topic,
-    debateConfig: overrides.debateConfig,
-  });
+  const createSession = (overrides: Partial<ChatSession> = {}): ChatSession =>
+    createMockChatSession({
+      selectedAIs: [createMockAIConfig({ id: 'ai-1', name: 'Alpha', model: 'claude-3-opus' })],
+      createdAt: 123,
+      ...overrides,
+    });
 
   let loadSessionSpy: jest.SpyInstance;
   let saveSessionSpy: jest.SpyInstance;

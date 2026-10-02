@@ -1,7 +1,11 @@
 import React from 'react';
 import { fireEvent, waitFor } from '@testing-library/react-native';
 import { Alert, Linking } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import * as Haptics from 'expo-haptics';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { ShareActionButtons } from '@/components/molecules/share/ShareActionButtons';
+import type { Button, Card } from '@/components/molecules';
 
 // Mock dependencies
 jest.mock('@expo/vector-icons', () => ({
@@ -31,16 +35,15 @@ jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
 jest.mock('@/components/molecules', () => {
   const React = require('react');
   const { Text } = require('react-native');
+  const { stubComponent } = jest.requireActual<
+    typeof import('@test-utils/mockComponents')
+  >('@test-utils/mockComponents');
   return {
     Typography: ({ children }: { children: React.ReactNode }) => React.createElement(Text, null, children),
-    Card: ({ children }: any) => children,
-    Button: ({ title }: any) => React.createElement(Text, null, title),
+    Card: stubComponent<typeof Card>('card', { render: (p) => p.children }),
+    Button: stubComponent<typeof Button>('button', { text: (p) => p.title }),
   };
 });
-
-const Clipboard = require('expo-clipboard');
-const Haptics = require('expo-haptics');
-const { ShareActionButtons } = require('@/components/molecules/share/ShareActionButtons');
 
 describe('ShareActionButtons', () => {
   const defaultProps = {
@@ -54,8 +57,8 @@ describe('ShareActionButtons', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (Linking.canOpenURL as jest.Mock).mockResolvedValue(true);
-    (Linking.openURL as jest.Mock).mockResolvedValue(undefined);
+    jest.mocked(Linking.canOpenURL).mockResolvedValue(true);
+    jest.mocked(Linking.openURL).mockResolvedValue(undefined);
   });
 
   describe('Rendering', () => {
@@ -126,7 +129,7 @@ describe('ShareActionButtons', () => {
     });
 
     it('shows alert when Instagram is not installed', async () => {
-      (Linking.canOpenURL as jest.Mock).mockResolvedValue(false);
+      jest.mocked(Linking.canOpenURL).mockResolvedValue(false);
 
       const { getByText } = renderWithProviders(
         <ShareActionButtons {...defaultProps} />
@@ -146,7 +149,7 @@ describe('ShareActionButtons', () => {
 
     it('handles Instagram share errors', async () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-      (Linking.canOpenURL as jest.Mock).mockRejectedValue(new Error('Test error'));
+      jest.mocked(Linking.canOpenURL).mockRejectedValue(new Error('Test error'));
 
       const { getByText } = renderWithProviders(
         <ShareActionButtons {...defaultProps} />
@@ -183,7 +186,7 @@ describe('ShareActionButtons', () => {
     });
 
     it('falls back to web URL when Facebook app not available', async () => {
-      (Linking.canOpenURL as jest.Mock).mockResolvedValue(false);
+      jest.mocked(Linking.canOpenURL).mockResolvedValue(false);
       const onShareFacebook = jest.fn();
 
       const { getByText } = renderWithProviders(
@@ -201,7 +204,7 @@ describe('ShareActionButtons', () => {
 
     it('handles Facebook share errors silently', async () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-      (Linking.openURL as jest.Mock).mockRejectedValue(new Error('Test error'));
+      jest.mocked(Linking.openURL).mockRejectedValue(new Error('Test error'));
 
       const { getByText } = renderWithProviders(
         <ShareActionButtons {...defaultProps} />
@@ -237,7 +240,7 @@ describe('ShareActionButtons', () => {
     });
 
     it('shows alert when WhatsApp is not installed', async () => {
-      (Linking.canOpenURL as jest.Mock).mockResolvedValue(false);
+      jest.mocked(Linking.canOpenURL).mockResolvedValue(false);
 
       const { getByText } = renderWithProviders(
         <ShareActionButtons {...defaultProps} />
@@ -257,7 +260,7 @@ describe('ShareActionButtons', () => {
 
     it('handles WhatsApp share errors silently', async () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-      (Linking.canOpenURL as jest.Mock).mockRejectedValue(new Error('Test error'));
+      jest.mocked(Linking.canOpenURL).mockRejectedValue(new Error('Test error'));
 
       const { getByText } = renderWithProviders(
         <ShareActionButtons {...defaultProps} />
@@ -294,7 +297,7 @@ describe('ShareActionButtons', () => {
     });
 
     it('falls back to web URL when Twitter app not available', async () => {
-      (Linking.canOpenURL as jest.Mock).mockResolvedValue(false);
+      jest.mocked(Linking.canOpenURL).mockResolvedValue(false);
       const onShareTwitter = jest.fn();
 
       const { getAllByText } = renderWithProviders(
@@ -312,7 +315,7 @@ describe('ShareActionButtons', () => {
 
     it('handles Twitter share errors silently', async () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-      (Linking.openURL as jest.Mock).mockRejectedValue(new Error('Test error'));
+      jest.mocked(Linking.openURL).mockRejectedValue(new Error('Test error'));
 
       const { getAllByText } = renderWithProviders(
         <ShareActionButtons {...defaultProps} />

@@ -1,8 +1,9 @@
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { SessionPreview } from '@/components/molecules/history/SessionPreview';
+import { malformed } from '@test-utils/queries';
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null, MaterialIcons: () => null }));
 
-const { SessionPreview } = require('@/components/molecules/history/SessionPreview');
 
 describe('SessionPreview', () => {
   describe('Basic Rendering', () => {
@@ -31,7 +32,7 @@ describe('SessionPreview', () => {
 
     it('renders plain text when searchTerm is undefined', () => {
       const { getByText } = renderWithProviders(
-        <SessionPreview text="Sample preview" searchTerm={undefined as any} />
+        <SessionPreview text="Sample preview" searchTerm={malformed<string>(undefined, 'search term absent from untyped caller')} />
       );
       expect(getByText('Sample preview')).toBeTruthy();
     });

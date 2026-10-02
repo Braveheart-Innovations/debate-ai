@@ -1,56 +1,39 @@
-import { renderHook, act } from '@testing-library/react-native';
-import { Provider } from 'react-redux';
-import React from 'react';
+import { act } from '@testing-library/react-native';
 import { useHelp } from '@/hooks/useHelp';
-import { createAppStore } from '@/store';
+import type { RootState } from '@/store';
 import { HELP_TOPICS } from '@/config/help/topics';
+import { renderHookWithProviders } from '../../test-utils/renderHookWithProviders';
+import { requireDefined } from '../../test-utils/queries';
 
 describe('useHelp', () => {
-  const createWrapper = (storeOverrides?: Record<string, unknown>) => {
-    const store = createAppStore({
-      navigation: {
-        activeSheet: null,
-        sheetVisible: false,
-        sheetData: undefined,
-        helpWebViewUrl: null,
-        ...storeOverrides,
-      },
-    });
-
-    const wrapper = ({ children }: { children: React.ReactNode }) =>
-      React.createElement(Provider, { store }, children);
-
-    return { wrapper, store };
-  };
+  const renderUseHelp = (navigation: Partial<RootState['navigation']> = {}) =>
+    renderHookWithProviders(() => useHelp(), { preloadedState: { navigation } });
 
   describe('initial state', () => {
     it('returns correct initial values when sheet is closed', () => {
-      const { wrapper } = createWrapper();
-      const { result } = renderHook(() => useHelp(), { wrapper });
+      const { result } = renderUseHelp();
 
       expect(result.current.isHelpSheetOpen).toBe(false);
       expect(result.current.isWebViewOpen).toBe(false);
       expect(result.current.currentTopicId).toBeUndefined();
-      expect(result.current.helpWebViewUrl).toBeNull();
+      expect(result.current.helpWebViewUrl).toBeUndefined();
     });
 
     it('returns correct values when help sheet is open', () => {
-      const { wrapper } = createWrapper({
+      const { result } = renderUseHelp({
         activeSheet: 'help',
         sheetVisible: true,
         sheetData: { topicId: 'debate-arena' },
       });
-      const { result } = renderHook(() => useHelp(), { wrapper });
 
       expect(result.current.isHelpSheetOpen).toBe(true);
       expect(result.current.currentTopicId).toBe('debate-arena');
     });
 
     it('returns correct values when WebView is open', () => {
-      const { wrapper } = createWrapper({
+      const { result } = renderUseHelp({
         helpWebViewUrl: 'https://example.com/help',
       });
-      const { result } = renderHook(() => useHelp(), { wrapper });
 
       expect(result.current.isWebViewOpen).toBe(true);
       expect(result.current.helpWebViewUrl).toBe('https://example.com/help');
@@ -59,8 +42,7 @@ describe('useHelp', () => {
 
   describe('showTopic', () => {
     it('opens help sheet with specific topic', () => {
-      const { wrapper, store } = createWrapper();
-      const { result } = renderHook(() => useHelp(), { wrapper });
+      const { result, store } = renderUseHelp();
 
       act(() => {
         result.current.showTopic('debate-arena');
@@ -72,8 +54,7 @@ describe('useHelp', () => {
     });
 
     it('opens help sheet without topic when called with undefined', () => {
-      const { wrapper, store } = createWrapper();
-      const { result } = renderHook(() => useHelp(), { wrapper });
+      const { result, store } = renderUseHelp();
 
       act(() => {
         result.current.showTopic(undefined);
@@ -87,8 +68,7 @@ describe('useHelp', () => {
 
   describe('showHelp', () => {
     it('opens help sheet without specific topic', () => {
-      const { wrapper, store } = createWrapper();
-      const { result } = renderHook(() => useHelp(), { wrapper });
+      const { result, store } = renderUseHelp();
 
       act(() => {
         result.current.showHelp();
@@ -101,11 +81,10 @@ describe('useHelp', () => {
 
   describe('closeHelp', () => {
     it('closes the help sheet', () => {
-      const { wrapper, store } = createWrapper({
+      const { result, store } = renderUseHelp({
         activeSheet: 'help',
         sheetVisible: true,
       });
-      const { result } = renderHook(() => useHelp(), { wrapper });
 
       act(() => {
         result.current.closeHelp();
@@ -119,8 +98,7 @@ describe('useHelp', () => {
 
   describe('showWebView', () => {
     it('opens WebView with specified URL', () => {
-      const { wrapper, store } = createWrapper();
-      const { result } = renderHook(() => useHelp(), { wrapper });
+      const { result, store } = renderUseHelp();
 
       act(() => {
         result.current.showWebView('https://example.com/guide');
@@ -133,10 +111,9 @@ describe('useHelp', () => {
 
   describe('closeWebView', () => {
     it('closes the WebView', () => {
-      const { wrapper, store } = createWrapper({
+      const { result, store } = renderUseHelp({
         helpWebViewUrl: 'https://example.com/help',
       });
-      const { result } = renderHook(() => useHelp(), { wrapper });
 
       act(() => {
         result.current.closeWebView();
@@ -149,18 +126,18 @@ describe('useHelp', () => {
 
   describe('getTopic', () => {
     it('returns topic for valid ID', () => {
-      const { wrapper } = createWrapper();
-      const { result } = renderHook(() => useHelp(), { wrapper });
+      const { result } = renderUseHelp();
 
       const topic = result.current.getTopic('debate-arena');
       expect(topic).toEqual(HELP_TOPICS['debate-arena']);
     });
 
     it('returns undefined for invalid ID', () => {
-      const { wrapper } = createWrapper();
-      const { result } = renderHook(() => useHelp(), { wrapper });
+      // An unknown id reaches getTopic via stale sheet data (sheetData is untyped).
+      const { result } = renderUseHelp({ sheetData: { topicId: 'non-existent' } });
 
-      const topic = result.current.getTopic('non-existent' as any);
+      const topicId = requireDefined(result.current.currentTopicId, 'currentTopicId');
+      const topic = result.current.getTopic(topicId);
       expect(topic).toBeUndefined();
     });
   });

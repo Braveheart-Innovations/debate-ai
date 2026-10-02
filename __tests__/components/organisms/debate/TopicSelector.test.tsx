@@ -1,19 +1,20 @@
-import React from 'react';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
-import { TopicSelector } from '@/components/organisms/debate/TopicSelector';
+import { TopicSelector, type TopicSelectorProps } from '@/components/organisms/debate/TopicSelector';
+import type { Typography } from '@/components/molecules';
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const { stubComponent } = jest.requireActual<
+    typeof import('@test-utils/mockComponents')
+  >('@test-utils/mockComponents');
   return {
     Button: () => null,
     GradientButton: () => null,
-    Typography: ({ children }: { children: React.ReactNode }) => React.createElement(Text, null, children),
+    Typography: stubComponent<typeof Typography>('typography', { text: (p) => p.children }),
   };
 });
 
 describe('TopicSelector', () => {
-  const defaultProps = {
+  const defaultProps: TopicSelectorProps = {
     selectedTopic: '',
     customTopic: '',
     topicMode: 'preset' as const,
@@ -26,6 +27,7 @@ describe('TopicSelector', () => {
     setShowTopicDropdown: jest.fn(),
     selectRandomTopic: jest.fn(),
     validateCurrentTopic: jest.fn(() => ({ valid: true })),
+    reset: jest.fn(),
     onStartDebate: jest.fn(),
   };
 

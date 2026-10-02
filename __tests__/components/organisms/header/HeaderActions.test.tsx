@@ -1,23 +1,25 @@
 import { Text } from 'react-native';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { capturePropsOf } from '@test-utils/mockComponents';
 import { HeaderActions } from '@/components/organisms/header/HeaderActions';
+import type { HeaderIcon } from '@/components/molecules';
 
-const mockHeaderIcon = jest.fn(({ testID, onPress, color }: any) => (
+const mockHeaderIcon = capturePropsOf<typeof HeaderIcon>(({ testID, onPress, color }) => (
   <Text testID={testID} onPress={onPress} accessibilityRole="button">
     {color ?? 'icon'}
   </Text>
 ));
 
-jest.mock('@/components/molecules', () => {
-  return {
-    HeaderIcon: (props: any) => mockHeaderIcon(props),
-  };
-});
+jest.mock('@/components/molecules', () => ({
+  get HeaderIcon() {
+    return mockHeaderIcon.Stub;
+  },
+}));
 
 describe('HeaderActions', () => {
   beforeEach(() => {
-    mockHeaderIcon.mockClear();
+    mockHeaderIcon.reset();
   });
 
   it('uses provided callbacks when supplied', () => {
@@ -52,7 +54,7 @@ describe('HeaderActions', () => {
   it('passes gradient icon color when variant is gradient', () => {
     renderWithProviders(<HeaderActions variant="gradient" />);
 
-    expect(mockHeaderIcon).toHaveBeenCalledWith(expect.objectContaining({
+    expect(mockHeaderIcon.calls).toContainEqual(expect.objectContaining({
       color: expect.stringMatching(/rgba|#|rgb/),
     }));
   });

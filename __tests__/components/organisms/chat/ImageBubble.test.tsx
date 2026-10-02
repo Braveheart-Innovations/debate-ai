@@ -1,7 +1,8 @@
-import { Image, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, TouchableOpacity, View, type StyleProp, type ViewStyle } from 'react-native';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { ImageBubble } from '@/components/organisms/chat/ImageBubble';
+import { malformed } from '@test-utils/queries';
 
 jest.mock('@expo/vector-icons', () => ({
   Ionicons: ({ name }: { name: string }) => {
@@ -27,7 +28,7 @@ describe('ImageBubble', () => {
   });
 
   it('renders null when uris is undefined', () => {
-    const { toJSON } = renderWithProviders(<ImageBubble uris={undefined as any} />);
+    const { toJSON } = renderWithProviders(<ImageBubble uris={malformed<string[]>(undefined, 'uris missing from malformed message attachments')} />);
     expect(toJSON()).toBeNull();
   });
 
@@ -184,7 +185,10 @@ describe('ImageBubble', () => {
       const refineButton = touchables.find(t => {
         // The refine button has a specific background style from theme.colors.primary[500]
         const style = t.props.style;
-        return Array.isArray(style) && style.some((s: any) => s?.position === 'absolute' && s?.bottom === 8);
+        return Array.isArray(style) && style.some((s: StyleProp<ViewStyle>) => {
+          const flat = StyleSheet.flatten(s);
+          return flat?.position === 'absolute' && flat?.bottom === 8;
+        });
       });
 
       if (refineButton) {
@@ -202,7 +206,10 @@ describe('ImageBubble', () => {
       const refineButton = touchables.find(t => {
         const style = t.props.style;
         if (Array.isArray(style)) {
-          return style.some((s: any) => s?.position === 'absolute' && s?.bottom === 8 && s?.right === 8);
+          return style.some((s: StyleProp<ViewStyle>) => {
+            const flat = StyleSheet.flatten(s);
+            return flat?.position === 'absolute' && flat?.bottom === 8 && flat?.right === 8;
+          });
         }
         return false;
       });

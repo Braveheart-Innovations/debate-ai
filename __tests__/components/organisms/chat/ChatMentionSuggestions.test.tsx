@@ -18,7 +18,7 @@ describe('ChatMentionSuggestions', () => {
   const mockSuggestions: AI[] = [
     { id: 'ai1', provider: 'claude', name: 'Claude', model: 'claude-3-haiku', color: '#123456' },
     { id: 'ai2', provider: 'openai', name: 'GPT-4', model: 'gpt-4-turbo', color: '#654321' },
-    { id: 'ai3', provider: 'gemini', name: 'Gemini', model: 'gemini-pro', color: '#abcdef' },
+    { id: 'ai3', provider: 'google', name: 'Gemini', model: 'gemini-pro', color: '#abcdef' },
   ];
 
   beforeEach(() => {

@@ -1,32 +1,29 @@
-import React from 'react';
+import type { ReactNode } from 'react';
 import { fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { DebateRecordPickerModal } from '@/components/organisms/demo/DebateRecordPickerModal';
 
 jest.mock('react-native/Libraries/Modal/Modal', () => {
-  const React = require('react');
-  const { View } = require('react-native');
+  const RN = jest.requireActual<typeof import('react-native')>('react-native');
 
-  const MockModal = ({ children, ...props }: { children?: React.ReactNode }) =>
-    React.createElement(View, { ...props }, children);
+  const MockModal = ({ children }: { children?: ReactNode }) => <RN.View>{children}</RN.View>;
 
   MockModal.displayName = 'MockModal';
-  // Support both default and named import patterns React Native may use
-
-  (MockModal as any).default = MockModal;
-  // Mark as ES module to satisfy downstream interop expectations
-
-  (MockModal as any).__esModule = true;
-
-  return MockModal;
+  // Support both default and named import patterns React Native may use, and
+  // mark as ES module to satisfy downstream interop expectations.
+  return Object.assign(MockModal, { default: MockModal, __esModule: true });
 });
 
-const mockListDebateSamples = jest.fn();
-const mockSubscribe = jest.fn(() => jest.fn());
+const mockListDebateSamples = jest.fn<
+  Array<{ id: string; title: string; topic: string }>,
+  [string[], string | undefined]
+>();
+const mockSubscribe = jest.fn<() => void, [() => void]>(() => jest.fn());
 
 jest.mock('@/services/demo/DemoContentService', () => ({
   DemoContentService: {
-    listDebateSamples: (...args: any[]) => mockListDebateSamples(...args),
+    listDebateSamples: (providers: string[], persona?: string) =>
+      mockListDebateSamples(providers, persona),
     subscribe: (callback: () => void) => mockSubscribe(callback),
   },
 }));
@@ -34,7 +31,7 @@ jest.mock('@/services/demo/DemoContentService', () => ({
 describe('DebateRecordPickerModal', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockListDebateSamples.mockResolvedValue([
+    mockListDebateSamples.mockReturnValue([
       { id: 'debate-1', title: 'Climate Debate', topic: 'Climate change' },
     ]);
   });

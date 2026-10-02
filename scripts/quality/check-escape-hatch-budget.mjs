@@ -9,13 +9,13 @@ import { fileURLToPath } from 'node:url';
 
 const BUDGETS = {
   'src: `as unknown as`': 62,
-  'tests: `as unknown as`': 164,
+  'tests: `as unknown as`': 120,
   'src: eslint-disable': 3,
-  'tests: eslint-disable': 2,
-  'all: @ts-expect-error / @ts-ignore / @ts-nocheck': 5,
+  'tests: eslint-disable': 1,
   'tests: skipped or todo tests': 0,
+  'tests: untyped require() of app modules': 93,
+  'tests: malformed() inputs': 7,
 };
-
 const CODE = /\.(ts|tsx)$/;
 const isTestPath = (file) =>
   file.startsWith('__tests__/') ||
@@ -32,31 +32,41 @@ const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclud
   .split('\n')
   .filter((file) => CODE.test(file) && !/^(functions|web|ios|android)\//.test(file));
 
+// An app-module require is typed only via `as typeof import(...)` or
+// `jest.requireActual<...>` / `jest.requireMock<...>`; otherwise the module is
+// `any` and everything the test does with it escapes the type checker.
+const APP_REQUIRE = /require(?:Actual|Mock)?\(\s*['"](?:@\/|@test-utils\/|\.\.?\/)/;
+const TYPED_REQUIRE = /as typeof import\(|require(?:Actual|Mock)</;
+const countUntypedRequires = (text) =>
+  text.split('\n').filter((line) => APP_REQUIRE.test(line) && !TYPED_REQUIRE.test(line)).length;
+
 const counters = {
   'src: `as unknown as`': { pattern: /\bas unknown as\b/g, scope: (f) => !isTestPath(f) },
   'tests: `as unknown as`': { pattern: /\bas unknown as\b/g, scope: isTestPath },
   'src: eslint-disable': { pattern: /eslint-disable/g, scope: (f) => !isTestPath(f) },
   'tests: eslint-disable': { pattern: /eslint-disable/g, scope: isTestPath },
-  'all: @ts-expect-error / @ts-ignore / @ts-nocheck': {
-    pattern: /@ts-(expect-error|ignore|nocheck)\b/g,
-    scope: () => true,
-  },
   'tests: skipped or todo tests': {
     pattern: /\b(?:(?:it|test|describe)\.(?:skip|todo)|x(?:it|test|describe))\(/g,
     scope: isTestPath,
   },
+  'tests: untyped require() of app modules': { count: countUntypedRequires, scope: isTestPath },
+  // The sanctioned way to feed type-forbidden input to runtime guards
+  // (test-utils/queries.ts). Not a target of 0 — kept visible and deliberate.
+  'tests: malformed() inputs': {
+    pattern: /\bmalformed</g,
+    scope: (f) => isTestPath(f) && f !== 'test-utils/queries.ts',
+  },
 };
-
 const scriptPath = fileURLToPath(import.meta.url);
 const selfRelative = 'scripts/quality/check-escape-hatch-budget.mjs';
 let failed = false;
 
-for (const [name, { pattern, scope }] of Object.entries(counters)) {
+for (const [name, { pattern, count: countFn, scope }] of Object.entries(counters)) {
   const hits = [];
   for (const file of files) {
     if (file === selfRelative || !scope(file)) continue;
     const text = readFileSync(file, 'utf8');
-    const count = text.match(pattern)?.length ?? 0;
+    const count = countFn ? countFn(text) : (text.match(pattern)?.length ?? 0);
     if (count > 0) hits.push([file, count]);
   }
   const count = hits.reduce((sum, [, n]) => sum + n, 0);

@@ -1,8 +1,9 @@
 import { Platform } from 'react-native';
+import type * as Recorder from '@/services/demo/Recorder';
 
 const mockStartRecording = jest.fn();
 const mockRecordEvent = jest.fn();
-const mockStopRecording = jest.fn(() => ({ session: { events: [], type: 'chat', id: 'session-1', title: 'Chat', comboKey: 'openai+claude' } }));
+const mockStopRecording = jest.fn<ReturnType<typeof Recorder.stopRecording>, []>(() => ({ session: { events: [], type: 'chat', id: 'session-1', title: 'Chat', comboKey: 'openai+claude' } }));
 const mockIngestRecording = jest.fn();
 
 jest.mock('@/services/demo/Recorder', () => ({
@@ -69,13 +70,17 @@ describe('RecordController', () => {
     controller.recordAssistantMessage('openai', 'Response');
 
     const res = controller.stop();
-    const session = res?.session as { runs?: any[] };
-    expect(session?.runs?.length).toBe(1);
-    const columns = session?.runs?.[0]?.columns;
-    expect(columns).toEqual([
-      expect.objectContaining({ name: 'Claude', events: [expect.objectContaining({ content: 'Answer', speakerProvider: 'claude' })] }),
-      expect.objectContaining({ name: 'OpenAI', events: [expect.objectContaining({ content: 'Response', speakerProvider: 'openai' })] }),
-    ]);
+    // stop() returns `session: unknown`; compare sessions carry exactly one enriched run.
+    expect(res?.session).toEqual(expect.objectContaining({
+      runs: [
+        expect.objectContaining({
+          columns: [
+            expect.objectContaining({ name: 'Claude', events: [expect.objectContaining({ content: 'Answer', speakerProvider: 'claude' })] }),
+            expect.objectContaining({ name: 'OpenAI', events: [expect.objectContaining({ content: 'Response', speakerProvider: 'openai' })] }),
+          ],
+        }),
+      ],
+    }));
   });
 
   it('adds debate metadata and prevents double start', () => {
@@ -87,9 +92,10 @@ describe('RecordController', () => {
     expect(mockStartRecording).toHaveBeenCalledTimes(1);
 
     const result = controller.stop();
-    const session = result?.session as { topic?: string; participants?: string[] };
-    expect(session.topic).toBe('Debate Topic');
-    expect(session.participants).toEqual(['claude', 'openai']);
+    expect(result?.session).toEqual(expect.objectContaining({
+      topic: 'Debate Topic',
+      participants: ['claude', 'openai'],
+    }));
   });
 
   it('ignores recording when inactive', () => {

@@ -1,9 +1,15 @@
 import { Text, TouchableOpacity } from 'react-native';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { capturePropsOf } from '@test-utils/mockComponents';
+import { createMockAttachment } from '@test-utils/fixtures';
 import { CompareResponsePane } from '@/components/organisms/compare/CompareResponsePane';
 import type { AIConfig, Message } from '@/types';
 import type { ImageGenState } from '@/components/organisms/compare/CompareSplitView';
+import type { ContinueButton } from '@/components/organisms/compare/ContinueButton';
+import type { CompareTypingIndicator } from '@/components/organisms/compare/CompareTypingIndicator';
+import type { CompareImageGeneratingPane } from '@/components/organisms/compare/CompareImageGeneratingPane';
+import type { CompareImageDisplay } from '@/components/organisms/compare/CompareImageDisplay';
 
 jest.mock('@expo/vector-icons', () => {
   const { Text } = require('react-native');
@@ -12,33 +18,41 @@ jest.mock('@expo/vector-icons', () => {
   };
 });
 
-const mockContinueButton = jest.fn((props: any) => (
+const mockContinueButton = capturePropsOf<typeof ContinueButton>((props) => (
   <TouchableOpacity testID="continue-button" onPress={props.onPress} disabled={props.isDisabled} />
 ));
-const mockTypingIndicator = jest.fn(({ isVisible }: { isVisible: boolean }) => (
+const mockTypingIndicator = capturePropsOf<typeof CompareTypingIndicator>(({ isVisible }) => (
   isVisible ? <Text testID="typing-indicator">typing</Text> : null
 ));
-const mockImageGeneratingPane = jest.fn(({ ai }: { ai: AIConfig }) => (
+const mockImageGeneratingPane = capturePropsOf<typeof CompareImageGeneratingPane>(({ ai }) => (
   <Text testID="image-generating-pane">{ai.name} generating</Text>
 ));
-const mockCompareImageDisplay = jest.fn(({ uri }: { uri: string }) => (
+const mockCompareImageDisplay = capturePropsOf<typeof CompareImageDisplay>(({ uri }) => (
   <Text testID={`image-display-${uri}`}>Image</Text>
 ));
 
 jest.mock('@/components/organisms/compare/ContinueButton', () => ({
-  ContinueButton: (props: any) => mockContinueButton(props),
+  get ContinueButton() {
+    return mockContinueButton.Stub;
+  },
 }));
 
 jest.mock('@/components/organisms/compare/CompareTypingIndicator', () => ({
-  CompareTypingIndicator: (props: any) => mockTypingIndicator(props),
+  get CompareTypingIndicator() {
+    return mockTypingIndicator.Stub;
+  },
 }));
 
 jest.mock('@/components/organisms/compare/CompareImageGeneratingPane', () => ({
-  CompareImageGeneratingPane: (props: any) => mockImageGeneratingPane(props),
+  get CompareImageGeneratingPane() {
+    return mockImageGeneratingPane.Stub;
+  },
 }));
 
 jest.mock('@/components/organisms/compare/CompareImageDisplay', () => ({
-  CompareImageDisplay: (props: any) => mockCompareImageDisplay(props),
+  get CompareImageDisplay() {
+    return mockCompareImageDisplay.Stub;
+  },
 }));
 
 jest.mock('react-native-markdown-display', () => {
@@ -111,6 +125,10 @@ const messages: Message[] = [
 describe('CompareResponsePane', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockContinueButton.reset();
+    mockTypingIndicator.reset();
+    mockImageGeneratingPane.reset();
+    mockCompareImageDisplay.reset();
   });
 
   it('renders messages and streaming content when provided', () => {
@@ -135,7 +153,7 @@ describe('CompareResponsePane', () => {
     expect(getByText('Hello')).toBeTruthy();
     expect(getByText('How can I assist?')).toBeTruthy();
     expect(getByText('Streaming')).toBeTruthy();
-    expect(mockTypingIndicator).toHaveBeenCalledWith(expect.objectContaining({ isVisible: false }));
+    expect(mockTypingIndicator.calls).toContainEqual(expect.objectContaining({ isVisible: false }));
   });
 
   it('invokes expand and continue callbacks', () => {
@@ -164,7 +182,7 @@ describe('CompareResponsePane', () => {
     fireEvent.press(getByTestId('ionicon-contract-outline'));
     expect(onExpand).toHaveBeenCalled();
 
-    expect(mockTypingIndicator).toHaveBeenCalledWith(expect.objectContaining({ isVisible: true }));
+    expect(mockTypingIndicator.calls).toContainEqual(expect.objectContaining({ isVisible: true }));
   });
 
   it('disables continue button when pane disabled', () => {
@@ -182,7 +200,7 @@ describe('CompareResponsePane', () => {
       />
     );
 
-    expect(mockContinueButton).toHaveBeenCalledWith(expect.objectContaining({ isDisabled: true }));
+    expect(mockContinueButton.calls).toContainEqual(expect.objectContaining({ isDisabled: true }));
   });
 
   it('renders image generating pane when image is generating', () => {
@@ -202,7 +220,7 @@ describe('CompareResponsePane', () => {
     );
 
     expect(getByTestId('image-generating-pane')).toBeTruthy();
-    expect(mockImageGeneratingPane).toHaveBeenCalledWith(
+    expect(mockImageGeneratingPane.calls).toContainEqual(
       expect.objectContaining({
         ai: ai,
         side: 'left',
@@ -251,7 +269,7 @@ describe('CompareResponsePane', () => {
         senderType: 'ai',
         content: 'Here is an image',
         timestamp: 1,
-        attachments: [{ type: 'image', uri: 'https://example.com/image.jpg' }],
+        attachments: [createMockAttachment({ uri: 'https://example.com/image.jpg', mimeType: 'image/jpeg' })],
       },
     ];
 
@@ -268,7 +286,7 @@ describe('CompareResponsePane', () => {
       />
     );
 
-    expect(mockCompareImageDisplay).toHaveBeenCalledWith(
+    expect(mockCompareImageDisplay.calls).toContainEqual(
       expect.objectContaining({
         onOpenLightbox: onOpenLightbox,
       })

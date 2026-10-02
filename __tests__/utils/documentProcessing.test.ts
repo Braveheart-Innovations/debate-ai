@@ -9,6 +9,16 @@ import {
   formatAttachmentForDisplay,
   getDocumentIcon,
 } from '@/utils/documentProcessing';
+import { createMockAttachment } from '@test-utils/fixtures';
+
+/**
+ * The jest environment has no FileReader global, and the mock below only implements
+ * the slice of the API that processDocumentForClaude touches, so it is installed via
+ * a property descriptor rather than an assignment to the DOM-typed global.
+ */
+const setFileReader = (value: unknown) => {
+  Object.defineProperty(globalThis, 'FileReader', { value, configurable: true, writable: true });
+};
 
 describe('documentProcessing', () => {
   const originalFetch = global.fetch;
@@ -20,8 +30,7 @@ describe('documentProcessing', () => {
 
   afterEach(() => {
     global.fetch = originalFetch;
-    // @ts-expect-error restore
-    global.FileReader = originalFileReader;
+    setFileReader(originalFileReader);
   });
 
   it('detects supported document and image types', () => {
@@ -57,8 +66,7 @@ describe('documentProcessing', () => {
       }
     }
 
-    // @ts-expect-error override at runtime
-    global.FileReader = MockFileReader;
+    setFileReader(MockFileReader);
 
     const attachment = await processDocumentForClaude('file://doc.pdf', 'application/pdf', 'doc.pdf');
     expect(attachment).toEqual(expect.objectContaining({
@@ -80,20 +88,21 @@ describe('documentProcessing', () => {
     expect(getDocumentIcon('pdf')).toBe('📄');
     expect(getDocumentIcon('unknown')).toBe('📎');
 
-    const formatted = formatAttachmentForDisplay({
+    const formatted = formatAttachmentForDisplay(createMockAttachment({
       type: 'document',
       mimeType: 'application/pdf',
       fileName: 'report.pdf',
-    } as any);
+    }));
     expect(formatted).toBe('📄 report.pdf');
 
-    const fallback = formatAttachmentForDisplay({
+    const fallback = formatAttachmentForDisplay(createMockAttachment({
       type: 'document',
       mimeType: 'application/json',
-    } as any);
+      fileName: undefined,
+    }));
     expect(fallback).toBe('📋 JSON Document');
 
-    const imageLabel = formatAttachmentForDisplay({ type: 'image', mimeType: 'image/png' } as any);
+    const imageLabel = formatAttachmentForDisplay(createMockAttachment({ type: 'image', mimeType: 'image/png' }));
     expect(imageLabel).toBe('📷 Image');
   });
 });

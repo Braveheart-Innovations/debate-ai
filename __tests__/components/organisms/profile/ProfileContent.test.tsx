@@ -1,9 +1,24 @@
-import React from 'react';
-import {  Alert } from 'react-native';
+import { Alert } from 'react-native';
 import { fireEvent, waitFor, act } from '@testing-library/react-native';
+import type { LinearGradient } from 'expo-linear-gradient';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { createMockAuthState, createMockFeatureAccess, createMockUserProfile } from '@test-utils/fixtures';
+import { requireDefined } from '@test-utils/queries';
+import type { PropsOf } from '@test-utils/mockComponents';
+import type {
+  Button,
+  KeyboardAvoider,
+  ProfileAvatar,
+  SettingRow,
+  SheetHeader,
+  Typography,
+} from '@/components/molecules';
+import type { EmailAuthForm } from '@/components/molecules/auth/EmailAuthForm';
+import type { SocialAuthProviders } from '@/components/organisms/auth/SocialAuthProviders';
+import type { UnlockEverythingBanner } from '@/components/organisms/subscription/UnlockEverythingBanner';
+import type { TrialBanner } from '@/components/molecules/subscription/TrialBanner';
+import type { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { ProfileContent } from '@/components/organisms/profile/ProfileContent';
-import type { RootState } from '@/store';
 
 // Mock Alert
 jest.spyOn(Alert, 'alert');
@@ -37,73 +52,79 @@ jest.mock('@/services/subscription/subscriptionManagement', () => ({
 }));
 
 jest.mock('expo-linear-gradient', () => ({
-  LinearGradient: ({ children }: any) => <>{children}</>,
+  LinearGradient: ({ children }: PropsOf<typeof LinearGradient>) => <>{children}</>,
 }));
 
-const mockUseFeatureAccess = jest.fn(() => ({
-  isPremium: false,
-  isInTrial: false,
-  trialDaysRemaining: 0,
-  isDemo: true,
-  refresh: jest.fn(),
-}));
+type FeatureAccess = ReturnType<typeof useFeatureAccess>;
+
+/** Signed-in demo user who has not trialed; override per test. */
+
+const mockUseFeatureAccess = jest.fn<FeatureAccess, []>(() => createMockFeatureAccess());
 
 jest.mock('@/hooks/useFeatureAccess', () => ({
   useFeatureAccess: () => mockUseFeatureAccess(),
 }));
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text, TouchableOpacity } = require('react-native');
+  const { stubComponent } = jest.requireActual<
+    typeof import('@test-utils/mockComponents')
+  >('@test-utils/mockComponents');
+  const React = jest.requireActual<typeof import('react')>('react');
+  const { Text, TouchableOpacity } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
-    KeyboardAvoider: ({ children }: { children?: import('react').ReactNode }) => require('react').createElement(require('react').Fragment, null, children),
-    ProfileAvatar: () => null,
-    Typography: ({ children }: { children: React.ReactNode }) => React.createElement(Text, null, children),
-    Button: ({ title, onPress }: { title: string; onPress: () => void }) =>
+    KeyboardAvoider: ({ children }: PropsOf<typeof KeyboardAvoider>) =>
+      React.createElement(React.Fragment, null, children),
+    ProfileAvatar: (_props: PropsOf<typeof ProfileAvatar>) => null,
+    Typography: ({ children }: PropsOf<typeof Typography>) => React.createElement(Text, null, children),
+    Button: ({ title, onPress }: PropsOf<typeof Button>) =>
       React.createElement(
         TouchableOpacity,
         { onPress, testID: title },
         React.createElement(Text, { onPress }, title)
       ),
-    SettingRow: ({ title, onPress }: { title: string; onPress?: () => void }) =>
+    SettingRow: ({ title, onPress }: PropsOf<typeof SettingRow>) =>
       React.createElement(
         TouchableOpacity,
         { onPress },
         React.createElement(Text, null, title)
       ),
-    SheetHeader: () => null,
+    SheetHeader: stubComponent<typeof SheetHeader>('sheet-header'),
   };
 });
 
 jest.mock('@/components/molecules/auth/EmailAuthForm', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = jest.requireActual<typeof import('react')>('react');
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
-    EmailAuthForm: () => React.createElement(Text, { testID: 'email-auth-form' }, 'Email Form'),
+    EmailAuthForm: (_props: PropsOf<typeof EmailAuthForm>) =>
+      React.createElement(Text, { testID: 'email-auth-form' }, 'Email Form'),
   };
 });
 
 jest.mock('@/components/organisms/auth/SocialAuthProviders', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = jest.requireActual<typeof import('react')>('react');
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
-    SocialAuthProviders: () => React.createElement(Text, null, 'Social Providers'),
+    SocialAuthProviders: (_props: PropsOf<typeof SocialAuthProviders>) =>
+      React.createElement(Text, null, 'Social Providers'),
   };
 });
 
 jest.mock('@/components/organisms/subscription/UnlockEverythingBanner', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = jest.requireActual<typeof import('react')>('react');
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
-    UnlockEverythingBanner: () => React.createElement(Text, null, 'Unlock Banner'),
+    UnlockEverythingBanner: (_props: PropsOf<typeof UnlockEverythingBanner>) =>
+      React.createElement(Text, null, 'Unlock Banner'),
   };
 });
 
 jest.mock('@/components/molecules/subscription/TrialBanner', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const React = jest.requireActual<typeof import('react')>('react');
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
-    TrialBanner: () => React.createElement(Text, null, 'Trial Banner'),
+    TrialBanner: (_props: PropsOf<typeof TrialBanner>) =>
+      React.createElement(Text, null, 'Trial Banner'),
   };
 });
 
@@ -111,7 +132,7 @@ jest.mock('@/services/firebase/auth', () => ({
   signOut: jest.fn(),
   signInWithEmail: jest.fn(),
   signUpWithEmail: jest.fn(),
-  toAuthUser: jest.fn((user) => ({ uid: user.uid, email: user.email })),
+  toAuthUser: jest.fn((user: { uid: string; email: string | null }) => ({ uid: user.uid, email: user.email })),
   sendCurrentUserEmailVerification: jest.fn(),
   refreshCurrentUserEmailVerification: jest.fn(),
   updateCurrentUserDisplayName: (...args: unknown[]) => mockUpdateCurrentUserDisplayName(...args),
@@ -138,33 +159,38 @@ jest.mock('@/services/iap/PurchaseService', () => ({
   },
 }));
 
-const baseAuthState = {
-  user: null,
-  isAuthenticated: false,
-  isPremium: false,
-  authLoading: false,
-  authModalVisible: false,
-  userProfile: null,
-  lastAuthMethod: null,
-  socialAuthLoading: false,
-  socialAuthError: null,
-};
-
 const authenticatedState = {
-  auth: {
-    ...baseAuthState,
+  auth: createMockAuthState({
     isAuthenticated: true,
-    user: { uid: 'test-user-id', email: 'test@example.com' },
-    userProfile: {
+    user: {
+      uid: 'test-user-id',
+      email: 'test@example.com',
+      displayName: null,
+      photoURL: null,
+      emailVerified: true,
+    },
+    userProfile: createMockUserProfile({
       email: 'test@example.com',
       displayName: 'Test User',
-      photoURL: null,
       createdAt: Date.now(),
       membershipStatus: 'premium',
       preferences: {},
-    },
-  },
-} as Partial<RootState>;
+    }),
+  }),
+};
+
+/** Presses the destructive button of the delete-account confirmation alert. */
+const confirmDeleteAccount = async () => {
+  const [, , buttons] = requireDefined(jest.mocked(Alert.alert).mock.calls[0], 'Alert.alert call');
+  const confirmButton = requireDefined(
+    requireDefined(buttons, 'alert buttons').find((b) => b.text === 'Delete Account'),
+    'Delete Account button'
+  );
+  const onPress = requireDefined(confirmButton.onPress, 'Delete Account onPress');
+  await act(async () => {
+    await onPress();
+  });
+};
 
 describe('ProfileContent', () => {
   beforeEach(() => {
@@ -179,25 +205,15 @@ describe('ProfileContent', () => {
     mockPurchaseSubscription.mockClear();
     mockRestorePurchases.mockClear();
     mockUpdateCurrentUserDisplayName.mockReset();
-    mockUseFeatureAccess.mockReturnValue({
-      isPremium: false,
-      isInTrial: false,
-      trialDaysRemaining: 0,
-      isDemo: true,
-      hasUsedTrial: false,
-      canStartTrial: false,
-      refresh: jest.fn(),
-    });
+    mockUseFeatureAccess.mockReturnValue(createMockFeatureAccess({ trialDaysRemaining: 0 }));
   });
 
   it('renders signed-out view and opens email auth form', async () => {
-    const preloadedState = {
-      auth: { ...baseAuthState },
-    } as Partial<RootState>;
+    const preloadedState = { auth: createMockAuthState() };
 
     const { getByText, queryByTestId } = renderWithProviders(
       <ProfileContent onClose={jest.fn()} />,
-      { preloadedState: preloadedState as RootState }
+      { preloadedState }
     );
 
     expect(getByText('Sign in with Email')).toBeTruthy();
@@ -207,19 +223,13 @@ describe('ProfileContent', () => {
   });
 
   it('opens platform subscription management from the manage row', () => {
-    mockUseFeatureAccess.mockReturnValue({
-      isPremium: true,
-      isInTrial: false,
-      trialDaysRemaining: null,
-      isDemo: false,
-      hasUsedTrial: true,
-      canStartTrial: false,
-      refresh: jest.fn(),
-    });
+    mockUseFeatureAccess.mockReturnValue(
+      createMockFeatureAccess({ isPremium: true, isDemo: false, hasUsedTrial: true })
+    );
 
     const { getByText } = renderWithProviders(
       <ProfileContent onClose={jest.fn()} />,
-      { preloadedState: authenticatedState as RootState }
+      { preloadedState: authenticatedState }
     );
 
     fireEvent.press(getByText('Manage Subscription'));
@@ -228,20 +238,14 @@ describe('ProfileContent', () => {
   });
 
   it('lets expired-trial users open the subscription screen from profile', () => {
-    mockUseFeatureAccess.mockReturnValue({
-      isPremium: false,
-      isInTrial: false,
-      trialDaysRemaining: null,
-      isDemo: true,
-      hasUsedTrial: true,
-      canStartTrial: false,
-      refresh: jest.fn(),
-    });
+    mockUseFeatureAccess.mockReturnValue(
+      createMockFeatureAccess({ hasUsedTrial: true })
+    );
 
     const onClose = jest.fn();
     const { getByText } = renderWithProviders(
       <ProfileContent onClose={onClose} />,
-      { preloadedState: authenticatedState as RootState }
+      { preloadedState: authenticatedState }
     );
 
     fireEvent.press(getByText('Upgrade to Premium'));
@@ -252,19 +256,13 @@ describe('ProfileContent', () => {
 
   it('uses the trial offer only when starting a trial from profile', async () => {
     mockPurchaseSubscription.mockResolvedValueOnce({ success: true, pending: true });
-    mockUseFeatureAccess.mockReturnValue({
-      isPremium: false,
-      isInTrial: false,
-      trialDaysRemaining: null,
-      isDemo: true,
-      hasUsedTrial: false,
-      canStartTrial: true,
-      refresh: jest.fn(),
-    });
+    mockUseFeatureAccess.mockReturnValue(
+      createMockFeatureAccess({ canStartTrial: true })
+    );
 
     const { getByTestId } = renderWithProviders(
       <ProfileContent onClose={jest.fn()} />,
-      { preloadedState: authenticatedState as RootState }
+      { preloadedState: authenticatedState }
     );
 
     fireEvent.press(getByTestId('Start 1 week Free Trial'));
@@ -281,19 +279,13 @@ describe('ProfileContent', () => {
       errorCode: 'E_BILLING_UNAVAILABLE',
       userMessage: 'In-app purchases are not available on this device. Please check your device settings.',
     });
-    mockUseFeatureAccess.mockReturnValue({
-      isPremium: false,
-      isInTrial: false,
-      trialDaysRemaining: null,
-      isDemo: true,
-      hasUsedTrial: false,
-      canStartTrial: true,
-      refresh: jest.fn(),
-    });
+    mockUseFeatureAccess.mockReturnValue(
+      createMockFeatureAccess({ canStartTrial: true })
+    );
 
     const { getByTestId } = renderWithProviders(
       <ProfileContent onClose={jest.fn()} />,
-      { preloadedState: authenticatedState as RootState }
+      { preloadedState: authenticatedState }
     );
 
     fireEvent.press(getByTestId('Start 1 week Free Trial'));
@@ -319,7 +311,7 @@ describe('ProfileContent', () => {
 
     const { getByLabelText, store } = renderWithProviders(
       <ProfileContent onClose={jest.fn()} />,
-      { preloadedState: authenticatedState as RootState }
+      { preloadedState: authenticatedState }
     );
 
     fireEvent.press(getByLabelText('Edit display name'));
@@ -339,7 +331,7 @@ describe('ProfileContent', () => {
     it('shows delete account button for authenticated users', () => {
       const { getByText } = renderWithProviders(
         <ProfileContent onClose={jest.fn()} />,
-        { preloadedState: authenticatedState as RootState }
+        { preloadedState: authenticatedState }
       );
 
       expect(getByText('Delete Account')).toBeTruthy();
@@ -348,7 +340,7 @@ describe('ProfileContent', () => {
     it('shows confirmation alert when delete button is pressed', () => {
       const { getByText } = renderWithProviders(
         <ProfileContent onClose={jest.fn()} />,
-        { preloadedState: authenticatedState as RootState }
+        { preloadedState: authenticatedState }
       );
 
       fireEvent.press(getByText('Delete Account'));
@@ -369,19 +361,13 @@ describe('ProfileContent', () => {
       const onClose = jest.fn();
       const { getByText } = renderWithProviders(
         <ProfileContent onClose={onClose} />,
-        { preloadedState: authenticatedState as RootState }
+        { preloadedState: authenticatedState }
       );
 
       fireEvent.press(getByText('Delete Account'));
 
-      // Get the confirm callback from the Alert.alert call
-      const alertCall = (Alert.alert as jest.Mock).mock.calls[0];
-      const buttons = alertCall[2];
-      const confirmButton = buttons.find((b: any) => b.text === 'Delete Account');
-
-      await act(async () => {
-        await confirmButton.onPress();
-      });
+      // Invoke the confirm callback from the Alert.alert call
+      await confirmDeleteAccount();
 
       expect(mockDeleteAccount).toHaveBeenCalled();
     });
@@ -392,18 +378,12 @@ describe('ProfileContent', () => {
       const onClose = jest.fn();
       const { getByText } = renderWithProviders(
         <ProfileContent onClose={onClose} />,
-        { preloadedState: authenticatedState as RootState }
+        { preloadedState: authenticatedState }
       );
 
       fireEvent.press(getByText('Delete Account'));
 
-      const alertCall = (Alert.alert as jest.Mock).mock.calls[0];
-      const buttons = alertCall[2];
-      const confirmButton = buttons.find((b: any) => b.text === 'Delete Account');
-
-      await act(async () => {
-        await confirmButton.onPress();
-      });
+      await confirmDeleteAccount();
 
       await waitFor(() => {
         expect(mockShowSuccess).toHaveBeenCalledWith(
@@ -422,18 +402,12 @@ describe('ProfileContent', () => {
 
       const { getByText } = renderWithProviders(
         <ProfileContent onClose={jest.fn()} />,
-        { preloadedState: authenticatedState as RootState }
+        { preloadedState: authenticatedState }
       );
 
       fireEvent.press(getByText('Delete Account'));
 
-      const alertCall = (Alert.alert as jest.Mock).mock.calls[0];
-      const buttons = alertCall[2];
-      const confirmButton = buttons.find((b: any) => b.text === 'Delete Account');
-
-      await act(async () => {
-        await confirmButton.onPress();
-      });
+      await confirmDeleteAccount();
 
       await waitFor(() => {
         expect(mockShowInfo).toHaveBeenCalledWith(
@@ -451,18 +425,12 @@ describe('ProfileContent', () => {
 
       const { getByText } = renderWithProviders(
         <ProfileContent onClose={jest.fn()} />,
-        { preloadedState: authenticatedState as RootState }
+        { preloadedState: authenticatedState }
       );
 
       fireEvent.press(getByText('Delete Account'));
 
-      const alertCall = (Alert.alert as jest.Mock).mock.calls[0];
-      const buttons = alertCall[2];
-      const confirmButton = buttons.find((b: any) => b.text === 'Delete Account');
-
-      await act(async () => {
-        await confirmButton.onPress();
-      });
+      await confirmDeleteAccount();
 
       await waitFor(() => {
         expect(mockHandleWithToast).toHaveBeenCalledWith(
