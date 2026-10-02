@@ -1,4 +1,4 @@
-import { Message, MessageAttachment, PersonalityConfig } from '../../../types';
+import { Message, MessageAttachment, RuntimePersonalityConfig } from '../../../types';
 import { PersonalityOption } from '../../../config/personalities';
 import {
   AIAdapterConfig,
@@ -98,18 +98,15 @@ export abstract class BaseAdapter {
     // Apply tone modifiers from personality customization
     const personality = this.config.personality;
     if (personality) {
-      // Extract tone - could be from PersonalityOption.tone or PersonalityConfig.traits
-      const tone = 'tone' in personality ? personality.tone :
-                   'traits' in personality ? { ...personality.traits, energy: 0.5 } : undefined;
-      if (tone) {
-        const toneModifier = toneToModifiers(tone);
-        if (toneModifier) {
-          basePrompt = `${basePrompt}\n\n${toneModifier}`;
-        }
+      // Prefer the full tone (it carries energy); fall back to the base traits.
+      const tone = personality.tone ?? { ...personality.traits, energy: 0.5 };
+      const toneModifier = toneToModifiers(tone);
+      if (toneModifier) {
+        basePrompt = `${basePrompt}\n\n${toneModifier}`;
       }
 
-      // In debate mode, also append debate profile modifiers (only PersonalityOption has this)
-      if (this.config.isDebateMode && 'debateProfile' in personality && personality.debateProfile) {
+      // In debate mode, also append debate profile guidance
+      if (this.config.isDebateMode && personality.debateProfile) {
         const debateModifier = debateProfileToGuidance(personality.debateProfile);
         if (debateModifier) {
           basePrompt = `${basePrompt}\n${debateModifier}`;
@@ -130,38 +127,38 @@ export abstract class BaseAdapter {
     return this.getSystemPrompt();
   }
   
-  setTemporaryPersonality(personality: PersonalityConfig | PersonalityOption | undefined | boolean): void {
+  setTemporaryPersonality(
+    personality: RuntimePersonalityConfig | PersonalityOption | undefined | boolean
+  ): void {
     if (typeof personality === 'boolean') {
       // Handle boolean for backwards compatibility
       return;
     }
-    if (!personality) {
+    if (!personality || personality.id === 'default') {
       this.config.personality = undefined;
       return;
     }
-    if ((personality as PersonalityOption).id === 'default') {
-      this.config.personality = undefined;
-      return;
-    }
-    if ((personality as PersonalityConfig).traits) {
-      this.config.personality = personality as PersonalityConfig;
+    if ('traits' in personality) {
+      // Already a runtime config (what PersonalityRuntimeBuilder produces for every turn).
+      this.config.personality = personality;
       return;
     }
 
-    const option = personality as PersonalityOption;
-    const tone = option.tone ?? { formality: 0.6, humor: 0.3, energy: 0.4, empathy: 0.6, technicality: 0.5 };
-
+    // A raw PersonalityOption: convert, keeping the full tone and debate profile.
+    const tone = personality.tone ?? { formality: 0.6, humor: 0.3, energy: 0.4, empathy: 0.6, technicality: 0.5 };
     this.config.personality = {
-      id: option.id,
-      name: option.name,
-      description: option.tagline || option.description,
-      systemPrompt: option.systemPrompt,
+      id: personality.id,
+      name: personality.name,
+      description: personality.tagline || personality.description,
+      systemPrompt: personality.systemPrompt,
       traits: {
         formality: tone.formality,
         humor: tone.humor,
         technicality: tone.technicality,
         empathy: tone.empathy,
       },
+      tone,
+      debateProfile: personality.debateProfile,
       isPremium: false,
     };
   }

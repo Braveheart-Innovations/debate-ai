@@ -9,6 +9,7 @@ import type {
   OxfordAudienceQuestions,
   PhaseId,
 } from '../config/debate/formats';
+import type { PersonalityDebateProfile, PersonalityTone } from './personality';
 
 export type AIProvider = 'claude' | 'openai' | 'chatgpt' | 'google' | 'perplexity' | 'mistral' | 'cohere' | 'deepseek' | 'grok' | 'moonshot' | 'zai';
 export type UIMode = 'simple' | 'expert';
@@ -273,6 +274,16 @@ export interface PersonalityConfig {
     empathy: number; // 0-1
   };
   isPremium: boolean;
+}
+
+/**
+ * The personality an adapter runs with: the base config plus the full tone
+ * (incl. energy, which `traits` lacks) and debate profile it was built from.
+ * PersonalityRuntimeBuilder produces these for every chat/compare/debate turn.
+ */
+export interface RuntimePersonalityConfig extends PersonalityConfig {
+  tone?: PersonalityTone;
+  debateProfile?: PersonalityDebateProfile;
 }
 
 // Expert mode types

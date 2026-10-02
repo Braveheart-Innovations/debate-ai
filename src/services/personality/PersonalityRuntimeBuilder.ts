@@ -1,14 +1,10 @@
 import type { PersonalityOption } from '@/config/personalities';
 import type { DebateFormatId, DebateTeamMode } from '@/config/debate/formats';
-import type { AI, ModelParameters, PersonalityConfig } from '@/types';
-import type { PersonalityDebateProfile, PersonalityTone } from '@/types/personality';
+import type { AI, ModelParameters, RuntimePersonalityConfig } from '@/types';
 
 export type PersonalityRuntimeMode = 'chat' | 'compare' | 'debate';
 
-export type RuntimePersonalityConfig = PersonalityConfig & {
-  tone?: PersonalityTone;
-  debateProfile?: PersonalityDebateProfile;
-};
+export type { RuntimePersonalityConfig };
 
 export interface PersonalityRuntime {
   personalityConfig?: RuntimePersonalityConfig;

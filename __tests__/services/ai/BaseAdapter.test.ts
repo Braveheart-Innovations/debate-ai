@@ -1,6 +1,6 @@
 import { BaseAdapter } from '@/services/ai/base/BaseAdapter';
 import type { AdapterCapabilities, FormattedMessage, ResumptionContext } from '@/services/ai/types/adapter.types';
-import type { Message, PersonalityConfig } from '@/types';
+import type { Message, PersonalityConfig, RuntimePersonalityConfig } from '@/types';
 import type { PersonalityOption } from '@/config/personalities';
 
 /** The text of a formatted message; history entries here are always plain strings. */
@@ -347,13 +347,10 @@ describe('BaseAdapter.getSystemPrompt', () => {
     expect(prompt).toContain('You argue with passion.');
   });
 
-  it('applies debate profile guidance in debate mode when debateProfile is present', () => {
+  it('applies debate profile guidance from the runtime config every debate turn uses', () => {
     const adapter = new TestAdapter({ provider: 'claude', apiKey: 'key', model: 'opus', isDebateMode: true });
-    // Directly set personality with debateProfile (setTemporaryPersonality converts to PersonalityConfig)
-
-    // The adapter config is typed as PersonalityConfig, but getSystemPrompt also honours
-    // PersonalityOption tone/debateProfile fields when they are present at runtime.
-    const personality: PersonalityConfig & Pick<PersonalityOption, 'tone' | 'debateProfile'> = {
+    // The shape PersonalityRuntimeBuilder produces and DebateOrchestrator passes.
+    const runtimeConfig: RuntimePersonalityConfig = {
       id: 'aggressive-debater',
       name: 'Aggressive Debater',
       description: 'Debates fiercely',
@@ -363,12 +360,37 @@ describe('BaseAdapter.getSystemPrompt', () => {
       tone: { formality: 0.6, humor: 0.2, energy: 0.8, empathy: 0.3, technicality: 0.5 },
       debateProfile: { argumentStyle: 'logical', aggression: 0.9, concession: 0.1 },
     };
-    adapter.config.personality = personality;
+    adapter.setTemporaryPersonality(runtimeConfig);
 
     const prompt = adapter.getSystemPromptPublic();
     expect(prompt).toContain('[Debate style:');
     expect(prompt).toContain('assertive, direct challenges');
     expect(prompt).toContain('stand firm on positions');
+    // The full tone (incl. energy, which traits lack) is used, not just traits.
+    expect(prompt).toContain('enthusiastic, energetic');
+  });
+
+  it('keeps tone energy and debate profile when converting a raw PersonalityOption', () => {
+    const adapter = new TestAdapter({ provider: 'claude', apiKey: 'key', model: 'opus', isDebateMode: true });
+    const option: PersonalityOption = {
+      id: 'firebrand',
+      name: 'Firebrand',
+      emoji: '🔥',
+      tagline: 'Fiery debater',
+      description: 'Argues with heat',
+      bio: 'A fiery persona',
+      systemPrompt: 'You argue hotly.',
+      signatureMoves: [],
+      tone: { formality: 0.5, humor: 0.5, energy: 0.9, empathy: 0.5, technicality: 0.5 },
+      debateProfile: { argumentStyle: 'emotional', aggression: 0.8, concession: 0.2 },
+    };
+    adapter.setTemporaryPersonality(option);
+
+    const prompt = adapter.getSystemPromptPublic();
+    expect(adapter.config.personality?.debateProfile).toEqual(option.debateProfile);
+    expect(prompt).toContain('enthusiastic, energetic');
+    expect(prompt).toContain('[Debate style:');
+    expect(prompt).toContain('use emotional appeals and narrative');
   });
 });
 
