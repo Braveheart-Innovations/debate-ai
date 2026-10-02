@@ -1,4 +1,3 @@
-import React from 'react';
 import { render } from '@testing-library/react-native';
 import { Text } from 'react-native';
 import { ResponsiveContainer } from '@/components/atoms/layout/ResponsiveContainer';

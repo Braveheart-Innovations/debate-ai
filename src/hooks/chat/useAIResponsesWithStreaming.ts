@@ -25,6 +25,8 @@ export interface AIResponsesHook {
     userMessage: Message,
     existingMessagesOverride: Message[]
   ) => Promise<void>;
+  /** Continue an AI reply that was cut off at the provider's length limit. */
+  continueResponse: (messageId: string) => Promise<void>;
   isProcessing: boolean;
 }
 
@@ -130,6 +132,27 @@ export const useAIResponsesWithStreaming = (_isResuming?: boolean): AIResponsesH
     );
   }, [processAIResponses]);
 
+  const continueResponse = useCallback(async (messageId: string) => {
+    if (!aiService || !isInitialized || !currentSession || !orchestratorRef.current) {
+      console.error('AI service not ready or no active session');
+      return;
+    }
+
+    await orchestratorRef.current.continueResponse({
+      messageId,
+      messages,
+      aiPersonalities,
+      mergedPersonalities,
+      selectedModels,
+      apiKeys,
+      expertModeConfigs,
+      streamingPreferences,
+      globalStreamingEnabled,
+      allowStreaming: true,
+      isDemo,
+    });
+  }, [aiService, apiKeys, expertModeConfigs, globalStreamingEnabled, isDemo, isInitialized, messages, selectedModels, aiPersonalities, mergedPersonalities, streamingPreferences, currentSession]);
+
   const sendQuickStartResponses = useCallback(async (
     userPrompt: string,
     enrichedPrompt: string,
@@ -170,6 +193,7 @@ export const useAIResponsesWithStreaming = (_isResuming?: boolean): AIResponsesH
     sendAIResponses,
     sendQuickStartResponses,
     retryAIResponses,
+    continueResponse,
     isProcessing: typingAIs.length > 0,
   };
 };

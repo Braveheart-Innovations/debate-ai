@@ -1,4 +1,3 @@
-import React from 'react';
 import { fireEvent } from '@testing-library/react-native';
 import { HelpTopicCard } from '@/components/molecules/help/HelpTopicCard';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';

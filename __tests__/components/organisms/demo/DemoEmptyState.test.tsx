@@ -1,4 +1,3 @@
-import React from 'react';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 
 const { DemoEmptyState } = require('@/components/organisms/demo/DemoEmptyState');

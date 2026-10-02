@@ -1,4 +1,3 @@
-import React from 'react';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null, MaterialIcons: () => null }));

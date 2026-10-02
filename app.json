@@ -102,8 +102,7 @@
         "expo-audio",
         {
           "enableBackgroundPlayback": true,
-          "microphonePermission": false,
-          "recordAudioAndroid": false
+          "microphonePermission": "Allow Symposium AI to use the microphone so you can dictate messages."
         }
       ],
       "expo-sharing",
@@ -116,6 +115,14 @@
           "resizeMode": "contain",
           "backgroundColor": "#1A1A1A"
         }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow Symposium AI to use the microphone so you can dictate messages.",
+          "speechRecognitionPermission": "Allow Symposium AI to convert your speech to text so you can dictate messages.",
+          "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
+        }
       ]
     ],
     "extra": {
@@ -123,7 +130,7 @@
         "projectId": "f607938e-5c51-4cac-9901-a0419c7a79fd"
       }
     },
-    "runtimeVersion": "2.2.0",
+    "runtimeVersion": "2.3.0",
     "updates": {
       "url": "https://u.expo.dev/f607938e-5c51-4cac-9901-a0419c7a79fd"
     }

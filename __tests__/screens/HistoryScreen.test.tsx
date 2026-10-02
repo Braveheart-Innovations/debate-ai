@@ -1,4 +1,3 @@
-import React from 'react';
 import { Alert } from 'react-native';
 import { act } from '@testing-library/react-native';
 import HistoryScreen from '@/screens/HistoryScreen';

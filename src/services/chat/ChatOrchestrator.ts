@@ -28,7 +28,7 @@ import { buildPersonalityRuntime, mergeRuntimeModelParameters, type PersonalityR
 import { AppError } from '@/errors/types/AppError';
 import { ErrorCode } from '@/errors/codes/ErrorCodes';
 import type { AIService, ResumptionContext } from '@/services/aiAdapter';
-import type { GroupChatContext } from '@/services/ai/types/adapter.types';
+import type { GroupChatContext, StreamFinishReason } from '@/services/ai/types/adapter.types';
 import type { AI, ChatSession, Message, MessageAttachment, ModelParameters } from '@/types';
 
 interface StreamingPreferenceState {
@@ -54,6 +54,56 @@ export interface ProcessUserMessageParams {
   allowStreaming: boolean;
   isDemo: boolean;
 }
+
+type TurnSettings = Pick<
+  ProcessUserMessageParams,
+  | 'aiPersonalities'
+  | 'mergedPersonalities'
+  | 'selectedModels'
+  | 'apiKeys'
+  | 'expertModeConfigs'
+  | 'streamingPreferences'
+  | 'globalStreamingEnabled'
+  | 'allowStreaming'
+  | 'isDemo'
+>;
+
+export interface ContinueResponseParams extends TurnSettings {
+  /** The cut-off AI reply to continue. */
+  messageId: string;
+  /** Session messages as stored, including the cut-off reply. */
+  messages: Message[];
+}
+
+type ChatAdapter = NonNullable<ReturnType<AIService['getAdapter']>>;
+type ExpertOverrides = { enabled?: boolean; parameters?: Partial<ModelParameters>; model?: string } | undefined;
+type MessageLifecycle = NonNullable<NonNullable<Message['metadata']>['lifecycle']>;
+
+interface TurnTarget {
+  aiForTurn: AI;
+  adapter: ChatAdapter;
+  shouldStream: boolean;
+  webSearchEnabled: boolean;
+}
+
+interface TurnRuntime {
+  personalityId: string;
+  runtime: PersonalityRuntime;
+  expert: ExpertOverrides;
+  runtimeParameters: Partial<ModelParameters> | undefined;
+}
+
+// A reply that stopped at the provider's output token limit keeps its text and
+// is marked unfinished: it stays out of other AIs' context and can be continued.
+const truncatedLifecycle = (content: string): MessageLifecycle => ({
+  status: 'truncated',
+  reason: 'length',
+  partial: content.trim().length > 0,
+  retryable: true,
+});
+
+export const CONTINUE_PROMPT = 'Your previous reply was cut off at the response length limit. Continue it exactly where it stopped, mid-sentence if needed. Do not repeat anything you already wrote, and do not add a preamble or summary.';
+export const RESTART_PROMPT = 'Your previous reply hit the response length limit before any answer text. Answer my last message again, more concisely.';
 
 export class ChatOrchestrator {
   private readonly aiService: AIService;
@@ -102,16 +152,10 @@ export class ChatOrchestrator {
       enrichedPrompt,
       attachments,
       resumptionContext: initialResumption,
-      aiPersonalities,
-      mergedPersonalities,
-      selectedModels,
       apiKeys,
-      expertModeConfigs,
-      streamingPreferences,
-      globalStreamingEnabled,
-      allowStreaming,
       isDemo,
     } = params;
+    const settings: TurnSettings = params;
 
     let resumptionContext = initialResumption;
     const responders = this.getResponders(mentions, isDemo);
@@ -129,27 +173,11 @@ export class ChatOrchestrator {
     const roundReplies: Message[] = [];
 
     for (const ai of responders) {
-      const effectiveModel = resolveProviderModelId(
-        ai.provider,
-        selectedModels[ai.id] || ai.model
-      ) || ai.model;
-      const aiForTurn: AI = { ...ai, model: effectiveModel };
-      // Per-AI, capability-driven: each model that supports web search uses
-      // it; the rest of the lineup is unaffected.
-      const webSearchEnabled = supportsWebSearch(ai.provider, effectiveModel);
-      const adapter = typeof this.aiService.ensureAdapter === 'function'
-        ? await this.aiService.ensureAdapter(ai.id, ai.provider, effectiveModel)
-        : this.aiService.getAdapter(ai.id);
-      if (!adapter) {
-        this.handleAdapterError(ai);
+      const target = await this.resolveTurnTarget(ai, settings);
+      if (!target) {
         continue;
       }
-
-      const providerPreference = streamingPreferences?.[ai.id];
-      const providerStreamingEnabled = providerPreference?.enabled ?? true;
-      const streamingEnabled = allowStreaming && (globalStreamingEnabled ?? true) && providerStreamingEnabled;
-      const capabilities = adapter.getCapabilities();
-      const shouldStream = streamingEnabled && capabilities.streaming;
+      const { aiForTurn, adapter, shouldStream, webSearchEnabled } = target;
 
       if (!shouldStream) {
         this.dispatch(setTypingAI({ ai: ai.name, isTyping: true }));
@@ -158,16 +186,7 @@ export class ChatOrchestrator {
       try {
         await this.sleep(ChatService.calculateTypingDelay());
 
-        const personalityId = aiPersonalities[ai.id] || 'default';
-        // Use pre-merged personality from context if available, otherwise fall back to base.
-        // Default intentionally resolves to undefined runtime config so reused adapters are cleared.
-        const personality = mergedPersonalities?.[personalityId] || getPersonality(personalityId);
-        const runtime = buildPersonalityRuntime({
-          mode: 'chat',
-          personality,
-          ai: aiForTurn,
-        });
-        this.aiService.setPersonality(ai.id, runtime.personalityConfig);
+        const { personalityId, runtime, expert, runtimeParameters } = this.buildTurnRuntime(ai, aiForTurn, settings);
 
         const groupChat: GroupChatContext | undefined = isGroupChat
           ? { selfName: ai.name, participants: participantNames }
@@ -183,17 +202,6 @@ export class ChatOrchestrator {
         // Shared adapters may carry state from a Debate or a previous chat lineup.
         adapter.config.isDebateMode = false;
         adapter.config.groupChat = groupChat;
-
-        const expert = getExpertOverrides(
-          expertModeConfigs as unknown as Record<string, { enabled?: boolean; parameters?: ModelParameters; model?: string }> ,
-          ai.provider
-        ) as { enabled?: boolean; parameters?: Partial<ModelParameters>; model?: string } | undefined;
-        const runtimeParameters = mergeRuntimeModelParameters(
-          expert?.enabled,
-          expert?.parameters,
-          runtime.modelParameters,
-          aiForTurn.parameters
-        );
 
         await this.logPromptDebug('chat-turn', {
           ai: aiForTurn,
@@ -307,6 +315,7 @@ export class ChatOrchestrator {
     let finalContent = '';
     let capturedCitations: Array<{ index: number; url: string; title?: string; snippet?: string }> | undefined;
     let lifecycle: NonNullable<Message['metadata']>['lifecycle'];
+    let finishReason: StreamFinishReason | undefined;
 
     await this.streamingService.streamResponse(
       {
@@ -406,6 +415,10 @@ export class ChatOrchestrator {
           const record = event as Record<string, unknown>;
           const type = String(record?.type || '');
 
+          if (type === 'finish') {
+            finishReason = record.reason as StreamFinishReason | undefined;
+          }
+
           // Handle citations event from Perplexity and other providers
           if (type === 'citations') {
             const citations = (record as { citations?: Array<{ index: number; url: string; title?: string; snippet?: string }> }).citations;
@@ -460,6 +473,9 @@ export class ChatOrchestrator {
       capturedCitations,
       ai.name
     );
+    if (!lifecycle && finishReason === 'length') {
+      lifecycle = truncatedLifecycle(rawContent);
+    }
     const completedMessage: Message = {
       ...aiMessage,
       content: normalizedAnswer.content,
@@ -472,7 +488,7 @@ export class ChatOrchestrator {
     };
 
     // Update the stored message when normalization changed it, citations arrived, or the turn
-    // failed (lifecycle keeps a failed turn out of later AIs' context).
+    // failed or was cut off (lifecycle keeps the turn out of later AIs' context).
     if (normalizedAnswer.content !== rawContent
       || (normalizedAnswer.citations && normalizedAnswer.citations.length > 0)
       || lifecycle) {
@@ -531,12 +547,16 @@ export class ChatOrchestrator {
       : response;
     const normalizedAnswer = ensureAnswerContent(answerContent, metadata?.citations, ai.name);
 
-    const aiMessage = ChatService.createAIMessage(ai, normalizedAnswer.content, {
+    const createdMessage = ChatService.createAIMessage(ai, normalizedAnswer.content, {
       modelUsed,
       responseTime,
       webSearchEnabled,
       citations: normalizedAnswer.citations,
     });
+    const finishReason = typeof result === 'string' ? undefined : result.finishReason;
+    const aiMessage: Message = finishReason === 'length'
+      ? { ...createdMessage, metadata: { ...createdMessage.metadata, lifecycle: truncatedLifecycle(response) } }
+      : createdMessage;
     this.dispatch(addMessage(aiMessage));
 
     try {
@@ -631,6 +651,229 @@ export class ChatOrchestrator {
       updateStreamContent(userMessage);
       return { content: userMessage, failed: true };
     }
+  }
+
+  /**
+   * Continue a reply that stopped at the provider's output token limit. The same AI gets the
+   * conversation up to and including its partial reply and is asked to resume where it stopped;
+   * the continuation is appended to the same message. A reply that is cut off again stays
+   * 'truncated' so it can be continued again.
+   */
+  async continueResponse(params: ContinueResponseParams): Promise<void> {
+    if (!this.session) {
+      throw new AppError({
+        code: ErrorCode.APP_SESSION_NOT_FOUND,
+        message: 'ChatOrchestrator: no active session',
+        userMessage: 'No active chat session. Please start a new chat.',
+        recoverable: true,
+      });
+    }
+
+    const { messageId, messages, apiKeys, isDemo } = params;
+    const targetIndex = messages.findIndex(message => message.id === messageId);
+    const targetMessage = targetIndex >= 0 ? messages[targetIndex] : undefined;
+    if (!targetMessage || targetMessage.metadata?.lifecycle?.status !== 'truncated') {
+      return;
+    }
+    const ai = this.session.selectedAIs.find(participant => participant.id === targetMessage.metadata?.aiId);
+    if (!ai) {
+      return;
+    }
+
+    const target = await this.resolveTurnTarget(ai, params);
+    if (!target) {
+      return;
+    }
+    const { aiForTurn, adapter, shouldStream } = target;
+    const { runtime, runtimeParameters } = this.buildTurnRuntime(ai, aiForTurn, params);
+
+    const participantNames = this.session.selectedAIs.map(participant => participant.name);
+    const groupChat: GroupChatContext | undefined = participantNames.length > 1
+      ? { selfName: ai.name, participants: participantNames }
+      : undefined;
+    adapter.config.isDebateMode = false;
+    adapter.config.groupChat = groupChat;
+
+    const partial = targetMessage.content;
+    const hasPartial = partial.trim().length > 0;
+    // The partial reply joins the history as this AI's own turn (without the lifecycle tag that
+    // otherwise keeps it out of context). An empty reply is dropped and the question re-asked.
+    const history = [
+      ...messages.slice(0, targetIndex),
+      ...(hasPartial ? [{ ...targetMessage, metadata: { ...targetMessage.metadata, lifecycle: undefined } }] : []),
+    ];
+    const prompt = hasPartial ? CONTINUE_PROMPT : RESTART_PROMPT;
+
+    if (!shouldStream) {
+      this.dispatch(setTypingAI({ ai: ai.name, isTyping: true }));
+    }
+
+    let continuation = '';
+    let finishReason: StreamFinishReason | undefined;
+    try {
+      if (shouldStream) {
+        const apiKey = isDemo ? 'demo' : await this.getExecutionApiKey(ai.provider, apiKeys);
+        if (!apiKey) {
+          throw new AppError({
+            code: ErrorCode.VALIDATION_API_KEY_INVALID,
+            message: `No API key configured for ${ai.provider}`,
+            userMessage: `Please add your API key for ${ai.provider} in Settings.`,
+            recoverable: true,
+            context: { provider: ai.provider },
+          });
+        }
+        startStreamingContent({ messageId, aiProvider: ai.id });
+        if (hasPartial) {
+          appendStreamingContent(messageId, partial);
+        }
+        this.dispatch(startStreaming({ messageId, aiProvider: ai.id }));
+
+        let streamError: Error | undefined;
+        await this.streamingService.streamResponse(
+          {
+            messageId,
+            adapterConfig: {
+              provider: ai.provider,
+              identityId: ai.id,
+              apiKey,
+              model: aiForTurn.model,
+              personality: runtime.personalityConfig,
+              parameters: runtimeParameters,
+              isDebateMode: false,
+              // The reply's sources came from the first pass; a second search would
+              // number its citations from [1] again and clash with them.
+              webSearchEnabled: false,
+              groupChat,
+            },
+            message: prompt,
+            conversationHistory: history,
+            modelOverride: aiForTurn.model,
+          },
+          (chunk: string) => {
+            continuation += chunk;
+            appendStreamingContent(messageId, chunk);
+          },
+          (finalChunk: string) => {
+            continuation = finalChunk;
+          },
+          (error: Error) => {
+            streamError = error;
+          },
+          (event: unknown) => {
+            const record = event as Record<string, unknown> | null;
+            if (record?.type === 'finish') {
+              finishReason = record.reason as StreamFinishReason | undefined;
+            }
+          }
+        );
+        // A stopped or failed continuation is still unfinished: keep what arrived and leave the
+        // reply continuable.
+        if (streamError) {
+          if (!isStreamInterruptedError(streamError)) {
+            ErrorService.handleError(streamError, {
+              feature: 'chat',
+              showToast: true,
+              context: { provider: ai.provider, aiName: ai.name, isContinuation: true },
+            });
+          }
+          finishReason = 'length';
+        }
+      } else {
+        if (runtimeParameters) {
+          adapter.config.parameters = runtimeParameters;
+        }
+        const result = await this.aiService.sendMessage(
+          ai.id,
+          prompt,
+          history,
+          runtime.personalityConfig || false,
+          undefined,
+          undefined,
+          aiForTurn.model
+        );
+        continuation = typeof result === 'string' ? result : result.response;
+        finishReason = typeof result === 'string' ? undefined : result.finishReason;
+      }
+    } catch (error) {
+      ErrorService.handleError(error, {
+        feature: 'chat',
+        showToast: true,
+        context: { provider: ai.provider, aiName: ai.name, isContinuation: true },
+      });
+      finishReason = 'length';
+    } finally {
+      if (!shouldStream) {
+        this.dispatch(setTypingAI({ ai: ai.name, isTyping: false }));
+      }
+    }
+
+    const cleanContinuation = groupChat ? stripLeadingSelfLabel(continuation, ai.name) : continuation;
+    const content = hasPartial ? `${partial}${cleanContinuation}` : cleanContinuation;
+    const stillTruncated = finishReason === 'length';
+    if (shouldStream) {
+      // Hand display back to the stored message so the bubble shows the final content and the
+      // cut-off note (if any) rather than a live stream or a stream error.
+      clearStreamingContent(messageId);
+      this.dispatch(clearStreamingMessage(messageId));
+    }
+    this.dispatch(updateMessage({
+      id: messageId,
+      content,
+      metadata: { lifecycle: stillTruncated ? truncatedLifecycle(content) : undefined },
+    }));
+  }
+
+  private async resolveTurnTarget(ai: AI, settings: TurnSettings): Promise<TurnTarget | null> {
+    const effectiveModel = resolveProviderModelId(
+      ai.provider,
+      settings.selectedModels[ai.id] || ai.model
+    ) || ai.model;
+    const aiForTurn: AI = { ...ai, model: effectiveModel };
+    // Per-AI, capability-driven: each model that supports web search uses
+    // it; the rest of the lineup is unaffected.
+    const webSearchEnabled = supportsWebSearch(ai.provider, effectiveModel);
+    const adapter = typeof this.aiService.ensureAdapter === 'function'
+      ? await this.aiService.ensureAdapter(ai.id, ai.provider, effectiveModel)
+      : this.aiService.getAdapter(ai.id);
+    if (!adapter) {
+      this.handleAdapterError(ai);
+      return null;
+    }
+
+    const providerPreference = settings.streamingPreferences?.[ai.id];
+    const providerStreamingEnabled = providerPreference?.enabled ?? true;
+    const streamingEnabled = settings.allowStreaming
+      && (settings.globalStreamingEnabled ?? true)
+      && providerStreamingEnabled;
+    const shouldStream = streamingEnabled && adapter.getCapabilities().streaming;
+
+    return { aiForTurn, adapter, shouldStream, webSearchEnabled };
+  }
+
+  private buildTurnRuntime(ai: AI, aiForTurn: AI, settings: TurnSettings): TurnRuntime {
+    const personalityId = settings.aiPersonalities[ai.id] || 'default';
+    // Use pre-merged personality from context if available, otherwise fall back to base.
+    // Default intentionally resolves to undefined runtime config so reused adapters are cleared.
+    const personality = settings.mergedPersonalities?.[personalityId] || getPersonality(personalityId);
+    const runtime = buildPersonalityRuntime({
+      mode: 'chat',
+      personality,
+      ai: aiForTurn,
+    });
+    this.aiService.setPersonality(ai.id, runtime.personalityConfig);
+
+    const expert = getExpertOverrides(
+      settings.expertModeConfigs as unknown as Record<string, { enabled?: boolean; parameters?: ModelParameters; model?: string }>,
+      ai.provider
+    ) as ExpertOverrides;
+    const runtimeParameters = mergeRuntimeModelParameters(
+      expert?.enabled,
+      expert?.parameters,
+      runtime.modelParameters,
+      aiForTurn.parameters
+    );
+
+    return { personalityId, runtime, expert, runtimeParameters };
   }
 
   private getResponders(mentions: string[], isDemo: boolean): AI[] {

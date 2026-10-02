@@ -38,6 +38,8 @@ export interface ChatMessageListProps {
   onRefineImage?: (imageUri: string, originalPrompt: string, originalProvider: AIProvider, messageId?: string) => void;
   /** Called when user reports AI-generated chat content */
   onReportContent?: (message: Message) => void;
+  /** Called when user continues a reply cut off at the length limit */
+  onContinueMessage?: (message: Message) => void;
 }
 
 export const ChatMessageList: React.FC<ChatMessageListProps> = ({
@@ -51,6 +53,7 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
   canRefineImages,
   onRefineImage,
   onReportContent,
+  onContinueMessage,
 }) => {
   const { theme } = useTheme();
   const { responsive, rs } = useResponsive();
@@ -253,6 +256,7 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
         isLast={index === messages.length - 1}
         searchTerm={searchTerm}
         onReportContent={!isUserMessage(item) ? onReportContent : undefined}
+        onContinue={!isUserMessage(item) ? onContinueMessage : undefined}
       />
     );
   }, [
@@ -262,6 +266,7 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
     onCancelImage,
     onRefineImage,
     onReportContent,
+    onContinueMessage,
     onRetryImage,
     searchTerm,
   ]);

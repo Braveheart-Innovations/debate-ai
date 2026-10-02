@@ -33,6 +33,7 @@ import { ErrorBoundary } from './src/components/organisms/common/ErrorBoundary';
 import { ToastContainer } from './src/components/organisms/common/ToastContainer';
 import { AppPortalProvider } from './src/components/organisms/common/AppPortal';
 import { PersonalityProvider } from './src/contexts/PersonalityContext';
+import { logger } from './src/services/logging';
 
 function AppContent() {
   const dispatch = useDispatch();
@@ -47,7 +48,7 @@ function AppContent() {
       try {
         // Initialize Firebase first
         await initializeFirebase();
-        console.log('Firebase initialized');
+        logger.debug('Firebase initialized');
 
         // Initialize Crashlytics
         await CrashlyticsService.initialize();
@@ -60,9 +61,9 @@ function AppContent() {
             : await PurchaseService.initialize();
 
           if (iapResult.success) {
-            console.log('IAP initialized');
+            logger.debug('IAP initialized');
           } else if (iapResult.skipped) {
-            console.log('IAP skipped on Android emulator');
+            logger.debug('IAP skipped on Android emulator');
           } else {
             console.warn('IAP init failed, continuing without IAP:', iapResult.error);
           }
@@ -75,14 +76,14 @@ function AppContent() {
               annual: cachedPrices.annual,
               lifetime: cachedPrices.lifetime,
             }));
-            console.log('Loaded cached prices');
+            logger.debug('Loaded cached prices');
           } else if (!iapResult.success) {
             dispatch(setPrices(FALLBACK_PRICES));
-            console.log('Using fallback store prices');
+            logger.debug('Using fallback store prices');
           } else {
             const freshPrices = await fetchAndPersistPrices();
             dispatch(setPrices(freshPrices));
-            console.log('Fetched fresh prices');
+            logger.debug('Fetched fresh prices');
           }
         } catch (e) {
           console.warn('IAP init failed, continuing without IAP:', e);
@@ -93,7 +94,7 @@ function AppContent() {
           const hasOnboarded = await settingsService.loadOnboardingState();
           if (hasOnboarded) {
             dispatch(restoreOnboarding(true));
-            console.log('Restored onboarding state: completed');
+            logger.debug('Restored onboarding state: completed');
           }
         } catch (e) {
           console.warn('Failed to load onboarding state:', e);
@@ -181,7 +182,7 @@ function AppContent() {
                 } else {
                   // Document doesn't exist - user was likely deleted
                   // Do NOT auto-create documents here; user creation happens in auth flows
-                  console.log('User document does not exist - likely deleted, clearing auth state');
+                  logger.debug('User document does not exist - likely deleted, clearing auth state');
                   dispatch(setAuthUser(null));
                   dispatch(setUserProfile(null));
                   dispatch(setAuthLoading(false));
@@ -192,7 +193,7 @@ function AppContent() {
                 const errorCode = (error as { code?: string })?.code;
                 // Permission denied usually means the user was deleted - clear auth state
                 if (errorCode === 'firestore/permission-denied') {
-                  console.log('Firestore permission denied - user likely deleted, clearing auth');
+                  logger.debug('Firestore permission denied - user likely deleted, clearing auth');
                   dispatch(setAuthUser(null));
                   dispatch(setUserProfile(null));
                   dispatch(setAuthLoading(false));
@@ -235,9 +236,9 @@ function AppContent() {
         const storedKeys = await secureStorage.getApiKeys();
         if (storedKeys) {
           dispatch(updateApiKeys(storedKeys));
-          console.log('Loaded API keys from secure storage:', Object.keys(storedKeys));
+          logger.debug('Loaded API keys from secure storage', { providers: Object.keys(storedKeys) });
         } else {
-          console.log('No stored API keys found');
+          logger.debug('No stored API keys found');
         }
 
         // Load verification data
@@ -245,9 +246,9 @@ function AppContent() {
         if (verificationData) {
           // Update Redux store with persisted verification data
           dispatch(restoreVerificationData(verificationData));
-          console.log('Loaded verification data:', verificationData.verifiedProviders);
+          logger.debug('Loaded verification data', { verifiedProviders: verificationData.verifiedProviders });
         } else {
-          console.log('No verification data found');
+          logger.debug('No verification data found');
         }
 
         // Load persisted composer AI selection (chat/compare pills).
@@ -263,9 +264,9 @@ function AppContent() {
         const statsData = await StatsPersistenceService.loadStats();
         if (statsData) {
           dispatch(restoreStats({ stats: statsData.stats, history: statsData.history }));
-          console.log('Loaded debate stats:', Object.keys(statsData.stats).length, 'AIs tracked');
+          logger.debug('Loaded debate stats', { aisTracked: Object.keys(statsData.stats).length });
         } else {
-          console.log('No debate stats found');
+          logger.debug('No debate stats found');
         }
       } catch (error) {
         console.error('Error initializing app:', error);
@@ -285,7 +286,9 @@ function AppContent() {
       }
       try {
         PurchaseService.cleanup();
-      } catch {}
+      } catch (error) {
+        logger.warn('IAP cleanup failed on unmount', { error: String(error) });
+      }
     };
   }, [dispatch]);
 
@@ -295,7 +298,7 @@ function AppContent() {
     // Only save if there's actual data to persist
     if (Object.keys(debateStats.stats).length > 0 || debateStats.history.length > 0) {
       StatsPersistenceService.saveStats(debateStats.stats, debateStats.history);
-      console.log('Saved debate stats:', Object.keys(debateStats.stats).length, 'AIs');
+      logger.debug('Saved debate stats', { ais: Object.keys(debateStats.stats).length });
     }
   }, [debateStats.stats, debateStats.history]);
 

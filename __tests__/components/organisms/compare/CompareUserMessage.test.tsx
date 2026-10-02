@@ -1,4 +1,3 @@
-import React from 'react';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { CompareUserMessage } from '@/components/organisms/compare/CompareUserMessage';
 import type { Message } from '@/types';

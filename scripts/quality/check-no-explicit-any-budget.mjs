@@ -3,7 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
-const DEFAULT_TEST_ANY_WARNING_BUDGET = 584;
+const DEFAULT_TEST_ANY_WARNING_BUDGET = 495;
 const envBudget = process.env.NO_EXPLICIT_ANY_TEST_WARNINGS_BUDGET;
 const budget = envBudget === undefined ? DEFAULT_TEST_ANY_WARNING_BUDGET : Number(envBudget);
 
@@ -89,6 +89,14 @@ if (count > budget) {
     .forEach(([filePath, warningCount]) => {
       console.error(`${warningCount}\t${filePath}`);
     });
+  process.exit(1);
+}
+
+if (count < budget) {
+  console.error(`${summary}\n`);
+  console.error(
+    `Explicit-any debt went down. Lower DEFAULT_TEST_ANY_WARNING_BUDGET in ${fileURLToPath(import.meta.url)} to ${count} so the gain is locked in.`
+  );
   process.exit(1);
 }
 

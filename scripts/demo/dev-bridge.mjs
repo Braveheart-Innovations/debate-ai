@@ -23,7 +23,7 @@ function writeRecordingFile(session) {
   if (!id || typeof id !== 'string') {
     throw new Error('Recording session is missing an id');
   }
-  const safeId = id.replace(/[^a-zA-Z0-9_\-]/g, '_');
+  const safeId = id.replace(/[^a-zA-Z0-9_-]/g, '_');
   const filePath = resolve(RECORDINGS_DIR, `${safeId}.json`);
   writeFileSync(filePath, JSON.stringify(session, null, 2));
   return filePath;

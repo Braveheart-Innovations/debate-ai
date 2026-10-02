@@ -1,4 +1,3 @@
-import React from 'react';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { ConfigRow } from '@/components/molecules/common/ConfigRow';

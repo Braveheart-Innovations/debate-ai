@@ -1,4 +1,3 @@
-import React from 'react';
 import { Text } from 'react-native';
 import { act, fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
@@ -7,6 +6,16 @@ import { AIComposer } from '@/components/organisms/composer/AIComposer';
 import { getProviderDefaultModel } from '@/config/modelConfigs';
 import type { AISelectionConfig } from '@/types/aiSelection';
 import type { MessageAttachment } from '@/types';
+import * as speechRecognition from 'expo-speech-recognition';
+
+// Root __mocks__/expo-speech-recognition.ts adds these test helpers.
+const speech = speechRecognition as unknown as {
+  __emit: (eventName: string, payload?: unknown) => void;
+  __reset: () => void;
+};
+const speechModule = speechRecognition.ExpoSpeechRecognitionModule as unknown as {
+  [K in keyof typeof speechRecognition.ExpoSpeechRecognitionModule]: jest.Mock;
+};
 
 jest.mock('expo-haptics', () => ({
   impactAsync: jest.fn().mockResolvedValue(undefined),
@@ -101,6 +110,99 @@ describe('ComposerShell', () => {
     expect(getByText('Add an AI to start chatting')).toBeTruthy();
     expect(getByTestId('above')).toBeTruthy();
     expect(getByTestId('leading')).toBeTruthy();
+  });
+});
+
+describe('ComposerShell dictation', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    speech.__reset();
+  });
+
+  const startDictation = async (getByTestId: (id: string) => unknown) => {
+    await act(async () => {
+      fireEvent.press(getByTestId('shell-mic') as never);
+    });
+    act(() => speech.__emit('start'));
+  };
+
+  it('dictates into the input after any typed text', async () => {
+    const onChangeText = jest.fn();
+    const { getByTestId, getByLabelText } = renderWithProviders(
+      <ComposerShell {...shellProps} inputText="Debate" onChangeText={onChangeText} />
+    );
+    await startDictation(getByTestId);
+    expect(speechModule.start).toHaveBeenCalled();
+    expect(getByLabelText('Stop dictation')).toBeTruthy();
+
+    act(() =>
+      speech.__emit('result', {
+        isFinal: false,
+        results: [{ transcript: 'remote work', confidence: 1, segments: [] }],
+      })
+    );
+    expect(onChangeText).toHaveBeenLastCalledWith('Debate remote work');
+
+    fireEvent.press(getByTestId('shell-mic'));
+    expect(speechModule.stop).toHaveBeenCalled();
+    act(() => speech.__emit('end'));
+    expect(getByLabelText('Dictate message')).toBeTruthy();
+  });
+
+  it('cancels dictation on send so late words cannot refill the cleared input', async () => {
+    const onChangeText = jest.fn();
+    const onSend = jest.fn();
+    const { getByTestId } = renderWithProviders(
+      <ComposerShell
+        {...shellProps}
+        inputText="hello"
+        canSend
+        onSend={onSend}
+        onChangeText={onChangeText}
+      />
+    );
+    await startDictation(getByTestId);
+
+    fireEvent.press(getByTestId('shell-send'));
+    expect(onSend).toHaveBeenCalledWith('hello');
+    expect(speechModule.abort).toHaveBeenCalled();
+
+    act(() =>
+      speech.__emit('result', {
+        isFinal: true,
+        results: [{ transcript: 'late', confidence: 1, segments: [] }],
+      })
+    );
+    expect(onChangeText).not.toHaveBeenCalled();
+  });
+
+  it('shows dictation errors in the hint row and clears them when the user types', async () => {
+    speechModule.requestPermissionsAsync.mockResolvedValueOnce({
+      granted: false,
+      canAskAgain: false,
+      expires: 'never',
+      status: 'denied',
+    });
+    const { getByTestId, queryByTestId } = renderWithProviders(<ComposerShell {...shellProps} />);
+    await act(async () => {
+      fireEvent.press(getByTestId('shell-mic'));
+    });
+    expect(getByTestId('shell-validation')).toHaveTextContent(/Microphone access is off/);
+
+    fireEvent.changeText(getByTestId('shell-input'), 'typing instead');
+    expect(queryByTestId('shell-validation')).toBeNull();
+  });
+
+  it('hides the mic when dictation is off or the device has no recognizer', () => {
+    const { queryByTestId, unmount } = renderWithProviders(
+      <ComposerShell {...shellProps} dictationEnabled={false} />
+    );
+    expect(queryByTestId('shell-mic')).toBeNull();
+    unmount();
+
+    speechModule.isRecognitionAvailable.mockReturnValue(false);
+    const second = renderWithProviders(<ComposerShell {...shellProps} />);
+    expect(second.queryByTestId('shell-mic')).toBeNull();
   });
 });
 

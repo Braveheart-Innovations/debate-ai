@@ -1,4 +1,3 @@
-import React from 'react';
 import { Platform, Text } from 'react-native';
 import { act, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '../../test-utils/renderWithProviders';

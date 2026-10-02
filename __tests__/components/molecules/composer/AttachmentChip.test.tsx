@@ -1,4 +1,3 @@
-import React from 'react';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { AttachmentChip } from '@/components/molecules/composer/AttachmentChip';

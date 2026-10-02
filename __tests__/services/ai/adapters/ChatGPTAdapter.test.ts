@@ -192,7 +192,7 @@ describe('ChatGPTAdapter - Web Search & Citations', () => {
 
       const EventSource = require('react-native-sse');
 
-      EventSource.mockImplementationOnce((url: string, options: unknown) => {
+      EventSource.mockImplementationOnce((_url: string, options: unknown) => {
         const body = (options as { body: string }).body;
         const requestBody = JSON.parse(body);
         expect(requestBody.tools).toBeUndefined();
@@ -212,7 +212,7 @@ describe('ChatGPTAdapter - Web Search & Citations', () => {
 
       const EventSource = require('react-native-sse');
 
-      EventSource.mockImplementationOnce((url: string, options: unknown) => {
+      EventSource.mockImplementationOnce((_url: string, options: unknown) => {
         const body = (options as { body: string }).body;
         const requestBody = JSON.parse(body);
         expect(requestBody.tools).toBeUndefined();

@@ -1,4 +1,3 @@
-import React from 'react';
 import { act, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { GeneratedContentReportModal } from '@/components/organisms/report/GeneratedContentReportModal';

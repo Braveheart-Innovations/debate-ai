@@ -469,6 +469,11 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
     await saveActiveChatSnapshot('active');
   }, [aiResponses, saveActiveChatSnapshot, session.currentSession?.messages]);
 
+  // Continue a reply cut off at the provider's length limit (appends to the same message).
+  const handleContinueMessage = React.useCallback(async (message: Message) => {
+    await aiResponses.continueResponse(message.id);
+  }, [aiResponses]);
+
   const confirmChatLeave = useRecoverableExitGuard({
     navigation,
     shouldGuard: Boolean(activeStreams > 0 || aiResponses.isProcessing),
@@ -1048,6 +1053,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
             canRefineImages={canRefineImages}
             onRefineImage={handleOpenRefinement}
             onReportContent={handleReportChatContent}
+            onContinueMessage={activeStreams > 0 || aiResponses.isProcessing ? undefined : handleContinueMessage}
           />
         )}
 

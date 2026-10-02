@@ -8,7 +8,6 @@
  * 4. ToastNotification component receives and displays error
  */
 
-import React from 'react';
 import { fireEvent, act } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../test-utils/renderWithProviders';
 import { ErrorCode } from '@/errors/codes/ErrorCodes';

@@ -174,4 +174,68 @@ describe('MessageBubble', () => {
 
     expect(queryByTestId('report-message-msg-1')).toBeNull();
   });
+
+  describe('reply cut off at the length limit', () => {
+    const truncated = (content: string): Message => ({
+      ...baseMessage,
+      sender: 'Claude',
+      senderType: 'ai',
+      content,
+      metadata: {
+        aiId: 'claude',
+        lifecycle: { status: 'truncated', reason: 'length', partial: content.length > 0, retryable: true },
+      },
+    });
+
+    it('says the reply was cut off and continues it on tap', () => {
+      const onContinue = jest.fn();
+      const message = truncated('The answer is');
+      const { getByText, getByTestId } = renderWithProviders(
+        <MessageBubble message={message} isLast={false} onContinue={onContinue} />
+      );
+
+      expect(getByText('Cut off at the length limit')).toBeTruthy();
+      fireEvent.press(getByTestId('continue-message-msg-1'));
+      expect(onContinue).toHaveBeenCalledWith(message);
+    });
+
+    it('offers to ask again when the reply has no text', () => {
+      const { getByText } = renderWithProviders(
+        <MessageBubble message={truncated('')} isLast={false} onContinue={jest.fn()} />
+      );
+
+      expect(getByText('Hit the length limit before answering')).toBeTruthy();
+      expect(getByText('Try again')).toBeTruthy();
+    });
+
+    it('keeps the note but hides the action while another reply is generating', () => {
+      const { getByTestId, queryByTestId } = renderWithProviders(
+        <MessageBubble message={truncated('The answer is')} isLast={false} />
+      );
+
+      expect(getByTestId('truncated-notice-msg-1')).toBeTruthy();
+      expect(queryByTestId('continue-message-msg-1')).toBeNull();
+    });
+
+    it('hides the note while the continuation streams', () => {
+      mockStreamingState = { content: 'The answer is still', isStreaming: true, cursorVisible: true, error: '' };
+      const { queryByTestId } = renderWithProviders(
+        <MessageBubble message={truncated('The answer is')} isLast={false} onContinue={jest.fn()} />
+      );
+
+      expect(queryByTestId('truncated-notice-msg-1')).toBeNull();
+    });
+
+    it('shows no note on a reply that finished', () => {
+      const { queryByTestId } = renderWithProviders(
+        <MessageBubble
+          message={{ ...truncated('Done.'), metadata: { aiId: 'claude' } }}
+          isLast={false}
+          onContinue={jest.fn()}
+        />
+      );
+
+      expect(queryByTestId('truncated-notice-msg-1')).toBeNull();
+    });
+  });
 });

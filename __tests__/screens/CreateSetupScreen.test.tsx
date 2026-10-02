@@ -25,7 +25,7 @@ jest.mock('react-redux', () => {
   return {
     ...actual,
     useDispatch: () => mockDispatch,
-    useSelector: (selector: (state: any) => any) => mockUseSelector(selector),
+    useSelector: (selector: (state: unknown) => unknown) => mockUseSelector(selector),
   };
 });
 
@@ -80,14 +80,14 @@ jest.mock('@expo/vector-icons', () => {
   const React = require('react');
   const { Text } = require('react-native');
   return {
-    Ionicons: (props: any) => React.createElement(Text, { testID: `icon-${props.name}` }, props.name),
+    Ionicons: (props: { name: string }) => React.createElement(Text, { testID: `icon-${props.name}` }, props.name),
   };
 });
 
 jest.mock('@react-native-community/slider', () => {
   const React = require('react');
   const { View } = require('react-native');
-  const Slider = (props: any) => React.createElement(View, props);
+  const Slider = (props: Record<string, unknown>) => React.createElement(View, props);
   return { __esModule: true, default: Slider };
 });
 
@@ -112,7 +112,7 @@ jest.mock('@/components/organisms', () => {
   const { VideoConfigSheet } = jest.requireActual('@/components/organisms/create/VideoConfigSheet');
   const { AudioConfigSheet } = jest.requireActual('@/components/organisms/create/AudioConfigSheet');
   return {
-    Header: (props: any) =>
+    Header: (props: { title?: string; rightElement?: import('react').ReactNode }) =>
       React.createElement(
         View,
         { testID: 'header-container' },
@@ -134,7 +134,7 @@ jest.mock('@/components/organisms', () => {
 jest.mock('@/components/organisms/common/AIAvatar', () => {
   const React = require('react');
   const { View } = require('react-native');
-  return { AIAvatar: (props: any) => React.createElement(View, { testID: `ai-avatar-${props.providerId || ''}` }) };
+  return { AIAvatar: (props: { providerId?: string }) => React.createElement(View, { testID: `ai-avatar-${props.providerId || ''}` }) };
 });
 
 jest.mock('@/components/molecules', () => {
@@ -146,34 +146,37 @@ jest.mock('@/components/molecules', () => {
       React.createElement(Text, { testID }, children),
     Badge: ({ label }: { label: string }) =>
       React.createElement(Text, { testID: `badge-${label}` }, label),
-    GradientButton: (props: any) =>
+    GradientButton: (props: { title: string; onPress?: () => void; disabled?: boolean }) =>
       React.createElement(
         TouchableOpacity,
         { testID: 'gradient-button', onPress: props.onPress, disabled: props.disabled },
         React.createElement(Text, null, props.title)
       ),
-    HeaderIcon: (props: any) =>
+    HeaderIcon: (props: { testID?: string; onPress?: () => void }) =>
       React.createElement(TouchableOpacity, { testID: props.testID, onPress: props.onPress }),
-    SectionHeader: (props: any) =>
+    SectionHeader: (props: { title: string }) =>
       React.createElement(Text, { testID: 'section-header' }, props.title),
-    InfoButton: (props: any) =>
+    InfoButton: (props: { testID?: string; topicId?: string }) =>
       React.createElement(TouchableOpacity, { testID: props.testID || `info-${props.topicId}` }),
-    ImageModelSelector: (props: any) =>
+    ImageModelSelector: (props: { selectedModel?: string; onSelectModel?: (model: string) => void }) =>
       React.createElement(
         TouchableOpacity,
         { testID: 'image-model-selector', onPress: () => props.onSelectModel?.('picked-model') },
         React.createElement(Text, null, props.selectedModel || 'model')
       ),
-    SheetHeader: (props: any) =>
+    SheetHeader: (props: { title: string; onClose?: () => void }) =>
       React.createElement(
         View,
         { testID: 'sheet-header' },
         React.createElement(Text, null, props.title),
         React.createElement(TouchableOpacity, { testID: 'sheet-header-close', onPress: props.onClose })
       ),
-    SegmentedControl: (props: any) =>
+    SegmentedControl: (props: {
+      options: Array<{ value: string; label: string }>;
+      onChange: (value: string) => void;
+    }) =>
       React.createElement(View, { testID: 'segmented-control' },
-        props.options.map((option: any) =>
+        props.options.map((option) =>
           React.createElement(
             TouchableOpacity,
             {
@@ -185,21 +188,23 @@ jest.mock('@/components/molecules', () => {
           )
         )
       ),
-    AIPill: (props: any) =>
+    AIPill: (props: { name: string; testID?: string; onPress?: () => void }) =>
       React.createElement(
         TouchableOpacity,
         { testID: props.testID, onPress: props.onPress },
         React.createElement(Text, null, props.name)
       ),
-    AddAIPill: (props: any) =>
+    AddAIPill: (props: { testID?: string; onPress?: () => void }) =>
       React.createElement(
         TouchableOpacity,
         { testID: props.testID, onPress: props.onPress },
         React.createElement(Text, null, '+ Add AI')
       ),
-    ComposerValidationHint: (props: any) =>
+    ComposerValidationHint: (props: { message: string; testID?: string }) =>
       React.createElement(Text, { testID: props.testID }, props.message),
-    AttachmentChip: (props: any) =>
+    MicButton: (props: { testID?: string; onPress?: () => void }) =>
+      React.createElement(TouchableOpacity, { testID: props.testID, onPress: props.onPress }),
+    AttachmentChip: (props: { testID?: string; onRemove?: () => void }) =>
       React.createElement(
         View,
         { testID: props.testID },
@@ -351,7 +356,7 @@ jest.mock('@/store/createSlice', () => ({
   clearFinishedGenerations: jest.fn(() => ({ type: 'create/clearFinishedGenerations' })),
   generateCreateVideo: jest.fn((payload) => ({ type: 'create/generateCreateVideo', payload, unwrap: jest.fn() })),
   generateCreateAudio: jest.fn((payload) => ({ type: 'create/generateCreateAudio', payload, unwrap: jest.fn() })),
-  selectCreateState: (state: any) => state.create,
+  selectCreateState: (state: { create: unknown }) => state.create,
 }));
 
 jest.mock('@/services/APIKeyService', () => ({

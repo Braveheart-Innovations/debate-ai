@@ -31,6 +31,8 @@ interface MessageBubbleProps {
   isLast: boolean;
   searchTerm?: string;
   onReportContent?: (message: Message) => void;
+  /** Continue a reply cut off at the length limit. Omit while a continuation can't start. */
+  onContinue?: (message: Message) => void;
 }
 
 // Helper component for highlighted text
@@ -89,7 +91,7 @@ const processMessageContent = (message: Message): string => {
   return message.content;
 };
 
-const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({ message, isLast, searchTerm, onReportContent }) => {
+const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({ message, isLast, searchTerm, onReportContent, onContinue }) => {
   const isUser = message.senderType === 'user';
   const { theme, isDark } = useTheme();
   const [copied, setCopied] = useState(false);
@@ -148,6 +150,13 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({ message, isLast,
     // Use streaming content while streaming
     displayContent = streamingContent;
   }
+
+  // The provider stopped at its output token limit; the text so far is kept.
+  const isTruncated = !isUser
+    && !isStreaming
+    && !streamingError
+    && message.metadata?.lifecycle?.status === 'truncated';
+  const hasPartialContent = message.content.trim().length > 0;
 
   const canReportContent = !isUser
     && !isStreaming
@@ -451,6 +460,49 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({ message, isLast,
           </Box>
         )}
         
+        {/* Cut off at the length limit: say so and offer to continue */}
+        {isTruncated && (
+          <Box
+            testID={`truncated-notice-${message.id}`}
+            style={[
+              styles.truncatedNotice,
+              {
+                backgroundColor: isDark ? theme.colors.semantic.warning : theme.colors.warning[50],
+                borderColor: isDark ? theme.colors.warning[700] : theme.colors.warning[300],
+              },
+            ]}
+          >
+            <Ionicons
+              name="cut-outline"
+              size={14}
+              color={isDark ? theme.colors.warning[300] : theme.colors.warning[800]}
+            />
+            <Typography
+              variant="caption"
+              style={[styles.truncatedText, { color: isDark ? theme.colors.warning[300] : theme.colors.warning[800] }]}
+            >
+              {hasPartialContent ? 'Cut off at the length limit' : 'Hit the length limit before answering'}
+            </Typography>
+            {onContinue && (
+              <TouchableOpacity
+                onPress={() => onContinue(message)}
+                accessibilityRole="button"
+                accessibilityLabel={hasPartialContent ? `Continue ${message.sender}'s reply` : `Ask ${message.sender} again`}
+                hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                testID={`continue-message-${message.id}`}
+                style={[
+                  styles.truncatedAction,
+                  { backgroundColor: isDark ? theme.colors.warning[700] : theme.colors.warning[600] },
+                ]}
+              >
+                <Typography variant="caption" weight="semibold" style={{ color: theme.colors.text.inverse }}>
+                  {hasPartialContent ? 'Continue' : 'Try again'}
+                </Typography>
+              </TouchableOpacity>
+            )}
+          </Box>
+        )}
+
         {/* Citations section for messages with sources */}
         {!isUser && (
           <CitationSources
@@ -493,6 +545,7 @@ export const MessageBubble = React.memo(MessageBubbleComponent, (prevProps, next
   && prevProps.isLast === nextProps.isLast
   && prevProps.searchTerm === nextProps.searchTerm
   && prevProps.onReportContent === nextProps.onReportContent
+  && prevProps.onContinue === nextProps.onContinue
 ));
 
 const styles = StyleSheet.create({
@@ -577,6 +630,27 @@ const styles = StyleSheet.create({
     bottom: 8,
     borderRadius: 12,
     padding: 6,
+  },
+  truncatedNotice: {
+    marginTop: 6,
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 4,
+    paddingLeft: 8,
+    paddingRight: 4,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  truncatedText: {
+    flexShrink: 1,
+  },
+  truncatedAction: {
+    marginLeft: 2,
+    paddingVertical: 3,
+    paddingHorizontal: 10,
+    borderRadius: 999,
   },
   demoWatermark: {
     position: 'absolute',

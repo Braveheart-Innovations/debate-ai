@@ -9,6 +9,8 @@ import IconStopOctagon from '../../atoms/icons/IconStopOctagon';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../../theme';
 import { useResponsive } from '../../../hooks/useResponsive';
+import { useDictation } from '../../../hooks/useDictation';
+import { ComposerValidationHint, MicButton } from '@/components/molecules';
 import { MessageAttachment } from '../../../types';
 import { getReadableFileSize } from '../../../utils/imageProcessing';
 import { getDocumentIcon, getFileExtensionFromMimeType } from '../../../utils/documentProcessing';
@@ -62,9 +64,21 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
   // keep prompt prefill only in parent modal
   // Image modal state handled inside ImageGenerationModal; keep only prompt prefill here
   const canSend = (inputText.trim().length > 0 || attachments.length > 0) && !disabled;
-  
+  const dictation = useDictation({
+    text: inputText,
+    onTextChange: onInputChange,
+    enabled: !disabled,
+  });
+
+  const handleInputChange = (text: string) => {
+    if (dictation.error) dictation.clearError();
+    onInputChange(text);
+  };
+
   const handleSend = () => {
     if (canSend) {
+      // Late recognizer results must not refill the input the parent just cleared.
+      dictation.cancel();
       onSend(inputText, attachments.length > 0 ? attachments : undefined);
       setAttachments([]); // Clear attachments after sending
     }
@@ -235,13 +249,23 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
             }
           ]}
           value={inputText}
-          onChangeText={onInputChange}
+          onChangeText={handleInputChange}
           placeholder={placeholder}
           placeholderTextColor={theme.colors.text.secondary}
           multiline={multiline}
           editable={!disabled}
         />
         
+        {!isProcessing && dictation.isAvailable && (
+          <View style={styles.micButton}>
+            <MicButton
+              isListening={dictation.isListening}
+              onPress={dictation.toggle}
+              disabled={disabled}
+            />
+          </View>
+        )}
+
         {isProcessing ? (
           <TouchableOpacity
             accessibilityRole="button"
@@ -321,6 +345,12 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
         )}
       </Box>
 
+      {dictation.error && (
+        <View style={styles.dictationError}>
+          <ComposerValidationHint message={dictation.error} />
+        </View>
+      )}
+
       {/* Multimodal modals */}
       <ImageUploadModal
         visible={showImageUpload}
@@ -353,6 +383,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     fontSize: 16,
+  },
+  micButton: {
+    marginRight: 4,
+  },
+  dictationError: {
+    paddingHorizontal: 16,
+    paddingBottom: 8,
   },
   sendButton: {
     width: 36,

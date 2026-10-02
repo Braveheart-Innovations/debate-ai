@@ -40,6 +40,7 @@ jest.mock('react-native-reanimated', () => {
     withDelay: jest.fn((_: unknown, val: unknown) => val),
     withSequence: jest.fn((...vals: unknown[]) => vals[vals.length - 1]),
     withRepeat: jest.fn((val: unknown) => val),
+    useReducedMotion: jest.fn(() => false),
     interpolate: jest.fn(),
     Extrapolation: { CLAMP: 'clamp', EXTEND: 'extend', IDENTITY: 'identity' },
     Extrapolate: { CLAMP: 'clamp', EXTEND: 'extend', IDENTITY: 'identity' },
@@ -73,7 +74,7 @@ jest.mock('react-native-reanimated', () => {
 jest.mock('react-native-gesture-handler', () => require('react-native-gesture-handler/jestSetup'));
 jest.mock('react-native-keyboard-controller', () => require('react-native-keyboard-controller/jest'));
 jest.mock('@expo/vector-icons', () => {
-  const React = require('react');
+  const React = require('react') as typeof import('react');
   const { Text } = require('react-native');
 
   const createIcon = (family: string) => {
@@ -91,9 +92,13 @@ jest.mock('@expo/vector-icons', () => {
   };
 });
 jest.mock('react-native/Libraries/Modal/Modal', () => {
-  const React = require('react');
+  const React = require('react') as typeof import('react');
 
-  const ModalMock = ({ children, visible = true, ...rest }: any = {}) => {
+  const ModalMock = ({
+    children,
+    visible = true,
+    ...rest
+  }: { children?: import('react').ReactNode; visible?: boolean; [prop: string]: unknown } = {}) => {
     if (!visible) return null;
     return React.createElement('Modal', { hardwareAccelerated: false, ...rest, visible }, children);
   };
@@ -106,10 +111,8 @@ jest.mock('react-native/Libraries/Modal/Modal', () => {
 
 const modalModule = require('react-native/Libraries/Modal/Modal');
 if (!modalModule) {
-  // eslint-disable-next-line no-console
   console.warn('Modal mock missing module', modalModule);
 } else if (!(modalModule as { default?: unknown }).default) {
-  // eslint-disable-next-line no-console
   console.warn('Modal mock missing default', Object.keys(modalModule));
 }
 
@@ -144,7 +147,7 @@ jest.mock('expo-image-manipulator', () => ({
 }));
 
 jest.mock('expo-video', () => {
-  const React = require('react');
+  const React = require('react') as typeof import('react');
   const { View } = require('react-native');
   const createPlayer = () => {
     const listeners: Record<string, Array<(payload?: unknown) => void>> = {};
@@ -212,7 +215,7 @@ jest.mock('expo-video', () => {
 });
 
 jest.mock('expo-audio', () => {
-  const React = require('react');
+  const React = require('react') as typeof import('react');
   let playerId = 0;
   const createAudioPlayer = () => {
     const player = {
