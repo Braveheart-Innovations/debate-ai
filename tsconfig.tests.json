@@ -1,0 +1,28 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+      "react-native-safe-area-context/jest/mock": [
+        "./test-utils/types/safe-area-context-jest-mock.d.ts"
+      ]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "__tests__/**/*.ts",
+    "__tests__/**/*.tsx",
+    "test-utils/**/*.ts",
+    "test-utils/**/*.tsx",
+    "__mocks__/**/*.ts",
+    "__mocks__/**/*.tsx",
+    "scripts/demo/recordings/**/*.json",
+    "jest.setup.ts",
+    "jest.setupAfterEnv.ts",
+    "index.ts",
+    "App.tsx"
+  ]
+}

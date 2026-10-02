@@ -92,5 +92,13 @@ if (count > budget) {
   process.exit(1);
 }
 
+if (count < budget) {
+  console.error(`${summary}\n`);
+  console.error(
+    `Explicit-any debt went down. Lower DEFAULT_TEST_ANY_WARNING_BUDGET in ${fileURLToPath(import.meta.url)} to ${count} so the gain is locked in.`
+  );
+  process.exit(1);
+}
+
 console.log(summary);
 

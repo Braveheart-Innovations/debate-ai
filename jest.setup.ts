@@ -74,7 +74,7 @@ jest.mock('react-native-reanimated', () => {
 jest.mock('react-native-gesture-handler', () => require('react-native-gesture-handler/jestSetup'));
 jest.mock('react-native-keyboard-controller', () => require('react-native-keyboard-controller/jest'));
 jest.mock('@expo/vector-icons', () => {
-  const React = require('react');
+  const React = require('react') as typeof import('react');
   const { Text } = require('react-native');
 
   const createIcon = (family: string) => {
@@ -92,7 +92,7 @@ jest.mock('@expo/vector-icons', () => {
   };
 });
 jest.mock('react-native/Libraries/Modal/Modal', () => {
-  const React = require('react');
+  const React = require('react') as typeof import('react');
 
   const ModalMock = ({
     children,
@@ -147,7 +147,7 @@ jest.mock('expo-image-manipulator', () => ({
 }));
 
 jest.mock('expo-video', () => {
-  const React = require('react');
+  const React = require('react') as typeof import('react');
   const { View } = require('react-native');
   const createPlayer = () => {
     const listeners: Record<string, Array<(payload?: unknown) => void>> = {};
@@ -215,7 +215,7 @@ jest.mock('expo-video', () => {
 });
 
 jest.mock('expo-audio', () => {
-  const React = require('react');
+  const React = require('react') as typeof import('react');
   let playerId = 0;
   const createAudioPlayer = () => {
     const player = {
