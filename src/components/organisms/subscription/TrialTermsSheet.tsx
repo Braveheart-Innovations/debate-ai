@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Typography, Button, GradientButton } from '@/components/molecules';
 import { useTheme } from '@/theme';
 import { useStorePrices } from '@/hooks/useStorePrices';
+import { describePostTrialPricing, describeRenewal, firstChargePrice } from '@/utils/subscriptionTerms';
 
 interface TrialTermsSheetProps {
   visible: boolean;
@@ -37,7 +38,7 @@ export const TrialTermsSheet: React.FC<TrialTermsSheetProps> = ({
 
   // Dynamic arrays using localized price and trial duration from store
   const trialFeatures = [
-    `${trialDuration} free, then ${monthly.localizedPrice}/month`,
+    `${trialDuration} free, then ${describePostTrialPricing(monthly, 'month')}`,
     'Cancel anytime before trial ends to avoid charges',
     'Full access to all premium features',
   ];
@@ -45,8 +46,8 @@ export const TrialTermsSheet: React.FC<TrialTermsSheetProps> = ({
   const legalTerms = [
     `Payment method required to start trial`,
     `${trialDuration} free trial ends ${trialEndDate}`,
-    `First charge of ${monthly.localizedPrice} on ${trialEndDate} unless you cancel`,
-    `Subscription automatically renews monthly at ${monthly.localizedPrice}`,
+    `First charge of ${firstChargePrice(monthly)} on ${trialEndDate} unless you cancel`,
+    describeRenewal(monthly, 'month'),
     'Cancel at least 24 hours before trial ends to avoid charges',
     Platform.OS === 'ios'
       ? 'To cancel: Settings > Your Name > Subscriptions'

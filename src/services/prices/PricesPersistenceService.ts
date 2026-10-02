@@ -18,12 +18,23 @@ export interface TrialInfo {
   hasTrial: boolean;
 }
 
+/** Discounted price charged for a fixed number of billing cycles after the trial, before the base price */
+export interface IntroPriceInfo {
+  /** Localized intro price per billing period (e.g., "$2.99") */
+  localizedPrice: string;
+  /** Human-readable intro duration (e.g., "6 months") */
+  durationText: string;
+}
+
 export interface PriceInfo {
+  /** Base (regular) recurring price - what the subscription renews at once any offer ends */
   localizedPrice: string;
   price: string;
   currency: string;
   /** Trial information if the subscription has a free trial offer */
   trial?: TrialInfo;
+  /** Introductory price phase of the trial offer, if any - must be disclosed alongside the trial */
+  intro?: IntroPriceInfo;
 }
 
 interface PersistedPrices {
@@ -33,7 +44,8 @@ interface PersistedPrices {
   fetchedAt: number;
 }
 
-const STORAGE_KEY = '@store_prices';
+// v2: PriceInfo.localizedPrice is now the base price and intro phases are captured separately
+const STORAGE_KEY = '@store_prices_v2';
 const TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 // Fallback prices (USD) - trial defaults to 1 week to match Google Play Console config
@@ -146,36 +158,31 @@ export async function fetchAndPersistPrices(): Promise<{
   }
 }
 
-/**
- * Parse ISO 8601 duration string to human-readable text and days
- * Examples: P1W = 1 week (7 days), P3D = 3 days, P1M = 1 month (30 days)
- */
-function parseTrialDuration(billingPeriod: string): { durationText: string; durationDays: number } {
-  // Match patterns like P1W, P7D, P3D, P1M
-  const weekMatch = billingPeriod.match(/P(\d+)W/);
-  const dayMatch = billingPeriod.match(/P(\d+)D/);
-  const monthMatch = billingPeriod.match(/P(\d+)M/);
+// Play Billing PricingPhase.recurrenceMode
+const RECURRENCE_INFINITE = 1;
+const RECURRENCE_FINITE = 2;
 
-  if (weekMatch) {
-    const weeks = parseInt(weekMatch[1], 10);
-    return {
-      durationText: weeks === 1 ? '1 week' : `${weeks} weeks`,
-      durationDays: weeks * 7,
-    };
-  }
-  if (dayMatch) {
-    const days = parseInt(dayMatch[1], 10);
-    return {
-      durationText: days === 1 ? '1 day' : `${days} days`,
-      durationDays: days,
-    };
-  }
-  if (monthMatch) {
-    const months = parseInt(monthMatch[1], 10);
-    return {
-      durationText: months === 1 ? '1 month' : `${months} months`,
-      durationDays: months * 30,
-    };
+const PERIOD_UNITS = [
+  { pattern: /P(\d+)Y/, singular: 'year', days: 365 },
+  { pattern: /P(\d+)M/, singular: 'month', days: 30 },
+  { pattern: /P(\d+)W/, singular: 'week', days: 7 },
+  { pattern: /P(\d+)D/, singular: 'day', days: 1 },
+] as const;
+
+/**
+ * Parse an ISO 8601 period, optionally repeated `cycles` times, to human-readable text and days
+ * Examples: P1W = 1 week (7 days), P3D = 3 days, P1M x 6 = 6 months (180 days)
+ */
+function parseBillingPeriod(billingPeriod: string, cycles = 1): { durationText: string; durationDays: number } {
+  for (const unit of PERIOD_UNITS) {
+    const match = billingPeriod.match(unit.pattern);
+    if (match) {
+      const count = parseInt(match[1], 10) * Math.max(cycles, 1);
+      return {
+        durationText: count === 1 ? `1 ${unit.singular}` : `${count} ${unit.singular}s`,
+        durationDays: count * unit.days,
+      };
+    }
   }
 
   // Default fallback
@@ -192,13 +199,19 @@ function extractAndroidPrice(sub: ProductSubscriptionAndroid): PriceInfo | null 
 
   const phases = offer.pricingPhases.pricingPhaseList;
   const trialPhase = phases.find((p) => p.priceAmountMicros === '0');
-  const recurringPhase = phases.find((p) => p.priceAmountMicros !== '0');
-  if (!recurringPhase) return null;
+  // The base price is the phase that recurs forever. An offer can sit a discounted
+  // finite phase between the trial and the base price (trial -> intro -> base); the
+  // first paid phase is NOT necessarily what the subscription renews at.
+  const paidPhases = phases.filter((p) => p.priceAmountMicros !== '0');
+  const basePhase = paidPhases.find((p) => p.recurrenceMode === RECURRENCE_INFINITE)
+    ?? paidPhases[paidPhases.length - 1];
+  if (!basePhase) return null;
+  const introPhase = paidPhases.find((p) => p !== basePhase && p.recurrenceMode === RECURRENCE_FINITE);
 
   // Extract trial info if available
   let trial: TrialInfo | undefined;
   if (trialPhase) {
-    const { durationText, durationDays } = parseTrialDuration(trialPhase.billingPeriod);
+    const { durationText, durationDays } = parseBillingPeriod(trialPhase.billingPeriod);
     trial = {
       durationText,
       durationDays,
@@ -207,10 +220,16 @@ function extractAndroidPrice(sub: ProductSubscriptionAndroid): PriceInfo | null 
   }
 
   return {
-    localizedPrice: recurringPhase.formattedPrice,
-    price: (parseInt(recurringPhase.priceAmountMicros, 10) / 1000000).toFixed(2),
-    currency: recurringPhase.priceCurrencyCode,
+    localizedPrice: basePhase.formattedPrice,
+    price: (parseInt(basePhase.priceAmountMicros, 10) / 1000000).toFixed(2),
+    currency: basePhase.priceCurrencyCode,
     trial,
+    ...(introPhase && {
+      intro: {
+        localizedPrice: introPhase.formattedPrice,
+        durationText: parseBillingPeriod(introPhase.billingPeriod, introPhase.billingCycleCount).durationText,
+      },
+    }),
   };
 }
 

@@ -2,6 +2,7 @@ import { fireEvent, waitFor } from '@testing-library/react-native';
 import { Linking, Platform } from 'react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { TrialTermsSheet } from '@/components/organisms/subscription/TrialTermsSheet';
+import { FALLBACK_PRICES } from '@/services/prices/PricesPersistenceService';
 
 // Mock react-native-safe-area-context
 jest.mock('react-native-safe-area-context', () => ({
@@ -119,7 +120,35 @@ describe('TrialTermsSheet', () => {
         />
       );
       expect(
-        getByText('Subscription automatically renews monthly at $5.99')
+        getByText('Subscription auto-renews monthly at $5.99')
+      ).toBeTruthy();
+    });
+
+    it('discloses an introductory price and the price it renews at afterwards', () => {
+      const { getByText } = renderWithProviders(
+        <TrialTermsSheet
+          visible={true}
+          onClose={mockOnClose}
+          onAcceptTerms={mockOnAcceptTerms}
+          isAuthenticated={true}
+        />,
+        {
+          preloadedState: {
+            prices: {
+              monthly: {
+                ...FALLBACK_PRICES.monthly,
+                intro: { localizedPrice: '$2.99', durationText: '6 months' },
+              },
+              annual: FALLBACK_PRICES.annual,
+              lifetime: FALLBACK_PRICES.lifetime,
+              loaded: true,
+            },
+          },
+        }
+      );
+      expect(getByText('1 week free, then $2.99/month for 6 months, then $5.99/month')).toBeTruthy();
+      expect(
+        getByText('Subscription auto-renews monthly at $2.99 for 6 months, then at $5.99 until canceled')
       ).toBeTruthy();
     });
   });

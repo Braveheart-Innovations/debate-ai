@@ -12,6 +12,7 @@ import { PurchaseService } from '@/services/iap/PurchaseService';
 import type { PlanType } from '@/services/iap/products';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { useStorePrices } from '@/hooks/useStorePrices';
+import { describePostTrialPricing, describeRenewal, firstChargePrice, formatTrialEndDate } from '@/utils/subscriptionTerms';
 import { RootState, showSheet } from '@/store';
 import { ErrorService } from '@/services/errors/ErrorService';
 
@@ -38,11 +39,9 @@ export default function UpgradeScreen() {
   const trialDays = monthly.trial?.durationDays || 7;
 
   // Calculate trial end date based on actual trial duration
-  const trialEndDate = useMemo(() => {
-    const date = new Date();
-    date.setDate(date.getDate() + trialDays);
-    return date.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
-  }, [trialDays]);
+  const trialEndDate = useMemo(() => formatTrialEndDate(trialDays), [trialDays]);
+  const annualTrialDays = annual.trial?.durationDays || trialDays;
+  const annualTrialEndDate = useMemo(() => formatTrialEndDate(annualTrialDays), [annualTrialDays]);
 
   // Platform-specific cancellation instructions
   const cancelInstructions = Platform.select({
@@ -240,7 +239,7 @@ export default function UpgradeScreen() {
                   Start {trialDuration} Free Trial
                 </Typography>
                 <Typography variant="body" color="secondary" style={{ textAlign: 'center', marginTop: 4 }}>
-                  Then {monthly.localizedPrice}/month. Cancel anytime.
+                  Then {describePostTrialPricing(monthly, 'month')}. Cancel anytime.
                 </Typography>
                 <GradientButton
                   title={loadingPlan === 'trial' ? 'Starting...' : 'Start Free Trial'}
@@ -272,13 +271,13 @@ export default function UpgradeScreen() {
                 <View style={styles.termRow}>
                   <Typography variant="caption" color="secondary" style={styles.termBullet}>{'\u2022'}</Typography>
                   <Typography variant="caption" color="secondary" style={styles.termText}>
-                    First charge: {monthly.localizedPrice} on {trialEndDate} unless canceled
+                    First charge: {firstChargePrice(monthly)} on {trialEndDate} unless canceled
                   </Typography>
                 </View>
                 <View style={styles.termRow}>
                   <Typography variant="caption" color="secondary" style={styles.termBullet}>{'\u2022'}</Typography>
                   <Typography variant="caption" color="secondary" style={styles.termText}>
-                    Subscription auto-renews monthly at {monthly.localizedPrice}
+                    {describeRenewal(monthly, 'month')}
                   </Typography>
                 </View>
                 <View style={styles.termRow}>
@@ -330,7 +329,9 @@ export default function UpgradeScreen() {
               {canStartTrial && (p.id === 'monthly' || p.id === 'annual') && (
                 <View style={[styles.inlineTrial, { backgroundColor: theme.colors.surface }]}>
                   <Typography variant="caption" color="secondary">
-                    Includes {p.id === 'monthly' ? trialDuration : (annual.trial?.durationText || trialDuration)} free trial ending {trialEndDate}. First charge of {p.id === 'monthly' ? monthly.localizedPrice : annual.localizedPrice} on {trialEndDate} unless canceled. {cancelInstructions}
+                    {p.id === 'monthly'
+                      ? `Includes ${trialDuration} free trial ending ${trialEndDate}. Then ${describePostTrialPricing(monthly, 'month')}. First charge of ${firstChargePrice(monthly)} on ${trialEndDate} unless canceled. ${cancelInstructions}`
+                      : `Includes ${annual.trial?.durationText || trialDuration} free trial ending ${annualTrialEndDate}. Then ${describePostTrialPricing(annual, 'year')}. First charge of ${firstChargePrice(annual)} on ${annualTrialEndDate} unless canceled. ${cancelInstructions}`}
                   </Typography>
                 </View>
               )}
