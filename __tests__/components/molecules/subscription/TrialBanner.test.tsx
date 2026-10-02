@@ -23,7 +23,7 @@ jest.mock('@/components/molecules', () => {
   };
 });
 
-const { TrialBanner } = require('@/components/molecules/subscription/TrialBanner');
+const { TrialBanner } = require('@/components/molecules/subscription/TrialBanner') as typeof import('@/components/molecules/subscription/TrialBanner');
 
 describe('TrialBanner', () => {
   beforeEach(() => {

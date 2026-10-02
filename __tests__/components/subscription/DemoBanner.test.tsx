@@ -31,7 +31,7 @@ jest.mock('@/hooks/useFeatureAccess', () => {
   };
 });
 
-const { DemoBanner } = require('@/components/molecules/subscription/DemoBanner');
+const { DemoBanner } = require('@/components/molecules/subscription/DemoBanner') as typeof import('@/components/molecules/subscription/DemoBanner');
 
 describe('DemoBanner', () => {
   beforeEach(() => {

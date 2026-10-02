@@ -15,13 +15,13 @@ jest.mock('@/components/organisms/chat/ChatMentionSuggestions', () => ({ ChatMen
 describe('chat organism index exports', () => {
   it('matches direct component exports', () => {
     jest.isolateModules(() => {
-      const index = require('@/components/organisms/chat');
-      const header = require('@/components/organisms/chat/ChatHeader');
-      const list = require('@/components/organisms/chat/ChatMessageList');
-      const input = require('@/components/organisms/chat/ChatInputBar');
-      const typing = require('@/components/organisms/chat/ChatTypingIndicators');
-      const empty = require('@/components/organisms/chat/ChatEmptyState');
-      const mentions = require('@/components/organisms/chat/ChatMentionSuggestions');
+      const index = require('@/components/organisms/chat') as typeof import('@/components/organisms/chat');
+      const header = require('@/components/organisms/chat/ChatHeader') as typeof import('@/components/organisms/chat/ChatHeader');
+      const list = require('@/components/organisms/chat/ChatMessageList') as typeof import('@/components/organisms/chat/ChatMessageList');
+      const input = require('@/components/organisms/chat/ChatInputBar') as typeof import('@/components/organisms/chat/ChatInputBar');
+      const typing = require('@/components/organisms/chat/ChatTypingIndicators') as typeof import('@/components/organisms/chat/ChatTypingIndicators');
+      const empty = require('@/components/organisms/chat/ChatEmptyState') as typeof import('@/components/organisms/chat/ChatEmptyState');
+      const mentions = require('@/components/organisms/chat/ChatMentionSuggestions') as typeof import('@/components/organisms/chat/ChatMentionSuggestions');
 
       expect(index.ChatHeader).toBe(mockChatHeaderRef);
       expect(index.ChatHeader).toBe(header.ChatHeader);

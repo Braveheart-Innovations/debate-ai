@@ -1,12 +1,11 @@
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { DemoProgressIndicator } from '@/components/molecules/demo/DemoProgressIndicator';
 
 // Mock expo-linear-gradient
 jest.mock('expo-linear-gradient', () => ({
   LinearGradient: 'LinearGradient',
 }));
-
-const { DemoProgressIndicator } = require('@/components/molecules/demo/DemoProgressIndicator');
 
 describe('DemoProgressIndicator', () => {
   const mockOnReplay = jest.fn();

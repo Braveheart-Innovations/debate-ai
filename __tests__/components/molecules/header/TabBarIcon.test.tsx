@@ -1,12 +1,11 @@
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { TabBarIcon } from '@/components/molecules/header/TabBarIcon';
 
 jest.mock('@expo/vector-icons', () => ({
   Ionicons: () => null,
   MaterialIcons: () => null,
   MaterialCommunityIcons: () => null,
 }));
-
-const { TabBarIcon } = require('@/components/molecules/header/TabBarIcon');
 
 describe('TabBarIcon', () => {
   it('renders with default props', () => {

@@ -1,6 +1,7 @@
 import { act, waitFor } from '@testing-library/react-native';
 import { renderHookWithProviders } from '../../test-utils/renderHookWithProviders';
 import type { ChatSession } from '@/types';
+import { useSessionHistory } from '@/hooks/history/useSessionHistory';
 
 const mockGetAllSessions = jest.fn<Promise<ChatSession[]>, []>();
 const mockClearAllSessions = jest.fn<Promise<void>, []>();
@@ -11,8 +12,6 @@ jest.mock('@/services/chat', () => ({
     clearAllSessions: () => mockClearAllSessions(),
   },
 }));
-
-const { useSessionHistory } = require('@/hooks/history/useSessionHistory');
 
 describe('useSessionHistory', () => {
   const baseSession: ChatSession = {

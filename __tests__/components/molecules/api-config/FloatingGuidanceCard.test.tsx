@@ -1,12 +1,12 @@
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { FloatingGuidanceCard } from '@/components/molecules/api-config/FloatingGuidanceCard';
 
 // Mock expo-blur
 jest.mock('expo-blur', () => ({
   BlurView: 'BlurView',
 }));
 
-const { FloatingGuidanceCard } = require('@/components/molecules/api-config/FloatingGuidanceCard');
 
 const mockStep = {
   title: 'Sign in to your account',

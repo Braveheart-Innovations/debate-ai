@@ -26,7 +26,7 @@ jest.mock('@/providers/AIServiceProvider', () => ({
 }));
 
 jest.mock('@/services/debate', () => {
-  const actual = jest.requireActual('@/services/debate');
+  const actual = jest.requireActual<typeof import('@/services/debate')>('@/services/debate');
   return {
     ...actual,
     DebateOrchestrator: jest.fn().mockImplementation(() => ({

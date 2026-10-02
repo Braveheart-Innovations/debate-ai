@@ -1,5 +1,7 @@
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { APIKeyGuidanceModal } from '@/components/organisms/api-config/APIKeyGuidanceModal';
+import type { AIProvider, ProviderGuidance } from '@/config/aiProviders';
 
 // Mock expo-blur
 jest.mock('expo-blur', () => ({
@@ -11,36 +13,43 @@ jest.mock('expo-linear-gradient', () => ({
   LinearGradient: 'LinearGradient',
 }));
 
-const { APIKeyGuidanceModal } = require('@/components/organisms/api-config/APIKeyGuidanceModal');
+const mockGuidance: ProviderGuidance = {
+  estimatedTime: '2-3 min',
+  difficulty: 'easy',
+  steps: [
+    {
+      title: 'Sign in or Create Account',
+      instruction: 'Log in to your OpenAI account',
+      urlPattern: 'auth',
+    },
+    {
+      title: 'Navigate to API Keys',
+      instruction: 'Go to the API Keys section',
+      urlPattern: 'api-keys',
+    },
+    {
+      title: 'Create New Key',
+      instruction: 'Click "Create new secret key"',
+      urlPattern: 'create',
+    },
+  ],
+  tips: ['Keep your API key secure', 'Never share your key publicly'],
+};
 
-const mockProvider = {
+const mockProvider: AIProvider = {
   id: 'openai',
   name: 'OpenAI',
   description: 'Access GPT models including GPT-4',
   gradient: ['#10A37F', '#1A7F64'],
+  company: 'OpenAI',
+  color: '#10A37F',
+  apiKeyPrefix: 'sk-',
+  apiKeyPlaceholder: 'sk-...',
+  docsUrl: 'https://platform.openai.com/docs',
+  features: [],
+  enabled: true,
   getKeyUrl: 'https://platform.openai.com/api-keys',
-  guidance: {
-    estimatedTime: '2-3 min',
-    difficulty: 'easy' as const,
-    steps: [
-      {
-        title: 'Sign in or Create Account',
-        instruction: 'Log in to your OpenAI account',
-        urlPattern: 'auth',
-      },
-      {
-        title: 'Navigate to API Keys',
-        instruction: 'Go to the API Keys section',
-        urlPattern: 'api-keys',
-      },
-      {
-        title: 'Create New Key',
-        instruction: 'Click "Create new secret key"',
-        urlPattern: 'create',
-      },
-    ],
-    tips: ['Keep your API key secure', 'Never share your key publicly'],
-  },
+  guidance: mockGuidance,
 };
 
 describe('APIKeyGuidanceModal', () => {
@@ -263,9 +272,9 @@ describe('APIKeyGuidanceModal', () => {
 
   describe('difficulty labels', () => {
     it('displays "Moderate" for medium difficulty', () => {
-      const mediumProvider = {
+      const mediumProvider: AIProvider = {
         ...mockProvider,
-        guidance: { ...mockProvider.guidance, difficulty: 'medium' as const },
+        guidance: { ...mockGuidance, difficulty: 'medium' },
       };
       const { getByText } = renderWithProviders(
         <APIKeyGuidanceModal
@@ -280,9 +289,9 @@ describe('APIKeyGuidanceModal', () => {
     });
 
     it('displays "Takes a bit longer" for hard difficulty', () => {
-      const hardProvider = {
+      const hardProvider: AIProvider = {
         ...mockProvider,
-        guidance: { ...mockProvider.guidance, difficulty: 'hard' as const },
+        guidance: { ...mockGuidance, difficulty: 'hard' },
       };
       const { getByText } = renderWithProviders(
         <APIKeyGuidanceModal

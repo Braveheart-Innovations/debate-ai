@@ -11,7 +11,6 @@ import type { DemoBanner } from '@/components/molecules/subscription/DemoBanner'
 import type { CompareSamplePickerModal } from '@/components/organisms/demo/CompareSamplePickerModal';
 import type { AIComposer, Header, HeaderActions } from '@/components/organisms';
 import type { Button } from '@/components/molecules';
-import type CompareSetupScreenComponent from '@/screens/CompareSetupScreen';
 import { collectTestIds } from '@test-utils/queries';
 
 const mockDispatch = jest.fn();
@@ -108,7 +107,7 @@ jest.mock('@/components/molecules', () => {
   };
 });
 
-const CompareSetupScreen: typeof CompareSetupScreenComponent = require('@/screens/CompareSetupScreen').default;
+const CompareSetupScreen = (require('@/screens/CompareSetupScreen') as typeof import('@/screens/CompareSetupScreen')).default;
 
 const createAIConfig = (overrides: Partial<AIConfig> = {}): AIConfig =>
   createMockAIConfig({

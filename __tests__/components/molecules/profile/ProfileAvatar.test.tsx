@@ -1,9 +1,8 @@
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { ProfileAvatar } from '@/components/molecules/profile/ProfileAvatar';
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }));
-
-const { ProfileAvatar } = require('@/components/molecules/profile/ProfileAvatar');
 
 describe('ProfileAvatar', () => {
   it('renders with display name', () => {

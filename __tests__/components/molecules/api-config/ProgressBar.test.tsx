@@ -1,11 +1,10 @@
 import React from 'react';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { ProgressBar } from '@/components/molecules/api-config/ProgressBar';
 
 jest.mock('expo-linear-gradient', () => ({
   LinearGradient: ({ children }: { children?: React.ReactNode }) => children || null,
 }));
-
-const { ProgressBar } = require('@/components/molecules/api-config/ProgressBar');
 
 describe('ProgressBar', () => {
   it('renders with default props', () => {

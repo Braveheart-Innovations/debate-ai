@@ -1,5 +1,6 @@
 import React from 'react';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { ParameterLabel } from '@/components/molecules/common/ParameterLabel';
 
 jest.mock('@/components/molecules', () => {
   const React = require('react');
@@ -9,8 +10,6 @@ jest.mock('@/components/molecules', () => {
       React.createElement(Text, null, children),
   };
 });
-
-const { ParameterLabel } = require('@/components/molecules/common/ParameterLabel');
 
 describe('ParameterLabel', () => {
   it('renders name and value', () => {

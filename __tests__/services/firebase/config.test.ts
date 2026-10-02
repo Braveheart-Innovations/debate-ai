@@ -37,7 +37,7 @@ describe('initializeFirebase', () => {
   const loadInitialize = () => {
     let init: typeof import('@/services/firebase/config').initializeFirebase;
     jest.isolateModules(() => {
-      init = require('@/services/firebase/config').initializeFirebase;
+      init = (require('@/services/firebase/config') as typeof import('@/services/firebase/config')).initializeFirebase;
     });
     return init!;
   };

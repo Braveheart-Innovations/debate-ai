@@ -4,7 +4,7 @@ import { useSettings } from '@/hooks/settings/useSettings';
 import { settingsService, DEFAULT_SETTINGS } from '@/services/settings';
 
 jest.mock('@/services/settings', () => {
-  const actual = jest.requireActual('@/services/settings');
+  const actual = jest.requireActual<typeof import('@/services/settings')>('@/services/settings');
   return {
     ...actual,
     settingsService: {
@@ -18,11 +18,11 @@ jest.mock('@/services/settings', () => {
 });
 
 describe('useSettings', () => {
-  const mockLoadSettings = settingsService.loadSettings as jest.MockedFunction<typeof settingsService.loadSettings>;
-  const mockUpdateSetting = settingsService.updateSetting as jest.MockedFunction<typeof settingsService.updateSetting>;
-  const mockResetSettings = settingsService.resetSettings as jest.MockedFunction<typeof settingsService.resetSettings>;
-  const mockExportSettings = settingsService.exportSettings as jest.MockedFunction<typeof settingsService.exportSettings>;
-  const mockImportSettings = settingsService.importSettings as jest.MockedFunction<typeof settingsService.importSettings>;
+  const mockLoadSettings = jest.mocked(settingsService.loadSettings);
+  const mockUpdateSetting = jest.mocked(settingsService.updateSetting);
+  const mockResetSettings = jest.mocked(settingsService.resetSettings);
+  const mockExportSettings = jest.mocked(settingsService.exportSettings);
+  const mockImportSettings = jest.mocked(settingsService.importSettings);
 
   const loadedSettings = {
     ...DEFAULT_SETTINGS,

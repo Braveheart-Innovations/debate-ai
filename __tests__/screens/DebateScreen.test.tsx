@@ -289,7 +289,7 @@ jest.mock('@/services/streaming/StreamingService', () => ({
   getStreamingService: () => mockStreamingService,
 }));
 
-const DebateScreen: typeof DebateScreenComponent = require('@/screens/DebateScreen').default;
+const DebateScreen = (require('@/screens/DebateScreen') as typeof import('@/screens/DebateScreen')).default;
 
 type DebateRouteParams = React.ComponentProps<typeof DebateScreenComponent>['route']['params'];
 

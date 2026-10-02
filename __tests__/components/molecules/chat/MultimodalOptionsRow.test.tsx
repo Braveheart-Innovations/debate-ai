@@ -1,6 +1,7 @@
 import React from 'react';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import MultimodalOptionsRow from '@/components/molecules/chat/MultimodalOptionsRow';
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }));
 
@@ -12,8 +13,6 @@ jest.mock('@/components/molecules', () => {
       React.createElement(Text, null, children),
   };
 });
-
-const MultimodalOptionsRow = require('@/components/molecules/chat/MultimodalOptionsRow').default;
 
 describe('MultimodalOptionsRow', () => {
   const mockAvailability = {

@@ -1,5 +1,6 @@
 import React from 'react';
 import { renderWithProviders } from '../../../test-utils/renderWithProviders';
+import { UnlockEverythingBanner } from '@/components/organisms/subscription/UnlockEverythingBanner';
 
 jest.mock('expo-linear-gradient', () => ({
   LinearGradient: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -17,8 +18,6 @@ jest.mock('@/components/molecules', () => {
     Typography: ({ children }: { children: React.ReactNode }) => React.createElement(Text, null, children),
   };
 });
-
-const { UnlockEverythingBanner } = require('@/components/organisms/subscription/UnlockEverythingBanner');
 
 describe('UnlockEverythingBanner', () => {
   it('displays pricing and feature bullets', () => {

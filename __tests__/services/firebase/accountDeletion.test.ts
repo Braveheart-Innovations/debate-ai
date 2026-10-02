@@ -60,7 +60,7 @@ let deleteAccount: typeof import('@/services/firebase/accountDeletion').deleteAc
 
 beforeAll(() => {
 
-  deleteAccount = require('@/services/firebase/accountDeletion').deleteAccount;
+  deleteAccount = (require('@/services/firebase/accountDeletion') as typeof import('@/services/firebase/accountDeletion')).deleteAccount;
 });
 
 describe('deleteAccount service', () => {

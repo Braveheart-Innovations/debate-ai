@@ -1,6 +1,8 @@
 import { fireEvent, waitFor } from '@testing-library/react-native';
 import { Alert, Linking } from 'react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { APIKeyWebViewModal } from '@/components/organisms/api-config/APIKeyWebViewModal';
+import type { AIProvider } from '@/config/aiProviders';
 
 // Mock react-native-webview
 jest.mock('react-native-webview', () => ({
@@ -27,13 +29,18 @@ jest.spyOn(Alert, 'alert');
 // Mock Linking.openURL
 jest.spyOn(Linking, 'openURL').mockImplementation(() => Promise.resolve());
 
-const { APIKeyWebViewModal } = require('@/components/organisms/api-config/APIKeyWebViewModal');
-
-const mockProvider = {
+const mockProvider: AIProvider = {
   id: 'openai',
   name: 'OpenAI',
   description: 'Access GPT models',
   gradient: ['#10A37F', '#1A7F64'],
+  company: 'OpenAI',
+  color: '#10A37F',
+  apiKeyPrefix: 'sk-',
+  apiKeyPlaceholder: 'sk-...',
+  docsUrl: 'https://platform.openai.com/docs',
+  features: [],
+  enabled: true,
   getKeyUrl: 'https://platform.openai.com/api-keys',
   guidance: {
     estimatedTime: '2-3 min',

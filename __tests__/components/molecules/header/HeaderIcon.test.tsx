@@ -1,6 +1,7 @@
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import * as Haptics from 'expo-haptics';
+import { HeaderIcon } from '@/components/molecules/header/HeaderIcon';
 
 jest.mock('@expo/vector-icons', () => ({
   Ionicons: () => null,
@@ -12,8 +13,6 @@ jest.mock('expo-haptics', () => ({
   impactAsync: jest.fn(),
   ImpactFeedbackStyle: { Light: 'light' },
 }));
-
-const { HeaderIcon } = require('@/components/molecules/header/HeaderIcon');
 
 describe('HeaderIcon', () => {
   it('renders with ionicons library', () => {

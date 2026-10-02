@@ -17,7 +17,7 @@ jest.mock('@/services/ai', () => ({
 const loadUtils = () => {
   let utils: typeof import('@/utils/attachmentUtils');
   jest.isolateModules(() => {
-    utils = require('@/utils/attachmentUtils');
+    utils = require('@/utils/attachmentUtils') as typeof import('@/utils/attachmentUtils');
   });
   return utils!;
 };

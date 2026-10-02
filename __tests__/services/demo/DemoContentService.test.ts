@@ -67,7 +67,7 @@ jest.mock('@/assets/demo/recordingsManifest', () => ({
 const loadDemoContentService = () => {
   let svc: typeof import('@/services/demo/DemoContentService').DemoContentService;
   jest.isolateModules(() => {
-    svc = require('@/services/demo/DemoContentService').DemoContentService;
+    svc = (require('@/services/demo/DemoContentService') as typeof import('@/services/demo/DemoContentService')).DemoContentService;
   });
   return svc!;
 };

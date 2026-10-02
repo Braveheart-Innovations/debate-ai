@@ -1,5 +1,6 @@
 import React from 'react';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { StorageIndicator } from '@/components/molecules/common/StorageIndicator';
 
 jest.mock('@/components/molecules', () => {
   const React = require('react');
@@ -9,8 +10,6 @@ jest.mock('@/components/molecules', () => {
       React.createElement(Text, null, children),
   };
 });
-
-const { StorageIndicator } = require('@/components/molecules/common/StorageIndicator');
 
 describe('StorageIndicator', () => {
   const mockSegments = [

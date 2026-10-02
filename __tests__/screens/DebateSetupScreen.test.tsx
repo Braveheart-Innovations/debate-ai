@@ -303,7 +303,7 @@ jest.mock('@/services/demo/RecordController', () => ({
   RecordController: mockRecordController,
 }));
 
-const DebateSetupScreen: typeof DebateSetupScreenComponent = require('@/screens/DebateSetupScreen').default;
+const DebateSetupScreen = (require('@/screens/DebateSetupScreen') as typeof import('@/screens/DebateSetupScreen')).default;
 
 type DebateSetupRouteParams = NonNullable<
   NonNullable<React.ComponentProps<typeof DebateSetupScreenComponent>['route']>['params']

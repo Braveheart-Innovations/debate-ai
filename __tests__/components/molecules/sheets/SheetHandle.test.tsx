@@ -1,6 +1,6 @@
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { SheetHandle } from '@/components/molecules/sheets/SheetHandle';
 
-const { SheetHandle } = require('@/components/molecules/sheets/SheetHandle');
 
 describe('SheetHandle', () => {
   it('renders with default props', () => {

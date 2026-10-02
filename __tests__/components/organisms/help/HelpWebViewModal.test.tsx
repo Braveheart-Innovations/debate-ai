@@ -1,6 +1,7 @@
 import { fireEvent, waitFor } from '@testing-library/react-native';
 import { Linking } from 'react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { HelpWebViewModal } from '@/components/organisms/help/HelpWebViewModal';
 
 // Mock react-native-webview
 jest.mock('react-native-webview', () => ({
@@ -15,8 +16,6 @@ jest.mock('react-native-safe-area-context', () => ({
 
 // Mock Linking.openURL
 jest.spyOn(Linking, 'openURL').mockImplementation(() => Promise.resolve());
-
-const { HelpWebViewModal } = require('@/components/organisms/help/HelpWebViewModal');
 
 describe('HelpWebViewModal', () => {
   const mockOnClose = jest.fn();

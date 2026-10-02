@@ -1,5 +1,12 @@
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { SessionCard } from '@/components/molecules/history/SessionCard';
+import type { ChatSession } from '@/types';
+import {
+  createMockAIConfig,
+  createMockChatSession,
+  createMockMessage,
+} from '@test-utils/fixtures';
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null, MaterialIcons: () => null }));
 
@@ -9,28 +16,30 @@ jest.mock('@/services/history', () => ({
   },
 }));
 
-const { SessionCard } = require('@/components/molecules/history/SessionCard');
-
 describe('SessionCard', () => {
-  const createMockSession = (overrides = {}) => ({
-    id: 'session-1',
-    selectedAIs: [
-      { name: 'Claude', id: 'claude' },
-      { name: 'ChatGPT', id: 'chatgpt' },
-    ],
-    sessionType: 'chat',
-    createdAt: Date.now(),
-    messages: [
-      { sender: 'user', content: 'Hello' },
-      { sender: 'claude', content: 'Hi there!' },
-    ],
-    ...overrides,
-  });
+  const claude = createMockAIConfig({ id: 'claude', provider: 'claude', name: 'Claude' });
+  const chatgpt = createMockAIConfig({ id: 'chatgpt', provider: 'chatgpt', name: 'ChatGPT' });
+  const gemini = createMockAIConfig({ id: 'gemini', provider: 'google', name: 'Gemini' });
+  const userMessage = (content: string) =>
+    createMockMessage({ id: `user-${content}`, sender: 'user', senderType: 'user', content });
+  const aiMessage = (sender: string, content: string) =>
+    createMockMessage({ id: `${sender}-${content}`, sender, senderType: 'ai', content });
+
+  const createMockSession = (overrides: Partial<ChatSession> = {}): ChatSession =>
+    createMockChatSession({
+      id: 'session-1',
+      selectedAIs: [claude, chatgpt],
+      sessionType: 'chat',
+      createdAt: Date.now(),
+      messages: [userMessage('Hello'), aiMessage('claude', 'Hi there!')],
+      ...overrides,
+    });
 
   const defaultProps = {
     session: createMockSession(),
     onPress: jest.fn(),
     index: 0,
+    isHighlighted: false,
   };
 
   beforeEach(() => {
@@ -68,7 +77,7 @@ describe('SessionCard', () => {
 
     it('displays singular message when only one', () => {
       const session = createMockSession({
-        messages: [{ sender: 'user', content: 'Hello' }],
+        messages: [userMessage('Hello')],
       });
       const { getByText } = renderWithProviders(
         <SessionCard {...defaultProps} session={session} />
@@ -104,7 +113,7 @@ describe('SessionCard', () => {
       const session = createMockSession({
         sessionType: 'debate',
         messages: [
-          { sender: 'Debate Host', content: '"Should AI have rights?" is our topic today' },
+          aiMessage('Debate Host', '"Should AI have rights?" is our topic today'),
         ],
       });
       const { getByText } = renderWithProviders(
@@ -125,11 +134,13 @@ describe('SessionCard', () => {
     });
 
     it('shows diverged message for comparison session', () => {
-      const session = createMockSession({
-        sessionType: 'comparison',
+      // Divergence fields are not part of ChatSession; SessionCard reads them
+      // off legacy persisted comparison sessions.
+      const session = {
+        ...createMockSession({ sessionType: 'comparison' }),
         hasDiverged: true,
         continuedWithAI: 'Claude',
-      });
+      };
       const { getByText } = renderWithProviders(
         <SessionCard {...defaultProps} session={session} />
       );
@@ -137,10 +148,10 @@ describe('SessionCard', () => {
     });
 
     it('shows fallback diverged message when AI not specified', () => {
-      const session = createMockSession({
-        sessionType: 'comparison',
+      const session = {
+        ...createMockSession({ sessionType: 'comparison' }),
         hasDiverged: true,
-      });
+      };
       const { getByText } = renderWithProviders(
         <SessionCard {...defaultProps} session={session} />
       );
@@ -151,8 +162,8 @@ describe('SessionCard', () => {
       const session = createMockSession({
         sessionType: 'chat',
         messages: [
-          { sender: 'user', content: 'Hello' },
-          { sender: 'claude', content: 'Latest message content' },
+          userMessage('Hello'),
+          aiMessage('claude', 'Latest message content'),
         ],
       });
       const { getByText } = renderWithProviders(
@@ -178,7 +189,13 @@ describe('SessionCard', () => {
       const onPress = jest.fn();
       const session = createMockSession();
       const { getByTestId } = renderWithProviders(
-        <SessionCard session={session} onPress={onPress} index={0} testID="session-card" />
+        <SessionCard
+          session={session}
+          onPress={onPress}
+          index={0}
+          isHighlighted={false}
+          testID="session-card"
+        />
       );
 
       fireEvent.press(getByTestId('session-card'));
@@ -197,7 +214,7 @@ describe('SessionCard', () => {
 
     it('highlights message content when matching search term', () => {
       const session = createMockSession({
-        messages: [{ sender: 'user', content: 'Hello world' }],
+        messages: [userMessage('Hello world')],
       });
       const { getByText } = renderWithProviders(
         <SessionCard {...defaultProps} session={session} searchTerm="world" />
@@ -250,7 +267,7 @@ describe('SessionCard', () => {
   describe('Edge Cases', () => {
     it('handles session with single AI', () => {
       const session = createMockSession({
-        selectedAIs: [{ name: 'Claude', id: 'claude' }],
+        selectedAIs: [claude],
       });
       const { getByText } = renderWithProviders(
         <SessionCard {...defaultProps} session={session} />
@@ -260,11 +277,7 @@ describe('SessionCard', () => {
 
     it('handles session with many AIs', () => {
       const session = createMockSession({
-        selectedAIs: [
-          { name: 'Claude', id: 'claude' },
-          { name: 'ChatGPT', id: 'chatgpt' },
-          { name: 'Gemini', id: 'gemini' },
-        ],
+        selectedAIs: [claude, chatgpt, gemini],
       });
       const { getByText } = renderWithProviders(
         <SessionCard {...defaultProps} session={session} />

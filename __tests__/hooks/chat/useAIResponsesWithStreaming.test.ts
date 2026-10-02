@@ -15,7 +15,7 @@ import { useAIService } from '@/providers/AIServiceProvider';
 import { createMockFeatureAccess } from '@test-utils/fixtures';
 
 jest.mock('@/services/chat', () => {
-  const actual = jest.requireActual('@/services/chat');
+  const actual = jest.requireActual<typeof import('@/services/chat')>('@/services/chat');
   return {
     ...actual,
     ChatOrchestrator: jest.fn(() => ({

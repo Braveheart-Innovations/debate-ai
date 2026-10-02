@@ -21,7 +21,7 @@ const mockTheme = {
 };
 
 jest.mock('@/theme', () => {
-  const actual = jest.requireActual('@/theme');
+  const actual = jest.requireActual<typeof import('@/theme')>('@/theme');
   const React = require('react');
   return {
     ...actual,

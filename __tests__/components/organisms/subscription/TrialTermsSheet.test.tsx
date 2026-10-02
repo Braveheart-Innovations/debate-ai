@@ -1,6 +1,7 @@
 import { fireEvent, waitFor } from '@testing-library/react-native';
 import { Linking, Platform } from 'react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { TrialTermsSheet } from '@/components/organisms/subscription/TrialTermsSheet';
 
 // Mock react-native-safe-area-context
 jest.mock('react-native-safe-area-context', () => ({
@@ -9,8 +10,6 @@ jest.mock('react-native-safe-area-context', () => ({
 
 // Mock Linking.openURL
 jest.spyOn(Linking, 'openURL').mockImplementation(() => Promise.resolve());
-
-const { TrialTermsSheet } = require('@/components/organisms/subscription/TrialTermsSheet');
 
 describe('TrialTermsSheet', () => {
   const mockOnClose = jest.fn();

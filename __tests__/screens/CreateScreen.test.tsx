@@ -57,7 +57,7 @@ let mockReportModalProps: {
 } | undefined;
 
 jest.mock('react-redux', () => {
-  const actual = jest.requireActual('react-redux');
+  const actual = jest.requireActual<typeof import('react-redux')>('react-redux');
   return {
     ...actual,
     useDispatch: () => mockDispatch,
@@ -106,8 +106,8 @@ jest.mock('react-native-safe-area-context', () => ({
 }));
 
 jest.mock('@expo/vector-icons', () => {
-  const ReactModule = jest.requireActual('react') as typeof import('react');
-  const ReactNative = jest.requireActual('react-native') as typeof import('react-native');
+  const ReactModule = jest.requireActual<typeof import('react')>('react');
+  const ReactNative = jest.requireActual<typeof import('react-native')>('react-native');
   return {
     Ionicons: ({ name }: { name?: string }) => ReactModule.createElement(
       ReactNative.Text,
@@ -118,8 +118,8 @@ jest.mock('@expo/vector-icons', () => {
 });
 
 jest.mock('@/components/molecules', () => {
-  const ReactModule = jest.requireActual('react') as typeof import('react');
-  const ReactNative = jest.requireActual('react-native') as typeof import('react-native');
+  const ReactModule = jest.requireActual<typeof import('react')>('react');
+  const ReactNative = jest.requireActual<typeof import('react-native')>('react-native');
   return {
     Typography: ({ children, testID }: { children: React.ReactNode; testID?: string }) =>
       ReactModule.createElement(ReactNative.Text, { testID }, children),
@@ -128,8 +128,8 @@ jest.mock('@/components/molecules', () => {
 
 jest.mock('@/components/organisms/chat/ImageRefinementModal', () => ({
   ImageRefinementModal: ({ visible, onRefine }: { visible: boolean; onRefine: (opts: { instructions: string; provider: string; modelId: string }) => void }) => {
-    const ReactModule = jest.requireActual('react') as typeof import('react');
-    const ReactNative = jest.requireActual('react-native') as typeof import('react-native');
+    const ReactModule = jest.requireActual<typeof import('react')>('react');
+    const ReactNative = jest.requireActual<typeof import('react-native')>('react-native');
     if (!visible) return null;
     return ReactModule.createElement(
       ReactNative.TouchableOpacity,
@@ -149,8 +149,8 @@ jest.mock('@/components/organisms/report/GeneratedContentReportModal', () => ({
     onClose: () => void;
     presentation?: 'modal' | 'overlay';
   }) => {
-    const ReactModule = jest.requireActual('react') as typeof import('react');
-    const ReactNative = jest.requireActual('react-native') as typeof import('react-native');
+    const ReactModule = jest.requireActual<typeof import('react')>('react');
+    const ReactNative = jest.requireActual<typeof import('react-native')>('react-native');
     mockReportModalProps = props;
     if (!props.visible) return null;
     return ReactModule.createElement(
@@ -229,7 +229,7 @@ jest.mock('@/hooks/useFeatureAccess', () => ({
 }));
 
 jest.mock('@/store/createSlice', () => {
-  const actual = jest.requireActual('@/store/createSlice');
+  const actual = jest.requireActual<typeof import('@/store/createSlice')>('@/store/createSlice');
   return {
     ...actual,
     selectCreateState: (state: MockRootState) => state.create,

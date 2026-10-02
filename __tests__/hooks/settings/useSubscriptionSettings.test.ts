@@ -6,7 +6,7 @@ import type { RootState } from '@/store';
 import type { PlanFeatures, SubscriptionStatus } from '@/services/settings';
 
 jest.mock('@/services/settings', () => {
-  const actual = jest.requireActual('@/services/settings');
+  const actual = jest.requireActual<typeof import('@/services/settings')>('@/services/settings');
   return {
     ...actual,
     subscriptionService: {
@@ -23,16 +23,7 @@ jest.mock('@/services/settings', () => {
 });
 
 describe('useSubscriptionSettings', () => {
-  const mockSubscriptionService = subscriptionService as unknown as {
-    getCurrentSubscription: jest.MockedFunction<typeof subscriptionService.getCurrentSubscription>;
-    getExpiryInfo: jest.MockedFunction<typeof subscriptionService.getExpiryInfo>;
-    canAccessFeature: jest.MockedFunction<typeof subscriptionService.canAccessFeature>;
-    getFeatureLimit: jest.MockedFunction<typeof subscriptionService.getFeatureLimit>;
-    initiatePurchase: jest.MockedFunction<typeof subscriptionService.initiatePurchase>;
-    cancelSubscription: jest.MockedFunction<typeof subscriptionService.cancelSubscription>;
-    restorePurchases: jest.MockedFunction<typeof subscriptionService.restorePurchases>;
-    getPlanFeatures: jest.MockedFunction<typeof subscriptionService.getPlanFeatures>;
-  };
+  const mockSubscriptionService = jest.mocked(subscriptionService);
 
   const subscription: SubscriptionStatus = {
     plan: 'pro',

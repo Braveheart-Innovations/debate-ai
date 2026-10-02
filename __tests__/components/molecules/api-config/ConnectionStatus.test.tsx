@@ -1,5 +1,6 @@
 import React from 'react';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { ConnectionStatus } from '@/components/molecules/api-config/ConnectionStatus';
 
 jest.mock('@/components/molecules', () => {
   const React = require('react');
@@ -9,8 +10,6 @@ jest.mock('@/components/molecules', () => {
       React.createElement(Text, null, children),
   };
 });
-
-const { ConnectionStatus } = require('@/components/molecules/api-config/ConnectionStatus');
 
 describe('ConnectionStatus', () => {
   it('renders nothing when status is idle', () => {

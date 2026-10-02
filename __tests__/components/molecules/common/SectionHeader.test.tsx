@@ -1,6 +1,7 @@
 import React from 'react';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { SectionHeader } from '@/components/molecules/common/SectionHeader';
 
 jest.mock('expo-linear-gradient', () => ({
   LinearGradient: ({ children }: { children?: React.ReactNode }) => children || null,
@@ -14,8 +15,6 @@ jest.mock('@/components/molecules', () => {
       React.createElement(Text, null, children),
   };
 });
-
-const { SectionHeader } = require('@/components/molecules/common/SectionHeader');
 
 describe('SectionHeader', () => {
   it('renders title', () => {

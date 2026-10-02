@@ -2,6 +2,7 @@ import React from 'react';
 import { Text } from 'react-native';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { SettingRow } from '@/components/molecules/settings/SettingRow';
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }));
 
@@ -13,8 +14,6 @@ jest.mock('@/components/molecules', () => {
       React.createElement(Text, null, children),
   };
 });
-
-const { SettingRow } = require('@/components/molecules/settings/SettingRow');
 
 describe('SettingRow', () => {
   it('renders title', () => {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../test-utils/renderWithProviders';
+import { DemoSamplesBar } from '@/components/organisms/demo/DemoSamplesBar';
 
 jest.mock('@expo/vector-icons', () => ({
   Ionicons: () => null,
@@ -19,8 +20,6 @@ jest.mock('@/components/molecules', () => {
     Typography: ({ children }: { children: React.ReactNode }) => React.createElement(Text, null, children),
   };
 });
-
-const { DemoSamplesBar } = require('@/components/organisms/demo/DemoSamplesBar');
 
 describe('DemoSamplesBar', () => {
   it('renders samples and triggers selection', () => {

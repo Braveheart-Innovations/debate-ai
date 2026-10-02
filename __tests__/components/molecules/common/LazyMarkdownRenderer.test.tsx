@@ -1,6 +1,8 @@
 import React from 'react';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
+import { LazyMarkdownRenderer, createMarkdownStyles } from '@/components/molecules/common/LazyMarkdownRenderer';
+import { lightTheme } from '@/theme';
 
 jest.mock('react-native-markdown-display', () => {
   const React = require('react');
@@ -31,8 +33,6 @@ jest.mock('@/utils/markdown', () => ({
     return chunks.length > 0 ? chunks : [content];
   },
 }));
-
-const { LazyMarkdownRenderer, createMarkdownStyles } = require('@/components/molecules/common/LazyMarkdownRenderer');
 
 describe('LazyMarkdownRenderer', () => {
   const mockStyles = {
@@ -123,16 +123,9 @@ describe('LazyMarkdownRenderer', () => {
 });
 
 describe('createMarkdownStyles', () => {
-  const mockTheme = {
-    colors: {
-      text: { primary: '#000000', secondary: '#666666' },
-      primary: { 400: '#3D9FFF', 500: '#0066CC', 600: '#0052A3', 700: '#003D7A' },
-      gray: { 50: '#F7F7F7', 100: '#E1E1E1', 700: '#616161', 800: '#424242' },
-      warning: { 50: '#FFF8E1' },
-      success: { 500: '#4CAF50' },
-      border: '#EEEEEE',
-    },
-  };
+  // The real light palette: assertions read colors back off it, so they track
+  // the design tokens instead of a hand-written partial Theme.
+  const mockTheme = lightTheme;
 
   it('creates markdown styles for light theme', () => {
     const styles = createMarkdownStyles(mockTheme, false);

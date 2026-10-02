@@ -3,6 +3,7 @@ import { Alert } from 'react-native';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import * as Haptics from 'expo-haptics';
+import { ClearKeysButton } from '@/components/molecules/api-config/ClearKeysButton';
 
 jest.mock('expo-haptics', () => ({
   impactAsync: jest.fn(),
@@ -24,8 +25,6 @@ jest.mock('@/components/molecules', () => {
       React.createElement(Text, null, children),
   };
 });
-
-const { ClearKeysButton } = require('@/components/molecules/api-config/ClearKeysButton');
 
 describe('ClearKeysButton', () => {
   const mockOnPress = jest.fn();
