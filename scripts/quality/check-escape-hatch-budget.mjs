@@ -8,12 +8,12 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const BUDGETS = {
-  'src: `as unknown as`': 63,
-  'tests: `as unknown as`': 203,
+  'src: `as unknown as`': 62,
+  'tests: `as unknown as`': 164,
   'src: eslint-disable': 3,
   'tests: eslint-disable': 2,
   'all: @ts-expect-error / @ts-ignore / @ts-nocheck': 5,
-  'tests: skipped or todo tests': 1,
+  'tests: skipped or todo tests': 0,
 };
 
 const CODE = /\.(ts|tsx)$/;

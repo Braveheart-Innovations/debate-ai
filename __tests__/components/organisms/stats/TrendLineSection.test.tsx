@@ -1,17 +1,25 @@
+import type { ReactNode } from 'react';
+import type { Circle, Line, Path, Stop } from 'react-native-svg';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { fireEvent } from '@testing-library/react-native';
+import type { PropsOf } from '@test-utils/mockComponents';
+import type { Typography } from '@/components/molecules';
+import type { ChartLegend, LineChart } from '@/components/molecules/charts';
+import { TrendLineSection } from '@/components/organisms/stats/TrendLineSection';
 
 jest.mock('react-native-svg', () => {
-  const React = require('react');
+  const React = jest.requireActual<typeof import('react')>('react');
+  const container = (name: string) => ({ children }: { children?: ReactNode }) =>
+    React.createElement(name, null, children);
   return {
-    Svg: ({ children }: any) => React.createElement('Svg', null, children),
-    Path: (props: any) => React.createElement('Path', props),
-    Circle: (props: any) => React.createElement('Circle', props),
-    Line: (props: any) => React.createElement('Line', props),
-    G: ({ children }: any) => React.createElement('G', null, children),
-    Defs: ({ children }: any) => React.createElement('Defs', null, children),
-    LinearGradient: ({ children }: any) => React.createElement('LinearGradient', null, children),
-    Stop: (props: any) => React.createElement('Stop', props),
+    Svg: container('Svg'),
+    Path: (props: PropsOf<typeof Path>) => React.createElement('Path', props),
+    Circle: (props: PropsOf<typeof Circle>) => React.createElement('Circle', props),
+    Line: (props: PropsOf<typeof Line>) => React.createElement('Line', props),
+    G: container('G'),
+    Defs: container('Defs'),
+    LinearGradient: container('LinearGradient'),
+    Stop: (props: PropsOf<typeof Stop>) => React.createElement('Stop', props),
   };
 });
 
@@ -47,27 +55,29 @@ jest.mock('@/hooks/stats', () => ({
 }));
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const { stubComponent } = jest.requireActual<
+    typeof import('@test-utils/mockComponents')
+  >('@test-utils/mockComponents');
   return {
-    Typography: ({ children }: any) => React.createElement(Text, null, children),
+    Typography: stubComponent<typeof Typography>('typography', { text: (p) => p.children }),
   };
 });
 
 jest.mock('@/components/molecules/charts', () => {
-  const React = require('react');
-  const { View, Text } = require('react-native');
+  const { stubComponent } = jest.requireActual<
+    typeof import('@test-utils/mockComponents')
+  >('@test-utils/mockComponents');
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+  const React = jest.requireActual<typeof import('react')>('react');
   return {
-    LineChart: ({ lines }: any) => React.createElement(View, null,
-      lines.map((line: any, i: number) => React.createElement(Text, { key: i }, line.label))
-    ),
-    ChartLegend: ({ items }: any) => React.createElement(View, null,
-      items.map((item: any, i: number) => React.createElement(Text, { key: i }, item.label))
-    ),
+    LineChart: stubComponent<typeof LineChart>('line-chart', {
+      render: ({ lines }) => lines.map((line, i) => React.createElement(Text, { key: i }, line.label)),
+    }),
+    ChartLegend: stubComponent<typeof ChartLegend>('chart-legend', {
+      render: ({ items }) => items.map((item, i) => React.createElement(Text, { key: i }, item.label)),
+    }),
   };
 });
-
-const { TrendLineSection } = require('@/components/organisms/stats/TrendLineSection');
 
 describe('TrendLineSection', () => {
   it('renders without crashing', () => {

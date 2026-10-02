@@ -502,8 +502,7 @@ export const DebateMessageList: React.FC<DebateMessageListProps> = ({
         updateCellsBatchingPeriod={50}
         initialNumToRender={15}
         windowSize={15}
-        // Let FlatList handle dynamic heights; static getItemLayout caused disappearing content with streaming
-        getItemLayout={undefined as unknown as never}
+        // No getItemLayout: FlatList measures dynamic heights; a static layout caused disappearing content with streaming
       />
       {showScrollIndicator && (
         <Animated.View

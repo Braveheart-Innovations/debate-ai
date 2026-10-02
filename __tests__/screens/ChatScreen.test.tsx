@@ -1,9 +1,28 @@
-import { Alert } from 'react-native';
+import { Alert, Text } from 'react-native';
 import { act, fireEvent, waitFor } from '@testing-library/react-native';
+import type { ComponentProps } from 'react';
+import * as Clipboard from 'expo-clipboard';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 import { renderWithProviders } from '../../test-utils/renderWithProviders';
-import type { AIConfig } from '@/types';
-import { setRecordModeEnabled } from '@/store';
-import type { RootState } from '@/store';
+import { capturePropsOf } from '@test-utils/mockComponents';
+import { createMockAIConfig, createMockChatSession } from '@test-utils/fixtures';
+import type { AIConfig, Message } from '@/types';
+import { buildApiKeyStatus, setRecordModeEnabled } from '@/store';
+import type { AIServiceLoading, Header, HeaderActions } from '@/components/organisms';
+import type {
+  ChatInputBar,
+  ChatMentionSuggestions,
+  ChatMessageList,
+  ChatTypingIndicators,
+} from '@/components/organisms/chat';
+import type { ChatTopicPickerModal } from '@/components/organisms/demo/ChatTopicPickerModal';
+import type { DemoBanner } from '@/components/molecules/subscription/DemoBanner';
+import type ChatScreenComponent from '@/screens/ChatScreen';
+import type { AppLifecycleHandler } from '@/services/lifecycle/AppLifecycleService';
+import { requireDefined } from '@test-utils/queries';
+
+type ChatScreenProps = ComponentProps<typeof ChatScreenComponent>;
 
 const mockUseAIService = jest.fn();
 
@@ -60,71 +79,75 @@ jest.mock('@/services/chat', () => ({
   },
 }));
 
-let mockHeaderProps: any;
-let mockChatInputBarProps: any;
-let mockMessageListProps: any;
-let mockTypingIndicatorsProps: any;
-let mockMentionSuggestionsProps: any;
-let mockTopicPickerProps: any;
+const mockHeader = capturePropsOf<typeof Header>((props) => (
+  <Text testID="header-back" onPress={props.onBack}>
+    Header
+  </Text>
+));
+const mockChatInputBar = capturePropsOf<typeof ChatInputBar>(() => (
+  <Text testID="chat-input-bar">input</Text>
+));
+const mockMessageList = capturePropsOf<typeof ChatMessageList>(() => (
+  <Text testID="chat-message-list">list</Text>
+));
+const mockTypingIndicators = capturePropsOf<typeof ChatTypingIndicators>(() => (
+  <Text testID="typing-indicators">typing</Text>
+));
+const mockMentionSuggestions = capturePropsOf<typeof ChatMentionSuggestions>(() => (
+  <Text testID="mention-suggestions">mentions</Text>
+));
+const mockTopicPicker = capturePropsOf<typeof ChatTopicPickerModal>((props) => (
+  <Text testID="topic-picker">{props.visible ? 'visible' : 'hidden'}</Text>
+));
+const mockDemoBanner = capturePropsOf<typeof DemoBanner>((props) => (
+  <Text testID="demo-banner" onPress={props.onPress}>
+    banner
+  </Text>
+));
 
 jest.mock('@/components/organisms', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const { stubComponent } = jest.requireActual<typeof import('@test-utils/mockComponents')>(
+    '@test-utils/mockComponents'
+  );
   return {
-    AIServiceLoading: ({ error }: { error?: string }) =>
-      React.createElement(Text, { testID: 'ai-service-loading' }, error ? `error:${error}` : 'loading'),
-    Header: (props: any) => {
-      mockHeaderProps = props;
-      return React.createElement(Text, { testID: 'header-back', onPress: props.onBack }, 'Header');
+    AIServiceLoading: stubComponent<typeof AIServiceLoading>('ai-service-loading', {
+      text: (props) => (props.error ? `error:${props.error}` : 'loading'),
+    }),
+    get Header() {
+      return mockHeader.Stub;
     },
-    HeaderActions: () => React.createElement(Text, null, 'actions'),
+    HeaderActions: stubComponent<typeof HeaderActions>('header-actions', {
+      text: () => 'actions',
+    }),
   };
 });
 
-jest.mock('@/components/organisms/chat', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
-  return {
-    ChatMessageList: (props: any) => {
-      mockMessageListProps = props;
-      return React.createElement(Text, { testID: 'chat-message-list' }, 'list');
-    },
-    ChatInputBar: (props: any) => {
-      mockChatInputBarProps = props;
-      return React.createElement(Text, { testID: 'chat-input-bar' }, 'input');
-    },
-    ChatTypingIndicators: (props: any) => {
-      mockTypingIndicatorsProps = props;
-      return React.createElement(Text, { testID: 'typing-indicators' }, 'typing');
-    },
-    ChatMentionSuggestions: (props: any) => {
-      mockMentionSuggestionsProps = props;
-      return React.createElement(Text, { testID: 'mention-suggestions' }, 'mentions');
-    },
-  };
-});
+jest.mock('@/components/organisms/chat', () => ({
+  get ChatMessageList() {
+    return mockMessageList.Stub;
+  },
+  get ChatInputBar() {
+    return mockChatInputBar.Stub;
+  },
+  get ChatTypingIndicators() {
+    return mockTypingIndicators.Stub;
+  },
+  get ChatMentionSuggestions() {
+    return mockMentionSuggestions.Stub;
+  },
+}));
 
-jest.mock('@/components/organisms/demo/ChatTopicPickerModal', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
-  return {
-    ChatTopicPickerModal: (props: any) => {
-      mockTopicPickerProps = props;
-      return React.createElement(Text, { testID: 'topic-picker' }, props.visible ? 'visible' : 'hidden');
-    },
-  };
-});
+jest.mock('@/components/organisms/demo/ChatTopicPickerModal', () => ({
+  get ChatTopicPickerModal() {
+    return mockTopicPicker.Stub;
+  },
+}));
 
-jest.mock('@/components/molecules/subscription/DemoBanner', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
-  return {
-    DemoBanner: (props: any) => {
-      mockDemoBannerProps = props;
-      return React.createElement(Text, { testID: 'demo-banner', onPress: props.onPress }, 'banner');
-    },
-  };
-});
+jest.mock('@/components/molecules/subscription/DemoBanner', () => ({
+  get DemoBanner() {
+    return mockDemoBanner.Stub;
+  },
+}));
 
 const mockDemoContentService = {
   findChatById: jest.fn(),
@@ -187,12 +210,8 @@ jest.mock('expo-sharing', () => ({
   shareAsync: jest.fn(),
 }));
 
-const Clipboard = require('expo-clipboard');
-const FileSystem = require('expo-file-system/legacy');
-const Sharing = require('expo-sharing');
-
 const mockStreamingCancel = jest.fn();
-const mockLifecycleRegister = jest.fn(() => jest.fn());
+const mockLifecycleRegister = jest.fn<() => void, [AppLifecycleHandler]>(() => jest.fn());
 const mockSaveActiveSnapshot = jest.fn().mockResolvedValue(undefined);
 const mockLoadActiveSnapshot = jest.fn().mockResolvedValue(null);
 const mockLoadLatestActiveSnapshot = jest.fn().mockResolvedValue(null);
@@ -206,7 +225,7 @@ jest.mock('@/services/streaming/StreamingService', () => ({
 
 jest.mock('@/services/lifecycle/AppLifecycleService', () => ({
   AppLifecycleService: {
-    register: (...args: unknown[]) => mockLifecycleRegister(...args),
+    register: (handler: AppLifecycleHandler) => mockLifecycleRegister(handler),
   },
 }));
 
@@ -219,21 +238,83 @@ jest.mock('@/services/lifecycle/ActiveSessionPersistenceService', () => ({
   },
 }));
 
-const ChatScreen = require('@/screens/ChatScreen').default;
+const ChatScreen: typeof ChatScreenComponent = require('@/screens/ChatScreen').default;
 
 describe('ChatScreen', () => {
   let consoleWarnSpy: jest.SpyInstance;
   let consoleErrorSpy: jest.SpyInstance;
   let navigation: { goBack: jest.Mock; navigate: jest.Mock };
-  let route: { params: { sessionId: string; searchTerm?: string } };
-  let alertSpy: jest.SpyInstance;
+  let route: ChatScreenProps['route'];
+  let alertSpy: jest.SpiedFunction<typeof Alert.alert>;
   let selectedAIs: AIConfig[];
-  let mockSession: any;
-  let mockMessages: any;
-  let mockInput: any;
-  let mockMentionsApi: any;
-  let mockAIResponsesData: any;
-  let mockQuickStartData: any;
+  let mockSession: ReturnType<typeof createSessionHookMock>;
+  let mockMessages: ReturnType<typeof createMessagesHookMock>;
+  let mockInput: ReturnType<typeof createInputHookMock>;
+  let mockMentionsApi: ReturnType<typeof createMentionsHookMock>;
+  let mockAIResponsesData: ReturnType<typeof createAIResponsesHookMock>;
+  let mockQuickStartData: ReturnType<typeof createQuickStartHookMock>;
+
+  const createSessionHookMock = (ais: AIConfig[]) => ({
+    currentSession: createMockChatSession({
+      id: 'session-1',
+      selectedAIs: ais,
+      messages: [],
+      isActive: true,
+      sessionType: 'chat',
+    }),
+    selectedAIs: ais,
+    isActive: true,
+    sessionId: 'session-1',
+    loadSession: jest.fn().mockResolvedValue(undefined),
+    saveSession: jest.fn().mockResolvedValue(undefined),
+    endSession: jest.fn(),
+  });
+
+  const createMessagesHookMock = () => {
+    const messages: Message[] = [];
+    return {
+      messages,
+      flatListRef: { current: null },
+      sendMessage: jest.fn(),
+      scrollToBottom: jest.fn(),
+      scrollToMessage: jest.fn(),
+      hasMessages: false,
+      lastMessage: null,
+      getMessageStats: jest.fn(),
+    };
+  };
+
+  const createInputHookMock = () => ({
+    inputText: 'Hello world  ',
+    setInputText: jest.fn(),
+    handleInputChange: jest.fn(),
+    clearInput: jest.fn(),
+    dismissKeyboard: jest.fn(),
+  });
+
+  const createMentionsHookMock = () => ({
+    showMentions: false,
+    setShowMentions: jest.fn(),
+    insertMention: jest.fn(),
+    parseMentions: jest.fn().mockReturnValue(['claude']),
+    detectMentionTrigger: jest.fn((text: string) => text.includes('@')),
+  });
+
+  const createAIResponsesHookMock = () => ({
+    typingAIs: ['Claude'],
+    isProcessing: false,
+    sendAIResponses: jest.fn().mockResolvedValue(undefined),
+    sendQuickStartResponses: jest.fn().mockResolvedValue(undefined),
+    retryAIResponses: jest.fn().mockResolvedValue(undefined),
+  });
+
+  const createQuickStartHookMock = () => ({
+    hasInitialPrompt: false,
+    shouldAutoSend: false,
+    initialPromptSent: false,
+    handleQuickStart: jest.fn(),
+    resetQuickStart: jest.fn(),
+  });
 
   const buildFeatureAccess = (overrides: Record<string, unknown> = {}) => ({
     loading: false,
@@ -263,7 +344,7 @@ describe('ChatScreen', () => {
     navigation = {
       goBack: jest.fn(),
       navigate: jest.fn(),
-    } as { goBack: jest.Mock; navigate: jest.Mock };
+    };
 
     route = {
       params: {
@@ -275,80 +356,28 @@ describe('ChatScreen', () => {
     alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
 
     selectedAIs = [
-      {
+      createMockAIConfig({
         id: 'claude',
         name: 'Claude',
-        provider: 'anthropic',
+        provider: 'claude',
         model: 'claude-3-opus',
         color: '#000',
-      },
-      {
+      }),
+      createMockAIConfig({
         id: 'gpt4',
         name: 'GPT-4',
         provider: 'openai',
         model: 'gpt-4-turbo',
         color: '#111',
-      },
+      }),
     ];
 
-    mockSession = {
-      currentSession: {
-        id: 'session-1',
-        selectedAIs,
-        messages: [],
-        isActive: true,
-        sessionType: 'chat',
-      },
-      selectedAIs,
-      isActive: true,
-      sessionId: 'session-1',
-      loadSession: jest.fn().mockResolvedValue(undefined),
-      saveSession: jest.fn().mockResolvedValue(undefined),
-      endSession: jest.fn(),
-    };
-
-    mockMessages = {
-      messages: [],
-      flatListRef: { current: null },
-      sendMessage: jest.fn(),
-      scrollToBottom: jest.fn(),
-      scrollToMessage: jest.fn(),
-      hasMessages: false,
-      lastMessage: null,
-      getMessageStats: jest.fn(),
-    };
-
-    mockInput = {
-      inputText: 'Hello world  ',
-      setInputText: jest.fn(),
-      handleInputChange: jest.fn(),
-      clearInput: jest.fn(),
-      dismissKeyboard: jest.fn(),
-    };
-
-    mockMentionsApi = {
-      showMentions: false,
-      setShowMentions: jest.fn(),
-      insertMention: jest.fn(),
-      parseMentions: jest.fn().mockReturnValue(['claude']),
-      detectMentionTrigger: jest.fn((text: string) => text.includes('@')),
-    };
-
-    mockAIResponsesData = {
-      typingAIs: ['Claude'],
-      isProcessing: false,
-      sendAIResponses: jest.fn().mockResolvedValue(undefined),
-      sendQuickStartResponses: jest.fn().mockResolvedValue(undefined),
-      retryAIResponses: jest.fn().mockResolvedValue(undefined),
-    };
-
-    mockQuickStartData = {
-      hasInitialPrompt: false,
-      shouldAutoSend: false,
-      initialPromptSent: false,
-      handleQuickStart: jest.fn(),
-      resetQuickStart: jest.fn(),
-    };
+    mockSession = createSessionHookMock(selectedAIs);
+    mockMessages = createMessagesHookMock();
+    mockInput = createInputHookMock();
+    mockMentionsApi = createMentionsHookMock();
+    mockAIResponsesData = createAIResponsesHookMock();
+    mockQuickStartData = createQuickStartHookMock();
 
     mockUseChatSession.mockReturnValue(mockSession);
     mockUseChatMessages.mockReturnValue(mockMessages);
@@ -411,13 +440,13 @@ describe('ChatScreen', () => {
     mockLoadLatestActiveSnapshot.mockResolvedValue(null);
     mockClearActiveSnapshot.mockClear();
     mockClearActiveSnapshot.mockResolvedValue(undefined);
-    mockHeaderProps = undefined;
-    mockChatInputBarProps = undefined;
-    mockMessageListProps = undefined;
-    mockTypingIndicatorsProps = undefined;
-    mockMentionSuggestionsProps = undefined;
-    mockDemoBannerProps = undefined;
-    mockTopicPickerProps = undefined;
+    mockHeader.reset();
+    mockChatInputBar.reset();
+    mockMessageList.reset();
+    mockTypingIndicators.reset();
+    mockMentionSuggestions.reset();
+    mockDemoBanner.reset();
+    mockTopicPicker.reset();
   });
 
   afterEach(() => {
@@ -437,7 +466,7 @@ describe('ChatScreen', () => {
     );
 
     expect(getByTestId('ai-service-loading')).toBeTruthy();
-    expect(mockHeaderProps).toBeUndefined();
+    expect(mockHeader.calls).toHaveLength(0);
   });
 
   it('renders chat layout and wires primary interactions', async () => {
@@ -446,39 +475,39 @@ describe('ChatScreen', () => {
     );
 
     expect(getByTestId('chat-message-list')).toBeTruthy();
-    expect(mockHeaderProps.title).toBe('The Forum');
-    expect(mockHeaderProps.slim).toBe(true);
+    expect(mockHeader.latest().title).toBe('The Forum');
+    expect(mockHeader.latest().slim).toBe(true);
     expect(getByText('Claude meets GPT-4')).toBeTruthy();
 
     fireEvent.press(getByTestId('header-back'));
     expect(navigation.goBack).toHaveBeenCalledTimes(1);
 
     expect(mockGetAttachmentSupport).toHaveBeenCalledWith(selectedAIs);
-    expect(mockChatInputBarProps.attachmentSupport).toEqual({ images: true, documents: false });
+    expect(mockChatInputBar.latest().attachmentSupport).toEqual({ images: true, documents: false });
 
     act(() => {
-      mockMessageListProps.onScrollToSearchResult(2);
+      requireDefined(mockMessageList.latest().onScrollToSearchResult, 'onScrollToSearchResult')(2);
     });
     expect(mockMessages.scrollToMessage).toHaveBeenCalledWith(2);
 
-    expect(mockMessageListProps.onContentSizeChange).toBeUndefined();
+    expect(mockMessageList.latest().onContentSizeChange).toBeUndefined();
 
-    expect(mockTypingIndicatorsProps.typingAIs).toEqual(['Claude']);
+    expect(mockTypingIndicators.latest().typingAIs).toEqual(['Claude']);
 
     act(() => {
-      mockChatInputBarProps.onInputChange('Ping @');
+      mockChatInputBar.latest().onInputChange('Ping @');
     });
     expect(mockInput.handleInputChange).toHaveBeenCalledWith('Ping @');
     expect(mockMentionsApi.detectMentionTrigger).toHaveBeenCalledWith('Ping @');
     expect(mockMentionsApi.setShowMentions).toHaveBeenCalledWith(true);
 
     act(() => {
-      mockMentionSuggestionsProps.onSelectMention('Claude');
+      mockMentionSuggestions.latest().onSelectMention('Claude');
     });
     expect(mockMentionsApi.insertMention).toHaveBeenCalledWith('Claude', 'Hello world  ', mockInput.setInputText);
 
     await act(async () => {
-      await mockChatInputBarProps.onSend('Custom message');
+      await mockChatInputBar.latest().onSend('Custom message');
     });
 
     expect(mockMentionsApi.parseMentions).toHaveBeenCalledWith('Custom message');
@@ -513,7 +542,7 @@ describe('ChatScreen', () => {
     );
 
     act(() => {
-      mockChatInputBarProps.onStop();
+      requireDefined(mockChatInputBar.latest().onStop, 'onStop')();
     });
     expect(mockStreamingCancel).toHaveBeenCalledTimes(1);
 
@@ -566,20 +595,18 @@ describe('ChatScreen', () => {
             totalStreamsCompleted: 0,
             providerVerificationErrors: {},
           },
-        } as Partial<RootState>,
+        },
       }
     );
 
     const handler = mockLifecycleRegister.mock.calls
       .map(call => call[0])
-      .find((entry: { id?: string }) => entry.id === 'chat-session-1') as {
-        onBackground?: (reason: string) => Promise<void>;
-        onForeground?: () => Promise<void>;
-      };
+      .find(entry => entry.id === 'chat-session-1');
     expect(handler).toBeTruthy();
+    if (!handler) throw new Error('chat lifecycle handler was not registered');
 
     await act(async () => {
-      await handler.onBackground?.('background');
+      await requireDefined(handler.onBackground, 'onBackground')('background');
     });
 
     const savedSnapshot = mockSaveActiveSnapshot.mock.calls[mockSaveActiveSnapshot.mock.calls.length - 1][0];
@@ -598,7 +625,7 @@ describe('ChatScreen', () => {
     });
 
     await act(async () => {
-      await handler.onForeground?.();
+      await requireDefined(handler.onForeground, 'onForeground')();
     });
 
     expect(queryByText(/last response was interrupted/i)).toBeNull();
@@ -691,7 +718,7 @@ describe('ChatScreen', () => {
 
     expect(queryByTestId('ai-service-loading')).toBeNull();
     expect(getByTestId('chat-message-list')).toBeTruthy();
-    expect(mockMessageListProps.messages).toEqual([]);
+    expect(mockMessageList.latest().messages).toEqual([]);
     expect(queryByText('Claude, GPT-4 & 2 others')).toBeNull();
 
     await waitFor(() => {
@@ -710,8 +737,7 @@ describe('ChatScreen', () => {
           settings: {
             theme: 'auto',
             fontSize: 'medium',
-            apiKeys: { openai: 'test-key' },
-            realtimeRelayUrl: undefined,
+            apiKeys: { openai: buildApiKeyStatus('test-key') },
             verifiedProviders: [],
             verificationTimestamps: {},
             verificationModels: {},
@@ -719,12 +745,12 @@ describe('ChatScreen', () => {
             hasCompletedOnboarding: false,
             recordModeEnabled: false,
           },
-        } as Partial<RootState>,
+        },
       }
     );
 
     await act(async () => {
-      await mockChatInputBarProps.onSend('Demo message');
+      await mockChatInputBar.latest().onSend('Demo message');
     });
 
     expect(store.getState().navigation.activeSheet).toBe('subscription');
@@ -738,7 +764,7 @@ describe('ChatScreen', () => {
 
     const demoSample = { id: 'sample-123', transcript: [] };
     mockDemoContentService.findChatById.mockResolvedValue(demoSample);
-    mockDemoPlaybackRouter.primeNextChatTurn.mockReturnValue({ user: 'Scripted intro', providers: ['anthropic'] });
+    mockDemoPlaybackRouter.primeNextChatTurn.mockReturnValue({ user: 'Scripted intro', providers: ['claude'] });
 
     renderWithProviders(
       <ChatScreen navigation={navigation} route={route} />
@@ -765,8 +791,7 @@ describe('ChatScreen', () => {
           settings: {
             theme: 'auto',
             fontSize: 'medium',
-            apiKeys: { openai: 'demo-key' },
-            realtimeRelayUrl: undefined,
+            apiKeys: { openai: buildApiKeyStatus('demo-key') },
             verifiedProviders: [],
             verificationTimestamps: {},
             verificationModels: {},
@@ -774,7 +799,7 @@ describe('ChatScreen', () => {
             hasCompletedOnboarding: false,
             recordModeEnabled: false,
           },
-        } as Partial<RootState>,
+        },
       }
     );
 
@@ -783,20 +808,20 @@ describe('ChatScreen', () => {
     });
 
     await waitFor(() => {
-      expect(mockHeaderProps.actionButton?.label).toBe('Record');
+      expect(mockHeader.latest().actionButton?.label).toBe('Record');
     });
 
     act(() => {
-      mockHeaderProps.actionButton.onPress();
+      mockHeader.latest().actionButton?.onPress();
     });
 
-    expect(mockTopicPickerProps).toMatchObject({ visible: true });
-    expect(mockTopicPickerProps.providers).toEqual(selectedAIs.map(ai => ai.provider));
+    expect(mockTopicPicker.latest()).toMatchObject({ visible: true });
+    expect(mockTopicPicker.latest().providers).toEqual(selectedAIs.map(ai => ai.provider));
 
     mockRecordController.startChat.mockImplementation(() => undefined);
 
     await act(async () => {
-      await mockTopicPickerProps.onSelect('new:fresh-topic', 'Fresh Topic');
+      await mockTopicPicker.latest().onSelect('new:fresh-topic', 'Fresh Topic');
     });
 
     expect(mockRecordController.startChat).toHaveBeenCalledWith(expect.objectContaining({
@@ -805,21 +830,21 @@ describe('ChatScreen', () => {
       comboKey: 'anthropic-openai',
     }));
 
-    expect(mockTopicPickerProps.visible).toBe(false);
+    expect(mockTopicPicker.latest().visible).toBe(false);
 
     await waitFor(() => {
-      expect(mockHeaderProps.actionButton.label).toBe('Stop');
+      expect(mockHeader.latest().actionButton?.label).toBe('Stop');
     });
 
     mockRecordController.stop.mockReturnValue({
       session: { id: 'recording-123', transcript: [] },
-    } as any);
-    (Clipboard.setStringAsync as jest.Mock).mockClear();
-    (FileSystem.writeAsStringAsync as jest.Mock).mockResolvedValue(undefined);
-    (Sharing.isAvailableAsync as jest.Mock).mockResolvedValue(false);
+    });
+    jest.mocked(Clipboard.setStringAsync).mockClear();
+    jest.mocked(FileSystem.writeAsStringAsync).mockResolvedValue(undefined);
+    jest.mocked(Sharing.isAvailableAsync).mockResolvedValue(false);
 
     await act(async () => {
-      await mockHeaderProps.actionButton.onPress();
+      await mockHeader.latest().actionButton?.onPress();
     });
 
     expect(mockRecordController.stop).toHaveBeenCalled();
@@ -831,11 +856,11 @@ describe('ChatScreen', () => {
       expect.any(Array),
     );
 
-    const buttons = alertSpy.mock.calls[0][2] as Array<{ text: string; onPress?: () => void }>;
+    const buttons = alertSpy.mock.calls[0][2] ?? [];
     const appendButton = buttons.find(btn => btn.text === 'Append to Pack (dev)');
 
     await act(async () => {
-      await appendButton?.onPress?.();
+      await requireDefined(requireDefined(appendButton, 'Append to Pack button').onPress, 'onPress')();
     });
 
     expect(mockAppendToPack).toHaveBeenCalledWith(expect.objectContaining({ id: 'recording-123' }));
@@ -846,8 +871,8 @@ describe('ChatScreen', () => {
     mockUseFeatureAccess.mockReturnValue(buildFeatureAccess({ isDemo: true }));
     mockRecordController.startChat.mockImplementation(() => undefined);
     const sampleData = { id: 'sample-existing', transcript: [] };
-    mockDemoContentService.findChatById.mockResolvedValue(sampleData as any);
-    mockDemoPlaybackRouter.primeNextChatTurn.mockReturnValue({ user: 'Sample turn', providers: ['anthropic'] });
+    mockDemoContentService.findChatById.mockResolvedValue(sampleData);
+    mockDemoPlaybackRouter.primeNextChatTurn.mockReturnValue({ user: 'Sample turn', providers: ['claude'] });
 
     const { store } = renderWithProviders(
       <ChatScreen navigation={navigation} route={route} />
@@ -858,15 +883,15 @@ describe('ChatScreen', () => {
     });
 
     await waitFor(() => {
-      expect(mockHeaderProps.actionButton?.label).toBe('Record');
+      expect(mockHeader.latest().actionButton?.label).toBe('Record');
     });
 
     act(() => {
-      mockHeaderProps.actionButton.onPress();
+      mockHeader.latest().actionButton?.onPress();
     });
 
     await act(async () => {
-      await mockTopicPickerProps.onSelect('sample-existing', 'Existing Title');
+      await mockTopicPicker.latest().onSelect('sample-existing', 'Existing Title');
     });
 
     expect(mockRecordController.startChat).toHaveBeenCalledWith(expect.objectContaining({
@@ -882,7 +907,7 @@ describe('ChatScreen', () => {
     );
 
     await act(async () => {
-      await mockChatInputBarProps.onSend('   ');
+      await mockChatInputBar.latest().onSend('   ');
     });
 
     expect(mockMessages.sendMessage).not.toHaveBeenCalled();
@@ -901,7 +926,7 @@ describe('ChatScreen', () => {
     );
 
     await act(async () => {
-      await mockChatInputBarProps.onSend('Hello there');
+      await mockChatInputBar.latest().onSend('Hello there');
     });
 
     expect(mockMessages.sendMessage).not.toHaveBeenCalled();

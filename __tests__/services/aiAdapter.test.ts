@@ -1,13 +1,29 @@
 import { AIFactory, AIService, PERSONALITIES } from '@/services/aiAdapter';
-import { AdapterFactory } from '@/services/ai';
+import { AdapterFactory, MockAdapter } from '@/services/ai';
+import type { ResumptionContext } from '@/services/ai';
+import { createMockAttachment, createMockMessage } from '@test-utils/fixtures';
 
 const mockCreate = jest.spyOn(AdapterFactory, 'create');
 
-const buildAdapter = () => ({
-  config: { model: 'gpt-4o', isDebateMode: false },
-  setTemporaryPersonality: jest.fn(),
-  sendMessage: jest.fn().mockResolvedValue({ response: 'hi', modelUsed: 'gpt-4o' }),
-});
+/** A real adapter instance whose network-facing methods are spied. */
+const buildAdapter = () => {
+  const adapter = new MockAdapter({
+    provider: 'openai',
+    apiKey: 'key',
+    model: 'gpt-4o',
+    isDebateMode: false,
+  });
+  const setTemporaryPersonality = jest.spyOn(adapter, 'setTemporaryPersonality');
+  const sendMessage = jest
+    .spyOn(adapter, 'sendMessage')
+    .mockResolvedValue({ response: 'hi', modelUsed: 'gpt-4o' });
+  return { adapter, setTemporaryPersonality, sendMessage };
+};
+
+const resumptionContext: ResumptionContext = {
+  originalPrompt: createMockMessage({ content: 'Original prompt' }),
+  isResuming: true,
+};
 
 describe('aiAdapter compatibility layer', () => {
   beforeEach(() => {
@@ -16,23 +32,23 @@ describe('aiAdapter compatibility layer', () => {
   });
 
   it('delegates factory creation', () => {
-    const adapter = buildAdapter();
-    mockCreate.mockReturnValue(adapter as any);
-    const created = AIFactory.create({ provider: 'openai', apiKey: 'key' } as any);
+    const { adapter } = buildAdapter();
+    mockCreate.mockReturnValue(adapter);
+    const created = AIFactory.create({ provider: 'openai', apiKey: 'key' });
     expect(created).toBe(adapter);
     expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ provider: 'openai' }));
   });
 
   it('initializes adapters synchronously with provided API keys', () => {
-    const adapter = buildAdapter();
-    mockCreate.mockReturnValue(adapter as any);
+    const { adapter } = buildAdapter();
+    mockCreate.mockReturnValue(adapter);
     const service = new AIService({ openai: 'key', google: undefined });
     expect(service.getAdapter('openai')).toBe(adapter);
     expect(service.getAdapter('google')).toBeUndefined();
   });
 
   it('initializes mock adapters when no API keys provided', async () => {
-    mockCreate.mockReturnValue(buildAdapter() as any);
+    mockCreate.mockReturnValue(buildAdapter().adapter);
     const service = new AIService();
     await service.initialize();
     expect(service.getAdapter('openai')).toBeDefined();
@@ -40,30 +56,30 @@ describe('aiAdapter compatibility layer', () => {
   });
 
   it('sets personality and sends messages with overloaded arguments', async () => {
-    const adapter = buildAdapter();
-    mockCreate.mockReturnValue(adapter as any);
+    const { adapter, setTemporaryPersonality, sendMessage } = buildAdapter();
+    mockCreate.mockReturnValue(adapter);
     const service = new AIService({ openai: 'key' });
 
     const personality = { ...PERSONALITIES.neutral, id: 'custom' };
     service.setPersonality('openai', personality);
-    expect(adapter.setTemporaryPersonality).toHaveBeenCalledWith(personality);
+    expect(setTemporaryPersonality).toHaveBeenCalledWith(personality);
 
     await service.sendMessage(
       'openai',
       'Hello',
-      [{ role: 'user', content: 'Hi' } as any],
+      [createMockMessage({ content: 'Hi' })],
       personality,
-      { resume: true } as any,
-      [{ type: 'document', mimeType: 'application/pdf' } as any],
+      resumptionContext,
+      [createMockAttachment({ type: 'document', mimeType: 'application/pdf' })],
       'gpt-5'
     );
 
     expect(adapter.config.model).toBe('gpt-5');
     expect(adapter.config.isDebateMode).toBe(false);
-    expect(adapter.sendMessage).toHaveBeenCalledWith(
+    expect(sendMessage).toHaveBeenCalledWith(
       'Hello',
       expect.any(Array),
-      { resume: true },
+      resumptionContext,
       expect.any(Array),
       'gpt-5'
     );
@@ -84,16 +100,16 @@ describe('aiAdapter compatibility layer', () => {
     expect(service.getAdapter('openai')).toBeUndefined();
     expect(warnSpy).toHaveBeenCalledWith('Failed to create adapter for openai:', expect.any(Error));
 
-    await service.initialize({ claude: 'key' } as any);
+    await service.initialize({ claude: 'key' });
     expect(warnSpy).toHaveBeenCalledWith('Failed to create adapter for claude:', expect.any(Error));
 
     warnSpy.mockRestore();
   });
 
   it('parses overloaded arguments including debate mode and model switches', async () => {
-    const adapter = buildAdapter();
-    adapter.sendMessage.mockResolvedValue('ok');
-    mockCreate.mockReturnValue(adapter as any);
+    const { adapter, sendMessage } = buildAdapter();
+    sendMessage.mockResolvedValue('ok');
+    mockCreate.mockReturnValue(adapter);
 
     const service = new AIService({ openai: 'key' });
 
@@ -103,20 +119,20 @@ describe('aiAdapter compatibility layer', () => {
       undefined,
       true,
       'gpt-4o-mini',
-      { temperature: 0.2 } as any,
+      { temperature: 0.2 },
       false
     );
 
     expect(adapter.config.model).toBe('gpt-4o-mini');
     expect(adapter.config.isDebateMode).toBe(false);
     expect(adapter.config.parameters).toEqual({ temperature: 0.2 });
-    expect(adapter.sendMessage).toHaveBeenCalledWith('Ping', undefined, undefined, undefined, 'gpt-4o-mini');
+    expect(sendMessage).toHaveBeenCalledWith('Ping', undefined, undefined, undefined, 'gpt-4o-mini');
     expect(result).toEqual({ response: 'ok', modelUsed: 'gpt-4o-mini' });
   });
 
   it('ignores non-image attachments in overloaded sendMessage path', async () => {
-    const adapter = buildAdapter();
-    mockCreate.mockReturnValue(adapter as any);
+    const { adapter, sendMessage } = buildAdapter();
+    mockCreate.mockReturnValue(adapter);
     const service = new AIService({ openai: 'key' });
 
     await service.sendMessage(
@@ -124,15 +140,15 @@ describe('aiAdapter compatibility layer', () => {
       'With attachment',
       undefined,
       undefined,
-      { resume: true } as any,
-      [{ type: 'video', uri: 'file://clip.mp4', mimeType: 'video/mp4' } as any],
+      resumptionContext,
+      [createMockAttachment({ type: 'video', uri: 'file://clip.mp4', mimeType: 'video/mp4' })],
       undefined
     );
 
-    expect(adapter.sendMessage).toHaveBeenCalledWith(
+    expect(sendMessage).toHaveBeenCalledWith(
       'With attachment',
       undefined,
-      { resume: true },
+      resumptionContext,
       undefined,
       undefined
     );

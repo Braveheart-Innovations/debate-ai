@@ -7,7 +7,9 @@ import React from 'react';
 import { fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { VotingInterface } from '@/components/organisms/debate/VotingInterface';
-import { AI } from '@/types';
+import type { AI } from '@/types';
+import type { AIProviderTile, Typography } from '@/components/molecules';
+import { createMockAIConfig, createMockScoreBoard } from '@test-utils/fixtures';
 
 jest.mock('expo-blur', () => ({
   BlurView: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -18,16 +20,18 @@ jest.mock('expo-linear-gradient', () => ({
 }));
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text, TouchableOpacity } = require('react-native');
+  const { stubComponent } = jest.requireActual<
+    typeof import('@test-utils/mockComponents')
+  >('@test-utils/mockComponents');
   return {
-    Typography: ({ children, ...props }: any) =>
-      React.createElement(Text, { testID: props.testID || 'typography' }, children),
-    AIProviderTile: ({ ai, onPress }: any) =>
-      React.createElement(TouchableOpacity, {
-        testID: `ai-tile-${ai.id}`,
-        onPress: () => onPress?.(),
-      }, React.createElement(Text, null, ai.name)),
+    Typography: stubComponent<typeof Typography>('typography', {
+      text: (p) => p.children,
+    }),
+    AIProviderTile: stubComponent<typeof AIProviderTile>('ai-tile', {
+      testID: (p) => `ai-tile-${p.ai.id}`,
+      onPress: (p) => () => p.onPress?.(),
+      text: (p) => p.ai.name,
+    }),
   };
 });
 
@@ -35,14 +39,20 @@ describe('VotingInterface', () => {
   const mockOnVote = jest.fn();
 
   const mockParticipants: AI[] = [
-    { id: 'claude', name: 'Claude', provider: 'anthropic', color: '#6366F1' },
-    { id: 'chatgpt', name: 'ChatGPT', provider: 'openai', color: '#10A37F' },
+    createMockAIConfig({ id: 'claude', name: 'Claude', provider: 'claude', color: '#6366F1' }),
+    createMockAIConfig({
+      id: 'chatgpt',
+      name: 'ChatGPT',
+      provider: 'openai',
+      model: 'gpt-5.6-sol',
+      color: '#10A37F',
+    }),
   ];
 
-  const mockScores = {
+  const mockScores = createMockScoreBoard({
     claude: { name: 'Claude', roundWins: 2 },
     chatgpt: { name: 'ChatGPT', roundWins: 1 },
-  };
+  });
 
   const defaultProps = {
     participants: mockParticipants,
@@ -216,7 +226,7 @@ describe('VotingInterface', () => {
 
     it('handles participants without color', () => {
       const participantsNoColor: AI[] = [
-        { id: 'claude', name: 'Claude', provider: 'anthropic' },
+        createMockAIConfig({ id: 'claude', name: 'Claude', provider: 'claude' }),
       ];
 
       const { getByTestId } = renderWithProviders(
@@ -237,10 +247,10 @@ describe('VotingInterface', () => {
     });
 
     it('handles scores with zero round wins', () => {
-      const zeroScores = {
+      const zeroScores = createMockScoreBoard({
         claude: { name: 'Claude', roundWins: 0 },
         chatgpt: { name: 'ChatGPT', roundWins: 0 },
-      };
+      });
 
       const { getAllByText } = renderWithProviders(
         <VotingInterface
@@ -286,15 +296,16 @@ describe('VotingInterface', () => {
     });
 
     it('handles partial scores object', () => {
-      const partialScores = {
+      // Only Claude has a row; ChatGPT's missing entry must fall back to 0.
+      const partialScores = createMockScoreBoard({
         claude: { name: 'Claude', roundWins: 2 },
-      };
+      });
 
       const { getByText } = renderWithProviders(
         <VotingInterface
           {...defaultProps}
           isOverallVote={true}
-          scores={partialScores as any}
+          scores={partialScores}
         />
       );
 
@@ -308,10 +319,10 @@ describe('VotingInterface', () => {
 
       expect(getByText('2')).toBeTruthy();
 
-      const newScores = {
+      const newScores = createMockScoreBoard({
         claude: { name: 'Claude', roundWins: 3 },
         chatgpt: { name: 'ChatGPT', roundWins: 2 },
-      };
+      });
 
       rerender(
         <VotingInterface {...defaultProps} isOverallVote={true} scores={newScores} />

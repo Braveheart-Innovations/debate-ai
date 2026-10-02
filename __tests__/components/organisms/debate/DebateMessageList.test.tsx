@@ -3,61 +3,101 @@
  * Comprehensive tests for the debate message list component
  */
 
-import { act, fireEvent } from '@testing-library/react-native';
+import { FlatList, Text, View } from 'react-native';
+import { act, fireEvent, screen } from '@testing-library/react-native';
+import type { Ionicons } from '@expo/vector-icons';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { DebateMessageList } from '@/components/organisms/debate/DebateMessageList';
-import { Message } from '@/types';
+import type { Box } from '@/components/atoms';
+import type {
+  DebateMessageBubble,
+  DebateTypingIndicator,
+  Typography,
+} from '@/components/molecules';
+import type { SystemAnnouncement } from '@/components/organisms/debate/SystemAnnouncement';
+import type { Message } from '@/types';
+import { createMockAIMessage, createMockMessage } from '@test-utils/fixtures';
 
 // Mock dependencies
 jest.mock('@expo/vector-icons', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const { stubComponent } = jest.requireActual<
+    typeof import('@test-utils/mockComponents')
+  >('@test-utils/mockComponents');
   return {
-    Ionicons: ({ name }: any) => React.createElement(Text, null, name),
+    Ionicons: stubComponent<typeof Ionicons>('ionicons', { text: (p) => p.name }),
   };
 });
 jest.mock('@/components/atoms', () => {
-  const React = require('react');
-  const { View } = require('react-native');
+  const { stubComponent } = jest.requireActual<
+    typeof import('@test-utils/mockComponents')
+  >('@test-utils/mockComponents');
   return {
-    Box: ({ children, ...props }: any) =>
-      React.createElement(View, { testID: 'box', ...props }, children),
+    Box: stubComponent<typeof Box>('box', {
+      testID: (p) => p.testID ?? 'box',
+      render: (p) => p.children,
+    }),
   };
 });
 
 jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text, TouchableOpacity, View } = require('react-native');
+  const { stubComponent } = jest.requireActual<
+    typeof import('@test-utils/mockComponents')
+  >('@test-utils/mockComponents');
+  const RN = jest.requireActual<typeof import('react-native')>('react-native');
   return {
-    Typography: ({ children, ...props }: any) =>
-      React.createElement(Text, { testID: props.testID || 'typography' }, children),
-    DebateMessageBubble: ({ message, onReportContent }: any) =>
-      React.createElement(View, { testID: `message-${message.id}` },
-        React.createElement(Text, null, message.content),
-        onReportContent
-          ? React.createElement(TouchableOpacity, { testID: `report-message-${message.id}`, onPress: () => onReportContent(message) }, React.createElement(Text, null, 'Report'))
-          : null
-      ),
-    DebateTypingIndicator: ({ aiName }: any) =>
-      React.createElement(View, { testID: `typing-${aiName}` },
-        React.createElement(Text, null, `${aiName} is typing...`)
-      ),
+    Typography: stubComponent<typeof Typography>('typography', {
+      text: (p) => p.children,
+    }),
+    DebateMessageBubble: stubComponent<typeof DebateMessageBubble>('message', {
+      testID: (p) => `message-${p.message.id}`,
+      text: (p) => p.message.content,
+      render: ({ message, onReportContent }) =>
+        onReportContent ? (
+          <RN.TouchableOpacity
+            testID={`report-message-${message.id}`}
+            onPress={() => onReportContent(message)}
+          >
+            <RN.Text>Report</RN.Text>
+          </RN.TouchableOpacity>
+        ) : null,
+    }),
+    DebateTypingIndicator: stubComponent<typeof DebateTypingIndicator>('typing', {
+      testID: (p) => `typing-${p.aiName}`,
+      text: (p) => `${p.aiName} is typing...`,
+    }),
   };
 });
 
-jest.mock('@/components/organisms/debate/SystemAnnouncement', () => ({
-  SystemAnnouncement: ({ content, label, type, onReportContent }: { content: string; label?: string; type: string; onReportContent?: () => void }) => {
-    const React = require('react');
-    const { View, Text, TouchableOpacity } = require('react-native');
-    return React.createElement(View, { testID: `system-${type}` },
-      label ? React.createElement(Text, null, label) : null,
-      React.createElement(Text, null, content),
-      onReportContent
-        ? React.createElement(TouchableOpacity, { testID: `report-system-${type}`, onPress: onReportContent }, React.createElement(Text, null, 'Report System'))
-        : null
-    );
-  },
-}));
+jest.mock('@/components/organisms/debate/SystemAnnouncement', () => {
+  const { stubComponent } = jest.requireActual<
+    typeof import('@test-utils/mockComponents')
+  >('@test-utils/mockComponents');
+  const RN = jest.requireActual<typeof import('react-native')>('react-native');
+  return {
+    SystemAnnouncement: stubComponent<typeof SystemAnnouncement>('system', {
+      testID: (p) => `system-${p.type}`,
+      render: ({ label, content, type, onReportContent }) => (
+        <>
+          {label ? <RN.Text>{label}</RN.Text> : null}
+          <RN.Text>{content}</RN.Text>
+          {onReportContent ? (
+            <RN.TouchableOpacity testID={`report-system-${type}`} onPress={onReportContent}>
+              <RN.Text>Report System</RN.Text>
+            </RN.TouchableOpacity>
+          ) : null}
+        </>
+      ),
+    }),
+  };
+});
+
+/** A debate turn from an AI participant (DebateMessageBubble path). */
+const aiTurn = (id: string, sender: string, content: string): Message =>
+  createMockAIMessage({ id, sender, content, metadata: undefined, timestamp: Date.now() });
+
+/** A host/system line (SystemAnnouncement path); the orchestrator sends these as senderType 'user'. */
+const hostLine = (id: string, sender: 'Debate Host' | 'System', content: string): Message =>
+  createMockMessage({ id, sender, content, senderType: 'user', timestamp: Date.now() });
 
 const flushScheduledScroll = () => {
   act(() => {
@@ -73,11 +113,11 @@ const advanceScrollIndicatorDelay = (ms = 650) => {
 
 describe('DebateMessageList', () => {
   const mockMessages: Message[] = [
-    { id: '1', sender: 'Claude', content: 'Opening argument', timestamp: new Date() },
-    { id: '2', sender: 'ChatGPT', content: 'Counter argument', timestamp: new Date() },
-    { id: '3', sender: 'Debate Host', content: '"Is AI beneficial?"', timestamp: new Date() },
-    { id: '4', sender: 'Debate Host', content: 'Claude opens the debate', timestamp: new Date() },
-    { id: '5', sender: 'System', content: 'Opening: Claude', timestamp: new Date() },
+    aiTurn('1', 'Claude', 'Opening argument'),
+    aiTurn('2', 'ChatGPT', 'Counter argument'),
+    hostLine('3', 'Debate Host', '"Is AI beneficial?"'),
+    hostLine('4', 'Debate Host', 'Claude opens the debate'),
+    hostLine('5', 'System', 'Opening: Claude'),
   ];
 
   const defaultProps = {
@@ -125,10 +165,10 @@ describe('DebateMessageList', () => {
     });
 
     it('renders header component when provided', () => {
-      const React = require('react');
-      const { View, Text } = require('react-native');
-      const Header = () => React.createElement(View, { testID: 'header' },
-        React.createElement(Text, null, 'Header Text')
+      const Header = () => (
+        <View testID="header">
+          <Text>Header Text</Text>
+        </View>
       );
       const { getByTestId } = renderWithProviders(
         <DebateMessageList {...defaultProps} headerComponent={<Header />} />
@@ -270,25 +310,19 @@ describe('DebateMessageList', () => {
   });
 
   describe('Scroll Behavior', () => {
-    const getFlatList = (UNSAFE_getByType: (type: unknown) => { props: Record<string, unknown> }) => {
-      const FlatList = require('react-native').FlatList;
-      return {
-        FlatList,
-        flatList: UNSAFE_getByType(FlatList),
-      };
-    };
+    const getFlatList = (UNSAFE_getByType: typeof screen.UNSAFE_getByType) => ({
+      FlatList,
+      flatList: UNSAFE_getByType(FlatList),
+    });
 
-    const createScrollToEndSpy = () => {
-      const FlatList = require('react-native').FlatList;
-      return jest.spyOn(FlatList.prototype, 'scrollToEnd').mockImplementation(jest.fn());
-    };
+    const createScrollToEndSpy = () =>
+      jest.spyOn(FlatList.prototype, 'scrollToEnd').mockImplementation(jest.fn());
 
     it('has content and scroll handlers for new-response follow state', () => {
       const { UNSAFE_getByType } = renderWithProviders(
         <DebateMessageList {...defaultProps} />
       );
 
-      const FlatList = require('react-native').FlatList;
       const flatList = UNSAFE_getByType(FlatList);
 
       expect(flatList.props.onContentSizeChange).toBeDefined();
@@ -320,7 +354,7 @@ describe('DebateMessageList', () => {
     it('does not scroll when the latest streamed message text updates', () => {
       const scrollToEndSpy = createScrollToEndSpy();
       const streamingMessages: Message[] = [
-        { id: 'streaming-1', sender: 'Claude', content: 'Opening', timestamp: Date.now() },
+        aiTurn('streaming-1', 'Claude', 'Opening'),
       ];
       const { rerender } = renderWithProviders(
         <DebateMessageList {...defaultProps} messages={streamingMessages} />
@@ -367,7 +401,7 @@ describe('DebateMessageList', () => {
           {...defaultProps}
           messages={[
             ...mockMessages,
-            { id: 'new-1', sender: 'Claude', content: 'New response starts', timestamp: Date.now() },
+            aiTurn('new-1', 'Claude', 'New response starts'),
           ]}
         />
       );
@@ -410,7 +444,7 @@ describe('DebateMessageList', () => {
           {...defaultProps}
           messages={[
             ...mockMessages,
-            { id: 'new-after-programmatic-scroll', sender: 'Claude', content: 'New response', timestamp: Date.now() },
+            aiTurn('new-after-programmatic-scroll', 'Claude', 'New response'),
           ]}
         />
       );
@@ -493,7 +527,7 @@ describe('DebateMessageList', () => {
           {...defaultProps}
           messages={[
             ...mockMessages,
-            { id: 'new-after-latest-button', sender: 'Claude', content: 'Another response', timestamp: Date.now() },
+            aiTurn('new-after-latest-button', 'Claude', 'Another response'),
           ]}
         />
       );
@@ -509,7 +543,6 @@ describe('DebateMessageList', () => {
         <DebateMessageList {...defaultProps} />
       );
 
-      const FlatList = require('react-native').FlatList;
       const flatList = UNSAFE_getByType(FlatList);
 
       // Simulate scroll event
@@ -530,7 +563,6 @@ describe('DebateMessageList', () => {
         <DebateMessageList {...defaultProps} />
       );
 
-      const FlatList = require('react-native').FlatList;
       const flatList = UNSAFE_getByType(FlatList);
 
       // Simulate scroll away from bottom
@@ -558,15 +590,14 @@ describe('DebateMessageList', () => {
         <DebateMessageList {...defaultProps} messages={[]} />
       );
 
-      const FlatList = require('react-native').FlatList;
       expect(UNSAFE_getByType(FlatList)).toBeTruthy();
     });
 
     it('handles messages with same sender alternating', () => {
       const messages: Message[] = [
-        { id: '1', sender: 'Claude', content: 'Message 1', timestamp: new Date() },
-        { id: '2', sender: 'ChatGPT', content: 'Message 2', timestamp: new Date() },
-        { id: '3', sender: 'Claude', content: 'Message 3', timestamp: new Date() },
+        aiTurn('1', 'Claude', 'Message 1'),
+        aiTurn('2', 'ChatGPT', 'Message 2'),
+        aiTurn('3', 'Claude', 'Message 3'),
       ];
 
       const { getByTestId } = renderWithProviders(
@@ -581,7 +612,7 @@ describe('DebateMessageList', () => {
     it('handles very long message content', () => {
       const longContent = 'A'.repeat(1000);
       const messages: Message[] = [
-        { id: '1', sender: 'Claude', content: longContent, timestamp: new Date() },
+        aiTurn('1', 'Claude', longContent),
       ];
 
       const { getByTestId } = renderWithProviders(
@@ -592,16 +623,16 @@ describe('DebateMessageList', () => {
     });
 
     it('handles messages without IDs', () => {
-      const messages: any[] = [
-        { sender: 'Claude', content: 'Message 1', timestamp: new Date() },
-      ];
+      // `id` is required by the Message type; an empty id exercises the same
+      // missing-id fallback in the list's keyExtractor.
+      const messages: Message[] = [aiTurn('', 'Claude', 'Message 1')];
 
       const { UNSAFE_getByType } = renderWithProviders(
         <DebateMessageList {...defaultProps} messages={messages} />
       );
 
-      const FlatList = require('react-native').FlatList;
       expect(UNSAFE_getByType(FlatList)).toBeTruthy();
+      expect(UNSAFE_getByType(FlatList).props.keyExtractor(messages[0], 0)).toBe('idx-0');
     });
   });
 
@@ -609,7 +640,6 @@ describe('DebateMessageList', () => {
     it('applies performance optimizations to FlatList', () => {
       const { UNSAFE_getByType } = renderWithProviders(<DebateMessageList {...defaultProps} />);
 
-      const FlatList = require('react-native').FlatList;
       const flatList = UNSAFE_getByType(FlatList);
 
       expect(flatList.props.removeClippedSubviews).toBe(true);
@@ -620,7 +650,6 @@ describe('DebateMessageList', () => {
     it('uses proper key extractor', () => {
       const { UNSAFE_getByType } = renderWithProviders(<DebateMessageList {...defaultProps} />);
 
-      const FlatList = require('react-native').FlatList;
       const flatList = UNSAFE_getByType(FlatList);
 
       expect(flatList.props.keyExtractor).toBeDefined();
@@ -638,7 +667,6 @@ describe('DebateMessageList', () => {
         <DebateMessageList {...defaultProps} contentContainerStyle={customStyle} />
       );
 
-      const FlatList = require('react-native').FlatList;
       const flatList = UNSAFE_getByType(FlatList);
 
       expect(flatList.props.contentContainerStyle).toContainEqual(
@@ -651,7 +679,6 @@ describe('DebateMessageList', () => {
         <DebateMessageList {...defaultProps} showsVerticalScrollIndicator={true} />
       );
 
-      const FlatList = require('react-native').FlatList;
       const flatList = UNSAFE_getByType(FlatList);
 
       expect(flatList.props.showsVerticalScrollIndicator).toBe(true);
@@ -662,7 +689,6 @@ describe('DebateMessageList', () => {
         <DebateMessageList {...defaultProps} bottomInset={50} />
       );
 
-      const FlatList = require('react-native').FlatList;
       const flatList = UNSAFE_getByType(FlatList);
 
       expect(flatList.props.contentContainerStyle).toBeDefined();
