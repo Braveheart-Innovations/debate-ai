@@ -122,6 +122,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
+    "@eslint/compat": "^2.1.1",
     "@eslint/js": "^9.33.0",
     "@react-native/jest-preset": "^0.86.3",
     "@testing-library/react-native": "^12.3.0",

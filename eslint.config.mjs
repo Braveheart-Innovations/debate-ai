@@ -3,8 +3,14 @@ import tseslint from 'typescript-eslint';
 import reactPlugin from 'eslint-plugin-react';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
 import globals from 'globals';
+import { includeIgnoreFile } from '@eslint/compat';
+import { fileURLToPath } from 'node:url';
 
 export default tseslint.config(
+  // Never lint what git ignores (local test-*.js scratch scripts, coverage/,
+  // build output): CI doesn't have those files, so linting them locally makes
+  // check:app depend on whatever happens to be on disk.
+  includeIgnoreFile(fileURLToPath(new URL('.gitignore', import.meta.url))),
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
