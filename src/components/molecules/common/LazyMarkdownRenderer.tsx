@@ -6,9 +6,9 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { View, TouchableOpacity } from 'react-native';
 import type { TextStyle, ViewStyle } from 'react-native';
-import Markdown from 'react-native-markdown-display';
+import Markdown, { type RenderRules } from 'react-native-markdown-display';
 import { Typography } from '../common/Typography';
-import { useTheme } from '@/theme';
+import { useTheme, type Theme } from '@/theme';
 import { splitForLazyRender } from '@/utils/markdown';
 
 // Type for markdown styles
@@ -25,9 +25,8 @@ export interface MarkdownNode {
   type?: string;
 }
 
-// Type for markdown rules - more flexible to match react-native-markdown-display
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type MarkdownRules = Record<string, any>;
+// Custom render rules accepted by react-native-markdown-display
+export type MarkdownRules = RenderRules;
 
 interface LazyMarkdownRendererProps {
   content: string;
@@ -100,8 +99,7 @@ export const LazyMarkdownRenderer: React.FC<LazyMarkdownRendererProps> = ({
 /**
  * Creates standard markdown styles for message bubbles
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const createMarkdownStyles = (theme: any, isDark: boolean): MarkdownStyles => ({
+export const createMarkdownStyles = (theme: Theme, isDark: boolean): MarkdownStyles => ({
   body: {
     fontSize: 16,
     lineHeight: 22,

@@ -124,7 +124,7 @@ describeLive('Live multi-AI group chat', () => {
       const transcript = messages
         .map(m => `── ${m.sender}${m.metadata?.lifecycle ? ` (${m.metadata.lifecycle.status})` : ''}\n${m.content}`)
         .join('\n\n');
-      // eslint-disable-next-line no-console
+      // eslint-disable-next-line no-console -- live runs print the transcript for human review
       console.log(`\n${transcript}\n`);
     };
 

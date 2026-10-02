@@ -20,8 +20,8 @@ export type PromptDebugPayload = {
 export class PromptDebugLogger {
   static enabled(): boolean {
     // __DEV__ is defined in React Native; fall back to NODE_ENV/DEBUG_PROMPTS
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const isDev = (global as any)?.__DEV__ === true || process?.env?.NODE_ENV === 'development';
+    const isDev =
+      (typeof __DEV__ !== 'undefined' && __DEV__) || process?.env?.NODE_ENV === 'development';
     const optIn = process?.env?.DEBUG_PROMPTS === '1';
     return Boolean(isDev || optIn);
   }
@@ -41,7 +41,7 @@ export class PromptDebugLogger {
         systemPromptAdapter: cap(payload.systemPromptAdapter),
         userPrompt: cap(payload.userPrompt),
       };
-      // eslint-disable-next-line no-console
+      // eslint-disable-next-line no-console -- opt-in prompt dump for developers; must print verbatim, not through the redacting logger
       console.log(`\n[PromptDebug][${label}]\n` + JSON.stringify(sanitized, null, 2));
     } catch {
       // ignore logging errors

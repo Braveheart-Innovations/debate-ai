@@ -10,6 +10,7 @@ import { AIProviderTile } from '../debate/AIProviderTile';
 import { AppLogo } from '@/components/organisms/common/AppLogo';
 import { AI } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
+import BraveheartLogo from '../../../../assets/BraveheartInnovationsLogoNoText.png';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width - 40;
@@ -131,8 +132,7 @@ export const SharePreviewCard: React.FC<SharePreviewCardProps> = ({
           {/* Braveheart - At the very bottom */}
           <View style={styles.braveheartContainer}>
             <Image
-              // eslint-disable-next-line @typescript-eslint/no-require-imports
-              source={require('../../../../assets/BraveheartInnovationsLogoNoText.png') as number}
+              source={BraveheartLogo}
               style={styles.braveheartLogo}
               resizeMode="contain"
             />

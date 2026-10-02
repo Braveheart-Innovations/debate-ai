@@ -1,22 +1,30 @@
+import claudeLogo from '../../assets/ai-providers/claude/logo.png';
+import openaiLogo from '../../assets/ai-providers/openai/logo.png';
+import googleLogo from '../../assets/ai-providers/google/logo.png';
+import perplexityLogo from '../../assets/ai-providers/perplexity/logo.png';
+import mistralLogo from '../../assets/ai-providers/mistral/logo.png';
+import grokLogo from '../../assets/ai-providers/grok/logo.png';
+import cohereLogo from '../../assets/ai-providers/cohere/logo.png';
+import deepseekLogo from '../../assets/ai-providers/deepseek/logo.png';
+import moonshotLogo from '../../assets/ai-providers/moonshot/logo.png';
+import zaiLogo from '../../assets/ai-providers/zai/logo.png';
+
 // Helper to get AI provider logos with automatic fallback
-// NOTE: Due to React Native bundler limitations, we must explicitly require all possible logos
+// NOTE: Metro resolves assets statically, so every possible logo is imported explicitly
 // To update logos: 1) Replace the file 2) Clear Metro cache: npx expo start -c
 
-/* eslint-disable @typescript-eslint/no-require-imports */
 const aiProviderLogos: { [key: string]: number } = {
-  // Add logos here as they become available
-  claude: require('../../assets/ai-providers/claude/logo.png'),
-  openai: require('../../assets/ai-providers/openai/logo.png'),
-  google: require('../../assets/ai-providers/google/logo.png'),
-  perplexity: require('../../assets/ai-providers/perplexity/logo.png'),
-  mistral: require('../../assets/ai-providers/mistral/logo.png'),
-  grok: require('../../assets/ai-providers/grok/logo.png'),
-  cohere: require('../../assets/ai-providers/cohere/logo.png'),
-  deepseek: require('../../assets/ai-providers/deepseek/logo.png'),
-  moonshot: require('../../assets/ai-providers/moonshot/logo.png'),
-  zai: require('../../assets/ai-providers/zai/logo.png'),
+  claude: claudeLogo,
+  openai: openaiLogo,
+  google: googleLogo,
+  perplexity: perplexityLogo,
+  mistral: mistralLogo,
+  grok: grokLogo,
+  cohere: cohereLogo,
+  deepseek: deepseekLogo,
+  moonshot: moonshotLogo,
+  zai: zaiLogo,
 };
-/* eslint-enable @typescript-eslint/no-require-imports */
 
 export function getAIProviderIcon(providerId: string) {
   // Check if we have a logo for this provider

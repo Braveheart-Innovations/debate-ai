@@ -338,7 +338,7 @@ describeLive('Live model routing smoke', () => {
 
   afterAll(() => {
     if (successfulRuns.length > 0) {
-      // eslint-disable-next-line no-console
+      // eslint-disable-next-line no-console -- live runs print per-model latency for human review
       console.table(successfulRuns);
     }
   });
