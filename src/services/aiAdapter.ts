@@ -2,7 +2,7 @@
 // This file maintains the same API as the original monolithic aiAdapter.ts
 // but delegates to the new modular architecture in src/services/ai/
 
-import { AIProvider, ModelParameters, PersonalityConfig, Message, MessageAttachment } from '../types';
+import { AIProvider, ModelParameters, PersonalityConfig, RuntimePersonalityConfig, Message, MessageAttachment } from '../types';
 import { resolveProviderModelId } from '../config/modelConfigs';
 import { PersonalityOption } from '../config/personalities';
 import { AdapterFactory, BaseAdapter } from './ai';
@@ -160,7 +160,7 @@ export class AIService {
     return this.adapters;
   }
   
-  setPersonality(provider: string, personality: PersonalityConfig | PersonalityOption | undefined): void {
+  setPersonality(provider: string, personality: RuntimePersonalityConfig | PersonalityOption | undefined): void {
     const adapter = this.adapters.get(provider);
     if (adapter) {
       adapter.setTemporaryPersonality(personality);
@@ -171,14 +171,14 @@ export class AIService {
     provider: string,
     message: string,
     conversationHistory?: Message[],
-    isDebateModeOrPersonality?: boolean | PersonalityConfig,
+    isDebateModeOrPersonality?: boolean | RuntimePersonalityConfig,
     resumptionContextOrModel?: ResumptionContext | string,
     attachmentsOrParams?: MessageAttachment[] | Partial<ModelParameters>,
     modelOrDebateMode?: string | boolean
   ): Promise<{ response: string; modelUsed?: string; finishReason?: StreamFinishReason }> {
     // Handle overloaded parameters based on type checking
     let isDebateMode: boolean | undefined;
-    let personality: PersonalityConfig | undefined;
+    let personality: RuntimePersonalityConfig | undefined;
     let resumptionContext: ResumptionContext | undefined;
     let model: string | undefined;
     let attachments: MessageAttachment[] | undefined;

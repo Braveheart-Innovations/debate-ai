@@ -1,11 +1,11 @@
-import { AIProvider, ModelParameters, PersonalityConfig, Message } from '../../../types';
+import { AIProvider, ModelParameters, RuntimePersonalityConfig, Message } from '../../../types';
 
 export interface AIAdapterConfig {
   provider: AIProvider;
   identityId?: string;
   apiKey: string;
   model?: string;
-  personality?: PersonalityConfig;
+  personality?: RuntimePersonalityConfig;
   parameters?: Partial<ModelParameters>;
   isDebateMode?: boolean;
   webSearchEnabled?: boolean;
