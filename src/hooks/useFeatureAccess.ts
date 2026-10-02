@@ -17,6 +17,11 @@ export const useFeatureAccess = () => {
   const isPremiumFromRedux = useSelector((state: RootState) => state.auth.isPremium);
   const authLoading = useSelector((state: RootState) => state.auth.authLoading);
   const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
+  // The store decides trial eligibility per Google account / Apple ID: Play only returns
+  // offers the account qualifies for, and iOS prices drop the trial when StoreKit says
+  // the intro offer is used. Without this, a new app account on a store account that
+  // already subscribed would be promised a trial the purchase sheet doesn't offer.
+  const storeOffersTrial = useSelector((state: RootState) => state.prices.monthly.trial?.hasTrial === true);
   const profileResolved = !authLoading && (!isAuthenticated || userProfile !== null);
 
   // Derive all values from Redux state
@@ -39,7 +44,7 @@ export const useFeatureAccess = () => {
   const isPremium = profileResolved && isPremiumFromRedux;
   const isDemo = profileResolved && !isPremium;
   const canAccessLiveAI = isPremium;
-  const canStartTrial = !requiresEmailVerification && !hasUsedTrial && isDemo;
+  const canStartTrial = !requiresEmailVerification && !hasUsedTrial && isDemo && storeOffersTrial;
 
   // Calculate trial days remaining from trialEndDate in Redux
   const trialDaysRemaining = useMemo(() => {

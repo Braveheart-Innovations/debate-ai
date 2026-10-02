@@ -5,6 +5,7 @@ import type { ProductSubscriptionAndroid, ProductSubscriptionIOS, ProductSubscri
 const mockGetItem = jest.fn();
 const mockSetItem = jest.fn();
 const mockFetchProducts = jest.fn();
+const mockIsEligibleForIntroOfferIOS = jest.fn();
 
 // Mock modules
 jest.mock('@react-native-async-storage/async-storage', () => ({
@@ -14,6 +15,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 
 jest.mock('react-native-iap', () => ({
   fetchProducts: (...args: unknown[]) => mockFetchProducts(...args),
+  isEligibleForIntroOfferIOS: (...args: unknown[]) => mockIsEligibleForIntroOfferIOS(...args),
 }));
 
 jest.mock('expo-device', () => ({ isDevice: true }));
@@ -60,6 +62,7 @@ describe('PricesPersistenceService', () => {
     mockGetItem.mockResolvedValue(null);
     mockSetItem.mockResolvedValue(undefined);
     mockFetchProducts.mockResolvedValue([]);
+    mockIsEligibleForIntroOfferIOS.mockResolvedValue(true);
   });
 
   describe('FALLBACK_PRICES', () => {
@@ -530,6 +533,61 @@ describe('PricesPersistenceService', () => {
         const result = await fetchAndPersistPrices();
 
         expect(result.monthly.trial).toBeUndefined();
+      });
+
+      describe('intro offer eligibility', () => {
+        const trialSubscription: Partial<ProductSubscriptionIOS> = {
+          id: 'symposiumai_monthly',
+          displayPrice: '$5.99',
+          price: 5.99,
+          currency: 'USD',
+          subscriptionInfoIOS: {
+            subscriptionGroupId: 'group-1',
+            subscriptionPeriod: { unit: 'month', value: 1 },
+          },
+          subscriptionOffers: [
+            {
+              id: 'intro-offer',
+              type: 'introductory',
+              price: 0,
+              displayPrice: 'Free',
+              paymentMode: 'free-trial',
+              period: { unit: 'week', value: 1 },
+              periodCount: 1,
+            },
+          ],
+        };
+
+        beforeEach(() => {
+          mockFetchProducts.mockImplementation(({ type }: { skus: string[]; type: string }) => {
+            if (type === 'subs') return Promise.resolve([trialSubscription]);
+            return Promise.resolve([]);
+          });
+        });
+
+        it('keeps the trial when the Apple ID is eligible', async () => {
+          const result = await fetchAndPersistPrices();
+
+          expect(mockIsEligibleForIntroOfferIOS).toHaveBeenCalledWith('group-1');
+          expect(result.monthly.trial?.hasTrial).toBe(true);
+        });
+
+        it('drops the trial when the Apple ID already used the intro offer', async () => {
+          mockIsEligibleForIntroOfferIOS.mockResolvedValue(false);
+
+          const result = await fetchAndPersistPrices();
+
+          expect(result.monthly.trial).toBeUndefined();
+          expect(result.monthly.localizedPrice).toBe('$5.99');
+        });
+
+        it('keeps the trial when the eligibility check fails', async () => {
+          mockIsEligibleForIntroOfferIOS.mockRejectedValue(new Error('StoreKit unavailable'));
+
+          const result = await fetchAndPersistPrices();
+
+          expect(result.monthly.trial?.hasTrial).toBe(true);
+        });
       });
     });
 
