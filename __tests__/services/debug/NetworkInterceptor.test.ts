@@ -1,4 +1,15 @@
-import { NetworkInterceptor } from '@/services/debug/NetworkInterceptor';
+import { NetworkInterceptor, type NetworkRequest } from '@/services/debug/NetworkInterceptor';
+
+// `__DEV__` is declared as a read-only global; tests flip it via Reflect.
+const setDev = (value: boolean): void => {
+  Reflect.set(globalThis, '__DEV__', value);
+};
+
+/** A typed stand-in for the underlying fetch that resolves with a real Response. */
+const mockFetchResolving = (body: string, headers: HeadersInit = {}) =>
+  jest.fn(async (_input: RequestInfo | URL, _init?: RequestInit): Promise<Response> => (
+    new Response(body, { status: 200, statusText: 'OK', headers })
+  ));
 
 describe('NetworkInterceptor', () => {
   const originalFetch = global.fetch;
@@ -17,48 +28,42 @@ describe('NetworkInterceptor', () => {
 
   describe('install/uninstall', () => {
     it('installs the interceptor in dev mode', () => {
-      const originalDev = (global as any).__DEV__;
-      (global as any).__DEV__ = true;
+      const originalDev = __DEV__;
+      setDev(true);
 
       NetworkInterceptor.install();
       expect(global.fetch).not.toBe(originalFetch);
 
       NetworkInterceptor.uninstall();
-      (global as any).__DEV__ = originalDev;
+      setDev(originalDev);
     });
 
     it('restores original fetch on uninstall', () => {
-      const originalDev = (global as any).__DEV__;
-      (global as any).__DEV__ = true;
+      const originalDev = __DEV__;
+      setDev(true);
 
       NetworkInterceptor.install();
       NetworkInterceptor.uninstall();
 
       expect(global.fetch).toBe(originalFetch);
-      (global as any).__DEV__ = originalDev;
+      setDev(originalDev);
     });
   });
 
   describe('request capture', () => {
     beforeEach(() => {
-      const originalDev = (global as any).__DEV__;
-      (global as any).__DEV__ = true;
+      const originalDev = __DEV__;
+      setDev(true);
 
       // Mock the original fetch
-      global.fetch = jest.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        statusText: 'OK',
-        headers: new Headers({ 'content-type': 'application/json' }),
-        clone: () => ({
-          text: () => Promise.resolve('{"result": "success"}'),
-        }),
+      global.fetch = mockFetchResolving('{"result": "success"}', {
+        'content-type': 'application/json',
       });
 
       NetworkInterceptor.install();
 
       return () => {
-        (global as any).__DEV__ = originalDev;
+        setDev(originalDev);
       };
     });
 
@@ -108,28 +113,20 @@ describe('NetworkInterceptor', () => {
 
   describe('listeners', () => {
     beforeEach(() => {
-      const originalDev = (global as any).__DEV__;
-      (global as any).__DEV__ = true;
+      const originalDev = __DEV__;
+      setDev(true);
 
-      global.fetch = jest.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        statusText: 'OK',
-        headers: new Headers(),
-        clone: () => ({
-          text: () => Promise.resolve('{}'),
-        }),
-      });
+      global.fetch = mockFetchResolving('{}');
 
       NetworkInterceptor.install();
 
       return () => {
-        (global as any).__DEV__ = originalDev;
+        setDev(originalDev);
       };
     });
 
     it('notifies listeners on new requests', async () => {
-      const listener = jest.fn();
+      const listener = jest.fn((_requests: NetworkRequest[]) => {});
       NetworkInterceptor.addListener(listener);
 
       await global.fetch('https://api.example.com/test');
@@ -142,7 +139,7 @@ describe('NetworkInterceptor', () => {
     });
 
     it('allows removing listeners', async () => {
-      const listener = jest.fn();
+      const listener = jest.fn((_requests: NetworkRequest[]) => {});
       const unsubscribe = NetworkInterceptor.addListener(listener);
 
       unsubscribe();
@@ -154,18 +151,10 @@ describe('NetworkInterceptor', () => {
 
   describe('clearRequests', () => {
     it('clears all captured requests', async () => {
-      const originalDev = (global as any).__DEV__;
-      (global as any).__DEV__ = true;
+      const originalDev = __DEV__;
+      setDev(true);
 
-      global.fetch = jest.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        statusText: 'OK',
-        headers: new Headers(),
-        clone: () => ({
-          text: () => Promise.resolve('{}'),
-        }),
-      });
+      global.fetch = mockFetchResolving('{}');
 
       NetworkInterceptor.install();
       await global.fetch('https://api.example.com/test');
@@ -176,17 +165,21 @@ describe('NetworkInterceptor', () => {
 
       expect(NetworkInterceptor.getRequests()).toHaveLength(0);
 
-      (global as any).__DEV__ = originalDev;
+      setDev(originalDev);
     });
   });
 
   describe('error handling', () => {
     it('captures network errors', async () => {
-      const originalDev = (global as any).__DEV__;
-      (global as any).__DEV__ = true;
+      const originalDev = __DEV__;
+      setDev(true);
 
       // Set up a failing fetch before installing interceptor
-      const failingFetch = jest.fn().mockRejectedValue(new Error('Network failure'));
+      const failingFetch = jest.fn(
+        async (_input: RequestInfo | URL, _init?: RequestInit): Promise<Response> => {
+          throw new Error('Network failure');
+        }
+      );
       global.fetch = failingFetch;
 
       NetworkInterceptor.install();
@@ -203,7 +196,7 @@ describe('NetworkInterceptor', () => {
       expect(requests[0].response?.status).toBe(0);
 
       NetworkInterceptor.uninstall();
-      (global as any).__DEV__ = originalDev;
+      setDev(originalDev);
     });
   });
 });

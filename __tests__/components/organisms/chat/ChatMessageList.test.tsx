@@ -3,7 +3,14 @@ import { FlatList } from 'react-native';
 import { render, screen, waitFor, act, fireEvent } from '@testing-library/react-native';
 import { ChatMessageList } from '../../../../src/components/organisms/chat/ChatMessageList';
 import { useTheme } from '../../../../src/theme';
+import { lightTheme } from '../../../../src/theme/types';
 import { Message } from '../../../../src/types';
+import type { Box, ResponsiveContainer } from '../../../../src/components/atoms';
+import {
+  createMockAIMessage,
+  createMockAttachment,
+  createMockMessage,
+} from '@test-utils/fixtures';
 
 // Mock dependencies
 jest.mock('../../../../src/theme', () => ({
@@ -28,11 +35,14 @@ jest.mock('../../../../src/components/molecules', () => {
 });
 
 jest.mock('../../../../src/components/atoms', () => {
-  const React = require('react');
-  const { View } = require('react-native');
+  const { stubComponent } = jest.requireActual<
+    typeof import('@test-utils/mockComponents')
+  >('@test-utils/mockComponents');
   return {
-    Box: ({ children, style }: any) => React.createElement(View, { style }, children),
-    ResponsiveContainer: ({ children }: any) => React.createElement(View, null, children),
+    Box: stubComponent<typeof Box>('box', { render: (p) => p.children }),
+    ResponsiveContainer: stubComponent<typeof ResponsiveContainer>('responsive-container', {
+      render: (p) => p.children,
+    }),
   };
 });
 
@@ -44,7 +54,7 @@ jest.mock('../../../../src/hooks/useResponsive', () => ({
     isPortrait: true,
     width: 375,
     height: 812,
-    responsive: (phone: any) => phone,
+    responsive: <T,>(phone: T) => phone,
     rs: () => 16,
     fontSize: () => 16,
     gridColumns: (phone: number) => phone,
@@ -89,56 +99,31 @@ jest.mock('../../../../src/components/organisms/chat/ImageGeneratingRow', () => 
   },
 }));
 
-const mockUseTheme = useTheme as jest.MockedFunction<typeof useTheme>;
+const mockUseTheme = jest.mocked(useTheme);
 
 describe('ChatMessageList', () => {
-  const mockTheme = {
-    theme: {
-      colors: {
-        background: '#FFFFFF',
-        brand: '#007AFF',
-        border: '#EEEEEE',
-        surface: '#FFFFFF',
-        primary: {
-          500: '#007AFF',
-        },
-        overlays: {
-          soft: 'rgba(0, 0, 0, 0.03)',
-        },
-        text: {
-          primary: '#000000',
-          secondary: '#666666',
-        },
-      },
-      spacing: {
-        md: 16,
-      },
-    },
+  const mockTheme: ReturnType<typeof useTheme> = {
+    theme: lightTheme,
+    themeMode: 'light',
+    setThemeMode: jest.fn(),
     isDark: false,
   };
 
-  const createMockRef = () => ({
-    current: {
-      scrollToEnd: jest.fn(),
-      scrollToIndex: jest.fn(),
-    } as unknown as FlatList,
-  });
+  // ChatMessageList attaches this ref to its FlatList, so `current` becomes the
+  // rendered instance; scroll calls are observed via FlatList.prototype spies.
+  const createMockRef = () => React.createRef<FlatList>();
 
   const mockMessages: Message[] = [
-    {
+    createMockMessage({
       id: 'msg-1',
       content: 'Hello from user',
-      senderType: 'user',
-      senderId: 'user-1',
       timestamp: Date.now(),
-    },
-    {
+    }),
+    createMockAIMessage({
       id: 'msg-2',
       content: 'Hello from AI',
-      senderType: 'ai',
-      senderId: 'ai-1',
       timestamp: Date.now(),
-    },
+    }),
   ];
 
   beforeEach(() => {
@@ -199,14 +184,12 @@ describe('ChatMessageList', () => {
     it('renders image message row for AI messages with image attachments', () => {
       const flatListRef = createMockRef();
       const messagesWithImage: Message[] = [
-        {
+        createMockAIMessage({
           id: 'msg-image',
           content: '',
-          senderType: 'ai',
-          senderId: 'ai-1',
           timestamp: Date.now(),
-          attachments: [{ type: 'image', url: 'https://example.com/image.jpg' }],
-        },
+          attachments: [createMockAttachment({ uri: 'https://example.com/image.jpg', mimeType: 'image/jpeg' })],
+        }),
       ];
 
       render(
@@ -223,18 +206,16 @@ describe('ChatMessageList', () => {
     it('renders image generating row for AI messages with imageGenerating metadata', () => {
       const flatListRef = createMockRef();
       const messagesGenerating: Message[] = [
-        {
+        createMockAIMessage({
           id: 'msg-gen',
           content: 'Generating image',
-          senderType: 'ai',
-          senderId: 'ai-1',
           timestamp: Date.now(),
           metadata: {
             providerMetadata: {
               imageGenerating: true,
             },
           },
-        },
+        }),
       ];
 
       render(
@@ -251,14 +232,12 @@ describe('ChatMessageList', () => {
     it('does not render special rows for user messages with attachments', () => {
       const flatListRef = createMockRef();
       const userMessagesWithImage: Message[] = [
-        {
+        createMockMessage({
           id: 'msg-user-image',
           content: '',
-          senderType: 'user',
-          senderId: 'user-1',
           timestamp: Date.now(),
-          attachments: [{ type: 'image', url: 'https://example.com/image.jpg' }],
-        },
+          attachments: [createMockAttachment({ uri: 'https://example.com/image.jpg', mimeType: 'image/jpeg' })],
+        }),
       ];
 
       render(
@@ -359,13 +338,11 @@ describe('ChatMessageList', () => {
         <ChatMessageList
           messages={[
             ...mockMessages,
-            {
+            createMockAIMessage({
               id: 'msg-3',
               content: 'A new answer starts',
-              senderType: 'ai',
-              senderId: 'ai-2',
               timestamp: Date.now(),
-            },
+            }),
           ]}
           flatListRef={flatListRef}
         />
@@ -435,13 +412,11 @@ describe('ChatMessageList', () => {
         <ChatMessageList
           messages={[
             ...mockMessages,
-            {
+            createMockAIMessage({
               id: 'msg-after-bottom',
               content: 'New message',
-              senderType: 'ai',
-              senderId: 'ai-1',
               timestamp: Date.now(),
-            },
+            }),
           ]}
           flatListRef={flatListRef}
         />
@@ -474,13 +449,11 @@ describe('ChatMessageList', () => {
         <ChatMessageList
           messages={[
             ...mockMessages,
-            {
+            createMockAIMessage({
               id: 'msg-3',
               content: 'A new answer starts',
-              senderType: 'ai',
-              senderId: 'ai-2',
               timestamp: Date.now(),
-            },
+            }),
           ]}
           flatListRef={flatListRef}
         />
@@ -566,20 +539,16 @@ describe('ChatMessageList', () => {
       const mockOnScrollToSearchResult = jest.fn();
 
       const searchableMessages: Message[] = [
-        {
+        createMockMessage({
           id: 'msg-1',
           content: 'Hello world',
-          senderType: 'user',
-          senderId: 'user-1',
           timestamp: Date.now(),
-        },
-        {
+        }),
+        createMockAIMessage({
           id: 'msg-2',
           content: 'This is a test message',
-          senderType: 'ai',
-          senderId: 'ai-1',
           timestamp: Date.now(),
-        },
+        }),
       ];
 
       render(
@@ -624,19 +593,17 @@ describe('ChatMessageList', () => {
     it('prioritizes image generating state over other states', () => {
       const flatListRef = createMockRef();
       const messagesWithMultipleStates: Message[] = [
-        {
+        createMockAIMessage({
           id: 'msg-complex',
           content: 'Image content',
-          senderType: 'ai',
-          senderId: 'ai-1',
           timestamp: Date.now(),
-          attachments: [{ type: 'image', url: 'https://example.com/image.jpg' }],
+          attachments: [createMockAttachment({ uri: 'https://example.com/image.jpg', mimeType: 'image/jpeg' })],
           metadata: {
             providerMetadata: {
               imageGenerating: true,
             },
           },
-        },
+        }),
       ];
 
       render(
@@ -653,14 +620,12 @@ describe('ChatMessageList', () => {
     it('renders regular message bubble for AI messages with content and attachments', () => {
       const flatListRef = createMockRef();
       const messagesWithBoth: Message[] = [
-        {
+        createMockAIMessage({
           id: 'msg-both',
           content: 'Check out this image',
-          senderType: 'ai',
-          senderId: 'ai-1',
           timestamp: Date.now(),
-          attachments: [{ type: 'image', url: 'https://example.com/image.jpg' }],
-        },
+          attachments: [createMockAttachment({ uri: 'https://example.com/image.jpg', mimeType: 'image/jpeg' })],
+        }),
       ];
 
       render(
@@ -695,13 +660,14 @@ describe('ChatMessageList', () => {
     it('handles messages with missing metadata gracefully', () => {
       const flatListRef = createMockRef();
       const messagesWithoutMetadata: Message[] = [
-        {
+        // Plain builder (not createMockAIMessage) so the AI message carries no metadata.
+        createMockMessage({
           id: 'msg-no-meta',
-          content: 'Simple message',
+          sender: 'Claude',
           senderType: 'ai',
-          senderId: 'ai-1',
+          content: 'Simple message',
           timestamp: Date.now(),
-        },
+        }),
       ];
 
       render(
@@ -717,14 +683,12 @@ describe('ChatMessageList', () => {
     it('handles empty content with whitespace only', () => {
       const flatListRef = createMockRef();
       const messagesWithWhitespace: Message[] = [
-        {
+        createMockAIMessage({
           id: 'msg-whitespace',
           content: '   ',
-          senderType: 'ai',
-          senderId: 'ai-1',
           timestamp: Date.now(),
-          attachments: [{ type: 'image', url: 'https://example.com/image.jpg' }],
-        },
+          attachments: [createMockAttachment({ uri: 'https://example.com/image.jpg', mimeType: 'image/jpeg' })],
+        }),
       ];
 
       render(

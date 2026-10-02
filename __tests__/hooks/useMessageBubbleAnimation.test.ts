@@ -1,6 +1,21 @@
 import { renderHook } from '@testing-library/react-native';
 import { useMessageBubbleAnimation } from '@/hooks/useMessageBubbleAnimation';
 
+/**
+ * The hook's public type is reanimated's opaque `AnimatedStyleHandle`; under
+ * the jest.setup reanimated mock `useAnimatedStyle` returns the plain style
+ * object its worklet produces. Read its fields through runtime narrowing.
+ */
+const readStyle = (handle: unknown): { opacity: unknown; transform: unknown } => {
+  if (typeof handle !== 'object' || handle === null) {
+    throw new Error('animatedStyle is not an object');
+  }
+  return {
+    opacity: 'opacity' in handle ? handle.opacity : undefined,
+    transform: 'transform' in handle ? handle.transform : undefined,
+  };
+};
+
 describe('useMessageBubbleAnimation', () => {
   describe('initialization', () => {
     it('returns animatedStyle object', () => {
@@ -16,7 +31,7 @@ describe('useMessageBubbleAnimation', () => {
         useMessageBubbleAnimation({ isNew: false })
       );
 
-      expect(result.current.animatedStyle.opacity).toBe(1);
+      expect(readStyle(result.current.animatedStyle).opacity).toBe(1);
     });
 
     it('initializes with opacity 0 when new and type is fade-in', () => {
@@ -24,7 +39,7 @@ describe('useMessageBubbleAnimation', () => {
         useMessageBubbleAnimation({ isNew: true, type: 'fade-in' })
       );
 
-      expect(result.current.animatedStyle.opacity).toBe(0);
+      expect(readStyle(result.current.animatedStyle).opacity).toBe(0);
     });
 
     it('initializes with reduced scale when new and type is spring-scale', () => {
@@ -32,7 +47,7 @@ describe('useMessageBubbleAnimation', () => {
         useMessageBubbleAnimation({ isNew: true, type: 'spring-scale' })
       );
 
-      expect(result.current.animatedStyle.transform).toContainEqual({ scale: 0.85 });
+      expect(readStyle(result.current.animatedStyle).transform).toContainEqual({ scale: 0.85 });
     });
 
     it('initializes with full opacity and scale when type is none', () => {
@@ -40,8 +55,8 @@ describe('useMessageBubbleAnimation', () => {
         useMessageBubbleAnimation({ isNew: true, type: 'none' })
       );
 
-      expect(result.current.animatedStyle.opacity).toBe(1);
-      expect(result.current.animatedStyle.transform).toContainEqual({ scale: 1 });
+      expect(readStyle(result.current.animatedStyle).opacity).toBe(1);
+      expect(readStyle(result.current.animatedStyle).transform).toContainEqual({ scale: 1 });
     });
   });
 
@@ -52,14 +67,14 @@ describe('useMessageBubbleAnimation', () => {
       );
 
       // fade-in starts with opacity 0, scale 1
-      expect(result.current.animatedStyle.opacity).toBe(0);
-      expect(result.current.animatedStyle.transform).toContainEqual({ scale: 1 });
+      expect(readStyle(result.current.animatedStyle).opacity).toBe(0);
+      expect(readStyle(result.current.animatedStyle).transform).toContainEqual({ scale: 1 });
     });
 
     it('uses isNew: false as default', () => {
       const { result } = renderHook(() => useMessageBubbleAnimation());
 
-      expect(result.current.animatedStyle.opacity).toBe(1);
+      expect(readStyle(result.current.animatedStyle).opacity).toBe(1);
     });
 
     it('uses delay: 0 as default', () => {
@@ -93,8 +108,8 @@ describe('useMessageBubbleAnimation', () => {
         useMessageBubbleAnimation({ type: 'none', isNew: true })
       );
 
-      expect(result.current.animatedStyle.opacity).toBe(1);
-      expect(result.current.animatedStyle.transform).toContainEqual({ scale: 1 });
+      expect(readStyle(result.current.animatedStyle).opacity).toBe(1);
+      expect(readStyle(result.current.animatedStyle).transform).toContainEqual({ scale: 1 });
     });
   });
 
@@ -130,8 +145,8 @@ describe('useMessageBubbleAnimation', () => {
         useMessageBubbleAnimation({ isNew: false, type: 'spring-scale' })
       );
 
-      expect(result.current.animatedStyle.opacity).toBe(1);
-      expect(result.current.animatedStyle.transform).toContainEqual({ scale: 1 });
+      expect(readStyle(result.current.animatedStyle).opacity).toBe(1);
+      expect(readStyle(result.current.animatedStyle).transform).toContainEqual({ scale: 1 });
     });
 
     it('skips animation when type is none', () => {
@@ -139,7 +154,7 @@ describe('useMessageBubbleAnimation', () => {
         useMessageBubbleAnimation({ isNew: true, type: 'none' })
       );
 
-      expect(result.current.animatedStyle.opacity).toBe(1);
+      expect(readStyle(result.current.animatedStyle).opacity).toBe(1);
     });
   });
 });

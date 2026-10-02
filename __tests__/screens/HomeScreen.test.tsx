@@ -1,9 +1,22 @@
 import { act } from '@testing-library/react-native';
+import { Text } from 'react-native';
 import HomeScreen from '@/screens/HomeScreen';
 import { renderWithProviders } from '../../test-utils/renderWithProviders';
+import { capturePropsOf } from '@test-utils/mockComponents';
+import { createMockAIConfig } from '@test-utils/fixtures';
 import { showSheet, createAppStore } from '@/store';
 import type { AIConfig } from '@/types';
 import type { AISelectionConfig } from '@/types/aiSelection';
+import type {
+  AIComposer,
+  Header,
+  HeaderActions,
+  HomeEmptyState,
+  QuickStartSheet,
+} from '@/components/organisms';
+import type { DemoBanner } from '@/components/molecules/subscription/DemoBanner';
+import type { ChatTopicPickerModal } from '@/components/organisms/demo/ChatTopicPickerModal';
+import { requireDefined, collectTestIds } from '@test-utils/queries';
 
 const mockUseGreeting = jest.fn();
 const mockUseComposerSelection = jest.fn();
@@ -11,14 +24,30 @@ const mockUseSessionManagement = jest.fn();
 const mockUseQuickStart = jest.fn();
 const mockUseFeatureAccess = jest.fn();
 
-let mockHeaderProps: any;
-let mockHeaderActionsProps: any;
-let mockComposerProps: any;
-let mockEmptyStateProps: any;
-let mockQuickStartSheetProps: any;
-let mockDemoBannerProps: any;
-let mockChatTopicPickerProps: any;
+const mockHeader = capturePropsOf<typeof Header>((props) => (
+  <>
+    <Text testID="header">header</Text>
+    {props.rightElement ?? null}
+  </>
+));
+const mockHeaderActions = capturePropsOf<typeof HeaderActions>(() => (
+  <Text testID="header-actions">actions</Text>
+));
+const mockComposer = capturePropsOf<typeof AIComposer>(() => <Text testID="ai-composer">composer</Text>);
+const mockEmptyState = capturePropsOf<typeof HomeEmptyState>(() => (
+  <Text testID="home-empty-state">empty-state</Text>
+));
+const mockQuickStartSheet = capturePropsOf<typeof QuickStartSheet>((props) => (
+  <Text testID="quick-start-sheet">{props.visible ? 'visible' : 'hidden'}</Text>
+));
+const mockDemoBanner = capturePropsOf<typeof DemoBanner>((props) => (
+  <Text testID="demo-banner" onPress={props.onPress}>demo-banner</Text>
+));
+const mockChatTopicPicker = capturePropsOf<typeof ChatTopicPickerModal>((props) => (
+  <Text testID="topic-picker">{props.visible ? 'visible' : 'hidden'}</Text>
+));
 
+/** An optional prop the screen is expected to have provided. */
 jest.mock('@/hooks/useGreeting', () => ({
   useGreeting: (...args: unknown[]) => mockUseGreeting(...args),
 }));
@@ -41,37 +70,23 @@ jest.mock('@/hooks/useFeatureAccess', () => ({
   useFeatureAccess: (...args: unknown[]) => mockUseFeatureAccess(...args),
 }));
 
-jest.mock('@/components/organisms', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
-  return {
-    Header: (props: any) => {
-      mockHeaderProps = props;
-      return React.createElement(
-        React.Fragment,
-        null,
-        React.createElement(Text, { testID: 'header' }, 'header'),
-        props.rightElement ?? null,
-      );
-    },
-    HeaderActions: (props: any) => {
-      mockHeaderActionsProps = props;
-      return React.createElement(Text, { testID: 'header-actions' }, 'actions');
-    },
-    AIComposer: (props: any) => {
-      mockComposerProps = props;
-      return React.createElement(Text, { testID: 'ai-composer' }, 'composer');
-    },
-    HomeEmptyState: (props: any) => {
-      mockEmptyStateProps = props;
-      return React.createElement(Text, { testID: 'home-empty-state' }, 'empty-state');
-    },
-    QuickStartSheet: (props: any) => {
-      mockQuickStartSheetProps = props;
-      return React.createElement(Text, { testID: 'quick-start-sheet' }, props.visible ? 'visible' : 'hidden');
-    },
-  };
-});
+jest.mock('@/components/organisms', () => ({
+  get Header() {
+    return mockHeader.Stub;
+  },
+  get HeaderActions() {
+    return mockHeaderActions.Stub;
+  },
+  get AIComposer() {
+    return mockComposer.Stub;
+  },
+  get HomeEmptyState() {
+    return mockEmptyState.Stub;
+  },
+  get QuickStartSheet() {
+    return mockQuickStartSheet.Stub;
+  },
+}));
 
 jest.mock('@/components/molecules/subscription/TrialBanner', () => {
   const React = require('react');
@@ -83,45 +98,28 @@ jest.mock('@/components/molecules/subscription/TrialBanner', () => {
   };
 });
 
-jest.mock('@/components/molecules/subscription/DemoBanner', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
-  return {
-    DemoBanner: (props: any) => {
-      mockDemoBannerProps = props;
-      return React.createElement(Text, { testID: 'demo-banner', onPress: props.onPress }, 'demo-banner');
-    },
-    __esModule: true,
-    default: (props: any) => {
-      mockDemoBannerProps = props;
-      return React.createElement(Text, { testID: 'demo-banner', onPress: props.onPress }, 'demo-banner');
-    },
-  };
-});
+jest.mock('@/components/molecules/subscription/DemoBanner', () => ({
+  get DemoBanner() {
+    return mockDemoBanner.Stub;
+  },
+  __esModule: true,
+  get default() {
+    return mockDemoBanner.Stub;
+  },
+}));
 
-jest.mock('@/components/organisms/demo/ChatTopicPickerModal', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
-  return {
-    ChatTopicPickerModal: (props: any) => {
-      mockChatTopicPickerProps = props;
-      return React.createElement(Text, { testID: 'topic-picker' }, props.visible ? 'visible' : 'hidden');
-    },
-    __esModule: true,
-    default: (props: any) => {
-      mockChatTopicPickerProps = props;
-      return React.createElement(Text, { testID: 'topic-picker' }, props.visible ? 'visible' : 'hidden');
-    },
-  };
-});
+jest.mock('@/components/organisms/demo/ChatTopicPickerModal', () => ({
+  get ChatTopicPickerModal() {
+    return mockChatTopicPicker.Stub;
+  },
+  __esModule: true,
+  get default() {
+    return mockChatTopicPicker.Stub;
+  },
+}));
 
-const createAIConfig = (overrides: Partial<AIConfig> = {}): AIConfig => ({
-  id: 'anthropic',
-  provider: 'anthropic' as AIConfig['provider'],
-  name: 'Claude',
-  model: 'claude-model',
-  ...overrides,
-});
+const createAIConfig = (overrides: Partial<AIConfig> = {}): AIConfig =>
+  createMockAIConfig({ id: 'anthropic', model: 'claude-model', ...overrides });
 
 const createSelectionConfig = (overrides: Partial<AISelectionConfig> = {}): AISelectionConfig => ({
   providerId: 'anthropic',
@@ -170,34 +168,16 @@ const createQuickStart = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
-type RenderedNode =
-  | { props?: { testID?: string }; children?: RenderedNode[] }
-  | RenderedNode[]
-  | null;
-
-const collectTestIds = (node: RenderedNode, ids: string[] = []): string[] => {
-  if (!node) return ids;
-  if (Array.isArray(node)) {
-    node.forEach((child) => collectTestIds(child, ids));
-    return ids;
-  }
-  if (node.props?.testID) {
-    ids.push(node.props.testID);
-  }
-  node.children?.forEach((child) => collectTestIds(child, ids));
-  return ids;
-};
-
 describe('HomeScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockHeaderProps = undefined;
-    mockHeaderActionsProps = undefined;
-    mockComposerProps = undefined;
-    mockEmptyStateProps = undefined;
-    mockQuickStartSheetProps = undefined;
-    mockDemoBannerProps = undefined;
-    mockChatTopicPickerProps = undefined;
+    mockHeader.reset();
+    mockHeaderActions.reset();
+    mockComposer.reset();
+    mockEmptyState.reset();
+    mockQuickStartSheet.reset();
+    mockDemoBanner.reset();
+    mockChatTopicPicker.reset();
   });
 
   const baseGreeting = {
@@ -257,15 +237,15 @@ describe('HomeScreen', () => {
       minAIs: 1,
       maxAIs: 3,
     });
-    expect(mockHeaderProps).toBeDefined();
-    expect(mockHeaderProps.slim).toBe(true);
-    expect(mockHeaderProps.title).toBe('The Forum');
-    expect(mockHeaderActionsProps.variant).toBe('gradient');
-    expect(mockHeaderActionsProps.helpCategoryId).toBe('chat');
-    expect(mockComposerProps.mode).toBe('chat');
-    expect(mockComposerProps.maxAIs).toBe(3);
-    expect(mockComposerProps.minAIs).toBe(1);
-    expect(mockComposerProps.requireText).toBe(true);
+    expect(mockHeader.calls).not.toHaveLength(0);
+    expect(mockHeader.latest().slim).toBe(true);
+    expect(mockHeader.latest().title).toBe('The Forum');
+    expect(mockHeaderActions.latest().variant).toBe('gradient');
+    expect(mockHeaderActions.latest().helpCategoryId).toBe('chat');
+    expect(mockComposer.latest().mode).toBe('chat');
+    expect(mockComposer.latest().maxAIs).toBe(3);
+    expect(mockComposer.latest().minAIs).toBe(1);
+    expect(mockComposer.latest().requireText).toBe(true);
   });
 
   it('places the trial banner between the header and the empty state', () => {
@@ -273,7 +253,7 @@ describe('HomeScreen', () => {
       featureAccess: { isDemo: false, isInTrial: true, trialDaysRemaining: 1 },
     });
 
-    const testIds = collectTestIds(renderResult.toJSON() as unknown as RenderedNode);
+    const testIds = collectTestIds(renderResult.toJSON());
 
     expect(testIds.indexOf('header')).toBeGreaterThanOrEqual(0);
     expect(testIds.indexOf('trial-banner')).toBeGreaterThanOrEqual(0);
@@ -290,12 +270,12 @@ describe('HomeScreen', () => {
     renderHome({ navigation, session, selection });
 
     await act(async () => {
-      mockComposerProps.onSend('hello');
+      mockComposer.latest().onSend('hello');
     });
 
     expect(session.createSession).not.toHaveBeenCalled();
     expect(navigation.navigate).not.toHaveBeenCalled();
-    expect(mockChatTopicPickerProps).toBeUndefined();
+    expect(mockChatTopicPicker.calls).toHaveLength(0);
   });
 
   it('creates a session and navigates to chat with the auto-send rail on send', async () => {
@@ -313,7 +293,7 @@ describe('HomeScreen', () => {
     renderHome({ navigation, session, selection });
 
     await act(async () => {
-      mockComposerProps.onSend('What is the meaning of life?');
+      mockComposer.latest().onSend('What is the meaning of life?');
     });
 
     expect(session.createSession).toHaveBeenCalledWith(selectedAIConfigs, sessionMaps);
@@ -343,10 +323,10 @@ describe('HomeScreen', () => {
 
     const { store } = renderHome({ navigation, session, selection });
 
-    expect(mockComposerProps.allowAttachments).toBe(true);
+    expect(mockComposer.latest().allowAttachments).toBe(true);
 
     await act(async () => {
-      mockComposerProps.onSend('What is in this photo?', [attachment]);
+      mockComposer.latest().onSend('What is in this photo?', [attachment]);
     });
 
     expect(store.getState().composerAttachments.chat).toEqual([attachment]);
@@ -360,7 +340,7 @@ describe('HomeScreen', () => {
 
     // A later attachment-less send overwrites the staged list.
     await act(async () => {
-      mockComposerProps.onSend('Plain follow-up');
+      mockComposer.latest().onSend('Plain follow-up');
     });
     expect(store.getState().composerAttachments.chat).toEqual([]);
   });
@@ -375,17 +355,17 @@ describe('HomeScreen', () => {
 
     renderHome({ session, selection, featureAccess: { isDemo: true } });
 
-    expect(mockChatTopicPickerProps.visible).toBe(false);
-    expect(mockComposerProps.requireText).toBe(false);
-    expect(mockComposerProps.allowAttachments).toBe(false);
+    expect(mockChatTopicPicker.latest().visible).toBe(false);
+    expect(mockComposer.latest().requireText).toBe(false);
+    expect(mockComposer.latest().allowAttachments).toBe(false);
 
     await act(async () => {
-      mockComposerProps.onSend('');
+      mockComposer.latest().onSend('');
     });
 
     expect(session.createSession).not.toHaveBeenCalled();
-    expect(mockChatTopicPickerProps.visible).toBe(true);
-    expect(mockChatTopicPickerProps.providers).toEqual(['anthropic']);
+    expect(mockChatTopicPicker.latest().visible).toBe(true);
+    expect(mockChatTopicPicker.latest().providers).toEqual(['claude']);
   });
 
   it('passes single AI personality to topic picker when available', async () => {
@@ -398,10 +378,10 @@ describe('HomeScreen', () => {
     renderHome({ selection, featureAccess: { isDemo: true } });
 
     await act(async () => {
-      mockComposerProps.onSend('');
+      mockComposer.latest().onSend('');
     });
 
-    expect(mockChatTopicPickerProps.personaId).toBe('friendly');
+    expect(mockChatTopicPicker.latest().personaId).toBe('friendly');
   });
 
   it('does not forward persona when multiple AIs selected', async () => {
@@ -413,17 +393,17 @@ describe('HomeScreen', () => {
       ],
       selectedAIConfigs: [
         createAIConfig(),
-        createAIConfig({ id: 'openai', provider: 'openai' as AIConfig['provider'] }),
+        createAIConfig({ id: 'openai', provider: 'openai' }),
       ],
     });
 
     renderHome({ selection, featureAccess: { isDemo: true } });
 
     await act(async () => {
-      mockComposerProps.onSend('');
+      mockComposer.latest().onSend('');
     });
 
-    expect(mockChatTopicPickerProps.personaId).toBeUndefined();
+    expect(mockChatTopicPicker.latest().personaId).toBeUndefined();
   });
 
   it('exposes Quick Start on the empty state when AIs are ready', async () => {
@@ -436,10 +416,10 @@ describe('HomeScreen', () => {
 
     renderHome({ selection, quickStart });
 
-    expect(mockEmptyStateProps.onQuickStart).toBeDefined();
+    expect(mockEmptyState.latest().onQuickStart).toBeDefined();
 
     await act(async () => {
-      mockEmptyStateProps.onQuickStart();
+      requireDefined(mockEmptyState.latest().onQuickStart, 'onQuickStart')();
     });
 
     expect(quickStart.openSheet).toHaveBeenCalled();
@@ -450,10 +430,10 @@ describe('HomeScreen', () => {
       selection: createSelection({ hasEnoughAIs: true, selectedAIConfigs: [createAIConfig()] }),
       featureAccess: { isDemo: true },
     });
-    expect(mockEmptyStateProps.onQuickStart).toBeUndefined();
+    expect(mockEmptyState.latest().onQuickStart).toBeUndefined();
 
     renderHome({ selection: createSelection({ hasEnoughAIs: false }) });
-    expect(mockEmptyStateProps.onQuickStart).toBeUndefined();
+    expect(mockEmptyState.latest().onQuickStart).toBeUndefined();
   });
 
   it('passes quick start sheet props correctly', () => {
@@ -461,10 +441,10 @@ describe('HomeScreen', () => {
 
     renderHome({ quickStart });
 
-    expect(mockQuickStartSheetProps.visible).toBe(true);
-    expect(mockQuickStartSheetProps.templates).toEqual(quickStart.templates);
-    expect(mockQuickStartSheetProps.onStart).toBeDefined();
-    expect(mockQuickStartSheetProps.onClose).toBeDefined();
+    expect(mockQuickStartSheet.latest().visible).toBe(true);
+    expect(mockQuickStartSheet.latest().templates).toEqual(quickStart.templates);
+    expect(mockQuickStartSheet.latest().onStart).toBeDefined();
+    expect(mockQuickStartSheet.latest().onClose).toBeDefined();
   });
 
   it('handles quick start completion when selection exists', async () => {
@@ -483,7 +463,7 @@ describe('HomeScreen', () => {
     renderHome({ selection, quickStart, session, navigation });
 
     await act(async () => {
-      mockQuickStartSheetProps.onStart({
+      mockQuickStartSheet.latest().onStart({
         templateId: 'brainstorm',
         userPrompt: 'user prompt',
         aiPrompt: 'ai prompt',
@@ -508,7 +488,7 @@ describe('HomeScreen', () => {
     renderHome({ quickStart, session, navigation });
 
     await act(async () => {
-      mockQuickStartSheetProps.onStart({
+      mockQuickStartSheet.latest().onStart({
         templateId: 'brainstorm',
         userPrompt: 'user prompt',
         aiPrompt: 'ai prompt',
@@ -526,7 +506,7 @@ describe('HomeScreen', () => {
     renderHome({ featureAccess: { isDemo: true }, store });
 
     await act(async () => {
-      mockDemoBannerProps.onPress();
+      requireDefined(mockDemoBanner.latest().onPress, 'onPress')();
     });
 
     expect(dispatchSpy).toHaveBeenCalledWith(showSheet({ sheet: 'subscription' }));
@@ -535,19 +515,19 @@ describe('HomeScreen', () => {
   it('does not show trial-start copy in the demo banner after the trial was used', () => {
     renderHome({ featureAccess: { isDemo: true, canStartTrial: false } });
 
-    expect(mockDemoBannerProps.subtitle).toBe('Simulated chat preview. Upgrade to Premium to chat for real.');
+    expect(mockDemoBanner.latest().subtitle).toBe('Simulated chat preview. Upgrade to Premium to chat for real.');
   });
 
   it('restricts the provider picker to configured demo providers', () => {
-    const configuredAIs = [createAIConfig(), createAIConfig({ id: 'openai', provider: 'openai' as AIConfig['provider'] })];
+    const configuredAIs = [createAIConfig(), createAIConfig({ id: 'openai', provider: 'openai' })];
     renderHome({
       selection: createSelection({ configuredAIs }),
       featureAccess: { isDemo: true },
     });
 
-    expect(mockComposerProps.allowedProviderIds).toEqual(['anthropic', 'openai']);
-    expect(mockComposerProps.onRequestAddKey).toBeUndefined();
-    expect(mockComposerProps.showAdvancedParams).toBe(false);
+    expect(mockComposer.latest().allowedProviderIds).toEqual(['anthropic', 'openai']);
+    expect(mockComposer.latest().onRequestAddKey).toBeUndefined();
+    expect(mockComposer.latest().showAdvancedParams).toBe(false);
   });
 
   it('creates demo session from topic picker selection and closes modal', async () => {
@@ -565,13 +545,13 @@ describe('HomeScreen', () => {
     renderHome({ selection, session, navigation, featureAccess: { isDemo: true } });
 
     await act(async () => {
-      mockComposerProps.onSend('');
+      mockComposer.latest().onSend('');
     });
 
-    expect(mockChatTopicPickerProps.visible).toBe(true);
+    expect(mockChatTopicPicker.latest().visible).toBe(true);
 
     await act(async () => {
-      mockChatTopicPickerProps.onSelect('sample-123');
+      mockChatTopicPicker.latest().onSelect('sample-123', 'Sample');
     });
 
     expect(session.createSession).toHaveBeenCalledWith(selectedAIConfigs, sessionMaps);
@@ -579,7 +559,7 @@ describe('HomeScreen', () => {
       sessionId: 'session-demo',
       demoSampleId: 'sample-123',
     });
-    expect(mockChatTopicPickerProps.visible).toBe(false);
+    expect(mockChatTopicPicker.latest().visible).toBe(false);
   });
 
   it('hides topic picker when closed without selection', async () => {
@@ -592,16 +572,16 @@ describe('HomeScreen', () => {
     renderHome({ selection, featureAccess: { isDemo: true } });
 
     await act(async () => {
-      mockComposerProps.onSend('');
+      mockComposer.latest().onSend('');
     });
 
-    expect(mockChatTopicPickerProps.visible).toBe(true);
+    expect(mockChatTopicPicker.latest().visible).toBe(true);
 
     await act(async () => {
-      mockChatTopicPickerProps.onClose();
+      mockChatTopicPicker.latest().onClose();
     });
 
-    expect(mockChatTopicPickerProps.visible).toBe(false);
+    expect(mockChatTopicPicker.latest().visible).toBe(false);
   });
 
   it('routes to API config from the empty-state CTA and the composer add-key action', async () => {
@@ -610,12 +590,12 @@ describe('HomeScreen', () => {
     renderHome({ navigation });
 
     await act(async () => {
-      mockEmptyStateProps.onConfigureAIs();
+      mockEmptyState.latest().onConfigureAIs();
     });
     expect(navigation.navigate).toHaveBeenCalledWith('APIConfig');
 
     await act(async () => {
-      mockComposerProps.onRequestAddKey();
+      requireDefined(mockComposer.latest().onRequestAddKey, 'onRequestAddKey')();
     });
     expect(navigation.navigate).toHaveBeenCalledTimes(2);
     expect(navigation.navigate).toHaveBeenLastCalledWith('APIConfig');

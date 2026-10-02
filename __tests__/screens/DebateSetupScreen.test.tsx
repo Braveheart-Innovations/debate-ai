@@ -2,7 +2,10 @@ import React from 'react';
 import { Alert } from 'react-native';
 import { act, fireEvent } from '@testing-library/react-native';
 import { renderWithProviders } from '../../test-utils/renderWithProviders';
+import { buildRootState, type RootStateOverrides } from '../../test-utils/services/state';
+import { capturePropsOf } from '@test-utils/mockComponents';
 import {
+  buildApiKeyStatus,
   setAIPersonality,
   setAIModel,
   preserveTopic,
@@ -11,7 +14,17 @@ import {
 import { resolveProviderModelId } from '@/config/modelConfigs';
 import type { AIConfig } from '@/types';
 import type { RootState } from '@/store';
-import type { FormatModalProps } from '@/components/organisms/debate/FormatModal';
+import type { FormatModal } from '@/components/organisms/debate/FormatModal';
+import type { DebateTopicSelector } from '@/components/organisms/debate/DebateTopicSelector';
+import type { DebateTeamsCard } from '@/components/organisms/debate/DebateTeamsCard';
+import type { DebateSlotConfigSheet } from '@/components/organisms/debate/DebateSlotConfigSheet';
+import type { ProviderPickerSheet } from '@/components/organisms/composer/ProviderPickerSheet';
+import type { DebateRecordPickerModal } from '@/components/organisms/demo/DebateRecordPickerModal';
+import type { DemoDebatePickerModal } from '@/components/organisms/demo/DemoDebatePickerModal';
+import type { Header } from '@/components/organisms';
+import type { Button, GradientButton, SegmentedControl } from '@/components/molecules';
+import type DebateSetupScreenComponent from '@/screens/DebateSetupScreen';
+import { requireDefined, collectTestIds } from '@test-utils/queries';
 
 const baseAIs: AIConfig[] = [
   { id: 'claude', provider: 'claude', name: 'Claude', model: 'claude-3-opus' },
@@ -21,12 +34,17 @@ const baseAIs: AIConfig[] = [
 
 const mockDispatch = jest.fn();
 let currentState: RootState;
-const mockUseSelector = jest.fn();
+const mockUseSelector = jest.fn<unknown, [(state: RootState) => unknown]>();
 const mockFeatureAccess = jest.fn();
 
-const defaultState = (): RootState => ({
+/** Slice overrides layered onto the real initial store state. */
+const defaultState = () => ({
   settings: {
-    apiKeys: { claude: 'key-1', openai: 'key-2', google: 'key-3' },
+    apiKeys: {
+      claude: buildApiKeyStatus('key-1'),
+      openai: buildApiKeyStatus('key-2'),
+      google: buildApiKeyStatus('key-3'),
+    },
     expertMode: {},
     recordModeEnabled: false,
     theme: 'light',
@@ -35,7 +53,7 @@ const defaultState = (): RootState => ({
     verificationTimestamps: {},
     verificationModels: {},
     hasCompletedOnboarding: true,
-  } as any,
+  },
   chat: {
     aiPersonalities: {},
     selectedModels: {},
@@ -47,25 +65,21 @@ const defaultState = (): RootState => ({
   debateStats: {
     preservedTopic: '',
     preservedTopicMode: 'preset',
-  } as any,
+  },
   streaming: {
     globalStreamingEnabled: false,
     streamingPreferences: {},
     providerVerificationErrors: {},
-  } as any,
+  },
   user: { currentUser: null, isAuthenticated: false, uiMode: 'simple' },
-  navigation: {} as any,
-  compare: {} as any,
-  auth: {} as any,
-  services: {} as any,
-});
+}) satisfies RootStateOverrides;
 
 jest.mock('react-redux', () => {
   const actual = jest.requireActual('react-redux');
   return {
     ...actual,
     useDispatch: () => mockDispatch,
-    useSelector: (selector: (state: RootState) => any) => mockUseSelector(selector),
+    useSelector: (selector: (state: RootState) => unknown) => mockUseSelector(selector),
   };
 });
 
@@ -140,37 +154,35 @@ jest.mock('@/components/molecules/subscription/DemoBanner', () => ({
   },
 }));
 
-let topicSelectorProps: any;
-let teamsCardProps: any;
-let slotConfigSheetProps: any;
-let providerPickerProps: any;
-let formatModalProps: FormatModalProps | undefined;
+const mockTopicSelector = capturePropsOf<typeof DebateTopicSelector>();
+const mockTeamsCard = capturePropsOf<typeof DebateTeamsCard>();
+const mockSlotConfigSheet = capturePropsOf<typeof DebateSlotConfigSheet>();
+const mockProviderPicker = capturePropsOf<typeof ProviderPickerSheet>();
+const mockFormatModal = capturePropsOf<typeof FormatModal>();
+const mockRecordPicker = capturePropsOf<typeof DebateRecordPickerModal>();
+const mockDemoPicker = capturePropsOf<typeof DemoDebatePickerModal>();
 
 jest.mock('@/components/organisms/debate/DebateTopicSelector', () => ({
-  DebateTopicSelector: (props: any) => {
-    topicSelectorProps = props;
-    return null;
+  get DebateTopicSelector() {
+    return mockTopicSelector.Stub;
   },
 }));
 
 jest.mock('@/components/organisms/debate/DebateTeamsCard', () => ({
-  DebateTeamsCard: (props: any) => {
-    teamsCardProps = props;
-    return null;
+  get DebateTeamsCard() {
+    return mockTeamsCard.Stub;
   },
 }));
 
 jest.mock('@/components/organisms/debate/DebateSlotConfigSheet', () => ({
-  DebateSlotConfigSheet: (props: any) => {
-    slotConfigSheetProps = props;
-    return null;
+  get DebateSlotConfigSheet() {
+    return mockSlotConfigSheet.Stub;
   },
 }));
 
 jest.mock('@/components/organisms/composer/ProviderPickerSheet', () => ({
-  ProviderPickerSheet: (props: any) => {
-    providerPickerProps = props;
-    return null;
+  get ProviderPickerSheet() {
+    return mockProviderPicker.Stub;
   },
 }));
 
@@ -178,40 +190,35 @@ jest.mock('@/components/organisms/common/AIAvatar', () => ({
   AIAvatar: () => null,
 }));
 
-let recordPickerProps: any;
 jest.mock('@/components/organisms/demo/DebateRecordPickerModal', () => ({
-  DebateRecordPickerModal: (props: any) => {
-    recordPickerProps = props;
-    return null;
+  get DebateRecordPickerModal() {
+    return mockRecordPicker.Stub;
   },
 }));
 
-let demoPickerProps: any;
 jest.mock('@/components/organisms/demo/DemoDebatePickerModal', () => ({
-  DemoDebatePickerModal: (props: any) => {
-    demoPickerProps = props;
-    return null;
+  get DemoDebatePickerModal() {
+    return mockDemoPicker.Stub;
   },
 }));
 
 jest.mock('@/components/organisms/debate/FormatModal', () => ({
-  FormatModal: (props: FormatModalProps) => {
-    formatModalProps = props;
-    return null;
+  get FormatModal() {
+    return mockFormatModal.Stub;
   },
 }));
 
 jest.mock('@/components/organisms', () => {
   const React = require('react');
-  const { Text, View } = require('react-native');
+  const { Text } = require('react-native');
+  const { stubComponent } = jest.requireActual<
+    typeof import('@test-utils/mockComponents')
+  >('@test-utils/mockComponents');
   return {
-    Header: (props: any) =>
-      React.createElement(
-        View,
-        { testID: 'header' },
-        React.createElement(Text, null, props.title),
-        props.rightElement ?? null
-      ),
+    Header: stubComponent<typeof Header>('header', {
+      text: (props) => props.title,
+      render: (props) => props.rightElement ?? null,
+    }),
     HeaderActions: () => React.createElement(Text, null, 'actions'),
   };
 });
@@ -219,36 +226,35 @@ jest.mock('@/components/organisms', () => {
 jest.mock('@/components/molecules', () => {
   const React = require('react');
   const { Text, View } = require('react-native');
+  const { stubComponent } = jest.requireActual<
+    typeof import('@test-utils/mockComponents')
+  >('@test-utils/mockComponents');
   return {
-    Button: (props: any) => React.createElement(Text, { onPress: props.onPress }, props.title),
-    GradientButton: (props: any) =>
-      React.createElement(
-        Text,
-        {
-          onPress: props.disabled ? undefined : props.onPress,
-          accessibilityState: { disabled: !!props.disabled },
-          testID: props.testID,
-        },
-        props.title
-      ),
+    Button: stubComponent<typeof Button>('button', {
+      onPress: (props) => props.onPress,
+      text: (props) => props.title,
+    }),
+    GradientButton: stubComponent<typeof GradientButton>('gradient-button', {
+      testID: (props) => props.testID,
+      onPress: (props) => (props.disabled ? undefined : props.onPress),
+      text: (props) => props.title,
+    }),
     Typography: ({ children }: { children: React.ReactNode }) => React.createElement(Text, null, children),
     Card: ({ children }: { children?: React.ReactNode }) => React.createElement(View, null, children),
     HeaderIcon: ({ onPress, testID }: { onPress?: () => void; testID?: string }) =>
       React.createElement(Text, { onPress, testID }, 'icon'),
     InfoButton: ({ topicId }: { topicId: string }) =>
       React.createElement(Text, { testID: `info-button-${topicId}` }, 'info'),
-    SegmentedControl: ({ options, onChange }: any) =>
-      React.createElement(
-        View,
-        null,
-        options.map((option: any) =>
+    SegmentedControl: stubComponent<typeof SegmentedControl>('segmented-control', {
+      render: ({ options, onChange }) =>
+        options.map((option) =>
           React.createElement(
             Text,
             { key: String(option.value), onPress: () => onChange(option.value) },
             option.label
           )
-        )
-      ),
+        ),
+    }),
   };
 });
 
@@ -297,31 +303,29 @@ jest.mock('@/services/demo/RecordController', () => ({
   RecordController: mockRecordController,
 }));
 
-const DebateSetupScreen = require('@/screens/DebateSetupScreen').default;
+const DebateSetupScreen: typeof DebateSetupScreenComponent = require('@/screens/DebateSetupScreen').default;
 
-const collectTestIds = (node: any, ids: string[] = []): string[] => {
-  if (!node) return ids;
-  if (Array.isArray(node)) {
-    node.forEach((child) => collectTestIds(child, ids));
-    return ids;
-  }
-  if (node.props?.testID) {
-    ids.push(node.props.testID);
-  }
-  node.children?.forEach((child: any) => collectTestIds(child, ids));
-  return ids;
+type DebateSetupRouteParams = NonNullable<
+  NonNullable<React.ComponentProps<typeof DebateSetupScreenComponent>['route']>['params']
+>;
+
+/** The slot's debater; fails the test when the slot is unexpectedly empty. */
+const filledAI = (ai: AIConfig | null | undefined): AIConfig => {
+  if (!ai) throw new Error('expected a filled debater slot');
+  return ai;
 };
 
+/** An optional callback prop the screen is expected to have provided. */
 const renderScreen = (options: {
   featureAccess?: Record<string, unknown>;
-  route?: Record<string, unknown>;
-  state?: Partial<RootState>;
+  route?: DebateSetupRouteParams;
+  state?: RootStateOverrides;
 } = {}) => {
   const { featureAccess, route, state } = options;
-  currentState = {
+  currentState = buildRootState({
     ...defaultState(),
     ...(state ? state : {}),
-  } as RootState;
+  });
 
   mockUseSelector.mockImplementation((selector) => selector(currentState));
   mockFeatureAccess.mockReturnValue({ isDemo: false, isPremium: false, isInTrial: false, ...featureAccess });
@@ -331,7 +335,7 @@ const renderScreen = (options: {
   };
 
   const renderResult = renderWithProviders(
-    <DebateSetupScreen navigation={navigation as any} route={{ params: { ...route } } as any} />
+    <DebateSetupScreen navigation={navigation} route={{ params: { ...route } }} />
   );
 
   return {
@@ -369,13 +373,13 @@ beforeEach(() => {
     ],
   });
   mockRecordController.startDebate.mockReset();
-  topicSelectorProps = undefined;
-  teamsCardProps = undefined;
-  slotConfigSheetProps = undefined;
-  providerPickerProps = undefined;
-  formatModalProps = undefined;
-  recordPickerProps = undefined;
-  demoPickerProps = undefined;
+  mockTopicSelector.reset();
+  mockTeamsCard.reset();
+  mockSlotConfigSheet.reset();
+  mockProviderPicker.reset();
+  mockFormatModal.reset();
+  mockRecordPicker.reset();
+  mockDemoPicker.reset();
   Alert.alert = jest.fn();
 });
 
@@ -387,25 +391,25 @@ const elevenLabsState = () => ({
       elevenlabs: { configured: true, maskedLabel: 'key', updatedAt: 1 },
     },
     verifiedProviders: ['elevenlabs'],
-  } as any,
+  },
 });
 
 describe('DebateSetupScreen', () => {
   const fillSlot = async (index: number, providerId: string) => {
     act(() => {
-      teamsCardProps.onSlotPress(teamsCardProps.slots[index]);
+      mockTeamsCard.latest().onSlotPress(mockTeamsCard.latest().slots[index]);
     });
     await flush();
-    expect(providerPickerProps.visible).toBe(true);
+    expect(mockProviderPicker.latest().visible).toBe(true);
     act(() => {
-      providerPickerProps.onSelectProvider(providerId);
+      mockProviderPicker.latest().onSelectProvider(providerId);
     });
     await flush();
   };
 
   const setTopic = async (topic: string) => {
     act(() => {
-      topicSelectorProps.onTopicSelect(topic);
+      mockTopicSelector.latest().onTopicSelect(topic);
     });
     await flush();
   };
@@ -435,7 +439,7 @@ describe('DebateSetupScreen', () => {
 
     expect(renderResult.getByText(/2v2 Oxford/)).toBeTruthy();
     expect(renderResult.getByText(/4 debaters/)).toBeTruthy();
-    expect(teamsCardProps.totalCount).toBe(4);
+    expect(mockTeamsCard.latest().totalCount).toBe(4);
 
     fireEvent.press(renderResult.getByText('2v2 + Q&A'));
     await flush();
@@ -448,7 +452,7 @@ describe('DebateSetupScreen', () => {
     const { renderResult } = renderScreen({ featureAccess: { isDemo: false } });
 
     act(() => {
-      formatModalProps!.onSelect('lincoln_douglas');
+      mockFormatModal.latest().onSelect('lincoln_douglas');
     });
     await flush();
 
@@ -463,7 +467,7 @@ describe('DebateSetupScreen', () => {
     expect(renderResult.getByText(/9 turns · 2 debaters · 5 judge moments/)).toBeTruthy();
 
     act(() => {
-      formatModalProps!.onSelect('policy');
+      mockFormatModal.latest().onSelect('policy');
     });
     await flush();
 
@@ -475,16 +479,16 @@ describe('DebateSetupScreen', () => {
     renderScreen({ featureAccess: { isDemo: false } });
     await setTopic('Climate Action');
 
-    expect(teamsCardProps.slots).toHaveLength(2);
-    expect(teamsCardProps.slots[0].ai).toBeNull();
+    expect(mockTeamsCard.latest().slots).toHaveLength(2);
+    expect(mockTeamsCard.latest().slots[0].ai).toBeNull();
 
     await fillSlot(0, 'claude');
     await fillSlot(1, 'openai');
 
-    expect(teamsCardProps.slots[0].ai.provider).toBe('claude');
-    expect(teamsCardProps.slots[1].ai.provider).toBe('openai');
-    expect(teamsCardProps.filledCount).toBe(2);
-    expect(providerPickerProps.visible).toBe(false);
+    expect(mockTeamsCard.latest().slots[0].ai?.provider).toBe('claude');
+    expect(mockTeamsCard.latest().slots[1].ai?.provider).toBe('openai');
+    expect(mockTeamsCard.latest().filledCount).toBe(2);
+    expect(mockProviderPicker.latest().visible).toBe(false);
   });
 
   it('adds same-provider debater slots with distinct slot ids and numbered names', async () => {
@@ -494,7 +498,7 @@ describe('DebateSetupScreen', () => {
     await fillSlot(0, 'claude');
     await fillSlot(1, 'claude');
 
-    const [first, second] = teamsCardProps.slots.map((slot: any) => slot.ai);
+    const [first, second] = mockTeamsCard.latest().slots.map((slot) => filledAI(slot.ai));
     expect(first.id).not.toEqual(second.id);
     expect(first.name).toBe('Claude 1');
     expect(second.name).toBe('Claude 2');
@@ -506,18 +510,18 @@ describe('DebateSetupScreen', () => {
     await fillSlot(0, 'claude');
 
     act(() => {
-      teamsCardProps.onSlotPress(teamsCardProps.slots[0]);
+      mockTeamsCard.latest().onSlotPress(mockTeamsCard.latest().slots[0]);
     });
     await flush();
 
-    expect(slotConfigSheetProps.visible).toBe(true);
-    expect(slotConfigSheetProps.ai.provider).toBe('claude');
-    expect(slotConfigSheetProps.slotLabel).toBe('Affirmative 1');
+    expect(mockSlotConfigSheet.latest().visible).toBe(true);
+    expect(mockSlotConfigSheet.latest().ai?.provider).toBe('claude');
+    expect(mockSlotConfigSheet.latest().slotLabel).toBe('Affirmative 1');
 
-    const slotId = slotConfigSheetProps.ai.id;
+    const slotId = filledAI(mockSlotConfigSheet.latest().ai).id;
 
     act(() => {
-      slotConfigSheetProps.onChangeModel('claude-custom');
+      mockSlotConfigSheet.latest().onChangeModel('claude-custom');
     });
     expect(mockDispatch).toHaveBeenCalledWith(setAIModel({
       aiId: slotId,
@@ -525,7 +529,7 @@ describe('DebateSetupScreen', () => {
     }));
 
     act(() => {
-      slotConfigSheetProps.onChangePersonality('friendly');
+      requireDefined(mockSlotConfigSheet.latest().onChangePersonality, 'onChangePersonality')('friendly');
     });
     expect(mockDispatch).toHaveBeenCalledWith(setAIPersonality({ aiId: slotId, personalityId: 'friendly' }));
   });
@@ -536,31 +540,31 @@ describe('DebateSetupScreen', () => {
     await fillSlot(0, 'claude');
 
     act(() => {
-      teamsCardProps.onSlotPress(teamsCardProps.slots[0]);
+      mockTeamsCard.latest().onSlotPress(mockTeamsCard.latest().slots[0]);
     });
     await flush();
 
     act(() => {
-      slotConfigSheetProps.onChangeProvider();
+      mockSlotConfigSheet.latest().onChangeProvider();
     });
     await flush();
-    expect(providerPickerProps.visible).toBe(true);
+    expect(mockProviderPicker.latest().visible).toBe(true);
 
     act(() => {
-      providerPickerProps.onSelectProvider('openai');
+      mockProviderPicker.latest().onSelectProvider('openai');
     });
     await flush();
-    expect(teamsCardProps.slots[0].ai.provider).toBe('openai');
+    expect(mockTeamsCard.latest().slots[0].ai?.provider).toBe('openai');
 
     act(() => {
-      teamsCardProps.onSlotPress(teamsCardProps.slots[0]);
+      mockTeamsCard.latest().onSlotPress(mockTeamsCard.latest().slots[0]);
     });
     await flush();
     act(() => {
-      slotConfigSheetProps.onRemove();
+      mockSlotConfigSheet.latest().onRemove();
     });
     await flush();
-    expect(teamsCardProps.slots[0].ai).toBeNull();
+    expect(mockTeamsCard.latest().slots[0].ai).toBeNull();
   });
 
   it('hides the personality row in demo mode', async () => {
@@ -569,12 +573,12 @@ describe('DebateSetupScreen', () => {
     await fillSlot(0, 'claude');
 
     act(() => {
-      teamsCardProps.onSlotPress(teamsCardProps.slots[0]);
+      mockTeamsCard.latest().onSlotPress(mockTeamsCard.latest().slots[0]);
     });
     await flush();
 
-    expect(slotConfigSheetProps.visible).toBe(true);
-    expect(slotConfigSheetProps.personalityId).toBeUndefined();
+    expect(mockSlotConfigSheet.latest().visible).toBe(true);
+    expect(mockSlotConfigSheet.latest().personalityId).toBeUndefined();
   });
 
   it('blocks Start with a hint until motion and slots are complete', async () => {
@@ -632,10 +636,10 @@ describe('DebateSetupScreen', () => {
     });
 
     expect(mockListDebateSamples).toHaveBeenCalledWith(expect.arrayContaining(['claude', 'openai']), 'default');
-    expect(demoPickerProps.visible).toBe(true);
+    expect(mockDemoPicker.latest().visible).toBe(true);
 
     await act(async () => {
-      await demoPickerProps.onSelect({ id: 'sample-1', title: 'Sample', topic: 'AI Ethics' });
+      await mockDemoPicker.latest().onSelect({ id: 'sample-1', title: 'Sample', topic: 'AI Ethics' });
     });
 
     expect(mockFindDebateById).toHaveBeenCalledWith('sample-1');
@@ -652,7 +656,7 @@ describe('DebateSetupScreen', () => {
         settings: {
           ...defaultState().settings,
           recordModeEnabled: true,
-        } as any,
+        },
       },
     });
 
@@ -663,10 +667,10 @@ describe('DebateSetupScreen', () => {
     fireEvent.press(renderResult.getByTestId('start-debate-button'));
     await flush();
 
-    expect(recordPickerProps.visible).toBe(true);
+    expect(mockRecordPicker.latest().visible).toBe(true);
 
     await act(async () => {
-      await recordPickerProps.onSelect({ type: 'new', id: 'record-1', topic: 'Custom Topic' });
+      await mockRecordPicker.latest().onSelect({ type: 'new', id: 'record-1', topic: 'Custom Topic' });
     });
 
     expect(mockRecordController.startDebate).toHaveBeenCalledWith(expect.objectContaining({ id: 'record-1' }));
@@ -682,7 +686,7 @@ describe('DebateSetupScreen', () => {
 
     expect(renderResult.queryByText('Debate Voices')).toBeNull();
     expect(mockListElevenLabsOptions).not.toHaveBeenCalled();
-    expect(slotConfigSheetProps.showVoice).toBe(false);
+    expect(mockSlotConfigSheet.latest().showVoice).toBe(false);
   });
 
   it('loads verified ElevenLabs voices and passes voice config to Debate', async () => {
@@ -713,9 +717,9 @@ describe('DebateSetupScreen', () => {
     }));
     expect(renderResult.getByText(/900 remaining/)).toBeTruthy();
 
-    const [claudeDebater, openaiDebater] = teamsCardProps.slots.map((slot: any) => slot.ai);
-    expect(teamsCardProps.slots[0].voiceLabel).toContain('Voice One');
-    expect(teamsCardProps.slots[1].voiceLabel).toContain('Voice Two');
+    const [claudeDebater, openaiDebater] = mockTeamsCard.latest().slots.map((slot) => filledAI(slot.ai));
+    expect(mockTeamsCard.latest().slots[0].voiceLabel).toContain('Voice One');
+    expect(mockTeamsCard.latest().slots[1].voiceLabel).toContain('Voice Two');
 
     fireEvent.press(renderResult.getByTestId('start-debate-button'));
 
@@ -751,9 +755,9 @@ describe('DebateSetupScreen', () => {
 
     fireEvent.press(renderResult.getByText('Add MC'));
     await flush();
-    expect(providerPickerProps.visible).toBe(true);
+    expect(mockProviderPicker.latest().visible).toBe(true);
     act(() => {
-      providerPickerProps.onSelectProvider('google');
+      mockProviderPicker.latest().onSelectProvider('google');
     });
     await flush();
 
@@ -764,10 +768,10 @@ describe('DebateSetupScreen', () => {
 
     fireEvent.press(renderResult.getByTestId('debate-podcast-mc-row'));
     await flush();
-    expect(slotConfigSheetProps.slotLabel).toBe('Podcast MC');
-    expect(slotConfigSheetProps.personalityId).toBeUndefined();
+    expect(mockSlotConfigSheet.latest().slotLabel).toBe('Podcast MC');
+    expect(mockSlotConfigSheet.latest().personalityId).toBeUndefined();
     act(() => {
-      slotConfigSheetProps.onSelectVoice({ id: 'voice-host', name: 'Host Voice' });
+      requireDefined(mockSlotConfigSheet.latest().onSelectVoice, 'onSelectVoice')({ id: 'voice-host', name: 'Host Voice' });
     });
     await flush();
 
@@ -818,14 +822,14 @@ describe('DebateSetupScreen', () => {
     fireEvent.press(renderResult.getByText('Add MC'));
     await flush();
     act(() => {
-      providerPickerProps.onSelectProvider('google');
+      mockProviderPicker.latest().onSelectProvider('google');
     });
     await flush();
 
     fireEvent.press(renderResult.getByTestId('debate-podcast-mc-row'));
     await flush();
     act(() => {
-      slotConfigSheetProps.onSelectVoice({ id: 'voice-host', name: 'Host Voice' });
+      requireDefined(mockSlotConfigSheet.latest().onSelectVoice, 'onSelectVoice')({ id: 'voice-host', name: 'Host Voice' });
     });
     await flush();
 
@@ -845,15 +849,15 @@ describe('DebateSetupScreen', () => {
         debateStats: {
           preservedTopic: 'Old Motion',
           preservedTopicMode: 'custom',
-        } as any,
+        },
       },
     });
 
     await flush();
 
-    expect(topicSelectorProps.selectedTopic).toBe('');
-    expect(topicSelectorProps.customTopic).toBe('');
-    expect(topicSelectorProps.topicMode).toBe('preset');
+    expect(mockTopicSelector.latest().selectedTopic).toBe('');
+    expect(mockTopicSelector.latest().customTopic).toBe('');
+    expect(mockTopicSelector.latest().topicMode).toBe('preset');
     expect(mockDispatch).toHaveBeenCalledWith(clearPreservedTopic());
   });
 
@@ -888,13 +892,13 @@ describe('DebateSetupScreen', () => {
         debateStats: {
           preservedTopic: '',
           preservedTopicMode: 'preset',
-        } as any,
+        },
       },
     });
 
     act(() => {
-      topicSelectorProps.onTopicModeChange('custom');
-      topicSelectorProps.onCustomTopicChange('Custom Motion');
+      mockTopicSelector.latest().onTopicModeChange('custom');
+      mockTopicSelector.latest().onCustomTopicChange('Custom Motion');
     });
     await flush();
 

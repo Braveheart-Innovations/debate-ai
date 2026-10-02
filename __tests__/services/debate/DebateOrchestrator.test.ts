@@ -2,12 +2,28 @@ import { DebateOrchestrator, DebateStatus } from '@/services/debate/DebateOrches
 import { DEBATE_CONSTANTS } from '@/config/debateConstants';
 import { getPresetForFormat } from '@/config/debate/formats';
 import { BaseAdapter } from '@/services/ai/base/BaseAdapter';
+import type { AIService } from '@/services/aiAdapter';
 import type { AI, DebateVoiceConfig, Message } from '@/types';
 import type { AdapterCapabilities, FormattedMessage, SendMessageResponse } from '@/services/ai/types/adapter.types';
 import { setProviderVerificationError } from '@/store/streamingSlice';
+import { createMockAIConfig } from '@test-utils/fixtures';
 
 // A realistic-length debate speech for stubs (above the assessTurn short-fragment floor).
 const VALID_SPEECH = 'Cancel culture, properly understood, is communities choosing to withdraw their support from people who have caused real and demonstrable harm. That is a feature of free association, not a flaw, and the proposition has offered no principled reason why ordinary citizens should be compelled to keep platforming those who abuse their influence.';
+
+/**
+ * The AIService surface the orchestrator calls: getAdapter/sendMessage, plus
+ * ensureAdapter when the service has it (fakes omit it to take the
+ * getAdapter path). The fakes return lightweight adapter doubles, and
+ * AIService is a class with private state, so a structural fake can only be
+ * passed through this one narrowing cast (AIService is assignable to it).
+ */
+interface FakeAIService {
+  getAdapter: (...args: never[]) => unknown;
+  sendMessage: (...args: never[]) => unknown;
+  ensureAdapter?: (...args: never[]) => unknown;
+}
+const asAIService = (fake: FakeAIService): AIService => fake as AIService;
 
 const mockMergeAvailabilitiesStrict = jest.fn();
 jest.mock('@/hooks/multimodal/useModalityAvailability', () => ({
@@ -56,18 +72,18 @@ const defaultState = {
 };
 
 const participants: AI[] = [
-  {
+  createMockAIConfig({
     id: 'claude',
     provider: 'claude',
     name: 'Claude',
     model: 'claude-3-opus',
-  } as AI,
-  {
+  }),
+  createMockAIConfig({
     id: 'gpt-4',
     provider: 'openai',
     name: 'GPT-4',
     model: 'gpt-4.1-mini',
-  } as AI,
+  }),
 ];
 
 const debateAdapterCapabilities: AdapterCapabilities = {
@@ -118,10 +134,10 @@ describe('DebateOrchestrator', () => {
   });
 
   it('throws when debate setup validation fails', async () => {
-    const orchestrator = new DebateOrchestrator({
+    const orchestrator = new DebateOrchestrator(asAIService({
       getAdapter: jest.fn(),
       sendMessage: jest.fn(),
-    } as unknown as Parameters<typeof DebateOrchestrator>[0]);
+    }));
 
     await expect(
       orchestrator.initializeDebate('Missing opponent', [participants[0]])
@@ -146,7 +162,7 @@ describe('DebateOrchestrator', () => {
       onError?.(new Error('Streaming requires organization verification'));
     });
 
-    const orchestrator = new DebateOrchestrator(aiService as unknown as Parameters<typeof DebateOrchestrator>[0]);
+    const orchestrator = new DebateOrchestrator(asAIService(aiService));
     const session = await orchestrator.initializeDebate('AI ethics', participants, {}, { formatId: 'lincoln_douglas', rounds: 3 });
     expect(session.status).toBe(DebateStatus.ACTIVE);
 
@@ -168,12 +184,12 @@ describe('DebateOrchestrator', () => {
 
   it('marks exhausted streamed provider failures as retryable paused turns', async () => {
     const googleParticipants: AI[] = [
-      {
+      createMockAIConfig({
         id: 'google-pro',
         provider: 'google',
         name: 'Gemini Pro',
         model: 'gemini-3.5-flash',
-      } as AI,
+      }),
       participants[1],
     ];
     const adapter = {
@@ -193,7 +209,7 @@ describe('DebateOrchestrator', () => {
       onError?.(new Error('Gemini error (400): invalid model name'));
     });
 
-    const orchestrator = new DebateOrchestrator(aiService as unknown as Parameters<typeof DebateOrchestrator>[0]);
+    const orchestrator = new DebateOrchestrator(asAIService(aiService));
     const completedEvents: Array<Record<string, unknown>> = [];
     const continuationEvents: Array<Record<string, unknown>> = [];
     orchestrator.addEventListener(event => {
@@ -222,12 +238,12 @@ describe('DebateOrchestrator', () => {
     jest.useFakeTimers();
     const setTimeoutSpy = jest.spyOn(global, 'setTimeout');
     const googleParticipants: AI[] = [
-      {
+      createMockAIConfig({
         id: 'gemini-2',
         provider: 'google',
         name: 'Gemini 2',
         model: 'gemini-3.5-flash',
-      } as AI,
+      }),
       participants[1],
     ];
     const adapter = {
@@ -249,7 +265,7 @@ describe('DebateOrchestrator', () => {
       onError?.(new Error('Network connection failed'));
     });
 
-    const orchestrator = new DebateOrchestrator(aiService as unknown as Parameters<typeof DebateOrchestrator>[0]);
+    const orchestrator = new DebateOrchestrator(asAIService(aiService));
     const completedEvents: Array<Record<string, unknown>> = [];
     const continuationEvents: Array<Record<string, unknown>> = [];
     orchestrator.addEventListener(event => {
@@ -307,7 +323,7 @@ describe('DebateOrchestrator', () => {
       onComplete?.(VALID_SPEECH);
     });
 
-    const orchestrator = new DebateOrchestrator(aiService as unknown as Parameters<typeof DebateOrchestrator>[0]);
+    const orchestrator = new DebateOrchestrator(asAIService(aiService));
 
     await orchestrator.initializeDebate('Climate policy', participants, {}, { formatId: 'lincoln_douglas', rounds: 3 });
     await orchestrator.startDebate([]);
@@ -339,7 +355,7 @@ describe('DebateOrchestrator', () => {
       onComplete?.('Prepared response');
     });
 
-    const orchestrator = new DebateOrchestrator(aiService as unknown as Parameters<typeof DebateOrchestrator>[0]);
+    const orchestrator = new DebateOrchestrator(asAIService(aiService));
     const events: Array<{ type: string; data: Record<string, unknown> }> = [];
     orchestrator.addEventListener(event => events.push({ type: event.type, data: event.data }));
 
@@ -379,7 +395,7 @@ describe('DebateOrchestrator', () => {
       onComplete?.(VALID_SPEECH);
     });
 
-    const orchestrator = new DebateOrchestrator(aiService as unknown as Parameters<typeof DebateOrchestrator>[0]);
+    const orchestrator = new DebateOrchestrator(asAIService(aiService));
     await orchestrator.initializeDebate('AI regulation should be stricter.', participants, { claude: 'george' }, { formatId: 'lincoln_douglas', rounds: 3, civility: 5 });
     await orchestrator.startDebate([]);
 
@@ -394,17 +410,17 @@ describe('DebateOrchestrator', () => {
       temperature: 0.9,
       maxTokens: expect.any(Number),
     }));
-    expect(adapter.config.parameters.maxTokens).toBe(6144);
+    expect(adapter.config).toHaveProperty('parameters.maxTokens', 6144);
 
     jest.clearAllTimers();
     jest.useRealTimers();
   });
 
   it('maps legacy rounds values to selected presets', async () => {
-    const orchestrator = new DebateOrchestrator({
+    const orchestrator = new DebateOrchestrator(asAIService({
       getAdapter: jest.fn(),
       sendMessage: jest.fn(),
-    } as unknown as Parameters<typeof DebateOrchestrator>[0]);
+    }));
 
     const session = await orchestrator.initializeDebate('Climate policy', participants, {}, {
       formatId: 'policy',
@@ -430,7 +446,7 @@ describe('DebateOrchestrator', () => {
       getAdapter: jest.fn(() => adapter),
       sendMessage: jest.fn().mockResolvedValue({ response: VALID_SPEECH }),
     };
-    const orchestrator = new DebateOrchestrator(aiService as unknown as Parameters<typeof DebateOrchestrator>[0]);
+    const orchestrator = new DebateOrchestrator(asAIService(aiService));
 
     await orchestrator.initializeDebate('AI ethics', participants, {}, {
       formatId: 'oxford',
@@ -457,7 +473,7 @@ describe('DebateOrchestrator', () => {
       getAdapter: jest.fn(),
       sendMessage: jest.fn().mockResolvedValue({ response: VALID_SPEECH }),
     };
-    const orchestrator = new DebateOrchestrator(aiService as unknown as Parameters<typeof DebateOrchestrator>[0]);
+    const orchestrator = new DebateOrchestrator(asAIService(aiService));
     const votingEvents: Array<Record<string, unknown>> = [];
     const typingEvents: Array<Record<string, unknown>> = [];
     orchestrator.addEventListener(event => {
@@ -540,7 +556,7 @@ describe('DebateOrchestrator', () => {
         },
       },
     };
-    const orchestrator = new DebateOrchestrator(aiService as unknown as Parameters<typeof DebateOrchestrator>[0]);
+    const orchestrator = new DebateOrchestrator(asAIService(aiService));
     const events: Array<{ type: string; data: Record<string, unknown> }> = [];
     orchestrator.addEventListener(event => events.push({ type: event.type, data: event.data }));
 
@@ -668,12 +684,12 @@ describe('DebateOrchestrator', () => {
       sendMessage: jest.fn(),
     };
     const sameProviderParticipants: AI[] = [
-      {
+      createMockAIConfig({
         id: 'openai-debater-1',
         provider: 'openai',
         name: 'ChatGPT',
         model: 'gpt-5',
-      } as AI,
+      }),
       participants[0],
     ];
     const voiceConfig: DebateVoiceConfig = {
@@ -696,7 +712,7 @@ describe('DebateOrchestrator', () => {
         },
       },
     };
-    const orchestrator = new DebateOrchestrator(aiService as unknown as Parameters<typeof DebateOrchestrator>[0]);
+    const orchestrator = new DebateOrchestrator(asAIService(aiService));
     const addedMessages: Message[] = [];
     orchestrator.addEventListener(event => {
       if (event.type === 'message_added') {
@@ -769,20 +785,20 @@ describe('DebateOrchestrator', () => {
       sendMessage: jest.fn(),
     };
     const sameProviderParticipants: AI[] = [
-      {
+      createMockAIConfig({
         id: 'openai-slot-1',
         provider: 'openai',
         name: 'ChatGPT 1',
         model: 'gpt-5',
-      } as AI,
-      {
+      }),
+      createMockAIConfig({
         id: 'openai-slot-2',
         provider: 'openai',
         name: 'ChatGPT 2',
         model: 'gpt-5',
-      } as AI,
+      }),
     ];
-    const orchestrator = new DebateOrchestrator(aiService as unknown as Parameters<typeof DebateOrchestrator>[0]);
+    const orchestrator = new DebateOrchestrator(asAIService(aiService));
     const addedMessages: Message[] = [];
     orchestrator.addEventListener(event => {
       if (event.type === 'message_added') {
@@ -841,7 +857,7 @@ describe('DebateOrchestrator', () => {
       onComplete?.('');
     });
 
-    const orchestrator = new DebateOrchestrator(aiService as unknown as Parameters<typeof DebateOrchestrator>[0]);
+    const orchestrator = new DebateOrchestrator(asAIService(aiService));
     const streamErrors: Array<Record<string, unknown>> = [];
     const completedEvents: Array<Record<string, unknown>> = [];
     orchestrator.addEventListener(event => {
@@ -916,7 +932,7 @@ describe('DebateOrchestrator', () => {
       onComplete?.(VALID_SPEECH);
     });
 
-    const orchestrator = new DebateOrchestrator(aiService as unknown as Parameters<typeof DebateOrchestrator>[0]);
+    const orchestrator = new DebateOrchestrator(asAIService(aiService));
     await orchestrator.initializeDebate('AI ethics', participants, {}, {
       formatId: 'lincoln_douglas',
       rounds: 3,
@@ -963,7 +979,7 @@ describe('DebateOrchestrator', () => {
         },
       },
     };
-    const orchestrator = new DebateOrchestrator(aiService as unknown as Parameters<typeof DebateOrchestrator>[0]);
+    const orchestrator = new DebateOrchestrator(asAIService(aiService));
     const mcMessages: Message[] = [];
     orchestrator.addEventListener(event => {
       if (event.type === 'message_added') {
@@ -1008,7 +1024,7 @@ describe('DebateOrchestrator', () => {
       getAdapter: jest.fn(() => adapter),
       sendMessage: jest.fn().mockResolvedValue({ response: VALID_SPEECH }),
     };
-    const orchestrator = new DebateOrchestrator(aiService as unknown as Parameters<typeof DebateOrchestrator>[0]);
+    const orchestrator = new DebateOrchestrator(asAIService(aiService));
     const continuationEvents: Array<Record<string, unknown>> = [];
     orchestrator.addEventListener(event => {
       if (event.type === 'continuation_required') {
@@ -1061,7 +1077,7 @@ describe('DebateOrchestrator', () => {
       getAdapter: jest.fn(() => adapter),
       sendMessage: jest.fn().mockResolvedValue({ response: VALID_SPEECH }),
     };
-    const orchestrator = new DebateOrchestrator(aiService as unknown as Parameters<typeof DebateOrchestrator>[0]);
+    const orchestrator = new DebateOrchestrator(asAIService(aiService));
     const continuationEvents: Array<Record<string, unknown>> = [];
     const votingEvents: Array<Record<string, unknown>> = [];
     orchestrator.addEventListener(event => {
@@ -1113,7 +1129,7 @@ describe('DebateOrchestrator', () => {
       getAdapter: jest.fn(() => adapter),
       sendMessage: jest.fn().mockResolvedValue({ response: VALID_SPEECH }),
     };
-    const orchestrator = new DebateOrchestrator(aiService as unknown as Parameters<typeof DebateOrchestrator>[0]);
+    const orchestrator = new DebateOrchestrator(asAIService(aiService));
     const continuationEvents: Array<Record<string, unknown>> = [];
     const votingEvents: Array<Record<string, unknown>> = [];
     orchestrator.addEventListener(event => {
@@ -1169,7 +1185,7 @@ describe('DebateOrchestrator', () => {
       getAdapter: jest.fn(() => adapter),
       sendMessage: jest.fn().mockResolvedValue({ response: VALID_SPEECH }),
     };
-    const orchestrator = new DebateOrchestrator(aiService as unknown as Parameters<typeof DebateOrchestrator>[0]);
+    const orchestrator = new DebateOrchestrator(asAIService(aiService));
     const continuationEvents: Array<Record<string, unknown>> = [];
     const votingEvents: Array<Record<string, unknown>> = [];
     orchestrator.addEventListener(event => {
@@ -1228,10 +1244,10 @@ describe('DebateOrchestrator', () => {
     const teamParticipants: AI[] = [
       participants[0],
       participants[1],
-      { id: 'gemini', provider: 'google', name: 'Gemini', model: 'gemini-3.5-flash' } as AI,
-      { id: 'grok', provider: 'grok', name: 'Grok', model: 'grok-4' } as AI,
+      createMockAIConfig({ id: 'gemini', provider: 'google', name: 'Gemini', model: 'gemini-3.5-flash' }),
+      createMockAIConfig({ id: 'grok', provider: 'grok', name: 'Grok', model: 'grok-4' }),
     ];
-    const orchestrator = new DebateOrchestrator(aiService as unknown as Parameters<typeof DebateOrchestrator>[0]);
+    const orchestrator = new DebateOrchestrator(asAIService(aiService));
 
     await orchestrator.initializeDebate('AI ethics', teamParticipants, {}, {
       formatId: 'oxford',
@@ -1284,12 +1300,12 @@ describe('DebateOrchestrator', () => {
     const teamParticipants: AI[] = [
       participants[0],
       participants[1],
-      { id: 'gemini', provider: 'google', name: 'Gemini', model: 'gemini-3.5-flash' } as AI,
-      { id: 'grok', provider: 'grok', name: 'Grok', model: 'grok-4' } as AI,
+      createMockAIConfig({ id: 'gemini', provider: 'google', name: 'Gemini', model: 'gemini-3.5-flash' }),
+      createMockAIConfig({ id: 'grok', provider: 'grok', name: 'Grok', model: 'grok-4' }),
     ];
     const questionEvents: Array<Record<string, unknown>> = [];
 
-    const oneOnOne = new DebateOrchestrator(aiService as unknown as Parameters<typeof DebateOrchestrator>[0]);
+    const oneOnOne = new DebateOrchestrator(asAIService(aiService));
     oneOnOne.addEventListener(event => {
       if (event.type === 'audience_questions_requested') questionEvents.push(event.data);
     });
@@ -1299,7 +1315,7 @@ describe('DebateOrchestrator', () => {
     });
     await oneOnOne.executeDebateMessage(3, []);
 
-    const twoOnTwo = new DebateOrchestrator(aiService as unknown as Parameters<typeof DebateOrchestrator>[0]);
+    const twoOnTwo = new DebateOrchestrator(asAIService(aiService));
     twoOnTwo.addEventListener(event => {
       if (event.type === 'audience_questions_requested') questionEvents.push(event.data);
     });
@@ -1331,10 +1347,10 @@ describe('DebateOrchestrator', () => {
     const teamParticipants: AI[] = [
       participants[0],
       participants[1],
-      { id: 'gemini', provider: 'google', name: 'Gemini', model: 'gemini-3.5-flash' } as AI,
-      { id: 'grok', provider: 'grok', name: 'Grok', model: 'grok-4' } as AI,
+      createMockAIConfig({ id: 'gemini', provider: 'google', name: 'Gemini', model: 'gemini-3.5-flash' }),
+      createMockAIConfig({ id: 'grok', provider: 'grok', name: 'Grok', model: 'grok-4' }),
     ];
-    const orchestrator = new DebateOrchestrator(aiService as unknown as Parameters<typeof DebateOrchestrator>[0]);
+    const orchestrator = new DebateOrchestrator(asAIService(aiService));
     const continuationEvents: Array<Record<string, unknown>> = [];
     const questionEvents: Array<Record<string, unknown>> = [];
     const hostMessages: Message[] = [];
@@ -1444,8 +1460,8 @@ describe('DebateOrchestrator', () => {
     const teamParticipants: AI[] = [
       participants[0],
       participants[1],
-      { id: 'gemini', provider: 'google', name: 'Gemini', model: 'gemini-3.5-flash' } as AI,
-      { id: 'grok', provider: 'grok', name: 'Grok', model: 'grok-4' } as AI,
+      createMockAIConfig({ id: 'gemini', provider: 'google', name: 'Gemini', model: 'gemini-3.5-flash' }),
+      createMockAIConfig({ id: 'grok', provider: 'grok', name: 'Grok', model: 'grok-4' }),
     ];
     const earlierArgument: Message = {
       id: 'msg-earlier-gemini',
@@ -1468,7 +1484,7 @@ describe('DebateOrchestrator', () => {
         },
       },
     };
-    const orchestrator = new DebateOrchestrator(aiService as unknown as Parameters<typeof DebateOrchestrator>[0]);
+    const orchestrator = new DebateOrchestrator(asAIService(aiService));
 
     await orchestrator.initializeDebate('AI ethics', teamParticipants, {}, {
       formatId: 'oxford',
@@ -1509,8 +1525,8 @@ describe('DebateOrchestrator', () => {
     const teamParticipants: AI[] = [
       participants[0],
       participants[1],
-      { id: 'gemini', provider: 'google', name: 'Gemini', model: 'gemini-3.5-flash' } as AI,
-      { id: 'grok', provider: 'grok', name: 'Grok', model: 'grok-4' } as AI,
+      createMockAIConfig({ id: 'gemini', provider: 'google', name: 'Gemini', model: 'gemini-3.5-flash' }),
+      createMockAIConfig({ id: 'grok', provider: 'grok', name: 'Grok', model: 'grok-4' }),
     ];
     const voiceConfig: DebateVoiceConfig = {
       enabled: true,
@@ -1532,7 +1548,7 @@ describe('DebateOrchestrator', () => {
         },
       },
     };
-    const orchestrator = new DebateOrchestrator(aiService as unknown as Parameters<typeof DebateOrchestrator>[0]);
+    const orchestrator = new DebateOrchestrator(asAIService(aiService));
     const messageEvents: Message[] = [];
     orchestrator.addEventListener(event => {
       if (event.type === 'message_added' && event.data.message) {
@@ -1606,10 +1622,10 @@ describe('DebateOrchestrator', () => {
     const teamParticipants: AI[] = [
       participants[0],
       participants[1],
-      { id: 'gemini', provider: 'google', name: 'Gemini', model: 'gemini-3.5-flash' } as AI,
-      { id: 'grok', provider: 'grok', name: 'Grok', model: 'grok-4' } as AI,
+      createMockAIConfig({ id: 'gemini', provider: 'google', name: 'Gemini', model: 'gemini-3.5-flash' }),
+      createMockAIConfig({ id: 'grok', provider: 'grok', name: 'Grok', model: 'grok-4' }),
     ];
-    const orchestrator = new DebateOrchestrator(aiService as unknown as Parameters<typeof DebateOrchestrator>[0]);
+    const orchestrator = new DebateOrchestrator(asAIService(aiService));
     const continuationEvents: Array<Record<string, unknown>> = [];
     const votingEvents: Array<Record<string, unknown>> = [];
     orchestrator.addEventListener(event => {
@@ -1666,7 +1682,7 @@ describe('DebateOrchestrator', () => {
       getAdapter: jest.fn(() => adapter),
       sendMessage: jest.fn().mockResolvedValue({ response: VALID_SPEECH }),
     };
-    const orchestrator = new DebateOrchestrator(aiService as unknown as Parameters<typeof DebateOrchestrator>[0]);
+    const orchestrator = new DebateOrchestrator(asAIService(aiService));
     const addedMessages: Message[] = [];
     orchestrator.addEventListener(event => {
       if (event.type === 'message_added' && event.data.message) {
@@ -1720,7 +1736,7 @@ describe('DebateOrchestrator', () => {
       getAdapter: jest.fn(() => adapter),
       sendMessage: jest.fn().mockResolvedValue({ response: VALID_SPEECH }),
     };
-    const orchestrator = new DebateOrchestrator(aiService as unknown as Parameters<typeof DebateOrchestrator>[0]);
+    const orchestrator = new DebateOrchestrator(asAIService(aiService));
 
     await orchestrator.initializeDebate('The city should adopt congestion pricing.', participants, {}, {
       formatId: 'policy',
@@ -1751,10 +1767,10 @@ describe('DebateOrchestrator', () => {
         videoGeneration: { supported: false },
       });
 
-      const orchestrator = new DebateOrchestrator({
+      const orchestrator = new DebateOrchestrator(asAIService({
         getAdapter: jest.fn(),
         sendMessage: jest.fn(),
-      } as unknown as Parameters<typeof DebateOrchestrator>[0]);
+      }));
 
       const session = await orchestrator.initializeDebate('AI ethics', participants);
 
@@ -1774,10 +1790,10 @@ describe('DebateOrchestrator', () => {
         videoGeneration: { supported: false },
       });
 
-      const orchestrator = new DebateOrchestrator({
+      const orchestrator = new DebateOrchestrator(asAIService({
         getAdapter: jest.fn(),
         sendMessage: jest.fn(),
-      } as unknown as Parameters<typeof DebateOrchestrator>[0]);
+      }));
 
       const session = await orchestrator.initializeDebate('AI ethics', participants);
 
@@ -1811,7 +1827,7 @@ describe('DebateOrchestrator', () => {
         onComplete?.(VALID_SPEECH);
       });
 
-      const orchestrator = new DebateOrchestrator(aiService as unknown as Parameters<typeof DebateOrchestrator>[0]);
+      const orchestrator = new DebateOrchestrator(asAIService(aiService));
       await orchestrator.initializeDebate('AI ethics', participants, {}, { formatId: 'lincoln_douglas', rounds: 3 });
       await orchestrator.startDebate([]);
 
@@ -1848,7 +1864,7 @@ describe('DebateOrchestrator', () => {
         onComplete?.(VALID_SPEECH);
       });
 
-      const orchestrator = new DebateOrchestrator(aiService as unknown as Parameters<typeof DebateOrchestrator>[0]);
+      const orchestrator = new DebateOrchestrator(asAIService(aiService));
       await orchestrator.initializeDebate('AI ethics', participants, {}, { formatId: 'lincoln_douglas', rounds: 3 });
       await orchestrator.startDebate([]);
 
@@ -1885,7 +1901,7 @@ describe('DebateOrchestrator', () => {
         videoGeneration: { supported: false },
       });
 
-      const first = new DebateOrchestrator(aiService as unknown as Parameters<typeof DebateOrchestrator>[0]);
+      const first = new DebateOrchestrator(asAIService(aiService));
       await first.initializeDebate('AI ethics', participants, {}, { formatId: 'lincoln_douglas', rounds: 3 });
       await first.startDebate([]);
       expect(adapter.config.webSearchEnabled).toBe(true);
@@ -1898,7 +1914,7 @@ describe('DebateOrchestrator', () => {
         videoGeneration: { supported: false },
       });
 
-      const second = new DebateOrchestrator(aiService as unknown as Parameters<typeof DebateOrchestrator>[0]);
+      const second = new DebateOrchestrator(asAIService(aiService));
       await second.initializeDebate('AI ethics', participants, {}, { formatId: 'lincoln_douglas', rounds: 3 });
       await second.startDebate([]);
       expect(adapter.config.webSearchEnabled).toBe(false);
@@ -1938,7 +1954,7 @@ describe('DebateOrchestrator', () => {
         onError?.(new Error('Streaming requires organization verification'));
       });
 
-      const orchestrator = new DebateOrchestrator(aiService as unknown as Parameters<typeof DebateOrchestrator>[0]);
+      const orchestrator = new DebateOrchestrator(asAIService(aiService));
       const completedEvents: Array<Record<string, unknown>> = [];
       const addedMessages: Array<Record<string, unknown>> = [];
       orchestrator.addEventListener(event => {

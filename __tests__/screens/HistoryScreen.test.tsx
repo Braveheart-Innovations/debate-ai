@@ -1,8 +1,31 @@
-import { Alert } from 'react-native';
+import { Alert, Text } from 'react-native';
 import { act } from '@testing-library/react-native';
 import HistoryScreen from '@/screens/HistoryScreen';
 import { renderWithProviders } from '../../test-utils/renderWithProviders';
 import { showSheet, createAppStore } from '@/store';
+import type { ChatSession } from '@/types';
+import type {
+  HistoryScreenNavigationProps,
+  UseSessionActionsReturn,
+  UseSessionHistoryReturn,
+  UseSessionSearchReturn,
+} from '@/types/history';
+import type { UseSessionPaginationReturn } from '@/hooks/history/useSessionPagination';
+import type useFeatureAccess from '@/hooks/useFeatureAccess';
+import type {
+  EmptyHistoryState,
+  HistoryList,
+  HistoryListSkeleton,
+  HistorySearchBar,
+  HistoryStats,
+  SessionDetailPane,
+} from '@/components/organisms/history';
+import type { ErrorBoundary, Header, HeaderActions } from '@/components/organisms';
+import type { DemoBanner } from '@/components/molecules/subscription/DemoBanner';
+import type { Button, Typography } from '@/components/molecules';
+import { capturePropsOf } from '@test-utils/mockComponents';
+import { createMockChatSession, createMockMessage } from '@test-utils/fixtures';
+import { requireDefined } from '@test-utils/queries';
 
 // Mock ErrorService
 const mockShowSuccess = jest.fn();
@@ -18,108 +41,96 @@ jest.mock('@/services/errors/ErrorService', () => ({
 
 let sessionCounter = 1;
 
-const createSession = (overrides: Record<string, unknown> = {}) => {
-  const {
-    id = `session-${sessionCounter++}`,
-    messages = [
-      {
+const createSession = (overrides: Partial<ChatSession> = {}): ChatSession => {
+  const id = overrides.id ?? `session-${sessionCounter++}`;
+  return createMockChatSession({
+    id,
+    selectedAIs: [],
+    messages: [
+      createMockMessage({
         id: `message-${sessionCounter}`,
         sender: 'You',
         senderType: 'user',
         content: 'Hello',
         timestamp: Date.now(),
-      },
+      }),
     ],
-    createdAt = Date.now(),
-    sessionType = 'chat',
-    ...rest
-  } = overrides;
-
-  return {
-    id,
-    selectedAIs: [],
-    messages,
     isActive: false,
-    createdAt,
-    sessionType,
-    ...rest,
-  };
+    createdAt: Date.now(),
+    sessionType: 'chat',
+    ...overrides,
+  });
 };
 
-const makeHistoryState = (overrides: Record<string, unknown> = {}) => {
-  const {
-    sessions = [createSession({})],
-    isLoading = false,
-    isRefreshing = false,
-    error = null,
-    refresh = jest.fn(),
-    ...rest
-  } = overrides;
-
-  return { sessions, isLoading, isRefreshing, error, refresh, ...rest };
-};
+const makeHistoryState = (overrides: Partial<UseSessionHistoryReturn> = {}): UseSessionHistoryReturn => ({
+  sessions: [createSession({})],
+  isLoading: false,
+  isRefreshing: false,
+  error: null,
+  refresh: jest.fn(),
+  clearHistory: jest.fn(),
+  ...overrides,
+});
 
 const makeSearchState = (
-  overrides: Record<string, unknown> = {},
-  defaultSessions: Array<Record<string, unknown>>
-) => {
-  const {
-    searchQuery = '',
-    setSearchQuery = jest.fn(),
-    filteredSessions = defaultSessions,
-    clearSearch = jest.fn(),
-    ...rest
-  } = overrides;
+  overrides: Partial<UseSessionSearchReturn>,
+  defaultSessions: ChatSession[]
+): UseSessionSearchReturn => ({
+  searchQuery: '',
+  setSearchQuery: jest.fn(),
+  filteredSessions: defaultSessions,
+  searchMatches: [],
+  hasActiveFilters: false,
+  clearSearch: jest.fn(),
+  ...overrides,
+});
 
-  return { searchQuery, setSearchQuery, filteredSessions, clearSearch, ...rest };
-};
-
-const makeActionsState = (overrides: Record<string, unknown> = {}) => {
-  const {
-    deleteSession = jest.fn(),
-    resumeSession = jest.fn(),
-    bulkDelete = jest.fn(),
-    ...rest
-  } = overrides;
-
-  return { deleteSession, resumeSession, bulkDelete, ...rest };
-};
+const makeActionsState = (overrides: Partial<UseSessionActionsReturn> = {}): UseSessionActionsReturn => ({
+  deleteSession: jest.fn(),
+  resumeSession: jest.fn(),
+  shareSession: jest.fn(),
+  archiveSession: jest.fn(),
+  bulkDelete: jest.fn(),
+  isProcessing: false,
+  ...overrides,
+});
 
 const makePaginationState = (
-  overrides: Record<string, unknown> = {},
-  defaultSessions: Array<Record<string, unknown>>
-) => {
-  const {
-    currentPageSessions = defaultSessions,
-    hasMorePages = false,
-    isLoadingMore = false,
-    loadMore = jest.fn(),
-    resetPagination = jest.fn(),
-    ...rest
-  } = overrides;
+  overrides: Partial<UseSessionPaginationReturn>,
+  defaultSessions: ChatSession[]
+): UseSessionPaginationReturn => ({
+  currentPageSessions: defaultSessions,
+  hasMorePages: false,
+  isLoadingMore: false,
+  currentPage: 1,
+  totalPages: 1,
+  loadMore: jest.fn(),
+  resetPagination: jest.fn(),
+  paginationInfo: { showing: defaultSessions.length, total: defaultSessions.length, pageSize: 20 },
+  ...overrides,
+});
 
-  return { currentPageSessions, hasMorePages, isLoadingMore, loadMore, resetPagination, ...rest };
-};
+type FeatureAccessState = Partial<ReturnType<typeof useFeatureAccess>>;
 
-let sessionHistoryState: ReturnType<typeof makeHistoryState>;
-let sessionSearchState: ReturnType<typeof makeSearchState>;
-let sessionActionsState: ReturnType<typeof makeActionsState>;
-let sessionPaginationState: ReturnType<typeof makePaginationState>;
-let featureAccessState: { isDemo: boolean };
+let sessionHistoryState: UseSessionHistoryReturn;
+let sessionSearchState: UseSessionSearchReturn;
+let sessionActionsState: UseSessionActionsReturn;
+let sessionPaginationState: UseSessionPaginationReturn;
+let featureAccessState: FeatureAccessState;
 
-const mockUseSessionHistory = jest.fn();
-const mockUseSessionSearch = jest.fn();
-const mockUseSessionActions = jest.fn();
-const mockUseSessionStats = jest.fn();
-const mockUseSessionPagination = jest.fn();
+const mockUseSessionHistory = jest.fn<UseSessionHistoryReturn, []>();
+const mockUseSessionSearch = jest.fn<UseSessionSearchReturn, [ChatSession[]]>();
+const mockUseSessionActions = jest.fn<UseSessionActionsReturn, unknown[]>();
+const mockUseSessionStats = jest.fn<undefined, [ChatSession[]]>();
+const mockUseSessionPagination = jest.fn<UseSessionPaginationReturn, unknown[]>();
 
 mockUseSessionStats.mockImplementation(() => undefined);
 
 jest.mock('@/hooks/history', () => ({
-  useSessionHistory: (...args: unknown[]) => mockUseSessionHistory(...args),
-  useSessionSearch: (...args: unknown[]) => mockUseSessionSearch(...args),
+  useSessionHistory: () => mockUseSessionHistory(),
+  useSessionSearch: (sessions: ChatSession[]) => mockUseSessionSearch(sessions),
   useSessionActions: (...args: unknown[]) => mockUseSessionActions(...args),
-  useSessionStats: (...args: unknown[]) => mockUseSessionStats(...args),
+  useSessionStats: (sessions: ChatSession[]) => mockUseSessionStats(sessions),
   useSessionPagination: (...args: unknown[]) => mockUseSessionPagination(...args),
 }));
 
@@ -149,7 +160,7 @@ jest.mock('@/hooks/useGreeting', () => ({
   }),
 }));
 
-const mockUseFeatureAccess = jest.fn();
+const mockUseFeatureAccess = jest.fn<FeatureAccessState, unknown[]>();
 
 jest.mock('@/hooks/useFeatureAccess', () => ({
   __esModule: true,
@@ -165,7 +176,7 @@ jest.mock('@/hooks/useResponsive', () => ({
     isPortrait: true,
     width: 375,
     height: 812,
-    responsive: (phone: any) => phone,
+    responsive: <T,>(phone: T) => phone,
     rs: () => 16,
     fontSize: () => 16,
     gridColumns: (phone: number) => phone,
@@ -180,16 +191,49 @@ jest.mock('@/services/chat', () => ({
   },
 }));
 
-let mockHeaderProps: any;
-let mockHistorySearchProps: any;
-let mockHistoryListProps: any;
-let mockHistoryStatsProps: any;
-let mockEmptyStateProps: any;
-let mockDemoBannerProps: any;
-let mockButtonRegistry: Map<string, any> = new Map();
+// Prop captures for the stubbed children (read lazily by the jest.mock factories below).
+const mockHeader = capturePropsOf<typeof Header>((props) => (
+  <Text testID="history-header">{props.title}</Text>
+));
+const mockHistorySearchBar = capturePropsOf<typeof HistorySearchBar>(() => (
+  <Text testID="history-search-bar">search-bar</Text>
+));
+const mockHistoryList = capturePropsOf<typeof HistoryList>((props) => (
+  <>
+    <Text testID="history-list">history-list</Text>
+    {props.ListEmptyComponent ?? null}
+  </>
+));
+const mockHistoryStats = capturePropsOf<typeof HistoryStats>((props) => (
+  <Text testID="history-stats">{props.visible ? 'visible' : 'hidden'}</Text>
+));
+const mockEmptyHistoryState = capturePropsOf<typeof EmptyHistoryState>(() => (
+  <Text testID="history-empty">empty</Text>
+));
+const mockHistoryListSkeleton = capturePropsOf<typeof HistoryListSkeleton>(() => (
+  <Text testID="history-skeleton">skeleton</Text>
+));
+const mockSessionDetailPane = capturePropsOf<typeof SessionDetailPane>(() => (
+  <Text testID="session-detail-pane">detail-pane</Text>
+));
+const mockHeaderActions = capturePropsOf<typeof HeaderActions>(() => (
+  <Text testID="history-header-actions">actions</Text>
+));
+const mockErrorBoundary = capturePropsOf<typeof ErrorBoundary>((props) => <>{props.children}</>);
+const mockDemoBanner = capturePropsOf<typeof DemoBanner>((props) => (
+  <Text testID="history-demo-banner" onPress={props.onPress}>demo-banner</Text>
+));
+const mockButton = capturePropsOf<typeof Button>((props) => (
+  <Text testID={`history-button-${props.title}`} onPress={props.onPress}>{props.title}</Text>
+));
+const mockTypography = capturePropsOf<typeof Typography>((props) => <Text>{props.children}</Text>);
+
+/** Fails loudly when an optional prop the screen should always wire is missing. */
+/** Latest props rendered for the Button with this title (buttons re-render per state change). */
+const findButton = (label: string) => [...mockButton.calls].reverse().find((props) => props.title === label);
 
 const pressButton = async (label: string) => {
-  const button = mockButtonRegistry.get(label);
+  const button = findButton(label);
   if (!button) {
     throw new Error(`Button with title "${label}" not found`);
   }
@@ -198,86 +242,72 @@ const pressButton = async (label: string) => {
   });
 };
 
-jest.mock('@/components/organisms/history', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
-  return {
-    HistorySearchBar: (props: any) => {
-      mockHistorySearchProps = props;
-      return React.createElement(Text, { testID: 'history-search-bar' }, 'search-bar');
-    },
-    HistoryList: (props: any) => {
-      mockHistoryListProps = props;
-      return React.createElement(
-        React.Fragment,
-        null,
-        React.createElement(Text, { testID: 'history-list' }, 'history-list'),
-        props.ListEmptyComponent ?? null,
-      );
-    },
-    HistoryStats: (props: any) => {
-      mockHistoryStatsProps = props;
-      return React.createElement(Text, { testID: 'history-stats' }, props.visible ? 'visible' : 'hidden');
-    },
-    EmptyHistoryState: (props: any) => {
-      mockEmptyStateProps = props;
-      return React.createElement(Text, { testID: 'history-empty' }, 'empty');
-    },
-    HistoryListSkeleton: () => React.createElement(Text, { testID: 'history-skeleton' }, 'skeleton'),
-    SessionDetailPane: (_props: any) => React.createElement(Text, { testID: 'session-detail-pane' }, 'detail-pane'),
-  };
-});
+jest.mock('@/components/organisms/history', () => ({
+  get HistorySearchBar() {
+    return mockHistorySearchBar.Stub;
+  },
+  get HistoryList() {
+    return mockHistoryList.Stub;
+  },
+  get HistoryStats() {
+    return mockHistoryStats.Stub;
+  },
+  get EmptyHistoryState() {
+    return mockEmptyHistoryState.Stub;
+  },
+  get HistoryListSkeleton() {
+    return mockHistoryListSkeleton.Stub;
+  },
+  get SessionDetailPane() {
+    return mockSessionDetailPane.Stub;
+  },
+}));
 
-jest.mock('@/components/organisms', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
-  return {
-    Header: (props: any) => {
-      mockHeaderProps = props;
-      return React.createElement(Text, { testID: 'history-header' }, props.title);
-    },
-    HeaderActions: () => React.createElement(Text, { testID: 'history-header-actions' }, 'actions'),
-    ErrorBoundary: ({ children }: any) => children,
-  };
-});
+jest.mock('@/components/organisms', () => ({
+  get Header() {
+    return mockHeader.Stub;
+  },
+  get HeaderActions() {
+    return mockHeaderActions.Stub;
+  },
+  get ErrorBoundary() {
+    return mockErrorBoundary.Stub;
+  },
+}));
 
-jest.mock('@/components/molecules/subscription/DemoBanner', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
-  return {
-    DemoBanner: (props: any) => {
-      mockDemoBannerProps = props;
-      return React.createElement(Text, { testID: 'history-demo-banner', onPress: props.onPress }, 'demo-banner');
-    },
-    __esModule: true,
-    default: (props: any) => {
-      mockDemoBannerProps = props;
-      return React.createElement(Text, { testID: 'history-demo-banner', onPress: props.onPress }, 'demo-banner');
-    },
-  };
-});
+jest.mock('@/components/molecules/subscription/DemoBanner', () => ({
+  __esModule: true,
+  get DemoBanner() {
+    return mockDemoBanner.Stub;
+  },
+  get default() {
+    return mockDemoBanner.Stub;
+  },
+}));
 
-jest.mock('@/components/molecules', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
-  return {
-    Button: (props: any) => {
-      mockButtonRegistry.set(props.title, props);
-      return React.createElement(Text, { testID: `history-button-${props.title}`, onPress: props.onPress }, props.title);
-    },
-    Typography: ({ children }: any) => React.createElement(Text, null, children),
-  };
-});
+jest.mock('@/components/molecules', () => ({
+  get Button() {
+    return mockButton.Stub;
+  },
+  get Typography() {
+    return mockTypography.Stub;
+  },
+}));
 
 const alertSpy = jest.spyOn(Alert, 'alert');
-const navigation = { navigate: jest.fn() } as any;
+const mockNavigate = jest.fn();
+const navigation: HistoryScreenNavigationProps = {
+  navigate: mockNavigate,
+  goBack: jest.fn(),
+  setParams: jest.fn(),
+};
 
 const renderHistoryScreen = (options: {
-  history?: Record<string, unknown>;
-  search?: Record<string, unknown>;
-  actions?: Record<string, unknown>;
-  pagination?: Record<string, unknown>;
-  featureAccess?: { isDemo?: boolean };
+  history?: Partial<UseSessionHistoryReturn>;
+  search?: Partial<UseSessionSearchReturn>;
+  actions?: Partial<UseSessionActionsReturn>;
+  pagination?: Partial<UseSessionPaginationReturn>;
+  featureAccess?: FeatureAccessState;
   store?: ReturnType<typeof createAppStore>;
 } = {}) => {
   sessionHistoryState = makeHistoryState(options.history ?? {});
@@ -302,8 +332,7 @@ describe('HistoryScreen', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     sessionCounter = 1;
-    mockButtonRegistry = new Map();
-    navigation.navigate.mockClear();
+    mockNavigate.mockClear();
     mockUseSessionHistory.mockReset();
     mockUseSessionSearch.mockReset();
     mockUseSessionActions.mockReset();
@@ -316,12 +345,20 @@ describe('HistoryScreen', () => {
     mockHandleWithToast.mockClear();
     focusEffectCallback = undefined;
     focusEffectCleanup = undefined;
-    mockHeaderProps = undefined;
-    mockHistorySearchProps = undefined;
-    mockHistoryListProps = undefined;
-    mockHistoryStatsProps = undefined;
-    mockEmptyStateProps = undefined;
-    mockDemoBannerProps = undefined;
+    [
+      mockHeader,
+      mockHeaderActions,
+      mockErrorBoundary,
+      mockHistorySearchBar,
+      mockHistoryList,
+      mockHistoryStats,
+      mockEmptyHistoryState,
+      mockHistoryListSkeleton,
+      mockSessionDetailPane,
+      mockDemoBanner,
+      mockButton,
+      mockTypography,
+    ].forEach((capture) => capture.reset());
   });
 
   afterEach(() => {
@@ -333,36 +370,37 @@ describe('HistoryScreen', () => {
   it('renders history data and wires list and search handlers', () => {
     renderHistoryScreen();
 
-    expect(mockHistoryListProps.sessions).toEqual(sessionSearchState.filteredSessions);
-    expect(typeof mockHistoryListProps.onSessionPress).toBe('function');
-    expect(typeof mockHistoryListProps.onSessionLongPress).toBe('function');
-    expect(typeof mockHistoryListProps.onSessionDelete).toBe('function');
-    expect(mockHistoryListProps.selectionMode).toBe(false);
-    expect(mockHistoryListProps.searchTerm).toBe(sessionSearchState.searchQuery);
-    expect(mockHistoryListProps.refreshing).toBe(sessionHistoryState.isRefreshing);
-    expect(mockHistoryListProps.onRefresh).toBe(sessionHistoryState.refresh);
+    expect(mockHistoryList.latest().sessions).toEqual(sessionSearchState.filteredSessions);
+    expect(typeof mockHistoryList.latest().onSessionPress).toBe('function');
+    expect(typeof mockHistoryList.latest().onSessionLongPress).toBe('function');
+    expect(typeof mockHistoryList.latest().onSessionDelete).toBe('function');
+    expect(mockHistoryList.latest().selectionMode).toBe(false);
+    expect(mockHistoryList.latest().searchTerm).toBe(sessionSearchState.searchQuery);
+    expect(mockHistoryList.latest().refreshing).toBe(sessionHistoryState.isRefreshing);
+    expect(mockHistoryList.latest().onRefresh).toBe(sessionHistoryState.refresh);
 
-    mockHistoryListProps.onSessionPress('session-1');
-    expect(sessionActionsState.resumeSession).toHaveBeenCalledWith('session-1');
+    const [firstSession] = sessionSearchState.filteredSessions;
+    mockHistoryList.latest().onSessionPress(firstSession);
+    expect(sessionActionsState.resumeSession).toHaveBeenCalledWith(firstSession);
 
-    mockHistoryListProps.onSessionDelete('session-1');
+    mockHistoryList.latest().onSessionDelete('session-1');
     expect(sessionActionsState.deleteSession).toHaveBeenCalledWith('session-1');
 
-    mockHistorySearchProps.onChange('AI');
+    mockHistorySearchBar.latest().onChange('AI');
     expect(sessionSearchState.setSearchQuery).toHaveBeenCalledWith('AI');
 
     mockUseSessionStats.mock.calls.forEach(([sessions]) => {
       expect(sessions).toEqual(sessionHistoryState.sessions);
     });
 
-    expect(Array.from(mockButtonRegistry.keys())).toEqual(expect.arrayContaining(['All (1)', 'Chat (1)', 'Compare', 'Debate']));
+    expect(mockButton.calls.map((props) => props.title)).toEqual(expect.arrayContaining(['All (1)', 'Chat (1)', 'Compare', 'Debate']));
   });
 
   it('resets pagination when search query or tab changes', async () => {
     const { renderResult } = renderHistoryScreen();
     expect(sessionPaginationState.resetPagination).toHaveBeenCalledTimes(1);
 
-    sessionPaginationState.resetPagination.mockClear();
+    jest.mocked(sessionPaginationState.resetPagination).mockClear();
     sessionSearchState.searchQuery = 'claude';
 
     await act(async () => {
@@ -371,7 +409,7 @@ describe('HistoryScreen', () => {
 
     expect(sessionPaginationState.resetPagination).toHaveBeenCalledTimes(1);
 
-    sessionPaginationState.resetPagination.mockClear();
+    jest.mocked(sessionPaginationState.resetPagination).mockClear();
     await pressButton('Chat (1)');
 
     expect(sessionPaginationState.resetPagination).toHaveBeenCalledTimes(1);
@@ -380,15 +418,15 @@ describe('HistoryScreen', () => {
   it('shows loading skeleton when history is loading', () => {
     renderHistoryScreen({ history: { isLoading: true } });
 
-    expect(mockHeaderProps.title).toBe('The Archives');
-    expect(mockHistoryListProps).toBeUndefined();
+    expect(mockHeader.latest().title).toBe('The Archives');
+    expect(mockHistoryList.calls).toHaveLength(0);
   });
 
   it('renders error state with retry handler', () => {
     renderHistoryScreen({ history: { error: new Error('boom'), isLoading: false } });
 
-    expect(mockEmptyStateProps.type).toBe('loading-error');
-    expect(mockEmptyStateProps.onRetry).toBe(sessionHistoryState.refresh);
+    expect(mockEmptyHistoryState.latest().type).toBe('loading-error');
+    expect(mockEmptyHistoryState.latest().onRetry).toBe(sessionHistoryState.refresh);
   });
 
   it('refreshes sessions after focus effect delay', () => {
@@ -420,19 +458,19 @@ describe('HistoryScreen', () => {
     });
 
     await act(async () => {
-      mockHistoryListProps.onSessionLongPress(sessions[0]);
+      requireDefined(mockHistoryList.latest().onSessionLongPress, 'onSessionLongPress')(sessions[0]);
     });
 
-    expect(mockHistoryListProps.selectionMode).toBe(true);
-    expect(mockHistoryListProps.selectedSessionIds.has('session-1')).toBe(true);
-    expect(mockHistoryStatsProps.visible).toBe(false);
+    expect(mockHistoryList.latest().selectionMode).toBe(true);
+    expect(requireDefined(mockHistoryList.latest().selectedSessionIds, 'selectedSessionIds').has('session-1')).toBe(true);
+    expect(mockHistoryStats.latest().visible).toBe(false);
 
     await pressButton('Select Visible');
-    expect(mockHistoryListProps.selectedSessionIds.has('session-2')).toBe(true);
+    expect(requireDefined(mockHistoryList.latest().selectedSessionIds, 'selectedSessionIds').has('session-2')).toBe(true);
 
     await pressButton('Delete (2)');
     expect(bulkDelete).toHaveBeenCalledWith(['session-1', 'session-2']);
-    expect(mockHistoryListProps.selectionMode).toBe(false);
+    expect(mockHistoryList.latest().selectionMode).toBe(false);
   });
 
   it('preserves selected history rows when bulk delete is cancelled', async () => {
@@ -448,15 +486,15 @@ describe('HistoryScreen', () => {
     });
 
     await act(async () => {
-      mockHistoryListProps.onSessionLongPress(sessions[0]);
+      requireDefined(mockHistoryList.latest().onSessionLongPress, 'onSessionLongPress')(sessions[0]);
     });
     await pressButton('Select Visible');
     await pressButton('Delete (2)');
 
     expect(bulkDelete).toHaveBeenCalledWith(['session-1', 'session-2']);
-    expect(mockHistoryListProps.selectionMode).toBe(true);
-    expect(mockHistoryListProps.selectedSessionIds.has('session-1')).toBe(true);
-    expect(mockHistoryListProps.selectedSessionIds.has('session-2')).toBe(true);
+    expect(mockHistoryList.latest().selectionMode).toBe(true);
+    expect(requireDefined(mockHistoryList.latest().selectedSessionIds, 'selectedSessionIds').has('session-1')).toBe(true);
+    expect(requireDefined(mockHistoryList.latest().selectedSessionIds, 'selectedSessionIds').has('session-2')).toBe(true);
   });
 
   it('shows demo indicators and dispatches subscription sheet', async () => {
@@ -466,10 +504,10 @@ describe('HistoryScreen', () => {
     renderHistoryScreen({ featureAccess: { isDemo: true }, store });
 
     // Demo is now indicated by the thin banner under the header, not a header chip.
-    expect(mockDemoBannerProps.subtitle).toContain('Demo Mode');
+    expect(mockDemoBanner.latest().subtitle).toContain('Demo Mode');
 
     await act(async () => {
-      mockDemoBannerProps.onPress();
+      requireDefined(mockDemoBanner.latest().onPress, 'onPress')();
     });
 
     expect(dispatchSpy).toHaveBeenCalledWith(showSheet({ sheet: 'subscription' }));
@@ -478,39 +516,39 @@ describe('HistoryScreen', () => {
   it('navigates to correct destinations when starting new sessions from empty state', async () => {
     renderHistoryScreen({ history: { sessions: [] }, search: { filteredSessions: [] } });
 
-    navigation.navigate.mockClear();
-    mockEmptyStateProps.onStartChat();
-    expect(navigation.navigate).toHaveBeenCalledWith('Home');
+    mockNavigate.mockClear();
+    requireDefined(mockEmptyHistoryState.latest().onStartChat, 'onStartChat')();
+    expect(mockNavigate).toHaveBeenCalledWith('Home');
 
-    navigation.navigate.mockClear();
+    mockNavigate.mockClear();
     await pressButton('Chat');
 
-    mockEmptyStateProps.onStartChat();
-    expect(navigation.navigate).toHaveBeenCalledWith('Home');
+    requireDefined(mockEmptyHistoryState.latest().onStartChat, 'onStartChat')();
+    expect(mockNavigate).toHaveBeenCalledWith('Home');
 
-    navigation.navigate.mockClear();
+    mockNavigate.mockClear();
     await pressButton('Compare');
 
-    mockEmptyStateProps.onStartChat();
-    expect(navigation.navigate).toHaveBeenCalledWith('MainTabs', { screen: 'CompareTab' });
+    requireDefined(mockEmptyHistoryState.latest().onStartChat, 'onStartChat')();
+    expect(mockNavigate).toHaveBeenCalledWith('MainTabs', { screen: 'CompareTab' });
 
-    navigation.navigate.mockClear();
+    mockNavigate.mockClear();
     await pressButton('Debate');
 
-    mockEmptyStateProps.onStartChat();
-    expect(navigation.navigate).toHaveBeenCalledWith('MainTabs', { screen: 'DebateTab' });
+    requireDefined(mockEmptyHistoryState.latest().onStartChat, 'onStartChat')();
+    expect(mockNavigate).toHaveBeenCalledWith('MainTabs', { screen: 'DebateTab' });
   });
 
   it('clears search from search bar and empty state controls', () => {
     renderHistoryScreen();
 
     act(() => {
-      mockHistorySearchProps.onClear();
+      requireDefined(mockHistorySearchBar.latest().onClear, 'onClear')();
     });
     expect(sessionSearchState.clearSearch).toHaveBeenCalledTimes(1);
 
     act(() => {
-      mockEmptyStateProps.onClearSearch();
+      requireDefined(mockEmptyHistoryState.latest().onClearSearch, 'onClearSearch')();
     });
     expect(sessionSearchState.clearSearch).toHaveBeenCalledTimes(2);
   });
@@ -528,11 +566,11 @@ describe('HistoryScreen', () => {
       },
     });
 
-    expect(mockHistoryListProps.sessions).toEqual(sessionPaginationState.currentPageSessions);
-    expect(mockHistoryListProps.onLoadMore).toBe(sessionPaginationState.loadMore);
-    expect(mockHistoryListProps.hasMorePages).toBe(true);
-    expect(mockHistoryListProps.isLoadingMore).toBe(true);
-    expect(mockHistoryListProps.totalSessions).toBe(longSessions.length);
+    expect(mockHistoryList.latest().sessions).toEqual(sessionPaginationState.currentPageSessions);
+    expect(mockHistoryList.latest().onLoadMore).toBe(sessionPaginationState.loadMore);
+    expect(mockHistoryList.latest().hasMorePages).toBe(true);
+    expect(mockHistoryList.latest().isLoadingMore).toBe(true);
+    expect(mockHistoryList.latest().totalSessions).toBe(longSessions.length);
   });
 
   it('disables pagination when under threshold', () => {
@@ -540,21 +578,21 @@ describe('HistoryScreen', () => {
 
     renderHistoryScreen({ history: { sessions: shortSessions }, search: { filteredSessions: shortSessions } });
 
-    expect(mockHistoryListProps.onLoadMore).toBeUndefined();
-    expect(mockHistoryListProps.hasMorePages).toBe(false);
-    expect(mockHistoryListProps.totalSessions).toBeUndefined();
+    expect(mockHistoryList.latest().onLoadMore).toBeUndefined();
+    expect(mockHistoryList.latest().hasMorePages).toBe(false);
+    expect(mockHistoryList.latest().totalSessions).toBeUndefined();
   });
 
   it('updates history stats visibility based on search and session counts', async () => {
     const { renderResult } = renderHistoryScreen();
 
-    expect(mockHistoryStatsProps.visible).toBe(true);
+    expect(mockHistoryStats.latest().visible).toBe(true);
 
     sessionSearchState.searchQuery = 'filter';
     await act(async () => {
       renderResult.rerender(<HistoryScreen navigation={navigation} />);
     });
-    expect(mockHistoryStatsProps.visible).toBe(false);
+    expect(mockHistoryStats.latest().visible).toBe(false);
 
     sessionSearchState.searchQuery = '';
     sessionHistoryState.sessions = [];
@@ -562,7 +600,7 @@ describe('HistoryScreen', () => {
     await act(async () => {
       renderResult.rerender(<HistoryScreen navigation={navigation} />);
     });
-    expect(mockHistoryStatsProps.visible).toBe(false);
+    expect(mockHistoryStats.latest().visible).toBe(false);
   });
 
   it('sets empty state types for search results and tab-specific messaging', async () => {
@@ -571,9 +609,9 @@ describe('HistoryScreen', () => {
       search: { filteredSessions: [], searchQuery: '' },
     });
 
-    expect(mockEmptyStateProps.type).toBe('no-sessions');
+    expect(mockEmptyHistoryState.latest().type).toBe('no-sessions');
     // The witty greeting is the title; the functional guidance is the message.
-    expect(mockEmptyStateProps.emptyStateConfig).toMatchObject({
+    expect(mockEmptyHistoryState.latest().emptyStateConfig).toMatchObject({
       title: 'History awaits',
       message: 'Your past conversations',
     });
@@ -584,15 +622,15 @@ describe('HistoryScreen', () => {
       renderResult.rerender(<HistoryScreen navigation={navigation} />);
     });
 
-    expect(mockEmptyStateProps.type).toBe('no-results');
+    expect(mockEmptyHistoryState.latest().type).toBe('no-results');
 
     await pressButton('Debate');
-    expect(mockEmptyStateProps.emptyStateConfig).toMatchObject({ title: 'History awaits', message: 'Start a debate to see it here' });
+    expect(mockEmptyHistoryState.latest().emptyStateConfig).toMatchObject({ title: 'History awaits', message: 'Start a debate to see it here' });
 
     await pressButton('Compare');
-    expect(mockEmptyStateProps.emptyStateConfig).toMatchObject({ title: 'History awaits', message: 'Compare AI responses to see them here' });
+    expect(mockEmptyHistoryState.latest().emptyStateConfig).toMatchObject({ title: 'History awaits', message: 'Compare AI responses to see them here' });
 
     await pressButton('Chat');
-    expect(mockEmptyStateProps.emptyStateConfig).toMatchObject({ title: 'History awaits', message: 'Start a conversation to see it here' });
+    expect(mockEmptyHistoryState.latest().emptyStateConfig).toMatchObject({ title: 'History awaits', message: 'Start a conversation to see it here' });
   });
 });

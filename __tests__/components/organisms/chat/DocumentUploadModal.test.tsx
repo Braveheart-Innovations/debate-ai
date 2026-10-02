@@ -1,9 +1,20 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
+import type { BlurView } from 'expo-blur';
 import { DocumentUploadModal } from '../../../../src/components/organisms/chat/DocumentUploadModal';
 import { useTheme } from '../../../../src/theme';
+import { lightTheme } from '../../../../src/theme/types';
 import * as DocumentPicker from 'expo-document-picker';
-import { MessageAttachment } from '../../../../src/types';
+import type { DocumentPickerAsset } from 'expo-document-picker';
+import {
+  getFileExtensionFromMimeType,
+  isSupportedDocumentType,
+  processDocumentForClaude,
+  validateDocumentSize,
+} from '../../../../src/utils/documentProcessing';
+import type { Box } from '../../../../src/components/atoms';
+import type { KeyboardAvoider, SheetHeader, Typography } from '../../../../src/components/molecules';
+import type { PropsOf } from '@test-utils/mockComponents';
+import { createMockAttachment } from '@test-utils/fixtures';
 
 // Mock ErrorService
 const mockShowWarning = jest.fn();
@@ -26,21 +37,26 @@ jest.mock('expo-document-picker', () => ({
 }));
 
 jest.mock('expo-blur', () => {
-  const React = require('react');
-  const { View } = require('react-native');
+  const { stubComponent } = jest.requireActual<
+    typeof import('@test-utils/mockComponents')
+  >('@test-utils/mockComponents');
   return {
-    BlurView: ({ children, style }: any) => React.createElement(View, { style }, children),
+    BlurView: stubComponent<typeof BlurView>('blur-view', { render: (p) => p.children }),
   };
 });
 
 jest.mock('../../../../src/components/molecules', () => {
-  const React = require('react');
-  const { Text, View, TouchableOpacity } = require('react-native');
+  const React = jest.requireActual<typeof import('react')>('react');
+  const { Text, View, TouchableOpacity } = jest.requireActual<typeof import('react-native')>('react-native');
+  const { stubComponent } = jest.requireActual<
+    typeof import('@test-utils/mockComponents')
+  >('@test-utils/mockComponents');
   return {
-    KeyboardAvoider: ({ children }: { children?: import('react').ReactNode }) => require('react').createElement(require('react').Fragment, null, children),
-    Typography: ({ children }: { children: React.ReactNode }) =>
-      React.createElement(Text, null, children),
-    SheetHeader: ({ title, onClose }: { title: string; onClose: () => void }) =>
+    KeyboardAvoider: stubComponent<typeof KeyboardAvoider>('keyboard-avoider', {
+      render: (p) => p.children,
+    }),
+    Typography: stubComponent<typeof Typography>('typography', { text: (p) => p.children }),
+    SheetHeader: ({ title, onClose }: PropsOf<typeof SheetHeader>) =>
       React.createElement(
         View,
         null,
@@ -51,10 +67,11 @@ jest.mock('../../../../src/components/molecules', () => {
 });
 
 jest.mock('../../../../src/components/atoms', () => {
-  const React = require('react');
-  const { View } = require('react-native');
+  const { stubComponent } = jest.requireActual<
+    typeof import('@test-utils/mockComponents')
+  >('@test-utils/mockComponents');
   return {
-    Box: ({ children, style }: any) => React.createElement(View, { style }, children),
+    Box: stubComponent<typeof Box>('box', { render: (p) => p.children }),
   };
 });
 
@@ -69,32 +86,34 @@ jest.mock('../../../../src/utils/imageProcessing', () => ({
   getReadableFileSize: jest.fn((size: number) => `${(size / 1024).toFixed(2)} KB`),
 }));
 
-const mockUseTheme = useTheme as jest.MockedFunction<typeof useTheme>;
-const mockGetDocumentAsync = DocumentPicker.getDocumentAsync as jest.MockedFunction<typeof DocumentPicker.getDocumentAsync>;
+const mockUseTheme = jest.mocked(useTheme);
+const mockGetDocumentAsync = jest.mocked(DocumentPicker.getDocumentAsync);
+const mockDocumentProcessing = {
+  processDocumentForClaude: jest.mocked(processDocumentForClaude),
+  isSupportedDocumentType: jest.mocked(isSupportedDocumentType),
+  validateDocumentSize: jest.mocked(validateDocumentSize),
+  getFileExtensionFromMimeType: jest.mocked(getFileExtensionFromMimeType),
+};
 
-const mockDocumentProcessing = require('../../../../src/utils/documentProcessing');
+/** A complete picker asset; `lastModified` is required by the picker type. */
+const createPickerAsset = (
+  overrides: Partial<DocumentPickerAsset> & Pick<DocumentPickerAsset, 'uri'>
+): DocumentPickerAsset => ({
+  name: 'test.pdf',
+  size: 1024,
+  mimeType: 'application/pdf',
+  lastModified: 1_700_000_000_000,
+  ...overrides,
+});
 
 describe('DocumentUploadModal', () => {
   const mockOnClose = jest.fn();
   const mockOnUpload = jest.fn();
 
-  const mockTheme = {
-    theme: {
-      colors: {
-        background: '#FFFFFF',
-        surface: '#F5F5F5',
-        border: '#E0E0E0',
-        primary: {
-          50: '#F0F9FF',
-          500: '#3B82F6',
-          600: '#2563EB',
-        },
-        text: {
-          primary: '#000000',
-          secondary: '#666666',
-        },
-      },
-    },
+  const mockTheme: ReturnType<typeof useTheme> = {
+    theme: lightTheme,
+    themeMode: 'light',
+    setThemeMode: jest.fn(),
     isDark: false,
   };
 
@@ -150,7 +169,7 @@ describe('DocumentUploadModal', () => {
 
   describe('Document Selection', () => {
     it('opens document picker when Browse Files is pressed', async () => {
-      mockGetDocumentAsync.mockResolvedValue({ canceled: true, assets: null } as any);
+      mockGetDocumentAsync.mockResolvedValue({ canceled: true, assets: null });
 
       render(
         <DocumentUploadModal
@@ -173,25 +192,25 @@ describe('DocumentUploadModal', () => {
     });
 
     it('displays selected document information', async () => {
-      const mockAsset = {
+      const mockAsset = createPickerAsset({
         uri: 'file://test.pdf',
         name: 'test.pdf',
         size: 1024,
         mimeType: 'application/pdf',
-      };
+      });
 
-      const mockProcessed: MessageAttachment = {
+      const mockProcessed = createMockAttachment({
         type: 'document',
-        url: 'file://test.pdf',
+        uri: 'file://test.pdf',
         fileName: 'test.pdf',
         fileSize: 1024,
         mimeType: 'application/pdf',
-      };
+      });
 
       mockGetDocumentAsync.mockResolvedValue({
         canceled: false,
         assets: [mockAsset],
-      } as any);
+      });
 
       mockDocumentProcessing.processDocumentForClaude.mockResolvedValue(mockProcessed);
 
@@ -213,7 +232,7 @@ describe('DocumentUploadModal', () => {
     });
 
     it('handles cancelled document selection', async () => {
-      mockGetDocumentAsync.mockResolvedValue({ canceled: true, assets: null } as any);
+      mockGetDocumentAsync.mockResolvedValue({ canceled: true, assets: null });
 
       render(
         <DocumentUploadModal
@@ -234,17 +253,17 @@ describe('DocumentUploadModal', () => {
 
   describe('File Validation', () => {
     it('shows warning for unsupported file types', async () => {
-      const mockAsset = {
+      const mockAsset = createPickerAsset({
         uri: 'file://test.exe',
         name: 'test.exe',
         size: 1024,
         mimeType: 'application/x-msdownload',
-      };
+      });
 
       mockGetDocumentAsync.mockResolvedValue({
         canceled: false,
         assets: [mockAsset],
-      } as any);
+      });
 
       mockDocumentProcessing.isSupportedDocumentType.mockReturnValue(false);
 
@@ -268,17 +287,17 @@ describe('DocumentUploadModal', () => {
     });
 
     it('shows warning for files that are too large', async () => {
-      const mockAsset = {
+      const mockAsset = createPickerAsset({
         uri: 'file://large.pdf',
         name: 'large.pdf',
         size: 100 * 1024 * 1024, // 100MB
         mimeType: 'application/pdf',
-      };
+      });
 
       mockGetDocumentAsync.mockResolvedValue({
         canceled: false,
         assets: [mockAsset],
-      } as any);
+      });
 
       mockDocumentProcessing.validateDocumentSize.mockReturnValue({
         valid: false,
@@ -307,25 +326,25 @@ describe('DocumentUploadModal', () => {
 
   describe('Upload Behavior', () => {
     it('calls onUpload with attachment when Attach button is pressed', async () => {
-      const mockAsset = {
+      const mockAsset = createPickerAsset({
         uri: 'file://test.pdf',
         name: 'test.pdf',
         size: 1024,
         mimeType: 'application/pdf',
-      };
+      });
 
-      const mockProcessed: MessageAttachment = {
+      const mockProcessed = createMockAttachment({
         type: 'document',
-        url: 'file://test.pdf',
+        uri: 'file://test.pdf',
         fileName: 'test.pdf',
         fileSize: 1024,
         mimeType: 'application/pdf',
-      };
+      });
 
       mockGetDocumentAsync.mockResolvedValue({
         canceled: false,
         assets: [mockAsset],
-      } as any);
+      });
 
       mockDocumentProcessing.processDocumentForClaude.mockResolvedValue(mockProcessed);
 
@@ -407,24 +426,26 @@ describe('DocumentUploadModal', () => {
 
   describe('Edge Cases', () => {
     it('handles document without name', async () => {
-      const mockAsset = {
+      // The picker types `name` as a string; an empty name takes the same fallback path.
+      const mockAsset = createPickerAsset({
         uri: 'file://unknown',
+        name: '',
         size: 1024,
         mimeType: 'application/pdf',
-      };
+      });
 
-      const mockProcessed: MessageAttachment = {
+      const mockProcessed = createMockAttachment({
         type: 'document',
-        url: 'file://unknown',
+        uri: 'file://unknown',
         fileName: 'file.pdf',
         fileSize: 1024,
         mimeType: 'application/pdf',
-      };
+      });
 
       mockGetDocumentAsync.mockResolvedValue({
         canceled: false,
         assets: [mockAsset],
-      } as any);
+      });
 
       mockDocumentProcessing.processDocumentForClaude.mockResolvedValue(mockProcessed);
 
@@ -445,16 +466,17 @@ describe('DocumentUploadModal', () => {
     });
 
     it('handles document without mime type', async () => {
-      const mockAsset = {
+      const mockAsset = createPickerAsset({
         uri: 'file://test',
         name: 'test',
         size: 1024,
-      };
+        mimeType: undefined,
+      });
 
       mockGetDocumentAsync.mockResolvedValue({
         canceled: false,
         assets: [mockAsset],
-      } as any);
+      });
 
       render(
         <DocumentUploadModal

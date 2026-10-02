@@ -1,3 +1,6 @@
+import type { AIConfig } from '@/types';
+import { createMockAIConfig } from '@test-utils/fixtures';
+
 const mockGetModelById = jest.fn();
 const mockCreateAdapter = jest.fn();
 
@@ -19,12 +22,14 @@ const loadUtils = () => {
   return utils!;
 };
 
-const buildAI = (overrides: Partial<{ provider: string; model: string; name: string }> = {}) => ({
-  provider: 'openai',
-  model: 'gpt-4o',
-  name: overrides.name || overrides.provider || 'OpenAI',
-  ...overrides,
-});
+const buildAI = (overrides: Partial<AIConfig> = {}): AIConfig =>
+  createMockAIConfig({
+    id: overrides.provider || 'openai',
+    provider: 'openai',
+    model: 'gpt-4o',
+    name: overrides.name || overrides.provider || 'OpenAI',
+    ...overrides,
+  });
 
 describe('attachmentUtils', () => {
   beforeEach(() => {
@@ -33,7 +38,7 @@ describe('attachmentUtils', () => {
   });
 
   afterEach(() => {
-    (console.warn as jest.Mock).mockRestore();
+    jest.mocked(console.warn).mockRestore();
   });
 
   it('disables attachments when no AIs are selected', () => {
@@ -113,9 +118,9 @@ describe('attachmentUtils', () => {
     const { getAttachmentSupport, getAttachmentSupportMessage } = loadUtils();
     mockGetModelById.mockReturnValue({ name: 'Claude', supportsVision: true, supportsDocuments: false });
     mockCreateAdapter.mockImplementation(() => { throw new Error('adapter error'); });
-    expect(getAttachmentSupport([buildAI({ provider: 'anthropic', name: 'Claude' })])).toEqual({ images: false, documents: false });
+    expect(getAttachmentSupport([buildAI({ provider: 'claude', name: 'Claude' })])).toEqual({ images: false, documents: false });
     // When adapter creation fails, the AI is added to unsupportedAIs list
-    expect(getAttachmentSupportMessage([buildAI({ provider: 'anthropic', name: 'Claude' })])).toContain("doesn't support attachments");
+    expect(getAttachmentSupportMessage([buildAI({ provider: 'claude', name: 'Claude' })])).toContain("doesn't support attachments");
   });
 
   it('handles adapters without attachment support', () => {

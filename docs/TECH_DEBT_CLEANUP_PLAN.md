@@ -17,14 +17,14 @@
 
 | # | Item | Count | Where | Enforced today |
 |---|---|---|---|---|
-| A | Test `no-explicit-any` | **495** in 110 files | `__tests__/` | Ratchet (`lint:any-budget`) |
-| B | Test type errors | **388** in 87 files | `__tests__/` (`test-utils/` now clean) | Ratchet (`typecheck:tests`) |
+| A | Test `no-explicit-any` | **267** in 95 files | `__tests__/` | Ratchet (`lint:any-budget`) |
+| B | Test type errors | **198** in 71 files | `__tests__/` (`test-utils/` now clean) | Ratchet (`typecheck:tests`) |
 | C1 | `as any` / `no-explicit-any` disables in `src/` | ✅ **0** (Phase 0) | — | `no-explicit-any` error + `lint:escape-hatches` |
-| C2 | `as unknown as` in `src/` | **63** | concentrated in `services/ai` adapters; rest scattered (the earlier 97 also counted text inside demo-recording JSON) | Ratchet (`lint:escape-hatches`) |
+| C2 | `as unknown as` in `src/` | **62** | concentrated in `services/ai` adapters; rest scattered (the earlier 97 also counted text inside demo-recording JSON) | Ratchet (`lint:escape-hatches`) |
 | C3 | Other `eslint-disable` in `src/` | ✅ **3**, each with a `-- reason` (Phase 0) | `nativeModule.ts` lazy IAP require, `PromptDebugLogger` verbatim dump, `citationUtils` NUL-delimiter regex | Ratchet + `require-description` |
-| D1 | `as unknown as` in tests | **203** | `__tests__/`, `src/**/__tests__` | Ratchet (`lint:escape-hatches`) |
+| D1 | `as unknown as` in tests | **164** | `__tests__/`, `src/**/__tests__` | Ratchet (`lint:escape-hatches`) |
 | D2 | `@ts-expect-error` in tests | 5 | markdown, documentProcessing ×2, DemoPlaybackRouter, AppendToPackService | Ratchet (`lint:escape-hatches`) |
-| D3 | Skipped tests | 1 suite (4 tests) | `__tests__/functions/validatePurchase.test.ts` `describe.skip` "until Firebase Functions v2 mocking" | Ratchet (`lint:escape-hatches`) |
+| D3 | Skipped tests | ✅ **0**: `validatePurchase` harness ported to Functions v2 and un-skipped | — | Ratchet at 0 (`lint:escape-hatches`) |
 | E | `functions/` has no ESLint | 61 explicit `any`, 3 disables | `functions/src` | Only `tsc` (strict) + tests |
 | F | Dead code / stale TODOs | 2 orphaned components, 4 TODOs | `ImageGenerationModal`, `SubscriptionSheet`; `SubscriptionService` (3 "implement purchase logic" TODOs while `PurchaseService` is the real path), `analytics/index.ts:90` (ChatScreen's dead TODOs and commented-out video handler removed in Phase 0) | ❌ none |
 | G1 | Dependabot backlog | 10 open PRs | oldest #99 (Jun 1), #144 (Aug 1), #174; 7 opened 2026-10-01 incl. majors (`@babel/core` 8, `firebase-admin` 14, RN group) | ❌ none |
@@ -127,10 +127,18 @@ C1 and C3 were cleared in Phase 0: the `as any`s were unnecessary (`'ping'` was 
 
 Phases 1 and 2 touch the same files. Do them together, file by file, so each test file is opened once.
 
+## Follow-ups found during the burn-down
+Test-quality issues surfaced while typing tests. Fix when touching the file (rule 3) or in Phase 4.
+- `HistoryScreen.test` "shows demo indicators" sets `featureAccess.isDemo`, which `HistoryScreen` never reads, so the test passes regardless.
+- `ChatMessageList.test` "configures FlatList with proper virtualization settings" only asserts the tree rendered.
+- `UseSessionStatsReturn` (`src/types/history.ts`) marks `formattedStats` / `activityInsights` / `usagePatterns` optional though the hook always returns them; make them required.
+- Promote to `test-utils` when a second consumer appears: the typed `AIService` fake (`DebateOrchestrator.test`), the Functions v2 `invoke`/`TestCallableRequest` harness (two `__tests__/functions` suites; `userData.test.ts` still uses the old cast pattern), chat hook-mock builders (`ChatScreen.test`), history hook-state builders (`HistoryScreen.test`), `readStyle` for Reanimated styles, `createPickerAsset`.
+
 ## Tracking
 After each PR, update the counts in the Inventory table and note the PR number:
 
 | Date | PR | A any | B type errs | C2 src casts | D1 test casts | Notes |
 |---|---|---|---|---|---|---|
 | 2026-10-01 | #189 | 495 | 393 | 97 | 165 | baseline; gates added |
-| 2026-10-01 | Phase 0 | 495 | 388 | 63 | 203 | helpers + escape-hatch ratchet; C1/C3 cleared; C2/D1 recounted (code files only) |
+| 2026-10-02 | #191 Phase 0 | 495 | 388 | 63 | 203 | helpers + escape-hatch ratchet; C1/C3 cleared; C2/D1 recounted (code files only) |
+| 2026-10-02 | Hotspots 1 | 267 | 198 | 62 | 164 | 20 hottest test files to zero (Phase 1+2); validatePurchase un-skipped; `test-utils/queries` |

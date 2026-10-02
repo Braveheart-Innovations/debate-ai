@@ -1,6 +1,24 @@
-const mockOnCall = jest.fn((optionsOrHandler: unknown, maybeHandler?: unknown) => (
-  typeof optionsOrHandler === 'function' ? optionsOrHandler : maybeHandler
-));
+/**
+ * The request fields these callables read. The real `CallableRequest` also
+ * demands a full Express `rawRequest`; the mocked `onCall` below hands each
+ * handler back as-is, so tests invoke handlers with this narrower shape.
+ */
+type TestCallableRequest = {
+  data: Record<string, unknown>;
+  auth?: { uid: string; token: { email?: string } };
+  rawRequest: {
+    headers: Record<string, string | string[] | undefined>;
+    ip: string;
+  };
+};
+type TestCallableHandler = (request: TestCallableRequest) => Promise<unknown>;
+type TestCallableOptions = { secrets?: Array<{ name: string }> };
+
+const mockOnCall = jest.fn(
+  (optionsOrHandler: TestCallableOptions | TestCallableHandler, maybeHandler?: TestCallableHandler) => (
+    typeof optionsOrHandler === 'function' ? optionsOrHandler : maybeHandler
+  )
+);
 
 const mockAxiosPost = jest.fn();
 const mockAxiosIsAxiosError = jest.fn((error: unknown) => (
@@ -13,10 +31,12 @@ const mockDocRef = {
   get: mockDocGet,
   delete: mockDocDelete,
 };
-const mockDoc = jest.fn(() => mockDocRef);
-const mockCollection = jest.fn(() => ({ doc: mockDoc }));
+const mockDoc = jest.fn((_path: string) => mockDocRef);
+const mockCollection = jest.fn((_name: string) => ({ doc: mockDoc }));
 const mockTransactionGet = jest.fn();
-const mockTransactionSet = jest.fn();
+const mockTransactionSet = jest.fn(
+  (_ref: typeof mockDocRef, _data: Record<string, unknown>, _options?: { merge: boolean }) => undefined
+);
 const mockTransaction = {
   get: mockTransactionGet,
   set: mockTransactionSet,
@@ -82,22 +102,24 @@ const {
 } = require('../../functions/src/authRateLimiting') as typeof import('../../functions/src/authRateLimiting');
 const registeredSecretOptions = mockOnCall.mock.calls
   .map(([optionsOrHandler]) => optionsOrHandler)
-  .filter((optionsOrHandler) => (
-    !!optionsOrHandler
-    && typeof optionsOrHandler === 'object'
-    && 'secrets' in optionsOrHandler
+  .filter((optionsOrHandler): optionsOrHandler is Required<TestCallableOptions> => (
+    typeof optionsOrHandler !== 'function' && optionsOrHandler.secrets !== undefined
   ));
+// Captured at load: `jest.clearAllMocks()` in beforeEach wipes `mock.results`.
+const registeredHandlers = mockOnCall.mock.results.flatMap((result) => (
+  result.type === 'return' && result.value ? [result.value] : []
+));
 
-type CallableRequest = {
-  data?: Record<string, unknown>;
-  auth?: { uid: string; token: { email?: string } };
-  rawRequest?: {
-    headers?: Record<string, string | string[] | undefined>;
-    ip?: string;
-  };
-};
+/** Runs the handler a mocked `onCall` registered for `callable`. */
+function invoke(callable: object, req: TestCallableRequest): Promise<unknown> {
+  const handler = registeredHandlers.find((candidate) => candidate === callable);
+  if (!handler) {
+    throw new Error('invoke: callable was not registered through onCall');
+  }
+  return handler(req);
+}
 
-function request(data: Record<string, unknown>, auth?: CallableRequest['auth']): CallableRequest {
+function request(data: Record<string, unknown>, auth?: TestCallableRequest['auth']): TestCallableRequest {
   return {
     data,
     auth,
@@ -152,8 +174,8 @@ describe('auth rate limiting callables', () => {
 
   it('binds the Identity Toolkit callables to the non-reserved web API key secret', () => {
     expect(registeredSecretOptions).toHaveLength(2);
-    expect(registeredSecretOptions.map((optionsOrHandler) => (
-      (optionsOrHandler as { secrets: Array<{ name: string }> }).secrets.map((secret) => secret.name)
+    expect(registeredSecretOptions.map((options) => (
+      options.secrets.map((secret) => secret.name)
     ))).toEqual([
       ['SYMPOSIUM_WEB_API_KEY'],
       ['SYMPOSIUM_WEB_API_KEY'],
@@ -161,9 +183,10 @@ describe('auth rate limiting callables', () => {
   });
 
   it('checks login rate limits from hashed server-owned Firestore docs', async () => {
-    const result = await (checkLoginRateLimit as (req: CallableRequest) => Promise<unknown>)(
+    const result = await invoke(
+      checkLoginRateLimit,
       request({ email: ' Test.User@Example.COM ' })
-    ) as { isLocked: boolean; attemptsRemaining: number };
+    );
 
     expect(result).toMatchObject({
       isLocked: false,
@@ -175,9 +198,10 @@ describe('auth rate limiting callables', () => {
   });
 
   it('allows verified credentials without writing failed-attempt state', async () => {
-    const result = await (verifyEmailPasswordSignIn as (req: CallableRequest) => Promise<unknown>)(
+    const result = await invoke(
+      verifyEmailPasswordSignIn,
       request({ email: ' Test@Example.COM ', password: 'correct-password' })
-    ) as { credentialAllowed: boolean; attemptsRemaining: number };
+    );
 
     expect(result).toMatchObject({
       credentialAllowed: true,
@@ -198,20 +222,22 @@ describe('auth rate limiting callables', () => {
   it('treats MFA-required password responses as verified credentials', async () => {
     mockAxiosPost.mockRejectedValueOnce(identityToolkitError('MFA_REQUIRED'));
 
-    const result = await (verifyEmailPasswordSignIn as (req: CallableRequest) => Promise<unknown>)(
+    const result = await invoke(
+      verifyEmailPasswordSignIn,
       request({ email: 'mfa@example.com', password: 'correct-password' })
-    ) as { credentialAllowed: boolean };
+    );
 
-    expect(result.credentialAllowed).toBe(true);
+    expect(result).toMatchObject({ credentialAllowed: true });
     expect(mockRunTransaction).not.toHaveBeenCalled();
   });
 
   it('records invalid password attempts transactionally', async () => {
     mockAxiosPost.mockRejectedValueOnce(identityToolkitError('INVALID_PASSWORD'));
 
-    const result = await (verifyEmailPasswordSignIn as (req: CallableRequest) => Promise<unknown>)(
+    const result = await invoke(
+      verifyEmailPasswordSignIn,
       request({ email: 'failed@example.com', password: 'wrong-password' })
-    ) as { credentialAllowed: boolean; isLocked: boolean; attemptsRemaining: number; errorMessage: string };
+    );
 
     expect(result).toMatchObject({
       credentialAllowed: false,
@@ -248,9 +274,10 @@ describe('auth rate limiting callables', () => {
     mockTransactionGet.mockResolvedValueOnce(snapshot(existingRecord));
     mockAxiosPost.mockRejectedValueOnce(identityToolkitError('INVALID_LOGIN_CREDENTIALS'));
 
-    const result = await (verifyEmailPasswordSignIn as (req: CallableRequest) => Promise<unknown>)(
+    const result = await invoke(
+      verifyEmailPasswordSignIn,
       request({ email: 'lock@example.com', password: 'wrong-password' })
-    ) as { credentialAllowed: boolean; isLocked: boolean; lockoutDurationMs: number };
+    );
 
     expect(result).toMatchObject({
       credentialAllowed: false,
@@ -272,7 +299,8 @@ describe('auth rate limiting callables', () => {
 
   it('requires matching authenticated email before clearing login attempts', async () => {
     await expect(
-      (clearLoginAttempts as (req: CallableRequest) => Promise<unknown>)(
+      invoke(
+        clearLoginAttempts,
         request(
           { email: 'victim@example.com' },
           { uid: 'user-1', token: { email: 'attacker@example.com' } }
@@ -282,7 +310,8 @@ describe('auth rate limiting callables', () => {
     expect(mockDocDelete).not.toHaveBeenCalled();
 
     await expect(
-      (clearLoginAttempts as (req: CallableRequest) => Promise<unknown>)(
+      invoke(
+        clearLoginAttempts,
         request(
           { email: ' User@Example.COM ' },
           { uid: 'user-1', token: { email: 'user@example.com' } }
@@ -301,9 +330,10 @@ describe('auth rate limiting callables', () => {
       lockedUntil: null,
     }));
 
-    const result = await (checkPasswordResetRateLimit as (req: CallableRequest) => Promise<unknown>)(
+    const result = await invoke(
+      checkPasswordResetRateLimit,
       request({ email: 'reset@example.com' })
-    ) as { isLocked: boolean; attemptsRemaining: number };
+    );
 
     expect(result).toMatchObject({
       isLocked: false,
@@ -313,9 +343,10 @@ describe('auth rate limiting callables', () => {
   });
 
   it('records reset attempts and sends reset email through Identity Toolkit', async () => {
-    const result = await (requestPasswordResetEmail as (req: CallableRequest) => Promise<unknown>)(
+    const result = await invoke(
+      requestPasswordResetEmail,
       request({ email: ' Reset@Example.COM ' })
-    ) as { isLocked: boolean; attemptsRemaining: number; emailSent: boolean };
+    );
 
     expect(result).toMatchObject({
       isLocked: false,
@@ -344,7 +375,8 @@ describe('auth rate limiting callables', () => {
     mockAxiosPost.mockRejectedValueOnce(identityToolkitError('EMAIL_NOT_FOUND'));
 
     await expect(
-      (requestPasswordResetEmail as (req: CallableRequest) => Promise<unknown>)(
+      invoke(
+        requestPasswordResetEmail,
         request({ email: 'missing@example.com' })
       )
     ).resolves.toMatchObject({
@@ -363,9 +395,10 @@ describe('auth rate limiting callables', () => {
     };
     mockTransactionGet.mockResolvedValueOnce(snapshot(existingRecord));
 
-    const result = await (requestPasswordResetEmail as (req: CallableRequest) => Promise<unknown>)(
+    const result = await invoke(
+      requestPasswordResetEmail,
       request({ email: 'too-many-resets@example.com' })
-    ) as { isLocked: boolean; lockoutDurationMs: number; emailSent: boolean };
+    );
 
     expect(result).toMatchObject({
       isLocked: true,

@@ -1,12 +1,32 @@
 import React from 'react';
-import { Alert } from 'react-native';
+import { Alert, Text, View } from 'react-native';
 import { act, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '../../test-utils/renderWithProviders';
+import { capturePropsOf } from '@test-utils/mockComponents';
+import { createMockDebateSpeech, createMockMessage } from '@test-utils/fixtures';
 import { createAppStore, showSheet, startStreaming } from '@/store';
 import type { AI, Message } from '@/types';
+import type { DemoDebate } from '@/types/demo';
 import { getPresetForFormat } from '@/config/debate/formats';
-import type { DebateSessionHeaderProps } from '@/components/organisms/debate/DebateSessionHeader';
-import type { AudienceQuestionsModalProps } from '@/components/organisms/debate/AudienceQuestionsModal';
+import { DemoContentService } from '@/services/demo/DemoContentService';
+import { primeDebate } from '@/services/demo/DemoPlaybackRouter';
+import type { AppLifecycleHandler } from '@/services/lifecycle/AppLifecycleService';
+import type { DebateSessionHeader } from '@/components/organisms/debate/DebateSessionHeader';
+import type { AudienceQuestionsModal } from '@/components/organisms/debate/AudienceQuestionsModal';
+import type {
+  DebateMessageList,
+  Header,
+  ScoreDisplay,
+  TopicSelector,
+  VotingInterface,
+} from '@/components/organisms';
+import type { ContextBar } from '@/components/molecules';
+import type { VictoryCelebration } from '@/components/organisms/debate/VictoryCelebration';
+import type { TranscriptModal } from '@/components/organisms/debate/TranscriptModal';
+import type { DemoBanner } from '@/components/molecules/subscription/DemoBanner';
+import type { DemoSamplesBar } from '@/components/organisms/demo/DemoSamplesBar';
+import type DebateScreenComponent from '@/screens/DebateScreen';
+import { requireDefined } from '@test-utils/queries';
 
 // Mock ErrorService
 const mockHandleWithToast = jest.fn();
@@ -16,10 +36,10 @@ const mockShowSuccess = jest.fn();
 const mockSaveActiveSnapshot = jest.fn().mockResolvedValue(undefined);
 const mockLoadLatestActiveSnapshot = jest.fn().mockResolvedValue(null);
 const mockLoadActiveSnapshot = jest.fn().mockResolvedValue(null);
-const mockLifecycleHandlers = new Map<string, Record<string, unknown>>();
-const mockLifecycleRegister = jest.fn((handler: Record<string, unknown>) => {
-  mockLifecycleHandlers.set(String(handler.id), handler);
-  return jest.fn(() => mockLifecycleHandlers.delete(String(handler.id)));
+const mockLifecycleHandlers = new Map<string, AppLifecycleHandler>();
+const mockLifecycleRegister = jest.fn((handler: AppLifecycleHandler) => {
+  mockLifecycleHandlers.set(handler.id, handler);
+  return jest.fn(() => mockLifecycleHandlers.delete(handler.id));
 });
 
 jest.mock('@/services/errors/ErrorService', () => ({
@@ -41,12 +61,12 @@ jest.mock('@/services/lifecycle/ActiveSessionPersistenceService', () => ({
 
 jest.mock('@/services/lifecycle/AppLifecycleService', () => ({
   AppLifecycleService: {
-    register: (handler: Record<string, unknown>) => mockLifecycleRegister(handler),
+    register: (handler: AppLifecycleHandler) => mockLifecycleRegister(handler),
   },
 }));
 
 const baseAIs: AI[] = [
-  { id: 'left', provider: 'anthropic', name: 'Claude', model: 'claude-3-opus', color: '#000' },
+  { id: 'left', provider: 'claude', name: 'Claude', model: 'claude-3-opus', color: '#000' },
   { id: 'right', provider: 'openai', name: 'GPT-4', model: 'gpt-4-turbo', color: '#000' },
 ];
 
@@ -59,19 +79,50 @@ const mockUseDebateMessages = jest.fn();
 const mockUseDebateVoiceGeneration = jest.fn();
 const mockCompileDebateVoicePack = jest.fn();
 
-let mockHeaderProps: any;
-let mockContextBarProps: any;
-let mockTopicSelectorProps: any;
-let mockDebateMessageListProps: any;
-let mockVotingInterfaceProps: any;
-let mockAudienceQuestionsModalProps: AudienceQuestionsModalProps | undefined;
-let mockScoreDisplayProps: any;
-let mockDebateSessionHeaderProps: DebateSessionHeaderProps | undefined;
-let mockDemoBannerProps: any;
-let mockDemoSamplesBarProps: any;
-let mockVictoryProps: any;
-let mockTranscriptModalProps: any;
+const mockHeader = capturePropsOf<typeof Header>((props) => (
+  <View>
+    <Text testID="header-title">{props.title}</Text>
+  </View>
+));
+const mockContextBar = capturePropsOf<typeof ContextBar>((props) => (
+  <Text testID="context-bar">{`${props.title ?? ''}${props.subtitle ? `:${props.subtitle}` : ''}`}</Text>
+));
+const mockTopicSelector = capturePropsOf<typeof TopicSelector>((props) => (
+  <Text testID="topic-selector" onPress={() => props.onStartDebate?.()}>Topic Selector</Text>
+));
+const mockDebateMessageList = capturePropsOf<typeof DebateMessageList>((props) => (
+  <Text testID="debate-message-list">{`messages:${props.messages?.length ?? 0}`}</Text>
+));
+const mockDebateSessionHeader = capturePropsOf<typeof DebateSessionHeader>(() => (
+  <Text testID="debate-session-header">session-header</Text>
+));
+const mockVotingInterface = capturePropsOf<typeof VotingInterface>((props) => (
+  <Text testID="voting-interface" onPress={() => props.onVote?.('left')}>voting</Text>
+));
+const mockAudienceQuestionsModal = capturePropsOf<typeof AudienceQuestionsModal>((props) => (
+  <Text testID="audience-questions-modal" onPress={() => props.onSubmit?.({ aff: 'Aff?', neg: 'Neg?' })}>
+    {props.visible ? 'audience-questions-visible' : 'audience-questions-hidden'}
+  </Text>
+));
+const mockScoreDisplay = capturePropsOf<typeof ScoreDisplay>(() => (
+  <Text testID="score-display">scores</Text>
+));
+const mockVictory = capturePropsOf<typeof VictoryCelebration>((props) => (
+  <Text testID="victory" onPress={props.onViewTranscript}>victory</Text>
+));
+const mockTranscriptModal = capturePropsOf<typeof TranscriptModal>((props) => (
+  <Text testID="transcript-modal">{props.visible ? 'visible' : 'hidden'}</Text>
+));
+const mockDemoBanner = capturePropsOf<typeof DemoBanner>((props) => (
+  <Text testID="demo-banner" onPress={props.onPress}>demo-banner</Text>
+));
+const mockDemoSamplesBar = capturePropsOf<typeof DemoSamplesBar>((props) => (
+  <Text testID="demo-samples" onPress={() => props.onSelect?.(props.samples?.[0]?.id)}>
+    {props.label || 'samples'}
+  </Text>
+));
 
+/** An optional prop the screen is expected to have provided. */
 const mockStreamingService = {
   cancelAllStreams: jest.fn(),
 };
@@ -106,9 +157,8 @@ jest.mock('@/components/molecules', () => {
   const { Text } = require('react-native');
   return {
     KeyboardAvoider: ({ children }: { children?: import('react').ReactNode }) => require('react').createElement(require('react').Fragment, null, children),
-    ContextBar: (props: { title?: string; subtitle?: string }) => {
-      mockContextBarProps = props;
-      return React.createElement(Text, { testID: 'context-bar' }, `${props.title ?? ''}${props.subtitle ? `:${props.subtitle}` : ''}`);
+    get ContextBar() {
+      return mockContextBar.Stub;
     },
     Typography: ({ children }: { children: React.ReactNode }) => React.createElement(Text, null, children),
   };
@@ -116,57 +166,42 @@ jest.mock('@/components/molecules', () => {
 
 jest.mock('@/components/organisms', () => {
   const React = require('react');
-  const { Text, View } = require('react-native');
-  return {
-    Header: (props: any) => {
-      mockHeaderProps = props;
-      return React.createElement(View, null, React.createElement(Text, { testID: 'header-title' }, props.title));
-    },
-    HeaderActions: () => React.createElement(Text, { testID: 'header-actions' }, 'actions'),
-    TopicSelector: (props: any) => {
-      mockTopicSelectorProps = props;
-      return React.createElement(Text, { testID: 'topic-selector', onPress: () => props.onStartDebate?.() }, 'Topic Selector');
-    },
-    DebateMessageList: (props: any) => {
-      mockDebateMessageListProps = props;
-      return React.createElement(Text, { testID: 'debate-message-list' }, `messages:${props.messages?.length ?? 0}`);
-    },
-    DebateSessionHeader: (props: DebateSessionHeaderProps) => {
-      mockDebateSessionHeaderProps = props;
-      return React.createElement(Text, { testID: 'debate-session-header' }, 'session-header');
-    },
-    VotingInterface: (props: any) => {
-      mockVotingInterfaceProps = props;
-      return React.createElement(Text, { testID: 'voting-interface', onPress: () => props.onVote?.('left') }, 'voting');
-    },
-    AudienceQuestionsModal: (props: AudienceQuestionsModalProps) => {
-      mockAudienceQuestionsModalProps = props;
-      return React.createElement(Text, { testID: 'audience-questions-modal', onPress: () => props.onSubmit?.({ aff: 'Aff?', neg: 'Neg?' }) }, props.visible ? 'audience-questions-visible' : 'audience-questions-hidden');
-    },
-    ScoreDisplay: (props: any) => {
-      mockScoreDisplayProps = props;
-      return React.createElement(Text, { testID: 'score-display' }, 'scores');
-    },
-  };
-});
-
-jest.mock('@/components/organisms/debate/VictoryCelebration', () => {
-  const React = require('react');
   const { Text } = require('react-native');
   return {
-    VictoryCelebration: (props: any) => {
-      mockVictoryProps = props;
-      return React.createElement(Text, { testID: 'victory', onPress: props.onViewTranscript }, 'victory');
+    get Header() {
+      return mockHeader.Stub;
+    },
+    HeaderActions: () => React.createElement(Text, { testID: 'header-actions' }, 'actions'),
+    get TopicSelector() {
+      return mockTopicSelector.Stub;
+    },
+    get DebateMessageList() {
+      return mockDebateMessageList.Stub;
+    },
+    get DebateSessionHeader() {
+      return mockDebateSessionHeader.Stub;
+    },
+    get VotingInterface() {
+      return mockVotingInterface.Stub;
+    },
+    get AudienceQuestionsModal() {
+      return mockAudienceQuestionsModal.Stub;
+    },
+    get ScoreDisplay() {
+      return mockScoreDisplay.Stub;
     },
   };
 });
 
+jest.mock('@/components/organisms/debate/VictoryCelebration', () => ({
+  get VictoryCelebration() {
+    return mockVictory.Stub;
+  },
+}));
+
 jest.mock('@/components/organisms/debate/TranscriptModal', () => ({
-  TranscriptModal: (props: any) => {
-    mockTranscriptModalProps = props;
-    const React = require('react');
-    const { Text } = require('react-native');
-    return React.createElement(Text, { testID: 'transcript-modal' }, props.visible ? 'visible' : 'hidden');
+  get TranscriptModal() {
+    return mockTranscriptModal.Stub;
   },
 }));
 
@@ -174,34 +209,21 @@ jest.mock('@/components/organisms/demo/DebateRecordPickerModal', () => ({
   DebateRecordPickerModal: () => null,
 }));
 
-jest.mock('@/components/molecules/subscription/DemoBanner', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
-  return {
-    DemoBanner: (props: any) => {
-      mockDemoBannerProps = props;
-      return React.createElement(Text, { testID: 'demo-banner', onPress: props.onPress }, 'demo-banner');
-    },
-    __esModule: true,
-    default: (props: any) => {
-      mockDemoBannerProps = props;
-      const React = require('react');
-      const { Text } = require('react-native');
-      return React.createElement(Text, { testID: 'demo-banner', onPress: props.onPress }, 'demo-banner');
-    },
-  };
-});
+jest.mock('@/components/molecules/subscription/DemoBanner', () => ({
+  get DemoBanner() {
+    return mockDemoBanner.Stub;
+  },
+  __esModule: true,
+  get default() {
+    return mockDemoBanner.Stub;
+  },
+}));
 
-jest.mock('@/components/organisms/demo/DemoSamplesBar', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
-  return {
-    DemoSamplesBar: (props: any) => {
-      mockDemoSamplesBarProps = props;
-      return React.createElement(Text, { testID: 'demo-samples', onPress: () => props.onSelect?.(props.samples?.[0]?.id) }, props.label || 'samples');
-    },
-  };
-});
+jest.mock('@/components/organisms/demo/DemoSamplesBar', () => ({
+  get DemoSamplesBar() {
+    return mockDemoSamplesBar.Stub;
+  },
+}));
 
 jest.mock('@/services/demo/DemoContentService', () => ({
   DemoContentService: {
@@ -267,9 +289,9 @@ jest.mock('@/services/streaming/StreamingService', () => ({
   getStreamingService: () => mockStreamingService,
 }));
 
-const DebateScreen = require('@/screens/DebateScreen').default;
-const DemoContentService = require('@/services/demo/DemoContentService').DemoContentService;
-const { primeDebate } = require('@/services/demo/DemoPlaybackRouter');
+const DebateScreen: typeof DebateScreenComponent = require('@/screens/DebateScreen').default;
+
+type DebateRouteParams = React.ComponentProps<typeof DebateScreenComponent>['route']['params'];
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -279,18 +301,18 @@ beforeEach(() => {
   mockLoadActiveSnapshot.mockResolvedValue(null);
   mockLifecycleHandlers.clear();
   mockLifecycleRegister.mockClear();
-  mockHeaderProps = undefined;
-  mockContextBarProps = undefined;
-  mockTopicSelectorProps = undefined;
-  mockDebateMessageListProps = undefined;
-  mockVotingInterfaceProps = undefined;
-  mockAudienceQuestionsModalProps = undefined;
-  mockScoreDisplayProps = undefined;
-  mockDebateSessionHeaderProps = undefined;
-  mockDemoBannerProps = undefined;
-  mockDemoSamplesBarProps = undefined;
-  mockVictoryProps = undefined;
-  mockTranscriptModalProps = undefined;
+  mockHeader.reset();
+  mockContextBar.reset();
+  mockTopicSelector.reset();
+  mockDebateMessageList.reset();
+  mockVotingInterface.reset();
+  mockAudienceQuestionsModal.reset();
+  mockScoreDisplay.reset();
+  mockDebateSessionHeader.reset();
+  mockDemoBanner.reset();
+  mockDemoSamplesBar.reset();
+  mockVictory.reset();
+  mockTranscriptModal.reset();
   Alert.alert = jest.fn();
 });
 
@@ -396,7 +418,7 @@ type RenderOptions = {
   messages?: Record<string, unknown>;
   voiceGeneration?: Record<string, unknown>;
   featureAccess?: Record<string, unknown>;
-  routeParams?: Record<string, unknown>;
+  routeParams?: Partial<DebateRouteParams>;
   store?: ReturnType<typeof createAppStore>;
 };
 
@@ -442,12 +464,12 @@ const renderScreen = (options: RenderOptions = {}) => {
       selectedAIs: baseAIs,
       ...routeParams,
     },
-  } as any;
+  };
 
   const storeToUse = store ?? createAppStore();
 
   const renderResult = renderWithProviders(
-    <DebateScreen navigation={navigation as any} route={defaultRoute} />,
+    <DebateScreen navigation={navigation} route={defaultRoute} />,
     { store: storeToUse }
   );
 
@@ -472,13 +494,13 @@ describe('DebateScreen', () => {
 
     await flushMicrotasks();
 
-    expect(mockHeaderProps).toEqual(expect.objectContaining({
+    expect(mockHeader.latest()).toEqual(expect.objectContaining({
       slim: true,
       title: 'The Arena',
     }));
-    expect(mockContextBarProps.title).toBe('In the Arena');
-    expect(mockContextBarProps.subtitle).toContain('Climate Policy');
-    expect(mockDebateMessageListProps).toBeUndefined();
+    expect(mockContextBar.latest().title).toBe('In the Arena');
+    expect(mockContextBar.latest().subtitle).toContain('Climate Policy');
+    expect(mockDebateMessageList.calls).toHaveLength(0);
   });
 
   it('renders topic selector and demo banner in demo mode when no topic selected', async () => {
@@ -489,8 +511,8 @@ describe('DebateScreen', () => {
 
     await flushMicrotasks();
 
-    expect(mockTopicSelectorProps).toBeDefined();
-    expect(mockDemoBannerProps).toBeDefined();
+    expect(mockTopicSelector.calls).not.toHaveLength(0);
+    expect(mockDemoBanner.calls).not.toHaveLength(0);
   });
 
   it('auto starts debate when initial topic provided', async () => {
@@ -542,7 +564,7 @@ describe('DebateScreen', () => {
       flow: { isDebateActive: true, currentMessageIndex: 2, currentTurnLabel: 'Cross-Examination (CX) · answering' },
       messages: {
         messages: [
-          { id: 'm1', sender: 'Host', senderType: 'ai', content: 'Opening', timestamp: 1 } as Message,
+          createMockMessage({ id: 'm1', sender: 'Host', senderType: 'ai', content: 'Opening', timestamp: 1 }),
         ],
       },
       session: { isInitialized: true, session: { topic: 'Topic', preset }, orchestrator: {} },
@@ -561,25 +583,25 @@ describe('DebateScreen', () => {
 
     await flushMicrotasks();
 
-    expect(mockDebateMessageListProps.messages).toHaveLength(1);
-    expect(mockDebateSessionHeaderProps).toBeDefined();
-    expect(mockDebateSessionHeaderProps?.timelineMessages).toHaveLength(preset.messages.length);
-    expect(mockDebateSessionHeaderProps?.currentMessageIndex).toBe(2);
-    expect(mockDebateSessionHeaderProps?.currentTurnLabel).toBe('Cross-Examination (CX) · answering');
-    expect(mockDebateSessionHeaderProps?.activeSideLabel).toBe('Affirmative · answers');
-    expect(mockDebateSessionHeaderProps?.presetLabel).toContain('Lincoln-Douglas');
-    expect(mockDebateSessionHeaderProps?.teams[0].participants[0].name).toBe('Claude');
-    expect(mockDebateSessionHeaderProps?.teams[1].participants[0].name).toBe('GPT-4');
-    expect(mockHeaderProps).toEqual(expect.objectContaining({
+    expect(mockDebateMessageList.latest().messages).toHaveLength(1);
+    expect(mockDebateSessionHeader.calls).not.toHaveLength(0);
+    expect(mockDebateSessionHeader.latest().timelineMessages).toHaveLength(preset.messages.length);
+    expect(mockDebateSessionHeader.latest().currentMessageIndex).toBe(2);
+    expect(mockDebateSessionHeader.latest().currentTurnLabel).toBe('Cross-Examination (CX) · answering');
+    expect(mockDebateSessionHeader.latest().activeSideLabel).toBe('Affirmative · answers');
+    expect(mockDebateSessionHeader.latest().presetLabel).toContain('Lincoln-Douglas');
+    expect(mockDebateSessionHeader.latest().teams[0].participants[0].name).toBe('Claude');
+    expect(mockDebateSessionHeader.latest().teams[1].participants[0].name).toBe('GPT-4');
+    expect(mockHeader.latest()).toEqual(expect.objectContaining({
       slim: true,
       title: 'The Arena',
     }));
-    expect(mockDebateSessionHeaderProps?.chrome).toBe('context');
-    expect(mockVotingInterfaceProps).toBeDefined();
-    expect(mockVotingInterfaceProps.voteCriterion).toBe('Value constructives: choose who better established and defended their value, criterion, definitions, and contentions.');
-    expect(mockScoreDisplayProps.scores.left.roundWins).toBe(1);
+    expect(mockDebateSessionHeader.latest().chrome).toBe('context');
+    expect(mockVotingInterface.calls).not.toHaveLength(0);
+    expect(mockVotingInterface.latest().voteCriterion).toBe('Value constructives: choose who better established and defended their value, criterion, definitions, and contentions.');
+    expect(mockScoreDisplay.latest().scores.left.roundWins).toBe(1);
 
-    mockVotingInterfaceProps.onVote('left');
+    mockVotingInterface.latest().onVote('left');
     expect(recordVote).toHaveBeenCalledWith('left');
   });
 
@@ -601,7 +623,7 @@ describe('DebateScreen', () => {
       },
       messages: {
         messages: [
-          { id: 'm1', sender: 'Claude', senderType: 'ai', content: 'Opening', timestamp: 1 } as Message,
+          createMockMessage({ id: 'm1', sender: 'Claude', senderType: 'ai', content: 'Opening', timestamp: 1 }),
         ],
       },
       session: { isInitialized: true, session: { topic: 'Topic', preset }, orchestrator: {} },
@@ -631,7 +653,7 @@ describe('DebateScreen', () => {
       flow: { isDebateActive: true },
       messages: {
         messages: [
-          { id: 'stream-1', sender: 'Claude', senderType: 'ai', content: '', timestamp: 1 } as Message,
+          createMockMessage({ id: 'stream-1', sender: 'Claude', senderType: 'ai', content: '', timestamp: 1 }),
         ],
       },
       session: {
@@ -646,7 +668,7 @@ describe('DebateScreen', () => {
 
     const handler = mockLifecycleHandlers.get('debate-debate_1');
     await act(async () => {
-      await (handler?.onBackground as () => Promise<void>)?.();
+      await requireDefined(handler?.onBackground, 'onBackground')('background');
     });
 
     expect(createSnapshot).toHaveBeenLastCalledWith('active', expect.any(Array));
@@ -671,7 +693,7 @@ describe('DebateScreen', () => {
       flow: { isDebateActive: true },
       messages: {
         messages: [
-          { id: 'm1', sender: 'Claude', senderType: 'ai', content: 'Opening', timestamp: 1 } as Message,
+          createMockMessage({ id: 'm1', sender: 'Claude', senderType: 'ai', content: 'Opening', timestamp: 1 }),
         ],
       },
       session: {
@@ -686,7 +708,7 @@ describe('DebateScreen', () => {
 
     const handler = mockLifecycleHandlers.get('debate-debate_1');
     await act(async () => {
-      await (handler?.onBackground as () => Promise<void>)?.();
+      await requireDefined(handler?.onBackground, 'onBackground')('background');
     });
 
     expect(createSnapshot).toHaveBeenLastCalledWith('backgrounded', expect.any(Array));
@@ -706,7 +728,7 @@ describe('DebateScreen', () => {
         messageIds: ['stream-1'],
       },
       messages: [
-        { id: 'stream-1', sender: 'Claude', senderType: 'ai', content: '', timestamp: 1 } as Message,
+        createMockMessage({ id: 'stream-1', sender: 'Claude', senderType: 'ai', content: '', timestamp: 1 }),
       ],
     });
     mockLoadLatestActiveSnapshot.mockResolvedValueOnce(snapshot);
@@ -756,7 +778,7 @@ describe('DebateScreen', () => {
       },
       messages: {
         messages: [
-          { id: 'm1', sender: 'Claude', senderType: 'ai', content: 'Opening', timestamp: 1 } as Message,
+          createMockMessage({ id: 'm1', sender: 'Claude', senderType: 'ai', content: 'Opening', timestamp: 1 }),
         ],
       },
       session: { isInitialized: true, session: { topic: 'Topic', preset }, orchestrator: {} },
@@ -765,7 +787,7 @@ describe('DebateScreen', () => {
 
     await flushMicrotasks();
 
-    expect(mockAudienceQuestionsModalProps).toEqual(expect.objectContaining({
+    expect(mockAudienceQuestionsModal.latest()).toEqual(expect.objectContaining({
       visible: true,
       title: 'Audience questions',
       affirmativeLabel: 'Affirmative',
@@ -787,7 +809,7 @@ describe('DebateScreen', () => {
       flow: { isDebateActive: true },
       messages: {
         messages: [
-          { id: 'm1', sender: 'Host', senderType: 'ai', content: 'Opening', timestamp: 1 } as Message,
+          createMockMessage({ id: 'm1', sender: 'Host', senderType: 'ai', content: 'Opening', timestamp: 1 }),
         ],
       },
       session: { isInitialized: true, session: { topic: 'Topic' }, orchestrator: {} },
@@ -800,7 +822,7 @@ describe('DebateScreen', () => {
     await flushMicrotasks();
 
     await act(async () => {
-      await mockVotingInterfaceProps.onVote('left');
+      await mockVotingInterface.latest().onVote('left');
     });
 
     // Error is now shown via ErrorService.handleWithToast instead of Alert.alert
@@ -811,9 +833,9 @@ describe('DebateScreen', () => {
   });
 
   it('loads demo sample from samples bar and primes debate', async () => {
-    const sample = { id: 'sample-1', title: 'Sample', topic: 'Topic' };
-    DemoContentService.listDebateSamples.mockResolvedValueOnce([{ id: 'sample-1', title: 'Sample', topic: 'Topic' }]);
-    DemoContentService.findDebateById.mockResolvedValueOnce(sample as any);
+    const sample: DemoDebate = { id: 'sample-1', topic: 'Topic', participants: ['Claude', 'GPT-4'], events: [] };
+    jest.mocked(DemoContentService.listDebateSamples).mockReturnValueOnce([{ id: 'sample-1', title: 'Sample', topic: 'Topic' }]);
+    jest.mocked(DemoContentService.findDebateById).mockResolvedValueOnce(sample);
     const initializeSession = jest.fn().mockResolvedValue(undefined);
 
     renderScreen({
@@ -826,7 +848,7 @@ describe('DebateScreen', () => {
     await flushMicrotasks();
 
     await act(async () => {
-      await mockDemoSamplesBarProps.onSelect('sample-1');
+      await mockDemoSamplesBar.latest().onSelect('sample-1');
     });
 
     expect(DemoContentService.findDebateById).toHaveBeenCalledWith('sample-1');
@@ -841,7 +863,7 @@ describe('DebateScreen', () => {
     renderScreen({ featureAccess: { isDemo: true }, topicSelection: { finalTopic: '' }, store });
 
     await act(async () => {
-      mockDemoBannerProps.onPress();
+      requireDefined(mockDemoBanner.latest().onPress, 'onPress')();
     });
 
     expect(dispatchSpy).toHaveBeenCalledWith(showSheet({ sheet: 'subscription' }));
@@ -852,7 +874,7 @@ describe('DebateScreen', () => {
       flow: { isDebateEnded: true },
       messages: {
         messages: [
-          { id: '1', sender: 'Host', senderType: 'ai', content: 'Summary', timestamp: 1 } as Message,
+          createMockMessage({ id: '1', sender: 'Host', senderType: 'ai', content: 'Summary', timestamp: 1 }),
         ],
       },
       session: { isInitialized: true, session: { topic: 'Topic' }, orchestrator: {} },
@@ -869,15 +891,15 @@ describe('DebateScreen', () => {
 
     await flushMicrotasks();
 
-    expect(mockVictoryProps).toBeDefined();
-    expect(mockDebateSessionHeaderProps).toBeUndefined();
-    expect(mockHeaderProps).toBeUndefined();
+    expect(mockVictory.calls).not.toHaveLength(0);
+    expect(mockDebateSessionHeader.calls).toHaveLength(0);
+    expect(mockHeader.calls).toHaveLength(0);
 
     act(() => {
-      mockVictoryProps.onViewTranscript();
+      mockVictory.latest().onViewTranscript();
     });
 
-    expect(mockTranscriptModalProps.visible).toBe(true);
+    expect(mockTranscriptModal.latest().visible).toBe(true);
   });
 
   it('hides debate headers for Oxford audience decision victory', async () => {
@@ -887,7 +909,7 @@ describe('DebateScreen', () => {
       flow: { isDebateEnded: true, currentMessageIndex: preset.messages.length - 1 },
       messages: {
         messages: [
-          { id: '1', sender: 'Host', senderType: 'ai', content: 'Summary', timestamp: 1 } as Message,
+          createMockMessage({ id: '1', sender: 'Host', senderType: 'ai', content: 'Summary', timestamp: 1 }),
         ],
       },
       session: { isInitialized: true, session: { topic: 'Pineapple on pizza is acceptable.', preset }, orchestrator: {} },
@@ -909,9 +931,9 @@ describe('DebateScreen', () => {
 
     await flushMicrotasks();
 
-    expect(mockVictoryProps).toBeDefined();
-    expect(mockDebateSessionHeaderProps).toBeUndefined();
-    expect(mockHeaderProps).toBeUndefined();
+    expect(mockVictory.calls).not.toHaveLength(0);
+    expect(mockDebateSessionHeader.calls).toHaveLength(0);
+    expect(mockHeader.calls).toHaveLength(0);
   });
 
   it('generates a selected-clips podcast file and navigates to the finished Gallery audio item', async () => {
@@ -936,7 +958,7 @@ describe('DebateScreen', () => {
       attachments: [{ type: 'audio', uri: 'file:///debate/msg_1.mp3', mimeType: 'audio/mpeg' }],
       metadata: {
         providerId: 'left',
-        debateSpeech: { speaker: 'aff', label: 'Opening statement' },
+        debateSpeech: createMockDebateSpeech({ speaker: 'aff', label: 'Opening statement' }),
         debateAudio: {
           status: 'ready',
           voiceId: 'voice-1',
@@ -973,10 +995,10 @@ describe('DebateScreen', () => {
 
     await flushMicrotasks();
 
-    expect(mockVictoryProps.voicePackActionLabel).toBe('Podcast');
+    expect(mockVictory.latest().voicePackActionLabel).toBe('Podcast');
 
     act(() => {
-      mockVictoryProps.onSaveVoicePack();
+      requireDefined(mockVictory.latest().onSaveVoicePack, 'onSaveVoicePack')();
     });
 
     expect(renderResult.getAllByText('Generate Podcast File').length).toBeGreaterThan(0);
@@ -1024,7 +1046,7 @@ describe('DebateScreen', () => {
       timestamp: 1,
       metadata: {
         providerId: 'left',
-        debateSpeech: { speaker: 'aff', label: 'Opening statement' },
+        debateSpeech: createMockDebateSpeech({ speaker: 'aff', label: 'Opening statement' }),
         debateAudio: {
           status: 'failed',
           voiceId: 'voice-1',
@@ -1056,7 +1078,7 @@ describe('DebateScreen', () => {
     });
 
     act(() => {
-      mockDebateMessageListProps.onRetryAudio(failedMessage);
+      requireDefined(mockDebateMessageList.latest().onRetryAudio, 'onRetryAudio')(failedMessage);
     });
 
     expect(retryMessageAudio).not.toHaveBeenCalled();
@@ -1067,7 +1089,7 @@ describe('DebateScreen', () => {
       { cancelable: true }
     );
 
-    const buttons = (Alert.alert as jest.Mock).mock.calls[0][2] as Array<{ text: string; onPress?: () => void }>;
+    const buttons = jest.mocked(Alert.alert).mock.calls[0][2] ?? [];
     act(() => {
       buttons.find((button) => button.text === 'Retry')?.onPress?.();
     });
@@ -1085,7 +1107,7 @@ describe('DebateScreen', () => {
       attachments: [{ type: 'audio', uri: 'file:///debate/msg_1.mp3', mimeType: 'audio/mpeg' }],
       metadata: {
         providerId: 'left',
-        debateSpeech: { speaker: 'aff', label: 'Opening statement' },
+        debateSpeech: createMockDebateSpeech({ speaker: 'aff', label: 'Opening statement' }),
         debateAudio: {
           status: 'ready',
           voiceId: 'voice-1',
@@ -1131,7 +1153,7 @@ describe('DebateScreen', () => {
     await flushMicrotasks();
 
     act(() => {
-      mockVictoryProps.onSaveVoicePack();
+      requireDefined(mockVictory.latest().onSaveVoicePack, 'onSaveVoicePack')();
     });
 
     await waitFor(() => {
@@ -1147,7 +1169,7 @@ describe('DebateScreen', () => {
       flow: { isDebateEnded: true },
       messages: {
         messages: [
-          { id: '1', sender: 'Host', senderType: 'ai', content: 'Summary', timestamp: 1 } as Message,
+          createMockMessage({ id: '1', sender: 'Host', senderType: 'ai', content: 'Summary', timestamp: 1 }),
         ],
       },
       session: {
@@ -1177,7 +1199,7 @@ describe('DebateScreen', () => {
     await flushMicrotasks();
 
     act(() => {
-      mockVictoryProps.onRematch();
+      mockVictory.latest().onRematch();
     });
 
     expect(mockStreamingService.cancelAllStreams).toHaveBeenCalled();
@@ -1212,7 +1234,7 @@ describe('DebateScreen', () => {
     await flushMicrotasks();
 
     act(() => {
-      mockVictoryProps.onStartOver();
+      mockVictory.latest().onStartOver();
     });
 
     expect(mockStreamingService.cancelAllStreams).toHaveBeenCalled();
@@ -1244,7 +1266,7 @@ describe('DebateScreen', () => {
     await flushMicrotasks();
 
     act(() => {
-      mockVictoryProps.onViewTranscript();
+      mockVictory.latest().onViewTranscript();
     });
 
     // Info message is now shown via ErrorService.showInfo instead of Alert.alert
@@ -1257,13 +1279,13 @@ describe('DebateScreen', () => {
       session: { resetSession },
     });
 
-    mockHeaderProps.onBack();
+    requireDefined(mockHeader.latest().onBack, 'onBack')();
 
     expect(mockStreamingService.cancelAllStreams).not.toHaveBeenCalled();
     expect(resetSession).not.toHaveBeenCalled();
 
-    const alertArgs = (Alert.alert as jest.Mock).mock.calls[0];
-    const buttons = alertArgs[2] as Array<{ text: string; onPress?: () => void }>;
+    const alertArgs = jest.mocked(Alert.alert).mock.calls[0];
+    const buttons = alertArgs[2] ?? [];
     const startOverButton = buttons.find((btn) => btn.text === 'Start Over');
 
     await act(async () => {

@@ -1,28 +1,48 @@
-import React from 'react';
-import { Alert } from 'react-native';
+import React, { type ComponentProps } from 'react';
+import { Alert, Text } from 'react-native';
 import { KeyboardAvoider } from '@/components/molecules/common/KeyboardAvoider';
 import { act, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '../../test-utils/renderWithProviders';
+import { capturePropsOf } from '@test-utils/mockComponents';
+import {
+  createMockAIConfig,
+  createMockAuthState,
+  createMockChatSession,
+  createMockMessage,
+} from '@test-utils/fixtures';
+import { buildRootState, type RootStateOverrides } from '@test-utils/services/state';
 import { createAppStore, showSheet } from '@/store';
 import { resolveProviderModelId } from '@/config/modelConfigs';
 import { StorageService } from '@/services/chat/StorageService';
-import type { AppStore, RootState } from '@/store';
-import type { AIConfig, ChatSession, Message } from '@/types';
-import type { GeneratedContentReportTarget } from '@/services/reports/GeneratedContentReportService';
+import type { AppStore } from '@/store';
+import type { AIConfig, ChatSession } from '@/types';
+import type {
+  CompareSplitView,
+  CompareUserMessage,
+  Header,
+  HeaderActions,
+} from '@/components/organisms';
+import type { ChatInputBar } from '@/components/organisms/chat';
+import type { DemoSamplesBar } from '@/components/organisms/demo/DemoSamplesBar';
+import type { DemoBanner } from '@/components/molecules/subscription/DemoBanner';
+import type { GeneratedContentReportModal } from '@/components/organisms/report/GeneratedContentReportModal';
+import type CompareScreenComponent from '@/screens/CompareScreen';
+import type { AppLifecycleHandler } from '@/services/lifecycle/AppLifecycleService';
+import { requireDefined } from '@test-utils/queries';
 
-const leftAI: AIConfig = {
+const leftAI: AIConfig = createMockAIConfig({
   id: 'left-ai',
   provider: 'claude',
   name: 'Claude',
   model: 'claude-sonnet-4-6',
-};
+});
 
-const rightAI: AIConfig = {
+const rightAI: AIConfig = createMockAIConfig({
   id: 'right-ai',
   provider: 'openai',
   name: 'ChatGPT',
   model: 'gpt-5.5',
-};
+});
 
 const mockUseAIService = jest.fn();
 const mockUseMergedAvailability = jest.fn();
@@ -33,20 +53,26 @@ const mockPrimeNextCompareTurn = jest.fn();
 const mockHasNextCompareTurn = jest.fn();
 const mockStreamResponse = jest.fn();
 const mockGetMergedPersonality = jest.fn();
-const mockLifecycleRegister = jest.fn(() => jest.fn());
+const mockLifecycleRegister = jest.fn<() => void, [AppLifecycleHandler]>(() => jest.fn());
 const mockSaveActiveSnapshot = jest.fn().mockResolvedValue(undefined);
 const mockLoadActiveSnapshot = jest.fn().mockResolvedValue(null);
 
-let mockHeaderProps: any;
-let mockCompareSplitViewProps: any;
-let mockDemoSamplesProps: any;
-let mockChatInputProps: any;
-let mockDemoBannerProps: any;
-let mockReportModalProps: {
-  visible: boolean;
-  target: GeneratedContentReportTarget | null;
-  onClose: () => void;
-} | undefined;
+const mockHeader = capturePropsOf<typeof Header>(() => <Text testID="header">header</Text>);
+const mockCompareSplitView = capturePropsOf<typeof CompareSplitView>(() => (
+  <Text testID="compare-split">split</Text>
+));
+const mockDemoSamples = capturePropsOf<typeof DemoSamplesBar>((props) => (
+  <Text testID="demo-samples">{props.label || 'Demo Samples'}</Text>
+));
+const mockChatInput = capturePropsOf<typeof ChatInputBar>(() => (
+  <Text testID="chat-input">chat-input</Text>
+));
+const mockDemoBanner = capturePropsOf<typeof DemoBanner>((props) => (
+  <Text testID="demo-banner" onPress={props.onPress}>
+    demo-banner
+  </Text>
+));
+const mockReportModal = capturePropsOf<typeof GeneratedContentReportModal>();
 
 jest.mock('expo-linear-gradient', () => ({
   LinearGradient: ({ children }: { children: React.ReactNode }) => children,
@@ -144,7 +170,7 @@ jest.mock('@/services/streaming/StreamingService', () => ({
 
 jest.mock('@/services/lifecycle/AppLifecycleService', () => ({
   AppLifecycleService: {
-    register: (...args: unknown[]) => mockLifecycleRegister(...args),
+    register: (handler: AppLifecycleHandler) => mockLifecycleRegister(handler),
   },
 }));
 
@@ -160,61 +186,44 @@ jest.mock('@/components/organisms/demo/CompareRecordPickerModal', () => ({
 }));
 
 jest.mock('@/components/organisms', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
+  const { stubComponent } = jest.requireActual<typeof import('@test-utils/mockComponents')>(
+    '@test-utils/mockComponents'
+  );
   return {
-    Header: (props: any) => {
-      mockHeaderProps = props;
-      return React.createElement(Text, { testID: 'header' }, 'header');
+    get Header() {
+      return mockHeader.Stub;
     },
-    HeaderActions: () => React.createElement(Text, { testID: 'header-actions' }, 'actions'),
-    CompareSplitView: (props: any) => {
-      mockCompareSplitViewProps = props;
-      return React.createElement(Text, { testID: 'compare-split' }, 'split');
+    HeaderActions: stubComponent<typeof HeaderActions>('header-actions', { text: () => 'actions' }),
+    get CompareSplitView() {
+      return mockCompareSplitView.Stub;
     },
-    CompareUserMessage: ({ message }: { message: Message }) => (
-      React.createElement(Text, { testID: 'compare-user-message' }, message.content)
-    ),
+    CompareUserMessage: stubComponent<typeof CompareUserMessage>('compare-user-message', {
+      text: (props) => props.message.content,
+    }),
   };
 });
 
-jest.mock('@/components/organisms/chat', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
-  return {
-    ChatInputBar: (props: any) => {
-      mockChatInputProps = props;
-      return React.createElement(Text, { testID: 'chat-input' }, 'chat-input');
-    },
-  };
-});
+jest.mock('@/components/organisms/chat', () => ({
+  get ChatInputBar() {
+    return mockChatInput.Stub;
+  },
+}));
 
-jest.mock('@/components/organisms/demo/DemoSamplesBar', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
-  return {
-    DemoSamplesBar: (props: any) => {
-      mockDemoSamplesProps = props;
-      return React.createElement(Text, { testID: 'demo-samples' }, props.label || 'Demo Samples');
-    },
-  };
-});
+jest.mock('@/components/organisms/demo/DemoSamplesBar', () => ({
+  get DemoSamplesBar() {
+    return mockDemoSamples.Stub;
+  },
+}));
 
-jest.mock('@/components/molecules/subscription/DemoBanner', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
-  return {
-    DemoBanner: (props: any) => {
-      mockDemoBannerProps = props;
-      return React.createElement(Text, { testID: 'demo-banner', onPress: props.onPress }, 'demo-banner');
-    },
-    __esModule: true,
-    default: (props: any) => {
-      mockDemoBannerProps = props;
-      return React.createElement(Text, { testID: 'demo-banner', onPress: props.onPress }, 'demo-banner');
-    },
-  };
-});
+jest.mock('@/components/molecules/subscription/DemoBanner', () => ({
+  get DemoBanner() {
+    return mockDemoBanner.Stub;
+  },
+  __esModule: true,
+  get default() {
+    return mockDemoBanner.Stub;
+  },
+}));
 
 jest.mock('@/services/media/MediaSaveService', () => ({
   __esModule: true,
@@ -233,30 +242,23 @@ jest.mock('@/components/organisms/chat/ImageLightboxModal', () => ({
 }));
 
 jest.mock('@/components/organisms/report/GeneratedContentReportModal', () => ({
-  GeneratedContentReportModal: (props: {
-    visible: boolean;
-    target: GeneratedContentReportTarget | null;
-    onClose: () => void;
-  }) => {
-    mockReportModalProps = props;
-    return null;
+  get GeneratedContentReportModal() {
+    return mockReportModal.Stub;
   },
 }));
 
-const CompareScreen = require('@/screens/CompareScreen').default;
+const CompareScreen: typeof CompareScreenComponent = require('@/screens/CompareScreen').default;
 
-type CompareRouteParams = {
-  leftAI?: AIConfig;
-  rightAI?: AIConfig;
-  sessionId?: string;
-  resuming?: boolean;
-  demoSampleId?: string;
-};
+type CompareScreenProps = ComponentProps<typeof CompareScreenComponent>;
+type CompareRouteParams = CompareScreenProps['route']['params'];
+
+/** The resumed-session shape CompareScreen reads divergence state from. */
+type ResumedCompareSession = ChatSession & { hasDiverged?: boolean; continuedWithAI?: string };
 
 type RenderOptions = {
   params?: Partial<CompareRouteParams>;
   isDemo?: boolean;
-  preloadedState?: Partial<RootState>;
+  preloadedState?: RootStateOverrides;
   aiServiceOverrides?: Partial<{
     getAdapter: jest.Mock;
     ensureAdapter: jest.Mock;
@@ -268,20 +270,6 @@ type RenderOptions = {
 };
 
 let navigation: { navigate: jest.Mock; goBack: jest.Mock };
-
-const mergeState = <T extends Record<string, any>>(base: T, overrides?: Partial<T>): T => {
-  if (!overrides) return base;
-  const result: Record<string, any> = Array.isArray(base) ? [...base] : { ...base };
-  for (const [key, value] of Object.entries(overrides)) {
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-      const baseValue = (base as Record<string, any>)[key] ?? {};
-      result[key] = mergeState(baseValue, value as Record<string, any>);
-    } else {
-      result[key] = value;
-    }
-  }
-  return result as T;
-};
 
 const renderScreen = (options: RenderOptions = {}) => {
   const { params, isDemo = false, preloadedState, aiServiceOverrides, store: providedStore } = options;
@@ -307,11 +295,10 @@ const renderScreen = (options: RenderOptions = {}) => {
   if (providedStore) {
     store = providedStore;
   } else {
-    const baseState = createAppStore().getState();
     // Screen tests bypass App.tsx, so mark auth/profile resolution complete.
-    const authState = {
+    store = createAppStore(buildRootState({
+      ...preloadedState,
       auth: {
-        ...baseState.auth,
         authLoading: false,
         isAuthenticated: true,
         isPremium: !isDemo,
@@ -325,9 +312,7 @@ const renderScreen = (options: RenderOptions = {}) => {
           trialEndDate: null,
         },
       },
-    } satisfies Partial<RootState>;
-    const mergedState = mergeState(mergeState(baseState, authState), preloadedState ? preloadedState : undefined);
-    store = createAppStore(mergedState);
+    }));
   }
 
   const routeParams: CompareRouteParams = {
@@ -336,40 +321,44 @@ const renderScreen = (options: RenderOptions = {}) => {
     ...params,
   };
 
-  const route = { params: routeParams } as { params: CompareRouteParams };
+  const route = { params: routeParams };
 
   const renderResult = renderWithProviders(
-    <CompareScreen navigation={navigation as any} route={route as any} />,
+    <CompareScreen navigation={navigation} route={route} />,
     { store }
   );
 
   return { renderResult, store: renderResult.store, aiService };
 };
 
-const createResumedSession = (overrides: Partial<ChatSession> = {}): ChatSession & { hasDiverged?: boolean; continuedWithAI?: string } => ({
-  id: 'compare-session',
-  selectedAIs: [leftAI, rightAI],
-  messages: [
-    { id: 'm1', sender: 'You', senderType: 'user', content: 'Prompt', timestamp: 1 },
-    { id: 'm2', sender: leftAI.name, senderType: 'ai', content: 'Left answer', timestamp: 2 },
-    { id: 'm3', sender: rightAI.name, senderType: 'ai', content: 'Right answer', timestamp: 3 },
-  ],
-  isActive: false,
-  createdAt: Date.now(),
-  sessionType: 'comparison',
-  topic: 'Topic',
+const createResumedSession = (
+  overrides: Partial<ResumedCompareSession> = {}
+): ResumedCompareSession => ({
+  ...createMockChatSession({
+    id: 'compare-session',
+    selectedAIs: [leftAI, rightAI],
+    messages: [
+      createMockMessage({ id: 'm1', sender: 'You', senderType: 'user', content: 'Prompt', timestamp: 1 }),
+      createMockMessage({ id: 'm2', sender: leftAI.name, senderType: 'ai', content: 'Left answer', timestamp: 2 }),
+      createMockMessage({ id: 'm3', sender: rightAI.name, senderType: 'ai', content: 'Right answer', timestamp: 3 }),
+    ],
+    isActive: false,
+    createdAt: Date.now(),
+    sessionType: 'comparison',
+    topic: 'Topic',
+  }),
   ...overrides,
 });
 
 beforeEach(() => {
   jest.clearAllMocks();
   navigation = { navigate: jest.fn(), goBack: jest.fn() };
-  mockHeaderProps = undefined;
-  mockCompareSplitViewProps = undefined;
-  mockDemoSamplesProps = undefined;
-  mockChatInputProps = undefined;
-  mockDemoBannerProps = undefined;
-  mockReportModalProps = undefined;
+  mockHeader.reset();
+  mockCompareSplitView.reset();
+  mockDemoSamples.reset();
+  mockChatInput.reset();
+  mockDemoBanner.reset();
+  mockReportModal.reset();
   mockListSamples.mockResolvedValue([]);
   mockFindCompareById.mockResolvedValue(null);
   mockLoadCompareScript.mockReset();
@@ -429,29 +418,29 @@ describe('CompareScreen', () => {
 
   it('renders header and resumed comparison state with divergent session', async () => {
     const session = createResumedSession({ hasDiverged: true, continuedWithAI: leftAI.name });
-    const preloadedState: Partial<RootState> = {
+    const preloadedState: RootStateOverrides = {
       chat: {
         currentSession: session,
-      } as any,
+      },
     };
 
     const { renderResult } = renderScreen({ params: { resuming: true }, preloadedState });
 
-    expect(mockHeaderProps).toBeDefined();
-    expect(mockHeaderProps.slim).toBe(true);
-    expect(mockHeaderProps.title).toBe('The Lens');
+    expect(mockHeader.calls.length).toBeGreaterThan(0);
+    expect(mockHeader.latest().slim).toBe(true);
+    expect(mockHeader.latest().title).toBe('The Lens');
     expect(renderResult.getByText(leftAI.name)).toBeTruthy();
     expect(renderResult.getByText(rightAI.name)).toBeTruthy();
-    expect(mockCompareSplitViewProps).toBeDefined();
-    expect(mockCompareSplitViewProps.viewMode).toBe('left-only');
-    expect(mockCompareSplitViewProps.leftMessages[0].content).toBe('Left answer');
-    expect(mockCompareSplitViewProps.continuedSide).toBe('left');
-    expect(mockChatInputProps.placeholder).toContain(leftAI.name);
+    expect(mockCompareSplitView.calls.length).toBeGreaterThan(0);
+    expect(mockCompareSplitView.latest().viewMode).toBe('left-only');
+    expect(mockCompareSplitView.latest().leftMessages[0].content).toBe('Left answer');
+    expect(mockCompareSplitView.latest().continuedSide).toBe('left');
+    expect(mockChatInput.latest().placeholder).toContain(leftAI.name);
   });
 
   it('opens the generated content report modal for compare AI messages', async () => {
     const session = createResumedSession();
-    const preloadedState: Partial<RootState> = {
+    const preloadedState: RootStateOverrides = {
       chat: {
         ...createAppStore().getState().chat,
         currentSession: session,
@@ -460,15 +449,15 @@ describe('CompareScreen', () => {
 
     renderScreen({ params: { resuming: true }, preloadedState });
 
-    expect(mockCompareSplitViewProps.onReportContent).toEqual(expect.any(Function));
+    expect(mockCompareSplitView.latest().onReportContent).toEqual(expect.any(Function));
 
     await act(async () => {
-      mockCompareSplitViewProps.onReportContent(session.messages[1]);
+      requireDefined(mockCompareSplitView.latest().onReportContent, 'onReportContent')(session.messages[1]);
     });
 
     await waitFor(() => {
-      expect(mockReportModalProps?.visible).toBe(true);
-      expect(mockReportModalProps?.target).toMatchObject({
+      expect(mockReportModal.latest().visible).toBe(true);
+      expect(mockReportModal.latest().target).toMatchObject({
         surface: 'compare',
         contentId: 'm2',
         sessionId: 'compare-session',
@@ -480,8 +469,8 @@ describe('CompareScreen', () => {
   it('wires stop controls into the compare input bar', () => {
     renderScreen();
 
-    expect(mockChatInputProps.isProcessing).toBe(false);
-    expect(mockChatInputProps.onStop).toEqual(expect.any(Function));
+    expect(mockChatInput.latest().isProcessing).toBe(false);
+    expect(mockChatInput.latest().onStop).toEqual(expect.any(Function));
   });
 
   it('checkpoints active compare streams without marking them interrupted on app background', async () => {
@@ -490,23 +479,21 @@ describe('CompareScreen', () => {
     const { renderResult } = renderScreen();
 
     await act(async () => {
-      await mockChatInputProps.onSend('Compare this');
+      await mockChatInput.latest().onSend('Compare this');
     });
 
     await waitFor(() => {
-      expect(mockChatInputProps.isProcessing).toBe(true);
+      expect(mockChatInput.latest().isProcessing).toBe(true);
     });
 
     const compareHandlers = mockLifecycleRegister.mock.calls
       .map(call => call[0])
-      .filter((entry: { id?: string }) => entry.id?.startsWith('compare-')) as Array<{
-        onBackground?: (reason: string) => Promise<void>;
-      }>;
+      .filter(entry => entry.id.startsWith('compare-'));
     const handler = compareHandlers[compareHandlers.length - 1];
     expect(handler).toBeTruthy();
 
     await act(async () => {
-      await handler?.onBackground?.('background');
+      await requireDefined(requireDefined(handler, 'compare lifecycle handler').onBackground, 'onBackground')('background');
     });
 
     const savedSnapshot = mockSaveActiveSnapshot.mock.calls[mockSaveActiveSnapshot.mock.calls.length - 1][0];
@@ -524,16 +511,15 @@ describe('CompareScreen', () => {
   });
 
   it('dispatches subscription sheet when demo banner is pressed', async () => {
-    const store = createAppStore({
-      ...createAppStore().getState(),
-      auth: { isPremium: false } as any,
-    });
+    const store = createAppStore(buildRootState({
+      auth: createMockAuthState({ isPremium: false }),
+    }));
     const dispatchSpy = jest.spyOn(store, 'dispatch');
 
     renderScreen({ isDemo: true, store });
 
     await act(async () => {
-      mockDemoBannerProps.onPress();
+      requireDefined(mockDemoBanner.latest().onPress, 'onPress')();
     });
 
     expect(dispatchSpy).toHaveBeenCalledWith(showSheet({ sheet: 'subscription' }));
@@ -546,10 +532,10 @@ describe('CompareScreen', () => {
 
     const { aiService } = renderScreen({ isDemo: true });
 
-    await waitFor(() => expect(mockDemoSamplesProps).toBeDefined());
+    await waitFor(() => expect(mockDemoSamples.calls.length).toBeGreaterThan(0));
 
     await act(async () => {
-      await mockDemoSamplesProps.onSelect('sample-1');
+      await mockDemoSamples.latest().onSelect('sample-1');
     });
 
     expect(mockFindCompareById).toHaveBeenCalledWith('sample-1');
@@ -583,7 +569,7 @@ describe('CompareScreen', () => {
     const { aiService } = renderScreen({ params: { leftAI: georgeLeft, rightAI } });
 
     await act(async () => {
-      await mockChatInputProps.onSend('Compare these options');
+      await mockChatInput.latest().onSend('Compare these options');
     });
 
     await waitFor(() => expect(mockStreamResponse).toHaveBeenCalled());
@@ -619,7 +605,7 @@ describe('CompareScreen', () => {
     const { aiService } = renderScreen({ params: { leftAI: georgeLeft, rightAI } });
 
     await act(async () => {
-      await mockChatInputProps.onSend('Compare these options');
+      await mockChatInput.latest().onSend('Compare these options');
     });
 
     await waitFor(() => {
@@ -648,7 +634,7 @@ describe('CompareScreen', () => {
       params: { initialPrompt: 'What is in this image?' },
       preloadedState: {
         composerAttachments: { chat: [], compare: [attachment] },
-      } as Partial<RootState>,
+      },
     });
 
     await waitFor(() => {
@@ -666,7 +652,7 @@ describe('CompareScreen', () => {
     renderScreen();
 
     await act(async () => {
-      await mockChatInputProps.onSend('Compare these options');
+      await mockChatInput.latest().onSend('Compare these options');
     });
 
     await waitFor(() => {
@@ -688,7 +674,7 @@ describe('CompareScreen', () => {
     renderScreen();
 
     act(() => {
-      mockHeaderProps.onBack();
+      requireDefined(mockHeader.latest().onBack, 'onBack')();
     });
 
     expect(alertSpy).toHaveBeenCalledWith(
