@@ -1,6 +1,7 @@
 import { renderHookWithProviders } from '../../test-utils/renderHookWithProviders';
 import useFeatureAccess from '@/hooks/useFeatureAccess';
 import { createMockUserProfile } from '../../test-utils/fixtures';
+import { FALLBACK_PRICES } from '@/services/prices/PricesPersistenceService';
 
 describe('useFeatureAccess', () => {
   it('returns demo state when user is not premium', () => {
@@ -101,5 +102,40 @@ describe('useFeatureAccess', () => {
 
     expect(result.current.membershipStatus).toBe('demo');
     expect(result.current.isDemo).toBe(true);
+  });
+
+  it('allows a trial when the store offers one to this store account', () => {
+    const { result } = renderHookWithProviders(() => useFeatureAccess(), {
+      preloadedState: {
+        auth: {
+          isPremium: false,
+          authLoading: false,
+          userProfile: createMockUserProfile({ membershipStatus: 'demo' }),
+        },
+        prices: { ...FALLBACK_PRICES, loaded: true },
+      },
+    });
+
+    expect(result.current.canStartTrial).toBe(true);
+  });
+
+  it('does not offer a trial the store no longer offers this store account', () => {
+    const { result } = renderHookWithProviders(() => useFeatureAccess(), {
+      preloadedState: {
+        auth: {
+          isPremium: false,
+          authLoading: false,
+          userProfile: createMockUserProfile({ membershipStatus: 'demo' }),
+        },
+        prices: {
+          ...FALLBACK_PRICES,
+          monthly: { ...FALLBACK_PRICES.monthly, trial: undefined },
+          loaded: true,
+        },
+      },
+    });
+
+    expect(result.current.isDemo).toBe(true);
+    expect(result.current.canStartTrial).toBe(false);
   });
 });

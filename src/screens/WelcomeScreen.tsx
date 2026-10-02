@@ -27,6 +27,8 @@ import { useDispatch } from 'react-redux';
 import { completeOnboarding } from '../store';
 import { settingsService } from '../services/settings/SettingsService';
 import { useStorePrices } from '@/hooks/useStorePrices';
+import { useFeatureAccess } from '@/hooks/useFeatureAccess';
+import { describePostTrialPricing } from '@/utils/subscriptionTerms';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { ENABLED_API_CONFIG_PROVIDER_COUNT } from '@/config/apiConfigProviders';
@@ -82,6 +84,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
   const dispatch = useDispatch();
   const { theme, isDark } = useTheme();
   const { monthly } = useStorePrices();
+  const { canStartTrial } = useFeatureAccess();
   const scale = useSharedValue(0);
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(50);
@@ -307,12 +310,14 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = () => {
             </Typography>
 
             <View style={styles.premiumFeatures}>
-              <View style={styles.bulletRow}>
-                <MaterialIcons name="check-circle" size={16} color={theme.colors.success[500]} style={{ marginRight: 8 }} />
-                <Typography variant="caption" color="secondary" style={{ flex: 1 }}>
-                  7-day free trial with full access
-                </Typography>
-              </View>
+              {canStartTrial && monthly.trial && (
+                <View style={styles.bulletRow}>
+                  <MaterialIcons name="check-circle" size={16} color={theme.colors.success[500]} style={{ marginRight: 8 }} />
+                  <Typography variant="caption" color="secondary" style={{ flex: 1 }}>
+                    {`${monthly.trial.durationText} free trial with full access, then ${describePostTrialPricing(monthly, 'month')}`}
+                  </Typography>
+                </View>
+              )}
               <View style={styles.bulletRow}>
                 <MaterialIcons name="check-circle" size={16} color={theme.colors.success[500]} style={{ marginRight: 8 }} />
                 <Typography variant="caption" color="secondary" style={{ flex: 1 }}>

@@ -82,7 +82,8 @@ export default function UpgradeScreen() {
     if (isPremium) return 'Manage your subscription';
     if (isInTrial && trialDaysRemaining !== null) return `${trialDaysRemaining} days left in trial`;
     if (hasUsedTrial) return 'Your trial has ended';
-    return `Start your ${trialDuration} free trial`;
+    if (canStartTrial) return `Start your ${trialDuration} free trial`;
+    return 'Choose a plan';
   };
 
   // Determine the title based on membership status

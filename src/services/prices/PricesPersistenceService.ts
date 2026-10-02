@@ -102,7 +102,7 @@ export async function fetchAndPersistPrices(): Promise<{
   }
 
   try {
-    const { fetchProducts } = await getIapModule();
+    const { fetchProducts, isEligibleForIntroOfferIOS } = await getIapModule();
     const subscriptionSkus = [SUBSCRIPTION_PRODUCTS.monthly, SUBSCRIPTION_PRODUCTS.annual];
     const productSkus = [SUBSCRIPTION_PRODUCTS.lifetime];
 
@@ -124,6 +124,18 @@ export async function fetchAndPersistPrices(): Promise<{
         priceInfo = extractAndroidPrice(sub as ProductSubscriptionAndroid);
       } else {
         priceInfo = extractIOSPrice(sub as ProductSubscriptionIOS);
+        // StoreKit lists the introductory offer whether or not this Apple ID can still
+        // redeem it; drop the trial so the app never advertises one the purchase sheet won't show.
+        const groupId = (sub as ProductSubscriptionIOS).subscriptionInfoIOS?.subscriptionGroupId;
+        if (priceInfo?.trial && groupId) {
+          try {
+            if (!(await isEligibleForIntroOfferIOS(groupId))) {
+              priceInfo = { ...priceInfo, trial: undefined };
+            }
+          } catch (e) {
+            console.warn('Intro offer eligibility check failed:', e);
+          }
+        }
       }
 
       if (priceInfo) {
