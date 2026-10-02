@@ -54,7 +54,9 @@ function resolveImport(importerFile, spec) {
       try {
         const st = fs.statSync(full);
         if (st.isFile()) return path.normalize(full);
-      } catch {}
+      } catch {
+        // No file at this candidate path; try the next extension.
+      }
     }
   }
   return null;
@@ -65,13 +67,13 @@ function extractImports(file) {
   const code = fs.readFileSync(file, 'utf8');
   const specs = new Set();
   // import ... from '...'
-  const re1 = /import\s+[^'";]+?from\s+['"]([^'\"]+)['"]/g;
+  const re1 = /import\s+[^'";]+?from\s+['"]([^'"]+)['"]/g;
   // export ... from '...'
-  const re2 = /export\s+[^'";]+?from\s+['"]([^'\"]+)['"]/g;
+  const re2 = /export\s+[^'";]+?from\s+['"]([^'"]+)['"]/g;
   // dynamic import('...')
-  const re3 = /import\(\s*['"]([^'\"]+)['"]\s*\)/g;
+  const re3 = /import\(\s*['"]([^'"]+)['"]\s*\)/g;
   // require('...')
-  const re4 = /require\(\s*['"]([^'\"]+)['"]\s*\)/g;
+  const re4 = /require\(\s*['"]([^'"]+)['"]\s*\)/g;
   let m;
   for (const re of [re1, re2, re3, re4]) {
     while ((m = re.exec(code)) !== null) {

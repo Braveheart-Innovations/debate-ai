@@ -37,7 +37,7 @@ const svgContent = `<?xml version="1.0" encoding="UTF-8"?>
   <rect x="0" y="0" width="${size}" height="${size}" fill="#1A1A1A" rx="${size * 0.08}" ry="${size * 0.08}"/>
   
   <!-- Overlapping circles with glow -->
-  ${circles.map((circle, index) => `
+  ${circles.map((circle) => `
   <g>
     <!-- Outer glow -->
     <circle cx="${circle.x}" cy="${circle.y}" r="${circleRadius * 1.05}" fill="${circle.color}" opacity="0.15"/>

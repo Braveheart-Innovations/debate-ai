@@ -9,7 +9,6 @@
  * npx expo login
  */
 
-const { getUserAsync } = require('@expo/config');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');

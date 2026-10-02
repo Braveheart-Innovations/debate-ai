@@ -2,6 +2,7 @@ import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import reactPlugin from 'eslint-plugin-react';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
+import globals from 'globals';
 
 export default tseslint.config(
   js.configs.recommended,
@@ -50,13 +51,30 @@ export default tseslint.config(
     },
   },
   {
-    files: ['__mocks__/**/*.js'],
+    // Node-side code: Expo config plugins, build/release scripts, tool configs.
+    files: ['*.js', 'plugins/**/*.js', 'scripts/**/*.js', '__mocks__/**/*.js'],
     languageOptions: {
       sourceType: 'commonjs',
-      globals: { module: 'writable' },
+      globals: globals.node,
+    },
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
     },
   },
   {
-    ignores: ['node_modules/', 'dist/', '.expo/', 'babel.config.js', 'metro.config.js'],
+    files: ['*.mjs', 'scripts/**/*.mjs'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
+  {
+    // CLI scripts report through stdout.
+    files: ['scripts/**/*.{js,mjs}'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
+  {
+    ignores: ['node_modules/', 'dist/', '.expo/'],
   }
 );

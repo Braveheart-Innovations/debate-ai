@@ -4,7 +4,7 @@
 // Usage: OPENAI_API_KEY=sk-... node scripts/realtime/openai-relay.js
 
 const http = require('http');
-const WebSocket = require('ws');
+const WS = require('ws');
 
 const PORT = process.env.PORT || 8787;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY; // optional fallback
@@ -14,7 +14,7 @@ const server = http.createServer((req, res) => {
   res.end('OpenAI Realtime Relay running');
 });
 
-const wss = new WebSocket.Server({ server, path: '/ws' });
+const wss = new WS.Server({ server, path: '/ws' });
 
 wss.on('connection', (client, req) => {
   try {
@@ -41,7 +41,7 @@ wss.on('connection', (client, req) => {
     }
 
     const targetUrl = `wss://api.openai.com/v1/realtime?model=${encodeURIComponent(model)}`;
-    const upstream = new WebSocket(targetUrl, {
+    const upstream = new WS(targetUrl, {
       headers: {
         Authorization: `Bearer ${authKey}`,
         'OpenAI-Beta': 'realtime=v1',
@@ -49,19 +49,19 @@ wss.on('connection', (client, req) => {
     });
 
     upstream.on('open', () => client.send(JSON.stringify({ type: 'relay.open' })));
-    upstream.on('message', (data) => client.readyState === WebSocket.OPEN && client.send(data));
+    upstream.on('message', (data) => client.readyState === WS.OPEN && client.send(data));
     upstream.on('close', () => client.close());
     upstream.on('error', (err) => {
-      try { client.send(JSON.stringify({ type: 'relay.error', error: String(err && err.message || err) })); } catch {}
+      try { client.send(JSON.stringify({ type: 'relay.error', error: String(err && err.message || err) })); } catch { /* client already gone */ }
       client.close();
     });
 
     client.on('message', (data) => {
-      if (upstream.readyState === WebSocket.OPEN) upstream.send(data);
+      if (upstream.readyState === WS.OPEN) upstream.send(data);
     });
     client.on('close', () => upstream.close());
   } catch (e) {
-    try { client.send(JSON.stringify({ type: 'relay.error', error: String(e && e.message || e) })); } catch {}
+    try { client.send(JSON.stringify({ type: 'relay.error', error: String(e && e.message || e) })); } catch { /* client already gone */ }
     client.close();
   }
 });
