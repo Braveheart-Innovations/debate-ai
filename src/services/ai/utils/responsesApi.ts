@@ -3,6 +3,17 @@
  * shared by adapters whose providers mirror it (OpenAI, xAI).
  */
 
+/** Named server-sent events the OpenAI-compatible Responses API streams. */
+export const RESPONSES_STREAM_EVENTS = [
+  'response.output_text.delta',
+  'response.output_text.done',
+  'response.completed',
+  'response.incomplete',
+  'response.delta',
+  'response.error',
+] as const;
+export type ResponsesStreamEvent = (typeof RESPONSES_STREAM_EVENTS)[number];
+
 export interface ResponsesCitation {
   index: number;
   url: string;

@@ -58,6 +58,21 @@ export default tseslint.config(
     },
   },
   {
+    // App code reached zero double casts (docs/TECH_DEBT_CLEANUP_PLAN.md, Phase 3);
+    // keep it there. Narrow with a type guard or validate at the boundary instead.
+    files: ['src/**/*.{ts,tsx}', 'App.tsx', 'index.ts'],
+    ignores: ['src/**/__tests__/**'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "TSAsExpression > TSAsExpression.expression[typeAnnotation.type='TSUnknownKeyword']",
+          message: 'No `as unknown as` in app code: use a type guard, a typed boundary validator, or fix the type.',
+        },
+      ],
+    },
+  },
+  {
     files: ['__tests__/**/*.{ts,tsx}'],
     rules: {
       '@typescript-eslint/no-require-imports': 'off',

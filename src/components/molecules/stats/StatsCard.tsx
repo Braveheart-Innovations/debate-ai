@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import Animated, { EntryExitAnimationFunction } from 'react-native-reanimated';
+import Animated, { type EntryOrExitLayoutType } from 'react-native-reanimated';
 import { Typography } from '../common/Typography';
 import { useTheme } from '@/theme';
 
@@ -12,7 +12,7 @@ export interface StatsCardProps {
   /** Card content */
   children: React.ReactNode;
   /** Animation entering prop from react-native-reanimated */
-  entering?: EntryExitAnimationFunction;
+  entering?: EntryOrExitLayoutType;
   /** Additional styling */
   style?: object | object[];
 }

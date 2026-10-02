@@ -1,11 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import settingsService, { DEFAULT_SETTINGS } from '@/services/settings/SettingsService';
 
-const storage = AsyncStorage as unknown as {
-  getItem: jest.Mock;
-  setItem: jest.Mock;
-  removeItem: jest.Mock;
-};
+const storage = jest.mocked(AsyncStorage);
 
 const sampleSettings = {
   ...DEFAULT_SETTINGS,
@@ -99,6 +95,41 @@ describe('SettingsService', () => {
 
     storage.getItem.mockRejectedValue(new Error('boom'));
     expect(await settingsService.getAppVersion()).toBe(DEFAULT_SETTINGS.version);
+  });
+
+  it('validates stored settings, keeping valid fields and defaulting wrong-typed ones', async () => {
+    storage.getItem.mockResolvedValueOnce(
+      JSON.stringify({
+        ...DEFAULT_SETTINGS,
+        themeMode: 'neon',
+        notifications: { enabled: 'yes', soundEnabled: false, vibrationEnabled: true },
+        accessibility: { fontSize: 'large', highContrast: 1, reducedMotion: true },
+      })
+    );
+
+    const loaded = await settingsService.loadSettings();
+
+    expect(loaded.themeMode).toBe(DEFAULT_SETTINGS.themeMode);
+    expect(loaded.notifications).toEqual({
+      enabled: DEFAULT_SETTINGS.notifications.enabled,
+      soundEnabled: false,
+      vibrationEnabled: true,
+    });
+    expect(loaded.accessibility).toEqual({
+      fontSize: 'large',
+      highContrast: DEFAULT_SETTINGS.accessibility.highContrast,
+      reducedMotion: true,
+    });
+  });
+
+  it('imports only valid enum values', async () => {
+    await settingsService.importSettings(
+      JSON.stringify({ themeMode: 'dark', accessibility: { fontSize: 'huge' } })
+    );
+
+    const saved = JSON.parse(String(storage.setItem.mock.calls.at(-1)?.[1]));
+    expect(saved.themeMode).toBe('dark');
+    expect(saved.accessibility.fontSize).toBe(DEFAULT_SETTINGS.accessibility.fontSize);
   });
 
   describe('onboarding persistence', () => {

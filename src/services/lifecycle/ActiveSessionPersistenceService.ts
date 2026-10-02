@@ -165,6 +165,25 @@ const getSnapshotKey = (mode: ActiveSessionMode, sessionId: string): string =>
 const isObject = (value: unknown): value is Record<string, unknown> =>
   Boolean(value && typeof value === 'object' && !Array.isArray(value));
 
+const ACTIVE_SESSION_MODES: ReadonlySet<unknown> = new Set<ActiveSessionMode>(['chat', 'comparison', 'debate', 'create']);
+const ACTIVE_SESSION_STATUSES: ReadonlySet<unknown> = new Set<ActiveSessionStatus>([
+  'active',
+  'backgrounded',
+  'interrupted',
+  'cancelled',
+  'failed',
+  'completed',
+]);
+
+/** A persisted index entry, validated field by field (storage is untyped and may be stale). */
+const isIndexEntry = (value: unknown): value is ActiveSessionIndexEntry =>
+  isObject(value)
+  && ACTIVE_SESSION_MODES.has(value.mode)
+  && typeof value.sessionId === 'string'
+  && typeof value.key === 'string'
+  && ACTIVE_SESSION_STATUSES.has(value.status)
+  && typeof value.updatedAt === 'number';
+
 const hasDebateOnlyMessages = (messages: unknown): boolean => {
   if (!Array.isArray(messages)) return false;
   return messages.some((message) => (
@@ -237,7 +256,7 @@ export class ActiveSessionPersistenceService {
       const raw = await AsyncStorage.getItem(INDEX_KEY);
       if (!raw) return [];
       const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed.filter(isObject) as unknown as ActiveSessionIndexEntry[] : [];
+      return Array.isArray(parsed) ? parsed.filter(isIndexEntry) : [];
     } catch (error) {
       ErrorService.handleSilent(error, { action: 'ActiveSessionPersistenceService.getIndex' });
       return [];

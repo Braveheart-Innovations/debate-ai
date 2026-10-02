@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import Animated, { EntryExitAnimationFunction } from 'react-native-reanimated';
+import Animated, { type EntryOrExitLayoutType } from 'react-native-reanimated';
 import { Typography } from '../common/Typography';
 import { useTheme } from '@/theme';
 import { formatDateTime, formatTimeElapsed } from '@/services/stats';
@@ -21,7 +21,7 @@ export interface DebateHistoryItemProps {
   /** Maximum length for topic display */
   maxTopicLength?: number;
   /** Animation entering prop */
-  entering?: EntryExitAnimationFunction;
+  entering?: EntryOrExitLayoutType;
   /** Additional styling */
   style?: object | object[];
 }
@@ -163,7 +163,7 @@ export interface DebateHistoryListProps {
   /** Use compact layout */
   compact?: boolean;
   /** Animation function for staggered entrance */
-  getAnimation?: (index: number) => EntryExitAnimationFunction;
+  getAnimation?: (index: number) => EntryOrExitLayoutType;
 }
 
 /**

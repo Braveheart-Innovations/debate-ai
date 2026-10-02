@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
-import { FadeInDown, EntryExitAnimationFunction } from 'react-native-reanimated';
+import { FadeInDown, type EntryOrExitLayoutType } from 'react-native-reanimated';
 
 export interface AnimationConfig {
   delay: number;
   duration: number;
-  entering: EntryExitAnimationFunction;
+  /** Anything Reanimated's `entering` prop accepts (builders, classes, functions, keyframes). */
+  entering: EntryOrExitLayoutType;
 }
 
 /**
@@ -33,7 +34,7 @@ export const useStatsAnimations = () => {
     return (index: number): AnimationConfig => ({
       delay: getStaggerDelay(index),
       duration: baseConfig.baseDuration,
-      entering: FadeInDown.delay(getStaggerDelay(index)) as unknown as EntryExitAnimationFunction,
+      entering: FadeInDown.delay(getStaggerDelay(index)),
     });
   }, [baseConfig, getStaggerDelay]);
   
@@ -42,7 +43,7 @@ export const useStatsAnimations = () => {
     return (index: number): AnimationConfig => ({
       delay: getStaggerDelay(index, 50), // Faster stagger for history
       duration: baseConfig.baseDuration,
-      entering: FadeInDown.delay(getStaggerDelay(index, 50)) as unknown as EntryExitAnimationFunction,
+      entering: FadeInDown.delay(getStaggerDelay(index, 50)),
     });
   }, [baseConfig, getStaggerDelay]);
   
@@ -51,7 +52,7 @@ export const useStatsAnimations = () => {
     return (index: number): AnimationConfig => ({
       delay: getStaggerDelay(index, 30), // Very fast stagger for small items
       duration: baseConfig.baseDuration * 0.8, // Slightly faster
-      entering: FadeInDown.delay(getStaggerDelay(index, 30)) as unknown as EntryExitAnimationFunction,
+      entering: FadeInDown.delay(getStaggerDelay(index, 30)),
     });
   }, [baseConfig, getStaggerDelay]);
   
@@ -90,7 +91,7 @@ export const useStatsAnimations = () => {
     return (): AnimationConfig => ({
       delay: 0,
       duration: baseConfig.baseDuration * 0.5,
-      entering: FadeInDown as unknown as EntryExitAnimationFunction,
+      entering: FadeInDown,
     });
   }, [baseConfig]);
   

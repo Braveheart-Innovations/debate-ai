@@ -251,7 +251,7 @@ const createMainTabsRoute = (activeTab: TabRouteName): InitialState['routes'][nu
     index: TAB_ROUTE_NAMES.indexOf(activeTab),
     routes: TAB_ROUTE_NAMES.map(name => ({ name })),
   },
-} as unknown as InitialState['routes'][number]);
+});
 
 const getSetupTabForStackRoute = (routeName: string): TabRouteName | undefined => {
   switch (routeName) {

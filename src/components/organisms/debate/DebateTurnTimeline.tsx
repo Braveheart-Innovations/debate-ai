@@ -55,17 +55,16 @@ export const getDebateTimelineChipWidths = (
   };
 };
 
-const scheduleFrame = (callback: (timestamp: number) => void): number =>
-  typeof requestAnimationFrame === 'function'
-    ? requestAnimationFrame(callback)
-    : (setTimeout(() => callback(Date.now()), 0) as unknown as number);
-
-const cancelFrame = (frame: number): void => {
-  if (typeof cancelAnimationFrame === 'function') {
-    cancelAnimationFrame(frame);
-  } else {
-    clearTimeout(frame as unknown as ReturnType<typeof setTimeout>);
+/** Runs `callback` on the next frame (or next tick without rAF); returns its canceller. */
+const scheduleFrame = (callback: (timestamp: number) => void): (() => void) => {
+  if (typeof requestAnimationFrame === 'function') {
+    const frame = requestAnimationFrame(callback);
+    return () => {
+      if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(frame);
+    };
   }
+  const timer = setTimeout(() => callback(Date.now()), 0);
+  return () => clearTimeout(timer);
 };
 
 export const DebateTurnTimeline: React.FC<DebateTurnTimelineProps> = ({
@@ -96,7 +95,7 @@ export const DebateTurnTimeline: React.FC<DebateTurnTimelineProps> = ({
   useEffect(() => {
     if (messages.length === 0) return undefined;
 
-    const frame = scheduleFrame(() => {
+    const cancelScroll = scheduleFrame(() => {
       const leftLockedOffset = getDebateTimelineLeftOffset(activeIndex, inactiveChipWidth);
       scrollRef.current?.scrollTo({
         x: Math.max(0, leftLockedOffset),
@@ -104,7 +103,7 @@ export const DebateTurnTimeline: React.FC<DebateTurnTimelineProps> = ({
       });
     });
 
-    return () => cancelFrame(frame);
+    return cancelScroll;
   }, [activeIndex, inactiveChipWidth, messages.length]);
 
   if (!activeMessage) {

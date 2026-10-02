@@ -229,7 +229,7 @@ export const SupportSheet: React.FC<SupportSheetProps> = ({ onClose }) => {
               Made with
             </Typography>
             <Image
-              source={BraveheartLogo as unknown as number}
+              source={BraveheartLogo}
               style={styles.braveheartLogo}
               resizeMode="contain"
             />
