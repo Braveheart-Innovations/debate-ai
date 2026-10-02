@@ -18,6 +18,15 @@
     // @react-navigation/native to 3.8.4 — never do that. Allowlisted
     // 2026-09-04; REVISIT when a react-navigation release bumps query-string
     // (or query-string's decode-uri-component) to a patched version.
-    "GHSA-vcc3-ghjq-m6fr"
+    "GHSA-vcc3-ghjq-m6fr",
+    // node-forge RSA PKCS#1 v1.5 signature-verification bypass (high). No
+    // patched release exists (every version <= 1.4.0, the latest, is
+    // affected). Reached only through dev/build tooling: @expo/cli and
+    // expo-updates' @expo/code-signing-certificates. The app never imports
+    // node-forge (not in the bundle), no expo-updates code signing is
+    // configured, and the native updates client verifies without it.
+    // Allowlisted 2026-10-01; REMOVE when node-forge ships a fix (> 1.4.0)
+    // and drop the direct "node-forge" pin in package.json at the same time.
+    "GHSA-86w9-cpqp-85rv"
   ]
 }
