@@ -1,0 +1,13 @@
+Symposium AI 2.3 lets you talk to your AIs, and makes sure long answers never just stop.
+
+SPEAK YOUR PROMPT
+Tap the new microphone in the message box to dictate instead of typing. It works in Chat, Compare, and Create, and in the custom motion box when you set up a debate. Your words appear as you speak, with punctuation added for you. Tap again to stop, then edit before you send. Dictation uses your device's built-in speech recognition and works without an API key.
+
+FINISH WHAT THEY STARTED
+When a reply hits the length limit, it is now clearly marked as cut off instead of looking complete. Tap Continue and the same AI picks up exactly where it stopped, in the same message.
+
+FIXES
+• Free-trial terms now spell out every price phase, so what you see on the paywall matches what the store charges.
+• The free trial is only offered when your store account is actually eligible for it.
+
+And as always, bring your own API keys. They stay private and secure on your device, saving you money versus juggling multiple AI subscriptions.

@@ -1,0 +1,3 @@
+• Voice dictation: tap the mic to speak your prompt in Chat, Compare, Create, and custom debate motions.
+• Replies cut off at the length limit are now marked, and Continue picks up where the AI stopped.
+• Free-trial terms now show every price phase, and the trial is only offered when your store account is eligible.
