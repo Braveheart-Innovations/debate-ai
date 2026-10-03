@@ -466,7 +466,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
     await saveActiveChatSnapshot('active');
   }, [aiResponses, saveActiveChatSnapshot, session.currentSession?.messages]);
 
-  // Continue a reply cut off at the provider's length limit (appends to the same message).
+  // Continue or retry a reply that was cut off or failed (appends to / replaces the same message).
   const handleContinueMessage = React.useCallback(async (message: Message) => {
     await aiResponses.continueResponse(message.id);
   }, [aiResponses]);

@@ -31,7 +31,7 @@ interface MessageBubbleProps {
   isLast: boolean;
   searchTerm?: string;
   onReportContent?: (message: Message) => void;
-  /** Continue a reply cut off at the length limit. Omit while a continuation can't start. */
+  /** Continue or retry a reply that was cut off or failed. Omit while a continuation can't start. */
   onContinue?: (message: Message) => void;
 }
 
@@ -83,6 +83,20 @@ const formatTime = (timestamp: number) => {
   });
 };
 
+// Plain-language version of a stream or provider error
+const describeReplyError = (raw: string): string => {
+  if (raw.includes('overload') || raw.includes('Overloaded')) {
+    return 'Service temporarily busy. Please try again in a moment.';
+  }
+  if (raw.includes('verification')) {
+    return 'Organization verification required for streaming.';
+  }
+  if (raw.includes('network') || raw.includes('connection') || raw.includes('Connection')) {
+    return 'Connection issue. Please check your internet.';
+  }
+  return raw;
+};
+
 // Process message content to add citation links (using shared utility)
 const processMessageContent = (message: Message): string => {
   if (message.metadata?.citations && message.metadata.citations.length > 0) {
@@ -120,24 +134,30 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({ message, isLast,
   let hasError = false;
   let errorMessage = '';
   const isCancelled = !!streamingError && streamingError.toLowerCase().includes('cancel');
-  
-  if (streamingError) {
-    // If there's a streaming error, show error message
+  const lifecycle = message.metadata?.lifecycle;
+
+  // The reply errored. The saved lifecycle survives an app restart; the live stream error covers
+  // the moment before the lifecycle is saved.
+  const isFailed = !isUser
+    && !isStreaming
+    && !isCancelled
+    && (lifecycle?.status === 'failed'
+      || (!!streamingError && lifecycle?.status !== 'interrupted' && lifecycle?.status !== 'cancelled'));
+  const failedText = lifecycle?.status === 'failed' ? message.content : streamingContent;
+  const failedWithPartial = isFailed
+    && failedText.trim().length > 0
+    && (lifecycle?.status === 'failed' ? lifecycle.partial === true : true);
+  const canRetryFailure = isFailed && lifecycle?.status === 'failed' && lifecycle.retryable !== false;
+
+  if (isFailed) {
     hasError = true;
-    
-    // Provide user-friendly error messages
-    if (isCancelled) {
-      errorMessage = 'Stream cancelled by you';
-    } else if (streamingError.includes('overload') || streamingError.includes('Overloaded')) {
-      errorMessage = '⚠️ Service temporarily busy. Please try again in a moment.';
-    } else if (streamingError.includes('verification')) {
-      errorMessage = '⚠️ Organization verification required for streaming.';
-    } else if (streamingError.includes('network') || streamingError.includes('connection')) {
-      errorMessage = '⚠️ Connection issue. Please check your internet.';
-    } else {
-      errorMessage = `⚠️ ${streamingError}`;
-    }
-    
+    errorMessage = describeReplyError(streamingError || lifecycle?.reason || 'Something went wrong.');
+    displayContent = failedText.trim().length > 0 ? failedText : errorMessage;
+  } else if (streamingError) {
+    // Stopped by the user or paused when the app backgrounded (failures are handled above)
+    hasError = true;
+    errorMessage = isCancelled ? 'Stream cancelled by you' : `⚠️ ${describeReplyError(streamingError)}`;
+
     // If we have partial content, keep it; for cancel, avoid noisy suffix
     if (streamingContent) {
       displayContent = isCancelled
@@ -160,6 +180,7 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({ message, isLast,
 
   const canReportContent = !isUser
     && !isStreaming
+    && !(isFailed && !failedWithPartial)
     && Boolean(onReportContent)
     && displayContent.trim().length > 0;
 
@@ -497,6 +518,50 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({ message, isLast,
               >
                 <Typography variant="caption" weight="semibold" style={{ color: theme.colors.text.inverse }}>
                   {hasPartialContent ? 'Continue' : 'Try again'}
+                </Typography>
+              </TouchableOpacity>
+            )}
+          </Box>
+        )}
+
+        {/* Failed reply: say why and offer to continue or try again */}
+        {isFailed && (
+          <Box
+            testID={`failed-notice-${message.id}`}
+            style={[
+              styles.truncatedNotice,
+              {
+                backgroundColor: isDark ? theme.colors.semantic.error : theme.colors.error[50],
+                borderColor: isDark ? theme.colors.error[600] : theme.colors.error[300],
+              },
+            ]}
+          >
+            <Ionicons
+              name="alert-circle-outline"
+              size={14}
+              color={isDark ? theme.colors.error[300] : theme.colors.error[700]}
+            />
+            <Typography
+              variant="caption"
+              numberOfLines={2}
+              style={[styles.truncatedText, { color: isDark ? theme.colors.error[300] : theme.colors.error[700] }]}
+            >
+              {failedWithPartial ? errorMessage : 'No reply received'}
+            </Typography>
+            {canRetryFailure && onContinue && (
+              <TouchableOpacity
+                onPress={() => onContinue(message)}
+                accessibilityRole="button"
+                accessibilityLabel={failedWithPartial ? `Continue ${message.sender}'s reply` : `Ask ${message.sender} again`}
+                hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                testID={`retry-message-${message.id}`}
+                style={[
+                  styles.truncatedAction,
+                  { backgroundColor: isDark ? theme.colors.error[700] : theme.colors.error[600] },
+                ]}
+              >
+                <Typography variant="caption" weight="semibold" style={{ color: theme.colors.text.inverse }}>
+                  {failedWithPartial ? 'Continue' : 'Try again'}
                 </Typography>
               </TouchableOpacity>
             )}

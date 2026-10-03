@@ -63,7 +63,9 @@ export class ChatService {
    */
   static createErrorMessage(
     ai: AI,
-    error: Error | string
+    error: Error | string,
+    /** Whether the user can retry this reply (false when only fixing the API key can help). */
+    retryable = false
   ): Message {
     const errorMsg = error instanceof Error ? error.message : error;
     const content = errorMsg.includes('not configured') 
@@ -84,7 +86,7 @@ export class ChatService {
           status: 'failed',
           reason: errorMsg,
           partial: false,
-          retryable: false,
+          retryable,
         },
       },
     };

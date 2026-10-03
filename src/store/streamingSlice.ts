@@ -148,6 +148,11 @@ const streamingSlice = createSlice({
     // Clear completed stream data (for memory management)
     clearStreamingMessage: (state, action: PayloadAction<string>) => {
       const messageId = action.payload;
+      // Clearing a stream that never ended (e.g. a continuation handing display back to the
+      // stored message) also ends it, so the active count can't leak and leave Stop showing.
+      if (state.streamingMessages[messageId]?.isStreaming) {
+        state.activeStreamCount = Math.max(0, state.activeStreamCount - 1);
+      }
       delete state.streamingMessages[messageId];
     },
     
