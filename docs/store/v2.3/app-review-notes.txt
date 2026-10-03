@@ -1,0 +1,16 @@
+What's new in 2.3.0: voice dictation (speech-to-text input) and a Continue action for AI replies cut off at the length limit.
+
+MICROPHONE AND SPEECH RECOGNITION
+The app asks for microphone and speech recognition access only when the user taps the microphone button in a message box. It is used solely to turn the user's speech into text in that box, using Apple's Speech framework. We do not record, store, or upload audio, and no audio reaches our servers. The user reviews and edits the transcribed text before choosing to send it. Denying the permission only hides dictation; everything else keeps working.
+
+HOW TO TEST DICTATION (no account or API key needed)
+1. Launch the app. Without a subscription it runs in Demo Mode.
+2. Open the Chat tab and tap the microphone icon in the message box.
+3. Allow microphone and speech recognition access when prompted.
+4. Speak a sentence. The text appears in the box as you talk. Tap the microphone again to stop.
+The microphone is also in the message box on the Compare and Create tabs.
+
+ABOUT THE APP
+Symposium AI uses a bring-your-own-keys model: users add their own API keys for AI providers, and the keys are stored only on the device. Without a subscription, Demo Mode plays clearly labeled, pre-recorded AI responses, so every screen can be reviewed. The in-app subscription unlocks first-party features; it does not sell access to third-party AI services.
+
+Contact: support@braveheartinnovations.com
