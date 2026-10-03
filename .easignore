@@ -8,3 +8,6 @@ scripts/*
 !scripts/eas-prebuild.sh
 *.test.ts
 *.test.tsx
+
+# Local marketing screenshots (not part of the app; kept out of the EAS upload)
+Symposium Mobile Screenshots/
