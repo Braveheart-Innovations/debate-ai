@@ -1,3 +1,8 @@
-• Voice dictation: tap the mic to speak your prompt in Chat, Compare, Create, and custom debate motions.
-• Replies cut off at the length limit are now marked, and Continue picks up where the AI stopped.
-• Free-trial terms now show every price phase, and the trial is only offered when your store account is eligible.
+• Voice dictation: tap the mic to speak your prompt
+• Cut-off replies are marked; Continue picks up where the AI stopped
+• New models: Claude Sonnet 5.5 & Opus 5.5, GPT-6.1 Sol, Gemini 3.8 Flash, Grok 4.7, DeepSeek Flash & more
+• Create: GPT Image 2.5, plus 21:9 & 5:2 for Grok Imagine
+• Multi-AI chat: each AI tracks who said what
+• Fixes: clearer trial terms, Sonar Deep Research answers, Claude replies dropping letters, out-of-credit errors
+
+Keys stay private on your device.
