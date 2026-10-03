@@ -124,3 +124,6 @@ coverage/
 
 # Generated store screenshots; regenerate from current app builds when needed
 Marketing/**/Device Screenshots/
+
+# Local marketing screenshots (also excluded from EAS uploads in .easignore)
+/Symposium Mobile Screenshots/
