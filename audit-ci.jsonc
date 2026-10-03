@@ -27,6 +27,15 @@
     // configured, and the native updates client verifies without it.
     // Allowlisted 2026-10-01; REMOVE when node-forge ships a fix (> 1.4.0)
     // and drop the direct "node-forge" pin in package.json at the same time.
-    "GHSA-86w9-cpqp-85rv"
+    "GHSA-86w9-cpqp-85rv",
+    // braces stack-exhaustion DoS via deeply nested patterns (high). No
+    // patched release exists (every version <= 3.0.3, the latest, is
+    // affected). Reached only through dev/build tooling via micromatch: jest
+    // (@jest/core, @jest/transform), @expo/cli's @expo/metro-file-map, and
+    // @expo/metro. The app never imports braces or micromatch (not in the
+    // bundle), and the patterns these tools expand come from our own config,
+    // not user input. Allowlisted 2026-10-03; REMOVE when braces ships a fix
+    // (> 3.0.3).
+    "GHSA-vfj7-8cjw-p6xm"
   ]
 }
