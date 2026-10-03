@@ -34,6 +34,20 @@ describe('streamingSlice', () => {
     expect(state.streamingMessages.m1).toBeUndefined();
   });
 
+  it('ends a still-live stream when it is cleared, so the active count does not leak', () => {
+    let state = reducer(initialState, startStreaming({ messageId: 'm1', aiProvider: 'claude' }));
+    state = reducer(state, startStreaming({ messageId: 'm2', aiProvider: 'openai' }));
+    state = reducer(state, streamingError({ messageId: 'm2', error: 'timeout' }));
+    expect(state.activeStreamCount).toBe(1);
+
+    // A failed stream was already counted down; clearing it changes nothing.
+    state = reducer(state, clearStreamingMessage('m2'));
+    expect(state.activeStreamCount).toBe(1);
+
+    state = reducer(state, clearStreamingMessage('m1'));
+    expect(state.activeStreamCount).toBe(0);
+  });
+
   it('adjusts provider preferences and selectors respect verification errors', () => {
     let state = reducer(initialState, setProviderStreamingPreference({ providerId: 'claude', enabled: false }));
     state = reducer(state, setGlobalStreaming(true));

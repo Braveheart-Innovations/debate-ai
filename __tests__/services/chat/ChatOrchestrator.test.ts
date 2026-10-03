@@ -11,6 +11,7 @@ import {
   getStreamingContentSnapshot,
   resetStreamingContentStore,
 } from '@/services/streaming/StreamingContentStore';
+import { isStreamInterruptedError } from '@/services/streaming/StreamingService';
 import type { AI, ChatSession, Message } from '@/types';
 import type { AIService } from '@/services/aiAdapter';
 
@@ -728,6 +729,206 @@ describe('ChatOrchestrator', () => {
 
       expect(mockStreamingService.streamResponse).not.toHaveBeenCalled();
       expect(updates()).toContainEqual({ id: reply.id, content: 'The start and the rest.', metadata: { lifecycle: undefined } });
+    });
+
+    describe('replies that failed', () => {
+      const failedReply = (content: string, overrides: { retryable?: boolean; partial?: boolean } = {}): Message => ({
+        ...truncatedReply(content),
+        metadata: {
+          aiId: 'claude',
+          providerId: 'claude',
+          lifecycle: {
+            status: 'failed',
+            reason: 'Connection failed',
+            partial: overrides.partial ?? content.length > 0,
+            retryable: overrides.retryable ?? true,
+          },
+        },
+      });
+
+      const failWith = (message: string, partial = '') => {
+        mockStreamingService.streamResponse.mockImplementation(async (_config, onChunk, _onComplete, onError) => {
+          if (partial) onChunk?.(partial);
+          await onError?.(new Error(message));
+        });
+      };
+
+      beforeEach(() => {
+        jest.spyOn(console, 'error').mockImplementation(() => undefined);
+        jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+      });
+
+      it('keeps the partial text of a reply that errored and marks it retryable', async () => {
+        const { orchestrator } = setup();
+        failWith('Connection failed', 'Half an ans');
+
+        await orchestrator.processUserMessage(buildParams());
+
+        expect(updates()).toContainEqual(expect.objectContaining({
+          content: 'Half an ans',
+          metadata: expect.objectContaining({
+            lifecycle: { status: 'failed', reason: 'Connection failed', partial: true, retryable: true },
+          }),
+        }));
+      });
+
+      it('marks a reply that errored before any text as retryable', async () => {
+        const { orchestrator } = setup();
+        failWith('Stream stalled');
+
+        await orchestrator.processUserMessage(buildParams());
+
+        expect(updates()).toContainEqual(expect.objectContaining({
+          content: '',
+          metadata: expect.objectContaining({
+            lifecycle: { status: 'failed', reason: 'Stream stalled', partial: false, retryable: true },
+          }),
+        }));
+      });
+
+      it('marks a reply retryable when the non-streaming fallback also fails, keeping the partial text', async () => {
+        const { service, orchestrator } = setup();
+        jest.mocked(service.sendMessage).mockRejectedValue(new Error('still overloaded'));
+        failWith('Overloaded', 'Some text');
+
+        await orchestrator.processUserMessage(buildParams());
+
+        const failedUpdate = updates().find(update => update.metadata?.lifecycle?.status === 'failed');
+        expect(failedUpdate).toMatchObject({
+          content: 'Some text',
+          metadata: { lifecycle: { status: 'failed', partial: true, retryable: true } },
+        });
+      });
+
+      it('offers no retry for an invalid API key', async () => {
+        const { orchestrator } = setup();
+        failWith('DeepSeek API error: 401 - Authentication Fails, Your api key is invalid');
+
+        await orchestrator.processUserMessage(buildParams());
+
+        const failedUpdate = updates().find(update => update.metadata?.lifecycle?.status === 'failed');
+        expect(failedUpdate?.metadata?.lifecycle?.retryable).toBe(false);
+      });
+
+      it('lets the user retry a content-filter refusal', async () => {
+        const { orchestrator } = setup();
+        failWith('Response blocked by the content filter');
+
+        await orchestrator.processUserMessage(buildParams());
+
+        const failedUpdate = updates().find(update => update.metadata?.lifecycle?.status === 'failed');
+        expect(failedUpdate?.metadata?.lifecycle?.retryable).toBe(true);
+      });
+
+      const addedMessages = () => dispatchMock.mock.calls
+        .map(call => call[0])
+        .filter(action => action?.type === addMessage.type)
+        .map(action => action.payload);
+
+      it('offers no retry on the error reply for a missing API key', async () => {
+        const { orchestrator } = setup();
+
+        await orchestrator.processUserMessage(buildParams({ apiKeys: {} }));
+
+        expect(addedMessages()[0].metadata.lifecycle).toMatchObject({ status: 'failed', partial: false, retryable: false });
+      });
+
+      it('makes the error reply for a failed non-streamed request retryable', async () => {
+        const { service, orchestrator } = setup();
+        jest.mocked(service.sendMessage).mockRejectedValue(new Error('Server error (500)'));
+
+        await orchestrator.processUserMessage(buildParams({ streamingPreferences: { claude: { enabled: false } } }));
+
+        expect(addedMessages()[0].metadata.lifecycle).toMatchObject({ status: 'failed', partial: false, retryable: true });
+      });
+
+      it('continues a failed partial reply in the same message', async () => {
+        const { orchestrator } = setup();
+        const reply = failedReply('The answer is to nar');
+        mockStreamingService.streamResponse.mockImplementation(async (_config, onChunk, onComplete) => {
+          onChunk?.('row it down.');
+          onComplete?.('row it down.');
+        });
+
+        await orchestrator.continueResponse(continueParams([userMessage, reply], reply.id));
+
+        const [config] = mockStreamingService.streamResponse.mock.calls[0];
+        expect(config.message).toContain('interrupted by a connection or provider error');
+        expect(config.adapterConfig.webSearchEnabled).toBe(false);
+        expect(config.conversationHistory[1]).toMatchObject({ id: reply.id, content: 'The answer is to nar' });
+        expect(updates()).toContainEqual({
+          id: reply.id,
+          content: 'The answer is to narrow it down.',
+          metadata: { lifecycle: undefined },
+        });
+      });
+
+      it('re-asks the question when the failed reply has no model text', async () => {
+        const { orchestrator } = setup();
+        const reply = failedReply('Sorry, I encountered an error: boom', { partial: false });
+        mockStreamingService.streamResponse.mockImplementation(async (_config, onChunk, onComplete) => {
+          onChunk?.('A real answer.');
+          onComplete?.('A real answer.');
+        });
+
+        await orchestrator.continueResponse(continueParams([userMessage, reply], reply.id));
+
+        const [config] = mockStreamingService.streamResponse.mock.calls[0];
+        expect(config.message).toContain('Answer my last message again');
+        expect(config.conversationHistory.map((message: Message) => message.id)).toEqual([userMessage.id]);
+        expect(updates()).toContainEqual({ id: reply.id, content: 'A real answer.', metadata: { lifecycle: undefined } });
+      });
+
+      it('clears the old stream error before the retry streams', async () => {
+        const { orchestrator } = setup();
+        const reply = failedReply('Half');
+        mockStreamingService.streamResponse.mockImplementation(async (_config, _onChunk, onComplete) => onComplete?.(' done'));
+
+        await orchestrator.continueResponse(continueParams([userMessage, reply], reply.id));
+
+        const types = dispatchMock.mock.calls.map(call => call[0]?.type);
+        expect(types.indexOf(clearStreamingMessage.type)).toBeLessThan(types.indexOf(startStreaming.type));
+      });
+
+      it('stays retryable with the new error when the retry fails again', async () => {
+        const { orchestrator } = setup();
+        const reply = failedReply('Half done');
+        failWith('Stream stalled', ', more');
+
+        await orchestrator.continueResponse(continueParams([userMessage, reply], reply.id));
+
+        expect(updates()).toContainEqual({
+          id: reply.id,
+          content: 'Half done, more',
+          metadata: { lifecycle: { status: 'failed', reason: 'Stream stalled', partial: true, retryable: true } },
+        });
+        expect(getStreamingContentSnapshot(reply.id).exists).toBe(false);
+      });
+
+      it('stays retryable when the user stops the retry', async () => {
+        const { orchestrator } = setup();
+        const reply = failedReply('Half done');
+        jest.mocked(isStreamInterruptedError).mockReturnValueOnce(true);
+        failWith('cancelled', ', more');
+
+        await orchestrator.continueResponse(continueParams([userMessage, reply], reply.id));
+
+        expect(updates()).toContainEqual({
+          id: reply.id,
+          content: 'Half done, more',
+          metadata: { lifecycle: { status: 'failed', reason: 'Connection failed', partial: true, retryable: true } },
+        });
+      });
+
+      it('ignores a failed reply that cannot be retried', async () => {
+        const { orchestrator } = setup();
+        const reply = failedReply('', { retryable: false });
+
+        await orchestrator.continueResponse(continueParams([userMessage, reply], reply.id));
+
+        expect(mockStreamingService.streamResponse).not.toHaveBeenCalled();
+        expect(updates()).toHaveLength(0);
+      });
     });
 
     it('ignores messages that are not cut off', async () => {

@@ -77,6 +77,21 @@ describe('StreamingService', () => {
     }
   }
 
+  class FailAfterSeveralChunksAdapter extends BaseAdapter {
+    sendMessage = jest.fn(async () => ({ response: 'fallback' }));
+
+    getCapabilities(): AdapterCapabilities {
+      return capabilities;
+    }
+
+    async *streamMessage(): AsyncGenerator<string, void, unknown> {
+      yield 'The tide ';
+      yield 'rises ';
+      yield 'and';
+      throw new Error('Connection failed');
+    }
+  }
+
   class PausedStreamingAdapter extends BaseAdapter {
     sendMessage = jest.fn(async () => ({ response: 'fallback' }));
     resume: (() => void) | null = null;
@@ -359,5 +374,30 @@ describe('StreamingService', () => {
     expect(adapter.calls).toBe(1);
     expect(chunks).toEqual(['partial']);
     expect(errors[0]).toEqual(expect.any(Error));
+  });
+
+  it('delivers buffered text before reporting a stream failure', async () => {
+    const adapter = new FailAfterSeveralChunksAdapter({ provider: 'deepseek', apiKey: 'key', model: 'deepseek-chat' });
+    const received: string[] = [];
+
+    await streamingService.streamResponse(
+      {
+        messageId: 'msg-flush-on-error',
+        adapter,
+        message: 'Explain tides',
+        conversationHistory: [],
+      },
+      chunk => {
+        received.push(chunk);
+      },
+      () => {
+        throw new Error('Should not complete failed streams');
+      },
+      error => {
+        received.push(`error:${error.message}`);
+      },
+    );
+
+    expect(received.join('')).toBe('The tide rises anderror:Connection failed');
   });
 });

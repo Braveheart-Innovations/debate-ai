@@ -27,6 +27,7 @@ import { ErrorService } from '@/services/errors/ErrorService';
 import { buildPersonalityRuntime, mergeRuntimeModelParameters, type PersonalityRuntime } from '@/services/personality';
 import { AppError } from '@/errors/types/AppError';
 import { ErrorCode } from '@/errors/codes/ErrorCodes';
+import { normalizeError } from '@/errors/utils/ErrorNormalizer';
 import type { AIService, ResumptionContext } from '@/services/aiAdapter';
 import type { GroupChatContext, StreamFinishReason } from '@/services/ai/types/adapter.types';
 import type { AI, ChatSession, Message, MessageAttachment, ModelParameters } from '@/types';
@@ -102,8 +103,36 @@ const truncatedLifecycle = (content: string): MessageLifecycle => ({
   retryable: true,
 });
 
+// Retrying cannot succeed until the API key is fixed; every other failure (network drops,
+// provider errors, content filters) can be retried by the user. Nothing retries automatically.
+const NON_RETRYABLE_FAILURES: ReadonlySet<ErrorCode> = new Set([
+  ErrorCode.API_UNAUTHORIZED,
+  ErrorCode.VALIDATION_API_KEY_INVALID,
+]);
+
+export const isRetryableChatFailure = (error: unknown, provider?: string): boolean => {
+  const appError = normalizeError(error, { provider });
+  return !NON_RETRYABLE_FAILURES.has(appError.code) && !appError.message.includes('not configured');
+};
+
+interface ReplyFailure {
+  reason: string;
+  retryable: boolean;
+}
+
+// A reply that errored keeps whatever text arrived. Like a cut-off reply it stays out of other
+// AIs' context, and (unless retrying cannot help) the user can continue or retry it.
+const failedLifecycle = (content: string, failure: ReplyFailure): MessageLifecycle => ({
+  status: 'failed',
+  reason: failure.reason,
+  partial: content.trim().length > 0,
+  retryable: failure.retryable,
+});
+
 export const CONTINUE_PROMPT = 'Your previous reply was cut off at the response length limit. Continue it exactly where it stopped, mid-sentence if needed. Do not repeat anything you already wrote, and do not add a preamble or summary.';
 export const RESTART_PROMPT = 'Your previous reply hit the response length limit before any answer text. Answer my last message again, more concisely.';
+export const RESUME_AFTER_ERROR_PROMPT = 'Your previous reply was interrupted by a connection or provider error. Continue it exactly where it stopped, mid-sentence if needed. Do not repeat anything you already wrote, and do not add a preamble or summary.';
+export const RETRY_AFTER_ERROR_PROMPT = 'Your previous reply failed with a connection or provider error before any answer text arrived. Answer my last message again.';
 
 export class ChatOrchestrator {
   private readonly aiService: AIService;
@@ -252,7 +281,7 @@ export class ChatOrchestrator {
           showToast: true,
           context: { provider: ai.provider, aiName: ai.name },
         });
-        const errorMessage = ChatService.createErrorMessage(ai, appError);
+        const errorMessage = ChatService.createErrorMessage(ai, appError, isRetryableChatFailure(appError));
         this.dispatch(addMessage(errorMessage));
       } finally {
         if (isDemo) {
@@ -315,6 +344,7 @@ export class ChatOrchestrator {
     let finalContent = '';
     let capturedCitations: Array<{ index: number; url: string; title?: string; snippet?: string }> | undefined;
     let lifecycle: NonNullable<Message['metadata']>['lifecycle'];
+    let failure: ReplyFailure | undefined;
     let finishReason: StreamFinishReason | undefined;
 
     await this.streamingService.streamResponse(
@@ -401,13 +431,11 @@ export class ChatOrchestrator {
             streamedContent = content;
           },
         });
-        if (fallbackContent) {
+        if (fallbackContent && !fallbackContent.failed) {
           finalContent = fallbackContent.content;
-          if (fallbackContent.failed) {
-            lifecycle = { status: 'failed', reason: error.message, partial: false, retryable: false };
-          }
         } else {
-          lifecycle = { status: 'failed', reason: error.message, partial: false, retryable: false };
+          failure = fallbackContent?.failure
+            ?? { reason: error.message, retryable: isRetryableChatFailure(error, ai.provider) };
         }
       },
       (event: unknown) => {
@@ -473,7 +501,9 @@ export class ChatOrchestrator {
       capturedCitations,
       ai.name
     );
-    if (!lifecycle && finishReason === 'length') {
+    if (failure) {
+      lifecycle = failedLifecycle(rawContent, failure);
+    } else if (!lifecycle && finishReason === 'length') {
       lifecycle = truncatedLifecycle(rawContent);
     }
     const completedMessage: Message = {
@@ -580,7 +610,7 @@ export class ChatOrchestrator {
     aiMessageId: string;
     originalError: Error;
     updateStreamContent: (content: string) => void;
-  }): Promise<{ content: string; failed: boolean } | null> {
+  }): Promise<{ content: string; failed: false } | { failed: true; failure: ReplyFailure } | null> {
     const { ai, prompt, history, resumptionContext, attachments, runtimeParameters, aiMessageId, originalError, updateStreamContent } = options;
 
     const message = originalError.message || '';
@@ -645,19 +675,19 @@ export class ChatOrchestrator {
       });
       const userMessage = appError.userMessage || `Failed to get response from ${ai.name}`;
 
-      this.dispatch(updateMessage({ id: aiMessageId, content: userMessage }));
+      // Keep any text that streamed before the failure; the error is shown beside it.
       failStreamingContent(aiMessageId, userMessage);
       this.dispatch(streamingError({ messageId: aiMessageId, error: userMessage }));
-      updateStreamContent(userMessage);
-      return { content: userMessage, failed: true };
+      return { failed: true, failure: { reason: userMessage, retryable: isRetryableChatFailure(appError) } };
     }
   }
 
   /**
-   * Continue a reply that stopped at the provider's output token limit. The same AI gets the
-   * conversation up to and including its partial reply and is asked to resume where it stopped;
-   * the continuation is appended to the same message. A reply that is cut off again stays
-   * 'truncated' so it can be continued again.
+   * Continue a reply that stopped at the provider's output token limit or failed with a
+   * retryable error. The same AI gets the conversation up to and including its partial reply and
+   * is asked to resume where it stopped; the continuation is appended to the same message. A reply
+   * with no text is re-asked instead. A continuation that is cut off, stopped or fails again stays
+   * unfinished, so it can be continued again.
    */
   async continueResponse(params: ContinueResponseParams): Promise<void> {
     if (!this.session) {
@@ -672,20 +702,29 @@ export class ChatOrchestrator {
     const { messageId, messages, apiKeys, isDemo } = params;
     const targetIndex = messages.findIndex(message => message.id === messageId);
     const targetMessage = targetIndex >= 0 ? messages[targetIndex] : undefined;
-    if (!targetMessage || targetMessage.metadata?.lifecycle?.status !== 'truncated') {
+    const original = targetMessage?.metadata?.lifecycle;
+    const canContinue = original?.status === 'truncated'
+      || (original?.status === 'failed' && original.retryable !== false);
+    if (!targetMessage || !original || !canContinue) {
       return;
     }
+    const afterError = original.status === 'failed';
     const ai = this.session.selectedAIs.find(participant => participant.id === targetMessage.metadata?.aiId);
     if (!ai) {
       return;
     }
 
-    const target = await this.resolveTurnTarget(ai, params);
+    const target = await this.resolveTurnTarget(ai, params, { reportMissingAdapter: false });
     if (!target) {
+      ErrorService.handleError(this.missingAdapterError(ai), { feature: 'chat', showToast: true });
       return;
     }
     const { aiForTurn, adapter, shouldStream } = target;
     const { runtime, runtimeParameters } = this.buildTurnRuntime(ai, aiForTurn, params);
+
+    // Drop the old live stream state (and its error) so the bubble leaves the failed view.
+    clearStreamingContent(messageId);
+    this.dispatch(clearStreamingMessage(messageId));
 
     const participantNames = this.session.selectedAIs.map(participant => participant.name);
     const groupChat: GroupChatContext | undefined = participantNames.length > 1
@@ -694,7 +733,8 @@ export class ChatOrchestrator {
     adapter.config.isDebateMode = false;
     adapter.config.groupChat = groupChat;
 
-    const partial = targetMessage.content;
+    // An error reply created without any model text (partial: false) holds only the error notice.
+    const partial = original.partial === false ? '' : targetMessage.content;
     const hasPartial = partial.trim().length > 0;
     // The partial reply joins the history as this AI's own turn (without the lifecycle tag that
     // otherwise keeps it out of context). An empty reply is dropped and the question re-asked.
@@ -702,7 +742,9 @@ export class ChatOrchestrator {
       ...messages.slice(0, targetIndex),
       ...(hasPartial ? [{ ...targetMessage, metadata: { ...targetMessage.metadata, lifecycle: undefined } }] : []),
     ];
-    const prompt = hasPartial ? CONTINUE_PROMPT : RESTART_PROMPT;
+    const prompt = afterError
+      ? (hasPartial ? RESUME_AFTER_ERROR_PROMPT : RETRY_AFTER_ERROR_PROMPT)
+      : (hasPartial ? CONTINUE_PROMPT : RESTART_PROMPT);
 
     if (!shouldStream) {
       this.dispatch(setTypingAI({ ai: ai.name, isTyping: true }));
@@ -710,6 +752,8 @@ export class ChatOrchestrator {
 
     let continuation = '';
     let finishReason: StreamFinishReason | undefined;
+    let failure: ReplyFailure | undefined;
+    let stopped = false;
     try {
       if (shouldStream) {
         const apiKey = isDemo ? 'demo' : await this.getExecutionApiKey(ai.provider, apiKeys);
@@ -769,14 +813,16 @@ export class ChatOrchestrator {
         // A stopped or failed continuation is still unfinished: keep what arrived and leave the
         // reply continuable.
         if (streamError) {
-          if (!isStreamInterruptedError(streamError)) {
+          if (isStreamInterruptedError(streamError)) {
+            stopped = true;
+          } else {
             ErrorService.handleError(streamError, {
               feature: 'chat',
               showToast: true,
               context: { provider: ai.provider, aiName: ai.name, isContinuation: true },
             });
+            failure = { reason: streamError.message, retryable: isRetryableChatFailure(streamError, ai.provider) };
           }
-          finishReason = 'length';
         }
       } else {
         if (runtimeParameters) {
@@ -795,12 +841,12 @@ export class ChatOrchestrator {
         finishReason = typeof result === 'string' ? undefined : result.finishReason;
       }
     } catch (error) {
-      ErrorService.handleError(error, {
+      const appError = ErrorService.handleError(error, {
         feature: 'chat',
         showToast: true,
         context: { provider: ai.provider, aiName: ai.name, isContinuation: true },
       });
-      finishReason = 'length';
+      failure = { reason: appError.userMessage || appError.message, retryable: isRetryableChatFailure(appError) };
     } finally {
       if (!shouldStream) {
         this.dispatch(setTypingAI({ ai: ai.name, isTyping: false }));
@@ -809,7 +855,21 @@ export class ChatOrchestrator {
 
     const cleanContinuation = groupChat ? stripLeadingSelfLabel(continuation, ai.name) : continuation;
     const content = hasPartial ? `${partial}${cleanContinuation}` : cleanContinuation;
-    const stillTruncated = finishReason === 'length';
+    let lifecycle: MessageLifecycle | undefined;
+    if (finishReason === 'length') {
+      lifecycle = truncatedLifecycle(content);
+    } else if (failure || stopped) {
+      // A cut-off reply stays cut off; a failed reply shows the newest error (or keeps its own
+      // when the user stopped the retry).
+      lifecycle = original.status === 'truncated'
+        ? truncatedLifecycle(content)
+        : failedLifecycle(content, failure ?? { reason: original.reason ?? 'Stopped', retryable: true });
+    } else if (!content.trim()) {
+      // An empty "success" is not an answer; keep the reply retryable.
+      lifecycle = afterError
+        ? failedLifecycle(content, { reason: original.reason ?? 'No reply received', retryable: true })
+        : truncatedLifecycle(content);
+    }
     if (shouldStream) {
       // Hand display back to the stored message so the bubble shows the final content and the
       // cut-off note (if any) rather than a live stream or a stream error.
@@ -819,11 +879,15 @@ export class ChatOrchestrator {
     this.dispatch(updateMessage({
       id: messageId,
       content,
-      metadata: { lifecycle: stillTruncated ? truncatedLifecycle(content) : undefined },
+      metadata: { lifecycle },
     }));
   }
 
-  private async resolveTurnTarget(ai: AI, settings: TurnSettings): Promise<TurnTarget | null> {
+  private async resolveTurnTarget(
+    ai: AI,
+    settings: TurnSettings,
+    options: { reportMissingAdapter: boolean } = { reportMissingAdapter: true }
+  ): Promise<TurnTarget | null> {
     const effectiveModel = resolveProviderModelId(
       ai.provider,
       settings.selectedModels[ai.id] || ai.model
@@ -836,7 +900,9 @@ export class ChatOrchestrator {
       ? await this.aiService.ensureAdapter(ai.id, ai.provider, effectiveModel)
       : this.aiService.getAdapter(ai.id);
     if (!adapter) {
-      this.handleAdapterError(ai);
+      if (options.reportMissingAdapter) {
+        this.handleAdapterError(ai);
+      }
       return null;
     }
 
@@ -925,16 +991,20 @@ export class ChatOrchestrator {
     return rotated;
   }
 
-  private handleAdapterError(ai: AI): void {
-    const appError = new AppError({
+  private missingAdapterError(ai: AI): AppError {
+    return new AppError({
       code: ErrorCode.APP_ADAPTER_NOT_FOUND,
       message: `No adapter found for ${ai.name}`,
       userMessage: `Unable to connect to ${ai.name}. The provider may not be configured properly.`,
       context: { provider: ai.provider, aiName: ai.name },
     });
+  }
+
+  private handleAdapterError(ai: AI): void {
+    const appError = this.missingAdapterError(ai);
     // Log via ErrorService (silent - we show in chat instead)
     ErrorService.handleSilent(appError, { provider: ai.provider });
-    const errorMessage = ChatService.createErrorMessage(ai, appError);
+    const errorMessage = ChatService.createErrorMessage(ai, appError, isRetryableChatFailure(appError));
     this.dispatch(addMessage(errorMessage));
   }
 

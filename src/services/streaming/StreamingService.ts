@@ -359,7 +359,9 @@ export class StreamingService {
     } catch (error) {
       // Handle errors through ErrorService (silent - no toast, let caller handle UI)
       streamState.isActive = false;
-      buffer.clear();
+      // Deliver every chunk that arrived before the failure: the caller keeps it as the partial
+      // reply, and a Continue resumes from exactly that text.
+      buffer.flush();
       this.activeStreams.delete(messageId);
 
       if (isStreamInterruptedError(error)) {
