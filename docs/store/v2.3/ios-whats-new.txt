@@ -10,4 +10,4 @@ FIXES
 • Free-trial terms now spell out every price phase, so what you see on the paywall matches what the store charges.
 • The free trial is only offered when your store account is actually eligible for it.
 
-And as always, bring your own API keys. They stay private and secure on your device, saving you money versus juggling multiple AI subscriptions.
+And as always, bring your own API keys. They stay private and secure on your device, giving you the power of many AIs versus a subscription to a few. 
