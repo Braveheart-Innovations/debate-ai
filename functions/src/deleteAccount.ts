@@ -6,8 +6,7 @@ import { destroyUserSandboxes, e2bApiKey } from './sandbox/callables';
 // Initialize Admin if not already
 try { admin.app(); } catch { admin.initializeApp(); }
 
-// 512MiB: destroying sandboxes loads the E2B SDK on top of the functions index.
-export const deleteAccount = onCall({ memory: '512MiB', secrets: [e2bApiKey] }, async (request) => {
+export const deleteAccount = onCall({ secrets: [e2bApiKey] }, async (request) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated to delete an account.');
   }

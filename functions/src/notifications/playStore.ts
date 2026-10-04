@@ -1,6 +1,6 @@
 import { onMessagePublished } from 'firebase-functions/v2/pubsub';
 import * as admin from 'firebase-admin';
-import { google, androidpublisher_v3 } from 'googleapis';
+import { androidpublisher, androidpublisher_v3, auth as googleAuth } from '@googleapis/androidpublisher';
 
 const PACKAGE_NAME_ANDROID = 'com.braveheartinnovations.debateai';
 
@@ -129,12 +129,10 @@ async function validateAndroidSubscription(
   subscriptionId: string,
   token: string
 ): Promise<AndroidSubscriptionState> {
-  const auth = new google.auth.GoogleAuth({
+  const auth = new googleAuth.GoogleAuth({
     scopes: ['https://www.googleapis.com/auth/androidpublisher'],
   });
-  const authClient = await auth.getClient();
-  google.options({ auth: authClient as any });
-  const publisher = google.androidpublisher('v3');
+  const publisher = androidpublisher({ version: 'v3', auth });
   const res = await publisher.purchases.subscriptionsv2.get({
     packageName,
     token,

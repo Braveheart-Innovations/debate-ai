@@ -2,7 +2,10 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { defineSecret } from 'firebase-functions/params';
 import * as admin from 'firebase-admin';
 import axios from 'axios';
-import { google, androidpublisher_v3 } from 'googleapis';
+// The per-API package (~3 MB loaded) instead of `googleapis` (~84 MB): every
+// function loads the whole index, so the umbrella package pushed 256 MiB
+// functions over their memory limit.
+import { androidpublisher, androidpublisher_v3, auth as googleAuth } from '@googleapis/androidpublisher';
 import {
   getAndroidPurchaseOwnershipDecision,
   sha256,
@@ -598,14 +601,11 @@ async function validateAppleReceipt(receiptData: string, sharedSecret: string) {
   return data;
 }
 
-function getAndroidPublisherClient() {
-  const auth = new google.auth.GoogleAuth({
+function getAndroidPublisherClient(): Promise<androidpublisher_v3.Androidpublisher> {
+  const auth = new googleAuth.GoogleAuth({
     scopes: ['https://www.googleapis.com/auth/androidpublisher'],
   });
-  return auth.getClient().then((authClient) => {
-    google.options({ auth: authClient as any });
-    return google.androidpublisher('v3');
-  });
+  return Promise.resolve(androidpublisher({ version: 'v3', auth }));
 }
 
 function parseAndroidTimestampMillis(value?: string | null): string | undefined {
