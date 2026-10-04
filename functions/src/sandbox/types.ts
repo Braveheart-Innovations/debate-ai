@@ -37,11 +37,14 @@ export interface SandboxProvider {
   /** Resume/connect. Returns false when the sandbox no longer exists. */
   connect(sandboxId: string, idleTimeoutMs: number): Promise<boolean>;
   destroy(sandboxId: string): Promise<void>;
-  runCode(sandboxId: string, code: string, timeoutMs: number): Promise<RawRunResult>;
-  /** Send SIGINT to the kernel (KeyboardInterrupt): stops running code, keeps Python state. */
-  interruptKernel(sandboxId: string): Promise<void>;
-  /** Restart the kernel: stops running code, clears Python state, keeps files. */
-  restartKernel(sandboxId: string): Promise<void>;
+  /** Run a cell in the kernel for `kernelKey`, creating that kernel on first use. */
+  runCode(sandboxId: string, code: string, timeoutMs: number, kernelKey: string): Promise<RawRunResult>;
+  /** Send SIGINT to one kernel (KeyboardInterrupt): stops running code, keeps Python state. */
+  interruptKernel(sandboxId: string, kernelKey: string): Promise<void>;
+  /** Restart one kernel: stops running code, clears its Python state, keeps files. */
+  restartKernel(sandboxId: string, kernelKey: string): Promise<void>;
+  /** Shut down a kernel that is no longer needed (finished subagent). Files are kept. */
+  releaseKernel(sandboxId: string, kernelKey: string): Promise<void>;
   runCommand(sandboxId: string, command: string, timeoutMs: number): Promise<{ stdout: string; exitCode: number }>;
   writeFile(sandboxId: string, path: string, data: Uint8Array): Promise<void>;
   readFile(sandboxId: string, path: string): Promise<Uint8Array>;

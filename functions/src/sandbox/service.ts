@@ -1,9 +1,11 @@
 import {
-  PRE_CODE,
+  DEFAULT_KERNEL,
   filterStderr,
+  formatTraceback,
+  isValidKernelKey,
   parsePostScan,
   postCode,
-  formatTraceback,
+  preCode,
 } from './runtime';
 import type {
   ExecutionResult,
@@ -34,6 +36,12 @@ export function assertSessionKey(sessionKey: unknown): string {
     throw new SandboxInputError('Invalid sessionKey');
   }
   return sessionKey;
+}
+
+export function assertKernelKey(kernelKey: unknown): string {
+  if (kernelKey === undefined || kernelKey === null) return DEFAULT_KERNEL;
+  if (!isValidKernelKey(kernelKey)) throw new SandboxInputError('Invalid kernelKey');
+  return kernelKey;
 }
 
 export function assertSandboxPath(path: unknown): string {
@@ -92,14 +100,20 @@ export class SandboxSessionService {
     return { sandboxId, environmentReset: Boolean(record) };
   }
 
-  async execute(uid: string, sessionKey: string, code: string, timeoutMs: number): Promise<ExecutionResult> {
+  async execute(
+    uid: string,
+    sessionKey: string,
+    code: string,
+    timeoutMs: number,
+    kernelKey: string = DEFAULT_KERNEL,
+  ): Promise<ExecutionResult> {
     const { provider } = this.deps;
     const { sandboxId, environmentReset } = await this.ensure(uid, sessionKey);
     const empty = { images: [], htmlOutputs: [], dataOutputs: [], environmentReset };
 
-    const pre = await provider.runCode(sandboxId, PRE_CODE, BOOTSTRAP_TIMEOUT_MS);
+    const pre = await provider.runCode(sandboxId, preCode(kernelKey), BOOTSTRAP_TIMEOUT_MS, kernelKey);
     if (pre.timedOut || pre.error) {
-      if (pre.timedOut) await provider.restartKernel(sandboxId);
+      if (pre.timedOut) await provider.restartKernel(sandboxId, kernelKey);
       return {
         ...empty,
         success: false,
@@ -108,9 +122,9 @@ export class SandboxSessionService {
       };
     }
 
-    const main = await provider.runCode(sandboxId, code, timeoutMs);
+    const main = await provider.runCode(sandboxId, code, timeoutMs, kernelKey);
     if (main.timedOut) {
-      const outcome = await this.stopRunningCode(sandboxId);
+      const outcome = await this.stopRunningCode(sandboxId, kernelKey);
       return {
         ...empty,
         success: false,
@@ -124,7 +138,7 @@ export class SandboxSessionService {
     }
 
     const failed = Boolean(main.error);
-    const post = await provider.runCode(sandboxId, postCode(!failed), POST_TIMEOUT_MS);
+    const post = await provider.runCode(sandboxId, postCode(!failed, kernelKey), POST_TIMEOUT_MS, kernelKey);
     const scan = parsePostScan(post.stdout) ?? { images: [], html: [], data: [] };
 
     const stdoutParts: string[] = [];
@@ -264,41 +278,55 @@ export class SandboxSessionService {
     if (await provider.stat(sandboxId, path)) await provider.remove(sandboxId, path);
   }
 
-  /** Stop running code (user Stop). Python state is kept unless the kernel must be restarted. */
-  async interrupt(uid: string, sessionKey: string): Promise<'interrupted' | 'restarted' | 'none'> {
+  /** Stop running code in one kernel (user Stop). Python state is kept unless it must restart. */
+  async interrupt(
+    uid: string,
+    sessionKey: string,
+    kernelKey: string = DEFAULT_KERNEL,
+  ): Promise<'interrupted' | 'restarted' | 'none'> {
     const { provider, store } = this.deps;
     const record = await store.get(uid, sessionKey);
     if (record && await provider.connect(record.sandboxId, this.deps.idleTimeoutMs)) {
-      return this.stopRunningCode(record.sandboxId);
+      return this.stopRunningCode(record.sandboxId, kernelKey);
     }
     return 'none';
+  }
+
+  /** Shut down a finished subagent's kernel; its files stay in /output/agents/<key>. */
+  async releaseKernel(uid: string, sessionKey: string, kernelKey: string): Promise<void> {
+    if (kernelKey === DEFAULT_KERNEL) throw new SandboxInputError('The main kernel cannot be released');
+    const { provider, store } = this.deps;
+    const record = await store.get(uid, sessionKey);
+    if (record && await provider.connect(record.sandboxId, this.deps.idleTimeoutMs)) {
+      await provider.releaseKernel(record.sandboxId, kernelKey);
+    }
   }
 
   /**
    * SIGINT first (KeyboardInterrupt keeps variables); if the kernel still doesn't
    * answer, restart it and wait until the new kernel responds.
    */
-  private async stopRunningCode(sandboxId: string): Promise<'interrupted' | 'restarted'> {
+  private async stopRunningCode(sandboxId: string, kernelKey: string): Promise<'interrupted' | 'restarted'> {
     const { provider } = this.deps;
     try {
-      await provider.interruptKernel(sandboxId);
-      if (await this.kernelResponds(sandboxId)) return 'interrupted';
+      await provider.interruptKernel(sandboxId, kernelKey);
+      if (await this.kernelResponds(sandboxId, kernelKey)) return 'interrupted';
     } catch (error) {
       console.warn('[sandbox] interrupt failed; restarting kernel', error);
     }
-    await provider.restartKernel(sandboxId);
+    await provider.restartKernel(sandboxId, kernelKey);
     const deadline = this.deps.now() + RESTART_READY_DEADLINE_MS;
     let consecutive = 0;
     while (consecutive < 2 && this.deps.now() < deadline) {
-      consecutive = await this.kernelResponds(sandboxId) ? consecutive + 1 : 0;
+      consecutive = await this.kernelResponds(sandboxId, kernelKey) ? consecutive + 1 : 0;
       if (consecutive < 2) await this.deps.sleep(500);
     }
     return 'restarted';
   }
 
-  private async kernelResponds(sandboxId: string): Promise<boolean> {
+  private async kernelResponds(sandboxId: string, kernelKey: string): Promise<boolean> {
     try {
-      const probe = await this.deps.provider.runCode(sandboxId, '1', PROBE_TIMEOUT_MS);
+      const probe = await this.deps.provider.runCode(sandboxId, '1', PROBE_TIMEOUT_MS, kernelKey);
       return !probe.timedOut && !probe.error;
     } catch {
       return false;

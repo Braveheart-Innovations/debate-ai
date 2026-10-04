@@ -1,6 +1,6 @@
-import { Sandbox } from '@e2b/code-interpreter';
+import { Sandbox, type Context } from '@e2b/code-interpreter';
 import { NotFoundError, TimeoutError } from 'e2b';
-import { KERNEL_PID_FILE } from './runtime';
+import { kernelPidFile } from './runtime';
 import type { RawRunResult, SandboxFileEntry, SandboxProvider } from './types';
 
 /**
@@ -10,9 +10,13 @@ import type { RawRunResult, SandboxFileEntry, SandboxProvider } from './types';
  * Sandboxes are created with internet access disabled — Analyze Python has never
  * had network access; data arrives through server tools that write into /data.
  */
+const CONTEXT_DIR = '/tmp/symposium_contexts';
+
 export class E2BSandboxProvider implements SandboxProvider {
   readonly name = 'e2b';
   private readonly connected = new Map<string, Sandbox>();
+  /** sandboxId|kernelKey → E2B context id (cache of the in-sandbox record). */
+  private readonly contexts = new Map<string, string>();
 
   constructor(private readonly apiKey: string) {}
 
@@ -44,6 +48,7 @@ export class E2BSandboxProvider implements SandboxProvider {
 
   async destroy(sandboxId: string): Promise<void> {
     this.connected.delete(sandboxId);
+    this.forgetContexts(sandboxId);
     try {
       await Sandbox.kill(sandboxId, { apiKey: this.apiKey });
     } catch (error) {
@@ -51,10 +56,11 @@ export class E2BSandboxProvider implements SandboxProvider {
     }
   }
 
-  async runCode(sandboxId: string, code: string, timeoutMs: number): Promise<RawRunResult> {
+  async runCode(sandboxId: string, code: string, timeoutMs: number, kernelKey: string): Promise<RawRunResult> {
     const sandbox = this.get(sandboxId);
+    const context = await this.context(sandboxId, kernelKey);
     try {
-      const execution = await sandbox.runCode(code, { timeoutMs, requestTimeoutMs: timeoutMs + 15_000 });
+      const execution = await sandbox.runCode(code, { context, timeoutMs, requestTimeoutMs: timeoutMs + 15_000 });
       const pngs = execution.results.map((r) => r.png).filter((png): png is string => Boolean(png));
       const main = execution.results.find((r) => r.isMainResult);
       return {
@@ -75,9 +81,10 @@ export class E2BSandboxProvider implements SandboxProvider {
     }
   }
 
-  async interruptKernel(sandboxId: string): Promise<void> {
+  async interruptKernel(sandboxId: string, kernelKey: string): Promise<void> {
+    const pidFile = kernelPidFile(kernelKey);
     await this.get(sandboxId).commands.run(
-      `test -s ${KERNEL_PID_FILE} && kill -INT "$(cat ${KERNEL_PID_FILE})"`,
+      `test -s ${pidFile} && kill -INT "$(cat ${pidFile})"`,
       { user: 'root', timeoutMs: 15_000 },
     );
   }
@@ -86,11 +93,58 @@ export class E2BSandboxProvider implements SandboxProvider {
    * Restarting a busy kernel returns before the old process has died; callers
    * must wait for the kernel to answer again (see SandboxSessionService).
    */
-  async restartKernel(sandboxId: string): Promise<void> {
+  async restartKernel(sandboxId: string, kernelKey: string): Promise<void> {
+    const context = await this.context(sandboxId, kernelKey);
+    await this.get(sandboxId).restartCodeContext(context);
+  }
+
+  async releaseKernel(sandboxId: string, kernelKey: string): Promise<void> {
     const sandbox = this.get(sandboxId);
-    const contexts = await sandbox.listCodeContexts();
-    const python = contexts.find((c) => c.language === 'python') ?? contexts[0];
-    if (python) await sandbox.restartCodeContext(python);
+    const contextId = await this.storedContextId(sandboxId, kernelKey);
+    if (!contextId) return;
+    try {
+      await sandbox.removeCodeContext(contextId);
+    } catch (error) {
+      if (!(error instanceof NotFoundError)) throw error;
+    }
+    await sandbox.files.remove(`${CONTEXT_DIR}/${kernelKey}`);
+    this.contexts.delete(`${sandboxId}|${kernelKey}`);
+  }
+
+  /**
+   * Kernel key → Jupyter context. The mapping lives inside the sandbox (so it
+   * survives pause/resume and is shared by every function instance) and is
+   * cached here. Each key's context is created on first use.
+   */
+  private async context(sandboxId: string, kernelKey: string): Promise<Context> {
+    const existing = await this.storedContextId(sandboxId, kernelKey);
+    if (existing) return { id: existing, language: 'python', cwd: '/home/user' };
+    const sandbox = this.get(sandboxId);
+    const created = await sandbox.createCodeContext({ language: 'python', cwd: '/home/user' });
+    await sandbox.files.write(`${CONTEXT_DIR}/${kernelKey}`, created.id);
+    this.contexts.set(`${sandboxId}|${kernelKey}`, created.id);
+    return created;
+  }
+
+  private async storedContextId(sandboxId: string, kernelKey: string): Promise<string | null> {
+    const cacheKey = `${sandboxId}|${kernelKey}`;
+    const cached = this.contexts.get(cacheKey);
+    if (cached) return cached;
+    try {
+      const stored = (await this.get(sandboxId).files.read(`${CONTEXT_DIR}/${kernelKey}`)).trim();
+      if (!stored) return null;
+      this.contexts.set(cacheKey, stored);
+      return stored;
+    } catch (error) {
+      if (error instanceof NotFoundError) return null;
+      throw error;
+    }
+  }
+
+  private forgetContexts(sandboxId: string): void {
+    for (const key of this.contexts.keys()) {
+      if (key.startsWith(`${sandboxId}|`)) this.contexts.delete(key);
+    }
   }
 
   async runCommand(sandboxId: string, command: string, timeoutMs: number): Promise<{ stdout: string; exitCode: number }> {

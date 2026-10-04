@@ -9,8 +9,34 @@
  */
 
 export const POST_MARKER = '__SYMPOSIUM_POST__';
-/** Written by the bootstrap so the server can SIGINT a busy kernel. */
-export const KERNEL_PID_FILE = '/tmp/symposium_kernel.pid';
+
+/**
+ * Each agent run gets its own kernel (Jupyter context) in the session sandbox,
+ * addressed by a kernel key. `main` is the Analyze operator; subagents use
+ * their own keys and write to /output/agents/<key>/.
+ */
+export const DEFAULT_KERNEL = 'main';
+const KERNEL_KEY_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
+
+export function isValidKernelKey(key: unknown): key is string {
+  return typeof key === 'string' && KERNEL_KEY_PATTERN.test(key);
+}
+
+/** Written by each kernel's bootstrap so the server can SIGINT that kernel only. */
+export function kernelPidFile(key: string): string {
+  return `/tmp/symposium_kernel_${key}.pid`;
+}
+
+/**
+ * The operator's outputs are everything under /output except agents/; a
+ * subagent's outputs are its own /output/agents/<key>/ directory. Filenames are
+ * always reported relative to /output.
+ */
+export function outputScope(key: string): { root: string; excludeAgents: boolean } {
+  return key === DEFAULT_KERNEL
+    ? { root: '/output', excludeAgents: true }
+    : { root: `/output/agents/${key}`, excludeAgents: false };
+}
 
 // Mirrors scanForDataOutputs in the retired pyodide-worker.js.
 const DATA_EXTENSIONS = [
@@ -19,7 +45,7 @@ const DATA_EXTENSIONS = [
   '.jpeg', '.gif', '.webp', '.woff', '.woff2',
 ];
 
-const BOOTSTRAP = `
+const bootstrap = (key: string) => `
 import os as _sym_os, json as _sym_json, base64 as _sym_base64, io as _sym_io
 import matplotlib as _sym_mpl
 _sym_mpl.use('Agg')
@@ -28,14 +54,16 @@ import numpy as np
 import pandas as pd
 for _sym_dir in ('/uploads', '/output', '/data'):
     _sym_os.makedirs(_sym_dir, exist_ok=True)
-with open('${KERNEL_PID_FILE}', 'w') as _sym_pid_file:
+with open('${kernelPidFile(key)}', 'w') as _sym_pid_file:
     _sym_pid_file.write(str(_sym_os.getpid()))
 _SYM_DATA_EXT = tuple(${JSON.stringify(DATA_EXTENSIONS)})
 _sym_snapshot = {}
 
-def _sym_scan():
+def _sym_scan(scan_root, exclude_agents):
     found = {}
-    for root, _dirs, files in _sym_os.walk('/output'):
+    for root, dirs, files in _sym_os.walk(scan_root):
+        if exclude_agents and root == '/output' and 'agents' in dirs:
+            dirs.remove('agents')
         for name in files:
             path = _sym_os.path.join(root, name)
             try:
@@ -45,12 +73,13 @@ def _sym_scan():
             found[_sym_os.path.relpath(path, '/output')] = (path, st.st_size, f"{st.st_size}_{st.st_mtime_ns}")
     return found
 
-def _sym_pre():
+def _sym_pre(scan_root, exclude_agents):
     global _sym_snapshot
+    _sym_os.makedirs(scan_root, exist_ok=True)
     plt.close('all')
-    _sym_snapshot = {rel: key for rel, (_p, _s, key) in _sym_scan().items()}
+    _sym_snapshot = {rel: key for rel, (_p, _s, key) in _sym_scan(scan_root, exclude_agents).items()}
 
-def _sym_post(include_visuals):
+def _sym_post(include_visuals, scan_root, exclude_agents):
     images, html, data = [], [], []
     if include_visuals:
         for num in plt.get_fignums():
@@ -59,7 +88,7 @@ def _sym_post(include_visuals):
             fig.savefig(buf, format='png', dpi=150, bbox_inches='tight', facecolor='white', edgecolor='none')
             images.append(_sym_base64.b64encode(buf.getvalue()).decode('ascii'))
     plt.close('all')
-    for rel, (path, size, key) in sorted(_sym_scan().items()):
+    for rel, (path, size, key) in sorted(_sym_scan(scan_root, exclude_agents).items()):
         if _sym_snapshot.get(rel) == key:
             continue
         lower = rel.lower()
@@ -72,15 +101,23 @@ def _sym_post(include_visuals):
     print('${POST_MARKER}' + _sym_json.dumps({'images': images, 'html': html, 'data': data}))
 `;
 
-export const PRE_CODE = `try:
+function scopeArgs(key: string): string {
+  const { root, excludeAgents } = outputScope(key);
+  return `'${root}', ${excludeAgents ? 'True' : 'False'}`;
+}
+
+/** Runs before every cell; installs the runtime on a fresh or restarted kernel. */
+export function preCode(key: string = DEFAULT_KERNEL): string {
+  return `try:
     _sym_pre
 except NameError:
-${BOOTSTRAP.split('\n').map((line) => (line ? `    ${line}` : line)).join('\n')}
-_sym_pre()
+${bootstrap(key).split('\n').map((line) => (line ? `    ${line}` : line)).join('\n')}
+_sym_pre(${scopeArgs(key)})
 `;
+}
 
-export function postCode(includeVisuals: boolean): string {
-  return `_sym_post(${includeVisuals ? 'True' : 'False'})`;
+export function postCode(includeVisuals: boolean, key: string = DEFAULT_KERNEL): string {
+  return `_sym_post(${includeVisuals ? 'True' : 'False'}, ${scopeArgs(key)})`;
 }
 
 export interface PostScan {

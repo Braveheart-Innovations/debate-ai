@@ -10,7 +10,12 @@ const {
   shellQuote,
   INLINE_OUTPUT_BUDGET_BYTES,
 } = require('../lib/sandbox/service');
-const { PRE_CODE, POST_MARKER, parsePostScan, filterStderr, stripAnsi, formatTraceback } = require('../lib/sandbox/runtime');
+const {
+  POST_MARKER, parsePostScan, filterStderr, stripAnsi, formatTraceback, preCode, postCode, kernelPidFile, outputScope,
+} = require('../lib/sandbox/runtime');
+const { assertKernelKey } = require('../lib/sandbox/service');
+
+const isPre = (code) => code.startsWith('try:\n    _sym_pre\nexcept NameError:');
 
 function memoryStore() {
   const docs = new Map();
@@ -45,15 +50,16 @@ function fakeProvider(overrides = {}) {
     async create() { const id = `sbx-${nextId++}`; alive.add(id); calls.push(['create', id]); return id; },
     async connect(id) { calls.push(['connect', id]); return alive.has(id); },
     async destroy(id) { alive.delete(id); calls.push(['destroy', id]); },
-    async runCode(id, code) {
-      calls.push(['runCode', code === PRE_CODE ? 'PRE' : code.startsWith('_sym_post') ? code : 'USER']);
+    async runCode(id, code, timeoutMs, kernelKey) {
+      calls.push(['runCode', isPre(code) ? 'PRE' : code.startsWith('_sym_post') ? code : 'USER', kernelKey]);
       if (code.startsWith('_sym_post')) {
         return { stdout: `${POST_MARKER}{"images":[],"html":[],"data":[]}\n`, stderr: '', pngs: [], timedOut: false };
       }
       return { stdout: '', stderr: '', pngs: [], timedOut: false };
     },
-    async interruptKernel(id) { calls.push(['interrupt', id]); },
-    async restartKernel(id) { calls.push(['restart', id]); },
+    async interruptKernel(id, kernelKey) { calls.push(['interrupt', id, kernelKey]); },
+    async restartKernel(id, kernelKey) { calls.push(['restart', id, kernelKey]); },
+    async releaseKernel(id, kernelKey) { calls.push(['release', id, kernelKey]); },
     async runCommand(id, command) { calls.push(['command', command]); return { stdout: '', exitCode: 0 }; },
     async writeFile(id, path, data) { files.set(path, data); calls.push(['write', path]); },
     async readFile(id, path) { return files.get(path) ?? new Uint8Array(); },
@@ -110,7 +116,7 @@ test('execute runs pre, user code, then post with visuals', async () => {
   const result = await svc.execute('u1', 's', 'print(1)', 5000);
   assert.deepEqual(
     provider.calls.filter(([c]) => c === 'runCode').map(([, v]) => v),
-    ['PRE', 'USER', '_sym_post(True)'],
+    ['PRE', 'USER', "_sym_post(True, '/output', True)"],
   );
   assert.equal(result.success, true);
   assert.equal(result.result, 'Done');
@@ -121,7 +127,7 @@ test('execute maps stdout, filtered stderr, last-expression text, images and out
   const csv = new TextEncoder().encode('a,b\n1,2\n');
   const provider = fakeProvider({
     async runCode(id, code) {
-      if (code === PRE_CODE) return { stdout: '', stderr: '', pngs: [], timedOut: false };
+      if (isPre(code)) return { stdout: '', stderr: '', pngs: [], timedOut: false };
       if (code.startsWith('_sym_post')) {
         return {
           stdout: `noise\n${POST_MARKER}${JSON.stringify({
@@ -156,9 +162,9 @@ test('execute maps stdout, filtered stderr, last-expression text, images and out
 test('a Python error returns the traceback, keeps data outputs, drops visuals', async () => {
   const provider = fakeProvider({
     async runCode(id, code) {
-      if (code === PRE_CODE) return { stdout: '', stderr: '', pngs: [], timedOut: false };
+      if (isPre(code)) return { stdout: '', stderr: '', pngs: [], timedOut: false };
       if (code.startsWith('_sym_post')) {
-        assert.equal(code, '_sym_post(False)');
+        assert.equal(code, "_sym_post(False, '/output', True)");
         return { stdout: `${POST_MARKER}{"images":[],"html":[],"data":[]}`, stderr: '', pngs: [], timedOut: false };
       }
       return {
@@ -178,7 +184,7 @@ test('a Python error returns the traceback, keeps data outputs, drops visuals', 
 test('a timeout interrupts the kernel and keeps variables when SIGINT works', async () => {
   const provider = fakeProvider({
     async runCode(id, code) {
-      if (code === PRE_CODE || code === '1') return { stdout: '', stderr: '', pngs: [], timedOut: false };
+      if (isPre(code) || code === '1') return { stdout: '', stderr: '', pngs: [], timedOut: false };
       return { stdout: '', stderr: '', pngs: [], timedOut: true };
     },
   });
@@ -195,7 +201,7 @@ test('a timeout falls back to restart and waits until the new kernel answers twi
   let probesAfterRestart = 0;
   const provider = fakeProvider({
     async runCode(id, code) {
-      if (code === PRE_CODE) return { stdout: '', stderr: '', pngs: [], timedOut: false };
+      if (isPre(code)) return { stdout: '', stderr: '', pngs: [], timedOut: false };
       if (code === '1') {
         if (!restarted) return { stdout: '', stderr: '', pngs: [], timedOut: true };
         probesAfterRestart += 1;
@@ -305,6 +311,38 @@ test('retention sweep removes only idle sandboxes', async () => {
   assert.equal(provider.alive.has(fresh.sandboxId), true);
 });
 
+test('each kernel key gets its own pid file and output scope', () => {
+  const main = preCode();
+  const agent = preCode('agent-r1');
+  assert.ok(main.includes(kernelPidFile('main')));
+  assert.ok(agent.includes(kernelPidFile('agent-r1')));
+  assert.ok(main.trimEnd().endsWith("_sym_pre('/output', True)"));
+  assert.ok(agent.trimEnd().endsWith("_sym_pre('/output/agents/agent-r1', False)"));
+  assert.equal(postCode(true, 'agent-r1'), "_sym_post(True, '/output/agents/agent-r1', False)");
+  assert.deepEqual(outputScope('main'), { root: '/output', excludeAgents: true });
+});
+
+test('execute, stop and release are scoped to one kernel', async () => {
+  const provider = fakeProvider({
+    async runCode(id, code, timeoutMs, kernelKey) {
+      provider.calls.push(['runCode', isPre(code) ? 'PRE' : code === '1' ? 'PROBE' : 'USER', kernelKey]);
+      if (isPre(code) || code === '1') return { stdout: '', stderr: '', pngs: [], timedOut: false };
+      return { stdout: '', stderr: '', pngs: [], timedOut: true };
+    },
+  });
+  const { svc } = service(provider);
+  await svc.execute('u1', 's', 'while True: pass', 3000, 'agent-r1');
+  assert.ok(provider.calls.filter(([c]) => c === 'runCode').every(([, , key]) => key === 'agent-r1'));
+  assert.deepEqual(provider.calls.find(([c]) => c === 'interrupt').slice(2), ['agent-r1']);
+
+  await svc.interrupt('u1', 's', 'agent-r2');
+  assert.deepEqual(provider.calls.filter(([c]) => c === 'interrupt').at(-1).slice(2), ['agent-r2']);
+
+  await svc.releaseKernel('u1', 's', 'agent-r1');
+  assert.deepEqual(provider.calls.find(([c]) => c === 'release').slice(2), ['agent-r1']);
+  await assert.rejects(svc.releaseKernel('u1', 's', 'main'), SandboxInputError);
+});
+
 test('input validation', () => {
   assert.equal(assertSessionKey('analyze_123:chat-1.x'), 'analyze_123:chat-1.x');
   for (const bad of ['', '..', 'a/b', 'x'.repeat(129), 7, null]) {
@@ -318,6 +356,11 @@ test('input validation', () => {
   assert.equal(clampTimeout(10_000_000), 300_000);
   assert.equal(clampTimeout(undefined), 60_000);
   assert.equal(shellQuote("a'b"), "'a'\\''b'");
+  assert.equal(assertKernelKey(undefined), 'main');
+  assert.equal(assertKernelKey('agent-r_1'), 'agent-r_1');
+  for (const bad of ['', 'a b', '../x', 'x'.repeat(65), 3]) {
+    assert.throws(() => assertKernelKey(bad), SandboxInputError);
+  }
 });
 
 test('runtime helpers', () => {
@@ -332,5 +375,5 @@ test('runtime helpers', () => {
   );
   assert.equal(formatTraceback('  Cell In[2], line 1\n    def broken(:\n               ^\nSyntaxError: invalid syntax\n'),
     'Cell In[2], line 1\n    def broken(:\n               ^\nSyntaxError: invalid syntax');
-  assert.match(PRE_CODE, /^try:\n {4}_sym_pre\nexcept NameError:\n/);
+  assert.ok(isPre(preCode()));
 });

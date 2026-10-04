@@ -6,6 +6,7 @@ import { FirestoreSandboxStore } from './firestoreStore';
 import {
   SandboxInputError,
   SandboxSessionService,
+  assertKernelKey,
   assertSandboxPath,
   assertSessionKey,
   clampTimeout,
@@ -77,7 +78,7 @@ export const sandboxExecute = onCall(
     return guard('execute', async () => {
       const sessionKey = assertSessionKey(data.sessionKey);
       if (typeof data.code !== 'string') throw new SandboxInputError('code is required');
-      return getService().execute(uid, sessionKey, data.code, clampTimeout(data.timeoutMs));
+      return getService().execute(uid, sessionKey, data.code, clampTimeout(data.timeoutMs), assertKernelKey(data.kernelKey));
     });
   },
 );
@@ -131,7 +132,10 @@ export const sandboxSession = onCall(
           return { ready: true, environmentReset };
         }
         case 'interrupt':
-          return { interrupted: true, outcome: await svc.interrupt(uid, sessionKey) };
+          return { interrupted: true, outcome: await svc.interrupt(uid, sessionKey, assertKernelKey(data.kernelKey)) };
+        case 'releaseKernel':
+          await svc.releaseKernel(uid, sessionKey, assertKernelKey(data.kernelKey));
+          return { released: true };
         case 'reset':
           await svc.reset(uid, sessionKey);
           return { reset: true };
