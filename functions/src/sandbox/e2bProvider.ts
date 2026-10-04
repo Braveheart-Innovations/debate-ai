@@ -1,5 +1,4 @@
-import { Sandbox, type Context } from '@e2b/code-interpreter';
-import { NotFoundError, TimeoutError } from 'e2b';
+import type { Context, Sandbox } from '@e2b/code-interpreter';
 import { kernelPidFile } from './runtime';
 import type { RawRunResult, SandboxFileEntry, SandboxProvider } from './types';
 
@@ -12,6 +11,28 @@ import type { RawRunResult, SandboxFileEntry, SandboxProvider } from './types';
  */
 const CONTEXT_DIR = '/tmp/symposium_contexts';
 
+/**
+ * The E2B SDK is loaded on first use, not at import time. Every function in this
+ * codebase loads the whole index at startup; a top-level import put the SDK in
+ * every container and pushed 256 MiB functions over their memory limit.
+ */
+type E2BModules = {
+  Sandbox: typeof import('@e2b/code-interpreter').Sandbox;
+  NotFoundError: typeof import('e2b').NotFoundError;
+  TimeoutError: typeof import('e2b').TimeoutError;
+};
+let e2bModules: Promise<E2BModules> | null = null;
+function loadE2B(): Promise<E2BModules> {
+  if (!e2bModules) {
+    e2bModules = Promise.all([import('@e2b/code-interpreter'), import('e2b')]).then(([ci, core]) => ({
+      Sandbox: ci.Sandbox,
+      NotFoundError: core.NotFoundError,
+      TimeoutError: core.TimeoutError,
+    }));
+  }
+  return e2bModules;
+}
+
 export class E2BSandboxProvider implements SandboxProvider {
   readonly name = 'e2b';
   private readonly connected = new Map<string, Sandbox>();
@@ -21,6 +42,7 @@ export class E2BSandboxProvider implements SandboxProvider {
   constructor(private readonly apiKey: string) {}
 
   async create(options: { template: string; idleTimeoutMs: number; metadata: Record<string, string> }): Promise<string> {
+    const { Sandbox } = await loadE2B();
     const sandbox = await Sandbox.create(options.template, {
       apiKey: this.apiKey,
       allowInternetAccess: false,
@@ -33,6 +55,7 @@ export class E2BSandboxProvider implements SandboxProvider {
   }
 
   async connect(sandboxId: string, idleTimeoutMs: number): Promise<boolean> {
+    const { Sandbox, NotFoundError } = await loadE2B();
     try {
       const sandbox = await Sandbox.connect(sandboxId, { apiKey: this.apiKey, timeoutMs: idleTimeoutMs });
       this.connected.set(sandboxId, sandbox);
@@ -47,6 +70,7 @@ export class E2BSandboxProvider implements SandboxProvider {
   }
 
   async destroy(sandboxId: string): Promise<void> {
+    const { Sandbox, NotFoundError } = await loadE2B();
     this.connected.delete(sandboxId);
     this.forgetContexts(sandboxId);
     try {
@@ -57,6 +81,7 @@ export class E2BSandboxProvider implements SandboxProvider {
   }
 
   async runCode(sandboxId: string, code: string, timeoutMs: number, kernelKey: string): Promise<RawRunResult> {
+    const { TimeoutError } = await loadE2B();
     const sandbox = this.get(sandboxId);
     const context = await this.context(sandboxId, kernelKey);
     try {
@@ -99,6 +124,7 @@ export class E2BSandboxProvider implements SandboxProvider {
   }
 
   async releaseKernel(sandboxId: string, kernelKey: string): Promise<void> {
+    const { NotFoundError } = await loadE2B();
     const sandbox = this.get(sandboxId);
     const contextId = await this.storedContextId(sandboxId, kernelKey);
     if (!contextId) return;
@@ -127,6 +153,7 @@ export class E2BSandboxProvider implements SandboxProvider {
   }
 
   private async storedContextId(sandboxId: string, kernelKey: string): Promise<string | null> {
+    const { NotFoundError } = await loadE2B();
     const cacheKey = `${sandboxId}|${kernelKey}`;
     const cached = this.contexts.get(cacheKey);
     if (cached) return cached;
@@ -167,6 +194,7 @@ export class E2BSandboxProvider implements SandboxProvider {
   }
 
   async stat(sandboxId: string, path: string): Promise<SandboxFileEntry | null> {
+    const { NotFoundError } = await loadE2B();
     try {
       const e = await this.get(sandboxId).files.getInfo(path);
       return { name: e.name, path: e.path, size: e.size, isDirectory: e.type === 'dir' };

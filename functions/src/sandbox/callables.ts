@@ -56,7 +56,7 @@ export async function destroyUserSandboxes(uid: string): Promise<number> {
 }
 
 export const sandboxRetentionSweep = onSchedule(
-  { schedule: 'every day 03:30', timeZone: 'America/Chicago', timeoutSeconds: 540, secrets: [e2bApiKey] },
+  { schedule: 'every day 03:30', timeZone: 'America/Chicago', timeoutSeconds: 540, memory: '512MiB', secrets: [e2bApiKey] },
   async () => {
     const removed = await getService().sweepIdle(SANDBOX_RETENTION_MS);
     console.log(`[sandbox] retention sweep removed ${removed} idle sandbox(es)`);
@@ -119,7 +119,8 @@ export const sandboxFiles = onCall(
 );
 
 export const sandboxSession = onCall(
-  { timeoutSeconds: 120, memory: '256MiB', concurrency: 40, secrets: [e2bApiKey] },
+  // 512MiB: the whole functions index + the E2B SDK exceed 256MiB (OOM'd in production 2026-10-04).
+  { timeoutSeconds: 120, memory: '512MiB', concurrency: 40, secrets: [e2bApiKey] },
   async (request) => {
     const uid = requireUid(request);
     const data = (request.data ?? {}) as Data;
