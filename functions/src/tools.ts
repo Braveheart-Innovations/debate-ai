@@ -4,6 +4,13 @@ import { promises as dns } from 'dns';
 import * as net from 'net';
 import { getDecryptedApiKey, encryptionKey } from './apiKeys';
 import { executeWebSearch } from './web_search';
+import {
+  MAX_SANDBOX_FETCH_BYTES,
+  parseSandboxFetchTarget,
+  saveFetchToSandbox,
+  type SandboxFetchTarget,
+} from './fetchToSandbox';
+import { e2bApiKey, getSandboxService } from './sandbox/callables';
 import { fetchOfficialDocContent, inferSalesforceDocumentationStatus, lookupSalesforceDocsIndex } from './salesforceDocsIndex';
 import {
   getDecryptedDataServiceKey,
@@ -66,6 +73,13 @@ export interface ToolResult {
     truncated?: boolean;
     originalLength?: number;
     cached?: boolean;
+    /** Response content type (fetch_api). */
+    contentType?: string;
+    /** fetch_api saved into the sandbox: where, how big, its SHA-256; `content` is then a preview. */
+    sandboxPath?: string;
+    bytes?: number;
+    responseHash?: string;
+    previewTruncated?: boolean;
   };
 }
 
@@ -369,6 +383,11 @@ const BLOCKED_HOSTS = [
   '169.254.',
 ];
 
+/**
+ * Inline fetch_api limit: the body travels back to the browser. Only production
+ * web v2.3.12 still uses this path; remove it in the first deploy after v2.5.0
+ * ships. Sandbox-target requests use MAX_SANDBOX_FETCH_BYTES.
+ */
 const MAX_FETCH_API_RESPONSE_BYTES = 750_000;
 const SOCRATA_DOWNLOAD_BLOCK_MESSAGE = 'Blocked bulk download endpoint rows.json?accessType=DOWNLOAD because it is too large for interactive analysis. Query the dataset /resource/{dataset_id}.json endpoint with SoQL filters and a modest $limit (for example: 100-1000 rows), then paginate with $offset.';
 const SALESFORCE_RELEASES_URL = 'https://www.salesforce.com/releases';
@@ -1820,7 +1839,8 @@ function normalizeFbiDateParam(value: unknown, fallbackMonth: '01' | '12'): stri
 async function handleFetchApi(
   args: FetchApiArgs,
   uid: string,
-  encryptionKeyValue: string
+  encryptionKeyValue: string,
+  maxBytes: number = MAX_FETCH_API_RESPONSE_BYTES,
 ): Promise<ToolResult> {
   const startTime = Date.now();
   let { url } = args;
@@ -2016,7 +2036,7 @@ async function handleFetchApi(
     }
 
     const contentLengthHeader = parseInt(response.headers.get('content-length') || '', 10);
-    if (Number.isFinite(contentLengthHeader) && contentLengthHeader > MAX_FETCH_API_RESPONSE_BYTES) {
+    if (Number.isFinite(contentLengthHeader) && contentLengthHeader > maxBytes) {
       return {
         toolCallId: '',
         success: false,
@@ -2029,12 +2049,12 @@ async function handleFetchApi(
       };
     }
 
-    const { text: rawBody, bytesRead, exceeded } = await readResponseTextWithLimit(response, MAX_FETCH_API_RESPONSE_BYTES);
+    const { text: rawBody, bytesRead, exceeded } = await readResponseTextWithLimit(response, maxBytes);
     if (exceeded) {
       return {
         toolCallId: '',
         success: false,
-        error: `Response exceeded ${MAX_FETCH_API_RESPONSE_BYTES} bytes (${bytesRead} bytes read). Narrow the query and paginate to keep each response small.`,
+        error: `Response exceeded ${maxBytes} bytes (${bytesRead} bytes read). Narrow the query and paginate to keep each response small.`,
         metadata: {
           executionTime: Date.now() - startTime,
           originalLength: bytesRead,
@@ -2072,6 +2092,7 @@ async function handleFetchApi(
       metadata: {
         executionTime: Date.now() - startTime,
         originalLength: contentLengthHeader || bytesRead,
+        contentType: contentType || undefined,
       },
     };
   } catch (error: any) {
@@ -2102,6 +2123,45 @@ interface ExecuteToolRequest {
   toolName: string;
   toolCallId: string;
   arguments: Record<string, unknown>;
+  /** Analyze: save the fetch_api response into this session's sandbox instead of returning it. */
+  sandbox?: unknown;
+}
+
+/**
+ * fetch_api into the sandbox: the body is written to /data in the caller's own
+ * sandbox (uid-bound) and only a summary goes back. Errors pass through.
+ */
+async function runSandboxFetch(
+  uid: string,
+  target: SandboxFetchTarget,
+  fetch: (maxBytes: number) => Promise<ToolResult>,
+): Promise<ToolResult> {
+  const result = await fetch(MAX_SANDBOX_FETCH_BYTES);
+  if (!result.success || typeof result.content !== 'string') return result;
+  try {
+    const summary = await saveFetchToSandbox(target, result.content, result.metadata?.contentType, async (sessionKey, path, base64) => {
+      await getSandboxService().writeFile(uid, sessionKey, { path, base64 });
+    });
+    return {
+      ...result,
+      content: summary.preview,
+      metadata: {
+        ...result.metadata,
+        sandboxPath: summary.path,
+        bytes: summary.bytes,
+        responseHash: summary.responseHash,
+        previewTruncated: summary.previewTruncated,
+      },
+    };
+  } catch (error) {
+    console.error('[executeTool] Failed to save fetch_api response to the sandbox', { uid, sessionKey: target.sessionKey, error });
+    return {
+      toolCallId: result.toolCallId,
+      success: false,
+      error: `Fetched ${Buffer.byteLength(result.content, 'utf8')} bytes but could not save them to the sandbox: ${error instanceof Error ? error.message : String(error)}`,
+      metadata: result.metadata,
+    };
+  }
 }
 
 /**
@@ -2115,6 +2175,7 @@ export const executeTool = onCall(
     concurrency: 40,
     secrets: [
       encryptionKey,
+      e2bApiKey,
       fredApiKey,
       socrataAppToken,
       nasaApiKey,
@@ -2131,7 +2192,8 @@ export const executeTool = onCall(
       throw new HttpsError('unauthenticated', 'Must be authenticated to execute tools');
     }
 
-    const { toolName, toolCallId, arguments: args } = request.data as ExecuteToolRequest;
+    const { toolName, toolCallId, arguments: args, sandbox } = request.data as ExecuteToolRequest;
+    const sandboxTarget = parseSandboxFetchTarget(sandbox);
 
     if (!toolName) {
       throw new HttpsError('invalid-argument', 'Tool name is required');
@@ -2156,7 +2218,9 @@ export const executeTool = onCall(
               originalUrl: fetchUrlArgs.url,
               responseFormat: convertedArgs.response_format,
             });
-            result = await handleFetchApi(convertedArgs, request.auth!.uid, keyValue);
+            result = sandboxTarget
+              ? await runSandboxFetch(request.auth!.uid, sandboxTarget, (maxBytes) => handleFetchApi(convertedArgs, request.auth!.uid, keyValue, maxBytes))
+              : await handleFetchApi(convertedArgs, request.auth!.uid, keyValue);
           } else {
             result = await handleFetchUrl(fetchUrlArgs);
           }
@@ -2169,11 +2233,10 @@ export const executeTool = onCall(
           if (!keyValue) {
             throw new Error('Encryption not configured');
           }
-          result = await handleFetchApi(
-            args as unknown as FetchApiArgs,
-            request.auth!.uid,
-            keyValue
-          );
+          const fetchArgs = args as unknown as FetchApiArgs;
+          result = sandboxTarget
+            ? await runSandboxFetch(request.auth!.uid, sandboxTarget, (maxBytes) => handleFetchApi(fetchArgs, request.auth!.uid, keyValue, maxBytes))
+            : await handleFetchApi(fetchArgs, request.auth!.uid, keyValue);
           break;
         }
 

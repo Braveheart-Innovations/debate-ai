@@ -21,7 +21,8 @@ const IDLE_TIMEOUT_MS = 15 * 60_000;
 export const SANDBOX_RETENTION_MS = 7 * 24 * 60 * 60_000;
 
 let service: SandboxSessionService | null = null;
-function getService(): SandboxSessionService {
+/** Shared with executeTool, which writes fetch_api responses straight into the sandbox. */
+export function getSandboxService(): SandboxSessionService {
   if (!service) {
     service = new SandboxSessionService({
       provider: new E2BSandboxProvider(e2bApiKey.value()),
@@ -52,13 +53,13 @@ async function guard<T>(label: string, run: () => Promise<T>): Promise<T> {
 
 /** Account deletion: destroy every sandbox the user owns. Call before deleting users/{uid}. */
 export async function destroyUserSandboxes(uid: string): Promise<number> {
-  return getService().destroyAllForUser(uid);
+  return getSandboxService().destroyAllForUser(uid);
 }
 
 export const sandboxRetentionSweep = onSchedule(
   { schedule: 'every day 03:30', timeZone: 'America/Chicago', timeoutSeconds: 540, secrets: [e2bApiKey] },
   async () => {
-    const removed = await getService().sweepIdle(SANDBOX_RETENTION_MS);
+    const removed = await getSandboxService().sweepIdle(SANDBOX_RETENTION_MS);
     console.log(`[sandbox] retention sweep removed ${removed} idle sandbox(es)`);
   },
 );
@@ -78,7 +79,7 @@ export const sandboxExecute = onCall(
     return guard('execute', async () => {
       const sessionKey = assertSessionKey(data.sessionKey);
       if (typeof data.code !== 'string') throw new SandboxInputError('code is required');
-      return getService().execute(uid, sessionKey, data.code, clampTimeout(data.timeoutMs), assertKernelKey(data.kernelKey));
+      return getSandboxService().execute(uid, sessionKey, data.code, clampTimeout(data.timeoutMs), assertKernelKey(data.kernelKey));
     });
   },
 );
@@ -90,7 +91,7 @@ export const sandboxFiles = onCall(
     const data = (request.data ?? {}) as Data;
     return guard(`files:${String(data.op)}`, async () => {
       const sessionKey = assertSessionKey(data.sessionKey);
-      const svc = getService();
+      const svc = getSandboxService();
       switch (data.op) {
         case 'write':
           if (typeof data.base64 !== 'string') throw new SandboxInputError('base64 is required');
@@ -125,7 +126,7 @@ export const sandboxSession = onCall(
     const data = (request.data ?? {}) as Data;
     return guard(`session:${String(data.action)}`, async () => {
       const sessionKey = assertSessionKey(data.sessionKey);
-      const svc = getService();
+      const svc = getSandboxService();
       switch (data.action) {
         case 'ensure': {
           const { environmentReset } = await svc.ensure(uid, sessionKey);
