@@ -36,7 +36,10 @@ type CohereContentPart =
 
 interface CohereMessage {
   role: 'user' | 'assistant' | 'system' | 'tool';
-  content: string | CohereContentPart[] | null;
+  /** Omitted on assistant tool-call messages (Cohere rejects text content there). */
+  content?: string | CohereContentPart[] | null;
+  /** An assistant tool-call message's accompanying text. */
+  tool_plan?: string;
   tool_calls?: {
     id: string;
     type: 'function';
@@ -328,11 +331,16 @@ export class CohereRuntime implements ProviderRuntime {
         continue;
       }
 
-      // Handle assistant messages with tool calls
+      // Assistant messages with tool calls: Cohere v2 rejects text content here
+      // ("messages with non-empty 'tool_calls' cannot contain content items of
+      // type 'text'"), and an empty-string content makes the NEXT reply end with
+      // finish_reason ERROR and no text (2026-10-05: every Analyze follow-up after
+      // a tool call came back empty). Text alongside a call goes in tool_plan.
       if (msg.role === 'assistant' && msg.tool_calls && msg.tool_calls.length > 0) {
+        const plan = typeof msg.content === 'string' ? msg.content.trim() : '';
         cohereMessages.push({
           role: 'assistant',
-          content: msg.content,
+          ...(plan ? { tool_plan: plan } : {}),
           tool_calls: msg.tool_calls.map(tc => ({
             id: tc.id,
             type: 'function' as const,
