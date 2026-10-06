@@ -11,6 +11,7 @@
  */
 
 import { onRequest, HttpsError } from 'firebase-functions/v2/https';
+import { isForcedToolChoice, shouldRetryUnforced } from './toolChoiceFallback';
 import { getAuth } from 'firebase-admin/auth';
 import { getDecryptedApiKey, encryptionKey } from './apiKeys';
 import { recordUsageInternal, enforceFreeTierForInteraction } from './usageTracking';
@@ -326,39 +327,56 @@ export const proxyAIRequestStreamV2 = onRequest(
       const runtime = ProviderRegistry.get(providerId);
 
       // Build provider-specific request
-      const builtRequest = runtime.buildRequest(
-        {
-          model: resolvedModel,
-          messages,
-          systemPrompt,
-          maxTokens,
-          temperature: resolvedTemperature,
-          tools,
-          toolChoice,
-          attachments,
-        },
-        apiKey
-      );
+      const sendToProvider = async (choice: typeof toolChoice) => {
+        const builtRequest = runtime.buildRequest(
+          {
+            model: resolvedModel,
+            messages,
+            systemPrompt,
+            maxTokens,
+            temperature: resolvedTemperature,
+            tools,
+            toolChoice: choice,
+            attachments,
+          },
+          apiKey
+        );
 
-      // Log outgoing request (redacted)
-      console.log(JSON.stringify({
-        traceId,
-        event: 'provider_request',
-        providerId,
-        url: builtRequest.url,
-        hasBody: !!builtRequest.body,
-        messageCount: (builtRequest.body as any)?.messages?.length || 0,
-      }));
+        // Log outgoing request (redacted)
+        console.log(JSON.stringify({
+          traceId,
+          event: 'provider_request',
+          providerId,
+          url: builtRequest.url,
+          hasBody: !!builtRequest.body,
+          messageCount: (builtRequest.body as any)?.messages?.length || 0,
+        }));
+
+        return fetch(builtRequest.url, {
+          method: 'POST',
+          headers: builtRequest.headers,
+          body: JSON.stringify(builtRequest.body),
+        });
+      };
 
       // Make request to provider
-      const response = await fetch(builtRequest.url, {
-        method: 'POST',
-        headers: builtRequest.headers,
-        body: JSON.stringify(builtRequest.body),
-      });
+      let response = await sendToProvider(toolChoice);
+      let preReadErrorText: string | undefined;
+
+      // Analyze Team mode forces its first round; models that can't be forced
+      // get the same request once more, unforced (see toolChoiceFallback).
+      if (!response.ok && response.status === 400 && isForcedToolChoice(toolChoice)) {
+        const text = await response.text();
+        if (shouldRetryUnforced(response.status, text, toolChoice)) {
+          console.warn(JSON.stringify({ traceId, event: 'tool_choice_unsupported_retry', providerId, model: resolvedModel }));
+          response = await sendToProvider(undefined);
+        } else {
+          preReadErrorText = text;
+        }
+      }
 
       if (!response.ok) {
-        const errorText = await response.text();
+        const errorText = preReadErrorText ?? await response.text();
 
         // Log detailed error info including request shape
         console.error(JSON.stringify({
