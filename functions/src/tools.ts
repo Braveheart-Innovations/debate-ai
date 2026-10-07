@@ -384,9 +384,11 @@ const BLOCKED_HOSTS = [
 ];
 
 /**
- * Inline fetch_api limit: the body travels back to the browser. Only production
- * web v2.3.12 still uses this path; remove it in the first deploy after v2.5.0
- * ships. Sandbox-target requests use MAX_SANDBOX_FETCH_BYTES.
+ * Inline fetch_api limit: the body travels back to the browser. Chat uses this
+ * path (ToolOrchestrator calls executeTool with no sandbox target) and puts the
+ * body straight into the model's context, so it stays capped. Analyze sends a
+ * sandbox target and uses MAX_SANDBOX_FETCH_BYTES instead. Not a legacy path:
+ * keep it while Chat offers fetch tools.
  */
 const MAX_FETCH_API_RESPONSE_BYTES = 750_000;
 const SOCRATA_DOWNLOAD_BLOCK_MESSAGE = 'Blocked bulk download endpoint rows.json?accessType=DOWNLOAD because it is too large for interactive analysis. Query the dataset /resource/{dataset_id}.json endpoint with SoQL filters and a modest $limit (for example: 100-1000 rows), then paginate with $offset.';
