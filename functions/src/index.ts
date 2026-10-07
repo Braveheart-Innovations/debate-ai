@@ -90,3 +90,6 @@ export { runExportJob } from './exports/runExportJob';
 export { createExportJob } from './exports/createExportJob';
 export { createHtmlPdfExport } from './exports/createHtmlPdfExport';
 export { renderHtmlSnapshots } from './exports/renderHtmlSnapshots';
+
+// Analyze remote Python sandbox (E2B)
+export { sandboxExecute, sandboxFiles, sandboxSession, sandboxRetentionSweep } from './sandbox/callables';

@@ -1,11 +1,12 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import { deleteAllUserStorage } from './cloudPayloadStorage';
+import { destroyUserSandboxes, e2bApiKey } from './sandbox/callables';
 
 // Initialize Admin if not already
 try { admin.app(); } catch { admin.initializeApp(); }
 
-export const deleteAccount = onCall(async (request) => {
+export const deleteAccount = onCall({ secrets: [e2bApiKey] }, async (request) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated to delete an account.');
   }
@@ -29,6 +30,16 @@ export const deleteAccount = onCall(async (request) => {
       console.log(`Account deletion: removed ${objects} storage object(s) for user ${uid}`);
     } catch (storageError) {
       console.error(`Account deletion: storage cleanup failed for user ${uid}`, storageError);
+    }
+
+    // Destroy the user's Analyze Python sandboxes (uploaded files live inside them).
+    // Must run before the recursiveDelete below removes the uid → sandbox mapping.
+    // Best-effort like storage: a sandbox failure must not block account deletion.
+    try {
+      const sandboxes = await destroyUserSandboxes(uid);
+      console.log(`Account deletion: destroyed ${sandboxes} sandbox(es) for user ${uid}`);
+    } catch (sandboxError) {
+      console.error(`Account deletion: sandbox cleanup failed for user ${uid}`, sandboxError);
     }
 
     // Recursively delete the user document AND all nested subcollections

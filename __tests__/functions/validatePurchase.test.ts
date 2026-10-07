@@ -76,7 +76,6 @@ const mockSubscriptionsV2Get = jest.fn(
   async (_params: SubscriptionV2Params): Promise<SubscriptionV2Response> => ({ data: { lineItems: [] } })
 );
 const mockProductPurchaseV2Get = jest.fn();
-const mockGoogleOptions = jest.fn((_options: { auth: unknown }) => undefined);
 const mockGoogleAuthInstance = { getClient: jest.fn(async () => ({})) };
 
 jest.mock('firebase-functions/v2/https', () => ({
@@ -102,19 +101,17 @@ jest.mock('axios', () => ({
   },
 }));
 
-jest.mock('googleapis', () => ({
-  google: {
-    auth: {
-      GoogleAuth: jest.fn(() => mockGoogleAuthInstance),
-    },
-    options: mockGoogleOptions,
-    androidpublisher: jest.fn(() => ({
-      purchases: {
-        subscriptionsv2: { get: mockSubscriptionsV2Get },
-        productsv2: { getproductpurchasev2: mockProductPurchaseV2Get },
-      },
-    })),
+// validatePurchase uses the per-API package, not `googleapis` (startup memory, e1d7d07).
+jest.mock('@googleapis/androidpublisher', () => ({
+  auth: {
+    GoogleAuth: jest.fn(() => mockGoogleAuthInstance),
   },
+  androidpublisher: jest.fn(() => ({
+    purchases: {
+      subscriptionsv2: { get: mockSubscriptionsV2Get },
+      productsv2: { getproductpurchasev2: mockProductPurchaseV2Get },
+    },
+  })),
 }), { virtual: true });
 
 const { validatePurchase } = require('../../functions/src/validatePurchase') as typeof import('../../functions/src/validatePurchase');
@@ -134,7 +131,6 @@ describe('validatePurchase (Firebase callable)', () => {
     mockAxiosPost.mockReset();
     consoleErrorSpy.mockReset();
     mockSecretValue.mockReset();
-    mockGoogleOptions.mockReset();
     mockGoogleAuthInstance.getClient.mockReset();
     mockCollection.mockClear();
     mockDoc.mockClear();
@@ -147,7 +143,6 @@ describe('validatePurchase (Firebase callable)', () => {
 
     consoleErrorSpy.mockImplementation(() => {});
     mockSecretValue.mockReturnValue('shared-secret');
-    mockGoogleOptions.mockImplementation(() => undefined);
     mockGoogleAuthInstance.getClient.mockResolvedValue({});
     mockDocGet.mockResolvedValue({ exists: false, data: () => undefined });
     mockQueryGet.mockResolvedValue({ empty: true, docs: [] });
