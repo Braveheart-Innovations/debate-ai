@@ -36,6 +36,15 @@
     // bundle), and the patterns these tools expand come from our own config,
     // not user input. Allowlisted 2026-10-03; REMOVE when braces ships a fix
     // (> 3.0.3).
-    "GHSA-vfj7-8cjw-p6xm"
+    "GHSA-vfj7-8cjw-p6xm",
+    // sprintf-js DoS via unbounded precision specifiers (moderate). No patched
+    // release exists (every version <= 1.1.3, the latest, is affected).
+    // Reached only through jest's coverage tooling: @react-native/jest-preset
+    // and jest -> babel-plugin-istanbul -> @istanbuljs/load-nyc-config ->
+    // js-yaml 3 -> argparse 1. The app never imports it (not in the bundle).
+    // npm's only "fix" is jest 30 (semver major); overriding js-yaml to 4 breaks
+    // load-nyc-config's js-yaml 3 API. Allowlisted 2026-10-07; REMOVE after the
+    // jest 30 upgrade, or when sprintf-js ships a fix (> 1.1.3).
+    "GHSA-hp3w-g68c-fv3c"
   ]
 }
