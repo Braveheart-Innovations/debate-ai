@@ -268,13 +268,6 @@ export const proxyAIRequestStreamV2 = onRequest(
         return;
       }
 
-      // A client that goes away (user Stop, closed tab) aborts the provider
-      // call instead of letting it run to completion on the user's key.
-      const disconnect = new AbortController();
-      res.on('close', () => {
-        if (!res.writableEnded) disconnect.abort();
-      });
-
       for await (const event of streamModel({
         uid,
         providerId,
@@ -290,11 +283,9 @@ export const proxyAIRequestStreamV2 = onRequest(
         sessionId,
         sessionType,
         traceId,
-        signal: disconnect.signal,
         // End cleanly with an error event before the 540s function timeout.
         timeoutMs: 530_000,
       })) {
-        if (disconnect.signal.aborted) break;
         writer.write(event);
       }
 
