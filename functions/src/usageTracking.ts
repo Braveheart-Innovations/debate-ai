@@ -17,7 +17,7 @@ interface ProviderBalance {
   errorMessage?: string;
 }
 
-type SessionType = 'chat' | 'debate' | 'comparison' | 'analyze';
+export type SessionType = 'chat' | 'debate' | 'comparison' | 'analyze';
 
 const SESSION_TYPES: SessionType[] = ['chat', 'debate', 'comparison', 'analyze'];
 
