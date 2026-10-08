@@ -2164,6 +2164,128 @@ async function runSandboxFetch(
   }
 }
 
+/** Secrets the server tools read: the calling function must declare all of them. */
+export const SERVER_TOOL_SECRETS = [
+  encryptionKey,
+  e2bApiKey,
+  fredApiKey,
+  socrataAppToken,
+  nasaApiKey,
+  usCensusApiKey,
+  blsRegistrationKey,
+  fbiCrimeApiKey,
+  stackExchangeApiKey,
+  librariesIoApiKey,
+];
+
+export interface ServerToolCall {
+  toolName: string;
+  toolCallId: string;
+  args: Record<string, unknown>;
+  /** Fetch-to-sandbox target; the response lands in the sandbox, not the result. */
+  sandboxTarget?: SandboxFetchTarget | null;
+}
+
+/**
+ * Run one server tool for a user. Shared by the `executeTool` callable and the
+ * server-side Analyze loop. Never throws: failures come back as an
+ * unsuccessful ToolResult carrying the call's id.
+ */
+export async function dispatchServerTool(
+  uid: string,
+  call: ServerToolCall,
+  keyValue: string,
+): Promise<ToolResult> {
+  const { toolName, toolCallId, args, sandboxTarget } = call;
+  try {
+    let result: ToolResult;
+
+    switch (toolName) {
+      case 'fetch_url': {
+        const fetchUrlArgs = args as unknown as FetchUrlArgs;
+        const rerouteToApi = typeof fetchUrlArgs.url === 'string' && shouldRouteFetchUrlToApi(fetchUrlArgs.url);
+
+        if (rerouteToApi) {
+          if (!keyValue) {
+            throw new Error('Encryption not configured');
+          }
+
+          const convertedArgs = convertFetchUrlArgsToFetchApiArgs(fetchUrlArgs);
+          console.log('[executeTool] Routing fetch_url call to fetch_api for API endpoint', {
+            originalUrl: fetchUrlArgs.url,
+            responseFormat: convertedArgs.response_format,
+          });
+          result = sandboxTarget
+            ? await runSandboxFetch(uid, sandboxTarget, (maxBytes) => handleFetchApi(convertedArgs, uid, keyValue, maxBytes))
+            : await handleFetchApi(convertedArgs, uid, keyValue);
+        } else {
+          result = await handleFetchUrl(fetchUrlArgs);
+        }
+
+        break;
+      }
+
+      case 'fetch_api': {
+        if (!keyValue) {
+          throw new Error('Encryption not configured');
+        }
+        const fetchArgs = args as unknown as FetchApiArgs;
+        result = sandboxTarget
+          ? await runSandboxFetch(uid, sandboxTarget, (maxBytes) => handleFetchApi(fetchArgs, uid, keyValue, maxBytes))
+          : await handleFetchApi(fetchArgs, uid, keyValue);
+        break;
+      }
+
+      case 'web_search': {
+        if (!keyValue) {
+          throw new Error('Encryption not configured');
+        }
+        const searchResponse = await executeWebSearch(
+          uid,
+          args as { query: string; num_results?: number },
+          keyValue
+        );
+        result = {
+          toolCallId,
+          success: true,
+          content: JSON.stringify(searchResponse),
+        };
+        break;
+      }
+
+      case 'salesforce_docs_lookup': {
+        if (!keyValue) {
+          throw new Error('Encryption not configured');
+        }
+        result = await handleSalesforceDocsLookup(
+          args as unknown as SalesforceDocsLookupArgs,
+          uid,
+          keyValue
+        );
+        break;
+      }
+
+      default:
+        result = {
+          toolCallId,
+          success: false,
+          error: `Unknown tool: ${toolName}`,
+        };
+    }
+
+    // Set the tool call ID
+    result.toolCallId = toolCallId;
+    return result;
+  } catch (error: unknown) {
+    console.error(`Error executing tool ${toolName}:`, error);
+    return {
+      toolCallId,
+      success: false,
+      error: (error as Error)?.message || 'Tool execution failed',
+    };
+  }
+}
+
 /**
  * Firebase callable function to execute tools
  * Tools are executed server-side for security (API keys, network access)
@@ -2173,18 +2295,7 @@ export const executeTool = onCall(
     timeoutSeconds: 120,
     memory: '2GiB',
     concurrency: 40,
-    secrets: [
-      encryptionKey,
-      e2bApiKey,
-      fredApiKey,
-      socrataAppToken,
-      nasaApiKey,
-      usCensusApiKey,
-      blsRegistrationKey,
-      fbiCrimeApiKey,
-      stackExchangeApiKey,
-      librariesIoApiKey,
-    ],
+    secrets: SERVER_TOOL_SECRETS,
   },
   async (request): Promise<ToolResult> => {
     // Verify authentication
@@ -2193,103 +2304,15 @@ export const executeTool = onCall(
     }
 
     const { toolName, toolCallId, arguments: args, sandbox } = request.data as ExecuteToolRequest;
-    const sandboxTarget = parseSandboxFetchTarget(sandbox);
-
     if (!toolName) {
       throw new HttpsError('invalid-argument', 'Tool name is required');
     }
 
-    try {
-      let result: ToolResult;
-
-      switch (toolName) {
-        case 'fetch_url': {
-          const fetchUrlArgs = args as unknown as FetchUrlArgs;
-          const rerouteToApi = typeof fetchUrlArgs.url === 'string' && shouldRouteFetchUrlToApi(fetchUrlArgs.url);
-
-          if (rerouteToApi) {
-            const keyValue = encryptionKey.value();
-            if (!keyValue) {
-              throw new Error('Encryption not configured');
-            }
-
-            const convertedArgs = convertFetchUrlArgsToFetchApiArgs(fetchUrlArgs);
-            console.log('[executeTool] Routing fetch_url call to fetch_api for API endpoint', {
-              originalUrl: fetchUrlArgs.url,
-              responseFormat: convertedArgs.response_format,
-            });
-            result = sandboxTarget
-              ? await runSandboxFetch(request.auth!.uid, sandboxTarget, (maxBytes) => handleFetchApi(convertedArgs, request.auth!.uid, keyValue, maxBytes))
-              : await handleFetchApi(convertedArgs, request.auth!.uid, keyValue);
-          } else {
-            result = await handleFetchUrl(fetchUrlArgs);
-          }
-
-          break;
-        }
-
-        case 'fetch_api': {
-          const keyValue = encryptionKey.value();
-          if (!keyValue) {
-            throw new Error('Encryption not configured');
-          }
-          const fetchArgs = args as unknown as FetchApiArgs;
-          result = sandboxTarget
-            ? await runSandboxFetch(request.auth!.uid, sandboxTarget, (maxBytes) => handleFetchApi(fetchArgs, request.auth!.uid, keyValue, maxBytes))
-            : await handleFetchApi(fetchArgs, request.auth!.uid, keyValue);
-          break;
-        }
-
-        case 'web_search': {
-          const keyValue = encryptionKey.value();
-          if (!keyValue) {
-            throw new Error('Encryption not configured');
-          }
-          const searchResponse = await executeWebSearch(
-            request.auth!.uid,
-            args as { query: string; num_results?: number },
-            keyValue
-          );
-          result = {
-            toolCallId,
-            success: true,
-            content: JSON.stringify(searchResponse),
-          };
-          break;
-        }
-
-        case 'salesforce_docs_lookup': {
-          const keyValue = encryptionKey.value();
-          if (!keyValue) {
-            throw new Error('Encryption not configured');
-          }
-          result = await handleSalesforceDocsLookup(
-            args as unknown as SalesforceDocsLookupArgs,
-            request.auth!.uid,
-            keyValue
-          );
-          break;
-        }
-
-        default:
-          result = {
-            toolCallId,
-            success: false,
-            error: `Unknown tool: ${toolName}`,
-          };
-      }
-
-      // Set the tool call ID
-      result.toolCallId = toolCallId;
-      return result;
-
-    } catch (error: any) {
-      console.error(`Error executing tool ${toolName}:`, error);
-      return {
-        toolCallId,
-        success: false,
-        error: error.message || 'Tool execution failed',
-      };
-    }
+    return dispatchServerTool(request.auth.uid, {
+      toolName,
+      toolCallId,
+      args,
+      sandboxTarget: parseSandboxFetchTarget(sandbox),
+    }, encryptionKey.value());
   }
 );
