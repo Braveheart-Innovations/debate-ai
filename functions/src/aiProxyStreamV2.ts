@@ -11,18 +11,12 @@
  */
 
 import { onRequest, HttpsError } from 'firebase-functions/v2/https';
-import { isForcedToolChoice, shouldRetryUnforced } from './toolChoiceFallback';
 import { getAuth } from 'firebase-admin/auth';
-import { getDecryptedApiKey, encryptionKey } from './apiKeys';
-import { recordUsageInternal, enforceFreeTierForInteraction } from './usageTracking';
-import { ProviderRegistry, isV2Supported } from './providers/registry';
+import { encryptionKey } from './apiKeys';
+import { enforceFreeTierForInteraction } from './usageTracking';
 import { generateTraceId, createErrorEvent } from './providers/base-runtime';
-import { normalizeProviderTemperature, resolveProviderModelId } from './modelRegistry';
-import type {
-  CanonicalStreamRequest,
-  CanonicalSSEEvent,
-  CanonicalToolCall,
-} from './types/canonical';
+import { PROVIDER_NAMES, streamModel, validateModelTarget } from './modelStream';
+import type { CanonicalSSEEvent } from './types/canonical';
 
 // ============================================================================
 // Types
@@ -168,21 +162,6 @@ function normalizeMessages(messages: ClientMessage[]): import('./types/canonical
 }
 
 // ============================================================================
-// Provider Display Names
-// ============================================================================
-
-const PROVIDER_NAMES: Record<string, string> = {
-  claude: 'Claude',
-  openai: 'ChatGPT',
-  mistral: 'Mistral',
-  deepseek: 'DeepSeek',
-  grok: 'Grok',
-  cohere: 'Cohere',
-  moonshot: 'Kimi',
-  zai: 'GLM',
-};
-
-// ============================================================================
 // V2 Streaming Endpoint
 // ============================================================================
 
@@ -249,46 +228,24 @@ export const proxyAIRequestStreamV2 = onRequest(
         attachments,
       } = data;
 
-      // Validate provider is supported by V2
-      if (!providerId || !isV2Supported(providerId)) {
-        writer.write(createErrorEvent(
-          `Provider '${providerId}' is not supported by V2 endpoint. Use V1 endpoint instead.`,
-          'invalid-argument'
-        ));
+      const target = validateModelTarget(providerId, model);
+      if (!target.ok) {
+        writer.write(target.error);
         writer.end();
         return;
       }
-      const resolvedModel = resolveProviderModelId(providerId, model);
-      if (!resolvedModel) {
-        writer.write(createErrorEvent(
-          `No model configured for provider '${providerId}'.`,
-          'invalid-argument'
-        ));
-        writer.end();
-        return;
-      }
-      const resolvedTemperature = normalizeProviderTemperature(
-        providerId,
-        resolvedModel,
-        typeof temperature === 'number' ? temperature : 0.7
-      );
-
-      // Validate messages
-      if (!rawMessages || !Array.isArray(rawMessages) || rawMessages.length === 0) {
+      if (!Array.isArray(rawMessages) || rawMessages.length === 0) {
         writer.write(createErrorEvent('Messages are required', 'invalid-argument'));
         writer.end();
         return;
       }
-
-      // Normalize messages from client format to canonical format
       const messages = normalizeMessages(rawMessages as ClientMessage[]);
 
-      // Log request details
       console.log(JSON.stringify({
         traceId,
         event: 'request_parsed',
         providerId,
-        model: resolvedModel,
+        model: target.model,
         messageCount: messages.length,
         hasTools: !!(tools && tools.length > 0),
         toolCount: tools?.length || 0,
@@ -311,186 +268,34 @@ export const proxyAIRequestStreamV2 = onRequest(
         return;
       }
 
-      // Get API key
-      const apiKey = await getDecryptedApiKey(uid, providerId, keyValue);
-      if (!apiKey) {
-        const displayName = PROVIDER_NAMES[providerId] || 'AI';
-        writer.write(createErrorEvent(
-          `No API key configured for ${displayName}. Please add your API key in Settings.`,
-          'failed-precondition'
-        ));
-        writer.end();
-        return;
-      }
+      // A client that goes away (user Stop, closed tab) aborts the provider
+      // call instead of letting it run to completion on the user's key.
+      const disconnect = new AbortController();
+      res.on('close', () => {
+        if (!res.writableEnded) disconnect.abort();
+      });
 
-      // Get provider runtime
-      const runtime = ProviderRegistry.get(providerId);
-
-      // Build provider-specific request
-      const sendToProvider = async (choice: typeof toolChoice) => {
-        const builtRequest = runtime.buildRequest(
-          {
-            model: resolvedModel,
-            messages,
-            systemPrompt,
-            maxTokens,
-            temperature: resolvedTemperature,
-            tools,
-            toolChoice: choice,
-            attachments,
-          },
-          apiKey
-        );
-
-        // Log outgoing request (redacted)
-        console.log(JSON.stringify({
-          traceId,
-          event: 'provider_request',
-          providerId,
-          url: builtRequest.url,
-          hasBody: !!builtRequest.body,
-          messageCount: (builtRequest.body as any)?.messages?.length || 0,
-        }));
-
-        return fetch(builtRequest.url, {
-          method: 'POST',
-          headers: builtRequest.headers,
-          body: JSON.stringify(builtRequest.body),
-        });
-      };
-
-      // Make request to provider
-      let response = await sendToProvider(toolChoice);
-      let preReadErrorText: string | undefined;
-
-      // Analyze Team mode forces its first round; models that can't be forced
-      // get the same request once more, unforced (see toolChoiceFallback).
-      if (!response.ok && response.status === 400 && isForcedToolChoice(toolChoice)) {
-        const text = await response.text();
-        if (shouldRetryUnforced(response.status, text, toolChoice)) {
-          console.warn(JSON.stringify({ traceId, event: 'tool_choice_unsupported_retry', providerId, model: resolvedModel }));
-          response = await sendToProvider(undefined);
-        } else {
-          preReadErrorText = text;
-        }
-      }
-
-      if (!response.ok) {
-        const errorText = preReadErrorText ?? await response.text();
-
-        // Log detailed error info including request shape
-        console.error(JSON.stringify({
-          traceId,
-          event: 'provider_error',
-          status: response.status,
-          error: errorText.slice(0, 1000),
-          requestShape: {
-            messageCount: messages.length,
-            messageRoles: messages.map(m => m.role),
-            hasToolMessages: messages.some(m => m.role === 'tool'),
-            toolMessageCount: messages.filter(m => m.role === 'tool').length,
-            assistantWithToolCalls: messages.filter(m => m.role === 'assistant' && m.tool_calls?.length).length,
-          },
-        }));
-
-        const displayName = PROVIDER_NAMES[providerId] || 'AI';
-        let userMessage = `${displayName} encountered an error. Please try again.`;
-        let code = 'internal';
-
-        // Try to parse error for more details
-        let errorDetails = '';
-        try {
-          const parsed = JSON.parse(errorText);
-          if (parsed.error?.message) {
-            errorDetails = parsed.error.message;
-          }
-        } catch {
-          // Not JSON, use raw text
-          errorDetails = errorText.slice(0, 200);
-        }
-
-        if (response.status === 401 || response.status === 403) {
-          userMessage = `Your ${displayName} API key is invalid. Please update it in Settings.`;
-          code = 'permission-denied';
-        } else if (response.status === 429) {
-          userMessage = `${displayName} is rate limiting requests. Please wait and try again.`;
-          code = 'resource-exhausted';
-        } else if (response.status === 400) {
-          userMessage = `${displayName} couldn't process this request.`;
-          // Include error details for 400 errors to help debugging
-          if (errorDetails) {
-            console.error(`[${traceId}] 400 error details: ${errorDetails}`);
-          }
-          code = 'invalid-argument';
-        }
-
-        writer.write(createErrorEvent(userMessage, code));
-        writer.end();
-        return;
-      }
-
-      // Stream and parse response
-      const responseBody = response.body;
-      if (!responseBody) {
-        writer.write(createErrorEvent('No response body from provider', 'internal'));
-        writer.end();
-        return;
-      }
-
-      // Track metrics for logging
-      let inputTokens = 0;
-      let outputTokens = 0;
-      let finishReason = 'stop';
-      let toolCallsDetected: CanonicalToolCall[] = [];
-
-      // Parse and forward events
-      for await (const event of runtime.streamParse(responseBody, traceId)) {
-        // Track metrics from message_complete
-        if (event.type === 'message_complete') {
-          if (event.usage) {
-            inputTokens = event.usage.inputTokens;
-            outputTokens = event.usage.outputTokens;
-          }
-          finishReason = event.finish_reason;
-          if (event.tool_calls) {
-            toolCallsDetected = event.tool_calls;
-          }
-        }
-
-        // Forward event to client
-        writer.write(event);
-      }
-
-      // Log completion
-      const duration = Date.now() - startTime;
-      console.log(JSON.stringify({
-        traceId,
-        event: 'stream_complete',
+      for await (const event of streamModel({
+        uid,
         providerId,
-        model: resolvedModel,
-        duration,
-        inputTokens,
-        outputTokens,
-        finishReason,
-        toolCallsDetected: toolCallsDetected.length,
-        toolNames: toolCallsDetected.map(tc => tc.function.name),
-      }));
-
-      // Record usage (non-blocking)
-      if (inputTokens > 0 || outputTokens > 0) {
-        recordUsageInternal(uid, {
-          messageId: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-          sessionId: sessionId || 'unknown',
-          providerId,
-          modelId: resolvedModel,
-          inputTokens,
-          outputTokens,
-          totalTokens: inputTokens + outputTokens,
-          sessionType: sessionType || 'analyze',
-          timestamp: Date.now(),
-        }).catch((err) => {
-          console.error('Failed to record usage:', err);
-        });
+        model,
+        messages,
+        systemPrompt,
+        maxTokens,
+        temperature,
+        tools,
+        toolChoice,
+        attachments,
+        keyValue,
+        sessionId,
+        sessionType,
+        traceId,
+        signal: disconnect.signal,
+        // End cleanly with an error event before the 540s function timeout.
+        timeoutMs: 530_000,
+      })) {
+        if (disconnect.signal.aborted) break;
+        writer.write(event);
       }
 
       writer.end();
