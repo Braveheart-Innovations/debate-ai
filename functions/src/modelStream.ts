@@ -54,7 +54,7 @@ export interface ModelStreamRequest {
   sessionId?: string;
   sessionType?: SessionType;
   traceId?: string;
-  /** Caller cancellation (user Stop, client disconnect). */
+  /** Caller cancellation (e.g. the Analyze server loop's Stop). */
   signal?: AbortSignal;
   /** Ceiling for the whole call, including the stream. */
   timeoutMs?: number;
