@@ -537,6 +537,9 @@ describeEmulator('review engine', () => {
     expect(audit?.metadata?.success).toBe(true);
     expect(audit?.content).toContain('- Apex classes: 1');
     expect([...sandboxFiles.keys()].some((path) => path.startsWith('/output/salesforce/'))).toBe(true);
+    // The tool history lists saved files as /output/<name>; the next round finds them there (live smoke 2026-10-09).
+    expect(audit?.content).toContain('/output/salesforce-metadata-audit-report.md');
+    expect(sandboxFiles.has('/output/salesforce-metadata-audit-report.md')).toBe(true);
 
     // A plain message keeps the request open (and auto-review deferred); answering it closes it.
     const second = await startOperatorTurn({ uid, sessionId, content: 'What happens next?', config: config({ autoReview: true }) });
