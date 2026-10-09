@@ -177,22 +177,34 @@ function buildHtmlBrandingFooter(options?: ArtifactBrandingOptions | null): stri
   return `<footer ${HTML_BRANDING_MARKER}="visible" class="symposium-artifact-branding"><div class="symposium-artifact-branding__inner">${logo}<a href="${url}" target="_blank" rel="noopener noreferrer">${line}</a></div></footer>`;
 }
 
+/** Repeat a removal until nothing matches, so removing one span can't splice a new one together. */
+function removeAll(value: string, pattern: RegExp, replacement: string): string {
+  let previous: string;
+  let current = value;
+  do {
+    previous = current;
+    current = current.replace(pattern, replacement);
+  } while (current !== previous);
+  return current;
+}
+
+/** Plain text of an HTML fragment (titles); the result is escaped again wherever it is emitted. */
 function stripTags(value: string): string {
-  return value
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<style[\s\S]*?<\/style>/gi, '')
-    .replace(/<[^>]+>/g, ' ')
+  let text = removeAll(value, /<script\b[\s\S]*?<\/script\s*>/gi, '');
+  text = removeAll(text, /<style\b[\s\S]*?<\/style\s*>/gi, '');
+  return removeAll(text, /<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
 
 function decodeBasicEntities(value: string): string {
+  // &amp; last, so "&amp;lt;" decodes once to "&lt;", not twice to "<".
   return value
-    .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'");
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&');
 }
 
 function prettifyName(value: string): string {

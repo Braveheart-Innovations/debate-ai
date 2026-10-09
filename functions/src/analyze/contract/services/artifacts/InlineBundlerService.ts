@@ -218,7 +218,7 @@ export function inlineBundlePage(
 
   // 2. Inline <script src="..."></script>
   html = html.replace(
-    /<script\s+([^>]*?)src\s*=\s*["']([^"']+)["']([^>]*?)>\s*<\/script>/gi,
+    /<script\s+([^>]*?)src\s*=\s*["']([^"']+)["']([^>]*?)>\s*<\/script\s*>/gi,
     (fullMatch, _pre, src) => {
       if (/^https?:/i.test(src)) return fullMatch;
       const normalized = resolveBundleReference(manifest, src, htmlFilename);

@@ -37,17 +37,29 @@ function stripMarkdown(value: string): string {
     .replace(/^\s*\d+\.\s+/gm, '');
 }
 
+/** Repeat a removal until nothing matches, so removing one span can't splice a new one together. */
+function removeAll(value: string, pattern: RegExp, replacement: string): string {
+  let previous: string;
+  let current = value;
+  do {
+    previous = current;
+    current = current.replace(pattern, replacement);
+  } while (current !== previous);
+  return current;
+}
+
+/** Plain text for preview titles and excerpts (rendered as text, never as HTML). */
 function stripHtml(value: string): string {
-  return value
-    .replace(/<script\b[\s\S]*?<\/script>/gi, ' ')
-    .replace(/<style\b[\s\S]*?<\/style>/gi, ' ')
-    .replace(/<[^>]+>/g, ' ')
+  let text = removeAll(value, /<script\b[\s\S]*?<\/script\s*>/gi, ' ');
+  text = removeAll(text, /<style\b[\s\S]*?<\/style\s*>/gi, ' ');
+  // &amp; last, so "&amp;lt;" decodes once to "&lt;", not twice to "<".
+  return removeAll(text, /<[^>]+>/g, ' ')
     .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
     .replace(/&lt;/gi, '<')
     .replace(/&gt;/gi, '>')
     .replace(/&quot;/gi, '"')
-    .replace(/&#39;/g, "'");
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/gi, '&');
 }
 
 function maybeDecodeText(data: string, mimeType: string): string {
