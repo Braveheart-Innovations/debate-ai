@@ -96,7 +96,7 @@ export function buildMessageRecord(sessionId: string, message: Message, conversa
  * uploaded and replaced by the sentinel (metadata first, then content), as
  * ChatHistoryService.saveMessage / offloadMessageRecord do.
  */
-export async function prepareMessageRecord(uid: string, sessionId: string, message: Message): Promise<AnyRecord> {
+export async function prepareMessageRecord(uid: string, sessionId: string, message: Message, payloadKey = message.id): Promise<AnyRecord> {
   const record = buildMessageRecord(sessionId, message);
   if (estimateDocBytes(record) <= PAYLOAD_OFFLOAD_THRESHOLD) {
     // Clear any stale payloadRefs from a previous offloaded version.
@@ -104,7 +104,7 @@ export async function prepareMessageRecord(uid: string, sessionId: string, messa
   }
 
   const payloadRefs: StoredPayloadRefs = {};
-  const basePath = `users/${uid}/sessions/${sessionId}/messages/${message.id}`;
+  const basePath = `users/${uid}/sessions/${sessionId}/messages/${payloadKey}`;
   if (record.metadata && estimateDocBytes(record) > PAYLOAD_OFFLOAD_THRESHOLD) {
     payloadRefs.metadata = await uploadPayloadForUser(uid, `${basePath}/metadata.json`, JSON.stringify(record.metadata), 'application/json');
     record.metadata = PAYLOAD_SENTINEL;
@@ -144,14 +144,51 @@ async function hydratePayloadRefs(record: AnyRecord): Promise<void> {
   })));
 }
 
-export async function loadSessionMessages(uid: string, sessionId: string): Promise<Message[]> {
+async function loadMessages(collectionPath: string): Promise<Message[]> {
   const snapshot = await getFirestore()
-    .collection(`users/${uid}/conversations/${sessionId}/messages`)
+    .collection(collectionPath)
     .orderBy('timestamp', 'asc')
     .get();
   const records = snapshot.docs.map((doc) => doc.data() as AnyRecord);
   await Promise.all(records.map(hydratePayloadRefs));
   return records.map(({ payloadRefs: _payloadRefs, ...message }) => message as unknown as Message);
+}
+
+export async function loadSessionMessages(uid: string, sessionId: string): Promise<Message[]> {
+  return loadMessages(`users/${uid}/conversations/${sessionId}/messages`);
+}
+
+/** Where a run's conversation lives: the session's messages, or a subagent's own transcript. */
+export interface MessageStore {
+  load(): Promise<Message[]>;
+  write(message: Message): Promise<void>;
+}
+
+export function sessionMessageStore(uid: string, sessionId: string): MessageStore {
+  return {
+    load: () => loadSessionMessages(uid, sessionId),
+    write: (message) => writeMessage(uid, sessionId, message),
+  };
+}
+
+export function runMessagesPath(uid: string, sessionId: string, runId: string): string {
+  return `users/${uid}/conversations/${sessionId}/analyzeRuns/${runId}/messages`;
+}
+
+/**
+ * A subagent's transcript, under its run doc: kept out of the session's
+ * messages so History and restore show only the operator's conversation
+ * (the browser never kept these at all).
+ */
+export function runMessageStore(uid: string, sessionId: string, runId: string): MessageStore {
+  const path = runMessagesPath(uid, sessionId, runId);
+  return {
+    load: () => loadMessages(path),
+    write: async (message) => {
+      const record = await prepareMessageRecord(uid, sessionId, message, `${runId}/${message.id}`);
+      await getFirestore().doc(`${path}/${message.id}`).set(record, { merge: true });
+    },
+  };
 }
 
 // ============================================================================

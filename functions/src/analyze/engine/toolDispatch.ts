@@ -19,13 +19,15 @@ export const SERVER_LOOP_TOOLS = new Set(['execute_python', 'fetch_api', 'fetch_
 export interface ToolDispatchContext {
   uid: string;
   sandboxSessionKey: string;
+  /** A subagent's own Python kernel (the operator uses the default one). */
+  kernelKey?: string;
   keyValue: string;
   signal: AbortSignal;
 }
 
 export function createToolDispatcher(context: ToolDispatchContext): (call: ToolCall) => Promise<ToolResult> {
   const { uid, sandboxSessionKey, keyValue } = context;
-  const sandbox = createSandboxBridge(uid, sandboxSessionKey);
+  const sandbox = createSandboxBridge(uid, sandboxSessionKey, context.kernelKey);
   // One registry per step, as one per page load was in the browser.
   const datasetRegistry = new DatasetRegistry();
 

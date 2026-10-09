@@ -39,6 +39,7 @@ import {
 import type { StoredPayloadRefs } from '../../cloudPayloadStorage';
 import { handleStreamCompleted, type StreamCompletedEventData } from './streamCompletedHandler';
 import type { AnalyzeOrgEvidenceRequest } from './types';
+import type { TeamPanelRecord } from './teamPanelNote';
 
 /** Where capture traces go (Storage rules deny clients analyzeScratch/). */
 const TRACE_BUCKET = 'symposium-ai.firebasestorage.app';
@@ -64,6 +65,8 @@ export interface CaptureTrace {
     outputSelection: ReturnType<typeof normalizeAnalyzeOutputSelection>;
     fetchProvenance: Record<string, ToolResultProvenance>;
     workbook: SessionWorkbookState;
+    /** The turn's independent panel (getTeamPanel); absent in traces from before teams. */
+    teamPanel?: TeamPanelRecord | null;
   };
   output: {
     upserts: Artifact[];
@@ -95,6 +98,8 @@ export interface CaptureContext {
   run: AnalyzeRunDoc;
   runRef: DocumentReference;
   now: () => number;
+  /** This turn's independent panel (the operator's child runs), read once per capture. */
+  loadTeamPanel?: () => Promise<TeamPanelRecord | null>;
 }
 
 /** loop.ts: the stream_completed toolExecutionResults entry for one executed call. */
@@ -178,6 +183,7 @@ export class CaptureSession {
     const stored = await this.loadArtifacts();
     const workbook = await this.loadWorkbook();
     const workbookBefore = JSON.stringify(workbook.exportState());
+    const teamPanel = this.context.loadTeamPanel ? await this.context.loadTeamPanel() : null;
 
     // One clock reading per capture, so a trace replays with the same timestamps.
     const capturedAt = now();
@@ -211,6 +217,7 @@ export class CaptureSession {
           outputSelection,
           fetchProvenance: Object.fromEntries(fetchProvenance),
           workbook: workbook.exportState(),
+          teamPanel,
         })) as CaptureTrace['state']
       : null;
 
@@ -260,8 +267,7 @@ export class CaptureSession {
         persistMessage: (message) => { messageToPersist = message; },
         getFetchProvenanceMap: () => fetchProvenance,
         setFetchProvenanceMap: (map) => { fetchProvenance = map; },
-        // The independent panel arrives with teams (Phase 3 Step 4).
-        getTeamPanel: () => null,
+        getTeamPanel: () => teamPanel,
         // Only no-tool replies set this (finishWithoutTools); capture always has tool calls.
         setLatestCompletedOperatorMessageId: () => undefined,
         markReportProduced: () => { reportProduced = true; },

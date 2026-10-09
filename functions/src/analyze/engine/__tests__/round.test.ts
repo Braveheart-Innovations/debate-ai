@@ -68,6 +68,10 @@ function makeContext(overrides: Partial<RoundContext> = {}) {
     tools: [],
     executeTool,
     toolResults: new Map(),
+    messages: {
+      load: async () => [...stored],
+      write: async (message: Message) => { stored = stored.filter((m) => m.id !== message.id).concat(message); },
+    },
     capture,
     sleep: async () => undefined,
     now: () => 5,
