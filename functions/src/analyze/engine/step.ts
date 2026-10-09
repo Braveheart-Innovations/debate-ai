@@ -12,6 +12,7 @@ import { SERVER_TOOL_SECRETS } from '../../tools';
 import { getToolDefinitions } from './toolDefinitions';
 import { createToolDispatcher } from './toolDispatch';
 import { runRound, type RoundOutcome, type TurnState } from './round';
+import { CaptureSession } from '../capture/captureRound';
 import {
   RunEventWriter,
   acquireLease,
@@ -70,6 +71,8 @@ export async function runStep(payload: StepPayload, owner: string, finalAttempt 
 
   try {
     const keyValue = encryptionKey.value();
+    const now = () => Date.now();
+    const captureSession = new CaptureSession({ uid, sessionId, run, runRef: ref, now });
     const context = {
       uid,
       sessionId,
@@ -80,8 +83,10 @@ export async function runStep(payload: StepPayload, owner: string, finalAttempt 
       keyValue,
       tools: getToolDefinitions(run.config.toolNames),
       executeTool: createToolDispatcher({ uid, sandboxSessionKey: run.config.sandboxSessionKey, keyValue, signal: cancel.signal }),
+      toolResults: new Map(),
+      capture: (input: Parameters<CaptureSession['capture']>[0]) => captureSession.capture(input),
       sleep: (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
-      now: () => Date.now(),
+      now,
     };
 
     while (outcome === 'continue' && Date.now() - startedAt < STEP_BUDGET_MS) {

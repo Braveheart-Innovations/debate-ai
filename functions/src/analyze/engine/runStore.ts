@@ -4,7 +4,8 @@
  *   users/{uid}/conversations/{sessionId}/analyzeRuns/{runId}        run doc
  *   …/analyzeRuns/{runId}/runEvents/{seq}                            live events (TTL)
  *   …/analyzeRuns/{runId}/toolCalls/{toolCallId}                     idempotency
- *   users/{uid}/conversations/{sessionId}/messages/{messageId}       durable record
+ *   users/{uid}/conversations/{sessionId}/{messages,artifacts}/…     durable record (sessionStore)
+ *   Storage analyzeScratch/{run path}/toolCalls/{toolCallId}.json    a finished call's full outputs, until captured
  *
  * Rules: owners read runs and events; nothing is client-writable (actions
  * go through callables). Lease timings come from the Step 0 spike: recovery
@@ -12,7 +13,10 @@
  * Cloud Tasks redelivers it.
  */
 import { getFirestore, FieldValue, Timestamp, type DocumentReference } from 'firebase-admin/firestore';
-import type { Message, MessageMetadata } from '../contract/types';
+import { getStorage } from 'firebase-admin/storage';
+import type { AnalyzeOutputSelection } from '../contract/types/analyze';
+import type { AnalyzeOrgEvidenceRequest } from '../capture/types';
+import { removeUndefined } from './sessionStore';
 import type { ToolResult } from '../contract/lib/ai/tools/types';
 
 export const LEASE_MS = 30_000;
@@ -34,6 +38,10 @@ export interface RunConfig {
   temperature?: number;
   maxTokens?: number;
   sandboxSessionKey: string;
+  /** The output the user chose (Analyze composer); capture classifies and gates artifacts by it. */
+  outputSelection: AnalyzeOutputSelection;
+  /** Save each round's capture inputs and output (capture parity checks; Phase 3 build-out only). */
+  captureTrace?: boolean;
 }
 
 export interface AnalyzeRunDoc {
@@ -55,6 +63,17 @@ export interface AnalyzeRunDoc {
   cancelRequestedAt?: number;
   error?: { message: string; code: string } | null;
   finishedAt?: number;
+  /**
+   * Turn-scoped capture state (the browser kept these in refs reset per turn):
+   * fetch provenance keyed by sanitized tool-call id (JSON, since provenance
+   * parameters can hold nested arrays Firestore rejects), whether a valid
+   * report spec was captured (gates auto-review), the last finished operator
+   * reply, and an open org-evidence request.
+   */
+  fetchProvenanceJson?: string;
+  reportProduced?: boolean;
+  latestCompletedOperatorMessageId?: string;
+  pendingOrgEvidenceRequest?: AnalyzeOrgEvidenceRequest;
 }
 
 export function runRef(uid: string, sessionId: string, runId: string): DocumentReference {
@@ -112,6 +131,11 @@ export function watchCancel(ref: DocumentReference): { signal: AbortSignal; stop
     if (snapshot.data()?.cancelRequested && !controller.signal.aborted) controller.abort();
   }, (error) => console.error('[analyzeRun] cancel listener failed', error));
   return { signal: controller.signal, stop: unsubscribe };
+}
+
+/** The turn's last finished operator reply (the browser's latestCompletedOperatorMessageId; auto-review's target). */
+export async function setLatestCompletedOperatorMessage(ref: DocumentReference, messageId: string): Promise<void> {
+  await ref.update({ latestCompletedOperatorMessageId: messageId, updatedAt: Date.now() });
 }
 
 export async function finishRun(
@@ -188,87 +212,6 @@ export class RunEventWriter {
 }
 
 // ============================================================================
-// Messages (the durable record the web app reads)
-// ============================================================================
-
-// Firestore doesn't accept undefined values - remove them from objects.
-// Ported from symposium-ai-web ChatHistoryService removeUndefined.
-export const removeUndefined = <T,>(value: T): T => {
-  if (Array.isArray(value)) {
-    return value
-      .map((entry) => removeUndefined(entry))
-      .filter((entry) => entry !== undefined) as unknown as T;
-  }
-  if (value && typeof value === 'object') {
-    const result: Record<string, unknown> = {};
-    Object.entries(value as Record<string, unknown>).forEach(([key, entry]) => {
-      if (entry === undefined) return;
-      const cleaned = removeUndefined(entry);
-      if (cleaned === undefined) return;
-      result[key] = cleaned;
-    });
-    return result as T;
-  }
-  return value;
-};
-
-/**
- * Same record shape the web app writes (ChatHistoryService buildMessageRecord),
- * so History, restore, and the transcript read server-written messages as-is.
- * Attachments are not persisted, matching the client.
- */
-export function buildMessageRecord(sessionId: string, message: Message, conversationTurn?: number): Record<string, unknown> {
-  const wordCount = message.content ? message.content.trim().split(/\s+/).filter(Boolean).length : 0;
-  const metadata: MessageMetadata | undefined = message.metadata
-    ? removeUndefined({
-        ...message.metadata,
-        sessionId: message.metadata.sessionId || sessionId,
-        wordCount: message.metadata.wordCount ?? wordCount,
-        ...(conversationTurn ? { conversationTurn } : {}),
-      })
-    : wordCount > 0 || conversationTurn
-      ? removeUndefined({
-          sessionId,
-          wordCount,
-          ...(conversationTurn ? { conversationTurn } : {}),
-        })
-      : undefined;
-  const metadataValue = metadata && Object.keys(metadata).length > 0 ? metadata : undefined;
-
-  return removeUndefined({
-    id: message.id,
-    sender: message.sender,
-    senderType: message.senderType,
-    content: message.content,
-    timestamp: message.timestamp,
-    mentions: message.mentions,
-    metadata: metadataValue,
-  });
-}
-
-/** Firestore's document limit; large-message offload to Storage lands in Step 3. */
-const MAX_INLINE_MESSAGE_BYTES = 1_000_000;
-
-export async function writeMessage(uid: string, sessionId: string, message: Message): Promise<void> {
-  const record = buildMessageRecord(sessionId, message);
-  const bytes = Buffer.byteLength(JSON.stringify(record));
-  if (bytes > MAX_INLINE_MESSAGE_BYTES) {
-    throw new Error(`Message ${message.id} is ${bytes} bytes; Storage offload is not implemented on the server yet (Phase 3 Step 3)`);
-  }
-  await getFirestore()
-    .doc(`users/${uid}/conversations/${sessionId}/messages/${message.id}`)
-    .set(record, { merge: true });
-}
-
-export async function loadSessionMessages(uid: string, sessionId: string): Promise<Message[]> {
-  const snapshot = await getFirestore()
-    .collection(`users/${uid}/conversations/${sessionId}/messages`)
-    .orderBy('timestamp', 'asc')
-    .get();
-  return snapshot.docs.map((doc) => doc.data() as Message);
-}
-
-// ============================================================================
 // Tool-call idempotency
 // ============================================================================
 
@@ -282,7 +225,7 @@ export interface StoredToolResult {
 
 export type ToolCallRecord =
   | { state: 'started'; startedAt: number }
-  | { state: 'done'; result: StoredToolResult; finishedAt: number };
+  | { state: 'done'; result: StoredToolResult; finishedAt: number; outputsPath?: string };
 
 export function toolCallRef(run: DocumentReference, toolCallId: string): DocumentReference {
   return run.collection('toolCalls').doc(toolCallId);
@@ -306,8 +249,64 @@ export async function markToolCallStarted(ref: DocumentReference): Promise<void>
   await ref.set({ state: 'started', startedAt: Date.now() });
 }
 
-export async function markToolCallDone(ref: DocumentReference, result: StoredToolResult): Promise<void> {
-  await ref.set({ state: 'done', result, finishedAt: Date.now() });
+export async function markToolCallDone(ref: DocumentReference, result: StoredToolResult, outputsPath?: string): Promise<void> {
+  await ref.set(removeUndefined({ state: 'done', result, finishedAt: Date.now(), outputsPath }));
+}
+
+// ============================================================================
+// Tool outputs awaiting capture
+// ============================================================================
+
+const SCRATCH_BUCKET = 'symposium-ai.firebasestorage.app';
+
+function scratchFile(path: string) {
+  return getStorage().bucket(SCRATCH_BUCKET).file(path);
+}
+
+/** True when the full result carries more than the stored record keeps (what capture reads). */
+function hasCaptureOutputs(result: ToolResult): boolean {
+  return Boolean(
+    result.images?.length
+    || result.htmlOutputs?.length
+    || result.dataOutputs?.length
+    || result.bundleOutputs?.length
+    || result.provenance
+    || result.metadata?.fullStdout,
+  );
+}
+
+/**
+ * Keep a finished call's full outputs until its round is captured, so a step
+ * that dies between the tools and capture can still capture the round on
+ * redelivery. Private to the server (Storage rules deny analyzeScratch/).
+ */
+export async function saveToolOutputs(ref: DocumentReference, result: ToolResult): Promise<string | undefined> {
+  if (!hasCaptureOutputs(result)) return undefined;
+  const path = `analyzeScratch/${ref.path}.json`;
+  await scratchFile(path).save(JSON.stringify(result), { contentType: 'application/json', resumable: false });
+  return path;
+}
+
+/** The full result of a finished call: its saved outputs, else the stored record. */
+export async function loadToolResult(ref: DocumentReference): Promise<ToolResult | null> {
+  const record = await getToolCallRecord(ref);
+  if (record?.state !== 'done') return null;
+  if (record.outputsPath) {
+    try {
+      const [bytes] = await scratchFile(record.outputsPath).download();
+      return JSON.parse(bytes.toString('utf8')) as ToolResult;
+    } catch (error) {
+      console.warn('[analyzeRun] saved tool outputs unavailable; capturing from the stored result', { path: record.outputsPath, error });
+    }
+  }
+  return { toolCallId: ref.id, ...record.result } as ToolResult;
+}
+
+/** Drop the saved outputs of captured calls (best effort; they are only a crash net). */
+export async function deleteToolOutputs(refs: DocumentReference[]): Promise<void> {
+  await Promise.all(refs.map((ref) => scratchFile(`analyzeScratch/${ref.path}.json`)
+    .delete({ ignoreNotFound: true })
+    .catch((error) => console.warn('[analyzeRun] could not delete saved tool outputs', { path: ref.path, error }))));
 }
 
 export { FieldValue };

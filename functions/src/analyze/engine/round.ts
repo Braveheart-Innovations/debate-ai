@@ -10,6 +10,11 @@
  *  2. Errors arrive as canonical `error` events, not thrown fetch errors: a
  *     provider network failure / 5xx is streamModel code `internal`, which
  *     takes the browser's "network error" branch.
+ *  3. Capture (the browser's stream_completed handling) runs here, after a
+ *     round's tools: context.capture writes the artifacts and stamps the
+ *     message's toolExecutionResults. A round whose tools finished but whose
+ *     message has no toolExecutionResults was cut off before capture, and the
+ *     next delivery captures it from the calls' saved outputs.
  */
 import type { DocumentReference } from 'firebase-admin/firestore';
 import type { Message } from '../contract/types';
@@ -32,14 +37,18 @@ import {
   type AnalyzeRunDoc,
   type RunEventWriter,
   type StoredToolResult,
+  deleteToolOutputs,
   getToolCallRecord,
-  loadSessionMessages,
+  loadToolResult,
   markToolCallDone,
   markToolCallStarted,
+  saveToolOutputs,
+  setLatestCompletedOperatorMessage,
   toStoredToolResult,
   toolCallRef,
-  writeMessage,
 } from './runStore';
+import { loadSessionMessages, writeMessage } from './sessionStore';
+import type { CaptureInput } from '../capture/captureRound';
 
 // loop.ts DEFAULT_ANALYZE_TEMPERATURE / GOOGLE_ANALYZE_TEMPERATURE
 const DEFAULT_ANALYZE_TEMPERATURE = 0.7;
@@ -59,6 +68,10 @@ export interface RoundContext {
   keyValue: string;
   tools: ToolDefinition[];
   executeTool: (call: ToolCall) => Promise<ToolResult>;
+  /** Full results of the calls this step ran (the stored records keep no payloads). */
+  toolResults: Map<string, ToolResult>;
+  /** Stage 7: capture a finished tool round (captureRound.CaptureSession.capture). */
+  capture: (input: CaptureInput) => Promise<void>;
   sleep: (ms: number) => Promise<void>;
   now: () => number;
 }
@@ -227,8 +240,9 @@ async function runToolOnce(context: RoundContext, call: ToolCall): Promise<Store
   await markToolCallStarted(ref);
   context.events.push({ type: 'tool_executing', toolCallId: call.id, toolName: call.function.name });
   const result = await context.executeTool(call);
+  context.toolResults.set(call.id, result);
   const stored = toStoredToolResult(result);
-  await markToolCallDone(ref, stored);
+  await markToolCallDone(ref, stored, await saveToolOutputs(ref, result));
   context.events.push({ type: 'tool_completed', toolCallId: call.id, toolName: call.function.name, success: result.success });
   return { ...stored, provenance: result.provenance };
 }
@@ -269,6 +283,42 @@ function pendingToolCalls(messages: Message[]): ToolCall[] {
   return [];
 }
 
+/** The current turn's last assistant message, when it made tool calls that were never captured. */
+function uncapturedToolMessage(messages: Message[]): Message | null {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const message = messages[i];
+    if (message.senderType === 'user') return null;
+    if (message.senderType === 'ai') {
+      const calls = message.metadata?.toolCalls as ToolCall[] | undefined;
+      return calls?.length && !message.metadata?.toolExecutionResults ? message : null;
+    }
+  }
+  return null;
+}
+
+/**
+ * Stage 7: capture a round once its tools are done. Results come from this
+ * step, else from the calls' saved outputs; a stopped round captures the calls
+ * that ran, as the browser did.
+ */
+async function captureToolRound(context: RoundContext, message: Message): Promise<void> {
+  const calls = (message.metadata?.toolCalls ?? []) as ToolCall[];
+  const results: ToolResult[] = [];
+  for (const call of calls) {
+    const result = context.toolResults.get(call.id) ?? await loadToolResult(toolCallRef(context.runRef, call.id));
+    if (!result) break;
+    results.push(result);
+  }
+  await context.capture({ message, toolCalls: calls, results });
+  await deleteToolOutputs(calls.map((call) => toolCallRef(context.runRef, call.id)));
+}
+
+/** Write a reply that ends the turn; the browser's stream_completed recorded it as the latest operator reply. */
+async function writeFinalMessage(context: RoundContext, message: Message): Promise<void> {
+  await writeMessage(context.uid, context.sessionId, message);
+  await setLatestCompletedOperatorMessage(context.runRef, message.id);
+}
+
 async function executeTools(context: RoundContext, calls: ToolCall[]): Promise<RoundOutcome | null> {
   context.events.push({ type: 'status', status: 'tool_executing' });
   for (const call of calls) {
@@ -283,11 +333,17 @@ export async function runRound(context: RoundContext, state: TurnState): Promise
   if (context.signal.aborted) return 'stopped';
   const messages = await loadSessionMessages(context.uid, context.sessionId);
 
-  // Resume tool calls a previous step recorded but didn't finish.
+  // Resume tool calls a previous step recorded but didn't finish, then capture the round.
   const pending = pendingToolCalls(messages);
   if (pending.length > 0) {
     const stopped = await executeTools(context, pending);
-    if (stopped) return stopped;
+    const toolMessage = uncapturedToolMessage(messages);
+    if (toolMessage) await captureToolRound(context, toolMessage);
+    return stopped ?? 'continue';
+  }
+  const uncaptured = uncapturedToolMessage(messages);
+  if (uncaptured) {
+    await captureToolRound(context, uncaptured);
     return 'continue';
   }
 
@@ -314,13 +370,13 @@ export async function runRound(context: RoundContext, state: TurnState): Promise
     return 'stopped';
   }
   if (attempt.error) {
-    await writeMessage(context.uid, context.sessionId, aiMessage(context, messageId, failureText(context, history, attempt.error)));
+    await writeFinalMessage(context, aiMessage(context, messageId, failureText(context, history, attempt.error)));
     return 'error';
   }
 
   // loop.ts: a tool call cut off by the output limit.
   if (attempt.finishReason === 'length' && attempt.toolCallStarted && attempt.toolCalls.length === 0) {
-    await writeMessage(context.uid, context.sessionId, aiMessage(context, messageId, 'I started to generate code but ran into a response size limit. This can happen with complex requests.\n\nPlease try:\n1. **Break into smaller steps**: Ask for one specific analysis at a time\n2. **Simplify the request**: Start with a basic analysis, then build on it\n3. **Clear conversation**: Start a new session if the context has grown large'));
+    await writeFinalMessage(context, aiMessage(context, messageId, 'I started to generate code but ran into a response size limit. This can happen with complex requests.\n\nPlease try:\n1. **Break into smaller steps**: Ask for one specific analysis at a time\n2. **Simplify the request**: Start with a basic analysis, then build on it\n3. **Clear conversation**: Start a new session if the context has grown large'));
     return 'completed';
   }
 
@@ -328,8 +384,10 @@ export async function runRound(context: RoundContext, state: TurnState): Promise
     return finishWithoutTools(context, state, history, prompt, attempt, messageId);
   }
 
-  await writeMessage(context.uid, context.sessionId, aiMessage(context, messageId, attempt.text, { toolCalls: attempt.toolCalls }));
+  const toolMessage = aiMessage(context, messageId, attempt.text, { toolCalls: attempt.toolCalls });
+  await writeMessage(context.uid, context.sessionId, toolMessage);
   const stopped = await executeTools(context, attempt.toolCalls);
+  await captureToolRound(context, toolMessage);
   return stopped ?? 'continue';
 }
 
@@ -357,8 +415,11 @@ async function finishWithoutTools(
   if (context.signal.aborted) return 'stopped';
   // A recovery attempt may have produced tool calls after all: record and run them.
   if (!attempt.error && attempt.toolCalls.length > 0) {
-    await writeMessage(context.uid, context.sessionId, aiMessage(context, messageId, attempt.text, { toolCalls: attempt.toolCalls }));
-    return (await executeTools(context, attempt.toolCalls)) ?? 'continue';
+    const toolMessage = aiMessage(context, messageId, attempt.text, { toolCalls: attempt.toolCalls });
+    await writeMessage(context.uid, context.sessionId, toolMessage);
+    const stopped = await executeTools(context, attempt.toolCalls);
+    await captureToolRound(context, toolMessage);
+    return stopped ?? 'continue';
   }
 
   const metadata: Message['metadata'] = {};
@@ -376,6 +437,6 @@ async function finishWithoutTools(
     // A reply that stopped at the output limit reads as finished; flag it.
     metadata.outputLimitReached = true;
   }
-  await writeMessage(context.uid, context.sessionId, aiMessage(context, messageId, content, metadata));
+  await writeFinalMessage(context, aiMessage(context, messageId, content, metadata));
   return 'completed';
 }

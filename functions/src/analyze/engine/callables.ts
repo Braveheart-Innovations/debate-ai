@@ -8,7 +8,9 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { isV2Supported } from '../../providers/registry';
 import { getCatalogModel } from '../modelCatalog';
 import { enqueueStep } from './step';
-import { buildMessageRecord, finishRun, isTerminal, runRef, type AnalyzeRunDoc, type RunConfig } from './runStore';
+import { finishRun, isTerminal, runRef, type AnalyzeRunDoc, type RunConfig } from './runStore';
+import { buildMessageRecord } from './sessionStore';
+import { normalizeAnalyzeOutputSelection } from '../contract/types/analyze';
 import type { Message } from '../contract/types';
 
 /**
@@ -44,6 +46,10 @@ interface StartTurnRequest {
   systemPrompt: string;
   toolNames: string[];
   sandboxSessionKey: string;
+  /** The composer's output selection (AnalyzeOutputSelection); defaults like a new session. */
+  outputSelection?: unknown;
+  /** Save capture traces for the web parity harness (scripts/analyze-capture-parity). */
+  captureTrace?: boolean;
 }
 
 const ACTIVE: AnalyzeRunDoc['status'][] = ['queued', 'running'];
@@ -84,6 +90,8 @@ export const analyzeStartTurn = onCall({ region: 'us-central1' }, async (request
     systemPrompt,
     toolNames,
     sandboxSessionKey,
+    outputSelection: normalizeAnalyzeOutputSelection(data.outputSelection),
+    ...(data.captureTrace === true ? { captureTrace: true } : {}),
   };
   const run: AnalyzeRunDoc = {
     runId,

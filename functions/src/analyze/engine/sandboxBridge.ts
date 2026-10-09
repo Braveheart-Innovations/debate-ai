@@ -22,7 +22,7 @@ export interface ExecutionResult {
   error?: string;
 }
 
-async function readWholeFile(uid: string, sessionKey: string, path: string): Promise<Buffer> {
+export async function readWholeFile(uid: string, sessionKey: string, path: string): Promise<Buffer> {
   const service = getSandboxService();
   const chunks: Buffer[] = [];
   let offset = 0;
