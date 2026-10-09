@@ -36,8 +36,9 @@ jobs:
         working-directory: functions
 
       - name: Run Functions npm audit
-        run: npm audit --audit-level=moderate
-        working-directory: functions
+        # Same audit-ci + allowlist approach as the root audit, scoped to
+        # functions/audit-ci.jsonc (dev-only jest advisories with no patch).
+        run: npx audit-ci --config functions/audit-ci.jsonc --directory functions
 
   secret-scan:
     runs-on: ubuntu-latest
