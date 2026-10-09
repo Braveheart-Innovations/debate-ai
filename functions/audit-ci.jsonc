@@ -1,0 +1,17 @@
+{
+  "$schema": "https://raw.githubusercontent.com/IBM/audit-ci/main/docs/schema.json",
+  "moderate": true,
+  "allowlist": [
+    // Both entries are already allowlisted in the root audit-ci.jsonc (see the
+    // reasoning there). In functions they arrive only through jest/ts-jest,
+    // devDependencies added 2026-10-08 to run the Analyze server-loop tests
+    // ported verbatim from the web app. Dev tooling is never deployed (Cloud
+    // Functions installs production dependencies only), and the patterns jest
+    // expands come from our own config. REMOVE each entry when it is removed
+    // from the root list.
+    // braces stack-exhaustion DoS; no patched release (all <= 3.0.3).
+    "GHSA-vfj7-8cjw-p6xm",
+    // sprintf-js DoS; no patched release (all <= 1.1.3); clears with jest 30.
+    "GHSA-hp3w-g68c-fv3c"
+  ]
+}
