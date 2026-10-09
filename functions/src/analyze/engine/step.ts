@@ -19,14 +19,13 @@ import { createToolDispatcher } from './toolDispatch';
 import { runRound, type RoundContext, type RoundOutcome, type TurnState } from './round';
 import { CaptureSession } from '../capture/captureRound';
 import { enqueueStep, STEP_FUNCTION, type StepPayload } from './queue';
-import { runMessageStore, sessionMessageStore } from './sessionStore';
+import { runMessageStore, sessionMessageStore, type MessageStore } from './sessionStore';
 import {
   type AnalyzeRunDoc,
   RunEventWriter,
   acquireLease,
-  deleteTurnAttachments,
   finishRun,
-  loadTurnAttachments,
+  loadSessionAttachments,
   isTerminal,
   runRef,
   startHeartbeat,
@@ -163,16 +162,11 @@ export async function runStep(payload: StepPayload, owner: string, finalAttempt 
         signal: cancel.signal,
       }),
       toolResults: new Map(),
-      messages: isOperator ? sessionMessageStore(uid, sessionId) : runMessageStore(uid, sessionId, runId),
+      messages: isOperator ? await operatorMessageStore(uid, sessionId) : runMessageStore(uid, sessionId, runId),
       capture: captureSession ? (input) => captureSession.capture(input) : undefined,
       team: isOperator ? createTeamHooks(ref, run) : null,
-      // As the browser merged them: the composer's attachments, then every PDF upload's pages.
-      turnAttachments: isOperator
-        ? async () => [
-          ...(run.attachmentCount ? await loadTurnAttachments(ref) : []),
-          ...await loadPdfPageAttachments(uid, sessionId, run.config.sandboxSessionKey),
-        ]
-        : undefined,
+      // The browser added every PDF upload's pages to the turn's first model call.
+      turnAttachments: isOperator ? () => loadPdfPageAttachments(uid, sessionId, run.config.sandboxSessionKey) : undefined,
       sleep: (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
       now,
     };
@@ -231,11 +225,22 @@ export async function runStep(payload: StepPayload, owner: string, finalAttempt 
     const current = (await ref.get()).data();
     await finishRun(ref, 'error', current?.status === 'error' ? current.error : { message: crashed?.message || 'The model call failed', code: 'internal' }, { postTurnPending: true });
   }
-  if (run.attachmentCount) {
-    await deleteTurnAttachments(ref).catch((error) => console.warn('[analyzeRun] could not delete turn attachments', { runId, error }));
-  }
   await afterOperatorTurn(run, outcome);
   await ref.update({ postTurnPending: false });
+}
+
+/** The session's messages, with each user message's attachments back on it (they aren't in its record). */
+async function operatorMessageStore(uid: string, sessionId: string): Promise<MessageStore> {
+  const store = sessionMessageStore(uid, sessionId);
+  const attachments = await loadSessionAttachments(uid, sessionId);
+  if (attachments.size === 0) return store;
+  return {
+    ...store,
+    load: async () => (await store.load()).map((message) => {
+      const extra = attachments.get(message.id);
+      return extra ? { ...message, attachments: extra } : message;
+    }),
+  };
 }
 
 /** The browser's end-of-turn reactions: queued review items, auto-review, waiting reruns. Best effort. */

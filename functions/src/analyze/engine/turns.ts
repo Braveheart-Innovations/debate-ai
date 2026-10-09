@@ -7,7 +7,7 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import type { AnalyzeTeamRunSummary, Message, MessageAttachment } from '../contract/types';
 import { enqueueStep } from './queue';
-import { OPERATOR_ACTIVE, finishRun, runRef, saveTurnAttachments, type AnalyzeRunDoc, type RunConfig } from './runStore';
+import { OPERATOR_ACTIVE, finishRun, runRef, saveMessageAttachments, type AnalyzeRunDoc, type RunConfig } from './runStore';
 import { buildMessageRecord, removeUndefined } from './sessionStore';
 import { newRunId } from '../team/teamStore';
 
@@ -32,7 +32,7 @@ export interface OperatorTurnInput {
   reviewItemIds?: string[];
   /** The user imported org findings or chose to continue without them: the open request is answered. */
   resolvesOrgEvidenceRequest?: boolean;
-  /** Images and documents attached to the message (sent with the turn's first model call). */
+  /** Images and documents attached to the message (they go with it in every model call). */
   attachments?: MessageAttachment[];
 }
 
@@ -119,7 +119,7 @@ export async function startOperatorTurn(input: OperatorTurnInput): Promise<{ run
   });
 
   try {
-    if (input.attachments?.length) await saveTurnAttachments(runRef(uid, sessionId, runId), input.attachments);
+    if (input.attachments?.length) await saveMessageAttachments(uid, sessionId, userMessage.id, input.attachments);
     await enqueueStep({ uid, sessionId, runId });
   } catch (error) {
     // A run that never got a step would block the session forever: fail it.

@@ -104,7 +104,7 @@ export interface RoundContext {
   capture?: (input: CaptureInput) => Promise<void>;
   /** The operator's team (null for subagents, which never get team tools). */
   team?: TeamHooks | null;
-  /** Operator: the turn's attachments (composer + PDF pages), sent with the turn's first model call. */
+  /** Operator: the PDF uploads' page images, sent with the turn's first model call (loop.ts round 0). */
   turnAttachments?: () => Promise<MessageAttachment[]>;
   sleep: (ms: number) => Promise<void>;
   now: () => number;
@@ -567,7 +567,7 @@ export async function runRound(context: RoundContext, state: TurnState): Promise
   const messageId = `${context.run.runId}_r${state.round}`;
   const toolSet = roundTools(context);
 
-  // The browser sent the turn's attachments with its first model call only (loop.ts round 0).
+  // The browser sent the PDF pages with the turn's first model call only (loop.ts round 0).
   const attachments = state.round === 0 && context.turnAttachments ? await context.turnAttachments() : undefined;
   let prompt = '';
   let attempt = await callModel(context, history, prompt, messageId, toolSet, attachments);
