@@ -15,19 +15,29 @@ jest.mock('../../../modelStream', () => ({
 
 let stored: Message[] = [];
 const toolRecords = new Map<string, unknown>();
-jest.mock('../runStore', () => ({
+/** Full outputs saved for a finished call (runStore.saveToolOutputs), by call id. */
+const savedOutputs = new Map<string, unknown>();
+let latestCompleted: string | null = null;
+jest.mock('../sessionStore', () => ({
   loadSessionMessages: jest.fn(async () => [...stored]),
   writeMessage: jest.fn(async (_uid: string, _sid: string, message: Message) => {
     stored = stored.filter((m) => m.id !== message.id).concat(message);
   }),
+}));
+jest.mock('../runStore', () => ({
   toolCallRef: (_run: unknown, id: string) => id,
   getToolCallRecord: jest.fn(async (id: string) => toolRecords.get(id) ?? null),
   markToolCallStarted: jest.fn(async (id: string) => { toolRecords.set(id, { state: 'started' }); }),
   markToolCallDone: jest.fn(async (id: string, result: unknown) => { toolRecords.set(id, { state: 'done', result }); }),
   toStoredToolResult: (r: { success: boolean; content?: string; error?: string }) => ({ success: r.success, content: r.content, error: r.error }),
+  saveToolOutputs: jest.fn(async (id: string, result: unknown) => { savedOutputs.set(id, result); return `scratch/${id}`; }),
+  loadToolResult: jest.fn(async (id: string) => savedOutputs.get(id) ?? null),
+  deleteToolOutputs: jest.fn(async () => undefined),
+  setLatestCompletedOperatorMessage: jest.fn(async (_ref: unknown, id: string) => { latestCompleted = id; }),
 }));
 
 import { runRound, type RoundContext, type TurnState } from '../round';
+import type { CaptureInput } from '../../capture/captureRound';
 
 // --- helpers -----------------------------------------------------------------
 const user: Message = { id: 'u1', sender: 'You', senderType: 'user', content: 'Analyze sales', timestamp: 1 };
@@ -38,6 +48,12 @@ function makeContext(overrides: Partial<RoundContext> = {}) {
   const executeTool = jest.fn(async (c: ToolCall) => ({ toolCallId: c.id, success: true, content: 'ok' }));
   const events = { push: jest.fn() };
   const controller = new AbortController();
+  // Stands in for captureRound: stamps the commit marker on the message.
+  const capture = jest.fn(async (input: CaptureInput) => {
+    stored = stored.map((m) => (m.id === input.message.id
+      ? { ...m, metadata: { ...m.metadata, toolExecutionResults: input.results.map((r) => ({ toolName: 'x', success: r.success })) } }
+      : m));
+  });
   const context: RoundContext = {
     uid: 'u', sessionId: 's',
     run: {
@@ -51,11 +67,13 @@ function makeContext(overrides: Partial<RoundContext> = {}) {
     keyValue: 'k',
     tools: [],
     executeTool,
+    toolResults: new Map(),
+    capture,
     sleep: async () => undefined,
     now: () => 5,
     ...overrides,
   };
-  return { context, executeTool, events, controller };
+  return { context, executeTool, events, controller, capture };
 }
 
 const state = (round = 0): TurnState => ({ round, retryCount: 0 });
@@ -63,6 +81,8 @@ const state = (round = 0): TurnState => ({ round, retryCount: 0 });
 beforeEach(() => {
   stored = [user];
   toolRecords.clear();
+  savedOutputs.clear();
+  latestCompleted = null;
   streamQueue.length = 0;
   streamCalls.length = 0;
 });
@@ -145,7 +165,7 @@ describe('runRound', () => {
   });
 
   it('recovers an empty reply after tools with the explicit continuation prompt', async () => {
-    stored.push({ id: 'run1_r0', sender: 'Claude', senderType: 'ai', content: '', timestamp: 2, metadata: { toolCalls: [call('c1')] } });
+    stored.push({ id: 'run1_r0', sender: 'Claude', senderType: 'ai', content: '', timestamp: 2, metadata: { toolCalls: [call('c1')], toolExecutionResults: [{ toolName: 'execute_python', success: true }] } });
     stored.push({ id: 'toolresult_c1', sender: 'tool', senderType: 'tool', content: 'ok', timestamp: 3, metadata: { isToolResult: true, toolCallId: 'c1', toolName: 'execute_python', success: true } });
     const { context } = makeContext();
     streamQueue.push([done()]);
@@ -178,6 +198,61 @@ describe('runRound', () => {
     controller.abort();
     expect(await runRound(context, state())).toBe('stopped');
     expect(streamCalls).toHaveLength(0);
+  });
+
+  it('captures a tool round with the full results once its tools are done', async () => {
+    const { context, capture, executeTool } = makeContext();
+    executeTool.mockImplementation(async (c: ToolCall) => ({ toolCallId: c.id, success: true, content: 'ok', images: ['PNG'] } as never));
+    streamQueue.push([done({ finish_reason: 'tool_calls', tool_calls: [call('c1'), call('c2')] })]);
+
+    expect(await runRound(context, state())).toBe('continue');
+    expect(capture).toHaveBeenCalledTimes(1);
+    const input = capture.mock.calls[0][0];
+    expect(input.message.id).toBe('run1_r0');
+    expect(input.toolCalls.map((c) => c.id)).toEqual(['c1', 'c2']);
+    expect(input.results).toEqual([
+      expect.objectContaining({ toolCallId: 'c1', images: ['PNG'] }),
+      expect.objectContaining({ toolCallId: 'c2', images: ['PNG'] }),
+    ]);
+    expect(savedOutputs.has('c1')).toBe(true);
+  });
+
+  it('captures a round a crashed step finished but never captured, from the saved outputs', async () => {
+    stored.push({ id: 'run1_r0', sender: 'Claude', senderType: 'ai', content: '', timestamp: 2, metadata: { toolCalls: [call('c1')] } });
+    stored.push({ id: 'toolresult_c1', sender: 'tool', senderType: 'tool', content: 'ok', timestamp: 3, metadata: { isToolResult: true, toolCallId: 'c1' } });
+    toolRecords.set('c1', { state: 'done', result: { success: true, content: 'ok' } });
+    savedOutputs.set('c1', { toolCallId: 'c1', success: true, content: 'ok', dataOutputs: [{ filename: 'a.csv', base64: 'eA==', size: 1 }] });
+    const { context, capture, executeTool } = makeContext();
+
+    expect(await runRound(context, state(1))).toBe('continue');
+    expect(streamCalls).toHaveLength(0);
+    expect(executeTool).not.toHaveBeenCalled();
+    expect(capture.mock.calls[0][0].results).toEqual([expect.objectContaining({ dataOutputs: [expect.objectContaining({ base64: 'eA==' })] })]);
+
+    // Captured now: the next round asks the model.
+    streamQueue.push([{ type: 'text_delta', delta: 'Done.' }, done()]);
+    expect(await runRound(context, state(2))).toBe('completed');
+    expect(capture).toHaveBeenCalledTimes(1);
+  });
+
+  it('captures the calls that ran when Stop lands between tools', async () => {
+    const { context, capture, controller, executeTool } = makeContext();
+    executeTool.mockImplementation(async (c: ToolCall) => {
+      controller.abort();
+      return { toolCallId: c.id, success: true, content: 'ok' };
+    });
+    streamQueue.push([done({ finish_reason: 'tool_calls', tool_calls: [call('c1'), call('c2')] })]);
+
+    expect(await runRound(context, state())).toBe('stopped');
+    expect(executeTool).toHaveBeenCalledTimes(1);
+    expect(capture.mock.calls[0][0].results.map((r) => r.toolCallId)).toEqual(['c1']);
+  });
+
+  it('records the final reply as the latest completed operator message', async () => {
+    const { context } = makeContext();
+    streamQueue.push([{ type: 'text_delta', delta: 'All done.' }, done()]);
+    await runRound(context, state());
+    expect(latestCompleted).toBe('run1_r0');
   });
 
   it('keeps partial text when the model call is cancelled mid-stream', async () => {

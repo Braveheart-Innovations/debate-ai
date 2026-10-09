@@ -358,17 +358,15 @@ async function deleteReservationsForSession(uid: string, sessionId: string): Pro
   return deleted;
 }
 
-export const reserveCloudPayloadUpload = onCall(async (request) => {
-  const uid = requireUid(request.auth);
-  const data = request.data as Record<string, unknown>;
-  const logicalPath = stringValue(data.path, 'path', 1024);
-  const bytes = numberValue(data.bytes, 'bytes');
-  const sha256 = stringValue(data.sha256, 'sha256', 64).toLowerCase();
-  const contentType = stringValue(data.contentType, 'contentType', 128);
-  const policy = validatePayloadPolicy(uid, logicalPath, bytes, sha256, contentType);
-
-  await assertPaidUser(uid);
-
+/** Reserve quota and a reservation-scoped storage path for one payload upload. */
+async function reserveUpload(
+  uid: string,
+  policy: PayloadPathPolicy,
+  logicalPath: string,
+  bytes: number,
+  sha256: string,
+  contentType: string,
+) {
   const reservationRef = reservationsRef(uid).doc();
   const reservationId = reservationRef.id;
   const storagePath = reservationPath(policy, reservationId);
@@ -429,6 +427,73 @@ export const reserveCloudPayloadUpload = onCall(async (request) => {
   });
 
   return result;
+}
+
+/** Count a finished upload against the user's quota and mark its reservation finalized (idempotent). */
+async function commitReservation(uid: string, reservationId: string, bytes: number) {
+  const reservationRef = reservationsRef(uid).doc(reservationId);
+  return db().runTransaction(async (transaction) => {
+    const latestReservation = await transaction.get(reservationRef);
+    if (!latestReservation.exists) {
+      throw new HttpsError('not-found', 'Payload upload reservation not found');
+    }
+    const latest = latestReservation.data() ?? {};
+    if (latest.status === 'finalized') {
+      const usageSnap = await transaction.get(usageRef(uid));
+      const usage = normalizeUsage(usageSnap.data() as UsageDoc | undefined);
+      return {
+        success: true,
+        currentBytes: usage.currentBytes,
+        reservedBytes: usage.reservedBytes,
+        limitBytes: QUOTA_LIMIT_BYTES,
+      };
+    }
+    if (latest.status !== 'reserved') {
+      throw new HttpsError('failed-precondition', 'Payload upload reservation is not active');
+    }
+
+    const usageSnap = await transaction.get(usageRef(uid));
+    const usage = normalizeUsage(usageSnap.data() as UsageDoc | undefined);
+    const nextCurrent = usage.currentBytes + bytes;
+    const nextReserved = Math.max(0, usage.reservedBytes - bytes);
+
+    transaction.set(usageRef(uid), {
+      currentBytes: nextCurrent,
+      reservedBytes: nextReserved,
+      objectCount: usage.objectCount + 1,
+      limitBytes: QUOTA_LIMIT_BYTES,
+      warningBytes: QUOTA_WARNING_BYTES,
+      lastUpdatedAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+
+    transaction.set(reservationRef, {
+      status: 'finalized',
+      finalizedAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+
+    return {
+      success: true,
+      currentBytes: nextCurrent,
+      reservedBytes: nextReserved,
+      limitBytes: QUOTA_LIMIT_BYTES,
+    };
+  });
+}
+
+export const reserveCloudPayloadUpload = onCall(async (request) => {
+  const uid = requireUid(request.auth);
+  const data = request.data as Record<string, unknown>;
+  const logicalPath = stringValue(data.path, 'path', 1024);
+  const bytes = numberValue(data.bytes, 'bytes');
+  const sha256 = stringValue(data.sha256, 'sha256', 64).toLowerCase();
+  const contentType = stringValue(data.contentType, 'contentType', 128);
+  const policy = validatePayloadPolicy(uid, logicalPath, bytes, sha256, contentType);
+
+  await assertPaidUser(uid);
+
+  return reserveUpload(uid, policy, logicalPath, bytes, sha256, contentType);
 });
 
 export const finalizeCloudPayloadUpload = onCall(async (request) => {
@@ -519,54 +584,7 @@ export const finalizeCloudPayloadUpload = onCall(async (request) => {
     throw error;
   }
 
-  return db().runTransaction(async (transaction) => {
-    const latestReservation = await transaction.get(reservationRef);
-    if (!latestReservation.exists) {
-      throw new HttpsError('not-found', 'Payload upload reservation not found');
-    }
-    const latest = latestReservation.data() ?? {};
-    if (latest.status === 'finalized') {
-      const usageSnap = await transaction.get(usageRef(uid));
-      const usage = normalizeUsage(usageSnap.data() as UsageDoc | undefined);
-      return {
-        success: true,
-        currentBytes: usage.currentBytes,
-        reservedBytes: usage.reservedBytes,
-        limitBytes: QUOTA_LIMIT_BYTES,
-      };
-    }
-    if (latest.status !== 'reserved') {
-      throw new HttpsError('failed-precondition', 'Payload upload reservation is not active');
-    }
-
-    const usageSnap = await transaction.get(usageRef(uid));
-    const usage = normalizeUsage(usageSnap.data() as UsageDoc | undefined);
-    const nextCurrent = usage.currentBytes + bytes;
-    const nextReserved = Math.max(0, usage.reservedBytes - bytes);
-
-    transaction.set(usageRef(uid), {
-      currentBytes: nextCurrent,
-      reservedBytes: nextReserved,
-      objectCount: usage.objectCount + 1,
-      limitBytes: QUOTA_LIMIT_BYTES,
-      warningBytes: QUOTA_WARNING_BYTES,
-      lastUpdatedAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-    }, { merge: true });
-
-    transaction.set(reservationRef, {
-      status: 'finalized',
-      finalizedAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-    }, { merge: true });
-
-    return {
-      success: true,
-      currentBytes: nextCurrent,
-      reservedBytes: nextReserved,
-      limitBytes: QUOTA_LIMIT_BYTES,
-    };
-  });
+  return commitReservation(uid, reservationId, bytes);
 });
 
 export const deleteCloudPayload = onCall(async (request) => {
@@ -673,3 +691,104 @@ export const deleteUserCloudData = onCall(async (request) => {
     objectsDeleted,
   };
 });
+
+// ============================================================================
+// Server-side writers (Analyze server loop, Phase 3)
+// ============================================================================
+//
+// The server loop writes messages and artifacts itself, so it offloads large
+// fields the way the web's CloudPayloadStorageService does: the same paths,
+// policy, quota reservation and ref shape, with the upload done by the Admin
+// SDK instead of a browser upload between the two callables.
+
+/** Documents larger than this offload fields to Storage (web CloudPayloadStorageService OFFLOAD_THRESHOLD). */
+export const PAYLOAD_OFFLOAD_THRESHOLD = 800_000;
+/** Stands in for an offloaded field (web PAYLOAD_SENTINEL). */
+export const PAYLOAD_SENTINEL = '__PAYLOAD_OFFLOADED__';
+
+/** The web's CloudPayloadRef shape. */
+export interface StoredPayloadRef {
+  version: 1;
+  provider: 'firebase_storage';
+  path: string;
+  bytes: number;
+  sha256: string;
+  contentType: string;
+  offloadedAt: number;
+  reservationId?: string;
+}
+
+export interface StoredPayloadRefs {
+  data?: StoredPayloadRef;
+  content?: StoredPayloadRef;
+  metadata?: StoredPayloadRef;
+}
+
+/** Serialized byte size of a value (web estimateDocBytes). */
+export function estimateDocBytes(value: unknown): number {
+  return Buffer.byteLength(JSON.stringify(value));
+}
+
+/**
+ * Upload one payload on the user's behalf. `logicalPath` is the web's
+ * convention (users/{uid}/sessions/{sessionId}/{messages|artifacts}/{id}/{file}).
+ *
+ * Unlike the reserve callable this does not require a subscription: the
+ * server loop must persist what it produces, and "always sync" (Phase 3
+ * decision 2) removes that gate product-wide. The byte quota still applies;
+ * gating server-side Analyze itself is Phase 3 Step 7.
+ */
+export async function uploadPayloadForUser(
+  uid: string,
+  logicalPath: string,
+  text: string,
+  contentType: 'application/json' | 'text/plain',
+): Promise<StoredPayloadRef> {
+  const data = Buffer.from(text, 'utf8');
+  const sha256 = crypto.createHash('sha256').update(data).digest('hex');
+  const policy = validatePayloadPolicy(uid, logicalPath, data.byteLength, sha256, contentType);
+  const reservation = await reserveUpload(uid, policy, logicalPath, data.byteLength, sha256, contentType);
+  try {
+    await bucket().file(reservation.storagePath).save(data, { contentType, resumable: false });
+  } catch (error) {
+    await releaseReservation(uid, reservation.reservationId, 'failed');
+    throw error;
+  }
+  await commitReservation(uid, reservation.reservationId, data.byteLength);
+  return {
+    version: 1,
+    provider: 'firebase_storage',
+    path: reservation.storagePath,
+    bytes: data.byteLength,
+    sha256,
+    contentType,
+    offloadedAt: Date.now(),
+    reservationId: reservation.reservationId,
+  };
+}
+
+/** Read an offloaded payload back, verifying its hash (web downloadPayload). */
+export async function downloadPayload(ref: StoredPayloadRef): Promise<string> {
+  requirePayloadPath(ref.path);
+  const [payload] = await bucket().file(ref.path).download();
+  const actualSha = crypto.createHash('sha256').update(payload).digest('hex');
+  if (actualSha !== ref.sha256) {
+    throw new Error(`Payload integrity mismatch for ${ref.path}: expected ${ref.sha256}, got ${actualSha}`);
+  }
+  return payload.toString('utf8');
+}
+
+/** Delete an offloaded payload and release its quota (deleteCloudPayload, as the server). */
+export async function deletePayloadForUser(uid: string, ref: StoredPayloadRef): Promise<void> {
+  const policy = requirePayloadPath(ref.path);
+  if (policy.userId !== uid) throw new Error(`Payload ${ref.path} does not belong to ${uid}`);
+  const deleted = await deleteStorageObject(ref.path);
+  if (deleted.deleted) await decrementUsageForDeletedObjects(uid, deleted.bytes || ref.bytes, 1);
+  if (ref.reservationId) {
+    await reservationsRef(uid).doc(ref.reservationId).set({
+      status: 'deleted',
+      deletedAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+  }
+}
