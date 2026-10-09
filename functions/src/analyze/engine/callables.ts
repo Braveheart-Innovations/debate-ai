@@ -8,7 +8,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { isV2Supported } from '../../providers/registry';
 import { getCatalogModel } from '../modelCatalog';
 import { enqueueStep } from './step';
-import { buildMessageRecord, isTerminal, runRef, type AnalyzeRunDoc, type RunConfig } from './runStore';
+import { buildMessageRecord, finishRun, isTerminal, runRef, type AnalyzeRunDoc, type RunConfig } from './runStore';
 import type { Message } from '../contract/types';
 
 /**
@@ -112,7 +112,17 @@ export const analyzeStartTurn = onCall({ region: 'us-central1' }, async (request
     tx.set(runRef(uid, sessionId, runId), run);
   });
 
-  await enqueueStep({ uid, sessionId, runId });
+  try {
+    await enqueueStep({ uid, sessionId, runId });
+  } catch (error) {
+    // A run that never got a step would block the session forever: fail it.
+    console.error('[analyzeRun] enqueue failed', { runId, error });
+    await finishRun(runRef(uid, sessionId, runId), 'error', {
+      message: 'The run could not be scheduled.',
+      code: 'unavailable',
+    });
+    throw new HttpsError('unavailable', 'Analyze could not start this run. Please try again.');
+  }
   return { runId, userMessageId: userMessage.id };
 });
 
