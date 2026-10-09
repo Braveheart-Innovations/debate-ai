@@ -165,12 +165,33 @@ function extractJsonCandidate(response: string): string | null {
   return null;
 }
 
+/**
+ * Close string values the model left unterminated, where the value runs
+ * straight into the next key or the end of the object:
+ * `{"priority":"P1,"confidence":0.7}` (2026-10-09: Claude Sonnet 5.5 dropped
+ * that quote in about a quarter of reviewer passes, and the whole pass parsed
+ * as "no actionable items"). A terminated value can't match: its closing quote
+ * ends the [^"] run before the lookahead.
+ */
+function closeUnterminatedStrings(json: string): string {
+  return json.replace(/:"([^"\\\n]*?)(?=,"[A-Za-z_][A-Za-z0-9_]*":|\})/g, ':"$1"');
+}
+
+function parseJsonLenient(candidate: string): unknown {
+  try {
+    return JSON.parse(candidate);
+  } catch {
+    // Only a repair that yields valid JSON counts.
+    return JSON.parse(closeUnterminatedStrings(candidate));
+  }
+}
+
 function parsePayloadItems(response: string): RawReviewItem[] {
   const candidate = extractJsonCandidate(response);
   if (!candidate) return [];
 
   try {
-    const parsed = JSON.parse(candidate) as RawReviewPayload | RawReviewItem[];
+    const parsed = parseJsonLenient(candidate) as RawReviewPayload | RawReviewItem[];
     if (Array.isArray(parsed)) {
       return parsed as RawReviewItem[];
     }
