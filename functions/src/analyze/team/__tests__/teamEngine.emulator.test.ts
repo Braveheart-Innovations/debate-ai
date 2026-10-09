@@ -554,6 +554,10 @@ describeEmulator('review engine', () => {
     expect(file).toMatchObject({ filename: 'sales.csv', pythonPath: '/uploads/sales.csv', mimeType: 'text/csv', size: 21, sessionId });
     expect(await listUploads(uid, sessionId)).toEqual([file]);
     expect([...storageObjects.keys()].filter((name) => name.includes('/uploads/'))).toHaveLength(1);
+    // Uploads count against their own quota, never the session payloads'.
+    const usage = (pool: string) => getFirestore().doc(`users/${uid}/usage/${pool}`).get().then((doc) => doc.data());
+    expect(await usage('storage-uploads')).toMatchObject({ currentBytes: 21, reservedBytes: 0, objectCount: 1, limitBytes: 2 * 1024 ** 3 });
+    expect((await usage('storage-payloads'))?.currentBytes ?? 0).toBe(0);
     // The same bytes again: nothing new is stored.
     await commitUpload(uid, sessionId, 'sbx', { pythonPath: '/uploads/sales.csv', mimeType: 'text/csv' });
     expect([...storageObjects.keys()].filter((name) => name.includes('/uploads/'))).toHaveLength(1);
@@ -576,6 +580,7 @@ describeEmulator('review engine', () => {
     expect(await listUploads(uid, sessionId)).toEqual([]);
     expect(sandboxFiles.has('/uploads/sales.csv')).toBe(false);
     expect([...storageObjects.keys()].filter((name) => name.includes('/uploads/'))).toHaveLength(0);
+    expect(await usage('storage-uploads')).toMatchObject({ currentBytes: 0, objectCount: 0 });
     await expect(commitUpload(uid, sessionId, 'sbx', { pythonPath: '/uploads/../etc/passwd', mimeType: 'text/plain' })).rejects.toThrow('/uploads/');
 
     // Deleting the session takes the server-owned records with it.
