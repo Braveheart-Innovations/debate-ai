@@ -74,6 +74,7 @@ import { runRef, type AnalyzeRunDoc, type RunConfig } from '../../engine/runStor
 import { loadSessionMessages, runMessageStore } from '../../engine/sessionStore';
 import { approvePlan, replaceLane, stopWaitingOperator, cancelChildren, workSolo, forceStopStranded } from '../teamStore';
 import { startRerun } from '../reruns';
+import { MAX_SWEEPS, STRANDED_MS, sweepStrandedRuns } from '../../engine/sweeper';
 import { SOLO_RESULT_TEXT } from '../teamState';
 import { loadReviewItems, startReviewPass, startVerification } from '../../review/reviewRuns';
 
@@ -349,6 +350,40 @@ describeEmulator('team engine', () => {
     await drain();
     expect((await run(kid.runId)).status).toBe('stopped');
     expect((await run(runId)).status).toBe('stopped');
+  });
+
+  it('the sweeper re-enqueues a child whose task was lost, and the turn finishes', async () => {
+    script = (request) => {
+      if (isTeammate(request)) return text('recovered answer');
+      return hasToolResults(request) ? text('Done.') : calls({ id: 'd1', name: 'delegate', args: { task: 'A', agent: 'teammate1' } });
+    };
+    const { runId } = await startOperatorTurn({ uid, sessionId, content: 'Go', config: config({ teamAutoApprove: true }) });
+    await drain(async () => (await run(runId)).status === 'waiting_children');
+    queue.length = 0; // the child's task is lost
+    const [kid] = await children(runId);
+    // Live runs are left alone.
+    expect((await sweepStrandedRuns()).requeued).not.toContain(runRef(uid, sessionId, kid.runId).path);
+    const later = Date.now() + STRANDED_MS + 1000;
+    expect((await sweepStrandedRuns(later)).requeued).toContain(runRef(uid, sessionId, kid.runId).path);
+    await drain();
+    expect((await run(runId)).status).toBe('completed');
+    expect(toolMessages(await loadSessionMessages(uid, sessionId))[0].content).toContain('recovered answer');
+  });
+
+  it('the sweeper gives up on a run that never makes progress', async () => {
+    script = () => text('unused');
+    const { runId } = await startOperatorTurn({ uid, sessionId, content: 'Go', config: config() });
+    queue.length = 0;
+    const path = runRef(uid, sessionId, runId).path;
+    let at = Date.now();
+    for (let i = 0; i < MAX_SWEEPS; i += 1) {
+      at += STRANDED_MS + 1000;
+      expect((await sweepStrandedRuns(at)).requeued).toContain(path);
+      queue.length = 0; // lost again
+    }
+    at += STRANDED_MS + 1000;
+    expect((await sweepStrandedRuns(at)).failed).toContain(path);
+    expect((await run(runId)).status).toBe('error');
   });
 
   it('"Run again" reruns a task outside the turn and delivers it to the operator as a new turn', async () => {

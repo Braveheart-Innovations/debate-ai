@@ -97,3 +97,4 @@ export { sandboxExecute, sandboxFiles, sandboxSession, sandboxRetentionSweep } f
 // Analyze server-side loop (Phase 3; allowlisted until the v2.6 cutover)
 export { analyzeStartTurn, analyzeRunControl, analyzeReviewControl } from './analyze/engine/callables';
 export { analyzeRunStep } from './analyze/engine/step';
+export { analyzeRunSweeper } from './analyze/engine/sweeper';

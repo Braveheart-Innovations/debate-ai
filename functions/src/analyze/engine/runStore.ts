@@ -137,6 +137,8 @@ export interface AnalyzeRunDoc {
   result?: AgentRunResult;
   /** A finished child whose parent wake (or rerun delivery) still has to be enqueued. */
   handoffPending?: boolean;
+  /** Times the sweeper re-enqueued this run without progress (engine/sweeper.ts). */
+  sweepCount?: number;
   /** Operator: the post-turn work (review queue, auto-review, rerun delivery) hasn't finished yet. */
   postTurnPending?: boolean;
   /** A rerun whose result went back to the operator. */

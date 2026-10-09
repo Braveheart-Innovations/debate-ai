@@ -152,6 +152,11 @@ async function enqueueChildren(children: AnalyzeRunDoc[]): Promise<void> {
 }
 
 function unscheduledResult(child: AnalyzeRunDoc): AgentRunResult {
+  return endedChildResult(child, 'failed', 'The subagent failed: it could not be scheduled.');
+}
+
+/** A result for a child that ends without its step finishing it (never scheduled, lost, or given up on). */
+export function endedChildResult(child: AnalyzeRunDoc, status: AgentRunResult['status'], answer: string): AgentRunResult {
   return {
     runId: child.runId,
     kernel: child.config.kernel ?? '',
@@ -159,8 +164,8 @@ function unscheduledResult(child: AnalyzeRunDoc): AgentRunResult {
     provider: child.config.provider,
     model: displayModel(child.config),
     purpose: child.agent?.purpose ?? 'delegated',
-    status: 'failed',
-    answer: 'The subagent failed: it could not be scheduled.',
+    status,
+    answer,
     files: [],
     toolSummary: [],
     startedAt: child.createdAt,
@@ -550,12 +555,12 @@ export async function forceStopStranded(uid: string, sessionId: string, runId: s
   for (const doc of snapshot.docs) {
     const child = doc.data() as AnalyzeRunDoc;
     if (isTerminal(child.status) || !isStranded(child, now)) continue;
-    await finishChild(child, child.result ?? { ...unscheduledResult(child), status: 'stopped', answer: 'Stopped before it finished.' });
+    await finishChild(child, child.result ?? endedChildResult(child, 'stopped', 'Stopped before it finished.'));
   }
   const ref = runRef(uid, sessionId, runId);
   const run = (await ref.get()).data() as AnalyzeRunDoc | undefined;
   if (run && !isTerminal(run.status) && isStranded(run, now)) {
     if (run.kind === 'operator') await finishRun(ref, 'stopped');
-    else await finishChild(run, run.result ?? { ...unscheduledResult(run), status: 'stopped', answer: 'Stopped before it finished.' });
+    else await finishChild(run, run.result ?? endedChildResult(run, 'stopped', 'Stopped before it finished.'));
   }
 }
