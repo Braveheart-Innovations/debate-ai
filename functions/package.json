@@ -24,7 +24,7 @@
     "ffmpeg-static": "^5.3.0",
     "firebase-admin": "^13.10.0",
     "firebase-functions": "^7.4.0",
-    "google-auth-library": "^10.6.2",
+    "google-auth-library": "^11.1.0",
     "handlebars": "^4.7.8",
     "jose": "^6.2.9",
     "jszip": "^3.10.2",
