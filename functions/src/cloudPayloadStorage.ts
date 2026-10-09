@@ -15,21 +15,23 @@ const MAX_PAYLOAD_BYTES = {
   messageMetadata: 25 * 1024 * 1024,
   messageContent: 10 * 1024 * 1024,
   artifactData: 25 * 1024 * 1024,
+  /** An Analyze upload's original bytes (the composer's per-file limit). */
+  uploadFile: 100 * 1024 * 1024,
 } as const;
 
-type PayloadField = 'metadata' | 'content' | 'data';
-type PayloadRecordType = 'message' | 'artifact';
+type PayloadField = 'metadata' | 'content' | 'data' | 'file';
+type PayloadRecordType = 'message' | 'artifact' | 'upload';
 
 type PayloadPathPolicy = {
   userId: string;
   sessionId: string;
   recordType: PayloadRecordType;
-  collection: 'messages' | 'artifacts';
+  collection: 'messages' | 'artifacts' | 'uploads';
   recordId: string;
   reservationId?: string;
   field: PayloadField;
   fileName: string;
-  contentType: 'application/json' | 'text/plain';
+  contentType: 'application/json' | 'text/plain' | 'application/octet-stream';
   maxBytes: number;
 };
 
@@ -140,6 +142,22 @@ function parsePayloadPath(path: string): PayloadPathPolicy | null {
       fileName,
       contentType: 'text/plain',
       maxBytes: MAX_PAYLOAD_BYTES.artifactData,
+    };
+  }
+
+  // Written only by the server (Analyze uploads); clients can't reserve these.
+  if (collection === 'uploads' && fileName === 'file.bin') {
+    return {
+      userId,
+      sessionId,
+      recordType: 'upload',
+      collection,
+      recordId,
+      reservationId,
+      field: 'file',
+      fileName,
+      contentType: 'application/octet-stream',
+      maxBytes: MAX_PAYLOAD_BYTES.uploadFile,
     };
   }
 
@@ -318,13 +336,44 @@ async function deleteStoragePrefix(uid: string, prefix: string): Promise<{ bytes
  */
 export async function deleteAllUserStorage(uid: string): Promise<{ objects: number }> {
   if (!uid) throw new Error('deleteAllUserStorage: uid is required');
-  const [files] = await bucket().getFiles({ prefix: `users/${uid}/` });
   let objects = 0;
-  for (const file of files) {
-    await file.delete({ ignoreNotFound: true });
-    objects += 1;
+  for (const prefix of [`users/${uid}/`, ...analyzeScratchPrefixes(uid)]) {
+    const [files] = await bucket().getFiles({ prefix });
+    for (const file of files) {
+      await file.delete({ ignoreNotFound: true });
+      objects += 1;
+    }
   }
   return { objects };
+}
+
+/**
+ * Server-private Analyze scratch (tool outputs awaiting capture, capture
+ * traces), outside users/ so Storage rules deny clients. Scoped to a
+ * session when one is given.
+ */
+function analyzeScratchPrefixes(uid: string, sessionId?: string): string[] {
+  const session = sessionId ? `${sessionId}/` : '';
+  return [
+    `analyzeScratch/users/${uid}/conversations/${session}`,
+    `analyzeScratch/captureTraces/${uid}/${session}`,
+  ];
+}
+
+/**
+ * Delete what the Analyze server loop keeps for a session that clients can't
+ * delete themselves: runs (with their events, tool calls and transcripts),
+ * the review queue, upload records and scratch. Upload bytes live under the
+ * session's payload prefix, which the caller deletes.
+ */
+export async function deleteServerOwnedSessionData(uid: string, sessionId: string): Promise<void> {
+  const session = db().doc(`users/${uid}/conversations/${sessionId}`);
+  for (const name of ['analyzeRuns', 'reviewItems', 'analyzeUploads']) {
+    await db().recursiveDelete(session.collection(name));
+  }
+  for (const prefix of analyzeScratchPrefixes(uid, sessionId)) {
+    await bucket().deleteFiles({ prefix, force: true });
+  }
 }
 
 async function deleteCollection(collection: FirebaseFirestore.CollectionReference, batchSize = 400): Promise<number> {
@@ -490,6 +539,9 @@ export const reserveCloudPayloadUpload = onCall(async (request) => {
   const sha256 = stringValue(data.sha256, 'sha256', 64).toLowerCase();
   const contentType = stringValue(data.contentType, 'contentType', 128);
   const policy = validatePayloadPolicy(uid, logicalPath, bytes, sha256, contentType);
+  if (policy.recordType === 'upload') {
+    throw new HttpsError('invalid-argument', 'Uploads are stored by the server');
+  }
 
   await assertPaidUser(uid);
 
@@ -633,6 +685,8 @@ export const deleteCloudPayloadsForPath = onCall(async (request) => {
 
   const result = await deleteStoragePrefix(uid, basePath);
   await deleteReservationsForSession(uid, parts[3]);
+  // Every session delete calls this; the server-owned records go with it (clients can't delete them).
+  await deleteServerOwnedSessionData(uid, parts[3]);
   return { success: true, bytesDeleted: result.bytes, objectCount: result.objects };
 });
 
@@ -665,6 +719,7 @@ export const deleteUserCloudData = onCall(async (request) => {
     messagesDeleted += await deleteCollection(sessionDoc.ref.collection('messages'));
     artifactsDeleted += await deleteCollection(sessionDoc.ref.collection('artifacts'));
     reservationsDeleted += await deleteReservationsForSession(uid, sessionId);
+    await deleteServerOwnedSessionData(uid, sessionId);
     await sessionDoc.ref.delete();
     sessionsDeleted += 1;
   }
@@ -744,7 +799,16 @@ export async function uploadPayloadForUser(
   text: string,
   contentType: 'application/json' | 'text/plain',
 ): Promise<StoredPayloadRef> {
-  const data = Buffer.from(text, 'utf8');
+  return uploadBytesForUser(uid, logicalPath, Buffer.from(text, 'utf8'), contentType);
+}
+
+/** uploadPayloadForUser for bytes (Analyze uploads: users/{uid}/sessions/{sessionId}/uploads/{id}/file.bin). */
+export async function uploadBytesForUser(
+  uid: string,
+  logicalPath: string,
+  data: Buffer,
+  contentType: 'application/json' | 'text/plain' | 'application/octet-stream',
+): Promise<StoredPayloadRef> {
   const sha256 = crypto.createHash('sha256').update(data).digest('hex');
   const policy = validatePayloadPolicy(uid, logicalPath, data.byteLength, sha256, contentType);
   const reservation = await reserveUpload(uid, policy, logicalPath, data.byteLength, sha256, contentType);
@@ -769,13 +833,18 @@ export async function uploadPayloadForUser(
 
 /** Read an offloaded payload back, verifying its hash (web downloadPayload). */
 export async function downloadPayload(ref: StoredPayloadRef): Promise<string> {
+  return (await downloadPayloadBytes(ref)).toString('utf8');
+}
+
+/** downloadPayload for bytes. */
+export async function downloadPayloadBytes(ref: StoredPayloadRef): Promise<Buffer> {
   requirePayloadPath(ref.path);
   const [payload] = await bucket().file(ref.path).download();
   const actualSha = crypto.createHash('sha256').update(payload).digest('hex');
   if (actualSha !== ref.sha256) {
     throw new Error(`Payload integrity mismatch for ${ref.path}: expected ${ref.sha256}, got ${actualSha}`);
   }
-  return payload.toString('utf8');
+  return payload;
 }
 
 /** Delete an offloaded payload and release its quota (deleteCloudPayload, as the server). */

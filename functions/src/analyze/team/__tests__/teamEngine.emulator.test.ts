@@ -53,10 +53,41 @@ jest.mock('../../../sandbox/callables', () => ({
       .filter((path) => path.startsWith(`${dir}/`))
       .map((path) => ({ name: path.split('/').pop(), path, size: 1, isDirectory: false })),
     releaseKernel: async (_uid: string, _key: string, kernel: string) => { released.push(kernel); },
+    deleteFile: async (_uid: string, _key: string, path: string) => { sandboxFiles.delete(path); },
   }),
 }));
+// Storage, in memory (scratch, payload offload and upload copies round-trip for real).
+const storageObjects = new Map<string, Buffer>();
+const notFound = () => Object.assign(new Error('Not found'), { code: 404 });
 jest.mock('firebase-admin/storage', () => ({
-  getStorage: () => ({ bucket: () => ({ file: () => ({ save: async () => undefined, download: async () => [Buffer.from('{}')], delete: async () => undefined }) }) }),
+  getStorage: () => ({
+    bucket: () => ({
+      file: (path: string) => ({
+        save: async (data: Buffer | string) => { storageObjects.set(path, Buffer.from(data)); },
+        download: async () => {
+          const bytes = storageObjects.get(path);
+          if (!bytes) throw notFound();
+          return [bytes];
+        },
+        delete: async () => { storageObjects.delete(path); },
+        getMetadata: async () => {
+          const bytes = storageObjects.get(path);
+          if (!bytes) throw notFound();
+          return [{ size: String(bytes.byteLength) }];
+        },
+      }),
+      getFiles: async ({ prefix }: { prefix: string }) => [[...storageObjects.keys()]
+        .filter((name) => name.startsWith(prefix))
+        .map((name) => ({
+          name,
+          getMetadata: async () => [{ size: String(storageObjects.get(name)?.byteLength ?? 0) }],
+          delete: async () => { storageObjects.delete(name); },
+        }))],
+      deleteFiles: async ({ prefix }: { prefix: string }) => {
+        for (const name of [...storageObjects.keys()]) if (name.startsWith(prefix)) storageObjects.delete(name);
+      },
+    }),
+  }),
 }));
 
 // --- the task queue, drained by the test ----------------------------------------
@@ -77,6 +108,10 @@ import { startRerun } from '../reruns';
 import { MAX_SWEEPS, STRANDED_MS, sweepStrandedRuns } from '../../engine/sweeper';
 import { SOLO_RESULT_TEXT } from '../teamState';
 import { loadReviewItems, startReviewPass, startVerification } from '../../review/reviewRuns';
+import { SESSION_FILES_MARKER, commitUpload, listUploads, removeUpload } from '../../engine/uploads';
+import { artifactRef, prepareArtifactRecord } from '../../engine/sessionStore';
+import { deleteServerOwnedSessionData } from '../../../cloudPayloadStorage';
+import type { Artifact } from '../../contract/types/notebook';
 
 const emulator = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
 const describeEmulator = emulator ? describe : describe.skip;
@@ -145,6 +180,7 @@ beforeEach(() => {
   pythonRuns.length = 0;
   released.length = 0;
   sandboxFiles.clear();
+  storageObjects.clear();
 });
 
 describeEmulator('team engine', () => {
@@ -499,6 +535,43 @@ describeEmulator('review engine', () => {
     const third = await startOperatorTurn({ uid, sessionId, content: 'Continue without org evidence.', config: config(), resolvesOrgEvidenceRequest: true });
     await drain();
     expect((await run(third.runId)).pendingOrgEvidenceRequest).toBeUndefined();
+  });
+
+  it('uploads: kept in Storage, back in a new sandbox before the next step, removable, gone with the session', async () => {
+    sandboxFiles.set('/uploads/sales.csv', Buffer.from('region,total\nwest,10\n'));
+    const file = await commitUpload(uid, sessionId, 'sbx', { pythonPath: '/uploads/sales.csv', mimeType: 'text/csv' });
+    expect(file).toMatchObject({ filename: 'sales.csv', pythonPath: '/uploads/sales.csv', mimeType: 'text/csv', size: 21, sessionId });
+    expect(await listUploads(uid, sessionId)).toEqual([file]);
+    expect([...storageObjects.keys()].filter((name) => name.includes('/uploads/'))).toHaveLength(1);
+    // The same bytes again: nothing new is stored.
+    await commitUpload(uid, sessionId, 'sbx', { pythonPath: '/uploads/sales.csv', mimeType: 'text/csv' });
+    expect([...storageObjects.keys()].filter((name) => name.includes('/uploads/'))).toHaveLength(1);
+
+    // A saved artifact comes back under /output too.
+    const chart: Artifact = { id: 'a1', cellId: 'm1', sessionId, name: 'chart.html', type: 'html', mimeType: 'text/html', data: '<p>chart</p>', createdAt: 1 };
+    await artifactRef(uid, sessionId, chart.id).set(await prepareArtifactRecord(uid, sessionId, chart), { merge: true });
+
+    // The sandbox expired: the next step restores before running tools.
+    sandboxFiles.clear();
+    script = (request) => (hasToolResults(request) ? text('Done.') : calls({ id: 'py1', name: 'execute_python', args: { code: 'print(1)' } }));
+    const { runId } = await startOperatorTurn({ uid, sessionId, content: 'Sum it.', config: config({ team: undefined }) });
+    await drain();
+    expect((await run(runId)).status).toBe('completed');
+    expect(sandboxFiles.get('/uploads/sales.csv')?.toString()).toBe('region,total\nwest,10\n');
+    expect(sandboxFiles.get('/output/chart.html')?.toString()).toBe('<p>chart</p>');
+    expect(sandboxFiles.has(SESSION_FILES_MARKER)).toBe(true);
+
+    await removeUpload(uid, sessionId, 'sbx', '/uploads/sales.csv');
+    expect(await listUploads(uid, sessionId)).toEqual([]);
+    expect(sandboxFiles.has('/uploads/sales.csv')).toBe(false);
+    expect([...storageObjects.keys()].filter((name) => name.includes('/uploads/'))).toHaveLength(0);
+    await expect(commitUpload(uid, sessionId, 'sbx', { pythonPath: '/uploads/../etc/passwd', mimeType: 'text/plain' })).rejects.toThrow('/uploads/');
+
+    // Deleting the session takes the server-owned records with it.
+    await deleteServerOwnedSessionData(uid, sessionId);
+    const session = getFirestore().doc(`users/${uid}/conversations/${sessionId}`);
+    expect((await session.collection('analyzeRuns').get()).empty).toBe(true);
+    expect((await runRef(uid, sessionId, runId).collection('runEvents').get()).empty).toBe(true);
   });
 
   it('auto-review runs only after a turn that produced a report', async () => {

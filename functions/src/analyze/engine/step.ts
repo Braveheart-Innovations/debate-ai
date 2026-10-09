@@ -37,6 +37,7 @@ import { briefTitle } from '../team/agentResults';
 import type { AgentRunView } from '../team/types';
 import { ReviewModelError, afterOperatorCompleted, runReviewerPass } from '../review/reviewRuns';
 import { deliverPendingReruns } from '../team/reruns';
+import { restoreSessionFiles } from './uploads';
 
 export { STEP_FUNCTION, enqueueStep, type StepPayload };
 
@@ -165,6 +166,9 @@ export async function runStep(payload: StepPayload, owner: string, finalAttempt 
       sleep: (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
       now,
     };
+
+    // A new sandbox (first use, or the old one expired) gets the session's uploads and artifacts back.
+    if (context.tools.length > 0) await restoreSessionFiles(uid, sessionId, run.config.sandboxSessionKey);
 
     while (outcome === 'continue' && Date.now() - startedAt < STEP_BUDGET_MS) {
       outcome = await runRound(context, state);

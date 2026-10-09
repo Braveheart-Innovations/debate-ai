@@ -284,6 +284,13 @@ service cloud.firestore {
           allow read: if isOwner(userId);
           allow write: if false;
         }
+
+        // Analyze uploads (server loop): the record of each file the session
+        // keeps; the bytes live in Storage, written by the server only.
+        match /analyzeUploads/{uploadId} {
+          allow read: if isOwner(userId);
+          allow write: if false;
+        }
       }
     }
 

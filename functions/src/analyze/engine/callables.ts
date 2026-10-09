@@ -5,8 +5,11 @@
  *   analyzeStartTurn     the user's message → an operator run
  *   analyzeRunControl    one run: stop, team plan answers, lanes, auto-approve
  *   analyzeReviewControl the session's review queue: review, verify, send, select…
+ *   analyzeUploads       the session's uploads: keep (commit), remove, list
  */
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { e2bApiKey } from '../../sandbox/callables';
+import { UploadInputError, commitUpload, listUploads, removeUpload } from './uploads';
 import { isV2Supported } from '../../providers/registry';
 import { getCatalogModel } from '../modelCatalog';
 import { isTerminal, runRef, type AnalyzeRunDoc, type RosterAI, type RunConfig } from './runStore';
@@ -285,3 +288,48 @@ export const analyzeReviewControl = onCall({ region: 'us-central1' }, async (req
     controlFailure(error);
   }
 });
+
+/**
+ * The session's uploads. The client writes a file into the sandbox
+ * (sandboxFiles), then commits it here: the server keeps a Storage copy so
+ * the file outlives the sandbox and comes back in a new one.
+ */
+export const analyzeUploads = onCall(
+  { region: 'us-central1', secrets: [e2bApiKey], memory: '1GiB', timeoutSeconds: 300 },
+  async (request) => {
+    const uid = requireAllowedUid(request.auth?.uid);
+    const data = (request.data ?? {}) as Record<string, unknown>;
+    const sessionId = requireString(data.sessionId, 'sessionId');
+    try {
+      switch (data.op) {
+        case 'commit': {
+          const source = (data.source && typeof data.source === 'object' ? data.source : {}) as Record<string, unknown>;
+          const file = await commitUpload(uid, sessionId, requireString(data.sandboxSessionKey, 'sandboxSessionKey'), {
+            pythonPath: requireString(data.path, 'path', 1024),
+            mimeType: optionalString(data.mimeType, 200) ?? 'application/octet-stream',
+            source: {
+              sourceKind: source.sourceKind === 'artifact' ? 'artifact' : source.sourceKind === 'upload' ? 'upload' : undefined,
+              sourceArtifactId: optionalString(source.sourceArtifactId, 500),
+              sourceArtifactType: optionalString(source.sourceArtifactType, 100) as never,
+              sourceArtifactSessionId: optionalString(source.sourceArtifactSessionId, 500),
+              sourceArtifactName: optionalString(source.sourceArtifactName, 1000),
+            },
+          });
+          return { file };
+        }
+        case 'remove':
+          await removeUpload(uid, sessionId, requireString(data.sandboxSessionKey, 'sandboxSessionKey'), data.path);
+          return { ok: true };
+        case 'list':
+          return { files: await listUploads(uid, sessionId) };
+        default:
+          throw new HttpsError('invalid-argument', `Unknown op ${String(data.op)}`);
+      }
+    } catch (error) {
+      if (error instanceof HttpsError) throw error;
+      if (error instanceof UploadInputError) throw new HttpsError('invalid-argument', error.message);
+      console.error('[analyzeUploads] failed', { op: data.op, error });
+      throw new HttpsError('internal', 'The upload could not be saved. Please try again.');
+    }
+  },
+);
