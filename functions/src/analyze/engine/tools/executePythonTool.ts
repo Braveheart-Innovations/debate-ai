@@ -35,7 +35,7 @@ function detectMisplacedToolSyntax(code: string): MisplacedToolSyntax | null {
     }
 
     // Direct tool invocation syntax is not valid in execute_python context.
-    if (/^(web_search|fetch_url|fetch_api|query_sql|read_file|execute_python|salesforce_metadata_audit|salesforce_read_source|salesforce_docs_lookup|write_output_file|assemble_html_bundle)\s*\(/.test(trimmed)) {
+    if (/^(web_search|fetch_url|fetch_api|read_file|execute_python|salesforce_metadata_audit|salesforce_read_source|salesforce_docs_lookup|write_output_file|assemble_html_bundle)\s*\(/.test(trimmed)) {
       return {
         lineNumber: i + 1,
         line: rawLine,
@@ -75,7 +75,7 @@ export async function executePythonTool(
   const misplacedToolSyntax = detectMisplacedToolSyntax(code);
   if (misplacedToolSyntax) {
     const linePreview = misplacedToolSyntax.line.trim().slice(0, 180);
-    const error = `Invalid execute_python code on line ${misplacedToolSyntax.lineNumber}: tool invocation syntax detected ("${linePreview}"). Call fetch_api/fetch_url/web_search/query_sql/read_file/salesforce_metadata_audit/salesforce_docs_lookup/write_output_file as separate tool calls, then process their outputs in Python.`;
+    const error = `Invalid execute_python code on line ${misplacedToolSyntax.lineNumber}: tool invocation syntax detected ("${linePreview}"). Call fetch_api/fetch_url/web_search/read_file/salesforce_metadata_audit/salesforce_docs_lookup/write_output_file as separate tool calls, then process their outputs in Python.`;
 
     return {
       toolCallId,

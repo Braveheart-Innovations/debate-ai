@@ -30,6 +30,8 @@ export interface OperatorTurnInput {
   teamRuns?: AnalyzeTeamRunSummary[];
   /** Review items this turn works through (queued until it completes). */
   reviewItemIds?: string[];
+  /** The user imported org findings or chose to continue without them: the open request is answered. */
+  resolvesOrgEvidenceRequest?: boolean;
 }
 
 function runsPath(uid: string, sessionId: string): string {
@@ -65,6 +67,11 @@ export function followUpConfig(config: RunConfig): RunConfig {
  */
 export async function startOperatorTurn(input: OperatorTurnInput): Promise<{ runId: string; userMessageId: string }> {
   const { uid, sessionId } = input;
+  // An org-evidence request stays open across turns until the user imports
+  // findings or continues without them (the browser kept it as session state).
+  const openOrgEvidenceRequest = input.resolvesOrgEvidenceRequest
+    ? undefined
+    : (await findLatestOperatorRun(uid, sessionId))?.pendingOrgEvidenceRequest;
   const now = Date.now();
   const runId = newRunId(now);
   // Same shape as the web's ChatService.createUserMessage.
@@ -91,6 +98,7 @@ export async function startOperatorTurn(input: OperatorTurnInput): Promise<{ run
     updatedAt: now,
     lease: null,
     ...(input.reviewItemIds?.length ? { reviewItemIds: input.reviewItemIds } : {}),
+    ...(openOrgEvidenceRequest ? { pendingOrgEvidenceRequest: openOrgEvidenceRequest } : {}),
   }) as AnalyzeRunDoc;
 
   const db = getFirestore();

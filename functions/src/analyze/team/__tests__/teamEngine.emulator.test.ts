@@ -457,6 +457,50 @@ describeEmulator('review engine', () => {
     await expect(startReviewPass(uid, sessionId, { reviewerIds: ['rv'], targetMessageId: null, trigger: 'manual' })).resolves.toBeTruthy();
   });
 
+  it('Salesforce in Team mode: audit, then the org-evidence request ends the turn and stays open until answered', async () => {
+    sandboxFiles.set('/uploads/force-app/main/default/classes/CaseService.cls', Buffer.from('public class CaseService {\n  public static void escalate(Id caseId) {}\n}\n'));
+    sandboxFiles.set('/uploads/force-app/main/default/classes/CaseService.cls-meta.xml', Buffer.from('<ApexClass><apiVersion>62.0</apiVersion></ApexClass>'));
+    const evidenceArgs = {
+      reason: 'Escalation behavior depends on org runtime config.',
+      unverified_claims: ['Escalation rules are active'],
+      investigation_prompt: 'Check whether the Case escalation rules are active in the org, list their criteria, and report which entry points call CaseService.escalate at runtime.',
+    };
+    const toolResultCount = (request: ModelRequest) => request.messages.filter((m) => m.role === 'tool').length;
+    script = (request) => {
+      if (request.systemPrompt?.startsWith('You are a reviewer')) return text(reviewJson);
+      if (lastUser(request) !== 'Audit the org.') return text('Noted.');
+      if (toolResultCount(request) === 0) return calls({ id: 'sf1', name: 'salesforce_metadata_audit', args: { operation: 'audit' } });
+      return calls({ id: 'ev1', name: 'request_salesforce_org_evidence', args: evidenceArgs });
+    };
+    const sfConfig = config({
+      teamPlanTurn: true,
+      salesforceWorkspace: true,
+      autoReview: true,
+      toolNames: ['execute_python', 'salesforce_metadata_audit', 'salesforce_read_source', 'request_salesforce_org_evidence', 'salesforce_docs_lookup'],
+    });
+    const first = await startOperatorTurn({ uid, sessionId, content: 'Audit the org.', config: sfConfig });
+    await drain();
+
+    // The planning gate offered the audit and the evidence request, not docs research.
+    expect(modelCalls[0].tools?.map((t) => t.name).sort()).toEqual(['ask_user', 'propose_team', 'request_salesforce_org_evidence', 'salesforce_metadata_audit']);
+    let operator = await run(first.runId);
+    expect(operator.status).toBe('completed');
+    expect(operator.pendingOrgEvidenceRequest).toMatchObject({ investigationPrompt: evidenceArgs.investigation_prompt });
+    const audit = toolMessages(await loadSessionMessages(uid, sessionId)).find((m) => m.metadata?.toolCallId === 'sf1');
+    expect(audit?.metadata?.success).toBe(true);
+    expect(audit?.content).toContain('- Apex classes: 1');
+    expect([...sandboxFiles.keys()].some((path) => path.startsWith('/output/salesforce/'))).toBe(true);
+
+    // A plain message keeps the request open (and auto-review deferred); answering it closes it.
+    const second = await startOperatorTurn({ uid, sessionId, content: 'What happens next?', config: config({ autoReview: true }) });
+    await drain();
+    operator = await run(second.runId);
+    expect(operator.pendingOrgEvidenceRequest).toMatchObject({ investigationPrompt: evidenceArgs.investigation_prompt });
+    const third = await startOperatorTurn({ uid, sessionId, content: 'Continue without org evidence.', config: config(), resolvesOrgEvidenceRequest: true });
+    await drain();
+    expect((await run(third.runId)).pendingOrgEvidenceRequest).toBeUndefined();
+  });
+
   it('auto-review runs only after a turn that produced a report', async () => {
     script = (request) => (request.systemPrompt?.startsWith('You are a reviewer') ? text(reviewJson) : text('Just chatting.'));
     const { runId } = await startOperatorTurn({ uid, sessionId, content: 'Hi', config: config({ autoReview: true }) });

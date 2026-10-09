@@ -111,6 +111,8 @@ interface StartTurnRequest {
   /** System prompts the caller builds like systemPrompt: teammates', and the operator's with Team mode off. */
   subagentSystemPrompt?: string;
   followUpSystemPrompt?: string;
+  /** This message imports org findings or continues without them: the open org-evidence request is answered. */
+  resolvesOrgEvidenceRequest?: boolean;
 }
 
 export const analyzeStartTurn = onCall({ region: 'us-central1' }, async (request) => {
@@ -157,6 +159,7 @@ export const analyzeStartTurn = onCall({ region: 'us-central1' }, async (request
       content,
       messageId: typeof data.message?.id === 'string' && data.message.id ? data.message.id : undefined,
       config,
+      resolvesOrgEvidenceRequest: data.resolvesOrgEvidenceRequest === true,
     });
   } catch (error) {
     if (error instanceof SessionBusyError) throw new HttpsError('failed-precondition', error.message);
