@@ -1,6 +1,7 @@
 import { onCall, HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { defineSecret } from 'firebase-functions/params';
+import { SERVER_LOOP_ALLOWED_UIDS } from '../analyze/engine/allowlist';
 import { E2BSandboxProvider } from './e2bProvider';
 import { FirestoreSandboxStore } from './firestoreStore';
 import {
@@ -14,8 +15,20 @@ import {
 
 export const e2bApiKey = defineSecret('E2B_API_KEY');
 
-/** Built from scripts/build-sandbox-template.mjs. */
+/**
+ * Built from scripts/build-sandbox-template.mjs. Templates are versioned by name and
+ * never rebuilt in place: a same-name rebuild reaches every new sandbox at once.
+ */
 export const SANDBOX_TEMPLATE = 'symposium-analyze';
+/**
+ * The next template, dark-tested on the server-loop allowlist before the switch.
+ * The switch is: SANDBOX_TEMPLATE = this, then this = null.
+ */
+export const SANDBOX_TEMPLATE_CANDIDATE: string | null = 'symposium-analyze-v2';
+
+export function sandboxTemplateFor(uid: string): string {
+  return SANDBOX_TEMPLATE_CANDIDATE && SERVER_LOOP_ALLOWED_UIDS.has(uid) ? SANDBOX_TEMPLATE_CANDIDATE : SANDBOX_TEMPLATE;
+}
 const IDLE_TIMEOUT_MS = 15 * 60_000;
 /** Sandboxes (and the uploaded files inside them) are deleted after this much inactivity. */
 export const SANDBOX_RETENTION_MS = 7 * 24 * 60 * 60_000;
@@ -27,7 +40,7 @@ export function getSandboxService(): SandboxSessionService {
     service = new SandboxSessionService({
       provider: new E2BSandboxProvider(e2bApiKey.value()),
       store: new FirestoreSandboxStore(),
-      template: SANDBOX_TEMPLATE,
+      templateFor: sandboxTemplateFor,
       idleTimeoutMs: IDLE_TIMEOUT_MS,
       now: () => Date.now(),
     });

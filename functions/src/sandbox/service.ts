@@ -63,7 +63,8 @@ export function clampTimeout(timeoutMs: unknown, fallback = 60_000): number {
 export interface SandboxServiceDeps {
   provider: SandboxProvider;
   store: SandboxStore;
-  template: string;
+  /** The template a new sandbox for this user is created from. Existing sandboxes keep theirs. */
+  templateFor: (uid: string) => string;
   idleTimeoutMs: number;
   now: () => number;
   sleep?: (ms: number) => Promise<void>;
@@ -84,8 +85,9 @@ export class SandboxSessionService {
       await store.touch(uid, sessionKey, now());
       return { sandboxId: record.sandboxId, environmentReset: false };
     }
+    const template = this.deps.templateFor(uid);
     const sandboxId = await provider.create({
-      template: this.deps.template,
+      template,
       idleTimeoutMs: this.deps.idleTimeoutMs,
       metadata: { uid, sessionKey },
     });
@@ -93,7 +95,7 @@ export class SandboxSessionService {
     await store.put(uid, sessionKey, {
       sandboxId,
       provider: provider.name,
-      template: this.deps.template,
+      template,
       createdAt: at,
       lastUsedAt: at,
     });

@@ -77,7 +77,7 @@ function service(provider, store = memoryStore()) {
   let t = 1000;
   return {
     store,
-    svc: new SandboxSessionService({ provider, store, template: 'tpl', idleTimeoutMs: 1, now: () => t++, sleep: async () => {} }),
+    svc: new SandboxSessionService({ provider, store, templateFor: () => 'tpl', idleTimeoutMs: 1, now: () => t++, sleep: async () => {} }),
   };
 }
 
@@ -91,6 +91,29 @@ test('ensure creates once per (uid, session) and reconnects afterwards', async (
   assert.equal(second.environmentReset, false);
   assert.equal(provider.calls.filter(([c]) => c === 'create').length, 1);
   assert.equal(store.docs.get('u1/analyze_1').provider, 'fake');
+});
+
+test('each new sandbox uses the template chosen for its user, and the record keeps it', async () => {
+  const provider = fakeProvider();
+  const created = [];
+  provider.create = async (options) => { created.push(options.template); const id = `sbx-${created.length}`; provider.alive.add(id); return id; };
+  const store = memoryStore();
+  const svc = new SandboxSessionService({
+    provider, store, templateFor: (uid) => (uid === 'tester' ? 'tpl-v2' : 'tpl'), idleTimeoutMs: 1, now: () => 1,
+  });
+  await svc.ensure('tester', 's');
+  await svc.ensure('someone', 's');
+  assert.deepEqual(created, ['tpl-v2', 'tpl']);
+  assert.equal(store.docs.get('tester/s').template, 'tpl-v2');
+  assert.equal(store.docs.get('someone/s').template, 'tpl');
+});
+
+test('only allowlisted users get the candidate template', () => {
+  const { sandboxTemplateFor, SANDBOX_TEMPLATE, SANDBOX_TEMPLATE_CANDIDATE } = require('../lib/sandbox/callables');
+  const { SERVER_LOOP_ALLOWED_UIDS } = require('../lib/analyze/engine/allowlist');
+  const [allowed] = SERVER_LOOP_ALLOWED_UIDS;
+  assert.equal(sandboxTemplateFor('not-allowlisted'), SANDBOX_TEMPLATE);
+  assert.equal(sandboxTemplateFor(allowed), SANDBOX_TEMPLATE_CANDIDATE ?? SANDBOX_TEMPLATE);
 });
 
 test('sandboxes are never shared across users with the same session key', async () => {
@@ -300,7 +323,7 @@ test('retention sweep removes only idle sandboxes', async () => {
   const provider = fakeProvider();
   const store = memoryStore();
   let t = 0;
-  const svc = new SandboxSessionService({ provider, store, template: 'tpl', idleTimeoutMs: 1, now: () => t });
+  const svc = new SandboxSessionService({ provider, store, templateFor: () => 'tpl', idleTimeoutMs: 1, now: () => t });
   t = 1_000;
   const old = await svc.ensure('u1', 'old');
   t = 9_000;
