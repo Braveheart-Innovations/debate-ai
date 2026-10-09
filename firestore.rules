@@ -248,6 +248,28 @@ service cloud.firestore {
         match /artifacts/{artifactId} {
           allow read, write: if isOwner(userId);
         }
+
+        // Analyze server-side loop runs (Phase 3). Written only by Cloud
+        // Functions; the owner reads them to render live progress. Every
+        // client action (start a turn, stop, approve a team plan, …) goes
+        // through a callable, never a direct write.
+        match /analyzeRuns/{runId} {
+          allow read: if isOwner(userId);
+          allow write: if false;
+
+          // Batched stream events (~250 ms each) for live rendering. Short
+          // TTL (expireAt); the durable record is the messages collection.
+          match /runEvents/{eventId} {
+            allow read: if isOwner(userId);
+            allow write: if false;
+          }
+
+          // Per-tool-call idempotency records (started/done + result ref).
+          // Server bookkeeping only; the client never needs them.
+          match /toolCalls/{toolCallId} {
+            allow read, write: if false;
+          }
+        }
       }
     }
 
