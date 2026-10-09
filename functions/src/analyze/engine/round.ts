@@ -26,7 +26,7 @@
  * and no capture (the browser never captured subagent rounds either).
  */
 import type { DocumentReference } from 'firebase-admin/firestore';
-import type { Message } from '../contract/types';
+import type { Message, MessageAttachment } from '../contract/types';
 import type { ToolCall, ToolChoice, ToolDefinition, ToolResult } from '../contract/lib/ai/tools/types';
 import { streamModel, CANCELLED_CODE } from '../../modelStream';
 import type { CanonicalToolDefinition } from '../../types/canonical';
@@ -104,6 +104,8 @@ export interface RoundContext {
   capture?: (input: CaptureInput) => Promise<void>;
   /** The operator's team (null for subagents, which never get team tools). */
   team?: TeamHooks | null;
+  /** Operator: the turn's attachments (composer + PDF pages), sent with the turn's first model call. */
+  turnAttachments?: () => Promise<MessageAttachment[]>;
   sleep: (ms: number) => Promise<void>;
   now: () => number;
 }
@@ -189,6 +191,7 @@ async function callModel(
   prompt: string,
   messageId: string,
   roundToolSet: RoundTools,
+  attachments?: MessageAttachment[],
 ): Promise<ModelAttempt> {
   const { run } = context;
   const { provider, model, systemPrompt } = run.config;
@@ -206,6 +209,7 @@ async function callModel(
     temperature: run.config.temperature ?? requested,
     maxTokens: run.config.maxTokens ?? (maxOutput || DEFAULT_MAX_OUTPUT_TOKENS),
     identityId: run.config.aiId,
+    attachments,
   });
 
   const attempt: ModelAttempt = { text: '', toolCalls: [], toolCallStarted: false };
@@ -563,8 +567,10 @@ export async function runRound(context: RoundContext, state: TurnState): Promise
   const messageId = `${context.run.runId}_r${state.round}`;
   const toolSet = roundTools(context);
 
+  // The browser sent the turn's attachments with its first model call only (loop.ts round 0).
+  const attachments = state.round === 0 && context.turnAttachments ? await context.turnAttachments() : undefined;
   let prompt = '';
-  let attempt = await callModel(context, history, prompt, messageId, toolSet);
+  let attempt = await callModel(context, history, prompt, messageId, toolSet, attachments);
 
   // loopHandlers.handleLoopStreamError: one retry for network/transient failures.
   while (attempt.error && attempt.error.code !== CANCELLED_CODE) {
@@ -574,7 +580,7 @@ export async function runRound(context: RoundContext, state: TurnState): Promise
     state.retryCount += 1;
     if (hasRecentToolFollowUpContext(history)) prompt = TOOL_FOLLOW_UP_STREAM_RETRY_PROMPT;
     await context.sleep(isNetworkError ? 2000 : 1000);
-    attempt = await callModel(context, history, prompt, messageId, toolSet);
+    attempt = await callModel(context, history, prompt, messageId, toolSet, attachments);
   }
 
   if (attempt.error?.code === CANCELLED_CODE || context.signal.aborted) {
@@ -593,7 +599,7 @@ export async function runRound(context: RoundContext, state: TurnState): Promise
   }
 
   if (attempt.toolCalls.length === 0) {
-    return finishWithoutTools(context, state, history, prompt, attempt, messageId, toolSet);
+    return finishWithoutTools(context, state, history, prompt, attempt, messageId, toolSet, attachments);
   }
 
   return runToolRound(context, aiMessage(context, messageId, attempt.text, { toolCalls: attempt.toolCalls }), attempt.toolCalls);
@@ -625,6 +631,7 @@ async function finishWithoutTools(
   first: ModelAttempt,
   messageId: string,
   toolSet: RoundTools,
+  attachments?: MessageAttachment[],
 ): Promise<RoundOutcome> {
   let attempt = first;
   const toolFollowUpRound = state.round > 0 && hasRecentToolFollowUpContext(history);
@@ -636,7 +643,7 @@ async function finishWithoutTools(
   if (!attempt.error && !attempt.text.trim() && attempt.toolCalls.length === 0 && state.retryCount < MAX_RETRIES) {
     state.retryCount += 1;
     await context.sleep(1000);
-    attempt = await callModel(context, history, prompt, messageId, toolSet);
+    attempt = await callModel(context, history, prompt, messageId, toolSet, attachments);
   }
   if (context.signal.aborted) return 'stopped';
   // A recovery attempt may have produced tool calls after all: record and run them.

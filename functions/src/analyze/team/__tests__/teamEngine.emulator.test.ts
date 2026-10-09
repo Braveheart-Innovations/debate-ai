@@ -13,7 +13,7 @@ import type { Message } from '../../contract/types';
 jest.mock('uuid', () => ({ v4: () => jest.requireActual<typeof import('node:crypto')>('node:crypto').randomUUID() }));
 
 // --- scripted models -----------------------------------------------------------
-type ModelRequest = { systemPrompt?: string; messages: Array<{ role: string; content: string | null }>; tools?: Array<{ name: string }>; signal?: AbortSignal };
+type ModelRequest = { systemPrompt?: string; messages: Array<{ role: string; content: string | null }>; tools?: Array<{ name: string }>; attachments?: Array<{ fileName?: string }>; signal?: AbortSignal };
 type Script = (request: ModelRequest) => Array<Record<string, unknown>> | Promise<Array<Record<string, unknown>>>;
 let script: Script = () => [];
 const modelCalls: ModelRequest[] = [];
@@ -37,6 +37,17 @@ const released: string[] = [];
 jest.mock('../../../sandbox/callables', () => ({
   getSandboxService: () => ({
     execute: async (_uid: string, _key: string, code: string, _timeout: number, kernel?: string) => {
+      if (kernel === 'pdf-pages') {
+        // pypdfium2 stand-in: two pages per PDF that exists.
+        const jobs = JSON.parse(code.match(/\n {4}for job in (\[.*\]):\n/)![1]) as Array<{ key: string; path: string }>;
+        const results: Record<string, number | { error: string }> = {};
+        for (const job of jobs) {
+          if (!sandboxFiles.has(job.path)) { results[job.key] = { error: 'missing' }; continue; }
+          for (const page of [1, 2]) sandboxFiles.set(`${job.key}/page-${page}.png`, Buffer.from(`png${page}`));
+          results[job.key] = 2;
+        }
+        return { success: true, stdout: `__PDF_PAGES__${JSON.stringify(results)}`, images: [], htmlOutputs: [], dataOutputs: [] };
+      }
       pythonRuns.push({ code, kernel });
       return { success: true, stdout: '42', images: [], htmlOutputs: [], dataOutputs: [] };
     },
@@ -572,6 +583,24 @@ describeEmulator('review engine', () => {
     const session = getFirestore().doc(`users/${uid}/conversations/${sessionId}`);
     expect((await session.collection('analyzeRuns').get()).empty).toBe(true);
     expect((await runRef(uid, sessionId, runId).collection('runEvents').get()).empty).toBe(true);
+  });
+
+  it('attachments: the composer\'s and every PDF upload\'s pages go with the turn\'s first model call only', async () => {
+    sandboxFiles.set('/uploads/scan.pdf', Buffer.from('%PDF-1.7 fake'));
+    await commitUpload(uid, sessionId, 'sbx', { pythonPath: '/uploads/scan.pdf', mimeType: 'application/pdf' });
+    script = (request) => (hasToolResults(request) ? text('It says hello.') : calls({ id: 'py1', name: 'execute_python', args: { code: 'print(1)' } }));
+    const photo = { type: 'image' as const, uri: 'data:image/png;base64,QUJD', mimeType: 'image/png', base64: 'QUJD', fileName: 'photo.png' };
+    const { runId } = await startOperatorTurn({ uid, sessionId, content: 'What does it say?', config: config({ team: undefined }), attachments: [photo] });
+    expect([...storageObjects.keys()].some((name) => name.endsWith(`${runId}/attachments.json`))).toBe(true);
+    await drain();
+
+    expect((await run(runId)).status).toBe('completed');
+    expect(modelCalls[0].attachments?.map((a) => a.fileName)).toEqual(['photo.png', 'page-1.png', 'page-2.png']);
+    expect(modelCalls[1].attachments).toBeUndefined();
+    expect(released).toContain('pdf-pages');
+    // The pages are cached in the sandbox, outside /output; the turn's scratch is gone.
+    expect([...sandboxFiles.keys()].filter((path) => path.includes('/pdf-pages/'))).toHaveLength(2);
+    expect([...storageObjects.keys()].some((name) => name.endsWith('attachments.json'))).toBe(false);
   });
 
   it('auto-review runs only after a turn that produced a report', async () => {

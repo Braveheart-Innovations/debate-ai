@@ -20,7 +20,7 @@ import type { AnalyzeOutputSelection } from '../contract/types/analyze';
 import type { AnalyzeOrgEvidenceRequest } from '../capture/types';
 import { removeUndefined } from './sessionStore';
 import type { ToolResult } from '../contract/lib/ai/tools/types';
-import type { AnalyzeTeamRunSummary } from '../contract/types';
+import type { AnalyzeTeamRunSummary, MessageAttachment } from '../contract/types';
 import type { AgentPurpose, AgentRunResult, TeamPlan } from '../team/types';
 import type { TeamTurnState } from '../team/teamState';
 
@@ -152,6 +152,8 @@ export interface AnalyzeRunDoc {
   teamRuns?: AnalyzeTeamRunSummary[];
   /** Review items handed to this turn (queued → completed when it completes). */
   reviewItemIds?: string[];
+  /** The user's message came with attachments (saved for round 0: saveTurnAttachments). */
+  attachmentCount?: number;
   round: number;
   /** Model-call retries used this turn (loopHandlers: one per turn). */
   retryCount?: number;
@@ -429,6 +431,32 @@ export async function deleteToolOutputs(refs: DocumentReference[]): Promise<void
   await Promise.all(refs.map((ref) => scratchFile(`analyzeScratch/${ref.path}.json`)
     .delete({ ignoreNotFound: true })
     .catch((error) => console.warn('[analyzeRun] could not delete saved tool outputs', { path: ref.path, error }))));
+}
+
+// ============================================================================
+// The turn's composer attachments
+// ============================================================================
+
+/**
+ * The images and documents the user attached to the turn's message. Messages
+ * never persist attachments (as in the browser), so they wait here for round
+ * 0, private to the server, until the turn ends.
+ */
+function turnAttachmentsPath(runRef: DocumentReference): string {
+  return `analyzeScratch/${runRef.path}/attachments.json`;
+}
+
+export async function saveTurnAttachments(runRef: DocumentReference, attachments: MessageAttachment[]): Promise<void> {
+  await scratchFile(turnAttachmentsPath(runRef)).save(JSON.stringify(attachments), { contentType: 'application/json', resumable: false });
+}
+
+export async function loadTurnAttachments(runRef: DocumentReference): Promise<MessageAttachment[]> {
+  const [bytes] = await scratchFile(turnAttachmentsPath(runRef)).download();
+  return JSON.parse(bytes.toString('utf8')) as MessageAttachment[];
+}
+
+export async function deleteTurnAttachments(runRef: DocumentReference): Promise<void> {
+  await scratchFile(turnAttachmentsPath(runRef)).delete({ ignoreNotFound: true });
 }
 
 export { FieldValue };

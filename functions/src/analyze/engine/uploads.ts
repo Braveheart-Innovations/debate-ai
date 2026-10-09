@@ -59,11 +59,16 @@ function toMetadata(record: UploadRecord): FileMetadata {
   return metadata;
 }
 
-export async function listUploads(uid: string, sessionId: string): Promise<FileMetadata[]> {
+/** The session's upload records, oldest first. */
+export async function loadUploadRecords(uid: string, sessionId: string): Promise<UploadRecord[]> {
   const snapshot = await uploadsCollection(uid, sessionId).get();
   return snapshot.docs
-    .map((doc) => toMetadata(doc.data() as UploadRecord))
+    .map((doc) => doc.data() as UploadRecord)
     .sort((a, b) => a.uploadedAt - b.uploadedAt);
+}
+
+export async function listUploads(uid: string, sessionId: string): Promise<FileMetadata[]> {
+  return (await loadUploadRecords(uid, sessionId)).map(toMetadata);
 }
 
 /**
@@ -146,7 +151,7 @@ export async function restoreSessionFiles(uid: string, sessionId: string, sandbo
   if (await hasMarker(uid, sandboxSessionKey)) return false;
   const service = getSandboxService();
 
-  const uploads = (await uploadsCollection(uid, sessionId).get()).docs.map((doc) => doc.data() as UploadRecord);
+  const uploads = await loadUploadRecords(uid, sessionId);
   for (const upload of uploads) {
     const bytes = await downloadPayloadBytes(upload.payload);
     await service.writeFile(uid, sandboxSessionKey, {

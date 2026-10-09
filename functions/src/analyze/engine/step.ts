@@ -24,7 +24,9 @@ import {
   type AnalyzeRunDoc,
   RunEventWriter,
   acquireLease,
+  deleteTurnAttachments,
   finishRun,
+  loadTurnAttachments,
   isTerminal,
   runRef,
   startHeartbeat,
@@ -38,6 +40,7 @@ import type { AgentRunView } from '../team/types';
 import { ReviewModelError, afterOperatorCompleted, runReviewerPass } from '../review/reviewRuns';
 import { deliverPendingReruns } from '../team/reruns';
 import { restoreSessionFiles } from './uploads';
+import { loadPdfPageAttachments } from './pdfPages';
 
 export { STEP_FUNCTION, enqueueStep, type StepPayload };
 
@@ -163,12 +166,19 @@ export async function runStep(payload: StepPayload, owner: string, finalAttempt 
       messages: isOperator ? sessionMessageStore(uid, sessionId) : runMessageStore(uid, sessionId, runId),
       capture: captureSession ? (input) => captureSession.capture(input) : undefined,
       team: isOperator ? createTeamHooks(ref, run) : null,
+      // As the browser merged them: the composer's attachments, then every PDF upload's pages.
+      turnAttachments: isOperator
+        ? async () => [
+          ...(run.attachmentCount ? await loadTurnAttachments(ref) : []),
+          ...await loadPdfPageAttachments(uid, sessionId, run.config.sandboxSessionKey),
+        ]
+        : undefined,
       sleep: (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
       now,
     };
 
     // A new sandbox (first use, or the old one expired) gets the session's uploads and artifacts back.
-    if (context.tools.length > 0) await restoreSessionFiles(uid, sessionId, run.config.sandboxSessionKey);
+    await restoreSessionFiles(uid, sessionId, run.config.sandboxSessionKey);
 
     while (outcome === 'continue' && Date.now() - startedAt < STEP_BUDGET_MS) {
       outcome = await runRound(context, state);
@@ -220,6 +230,9 @@ export async function runStep(payload: StepPayload, owner: string, finalAttempt 
   } else {
     const current = (await ref.get()).data();
     await finishRun(ref, 'error', current?.status === 'error' ? current.error : { message: crashed?.message || 'The model call failed', code: 'internal' }, { postTurnPending: true });
+  }
+  if (run.attachmentCount) {
+    await deleteTurnAttachments(ref).catch((error) => console.warn('[analyzeRun] could not delete turn attachments', { runId, error }));
   }
   await afterOperatorTurn(run, outcome);
   await ref.update({ postTurnPending: false });
