@@ -39,6 +39,19 @@ describe('ReviewService', () => {
     expect(items[0].reviewerName).toBe('ChatGPT');
   });
 
+  it('repairs a value the model left unterminated instead of dropping the whole pass (2026-10-09)', () => {
+    // Claude Sonnet 5.5, live: the closing quote after "P1" was missing.
+    const response = '{"items":[{"priority":"P1,"confidence":0.7,"actionType":"countercheck","title":"Benchmark the headline","details":"Compare against official projections.","artifactRefs":["artifact-1"],"expectedOutcome":"A sanity check.","estimatedCost":"low"},{"priority":"P2","confidence":0.6,"actionType":"expand","title":"Add a scenario","details":"Model an accelerating decline.","artifactRefs":[],"expectedOutcome":"A range.","estimatedCost":"med"}]}';
+
+    const items = parseAnalyzeReviewItemsFromResponse(reviewer, response, artifacts);
+
+    expect(items.map((item) => [item.priority, item.title])).toEqual([['P1', 'Benchmark the headline'], ['P2', 'Add a scenario']]);
+    // Valid output is untouched by the repair, including values with commas and braces.
+    const valid = '{"items":[{"priority":"P0","confidence":0.9,"actionType":"verify","title":"Check a, b} and c","details":"d","artifactRefs":[],"expectedOutcome":"e","estimatedCost":"low"}]}';
+    expect(parseAnalyzeReviewItemsFromResponse(reviewer, valid, artifacts)[0].title).toBe('Check a, b} and c');
+    expect(parseAnalyzeReviewItemsFromResponse(reviewer, '{"items":[{"priority":', artifacts)).toEqual([]);
+  });
+
   it('builds reviewer prompt with operator context', () => {
     const prompt = buildAnalyzeReviewerPrompt({
       reviewerName: 'ChatGPT',
