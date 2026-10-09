@@ -1,0 +1,60 @@
+## Symposium house chart style (symposium-analyze-v2 and later).
+## Mirrors the report's Vega-Lite config (symposium-ai-web src/services/analyze/charts/vegaChart.ts)
+## so a matplotlib chart and a Vega chart look like one family in the same report.
+## Installed as the kernel's default rc by scripts/build-sandbox-template.mjs.
+
+## Inter is the report's PDF typeface. Noto CJK covers glyphs Inter lacks: matplotlib falls
+## back per glyph only across font.family entries, not within the sans-serif list, so it is
+## named here too.
+font.family:     sans-serif, Noto Sans CJK JP
+font.sans-serif: Inter, Noto Sans CJK JP, DejaVu Sans
+font.serif:      Source Serif 4, Noto Serif CJK JP, DejaVu Serif
+font.monospace:  JetBrains Mono, DejaVu Sans Mono
+font.size:       10.5
+
+## BRAND_CATEGORY_PALETTE, in order.
+axes.prop_cycle:   cycler('color', ['0E9594', '4888F8', 'ea580c', '10A37F', '7c3aed', 'a16207', 'db2777', '4f46e5'])
+axes.facecolor:    white
+axes.edgecolor:    cbd5e1
+axes.linewidth:    0.8
+axes.labelcolor:   334155
+axes.labelsize:    11
+axes.labelweight:  semibold
+axes.titlecolor:   0f172a
+axes.titlesize:    13
+axes.titleweight:  semibold
+axes.titlelocation: left
+axes.titlepad:     10
+axes.spines.top:   False
+axes.spines.right: False
+## Value-axis grid only, like the report's Vega charts (no lines between categories).
+axes.grid:         True
+axes.grid.axis:    y
+axes.axisbelow:    True
+grid.color:        e2e8f0
+grid.linewidth:    0.8
+
+xtick.color:       cbd5e1
+xtick.labelcolor:  475569
+xtick.labelsize:   10
+ytick.color:       cbd5e1
+ytick.labelcolor:  475569
+ytick.labelsize:   10
+
+legend.frameon:    False
+legend.fontsize:   10
+legend.title_fontsize: 10.5
+legend.labelcolor: 475569
+
+lines.linewidth:   2
+patch.edgecolor:   white
+patch.force_edgecolor: False
+
+figure.figsize:    8, 4.8
+figure.facecolor:  white
+figure.titlesize:  14
+figure.titleweight: semibold
+
+savefig.dpi:       150
+savefig.bbox:      tight
+savefig.facecolor: white

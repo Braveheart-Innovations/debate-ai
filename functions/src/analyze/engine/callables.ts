@@ -37,17 +37,7 @@ import {
   startReviewPass,
   startVerification,
 } from '../review/reviewRuns';
-
-/**
- * Phase 3 build-out: the engine is deployed dark. Only these accounts may use
- * it until the v2.6 cutover; DELETE this list (and its checks) at release.
- *  - mspencer@braveheartinnovations.com (Michael's web account)
- *  - the live-proxy test account (automated harness)
- */
-export const SERVER_LOOP_ALLOWED_UIDS = new Set([
-  'NIxWoHSaoZbleBOUfnJVpocHTY22',
-  'm8zEMeTFGUaZ0xXyuZ6Fu57rWa72',
-]);
+import { SERVER_LOOP_ALLOWED_UIDS } from './allowlist';
 
 function requireAllowedUid(uid: string | undefined): string {
   if (!uid) throw new HttpsError('unauthenticated', 'Sign in to use Analyze.');
