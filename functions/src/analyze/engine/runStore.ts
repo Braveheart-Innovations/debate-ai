@@ -43,6 +43,8 @@ export interface AnalyzeRunDoc {
   kind: 'operator';
   status: RunStatus;
   round: number;
+  /** Model-call retries used this turn (loopHandlers: one per turn). */
+  retryCount?: number;
   config: RunConfig;
   userMessageId: string;
   eventSeq: number;

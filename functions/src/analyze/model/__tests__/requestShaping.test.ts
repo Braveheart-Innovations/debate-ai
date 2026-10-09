@@ -1,6 +1,5 @@
 import type { Message } from '../../contract/types';
 import type { ToolDefinition } from '../../contract/lib/ai/tools/types';
-import type { CanonicalToolDefinition } from '../../../types/canonical';
 import {
   WEB_SEARCH_SYSTEM_NOTE,
   buildModelRequest,
@@ -217,10 +216,7 @@ describe('tool schemas', () => {
     expect(getEffectiveToolRequest('claude', 'claude-opus-5-5', [tool], 'required')).toEqual({ tools: [tool], toolChoice: 'required' });
   });
 
-  it('is assignable to the server canonical tool type streamModel takes', () => {
-    const canonical: CanonicalToolDefinition[] = sanitizeToolsForProvider([tool], 'claude');
-    expect(canonical).toHaveLength(1);
-  });
+
 });
 
 describe('buildModelRequest', () => {

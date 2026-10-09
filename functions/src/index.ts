@@ -93,3 +93,7 @@ export { renderHtmlSnapshots } from './exports/renderHtmlSnapshots';
 
 // Analyze remote Python sandbox (E2B)
 export { sandboxExecute, sandboxFiles, sandboxSession, sandboxRetentionSweep } from './sandbox/callables';
+
+// Analyze server-side loop (Phase 3; allowlisted until the v2.6 cutover)
+export { analyzeStartTurn, analyzeRunControl } from './analyze/engine/callables';
+export { analyzeRunStep } from './analyze/engine/step';
