@@ -95,6 +95,6 @@ export { renderHtmlSnapshots } from './exports/renderHtmlSnapshots';
 export { sandboxExecute, sandboxFiles, sandboxSession, sandboxRetentionSweep } from './sandbox/callables';
 
 // Analyze server-side loop (Phase 3; allowlisted until the v2.6 cutover)
-export { analyzeStartTurn, analyzeRunControl, analyzeReviewControl } from './analyze/engine/callables';
+export { analyzeStartTurn, analyzeRunControl, analyzeReviewControl, analyzeUploads } from './analyze/engine/callables';
 export { analyzeRunStep } from './analyze/engine/step';
 export { analyzeRunSweeper } from './analyze/engine/sweeper';

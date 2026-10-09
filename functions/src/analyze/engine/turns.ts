@@ -5,9 +5,9 @@
  * deliveries, review hand-offs).
  */
 import { getFirestore } from 'firebase-admin/firestore';
-import type { AnalyzeTeamRunSummary, Message } from '../contract/types';
+import type { AnalyzeTeamRunSummary, Message, MessageAttachment } from '../contract/types';
 import { enqueueStep } from './queue';
-import { OPERATOR_ACTIVE, finishRun, runRef, type AnalyzeRunDoc, type RunConfig } from './runStore';
+import { OPERATOR_ACTIVE, finishRun, runRef, saveTurnAttachments, type AnalyzeRunDoc, type RunConfig } from './runStore';
 import { buildMessageRecord, removeUndefined } from './sessionStore';
 import { newRunId } from '../team/teamStore';
 
@@ -30,6 +30,10 @@ export interface OperatorTurnInput {
   teamRuns?: AnalyzeTeamRunSummary[];
   /** Review items this turn works through (queued until it completes). */
   reviewItemIds?: string[];
+  /** The user imported org findings or chose to continue without them: the open request is answered. */
+  resolvesOrgEvidenceRequest?: boolean;
+  /** Images and documents attached to the message (sent with the turn's first model call). */
+  attachments?: MessageAttachment[];
 }
 
 function runsPath(uid: string, sessionId: string): string {
@@ -65,6 +69,11 @@ export function followUpConfig(config: RunConfig): RunConfig {
  */
 export async function startOperatorTurn(input: OperatorTurnInput): Promise<{ runId: string; userMessageId: string }> {
   const { uid, sessionId } = input;
+  // An org-evidence request stays open across turns until the user imports
+  // findings or continues without them (the browser kept it as session state).
+  const openOrgEvidenceRequest = input.resolvesOrgEvidenceRequest
+    ? undefined
+    : (await findLatestOperatorRun(uid, sessionId))?.pendingOrgEvidenceRequest;
   const now = Date.now();
   const runId = newRunId(now);
   // Same shape as the web's ChatService.createUserMessage.
@@ -91,6 +100,8 @@ export async function startOperatorTurn(input: OperatorTurnInput): Promise<{ run
     updatedAt: now,
     lease: null,
     ...(input.reviewItemIds?.length ? { reviewItemIds: input.reviewItemIds } : {}),
+    ...(openOrgEvidenceRequest ? { pendingOrgEvidenceRequest: openOrgEvidenceRequest } : {}),
+    ...(input.attachments?.length ? { attachmentCount: input.attachments.length } : {}),
   }) as AnalyzeRunDoc;
 
   const db = getFirestore();
@@ -108,6 +119,7 @@ export async function startOperatorTurn(input: OperatorTurnInput): Promise<{ run
   });
 
   try {
+    if (input.attachments?.length) await saveTurnAttachments(runRef(uid, sessionId, runId), input.attachments);
     await enqueueStep({ uid, sessionId, runId });
   } catch (error) {
     // A run that never got a step would block the session forever: fail it.

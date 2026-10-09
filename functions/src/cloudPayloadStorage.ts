@@ -7,29 +7,45 @@ import * as crypto from 'crypto';
 try { admin.app(); } catch { admin.initializeApp(); }
 
 const STORAGE_BUCKET = 'symposium-ai.firebasestorage.app';
-const QUOTA_LIMIT_BYTES = 250 * 1024 * 1024;
-const QUOTA_WARNING_BYTES = 200 * 1024 * 1024;
+const GIB = 1024 * 1024 * 1024;
+
+/**
+ * Per-user Storage quotas, counted separately so uploads can never crowd out
+ * the offloaded messages and artifacts a session needs to save its work.
+ * Storage is cheap (~$0.026/GB-month); these are abuse guards.
+ */
+type QuotaPool = 'payloads' | 'uploads';
+const QUOTAS: Record<QuotaPool, { doc: string; limitBytes: number; warningBytes: number }> = {
+  payloads: { doc: 'storage-payloads', limitBytes: 2 * GIB, warningBytes: 1.6 * GIB },
+  uploads: { doc: 'storage-uploads', limitBytes: 2 * GIB, warningBytes: 1.6 * GIB },
+};
+
+function poolFor(recordType: unknown): QuotaPool {
+  return recordType === 'upload' ? 'uploads' : 'payloads';
+}
 const RESERVATION_TTL_MS = 10 * 60 * 1000;
 
 const MAX_PAYLOAD_BYTES = {
   messageMetadata: 25 * 1024 * 1024,
   messageContent: 10 * 1024 * 1024,
   artifactData: 25 * 1024 * 1024,
+  /** An Analyze upload's original bytes (the composer's per-file limit). */
+  uploadFile: 100 * 1024 * 1024,
 } as const;
 
-type PayloadField = 'metadata' | 'content' | 'data';
-type PayloadRecordType = 'message' | 'artifact';
+type PayloadField = 'metadata' | 'content' | 'data' | 'file';
+type PayloadRecordType = 'message' | 'artifact' | 'upload';
 
 type PayloadPathPolicy = {
   userId: string;
   sessionId: string;
   recordType: PayloadRecordType;
-  collection: 'messages' | 'artifacts';
+  collection: 'messages' | 'artifacts' | 'uploads';
   recordId: string;
   reservationId?: string;
   field: PayloadField;
   fileName: string;
-  contentType: 'application/json' | 'text/plain';
+  contentType: 'application/json' | 'text/plain' | 'application/octet-stream';
   maxBytes: number;
 };
 
@@ -143,6 +159,22 @@ function parsePayloadPath(path: string): PayloadPathPolicy | null {
     };
   }
 
+  // Written only by the server (Analyze uploads); clients can't reserve these.
+  if (collection === 'uploads' && fileName === 'file.bin') {
+    return {
+      userId,
+      sessionId,
+      recordType: 'upload',
+      collection,
+      recordId,
+      reservationId,
+      field: 'file',
+      fileName,
+      contentType: 'application/octet-stream',
+      maxBytes: MAX_PAYLOAD_BYTES.uploadFile,
+    };
+  }
+
   return null;
 }
 
@@ -181,20 +213,20 @@ function reservationPath(policy: PayloadPathPolicy, reservationId: string): stri
   return `users/${policy.userId}/sessions/${policy.sessionId}/${policy.collection}/${policy.recordId}/payloads/${reservationId}/${policy.fileName}`;
 }
 
-function usageRef(uid: string) {
-  return db().collection('users').doc(uid).collection('usage').doc('storage-payloads');
+function usageRef(uid: string, pool: QuotaPool) {
+  return db().collection('users').doc(uid).collection('usage').doc(QUOTAS[pool].doc);
 }
 
 function reservationsRef(uid: string) {
   return db().collection('users').doc(uid).collection('storageReservations');
 }
 
-function normalizeUsage(data: UsageDoc | undefined): Required<UsageDoc> {
+function normalizeUsage(data: UsageDoc | undefined, pool: QuotaPool): Required<UsageDoc> {
   return {
     currentBytes: typeof data?.currentBytes === 'number' ? data.currentBytes : 0,
     reservedBytes: typeof data?.reservedBytes === 'number' ? data.reservedBytes : 0,
     objectCount: typeof data?.objectCount === 'number' ? data.objectCount : 0,
-    limitBytes: typeof data?.limitBytes === 'number' ? data.limitBytes : QUOTA_LIMIT_BYTES,
+    limitBytes: typeof data?.limitBytes === 'number' ? data.limitBytes : QUOTAS[pool].limitBytes,
   };
 }
 
@@ -230,15 +262,16 @@ async function releaseReservation(uid: string, reservationId: string, status: 'e
     const reservation = reservationSnap.data() ?? {};
     if (reservation.status !== 'reserved') return;
     const bytes = typeof reservation.bytes === 'number' ? reservation.bytes : 0;
-    const usageSnap = await transaction.get(usageRef(uid));
-    const usage = normalizeUsage(usageSnap.data() as UsageDoc | undefined);
+    const pool = poolFor(reservation.recordType);
+    const usageSnap = await transaction.get(usageRef(uid, pool));
+    const usage = normalizeUsage(usageSnap.data() as UsageDoc | undefined, pool);
 
-    transaction.set(usageRef(uid), {
+    transaction.set(usageRef(uid, pool), {
       currentBytes: usage.currentBytes,
       reservedBytes: Math.max(0, usage.reservedBytes - bytes),
       objectCount: usage.objectCount,
-      limitBytes: QUOTA_LIMIT_BYTES,
-      warningBytes: QUOTA_WARNING_BYTES,
+      limitBytes: QUOTAS[pool].limitBytes,
+      warningBytes: QUOTAS[pool].warningBytes,
       lastUpdatedAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     }, { merge: true });
@@ -251,17 +284,17 @@ async function releaseReservation(uid: string, reservationId: string, status: 'e
   });
 }
 
-async function decrementUsageForDeletedObjects(uid: string, bytes: number, objectCount: number): Promise<void> {
+async function decrementUsageForDeletedObjects(uid: string, bytes: number, objectCount: number, pool: QuotaPool): Promise<void> {
   if (bytes <= 0 && objectCount <= 0) return;
   await db().runTransaction(async (transaction) => {
-    const usageSnapshot = await transaction.get(usageRef(uid));
-    const usage = normalizeUsage(usageSnapshot.data() as UsageDoc | undefined);
-    transaction.set(usageRef(uid), {
+    const usageSnapshot = await transaction.get(usageRef(uid, pool));
+    const usage = normalizeUsage(usageSnapshot.data() as UsageDoc | undefined, pool);
+    transaction.set(usageRef(uid, pool), {
       currentBytes: Math.max(0, usage.currentBytes - Math.max(0, bytes)),
       reservedBytes: usage.reservedBytes,
       objectCount: Math.max(0, usage.objectCount - Math.max(0, objectCount)),
-      limitBytes: QUOTA_LIMIT_BYTES,
-      warningBytes: QUOTA_WARNING_BYTES,
+      limitBytes: QUOTAS[pool].limitBytes,
+      warningBytes: QUOTAS[pool].warningBytes,
       lastUpdatedAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     }, { merge: true });
@@ -292,21 +325,29 @@ async function deleteStoragePrefix(uid: string, prefix: string): Promise<{ bytes
   }
 
   const [files] = await bucket().getFiles({ prefix: `${prefix.replace(/\/$/, '')}/` });
-  let bytes = 0;
-  let objects = 0;
+  const deleted: Record<QuotaPool, { bytes: number; objects: number }> = {
+    payloads: { bytes: 0, objects: 0 },
+    uploads: { bytes: 0, objects: 0 },
+  };
 
   for (const file of files) {
     const policy = parsePayloadPath(file.name);
     if (!policy || policy.userId !== uid) continue;
+    const pool = deleted[poolFor(policy.recordType)];
     const [metadata] = await file.getMetadata();
     const size = Number(metadata.size);
-    if (Number.isFinite(size)) bytes += size;
-    objects += 1;
+    if (Number.isFinite(size)) pool.bytes += size;
+    pool.objects += 1;
     await file.delete({ ignoreNotFound: true });
   }
 
-  await decrementUsageForDeletedObjects(uid, bytes, objects);
-  return { bytes, objects };
+  for (const pool of ['payloads', 'uploads'] as const) {
+    await decrementUsageForDeletedObjects(uid, deleted[pool].bytes, deleted[pool].objects, pool);
+  }
+  return {
+    bytes: deleted.payloads.bytes + deleted.uploads.bytes,
+    objects: deleted.payloads.objects + deleted.uploads.objects,
+  };
 }
 
 /**
@@ -318,13 +359,44 @@ async function deleteStoragePrefix(uid: string, prefix: string): Promise<{ bytes
  */
 export async function deleteAllUserStorage(uid: string): Promise<{ objects: number }> {
   if (!uid) throw new Error('deleteAllUserStorage: uid is required');
-  const [files] = await bucket().getFiles({ prefix: `users/${uid}/` });
   let objects = 0;
-  for (const file of files) {
-    await file.delete({ ignoreNotFound: true });
-    objects += 1;
+  for (const prefix of [`users/${uid}/`, ...analyzeScratchPrefixes(uid)]) {
+    const [files] = await bucket().getFiles({ prefix });
+    for (const file of files) {
+      await file.delete({ ignoreNotFound: true });
+      objects += 1;
+    }
   }
   return { objects };
+}
+
+/**
+ * Server-private Analyze scratch (tool outputs awaiting capture, capture
+ * traces), outside users/ so Storage rules deny clients. Scoped to a
+ * session when one is given.
+ */
+function analyzeScratchPrefixes(uid: string, sessionId?: string): string[] {
+  const session = sessionId ? `${sessionId}/` : '';
+  return [
+    `analyzeScratch/users/${uid}/conversations/${session}`,
+    `analyzeScratch/captureTraces/${uid}/${session}`,
+  ];
+}
+
+/**
+ * Delete what the Analyze server loop keeps for a session that clients can't
+ * delete themselves: runs (with their events, tool calls and transcripts),
+ * the review queue, upload records and scratch. Upload bytes live under the
+ * session's payload prefix, which the caller deletes.
+ */
+export async function deleteServerOwnedSessionData(uid: string, sessionId: string): Promise<void> {
+  const session = db().doc(`users/${uid}/conversations/${sessionId}`);
+  for (const name of ['analyzeRuns', 'reviewItems', 'analyzeUploads']) {
+    await db().recursiveDelete(session.collection(name));
+  }
+  for (const prefix of analyzeScratchPrefixes(uid, sessionId)) {
+    await bucket().deleteFiles({ prefix, force: true });
+  }
 }
 
 async function deleteCollection(collection: FirebaseFirestore.CollectionReference, batchSize = 400): Promise<number> {
@@ -371,19 +443,22 @@ async function reserveUpload(
   const reservationId = reservationRef.id;
   const storagePath = reservationPath(policy, reservationId);
   const expiresAt = Timestamp.fromMillis(Date.now() + RESERVATION_TTL_MS);
+  const pool = poolFor(policy.recordType);
 
   const result = await db().runTransaction(async (transaction) => {
-    const usageSnapshot = await transaction.get(usageRef(uid));
-    const usage = normalizeUsage(usageSnapshot.data() as UsageDoc | undefined);
+    const usageSnapshot = await transaction.get(usageRef(uid, pool));
+    const usage = normalizeUsage(usageSnapshot.data() as UsageDoc | undefined, pool);
     const nextReserved = usage.reservedBytes + bytes;
-    if (usage.currentBytes + nextReserved > QUOTA_LIMIT_BYTES) {
+    if (usage.currentBytes + nextReserved > QUOTAS[pool].limitBytes) {
       throw new HttpsError(
         'resource-exhausted',
-        'Cloud artifact storage quota exceeded',
+        pool === 'uploads'
+          ? 'Upload storage is full (2 GB). Delete older Analyze sessions to free space.'
+          : 'Cloud artifact storage quota exceeded',
         {
           currentBytes: usage.currentBytes,
           reservedBytes: usage.reservedBytes,
-          limitBytes: QUOTA_LIMIT_BYTES,
+          limitBytes: QUOTAS[pool].limitBytes,
         },
       );
     }
@@ -406,12 +481,12 @@ async function reserveUpload(
       expiresAt,
     });
 
-    transaction.set(usageRef(uid), {
+    transaction.set(usageRef(uid, pool), {
       currentBytes: usage.currentBytes,
       reservedBytes: nextReserved,
       objectCount: usage.objectCount,
-      limitBytes: QUOTA_LIMIT_BYTES,
-      warningBytes: QUOTA_WARNING_BYTES,
+      limitBytes: QUOTAS[pool].limitBytes,
+      warningBytes: QUOTAS[pool].warningBytes,
       lastUpdatedAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     }, { merge: true });
@@ -422,7 +497,7 @@ async function reserveUpload(
       expiresAt: expiresAt.toMillis(),
       currentBytes: usage.currentBytes,
       reservedBytes: nextReserved,
-      limitBytes: QUOTA_LIMIT_BYTES,
+      limitBytes: QUOTAS[pool].limitBytes,
     };
   });
 
@@ -438,31 +513,32 @@ async function commitReservation(uid: string, reservationId: string, bytes: numb
       throw new HttpsError('not-found', 'Payload upload reservation not found');
     }
     const latest = latestReservation.data() ?? {};
+    const pool = poolFor(latest.recordType);
     if (latest.status === 'finalized') {
-      const usageSnap = await transaction.get(usageRef(uid));
-      const usage = normalizeUsage(usageSnap.data() as UsageDoc | undefined);
+      const usageSnap = await transaction.get(usageRef(uid, pool));
+      const usage = normalizeUsage(usageSnap.data() as UsageDoc | undefined, pool);
       return {
         success: true,
         currentBytes: usage.currentBytes,
         reservedBytes: usage.reservedBytes,
-        limitBytes: QUOTA_LIMIT_BYTES,
+        limitBytes: QUOTAS[pool].limitBytes,
       };
     }
     if (latest.status !== 'reserved') {
       throw new HttpsError('failed-precondition', 'Payload upload reservation is not active');
     }
 
-    const usageSnap = await transaction.get(usageRef(uid));
-    const usage = normalizeUsage(usageSnap.data() as UsageDoc | undefined);
+    const usageSnap = await transaction.get(usageRef(uid, pool));
+    const usage = normalizeUsage(usageSnap.data() as UsageDoc | undefined, pool);
     const nextCurrent = usage.currentBytes + bytes;
     const nextReserved = Math.max(0, usage.reservedBytes - bytes);
 
-    transaction.set(usageRef(uid), {
+    transaction.set(usageRef(uid, pool), {
       currentBytes: nextCurrent,
       reservedBytes: nextReserved,
       objectCount: usage.objectCount + 1,
-      limitBytes: QUOTA_LIMIT_BYTES,
-      warningBytes: QUOTA_WARNING_BYTES,
+      limitBytes: QUOTAS[pool].limitBytes,
+      warningBytes: QUOTAS[pool].warningBytes,
       lastUpdatedAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     }, { merge: true });
@@ -477,7 +553,7 @@ async function commitReservation(uid: string, reservationId: string, bytes: numb
       success: true,
       currentBytes: nextCurrent,
       reservedBytes: nextReserved,
-      limitBytes: QUOTA_LIMIT_BYTES,
+      limitBytes: QUOTAS[pool].limitBytes,
     };
   });
 }
@@ -490,6 +566,9 @@ export const reserveCloudPayloadUpload = onCall(async (request) => {
   const sha256 = stringValue(data.sha256, 'sha256', 64).toLowerCase();
   const contentType = stringValue(data.contentType, 'contentType', 128);
   const policy = validatePayloadPolicy(uid, logicalPath, bytes, sha256, contentType);
+  if (policy.recordType === 'upload') {
+    throw new HttpsError('invalid-argument', 'Uploads are stored by the server');
+  }
 
   await assertPaidUser(uid);
 
@@ -526,14 +605,16 @@ export const finalizeCloudPayloadUpload = onCall(async (request) => {
   }
 
   const reservation = reservationSnap.data() ?? {};
+  // Clients only finalize their own payloads (uploads are server-written).
+  const pool: QuotaPool = 'payloads';
   if (reservation.status === 'finalized') {
-    const usageSnap = await usageRef(uid).get();
-    const usage = normalizeUsage(usageSnap.data() as UsageDoc | undefined);
+    const usageSnap = await usageRef(uid, pool).get();
+    const usage = normalizeUsage(usageSnap.data() as UsageDoc | undefined, pool);
     return {
       success: true,
       currentBytes: usage.currentBytes,
       reservedBytes: usage.reservedBytes,
-      limitBytes: QUOTA_LIMIT_BYTES,
+      limitBytes: QUOTAS[pool].limitBytes,
     };
   }
 
@@ -599,11 +680,10 @@ export const deleteCloudPayload = onCall(async (request) => {
   const contentType = stringValue(payloadRef.contentType, 'payload contentType', 128);
   const sha256 = stringValue(payloadRef.sha256, 'payload sha256', 64);
   const policy = validatePayloadPolicy(uid, path, bytes, sha256, contentType);
-  void policy;
 
   const deleted = await deleteStorageObject(path);
   if (deleted.deleted) {
-    await decrementUsageForDeletedObjects(uid, deleted.bytes || bytes, 1);
+    await decrementUsageForDeletedObjects(uid, deleted.bytes || bytes, 1, poolFor(policy.recordType));
   }
 
   if (typeof payloadRef.reservationId === 'string') {
@@ -633,6 +713,8 @@ export const deleteCloudPayloadsForPath = onCall(async (request) => {
 
   const result = await deleteStoragePrefix(uid, basePath);
   await deleteReservationsForSession(uid, parts[3]);
+  // Every session delete calls this; the server-owned records go with it (clients can't delete them).
+  await deleteServerOwnedSessionData(uid, parts[3]);
   return { success: true, bytesDeleted: result.bytes, objectCount: result.objects };
 });
 
@@ -665,20 +747,23 @@ export const deleteUserCloudData = onCall(async (request) => {
     messagesDeleted += await deleteCollection(sessionDoc.ref.collection('messages'));
     artifactsDeleted += await deleteCollection(sessionDoc.ref.collection('artifacts'));
     reservationsDeleted += await deleteReservationsForSession(uid, sessionId);
+    await deleteServerOwnedSessionData(uid, sessionId);
     await sessionDoc.ref.delete();
     sessionsDeleted += 1;
   }
 
   if (!mode) {
-    await usageRef(uid).set({
-      currentBytes: 0,
-      reservedBytes: 0,
-      objectCount: 0,
-      limitBytes: QUOTA_LIMIT_BYTES,
-      warningBytes: QUOTA_WARNING_BYTES,
-      lastUpdatedAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-    }, { merge: true });
+    for (const pool of ['payloads', 'uploads'] as const) {
+      await usageRef(uid, pool).set({
+        currentBytes: 0,
+        reservedBytes: 0,
+        objectCount: 0,
+        limitBytes: QUOTAS[pool].limitBytes,
+        warningBytes: QUOTAS[pool].warningBytes,
+        lastUpdatedAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+    }
   }
 
   return {
@@ -744,7 +829,16 @@ export async function uploadPayloadForUser(
   text: string,
   contentType: 'application/json' | 'text/plain',
 ): Promise<StoredPayloadRef> {
-  const data = Buffer.from(text, 'utf8');
+  return uploadBytesForUser(uid, logicalPath, Buffer.from(text, 'utf8'), contentType);
+}
+
+/** uploadPayloadForUser for bytes (Analyze uploads: users/{uid}/sessions/{sessionId}/uploads/{id}/file.bin). */
+export async function uploadBytesForUser(
+  uid: string,
+  logicalPath: string,
+  data: Buffer,
+  contentType: 'application/json' | 'text/plain' | 'application/octet-stream',
+): Promise<StoredPayloadRef> {
   const sha256 = crypto.createHash('sha256').update(data).digest('hex');
   const policy = validatePayloadPolicy(uid, logicalPath, data.byteLength, sha256, contentType);
   const reservation = await reserveUpload(uid, policy, logicalPath, data.byteLength, sha256, contentType);
@@ -769,13 +863,18 @@ export async function uploadPayloadForUser(
 
 /** Read an offloaded payload back, verifying its hash (web downloadPayload). */
 export async function downloadPayload(ref: StoredPayloadRef): Promise<string> {
+  return (await downloadPayloadBytes(ref)).toString('utf8');
+}
+
+/** downloadPayload for bytes. */
+export async function downloadPayloadBytes(ref: StoredPayloadRef): Promise<Buffer> {
   requirePayloadPath(ref.path);
   const [payload] = await bucket().file(ref.path).download();
   const actualSha = crypto.createHash('sha256').update(payload).digest('hex');
   if (actualSha !== ref.sha256) {
     throw new Error(`Payload integrity mismatch for ${ref.path}: expected ${ref.sha256}, got ${actualSha}`);
   }
-  return payload.toString('utf8');
+  return payload;
 }
 
 /** Delete an offloaded payload and release its quota (deleteCloudPayload, as the server). */
@@ -783,7 +882,7 @@ export async function deletePayloadForUser(uid: string, ref: StoredPayloadRef): 
   const policy = requirePayloadPath(ref.path);
   if (policy.userId !== uid) throw new Error(`Payload ${ref.path} does not belong to ${uid}`);
   const deleted = await deleteStorageObject(ref.path);
-  if (deleted.deleted) await decrementUsageForDeletedObjects(uid, deleted.bytes || ref.bytes, 1);
+  if (deleted.deleted) await decrementUsageForDeletedObjects(uid, deleted.bytes || ref.bytes, 1, poolFor(policy.recordType));
   if (ref.reservationId) {
     await reservationsRef(uid).doc(ref.reservationId).set({
       status: 'deleted',

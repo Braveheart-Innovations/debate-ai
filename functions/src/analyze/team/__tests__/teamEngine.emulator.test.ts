@@ -13,7 +13,7 @@ import type { Message } from '../../contract/types';
 jest.mock('uuid', () => ({ v4: () => jest.requireActual<typeof import('node:crypto')>('node:crypto').randomUUID() }));
 
 // --- scripted models -----------------------------------------------------------
-type ModelRequest = { systemPrompt?: string; messages: Array<{ role: string; content: string | null }>; tools?: Array<{ name: string }>; signal?: AbortSignal };
+type ModelRequest = { systemPrompt?: string; messages: Array<{ role: string; content: string | null }>; tools?: Array<{ name: string }>; attachments?: Array<{ fileName?: string }>; signal?: AbortSignal };
 type Script = (request: ModelRequest) => Array<Record<string, unknown>> | Promise<Array<Record<string, unknown>>>;
 let script: Script = () => [];
 const modelCalls: ModelRequest[] = [];
@@ -37,6 +37,17 @@ const released: string[] = [];
 jest.mock('../../../sandbox/callables', () => ({
   getSandboxService: () => ({
     execute: async (_uid: string, _key: string, code: string, _timeout: number, kernel?: string) => {
+      if (kernel === 'pdf-pages') {
+        // pypdfium2 stand-in: two pages per PDF that exists.
+        const jobs = JSON.parse(code.match(/\n {4}for job in (\[.*\]):\n/)![1]) as Array<{ key: string; path: string }>;
+        const results: Record<string, number | { error: string }> = {};
+        for (const job of jobs) {
+          if (!sandboxFiles.has(job.path)) { results[job.key] = { error: 'missing' }; continue; }
+          for (const page of [1, 2]) sandboxFiles.set(`${job.key}/page-${page}.png`, Buffer.from(`png${page}`));
+          results[job.key] = 2;
+        }
+        return { success: true, stdout: `__PDF_PAGES__${JSON.stringify(results)}`, images: [], htmlOutputs: [], dataOutputs: [] };
+      }
       pythonRuns.push({ code, kernel });
       return { success: true, stdout: '42', images: [], htmlOutputs: [], dataOutputs: [] };
     },
@@ -53,10 +64,41 @@ jest.mock('../../../sandbox/callables', () => ({
       .filter((path) => path.startsWith(`${dir}/`))
       .map((path) => ({ name: path.split('/').pop(), path, size: 1, isDirectory: false })),
     releaseKernel: async (_uid: string, _key: string, kernel: string) => { released.push(kernel); },
+    deleteFile: async (_uid: string, _key: string, path: string) => { sandboxFiles.delete(path); },
   }),
 }));
+// Storage, in memory (scratch, payload offload and upload copies round-trip for real).
+const storageObjects = new Map<string, Buffer>();
+const notFound = () => Object.assign(new Error('Not found'), { code: 404 });
 jest.mock('firebase-admin/storage', () => ({
-  getStorage: () => ({ bucket: () => ({ file: () => ({ save: async () => undefined, download: async () => [Buffer.from('{}')], delete: async () => undefined }) }) }),
+  getStorage: () => ({
+    bucket: () => ({
+      file: (path: string) => ({
+        save: async (data: Buffer | string) => { storageObjects.set(path, Buffer.from(data)); },
+        download: async () => {
+          const bytes = storageObjects.get(path);
+          if (!bytes) throw notFound();
+          return [bytes];
+        },
+        delete: async () => { storageObjects.delete(path); },
+        getMetadata: async () => {
+          const bytes = storageObjects.get(path);
+          if (!bytes) throw notFound();
+          return [{ size: String(bytes.byteLength) }];
+        },
+      }),
+      getFiles: async ({ prefix }: { prefix: string }) => [[...storageObjects.keys()]
+        .filter((name) => name.startsWith(prefix))
+        .map((name) => ({
+          name,
+          getMetadata: async () => [{ size: String(storageObjects.get(name)?.byteLength ?? 0) }],
+          delete: async () => { storageObjects.delete(name); },
+        }))],
+      deleteFiles: async ({ prefix }: { prefix: string }) => {
+        for (const name of [...storageObjects.keys()]) if (name.startsWith(prefix)) storageObjects.delete(name);
+      },
+    }),
+  }),
 }));
 
 // --- the task queue, drained by the test ----------------------------------------
@@ -77,6 +119,10 @@ import { startRerun } from '../reruns';
 import { MAX_SWEEPS, STRANDED_MS, sweepStrandedRuns } from '../../engine/sweeper';
 import { SOLO_RESULT_TEXT } from '../teamState';
 import { loadReviewItems, startReviewPass, startVerification } from '../../review/reviewRuns';
+import { SESSION_FILES_MARKER, commitUpload, listUploads, removeUpload } from '../../engine/uploads';
+import { artifactRef, prepareArtifactRecord } from '../../engine/sessionStore';
+import { deleteServerOwnedSessionData } from '../../../cloudPayloadStorage';
+import type { Artifact } from '../../contract/types/notebook';
 
 const emulator = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
 const describeEmulator = emulator ? describe : describe.skip;
@@ -145,6 +191,7 @@ beforeEach(() => {
   pythonRuns.length = 0;
   released.length = 0;
   sandboxFiles.clear();
+  storageObjects.clear();
 });
 
 describeEmulator('team engine', () => {
@@ -455,6 +502,110 @@ describeEmulator('review engine', () => {
     expect((await run(reviewRunId!)).status).toBe('error');
     expect(modelCalls.filter((r) => r.systemPrompt?.startsWith('You are a reviewer'))).toHaveLength(1);
     await expect(startReviewPass(uid, sessionId, { reviewerIds: ['rv'], targetMessageId: null, trigger: 'manual' })).resolves.toBeTruthy();
+  });
+
+  it('Salesforce in Team mode: audit, then the org-evidence request ends the turn and stays open until answered', async () => {
+    sandboxFiles.set('/uploads/force-app/main/default/classes/CaseService.cls', Buffer.from('public class CaseService {\n  public static void escalate(Id caseId) {}\n}\n'));
+    sandboxFiles.set('/uploads/force-app/main/default/classes/CaseService.cls-meta.xml', Buffer.from('<ApexClass><apiVersion>62.0</apiVersion></ApexClass>'));
+    const evidenceArgs = {
+      reason: 'Escalation behavior depends on org runtime config.',
+      unverified_claims: ['Escalation rules are active'],
+      investigation_prompt: 'Check whether the Case escalation rules are active in the org, list their criteria, and report which entry points call CaseService.escalate at runtime.',
+    };
+    const toolResultCount = (request: ModelRequest) => request.messages.filter((m) => m.role === 'tool').length;
+    script = (request) => {
+      if (request.systemPrompt?.startsWith('You are a reviewer')) return text(reviewJson);
+      if (lastUser(request) !== 'Audit the org.') return text('Noted.');
+      if (toolResultCount(request) === 0) return calls({ id: 'sf1', name: 'salesforce_metadata_audit', args: { operation: 'audit' } });
+      return calls({ id: 'ev1', name: 'request_salesforce_org_evidence', args: evidenceArgs });
+    };
+    const sfConfig = config({
+      teamPlanTurn: true,
+      salesforceWorkspace: true,
+      autoReview: true,
+      toolNames: ['execute_python', 'salesforce_metadata_audit', 'salesforce_read_source', 'request_salesforce_org_evidence', 'salesforce_docs_lookup'],
+    });
+    const first = await startOperatorTurn({ uid, sessionId, content: 'Audit the org.', config: sfConfig });
+    await drain();
+
+    // The planning gate offered the audit and the evidence request, not docs research.
+    expect(modelCalls[0].tools?.map((t) => t.name).sort()).toEqual(['ask_user', 'propose_team', 'request_salesforce_org_evidence', 'salesforce_metadata_audit']);
+    let operator = await run(first.runId);
+    expect(operator.status).toBe('completed');
+    expect(operator.pendingOrgEvidenceRequest).toMatchObject({ investigationPrompt: evidenceArgs.investigation_prompt });
+    const audit = toolMessages(await loadSessionMessages(uid, sessionId)).find((m) => m.metadata?.toolCallId === 'sf1');
+    expect(audit?.metadata?.success).toBe(true);
+    expect(audit?.content).toContain('- Apex classes: 1');
+    expect([...sandboxFiles.keys()].some((path) => path.startsWith('/output/salesforce/'))).toBe(true);
+
+    // A plain message keeps the request open (and auto-review deferred); answering it closes it.
+    const second = await startOperatorTurn({ uid, sessionId, content: 'What happens next?', config: config({ autoReview: true }) });
+    await drain();
+    operator = await run(second.runId);
+    expect(operator.pendingOrgEvidenceRequest).toMatchObject({ investigationPrompt: evidenceArgs.investigation_prompt });
+    const third = await startOperatorTurn({ uid, sessionId, content: 'Continue without org evidence.', config: config(), resolvesOrgEvidenceRequest: true });
+    await drain();
+    expect((await run(third.runId)).pendingOrgEvidenceRequest).toBeUndefined();
+  });
+
+  it('uploads: kept in Storage, back in a new sandbox before the next step, removable, gone with the session', async () => {
+    sandboxFiles.set('/uploads/sales.csv', Buffer.from('region,total\nwest,10\n'));
+    const file = await commitUpload(uid, sessionId, 'sbx', { pythonPath: '/uploads/sales.csv', mimeType: 'text/csv' });
+    expect(file).toMatchObject({ filename: 'sales.csv', pythonPath: '/uploads/sales.csv', mimeType: 'text/csv', size: 21, sessionId });
+    expect(await listUploads(uid, sessionId)).toEqual([file]);
+    expect([...storageObjects.keys()].filter((name) => name.includes('/uploads/'))).toHaveLength(1);
+    // Uploads count against their own quota, never the session payloads'.
+    const usage = (pool: string) => getFirestore().doc(`users/${uid}/usage/${pool}`).get().then((doc) => doc.data());
+    expect(await usage('storage-uploads')).toMatchObject({ currentBytes: 21, reservedBytes: 0, objectCount: 1, limitBytes: 2 * 1024 ** 3 });
+    expect((await usage('storage-payloads'))?.currentBytes ?? 0).toBe(0);
+    // The same bytes again: nothing new is stored.
+    await commitUpload(uid, sessionId, 'sbx', { pythonPath: '/uploads/sales.csv', mimeType: 'text/csv' });
+    expect([...storageObjects.keys()].filter((name) => name.includes('/uploads/'))).toHaveLength(1);
+
+    // A saved artifact comes back under /output too.
+    const chart: Artifact = { id: 'a1', cellId: 'm1', sessionId, name: 'chart.html', type: 'html', mimeType: 'text/html', data: '<p>chart</p>', createdAt: 1 };
+    await artifactRef(uid, sessionId, chart.id).set(await prepareArtifactRecord(uid, sessionId, chart), { merge: true });
+
+    // The sandbox expired: the next step restores before running tools.
+    sandboxFiles.clear();
+    script = (request) => (hasToolResults(request) ? text('Done.') : calls({ id: 'py1', name: 'execute_python', args: { code: 'print(1)' } }));
+    const { runId } = await startOperatorTurn({ uid, sessionId, content: 'Sum it.', config: config({ team: undefined }) });
+    await drain();
+    expect((await run(runId)).status).toBe('completed');
+    expect(sandboxFiles.get('/uploads/sales.csv')?.toString()).toBe('region,total\nwest,10\n');
+    expect(sandboxFiles.get('/output/chart.html')?.toString()).toBe('<p>chart</p>');
+    expect(sandboxFiles.has(SESSION_FILES_MARKER)).toBe(true);
+
+    await removeUpload(uid, sessionId, 'sbx', '/uploads/sales.csv');
+    expect(await listUploads(uid, sessionId)).toEqual([]);
+    expect(sandboxFiles.has('/uploads/sales.csv')).toBe(false);
+    expect([...storageObjects.keys()].filter((name) => name.includes('/uploads/'))).toHaveLength(0);
+    expect(await usage('storage-uploads')).toMatchObject({ currentBytes: 0, objectCount: 0 });
+    await expect(commitUpload(uid, sessionId, 'sbx', { pythonPath: '/uploads/../etc/passwd', mimeType: 'text/plain' })).rejects.toThrow('/uploads/');
+
+    // Deleting the session takes the server-owned records with it.
+    await deleteServerOwnedSessionData(uid, sessionId);
+    const session = getFirestore().doc(`users/${uid}/conversations/${sessionId}`);
+    expect((await session.collection('analyzeRuns').get()).empty).toBe(true);
+    expect((await runRef(uid, sessionId, runId).collection('runEvents').get()).empty).toBe(true);
+  });
+
+  it('attachments: the composer\'s and every PDF upload\'s pages go with the turn\'s first model call only', async () => {
+    sandboxFiles.set('/uploads/scan.pdf', Buffer.from('%PDF-1.7 fake'));
+    await commitUpload(uid, sessionId, 'sbx', { pythonPath: '/uploads/scan.pdf', mimeType: 'application/pdf' });
+    script = (request) => (hasToolResults(request) ? text('It says hello.') : calls({ id: 'py1', name: 'execute_python', args: { code: 'print(1)' } }));
+    const photo = { type: 'image' as const, uri: 'data:image/png;base64,QUJD', mimeType: 'image/png', base64: 'QUJD', fileName: 'photo.png' };
+    const { runId } = await startOperatorTurn({ uid, sessionId, content: 'What does it say?', config: config({ team: undefined }), attachments: [photo] });
+    expect([...storageObjects.keys()].some((name) => name.endsWith(`${runId}/attachments.json`))).toBe(true);
+    await drain();
+
+    expect((await run(runId)).status).toBe('completed');
+    expect(modelCalls[0].attachments?.map((a) => a.fileName)).toEqual(['photo.png', 'page-1.png', 'page-2.png']);
+    expect(modelCalls[1].attachments).toBeUndefined();
+    expect(released).toContain('pdf-pages');
+    // The pages are cached in the sandbox, outside /output; the turn's scratch is gone.
+    expect([...sandboxFiles.keys()].filter((path) => path.includes('/pdf-pages/'))).toHaveLength(2);
+    expect([...storageObjects.keys()].some((name) => name.endsWith('attachments.json'))).toBe(false);
   });
 
   it('auto-review runs only after a turn that produced a report', async () => {

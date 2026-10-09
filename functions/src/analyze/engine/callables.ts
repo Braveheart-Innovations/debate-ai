@@ -5,8 +5,12 @@
  *   analyzeStartTurn     the user's message → an operator run
  *   analyzeRunControl    one run: stop, team plan answers, lanes, auto-approve
  *   analyzeReviewControl the session's review queue: review, verify, send, select…
+ *   analyzeUploads       the session's uploads: keep (commit), remove, list
  */
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import type { MessageAttachment } from '../contract/types';
+import { e2bApiKey } from '../../sandbox/callables';
+import { UploadInputError, commitUpload, listUploads, removeUpload } from './uploads';
 import { isV2Supported } from '../../providers/registry';
 import { getCatalogModel } from '../modelCatalog';
 import { isTerminal, runRef, type AnalyzeRunDoc, type RosterAI, type RunConfig } from './runStore';
@@ -88,9 +92,30 @@ function rosterAI(value: RosterAIInput | undefined, field: string, needsTools: b
   };
 }
 
+/** Composer attachments: images and documents with their bytes (the canonical protocol carries only these). */
+function parseAttachments(value: unknown): MessageAttachment[] {
+  if (!Array.isArray(value)) return [];
+  return value.slice(0, 20).map((entry, index) => {
+    const item = (entry && typeof entry === 'object' ? entry : {}) as Record<string, unknown>;
+    if (item.type !== 'image' && item.type !== 'document') {
+      throw new HttpsError('invalid-argument', `message.attachments[${index}] must be an image or a document`);
+    }
+    const base64 = requireString(item.base64, `message.attachments[${index}].base64`, 10_000_000);
+    const mimeType = requireString(item.mimeType, `message.attachments[${index}].mimeType`);
+    const fileName = optionalString(item.fileName, 500);
+    return {
+      type: item.type,
+      uri: `data:${mimeType};base64,${base64}`,
+      mimeType,
+      base64,
+      ...(fileName ? { fileName } : {}),
+    };
+  });
+}
+
 interface StartTurnRequest {
   sessionId: string;
-  message: { id?: string; content: string };
+  message: { id?: string; content: string; attachments?: unknown };
   ai: RosterAIInput;
   systemPrompt: string;
   toolNames: string[];
@@ -111,13 +136,19 @@ interface StartTurnRequest {
   /** System prompts the caller builds like systemPrompt: teammates', and the operator's with Team mode off. */
   subagentSystemPrompt?: string;
   followUpSystemPrompt?: string;
+  /** This message imports org findings or continues without them: the open org-evidence request is answered. */
+  resolvesOrgEvidenceRequest?: boolean;
 }
 
 export const analyzeStartTurn = onCall({ region: 'us-central1' }, async (request) => {
   const uid = requireAllowedUid(request.auth?.uid);
   const data = (request.data ?? {}) as Partial<StartTurnRequest>;
   const sessionId = requireString(data.sessionId, 'sessionId');
-  const content = requireString(data.message?.content, 'message.content', 200_000);
+  const attachments = parseAttachments(data.message?.attachments);
+  // An attachment alone is a message (the browser sent those too).
+  const content = attachments.length > 0 && typeof data.message?.content === 'string' && data.message.content.length <= 200_000
+    ? data.message.content
+    : requireString(data.message?.content, 'message.content', 200_000);
   const sandboxSessionKey = requireString(data.sandboxSessionKey, 'sandboxSessionKey');
   const systemPrompt = typeof data.systemPrompt === 'string' ? data.systemPrompt : '';
   const toolNames = stringList(data.toolNames);
@@ -157,6 +188,8 @@ export const analyzeStartTurn = onCall({ region: 'us-central1' }, async (request
       content,
       messageId: typeof data.message?.id === 'string' && data.message.id ? data.message.id : undefined,
       config,
+      resolvesOrgEvidenceRequest: data.resolvesOrgEvidenceRequest === true,
+      attachments,
     });
   } catch (error) {
     if (error instanceof SessionBusyError) throw new HttpsError('failed-precondition', error.message);
@@ -282,3 +315,48 @@ export const analyzeReviewControl = onCall({ region: 'us-central1' }, async (req
     controlFailure(error);
   }
 });
+
+/**
+ * The session's uploads. The client writes a file into the sandbox
+ * (sandboxFiles), then commits it here: the server keeps a Storage copy so
+ * the file outlives the sandbox and comes back in a new one.
+ */
+export const analyzeUploads = onCall(
+  { region: 'us-central1', secrets: [e2bApiKey], memory: '1GiB', timeoutSeconds: 300 },
+  async (request) => {
+    const uid = requireAllowedUid(request.auth?.uid);
+    const data = (request.data ?? {}) as Record<string, unknown>;
+    const sessionId = requireString(data.sessionId, 'sessionId');
+    try {
+      switch (data.op) {
+        case 'commit': {
+          const source = (data.source && typeof data.source === 'object' ? data.source : {}) as Record<string, unknown>;
+          const file = await commitUpload(uid, sessionId, requireString(data.sandboxSessionKey, 'sandboxSessionKey'), {
+            pythonPath: requireString(data.path, 'path', 1024),
+            mimeType: optionalString(data.mimeType, 200) ?? 'application/octet-stream',
+            source: {
+              sourceKind: source.sourceKind === 'artifact' ? 'artifact' : source.sourceKind === 'upload' ? 'upload' : undefined,
+              sourceArtifactId: optionalString(source.sourceArtifactId, 500),
+              sourceArtifactType: optionalString(source.sourceArtifactType, 100) as never,
+              sourceArtifactSessionId: optionalString(source.sourceArtifactSessionId, 500),
+              sourceArtifactName: optionalString(source.sourceArtifactName, 1000),
+            },
+          });
+          return { file };
+        }
+        case 'remove':
+          await removeUpload(uid, sessionId, requireString(data.sandboxSessionKey, 'sandboxSessionKey'), data.path);
+          return { ok: true };
+        case 'list':
+          return { files: await listUploads(uid, sessionId) };
+        default:
+          throw new HttpsError('invalid-argument', `Unknown op ${String(data.op)}`);
+      }
+    } catch (error) {
+      if (error instanceof HttpsError) throw error;
+      if (error instanceof UploadInputError) throw new HttpsError('invalid-argument', error.message);
+      console.error('[analyzeUploads] failed', { op: data.op, error });
+      throw new HttpsError('internal', 'The upload could not be saved. Please try again.');
+    }
+  },
+);

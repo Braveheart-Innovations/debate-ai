@@ -1,20 +1,37 @@
 /**
  * Runs one model-requested tool for the server loop, the way the browser's
- * toolDispatcher did: execute_python in the session sandbox, server tools
- * through the ported ServerToolExecutor (backed by dispatchServerTool instead
- * of the executeTool callable).
+ * toolDispatcher did: the browser's client tools (ClientToolExecutor) against
+ * the session sandbox, server tools through the ported ServerToolExecutor
+ * (backed by dispatchServerTool instead of the executeTool callable).
  */
 import type { ToolCall, ToolResult } from '../contract/lib/ai/tools/types';
-import { getSandboxService } from '../../sandbox/callables';
 import { dispatchServerTool } from '../../tools';
 import { createSandboxBridge } from './sandboxBridge';
+import { createSandboxFiles } from './tools/sandboxFiles';
 import { executePythonTool } from './tools/executePythonTool';
+import { executeReadFileTool } from './tools/executeReadFileTool';
+import { executeWriteOutputFileTool } from './tools/executeWriteOutputFileTool';
+import { executeSalesforceMetadataAuditTool } from './tools/executeSalesforceMetadataAuditTool';
+import { executeSalesforceReadSourceTool } from './tools/executeSalesforceReadSourceTool';
+import { executeRequestSalesforceOrgEvidenceTool } from './tools/executeRequestSalesforceOrgEvidenceTool';
+import { packageSalesforceDocsLookupEvidence } from './tools/executeSalesforceDocsLookupTool';
 import { ServerToolExecutor } from './tools/serverToolExecutor';
 import { buildFetchProvenance } from './tools/provenance';
 import { DatasetRegistry } from './dataset/DatasetRegistry';
 
-/** Tools the server loop executes today (Step 2). Others arrive with their ports. */
-export const SERVER_LOOP_TOOLS = new Set(['execute_python', 'fetch_api', 'fetch_url', 'web_search']);
+/** The browser's client tools (ClientToolExecutor), run here against the session sandbox. */
+const SANDBOX_TOOLS = new Set([
+  'execute_python',
+  'read_file',
+  'write_output_file',
+  'salesforce_metadata_audit',
+  'salesforce_read_source',
+  'request_salesforce_org_evidence',
+]);
+/** Tools that ran on the server for the browser too (ServerToolExecutor). */
+const SERVER_TOOLS = new Set(['fetch_api', 'fetch_url', 'web_search', 'salesforce_docs_lookup']);
+/** Every tool the server loop executes. query_sql is deleted, not ported (Phase 3 decision 3). */
+export const SERVER_LOOP_TOOLS = new Set([...SANDBOX_TOOLS, ...SERVER_TOOLS]);
 
 export interface ToolDispatchContext {
   uid: string;
@@ -28,28 +45,18 @@ export interface ToolDispatchContext {
 export function createToolDispatcher(context: ToolDispatchContext): (call: ToolCall) => Promise<ToolResult> {
   const { uid, sandboxSessionKey, keyValue } = context;
   const sandbox = createSandboxBridge(uid, sandboxSessionKey, context.kernelKey);
+  const files = createSandboxFiles(uid, sandboxSessionKey);
   // One registry per step, as one per page load was in the browser.
   const datasetRegistry = new DatasetRegistry();
 
   const serverTools = new ServerToolExecutor({
     sandbox: {
       getSessionKey: () => sandboxSessionKey,
-      mountFile: async (filename, data, path) => {
-        const target = path || `/uploads/${filename}`;
-        await getSandboxService().writeFile(uid, sandboxSessionKey, {
-          path: target,
-          base64: Buffer.from(data).toString('base64'),
-        });
-        return target;
-      },
+      mountFile: files.mountFile,
     },
     datasetRegistry,
     buildFetchProvenance,
-    packageSalesforceDocsLookupEvidence: async (toolCallId) => ({
-      toolCallId,
-      success: false,
-      error: 'salesforce_docs_lookup is not available in the server loop yet.',
-    }),
+    packageSalesforceDocsLookupEvidence,
     executeToolCallable: async (toolName, toolCallId, args, sandboxTarget) => {
       const result = await dispatchServerTool(uid, { toolName, toolCallId, args, sandboxTarget }, keyValue);
       return { success: result.success, content: result.content, error: result.error, metadata: result.metadata };
@@ -77,10 +84,22 @@ export function createToolDispatcher(context: ToolDispatchContext): (call: ToolC
     }
 
     try {
-      if (name === 'execute_python') {
-        return await executePythonTool(sandbox, call.id, typeof args.code === 'string' ? args.code : '', context.signal);
+      switch (name) {
+        case 'execute_python':
+          return await executePythonTool(sandbox, call.id, typeof args.code === 'string' ? args.code : '', context.signal);
+        case 'read_file':
+          return await executeReadFileTool(files, call.id, args);
+        case 'write_output_file':
+          return await executeWriteOutputFileTool(files, call.id, args);
+        case 'salesforce_metadata_audit':
+          return await executeSalesforceMetadataAuditTool(files, call.id, args);
+        case 'salesforce_read_source':
+          return await executeSalesforceReadSourceTool(files, call.id, args);
+        case 'request_salesforce_org_evidence':
+          return executeRequestSalesforceOrgEvidenceTool(call.id, args);
+        default:
+          return await serverTools.executeServerTool(call.id, name, args);
       }
-      return await serverTools.executeServerTool(call.id, name, args);
     } catch (error) {
       return {
         toolCallId: call.id,

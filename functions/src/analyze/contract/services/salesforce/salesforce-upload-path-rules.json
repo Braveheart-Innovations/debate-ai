@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "supportedTopLevelFiles": [
+    "package.xml",
+    "sfdx-project.json"
+  ],
+  "insightPacketFiles": [
+    "manifest.json",
+    "findings.json",
+    "evidence.md",
+    "transcript.md"
+  ],
+  "ignoredMetadataPathSegments": [
+    ".git",
+    ".sfdx",
+    ".sf",
+    "node_modules",
+    "coverage"
+  ],
+  "ignoredWorkspaceBundlePathSegments": [
+    ".git",
+    ".sfdx",
+    ".sf",
+    "node_modules",
+    "coverage",
+    ".next",
+    "out",
+    "__pycache__"
+  ],
+  "metadataSegmentRules": [
+    {
+      "segment": "classes",
+      "suffixes": [".cls"]
+    },
+    {
+      "segment": "triggers",
+      "suffixes": [".trigger"]
+    },
+    {
+      "segment": "lwc",
+      "suffixes": [".js", ".html", ".css", ".svg", ".xml"]
+    },
+    {
+      "segment": "aura",
+      "suffixes": [".cmp", ".app", ".design", ".evt", ".js", ".css", ".svg", ".auradoc"]
+    },
+    {
+      "segment": "flows",
+      "suffixes": [".flow-meta.xml"]
+    },
+    {
+      "segment": "permissionsets",
+      "suffixes": [".permissionset-meta.xml"]
+    },
+    {
+      "segment": "profiles",
+      "suffixes": [".profile-meta.xml"]
+    },
+    {
+      "segment": "layouts",
+      "suffixes": [".layout-meta.xml"]
+    },
+    {
+      "segment": "custommetadata",
+      "suffixes": [".md-meta.xml"]
+    }
+  ],
+  "objectMetadataSuffixes": [
+    ".object-meta.xml",
+    ".field-meta.xml",
+    ".validationrule-meta.xml"
+  ]
+}
