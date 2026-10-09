@@ -15,7 +15,7 @@
   "dependencies": {
     "@apple/app-store-server-library": "^3.1.0",
     "@e2b/code-interpreter": "2.8.0",
-    "@google-cloud/tasks": "^6.2.3",
+    "@google-cloud/tasks": "^7.2.1",
     "@googleapis/androidpublisher": "42.2.0",
     "@sparticuz/chromium": "^149.0.0",
     "axios": "^1.20.0",
