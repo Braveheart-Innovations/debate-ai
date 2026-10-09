@@ -50,8 +50,8 @@ function removeAll(value: string, pattern: RegExp, replacement: string): string 
 
 /** Plain text for preview titles and excerpts (rendered as text, never as HTML). */
 function stripHtml(value: string): string {
-  let text = removeAll(value, /<script\b[\s\S]*?<\/script\s*>/gi, ' ');
-  text = removeAll(text, /<style\b[\s\S]*?<\/style\s*>/gi, ' ');
+  let text = removeAll(value, /<script\b[\s\S]*?<\/script\b[^>]*>/gi, ' ');
+  text = removeAll(text, /<style\b[\s\S]*?<\/style\b[^>]*>/gi, ' ');
   // &amp; last, so "&amp;lt;" decodes once to "&lt;", not twice to "<".
   return removeAll(text, /<[^>]+>/g, ' ')
     .replace(/&nbsp;/gi, ' ')

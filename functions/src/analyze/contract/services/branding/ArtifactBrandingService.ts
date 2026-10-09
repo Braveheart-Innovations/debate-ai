@@ -190,8 +190,8 @@ function removeAll(value: string, pattern: RegExp, replacement: string): string 
 
 /** Plain text of an HTML fragment (titles); the result is escaped again wherever it is emitted. */
 function stripTags(value: string): string {
-  let text = removeAll(value, /<script\b[\s\S]*?<\/script\s*>/gi, '');
-  text = removeAll(text, /<style\b[\s\S]*?<\/style\s*>/gi, '');
+  let text = removeAll(value, /<script\b[\s\S]*?<\/script\b[^>]*>/gi, '');
+  text = removeAll(text, /<style\b[\s\S]*?<\/style\b[^>]*>/gi, '');
   return removeAll(text, /<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
