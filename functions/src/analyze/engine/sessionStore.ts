@@ -247,6 +247,25 @@ export async function loadSessionArtifacts(uid: string, sessionId: string): Prom
   return records as unknown as Array<Artifact & { payloadRefs?: StoredPayloadRefs }>;
 }
 
+/** The session's artifact ids (no data), oldest first. */
+export async function listSessionArtifactIds(uid: string, sessionId: string): Promise<string[]> {
+  const snapshot = await getFirestore()
+    .collection(`users/${uid}/conversations/${sessionId}/artifacts`)
+    .orderBy('createdAt', 'asc')
+    .select()
+    .get();
+  return snapshot.docs.map((doc) => doc.id);
+}
+
+/** These artifacts with offloaded data hydrated (loadSessionArtifacts for a few). */
+export async function loadArtifactsById(uid: string, sessionId: string, ids: string[]): Promise<Artifact[]> {
+  if (ids.length === 0) return [];
+  const snapshots = await getFirestore().getAll(...ids.map((id) => artifactRef(uid, sessionId, id)));
+  const records = snapshots.filter((doc) => doc.exists).map((doc) => decodeArtifactPreviewFromFirestore(doc.data()!) as AnyRecord);
+  await Promise.all(records.map(hydratePayloadRefs));
+  return records as unknown as Artifact[];
+}
+
 /** Remove an artifact's offloaded payloads (after its doc is deleted). */
 export async function deleteArtifactPayloads(uid: string, refs: StoredPayloadRefs | undefined): Promise<void> {
   if (!refs) return;

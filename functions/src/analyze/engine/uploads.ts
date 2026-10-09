@@ -21,8 +21,8 @@ import {
   type StoredPayloadRef,
 } from '../../cloudPayloadStorage';
 import { readWholeFile } from './sandboxBridge';
-import { createSandboxFiles } from './tools/sandboxFiles';
-import { loadSessionArtifacts, removeUndefined } from './sessionStore';
+import type { SandboxFiles } from './tools/sandboxFiles';
+import { listSessionArtifactIds, loadArtifactsById, removeUndefined } from './sessionStore';
 import { mountArtifactsToSandbox } from './artifactFilesystemHydration';
 
 /** Written after a restore; a sandbox without it is new (or was reset) and gets the session's files. */
@@ -132,41 +132,88 @@ export async function removeUpload(uid: string, sessionId: string, sandboxSessio
   await getSandboxService().deleteFile(uid, sandboxSessionKey, pythonPath);
 }
 
-async function hasMarker(uid: string, sandboxSessionKey: string): Promise<boolean> {
+interface SessionFilesMarker {
+  restoredAt: number;
+  /** Saved artifacts already mounted under /output. */
+  artifactIds?: string[];
+}
+
+async function readMarker(uid: string, sandboxSessionKey: string): Promise<SessionFilesMarker | null> {
   try {
-    await getSandboxService().readFile(uid, sandboxSessionKey, { path: SESSION_FILES_MARKER });
-    return true;
+    const chunk = await getSandboxService().readFile(uid, sandboxSessionKey, { path: SESSION_FILES_MARKER });
+    return JSON.parse(Buffer.from(chunk.base64, 'base64').toString('utf8')) as SessionFilesMarker;
   } catch {
-    return false;
+    return null;
   }
 }
 
-/**
- * Give a new sandbox the session's uploads and saved artifacts (the browser's
- * mountStoredFilesToSandbox + mountArtifactsToSandbox before each send).
- * Cheap when the sandbox already has them: one marker read. Returns whether
- * it restored.
- */
-export async function restoreSessionFiles(uid: string, sessionId: string, sandboxSessionKey: string): Promise<boolean> {
-  if (await hasMarker(uid, sandboxSessionKey)) return false;
-  const service = getSandboxService();
+/** Mounting that leaves a file alone when it already has these exact bytes. */
+function unchangedSkippingFiles(uid: string, sandboxSessionKey: string): Pick<SandboxFiles, 'mountFile'> {
+  return {
+    mountFile: async (filename, data, path) => {
+      const target = path || `/uploads/${filename}`;
+      const bytes = Buffer.from(data);
+      await getSandboxService().writeFile(uid, sandboxSessionKey, {
+        path: target,
+        base64: bytes.toString('base64'),
+        skipIfUnchanged: { size: bytes.byteLength, sha256: crypto.createHash('sha256').update(bytes).digest('hex') },
+      });
+      return target;
+    },
+  };
+}
 
-  const uploads = await loadUploadRecords(uid, sessionId);
-  for (const upload of uploads) {
-    const bytes = await downloadPayloadBytes(upload.payload);
+/**
+ * Keeps a sandbox's files in step with the session, as the browser did before
+ * each send (mountStoredFilesToSandbox + mountArtifactsToSandbox):
+ *  - a new sandbox (first use, or the old one expired) gets the uploads back;
+ *  - saved artifacts not yet mounted go under /output/<name>, where the tool
+ *    history tells the model they are (toolResultHistory's file summary).
+ * The browser did this once per turn; sync() runs before every round, so a
+ * file saved this turn is readable by name in the next round too. The marker
+ * file remembers what's mounted; a round with nothing new costs one id query.
+ */
+export class SessionFilesSync {
+  private mounted: Set<string> | null = null;
+
+  constructor(
+    private readonly uid: string,
+    private readonly sessionId: string,
+    private readonly sandboxSessionKey: string,
+  ) {}
+
+  async sync(): Promise<void> {
+    const { uid, sessionId, sandboxSessionKey } = this;
+    const service = getSandboxService();
+    let changed = false;
+    if (!this.mounted) {
+      const marker = await readMarker(uid, sandboxSessionKey);
+      this.mounted = new Set(marker?.artifactIds ?? []);
+      if (!marker) {
+        for (const upload of await loadUploadRecords(uid, sessionId)) {
+          const bytes = await downloadPayloadBytes(upload.payload);
+          await service.writeFile(uid, sandboxSessionKey, {
+            path: upload.pythonPath,
+            base64: bytes.toString('base64'),
+            skipIfUnchanged: { size: upload.size, sha256: upload.sha256 },
+          });
+        }
+        changed = true;
+      }
+    }
+
+    const mounted = this.mounted;
+    const fresh = (await listSessionArtifactIds(uid, sessionId)).filter((id) => !mounted.has(id));
+    if (fresh.length > 0) {
+      await mountArtifactsToSandbox(unchangedSkippingFiles(uid, sandboxSessionKey), await loadArtifactsById(uid, sessionId, fresh));
+      for (const id of fresh) mounted.add(id);
+      changed = true;
+    }
+    if (!changed) return;
+    const marker: SessionFilesMarker = { restoredAt: Date.now(), artifactIds: [...mounted] };
     await service.writeFile(uid, sandboxSessionKey, {
-      path: upload.pythonPath,
-      base64: bytes.toString('base64'),
-      skipIfUnchanged: { size: upload.size, sha256: upload.sha256 },
+      path: SESSION_FILES_MARKER,
+      base64: Buffer.from(JSON.stringify(marker)).toString('base64'),
     });
   }
-
-  const artifacts = await loadSessionArtifacts(uid, sessionId);
-  await mountArtifactsToSandbox(createSandboxFiles(uid, sandboxSessionKey), artifacts);
-
-  await service.writeFile(uid, sandboxSessionKey, {
-    path: SESSION_FILES_MARKER,
-    base64: Buffer.from(JSON.stringify({ restoredAt: Date.now(), uploads: uploads.length, artifacts: artifacts.length })).toString('base64'),
-  });
-  return true;
 }

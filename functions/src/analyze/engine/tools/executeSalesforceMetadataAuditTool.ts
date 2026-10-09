@@ -1,4 +1,8 @@
-/** Moved from symposium-ai-web src/services/analyze/orchestrator/tools/executeSalesforceMetadataAuditTool.ts (Phase 3 Step 5), logic unchanged; the sandbox filesystem is injected. */
+/**
+ * Moved from symposium-ai-web src/services/analyze/orchestrator/tools/executeSalesforceMetadataAuditTool.ts
+ * (Phase 3 Step 5); the sandbox filesystem is injected. One fix since: every
+ * artifact is also written at /output/<filename> (see buildFilesystemEntry).
+ */
 import type { ToolResult } from '../../contract/lib/ai/tools/types';
 import type { SalesforceMetadataAuditArgs, SalesforceMetadataAuditOperation } from '../../contract/lib/ai/tools/built-in/salesforce-metadata-audit';
 import { SALESFORCE_ANALYSIS_LENSES } from '../../contract/config/analysis-lenses';
@@ -493,7 +497,10 @@ function buildFilesystemEntry(filename: string): SalesforceArtifactFilesystemEnt
     filename,
     outputPath: `${SALESFORCE_OUTPUT_ROOT}/${filename}`,
     dataPath: `${SALESFORCE_DATA_ROOT}/${filename}`,
-    aliases: getFilesystemAliases(filename),
+    // The tool history lists each data output as /output/<filename>
+    // (toolResultHistory), so the file must exist there too; a model that read
+    // the listed path got "file not found" (live smoke 2026-10-09).
+    aliases: [`/output/${filename}`, ...getFilesystemAliases(filename)],
   };
 }
 

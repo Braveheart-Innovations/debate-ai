@@ -1,4 +1,7 @@
-/** Moved from symposium-ai-web src/services/analyze/orchestrator/tools/executeSalesforceDocsLookupTool.ts (Phase 3 Step 5), logic unchanged. */
+/**
+ * Moved from symposium-ai-web src/services/analyze/orchestrator/tools/executeSalesforceDocsLookupTool.ts
+ * (Phase 3 Step 5). One fix since: the evidence is also written at /output/<filename>.
+ */
 import type { ToolResult } from '../../contract/lib/ai/tools/types';
 import {
   renderSalesforceDocEvidenceMarkdown,
@@ -111,6 +114,8 @@ async function persistDocsEvidence(
   const encoded = new TextEncoder().encode(content);
   await sandbox.mountFile(filename, encoded.buffer, `${SALESFORCE_DOC_DATA_ROOT}/${filename}`);
   await sandbox.mountFile(filename.replace(/-/g, '_'), encoded.buffer, `/data/${filename.replace(/-/g, '_')}`);
+  // Where the tool history says data outputs are (toolResultHistory: /output/<filename>).
+  await sandbox.mountFile(filename, encoded.buffer, `/output/${filename}`);
 }
 
 function buildCitationMapLines(evidence: SalesforceDocEvidenceBundle): string[] {
