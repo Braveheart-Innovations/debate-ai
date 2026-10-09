@@ -4,6 +4,8 @@
  *   users/{uid}/conversations/{sessionId}/analyzeRuns/{runId}        run doc
  *   …/analyzeRuns/{runId}/runEvents/{seq}                            live events (TTL)
  *   …/analyzeRuns/{runId}/toolCalls/{toolCallId}                     idempotency
+ *   …/analyzeRuns/{runId}/messages/{id}                              a subagent's transcript
+ *   users/{uid}/conversations/{sessionId}/reviewItems/{id}           the review queue
  *   users/{uid}/conversations/{sessionId}/{messages,artifacts}/…     durable record (sessionStore)
  *   Storage analyzeScratch/{run path}/toolCalls/{toolCallId}.json    a finished call's full outputs, until captured
  *
@@ -18,6 +20,9 @@ import type { AnalyzeOutputSelection } from '../contract/types/analyze';
 import type { AnalyzeOrgEvidenceRequest } from '../capture/types';
 import { removeUndefined } from './sessionStore';
 import type { ToolResult } from '../contract/lib/ai/tools/types';
+import type { AnalyzeTeamRunSummary } from '../contract/types';
+import type { AgentPurpose, AgentRunResult, TeamPlan } from '../team/types';
+import type { TeamTurnState } from '../team/teamState';
 
 export const LEASE_MS = 30_000;
 export const HEARTBEAT_MS = 10_000;
@@ -25,8 +30,37 @@ export const HEARTBEAT_MS = 10_000;
 export const EVENT_TTL_MS = 24 * 60 * 60 * 1000;
 export const EVENT_BATCH_MS = 250;
 
-export type RunStatus = 'queued' | 'running' | 'completed' | 'stopped' | 'error';
+export type RunStatus =
+  | 'queued'
+  | 'running'
+  /** The operator proposed a team; the plan waits for the user (team.plans). */
+  | 'awaiting_approval'
+  /** The operator's team is working; the last child to finish wakes it. */
+  | 'waiting_children'
+  | 'completed'
+  | 'stopped'
+  | 'error';
 const TERMINAL: RunStatus[] = ['completed', 'stopped', 'error'];
+/** Not runnable until a user decision or the children wake it; a stray delivery does nothing. */
+const WAITING: RunStatus[] = ['awaiting_approval', 'waiting_children'];
+/** An operator run in these states owns the session: no second turn may start. */
+export const OPERATOR_ACTIVE: RunStatus[] = ['queued', 'running', 'awaiting_approval', 'waiting_children'];
+
+/**
+ * operator: the user's turn. teammate: a delegated task (child of the
+ * operator's team call) or a "Run again" rerun. verify: Check independently
+ * on a review item. reviewer: a reviewer pass (one model call per reviewer).
+ */
+export type RunKind = 'operator' | 'teammate' | 'verify' | 'reviewer';
+
+/** A roster AI as the run needs it (the contract's AI type, minimal). */
+export interface RosterAI {
+  id: string;
+  name: string;
+  provider: string;
+  model: string;
+  modelConfig?: { displayName: string };
+}
 
 export interface RunConfig {
   provider: string;
@@ -42,14 +76,80 @@ export interface RunConfig {
   outputSelection: AnalyzeOutputSelection;
   /** Save each round's capture inputs and output (capture parity checks; Phase 3 build-out only). */
   captureTrace?: boolean;
+  /** Python kernel for this run (subagents get their own; the operator uses the default). */
+  kernel?: string;
+  /** The model's display name (roster modelConfig), shown for subagents as the browser did. */
+  modelDisplayName?: string;
+  /** Roster teammates the operator may delegate to (handles teammate1..), never the reviewer. */
+  team?: Array<{ handle: string; ai: RosterAI }>;
+  /** Roster reviewers (auto-review, Check independently). */
+  reviewers?: RosterAI[];
+  /** Team mode: this turn starts with a team plan (the planning gate). */
+  teamPlanTurn?: boolean;
+  /** Approve team plans without waiting (the card still shows). */
+  teamAutoApprove?: boolean;
+  /** Review the turn's report when it completes. */
+  autoReview?: boolean;
+  /** The session has a Salesforce workspace upload (the planning gate offers the audit first). */
+  salesforceWorkspace?: boolean;
+  /** The teammates' system prompt (subagent role); the caller builds it like systemPrompt. */
+  subagentSystemPrompt?: string;
+  /** The operator prompt for turns the server starts (Run again, review hand-off): Team mode off. Defaults to systemPrompt. */
+  followUpSystemPrompt?: string;
+}
+
+/** What a subagent run is doing for whom. */
+export interface AgentRunInfo {
+  purpose: AgentPurpose;
+  /** The task as written by the operator (or the review check), shown in the lane. */
+  task: string;
+  /** The operator's team tool call (`rerun:<runId>` / `review:<itemId>` outside a turn). */
+  parentToolCallId: string;
+  /** Runs of the same approved task share this key (two or more = a panel). */
+  assignmentKey?: string;
+  /** Roster handle the run was started for. */
+  handle: string;
+  /** Run again: the run this one reruns; its result goes back to the operator as a new turn. */
+  rerunOf?: string;
+  /** Check independently: the review item being checked. */
+  reviewItemId?: string;
+}
+
+/** A reviewer pass: who reviews which operator reply. */
+export interface ReviewPassInfo {
+  reviewerIds: string[];
+  /** The operator reply under review (null: the latest one, as the browser picked it). */
+  targetMessageId: string | null;
+  requestText?: string;
+  trigger: 'auto' | 'manual';
 }
 
 export interface AnalyzeRunDoc {
   runId: string;
   uid: string;
   sessionId: string;
-  kind: 'operator';
+  kind: RunKind;
   status: RunStatus;
+  /** Subagent runs: the operator run whose team call started them (absent for reruns and verify). */
+  parentRunId?: string;
+  agent?: AgentRunInfo;
+  /** A finished subagent's result (set before it finishes, so a redelivery reuses it). */
+  result?: AgentRunResult;
+  /** A finished child whose parent wake (or rerun delivery) still has to be enqueued. */
+  handoffPending?: boolean;
+  /** Operator: the post-turn work (review queue, auto-review, rerun delivery) hasn't finished yet. */
+  postTurnPending?: boolean;
+  /** A rerun whose result went back to the operator. */
+  deliveredToOperator?: boolean;
+  review?: ReviewPassInfo;
+  /** Operator: turn-scoped team state (plans, waiting calls, solo, ask/evidence end-of-turn). */
+  team?: TeamTurnState;
+  /** Operator: the plan card(s) the user must answer (mirrors team.plans pending, for the client). */
+  pendingTeamPlans?: TeamPlan[];
+  /** User message metadata for a turn the server started (rerun deliveries). */
+  teamRuns?: AnalyzeTeamRunSummary[];
+  /** Review items handed to this turn (queued → completed when it completes). */
+  reviewItemIds?: string[];
   round: number;
   /** Model-call retries used this turn (loopHandlers: one per turn). */
   retryCount?: number;
@@ -95,7 +195,9 @@ export class LeaseHeldError extends Error {
 }
 
 /**
- * Take the run's lease. Returns the run, or null when it already finished.
+ * Take the run's lease. Returns the run, or null when it already finished or
+ * is waiting (on a plan decision or its children: whoever ends the wait
+ * enqueues a fresh step).
  * Throws LeaseHeldError when another live step holds it: the caller must let
  * that error fail the task so Cloud Tasks retries (never return success).
  */
@@ -104,7 +206,7 @@ export async function acquireLease(ref: DocumentReference, owner: string): Promi
     const snapshot = await tx.get(ref);
     if (!snapshot.exists) throw new Error(`Run not found: ${ref.path}`);
     const run = snapshot.data() as AnalyzeRunDoc;
-    if (isTerminal(run.status)) return null;
+    if (isTerminal(run.status) || WAITING.includes(run.status)) return null;
     if (run.lease && run.lease.owner !== owner && run.lease.expiresAt > Date.now()) {
       throw new LeaseHeldError(run.runId);
     }
@@ -114,21 +216,34 @@ export async function acquireLease(ref: DocumentReference, owner: string): Promi
   });
 }
 
-/** Renew the lease every HEARTBEAT_MS until stopped. */
+/**
+ * Renew the lease every HEARTBEAT_MS until stopped. A renewal only lands while
+ * this step still owns the lease: one in flight when the step releases it
+ * (a hand-off, or a wait for the team) must not lease the run again.
+ */
 export function startHeartbeat(ref: DocumentReference, owner: string): () => void {
   const timer = setInterval(() => {
-    void ref.update({ lease: { owner, expiresAt: Date.now() + LEASE_MS } }).catch((error) => {
+    void getFirestore().runTransaction(async (tx) => {
+      const lease = (await tx.get(ref)).data()?.lease as AnalyzeRunDoc['lease'];
+      if (lease?.owner === owner) tx.update(ref, { lease: { owner, expiresAt: Date.now() + LEASE_MS } });
+    }).catch((error) => {
       console.error('[analyzeRun] heartbeat failed', error);
     });
   }, HEARTBEAT_MS);
   return () => clearInterval(timer);
 }
 
-/** Watch for a Stop request; the signal aborts in-flight model calls and Python. */
-export function watchCancel(ref: DocumentReference): { signal: AbortSignal; stop: () => void } {
+/**
+ * Watch for a Stop request; the signal aborts in-flight model calls and
+ * Python. `onChange` sees every update (user choices made mid-run, such as
+ * "do it yourself", reach the running step this way).
+ */
+export function watchCancel(ref: DocumentReference, onChange?: (run: AnalyzeRunDoc) => void): { signal: AbortSignal; stop: () => void } {
   const controller = new AbortController();
   const unsubscribe = ref.onSnapshot((snapshot) => {
-    if (snapshot.data()?.cancelRequested && !controller.signal.aborted) controller.abort();
+    const data = snapshot.data() as AnalyzeRunDoc | undefined;
+    if (data && onChange) onChange(data);
+    if (data?.cancelRequested && !controller.signal.aborted) controller.abort();
   }, (error) => console.error('[analyzeRun] cancel listener failed', error));
   return { signal: controller.signal, stop: unsubscribe };
 }
@@ -141,7 +256,8 @@ export async function setLatestCompletedOperatorMessage(ref: DocumentReference, 
 export async function finishRun(
   ref: DocumentReference,
   status: Extract<RunStatus, 'completed' | 'stopped' | 'error'>,
-  error?: { message: string; code: string },
+  error?: { message: string; code: string } | null,
+  extra: Record<string, unknown> = {},
 ): Promise<void> {
   await ref.update({
     status,
@@ -149,6 +265,7 @@ export async function finishRun(
     finishedAt: Date.now(),
     updatedAt: Date.now(),
     ...(error ? { error } : {}),
+    ...extra,
   });
 }
 
@@ -221,6 +338,8 @@ export interface StoredToolResult {
   content?: string;
   error?: string;
   dataOutputs?: Array<{ filename: string; size: number }>;
+  /** Team tool results: the runs behind them (the Team panel after a reload). */
+  teamRuns?: AnalyzeTeamRunSummary[];
 }
 
 export type ToolCallRecord =
@@ -237,6 +356,7 @@ export function toStoredToolResult(result: ToolResult): StoredToolResult {
     content: result.content,
     error: result.error,
     dataOutputs: result.dataOutputs?.map((output) => ({ filename: output.filename, size: output.size })),
+    teamRuns: result.metadata?.teamRuns as AnalyzeTeamRunSummary[] | undefined,
   });
 }
 

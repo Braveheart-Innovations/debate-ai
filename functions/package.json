@@ -9,7 +9,8 @@
     "build": "tsc -p tsconfig.json && rm -rf lib/exports/templates && mkdir -p lib/exports/templates && cp -R src/exports/templates/. lib/exports/templates/ && node scripts/copy-debate-podcast-media.mjs && node scripts/vendor-vega.mjs",
     "test": "npm run build && node --test test/*.test.js && jest --passWithNoTests",
     "salesforce-docs:index": "npm run build && node scripts/salesforce-docs-index.mjs",
-    "watch": "tsc -w -p tsconfig.json"
+    "watch": "tsc -w -p tsconfig.json",
+    "test:emulator": "firebase emulators:exec --only firestore --project demo-analyze-team \"npx jest --runInBand teamEngine.emulator\""
   },
   "dependencies": {
     "@apple/app-store-server-library": "^3.1.0",

@@ -269,6 +269,20 @@ service cloud.firestore {
           match /toolCalls/{toolCallId} {
             allow read, write: if false;
           }
+
+          // A subagent run's transcript (teammate, Check independently):
+          // the lanes render it. Kept out of the session's messages.
+          match /messages/{messageId} {
+            allow read: if isOwner(userId);
+            allow write: if false;
+          }
+        }
+
+        // The Analyze review queue (Phase 3): reviewer passes and verify
+        // runs write it; select, dismiss and send go through a callable.
+        match /reviewItems/{itemId} {
+          allow read: if isOwner(userId);
+          allow write: if false;
         }
       }
     }

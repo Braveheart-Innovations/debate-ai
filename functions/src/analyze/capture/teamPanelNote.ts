@@ -1,5 +1,5 @@
 /** Ported from symposium-ai-web src/services/analyze/artifacts/teamPanelNote.ts (Phase 3), logic unchanged. */
-import type { AgentRunView } from './agentRunView';
+import type { AgentRunView } from '../team/types';
 import type { AnalysisArtifactCalloutBlock, AnalysisArtifactSpecV1 } from '../contract/types/analysis-artifact-spec';
 
 /**
