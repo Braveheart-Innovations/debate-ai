@@ -13,7 +13,7 @@ import type { Message } from '../../contract/types';
 jest.mock('uuid', () => ({ v4: () => jest.requireActual<typeof import('node:crypto')>('node:crypto').randomUUID() }));
 
 // --- scripted models -----------------------------------------------------------
-type ModelRequest = { systemPrompt?: string; messages: Array<{ role: string; content: string | null }>; tools?: Array<{ name: string }>; attachments?: Array<{ fileName?: string }>; signal?: AbortSignal };
+type ModelRequest = { systemPrompt?: string; messages: Array<{ role: string; content: string | null; attachments?: Array<{ fileName?: string }> }>; tools?: Array<{ name: string }>; attachments?: Array<{ fileName?: string }>; signal?: AbortSignal };
 type Script = (request: ModelRequest) => Array<Record<string, unknown>> | Promise<Array<Record<string, unknown>>>;
 let script: Script = () => [];
 const modelCalls: ModelRequest[] = [];
@@ -590,22 +590,37 @@ describeEmulator('review engine', () => {
     expect((await runRef(uid, sessionId, runId).collection('runEvents').get()).empty).toBe(true);
   });
 
-  it('attachments: the composer\'s and every PDF upload\'s pages go with the turn\'s first model call only', async () => {
+  it('attachments: the composer\'s stay on their message in every call; PDF pages go with each turn\'s first call', async () => {
     sandboxFiles.set('/uploads/scan.pdf', Buffer.from('%PDF-1.7 fake'));
     await commitUpload(uid, sessionId, 'sbx', { pythonPath: '/uploads/scan.pdf', mimeType: 'application/pdf' });
     script = (request) => (hasToolResults(request) ? text('It says hello.') : calls({ id: 'py1', name: 'execute_python', args: { code: 'print(1)' } }));
     const photo = { type: 'image' as const, uri: 'data:image/png;base64,QUJD', mimeType: 'image/png', base64: 'QUJD', fileName: 'photo.png' };
     const { runId } = await startOperatorTurn({ uid, sessionId, content: 'What does it say?', config: config({ team: undefined }), attachments: [photo] });
-    expect([...storageObjects.keys()].some((name) => name.endsWith(`${runId}/attachments.json`))).toBe(true);
     await drain();
 
     expect((await run(runId)).status).toBe('completed');
-    expect(modelCalls[0].attachments?.map((a) => a.fileName)).toEqual(['photo.png', 'page-1.png', 'page-2.png']);
+    const photoOnUserMessage = (request: ModelRequest) => request.messages
+      .filter((m) => m.role === 'user')
+      .flatMap((m) => m.attachments ?? [])
+      .map((a) => a.fileName);
+    // Round 0: the photo on its message, the pages for this call; round 1: the photo only.
+    expect(photoOnUserMessage(modelCalls[0])).toEqual(['photo.png']);
+    expect(modelCalls[0].attachments?.map((a) => a.fileName)).toEqual(['page-1.png', 'page-2.png']);
+    expect(photoOnUserMessage(modelCalls[1])).toEqual(['photo.png']);
     expect(modelCalls[1].attachments).toBeUndefined();
     expect(released).toContain('pdf-pages');
-    // The pages are cached in the sandbox, outside /output; the turn's scratch is gone.
+    // The pages are cached in the sandbox, outside /output.
     expect([...sandboxFiles.keys()].filter((path) => path.includes('/pdf-pages/'))).toHaveLength(2);
-    expect([...storageObjects.keys()].some((name) => name.endsWith('attachments.json'))).toBe(false);
+
+    // A later turn still sees the photo on its message (the browser kept it until a reload; the server keeps it).
+    const later = await startOperatorTurn({ uid, sessionId, content: 'And now?', config: config({ team: undefined }) });
+    modelCalls.length = 0;
+    await drain();
+    expect((await run(later.runId)).status).toBe('completed');
+    expect(photoOnUserMessage(modelCalls[0])).toEqual(['photo.png']);
+    // Gone with the session.
+    await deleteServerOwnedSessionData(uid, sessionId);
+    expect([...storageObjects.keys()].some((name) => name.includes('/messageAttachments/'))).toBe(false);
   });
 
   it('auto-review runs only after a turn that produced a report', async () => {

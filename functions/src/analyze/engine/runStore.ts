@@ -152,7 +152,7 @@ export interface AnalyzeRunDoc {
   teamRuns?: AnalyzeTeamRunSummary[];
   /** Review items handed to this turn (queued → completed when it completes). */
   reviewItemIds?: string[];
-  /** The user's message came with attachments (saved for round 0: saveTurnAttachments). */
+  /** The user's message came with attachments (saveMessageAttachments). */
   attachmentCount?: number;
   round: number;
   /** Model-call retries used this turn (loopHandlers: one per turn). */
@@ -434,29 +434,42 @@ export async function deleteToolOutputs(refs: DocumentReference[]): Promise<void
 }
 
 // ============================================================================
-// The turn's composer attachments
+// Composer attachments
 // ============================================================================
 
 /**
- * The images and documents the user attached to the turn's message. Messages
- * never persist attachments (as in the browser), so they wait here for round
- * 0, private to the server, until the turn ends.
+ * The images and documents a user message came with. Message records never
+ * hold attachments (the client's shape), so they live here, private to the
+ * server, and go back on their message in every model call's history: the
+ * browser kept them on the in-memory message the same way (until a reload).
+ * Deleted with the session.
  */
-function turnAttachmentsPath(runRef: DocumentReference): string {
-  return `analyzeScratch/${runRef.path}/attachments.json`;
+function messageAttachmentsPath(uid: string, sessionId: string, messageId: string): string {
+  return `analyzeScratch/users/${uid}/conversations/${sessionId}/messageAttachments/${messageId}.json`;
 }
 
-export async function saveTurnAttachments(runRef: DocumentReference, attachments: MessageAttachment[]): Promise<void> {
-  await scratchFile(turnAttachmentsPath(runRef)).save(JSON.stringify(attachments), { contentType: 'application/json', resumable: false });
+export async function saveMessageAttachments(uid: string, sessionId: string, messageId: string, attachments: MessageAttachment[]): Promise<void> {
+  await scratchFile(messageAttachmentsPath(uid, sessionId, messageId))
+    .save(JSON.stringify(attachments), { contentType: 'application/json', resumable: false });
 }
 
-export async function loadTurnAttachments(runRef: DocumentReference): Promise<MessageAttachment[]> {
-  const [bytes] = await scratchFile(turnAttachmentsPath(runRef)).download();
-  return JSON.parse(bytes.toString('utf8')) as MessageAttachment[];
-}
-
-export async function deleteTurnAttachments(runRef: DocumentReference): Promise<void> {
-  await scratchFile(turnAttachmentsPath(runRef)).delete({ ignoreNotFound: true });
+/** Every user message of the session that came with attachments (operator runs record the count). */
+export async function loadSessionAttachments(uid: string, sessionId: string): Promise<Map<string, MessageAttachment[]>> {
+  const runs = await getFirestore()
+    .collection(`users/${uid}/conversations/${sessionId}/analyzeRuns`)
+    .where('attachmentCount', '>', 0)
+    .get();
+  const byMessage = new Map<string, MessageAttachment[]>();
+  await Promise.all(runs.docs.map(async (doc) => {
+    const { userMessageId } = doc.data() as AnalyzeRunDoc;
+    try {
+      const [bytes] = await scratchFile(messageAttachmentsPath(uid, sessionId, userMessageId)).download();
+      byMessage.set(userMessageId, JSON.parse(bytes.toString('utf8')) as MessageAttachment[]);
+    } catch (error) {
+      console.warn('[analyzeRun] message attachments unavailable', { userMessageId, error });
+    }
+  }));
+  return byMessage;
 }
 
 export { FieldValue };
