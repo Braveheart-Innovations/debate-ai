@@ -67,7 +67,6 @@ export {
   finalizeCloudPayloadUpload,
   deleteCloudPayload,
   deleteCloudPayloadsForPath,
-  deleteUserCloudData,
 } from './cloudPayloadStorage';
 
 // GDPR User Data Export
