@@ -16,6 +16,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { enqueueStep } from './queue';
 import { finishRun, runRef, type AnalyzeRunDoc } from './runStore';
 import { endedChildResult, finishChild } from '../team/teamStore';
+import { notifyTurnEnded } from './notifications';
 
 /** Longer than any Cloud Tasks retry gap (≤ 60 s) plus a lease (30 s): steps bump updatedAt on every attempt. */
 export const STRANDED_MS = 5 * 60_000;
@@ -44,7 +45,13 @@ export async function sweepStrandedRuns(now = Date.now()): Promise<SweepOutcome>
     try {
       if (sweeps > MAX_SWEEPS) {
         const message = 'The run stopped making progress and was ended.';
-        if (run.kind === 'operator' || run.kind === 'reviewer') await finishRun(ref, 'error', { message, code: 'deadline-exceeded' });
+        if (run.kind === 'operator' || run.kind === 'reviewer') {
+          const error = { message, code: 'deadline-exceeded' };
+          await finishRun(ref, 'error', error);
+          await notifyTurnEnded({ ...run, error }, 'error').catch((notifyError) => {
+            console.error('[analyzeSweeper] notification failed', { path: doc.ref.path, notifyError });
+          });
+        }
         else await finishChild(run, run.result ?? endedChildResult(run, 'failed', `The subagent failed: ${message}`));
         outcome.failed.push(doc.ref.path);
         continue;

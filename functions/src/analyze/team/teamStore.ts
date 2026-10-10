@@ -22,6 +22,7 @@ import {
 } from '../engine/runStore';
 import { buildMessageRecord, removeUndefined, runMessagesPath } from '../engine/sessionStore';
 import type { TeamHooks } from '../engine/round';
+import { notifyPlansPending } from '../engine/notifications';
 import { buildDelegatedBrief, buildReviewCheckBrief } from './agentResults';
 import { OPERATOR_ONLY_TOOL_NAMES, TEAM_TOOL_NAMES } from './teamTools';
 import {
@@ -267,6 +268,12 @@ function settleInTx(tx: Transaction, parentRef: DocumentReference, parent: Analy
 async function afterSettle(parent: AnalyzeRunDoc, settled: Settled): Promise<void> {
   await enqueueChildren(settled.children);
   if (settled.wake) await enqueueStep({ uid: parent.uid, sessionId: parent.sessionId, runId: parent.runId });
+  if (settled.update.status === 'awaiting_approval') {
+    // Best effort: a crash right after the commit loses the notification, never the plan.
+    await notifyPlansPending(parent, settled.update.pendingTeamPlans as TeamPlan[]).catch((error) => {
+      console.error('[analyzeRun] plan notification failed', { runId: parent.runId, error });
+    });
+  }
 }
 
 /**

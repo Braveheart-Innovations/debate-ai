@@ -280,13 +280,16 @@ export async function finishRun(
 export type RunEvent =
   | { type: 'text'; messageId: string; text: string }
   | { type: 'tool_call_start'; messageId: string; toolCallId: string; toolName: string }
+  /** execute_python's argument JSON as the model writes it (the cell's live code). */
+  | { type: 'tool_call_delta'; messageId: string; toolCallId: string; delta: string }
   | { type: 'tool_executing'; toolCallId: string; toolName: string }
   | { type: 'tool_completed'; toolCallId: string; toolName: string; success: boolean }
   | { type: 'status'; status: RunStatus | 'streaming' | 'tool_executing' };
 
 /**
  * Batches live events into runEvents docs, one doc per ~250 ms of activity
- * (spike: ~65 ms write→listener). Text deltas for the same message merge.
+ * (spike: ~65 ms write→listener). Text deltas for the same message merge, as
+ * do argument deltas for the same tool call.
  */
 export class RunEventWriter {
   private pending: RunEvent[] = [];
@@ -299,8 +302,10 @@ export class RunEventWriter {
     const last = this.pending[this.pending.length - 1];
     if (event.type === 'text' && last?.type === 'text' && last.messageId === event.messageId) {
       last.text += event.text;
+    } else if (event.type === 'tool_call_delta' && last?.type === 'tool_call_delta' && last.toolCallId === event.toolCallId) {
+      last.delta += event.delta;
     } else {
-      this.pending.push(event.type === 'text' ? { ...event } : event);
+      this.pending.push(event.type === 'text' || event.type === 'tool_call_delta' ? { ...event } : event);
     }
     if (!this.timer) this.timer = setTimeout(() => this.flush(), EVENT_BATCH_MS);
   }

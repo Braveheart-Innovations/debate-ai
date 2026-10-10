@@ -85,6 +85,12 @@ const GOOGLE_ANALYZE_TEMPERATURE = 1.0;
 export const MAX_RETRIES = 1;
 /** Ceiling for one model call; a stalled stream ends as an error, not a hung step. */
 const MODEL_CALL_TIMEOUT_MS = 15 * 60_000;
+/**
+ * Live code preview per call. Past this the preview stops and the cell shows
+ * the full code from the message: one runEvents doc must stay under
+ * Firestore's 1 MiB, and the preview is the only thing that's cut.
+ */
+const LIVE_CODE_PREVIEW_CHARS = 256 * 1024;
 
 export interface RoundContext {
   uid: string;
@@ -213,6 +219,8 @@ async function callModel(
   });
 
   const attempt: ModelAttempt = { text: '', toolCalls: [], toolCallStarted: false };
+  // execute_python calls' preview sizes (AnalyzeSessionContext only types out Python).
+  const livePython = new Map<string, number>();
   context.events.push({ type: 'status', status: 'streaming' });
   for await (const event of streamModel({
     uid: context.uid,
@@ -242,7 +250,16 @@ async function callModel(
       case 'tool_call_start':
         attempt.toolCallStarted = true;
         context.events.push({ type: 'tool_call_start', messageId, toolCallId: event.id, toolName: event.name });
+        if (event.name === 'execute_python') livePython.set(event.id, 0);
         break;
+      case 'tool_call_delta': {
+        const sent = livePython.get(event.id);
+        if (sent === undefined || !event.arguments_delta || sent >= LIVE_CODE_PREVIEW_CHARS) break;
+        const delta = event.arguments_delta.slice(0, LIVE_CODE_PREVIEW_CHARS - sent);
+        livePython.set(event.id, sent + delta.length);
+        context.events.push({ type: 'tool_call_delta', messageId, toolCallId: event.id, delta });
+        break;
+      }
       case 'message_complete':
         attempt.finishReason = event.finish_reason;
         attempt.toolCalls = (event.tool_calls ?? []) as ToolCall[];

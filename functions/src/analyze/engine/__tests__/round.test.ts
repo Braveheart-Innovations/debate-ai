@@ -104,6 +104,42 @@ describe('runRound', () => {
     expect(stored[2]).toMatchObject({ senderType: 'tool', content: 'ok', metadata: expect.objectContaining({ isToolResult: true, toolCallId: 'c1', toolName: 'execute_python', success: true }) });
   });
 
+  it('streams execute_python arguments as live code, and no other tool\'s', async () => {
+    const { context, events } = makeContext();
+    streamQueue.push([
+      { type: 'tool_call_start', index: 0, id: 'c1', name: 'execute_python' },
+      { type: 'tool_call_delta', index: 0, id: 'c1', arguments_delta: '{"code":"pri' },
+      { type: 'tool_call_delta', index: 0, id: 'c1', arguments_delta: 'nt(1)"}' },
+      { type: 'tool_call_start', index: 1, id: 'c2', name: 'write_file' },
+      { type: 'tool_call_delta', index: 1, id: 'c2', arguments_delta: '{"path":"a.txt"}' },
+      done({ finish_reason: 'tool_calls', tool_calls: [call('c1'), call('c2', 'write_file')] }),
+    ]);
+
+    await runRound(context, state());
+    const deltas = events.push.mock.calls.map(([e]) => e).filter((e) => e.type === 'tool_call_delta');
+    expect(deltas).toEqual([
+      { type: 'tool_call_delta', messageId: 'run1_r0', toolCallId: 'c1', delta: '{"code":"pri' },
+      { type: 'tool_call_delta', messageId: 'run1_r0', toolCallId: 'c1', delta: 'nt(1)"}' },
+    ]);
+  });
+
+  it('stops the live code preview at its ceiling', async () => {
+    const { context, events } = makeContext();
+    const big = 'x'.repeat(200 * 1024);
+    streamQueue.push([
+      { type: 'tool_call_start', index: 0, id: 'c1', name: 'execute_python' },
+      { type: 'tool_call_delta', index: 0, id: 'c1', arguments_delta: big },
+      { type: 'tool_call_delta', index: 0, id: 'c1', arguments_delta: big },
+      { type: 'tool_call_delta', index: 0, id: 'c1', arguments_delta: big },
+      done({ finish_reason: 'tool_calls', tool_calls: [call('c1')] }),
+    ]);
+
+    await runRound(context, state());
+    const sent = events.push.mock.calls.map(([e]) => e).filter((e) => e.type === 'tool_call_delta');
+    expect(sent).toHaveLength(2);
+    expect(sent.reduce((n, e) => n + e.delta.length, 0)).toBe(256 * 1024);
+  });
+
   it('resumes unfinished tool calls from a previous step without calling the model', async () => {
     stored.push({ id: 'run1_r0', sender: 'Claude', senderType: 'ai', content: '', timestamp: 2, metadata: { toolCalls: [call('c1'), call('c2')] } });
     stored.push({ id: 'toolresult_c1', sender: 'tool', senderType: 'tool', content: 'ok', timestamp: 3, metadata: { isToolResult: true, toolCallId: 'c1' } });
