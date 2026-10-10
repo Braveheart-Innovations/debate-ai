@@ -6,7 +6,7 @@
  * auto-review check, verifyReviewItems, sendReviewItems); the reviewer itself
  * is unchanged (critique-only, no tools, temperature 0.2).
  */
-import { getFirestore, type DocumentReference } from 'firebase-admin/firestore';
+import { FieldValue, getFirestore, type DocumentReference } from 'firebase-admin/firestore';
 import type { AIConfig, Message } from '../contract/types';
 import type { AnalyzeReviewItem, AnalyzeReviewVerification } from '../contract/types/analyze';
 import type { Artifact } from '../contract/types/notebook';
@@ -42,6 +42,7 @@ import {
   getAnalyzeReviewerSystemPrompt,
   isVerifiableReviewItem,
   parseAnalyzeReviewItemsFromResponse,
+  parseHandoffStatuses,
   parseVerificationVerdict,
   sortAnalyzeReviewItems,
 } from './reviewService';
@@ -316,15 +317,10 @@ export async function runReviewerPass(ref: DocumentReference, run: AnalyzeRunDoc
  */
 export async function afterOperatorCompleted(run: AnalyzeRunDoc): Promise<void> {
   const { uid, sessionId } = run;
-  const queued = await getFirestore().collection(reviewItemsPath(uid, sessionId)).where('status', '==', 'queued').get();
-  if (!queued.empty) {
-    const batch = getFirestore().batch();
-    for (const doc of queued.docs) batch.update(doc.ref, { status: 'completed' });
-    await batch.commit();
-  }
-
   const current = (await runRef(uid, sessionId, run.runId).get()).data() as AnalyzeRunDoc;
   const target = current.latestCompletedOperatorMessageId;
+  await settleHandedOffItems(uid, sessionId, current);
+
   const reviewers = current.config.reviewers ?? [];
   if (
     !current.config.autoReview
@@ -339,6 +335,44 @@ export async function afterOperatorCompleted(run: AnalyzeRunDoc): Promise<void> 
     targetMessageId: target,
     trigger: 'auto',
   });
+}
+
+/**
+ * Queued items close when the operator's turn ends, except the ones its reply
+ * handed back: a skipped item or one that needs the user returns to the queue
+ * with the operator's reason or question, so the user can answer, re-send or
+ * dismiss it. An item the reply doesn't mention closes, as before.
+ */
+async function settleHandedOffItems(uid: string, sessionId: string, run: AnalyzeRunDoc): Promise<void> {
+  const db = getFirestore();
+  const queued = await db.collection(reviewItemsPath(uid, sessionId)).where('status', '==', 'queued').get();
+  if (queued.empty) return;
+  const handedOff = run.reviewItemIds ?? [];
+  let reply = '';
+  if (handedOff.length > 0 && run.latestCompletedOperatorMessageId) {
+    const message = (await messageRef(uid, sessionId, run.latestCompletedOperatorMessageId).get()).data() as Message | undefined;
+    reply = typeof message?.content === 'string' ? message.content : '';
+  }
+  const statuses = parseHandoffStatuses(reply, handedOff);
+  const now = Date.now();
+  const batch = db.batch();
+  for (const doc of queued.docs) {
+    const handedBack = statuses.get(doc.id);
+    if (handedBack && handedBack.status !== 'completed') {
+      batch.update(doc.ref, {
+        status: 'pending',
+        selected: false,
+        operatorResponse: {
+          status: handedBack.status,
+          note: handedBack.note || (handedBack.status === 'skipped' ? 'No reason given.' : 'No question given.'),
+          respondedAt: now,
+        },
+      });
+    } else {
+      batch.update(doc.ref, { status: 'completed', operatorResponse: FieldValue.delete() });
+    }
+  }
+  await batch.commit();
 }
 
 // ============================================================================
@@ -498,13 +532,19 @@ export async function dismissReviewItems(uid: string, sessionId: string, itemIds
 }
 
 /** Hand review items to the operator: one operator turn (a follow-up, not new team work). */
-export async function sendReviewItemsToOperator(uid: string, sessionId: string, itemIds: string[]): Promise<{ runId: string }> {
+export async function sendReviewItemsToOperator(
+  uid: string,
+  sessionId: string,
+  itemIds: string[],
+  /** The user's answers to items the operator handed back needing input, by item id. */
+  answers: Record<string, string> = {},
+): Promise<{ runId: string }> {
   const operator = await findLatestOperatorRun(uid, sessionId);
   if (!operator) throw new TeamControlError('Select an operator before sending review items.');
   if (await findActiveOperatorRun(uid, sessionId)) throw new TeamControlError('Please wait for the current operation to complete');
   const items = (await loadReviewItems(uid, sessionId)).filter((item) => itemIds.includes(item.id) && item.status === 'pending');
   if (items.length === 0) throw new TeamControlError('Select at least one review item to send.');
-  const prompt = buildOperatorReviewHandoffPrompt(operator.config.aiName, items);
+  const prompt = buildOperatorReviewHandoffPrompt(operator.config.aiName, items, answers);
   return startOperatorTurn({
     uid,
     sessionId,

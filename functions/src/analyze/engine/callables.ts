@@ -281,6 +281,17 @@ export const analyzeRunControl = onCall({ region: 'us-central1' }, async (reques
   }
 });
 
+/** The user's answers to handed-back review items: text by item id, only for the items being sent. */
+function parseAnswers(value: unknown, itemIds: string[]): Record<string, string> {
+  if (!value || typeof value !== 'object') return {};
+  const answers: Record<string, string> = {};
+  for (const id of itemIds) {
+    const answer = (value as Record<string, unknown>)[id];
+    if (typeof answer === 'string' && answer.trim()) answers[id] = answer;
+  }
+  return answers;
+}
+
 export const analyzeReviewControl = onCall({ region: 'us-central1' }, async (request) => {
   const uid = requireAllowedUid(request.auth?.uid);
   const data = (request.data ?? {}) as Record<string, unknown>;
@@ -301,7 +312,7 @@ export const analyzeReviewControl = onCall({ region: 'us-central1' }, async (req
       case 'verify':
         return { runIds: await startVerification(uid, sessionId, itemIds) };
       case 'send_to_operator':
-        return await sendReviewItemsToOperator(uid, sessionId, itemIds);
+        return await sendReviewItemsToOperator(uid, sessionId, itemIds, parseAnswers(data.answers, itemIds));
       case 'select':
         await setReviewItemsSelected(uid, sessionId, itemIds, true);
         return { ok: true };

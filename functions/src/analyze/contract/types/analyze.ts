@@ -204,6 +204,15 @@ export interface AnalyzeReviewItem {
   createdAt: number;
   /** Independent re-derivation by another model with tools ("Check independently"). */
   verification?: AnalyzeReviewVerification;
+  /** The operator handed the item back: it skipped it, or needs the user's answer to proceed. */
+  operatorResponse?: AnalyzeReviewOperatorResponse;
+}
+
+export interface AnalyzeReviewOperatorResponse {
+  status: 'skipped' | 'needs_user_input';
+  /** Why it was skipped, or the question the user must answer. */
+  note: string;
+  respondedAt: number;
 }
 
 export type AnalyzeVerificationVerdict = 'confirmed' | 'disputed' | 'unverifiable';
