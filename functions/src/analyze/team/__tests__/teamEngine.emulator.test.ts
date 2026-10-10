@@ -118,7 +118,7 @@ import { approvePlan, replaceLane, stopWaitingOperator, cancelChildren, workSolo
 import { startRerun } from '../reruns';
 import { MAX_SWEEPS, STRANDED_MS, sweepStrandedRuns } from '../../engine/sweeper';
 import { SOLO_RESULT_TEXT } from '../teamState';
-import { loadReviewItems, startReviewPass, startVerification } from '../../review/reviewRuns';
+import { loadReviewItems, sendReviewItemsToOperator, startReviewPass, startVerification } from '../../review/reviewRuns';
 import { SESSION_FILES_MARKER, commitUpload, listUploads, removeUpload } from '../../engine/uploads';
 import { artifactRef, prepareArtifactRecord } from '../../engine/sessionStore';
 import { deleteServerOwnedSessionData } from '../../../cloudPayloadStorage';
@@ -492,6 +492,48 @@ describeEmulator('review engine', () => {
     expect(checked.selected).toBe(true);
     const messages = await loadSessionMessages(uid, sessionId);
     expect(messages.find((m) => m.id === `verify-${item.id}-${verifyRunId}`)?.content).toMatch(/^Verified "Check the total": DISPUTED/);
+  });
+
+  it('a review hand-off: items the operator skips or needs the user for come back with the reason; the answer goes back', async () => {
+    const threeItems = JSON.stringify({ items: ['Fix the total', 'Add a risk matrix', 'Rename the chart'].map((title) => ({
+      priority: 'P1', confidence: 0.8, actionType: 'revise', title, details: 'd', expectedOutcome: 'e', estimatedCost: 'low',
+    })) });
+    let reply = 'The total is 42.';
+    script = (request) => {
+      if (request.systemPrompt?.startsWith('You are a reviewer')) return text(threeItems);
+      return text(lastUser(request).includes('execute the selected review items') ? reply : 'The total is 42.');
+    };
+    await startOperatorTurn({ uid, sessionId, content: 'Total?', config: config() });
+    await drain();
+    const reviewRunId = await startReviewPass(uid, sessionId, { reviewerIds: ['rv'], targetMessageId: null, trigger: 'manual' });
+    await drain();
+    const ids = [0, 1, 2].map((index) => `review-${reviewRunId}-0-${index}`);
+
+    reply = [
+      `[${ids[0]}] completed`,
+      `[${ids[1]}] needs_user_input — Which risk tolerance should I assume?`,
+      `[${ids[2]}] skipped — the chart title already matches the data.`,
+    ].join('\n');
+    const { runId: handoffRunId } = await sendReviewItemsToOperator(uid, sessionId, ids);
+    await drain();
+    expect((await run(handoffRunId)).status).toBe('completed');
+    const byId = new Map((await loadReviewItems(uid, sessionId)).map((item) => [item.id, item]));
+    expect(byId.get(ids[0])).toMatchObject({ status: 'completed' });
+    expect(byId.get(ids[0])?.operatorResponse).toBeUndefined();
+    expect(byId.get(ids[1])).toMatchObject({ status: 'pending', selected: false, operatorResponse: { status: 'needs_user_input', note: 'Which risk tolerance should I assume?' } });
+    expect(byId.get(ids[2])).toMatchObject({ status: 'pending', operatorResponse: { status: 'skipped', note: 'the chart title already matches the data.' } });
+
+    // The user's answer goes back with the item; once done, the item closes.
+    reply = `[${ids[1]}] completed`;
+    const { runId: answerRunId } = await sendReviewItemsToOperator(uid, sessionId, [ids[1]], { [ids[1]]: 'Low: payments service.' });
+    const answerMessageId = (await run(answerRunId)).userMessageId;
+    const answerPrompt = (await loadSessionMessages(uid, sessionId)).find((m) => m.id === answerMessageId)?.content ?? '';
+    expect(answerPrompt).toContain('You asked the user: Which risk tolerance should I assume?');
+    expect(answerPrompt).toContain("The user's answer: Low: payments service.");
+    await drain();
+    const answered = (await loadReviewItems(uid, sessionId)).find((item) => item.id === ids[1]);
+    expect(answered?.status).toBe('completed');
+    expect(answered?.operatorResponse).toBeUndefined();
   });
 
   it('a provider error ends the reviewer pass once, without retrying', async () => {

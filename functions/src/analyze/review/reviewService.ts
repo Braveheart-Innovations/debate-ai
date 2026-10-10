@@ -406,11 +406,14 @@ const VERDICT_INSTRUCTIONS: Record<AnalyzeVerificationVerdict, string> = {
 export function buildOperatorReviewHandoffPrompt(
   operatorName: string,
   selectedItems: AnalyzeReviewItem[],
+  /** The user's answers to items the operator handed back needing input, by item id. */
+  answers: Record<string, string> = {},
 ): string {
   const lines = selectedItems.map((item, index) => {
     const artifactRefText = item.artifactRefs.length > 0
       ? item.artifactRefs.join(', ')
       : 'none';
+    const answer = answers[item.id]?.trim();
     return [
       `${index + 1}. [${item.id}] ${item.title}`,
       `Priority: ${item.priority} | Confidence: ${item.confidence.toFixed(2)} | Cost: ${item.estimatedCost}`,
@@ -424,13 +427,22 @@ export function buildOperatorReviewHandoffPrompt(
           VERDICT_INSTRUCTIONS[item.verification.verdict],
         ]
         : []),
+      ...(item.operatorResponse?.status === 'needs_user_input'
+        ? [`You asked the user: ${item.operatorResponse.note}`, answer ? `The user's answer: ${answer}` : 'The user sent it back without an answer: proceed with your best judgment and say what you assumed.']
+        : []),
+      ...(item.operatorResponse?.status === 'skipped'
+        ? [`You skipped this before (${item.operatorResponse.note}). The user sent it back: make the change, or explain again why it shouldn't be made.`]
+        : []),
     ].join('\n');
   });
 
   return [
     `@${operatorName.toLowerCase()} execute the selected review items below.`,
-    'For each item, provide status: completed | skipped | needs_user_input.',
-    'Keep the response concise and structured by item ID.',
+    'When you are done, reply with exactly one line per item, starting with its ID in brackets and one status:',
+    '- `[item-id] completed` when the change is in the report (save the updated report spec first);',
+    '- `[item-id] skipped — <one sentence on why>` when you decided not to make the change;',
+    '- `[item-id] needs_user_input — <the exact question the user must answer>` when you cannot proceed without the user.',
+    'Only report an item completed after you have saved the change.',
     // Without this, the operator dutifully baked the item-id/status bookkeeping
     // into the report spec as a "review log" table (raw internal ids in a live
     // ARB deck). The status report belongs in chat; the report gets content.
@@ -438,4 +450,52 @@ export function buildOperatorReviewHandoffPrompt(
     '',
     ...lines,
   ].join('\n');
+}
+
+export interface HandoffItemStatus {
+  status: 'completed' | 'skipped' | 'needs_user_input';
+  /** Why it was skipped, or the question for the user (empty when none was given). */
+  note: string;
+}
+
+const STATUS_PATTERN = /\b(completed|skipped|needs[_\s-]?user[_\s-]?input)\b/i;
+
+/**
+ * The operator's per-item statuses from its reply to a review hand-off. Items
+ * are matched by id (bracketed or bare) or by their number in the hand-off
+ * ("Item 2", "2."), since models don't always echo the id. An item the reply
+ * doesn't mention has no entry.
+ */
+export function parseHandoffStatuses(reply: string, itemIds: string[]): Map<string, HandoffItemStatus> {
+  const statuses = new Map<string, HandoffItemStatus>();
+  const itemFor = (line: string): string | null => {
+    const byId = itemIds.find((id) => line.includes(id));
+    if (byId) return byId;
+    const byNumber = /^\s*(?:[-*>]\s*)?\**\s*(?:item\s*)?#?(\d+)\s*\**\s*[.:)\]]?/i.exec(line);
+    const index = byNumber ? Number(byNumber[1]) - 1 : -1;
+    return index >= 0 && index < itemIds.length ? itemIds[index] : null;
+  };
+
+  // Each item's block runs from the line that names it to the next such line.
+  const blocks: Array<{ itemId: string; text: string[] }> = [];
+  for (const line of reply.split('\n')) {
+    const itemId = itemFor(line);
+    if (itemId) blocks.push({ itemId, text: [line] });
+    else if (blocks.length > 0 && line.trim()) blocks[blocks.length - 1].text.push(line);
+  }
+
+  for (const block of blocks) {
+    const text = block.text.join('\n');
+    const match = STATUS_PATTERN.exec(text);
+    if (!match || statuses.has(block.itemId)) continue;
+    const word = match[1].toLowerCase();
+    const status: HandoffItemStatus['status'] = word.startsWith('needs') ? 'needs_user_input' : word === 'skipped' ? 'skipped' : 'completed';
+    const note = text.slice(match.index + match[0].length)
+      .replace(/^[\s*`:—–\-)\]]+/, '')
+      .replace(/\*\*/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    statuses.set(block.itemId, { status, note });
+  }
+  return statuses;
 }

@@ -1,2 +1,3 @@
 .env
 static/
+firestore-debug.log

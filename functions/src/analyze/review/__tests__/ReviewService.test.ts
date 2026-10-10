@@ -100,7 +100,10 @@ describe('ReviewService', () => {
 
     expect(handoff).toContain('@claude execute the selected review items below.');
     expect(handoff).toContain('[review-1] Cross-check outlier handling');
-    expect(handoff).toContain('status: completed | skipped | needs_user_input');
+    expect(handoff).toContain('`[item-id] completed`');
+    expect(handoff).toContain('`[item-id] skipped — <one sentence on why>`');
+    expect(handoff).toContain('`[item-id] needs_user_input — <the exact question the user must answer>`');
+    expect(handoff).toContain('Only report an item completed after you have saved the change.');
     // The status report is chat-only — a live ARB deck ended up with a raw
     // review-id/status table baked into the report spec before this line.
     expect(handoff).toContain('CHAT REPLY ONLY — never into the report spec');
