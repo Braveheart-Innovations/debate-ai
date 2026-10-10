@@ -230,30 +230,6 @@ function normalizeUsage(data: UsageDoc | undefined, pool: QuotaPool): Required<U
   };
 }
 
-async function assertPaidUser(uid: string): Promise<void> {
-  const userDoc = await db().collection('users').doc(uid).get();
-  const userData = userDoc.data() ?? {};
-  const billingDoc = await db()
-    .collection('users')
-    .doc(uid)
-    .collection('billing')
-    .doc('subscription')
-    .get();
-  const billingData = billingDoc.data() ?? {};
-
-  const billingStatus = String(billingData.status ?? '');
-  const membershipStatus = String(userData.membershipStatus ?? '');
-  const isPaidStatus = ['active', 'trialing'].includes(billingStatus)
-    || ['premium', 'trial', 'lifetime'].includes(membershipStatus);
-
-  if (userData.isPremium !== true || !isPaidStatus) {
-    throw new HttpsError(
-      'failed-precondition',
-      'An active subscription is required for cloud artifact storage',
-    );
-  }
-}
-
 async function releaseReservation(uid: string, reservationId: string, status: 'expired' | 'failed'): Promise<void> {
   const reservationRef = reservationsRef(uid).doc(reservationId);
   await db().runTransaction(async (transaction) => {
@@ -397,20 +373,6 @@ export async function deleteServerOwnedSessionData(uid: string, sessionId: strin
   for (const prefix of analyzeScratchPrefixes(uid, sessionId)) {
     await bucket().deleteFiles({ prefix, force: true });
   }
-}
-
-async function deleteCollection(collection: FirebaseFirestore.CollectionReference, batchSize = 400): Promise<number> {
-  let deleted = 0;
-  while (true) {
-    const snapshot = await collection.limit(batchSize).get();
-    if (snapshot.empty) break;
-    const batch = db().batch();
-    snapshot.docs.forEach((doc) => batch.delete(doc.ref));
-    await batch.commit();
-    deleted += snapshot.size;
-    if (snapshot.size < batchSize) break;
-  }
-  return deleted;
 }
 
 async function deleteReservationsForSession(uid: string, sessionId: string): Promise<number> {
@@ -570,8 +532,7 @@ export const reserveCloudPayloadUpload = onCall(async (request) => {
     throw new HttpsError('invalid-argument', 'Uploads are stored by the server');
   }
 
-  await assertPaidUser(uid);
-
+  // Every account syncs (no paid gate); the per-pool quota is the guard.
   return reserveUpload(uid, policy, logicalPath, bytes, sha256, contentType);
 });
 
@@ -716,65 +677,6 @@ export const deleteCloudPayloadsForPath = onCall(async (request) => {
   // Every session delete calls this; the server-owned records go with it (clients can't delete them).
   await deleteServerOwnedSessionData(uid, parts[3]);
   return { success: true, bytesDeleted: result.bytes, objectCount: result.objects };
-});
-
-export const deleteUserCloudData = onCall(async (request) => {
-  const uid = requireUid(request.auth);
-  const mode = (request.data as Record<string, unknown> | undefined)?.mode;
-  const allowedModes = new Set(['chat', 'debate', 'comparison', 'analyze']);
-  if (mode !== undefined && (typeof mode !== 'string' || !allowedModes.has(mode))) {
-    throw new HttpsError('invalid-argument', 'Invalid cloud data mode');
-  }
-
-  const sessionCollection = db().collection('users').doc(uid).collection('conversations');
-  const sessionSnapshot = mode
-    ? await sessionCollection.where('sessionType', '==', mode).get()
-    : await sessionCollection.get();
-
-  let sessionsDeleted = 0;
-  let messagesDeleted = 0;
-  let artifactsDeleted = 0;
-  let reservationsDeleted = 0;
-  let bytesDeleted = 0;
-  let objectsDeleted = 0;
-
-  for (const sessionDoc of sessionSnapshot.docs) {
-    const sessionId = sessionDoc.id;
-    const storageResult = await deleteStoragePrefix(uid, `users/${uid}/sessions/${sessionId}`);
-    bytesDeleted += storageResult.bytes;
-    objectsDeleted += storageResult.objects;
-
-    messagesDeleted += await deleteCollection(sessionDoc.ref.collection('messages'));
-    artifactsDeleted += await deleteCollection(sessionDoc.ref.collection('artifacts'));
-    reservationsDeleted += await deleteReservationsForSession(uid, sessionId);
-    await deleteServerOwnedSessionData(uid, sessionId);
-    await sessionDoc.ref.delete();
-    sessionsDeleted += 1;
-  }
-
-  if (!mode) {
-    for (const pool of ['payloads', 'uploads'] as const) {
-      await usageRef(uid, pool).set({
-        currentBytes: 0,
-        reservedBytes: 0,
-        objectCount: 0,
-        limitBytes: QUOTAS[pool].limitBytes,
-        warningBytes: QUOTAS[pool].warningBytes,
-        lastUpdatedAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-      }, { merge: true });
-    }
-  }
-
-  return {
-    success: true,
-    sessionsDeleted,
-    messagesDeleted,
-    artifactsDeleted,
-    reservationsDeleted,
-    bytesDeleted,
-    objectsDeleted,
-  };
 });
 
 // ============================================================================

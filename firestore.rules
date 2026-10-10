@@ -130,12 +130,6 @@ service cloud.firestore {
         && (!request.resource.data.keys().hasAny(['theme']) || request.resource.data.theme in ['light', 'dark', 'auto'])
         && (!request.resource.data.keys().hasAny(['userDefaults']) || request.resource.data.userDefaults is map)
       ) || (
-        settingId == 'sync'
-        && request.resource.data.keys().hasOnly(['global', 'modes', 'hasCompletedOnboarding'])
-        && (!request.resource.data.keys().hasAny(['global']) || request.resource.data.global in ['all', 'none', 'selective'])
-        && (!request.resource.data.keys().hasAny(['modes']) || request.resource.data.modes is map)
-        && (!request.resource.data.keys().hasAny(['hasCompletedOnboarding']) || request.resource.data.hasCompletedOnboarding is bool)
-      ) || (
         settingId == 'tools'
         && request.resource.data.keys().hasOnly(['enabled', 'tools', 'defaultToolChoice'])
         && (!request.resource.data.keys().hasAny(['enabled']) || request.resource.data.enabled is bool)
@@ -162,12 +156,6 @@ service cloud.firestore {
         && changed.hasOnly(['theme', 'userDefaults'])
         && (!changed.hasAny(['theme']) || request.resource.data.theme in ['light', 'dark', 'auto'])
         && (!changed.hasAny(['userDefaults']) || request.resource.data.userDefaults is map)
-      ) || (
-        settingId == 'sync'
-        && changed.hasOnly(['global', 'modes', 'hasCompletedOnboarding'])
-        && (!changed.hasAny(['global']) || request.resource.data.global in ['all', 'none', 'selective'])
-        && (!changed.hasAny(['modes']) || request.resource.data.modes is map)
-        && (!changed.hasAny(['hasCompletedOnboarding']) || request.resource.data.hasCompletedOnboarding is bool)
       ) || (
         settingId == 'tools'
         && changed.hasOnly(['enabled', 'tools', 'defaultToolChoice'])
