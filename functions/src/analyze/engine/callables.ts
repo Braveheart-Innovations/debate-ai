@@ -5,13 +5,13 @@
  *   analyzeStartTurn     the user's message → an operator run
  *   analyzeRunControl    one run: stop, team plan answers, lanes, auto-approve
  *   analyzeReviewControl the session's review queue: review, verify, send, select…
- *   analyzeUploads       the session's uploads: keep (commit), remove, list
+ *   analyzeUploads       the session's uploads: write (chunked), download, remove, list
  *   analyzeRunCell       a manual cell re-run, refused while a turn is running
  */
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import type { MessageAttachment } from '../contract/types';
 import { e2bApiKey } from '../../sandbox/callables';
-import { UploadInputError, commitUpload, listUploads, removeUpload } from './uploads';
+import { UploadInputError, listUploads, readUploadChunk, removeUpload, writeUploadChunk } from './uploads';
 import { isV2Supported } from '../../providers/registry';
 import { getCatalogModel } from '../modelCatalog';
 import { isTerminal, runRef, type AnalyzeRunDoc, type RosterAI, type RunConfig } from './runStore';
@@ -123,7 +123,6 @@ interface StartTurnRequest {
   ai: RosterAIInput;
   systemPrompt: string;
   toolNames: string[];
-  sandboxSessionKey: string;
   /** The composer's output selection (AnalyzeOutputSelection); defaults like a new session. */
   outputSelection?: unknown;
   /** Save capture traces for the web parity harness (scripts/analyze-capture-parity). */
@@ -153,7 +152,6 @@ export const analyzeStartTurn = onCall({ region: 'us-central1' }, async (request
   const content = attachments.length > 0 && typeof data.message?.content === 'string' && data.message.content.length <= 200_000
     ? data.message.content
     : requireString(data.message?.content, 'message.content', 200_000);
-  const sandboxSessionKey = requireString(data.sandboxSessionKey, 'sandboxSessionKey');
   const systemPrompt = typeof data.systemPrompt === 'string' ? data.systemPrompt : '';
   const toolNames = stringList(data.toolNames);
   const operator = rosterAI(data.ai, 'ai', toolNames.length > 0);
@@ -169,7 +167,8 @@ export const analyzeStartTurn = onCall({ region: 'us-central1' }, async (request
     aiName: operator.name,
     systemPrompt,
     toolNames,
-    sandboxSessionKey,
+    // The session's own sandbox: clients never name one.
+    sandboxSessionKey: sessionId,
     outputSelection: normalizeAnalyzeOutputSelection(data.outputSelection),
     ...(data.captureTrace === true ? { captureTrace: true } : {}),
     ...(operator.modelConfig ? { modelDisplayName: operator.modelConfig.displayName } : {}),
@@ -334,9 +333,9 @@ export const analyzeReviewControl = onCall({ region: 'us-central1' }, async (req
 });
 
 /**
- * The session's uploads. The client writes a file into the sandbox
- * (sandboxFiles), then commits it here: the server keeps a Storage copy so
- * the file outlives the sandbox and comes back in a new one.
+ * The session's uploads. The client sends a file's bytes in chunks (write);
+ * the server keeps it in Storage and puts it in the sandbox before the next
+ * round. Download reads it back from Storage. Clients never touch the sandbox.
  */
 export const analyzeUploads = onCall(
   { region: 'us-central1', secrets: [e2bApiKey], memory: '1GiB', timeoutSeconds: 300 },
@@ -346,10 +345,15 @@ export const analyzeUploads = onCall(
     const sessionId = requireString(data.sessionId, 'sessionId');
     try {
       switch (data.op) {
-        case 'commit': {
+        case 'write': {
           const source = (data.source && typeof data.source === 'object' ? data.source : {}) as Record<string, unknown>;
-          const file = await commitUpload(uid, sessionId, requireString(data.sandboxSessionKey, 'sandboxSessionKey'), {
+          return await writeUploadChunk(uid, sessionId, {
             pythonPath: requireString(data.path, 'path', 1024),
+            chunkIndex: data.chunkIndex as number,
+            totalChunks: data.totalChunks as number,
+            base64: typeof data.base64 === 'string' ? data.base64 : '',
+            size: data.size as number,
+            sha256: requireString(data.sha256, 'sha256', 64),
             mimeType: optionalString(data.mimeType, 200) ?? 'application/octet-stream',
             source: {
               sourceKind: source.sourceKind === 'artifact' ? 'artifact' : source.sourceKind === 'upload' ? 'upload' : undefined,
@@ -359,10 +363,11 @@ export const analyzeUploads = onCall(
               sourceArtifactName: optionalString(source.sourceArtifactName, 1000),
             },
           });
-          return { file };
         }
+        case 'download':
+          return await readUploadChunk(uid, sessionId, data.path, typeof data.offset === 'number' ? data.offset : 0);
         case 'remove':
-          await removeUpload(uid, sessionId, requireString(data.sandboxSessionKey, 'sandboxSessionKey'), data.path);
+          await removeUpload(uid, sessionId, data.path);
           return { ok: true };
         case 'list':
           return { files: await listUploads(uid, sessionId) };

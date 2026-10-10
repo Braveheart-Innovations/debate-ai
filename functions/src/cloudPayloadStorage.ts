@@ -779,6 +779,14 @@ export async function downloadPayloadBytes(ref: StoredPayloadRef): Promise<Buffe
   return payload;
 }
 
+/** Bytes [start, end) of a stored payload, unverified (a ranged download of a large file). */
+export async function downloadPayloadRange(ref: StoredPayloadRef, start: number, end: number): Promise<Buffer> {
+  requirePayloadPath(ref.path);
+  if (end <= start) return Buffer.alloc(0);
+  const [bytes] = await bucket().file(ref.path).download({ start, end: end - 1 });
+  return bytes;
+}
+
 /** Delete an offloaded payload and release its quota (deleteCloudPayload, as the server). */
 export async function deletePayloadForUser(uid: string, ref: StoredPayloadRef): Promise<void> {
   const policy = requirePayloadPath(ref.path);

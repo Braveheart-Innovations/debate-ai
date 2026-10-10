@@ -10,6 +10,7 @@
 import { getSandboxService } from '../../sandbox/callables';
 import { ENVIRONMENT_RESET_NOTE } from './sandboxBridge';
 import { SessionBusyError, findActiveOperatorRun, findLatestOperatorRun } from './turns';
+import { SessionFilesSync } from './uploads';
 
 /** handleRunCellCode's timeout. */
 export const RUN_CELL_TIMEOUT_MS = 60_000;
@@ -33,6 +34,8 @@ export async function runCell(uid: string, sessionId: string, code: string): Pro
   if (await findActiveOperatorRun(uid, sessionId)) throw new SessionBusyError();
   const latest = await findLatestOperatorRun(uid, sessionId);
   if (!latest) throw new NoSessionSandboxError();
+  // Files uploaded since the last turn are in the sandbox before the code runs.
+  await new SessionFilesSync(uid, sessionId, latest.config.sandboxSessionKey).sync();
   const result = await getSandboxService().execute(uid, latest.config.sandboxSessionKey, code, RUN_CELL_TIMEOUT_MS);
   return {
     success: result.success,

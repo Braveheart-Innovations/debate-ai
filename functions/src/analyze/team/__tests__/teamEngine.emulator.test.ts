@@ -75,10 +75,10 @@ jest.mock('firebase-admin/storage', () => ({
     bucket: () => ({
       file: (path: string) => ({
         save: async (data: Buffer | string) => { storageObjects.set(path, Buffer.from(data)); },
-        download: async () => {
+        download: async (options?: { start?: number; end?: number }) => {
           const bytes = storageObjects.get(path);
           if (!bytes) throw notFound();
-          return [bytes];
+          return [options?.start !== undefined ? bytes.subarray(options.start, (options.end ?? bytes.byteLength - 1) + 1) : bytes];
         },
         delete: async () => { storageObjects.delete(path); },
         getMetadata: async () => {
@@ -119,7 +119,8 @@ import { startRerun } from '../reruns';
 import { MAX_SWEEPS, STRANDED_MS, sweepStrandedRuns } from '../../engine/sweeper';
 import { SOLO_RESULT_TEXT } from '../teamState';
 import { loadReviewItems, sendReviewItemsToOperator, startReviewPass, startVerification } from '../../review/reviewRuns';
-import { SESSION_FILES_MARKER, commitUpload, listUploads, removeUpload } from '../../engine/uploads';
+import { SESSION_FILES_MARKER, listUploads, readUploadChunk, removeUpload, writeUploadChunk } from '../../engine/uploads';
+import { createHash } from 'node:crypto';
 import { artifactRef, prepareArtifactRecord } from '../../engine/sessionStore';
 import { deleteServerOwnedSessionData } from '../../../cloudPayloadStorage';
 import type { Artifact } from '../../contract/types/notebook';
@@ -596,19 +597,45 @@ describeEmulator('review engine', () => {
     expect((await run(third.runId)).pendingOrgEvidenceRequest).toBeUndefined();
   });
 
-  it('uploads: kept in Storage, back in a new sandbox before the next step, removable, gone with the session', async () => {
-    sandboxFiles.set('/uploads/sales.csv', Buffer.from('region,total\nwest,10\n'));
-    const file = await commitUpload(uid, sessionId, 'sbx', { pythonPath: '/uploads/sales.csv', mimeType: 'text/csv' });
+  /** The client's chunked write: `chunk` bytes per call. */
+  async function upload(pythonPath: string, text: string, mimeType: string, chunk = 8) {
+    const bytes = Buffer.from(text);
+    const sha256 = createHash('sha256').update(bytes).digest('hex');
+    const totalChunks = Math.max(1, Math.ceil(bytes.byteLength / chunk));
+    for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex += 1) {
+      const result = await writeUploadChunk(uid, sessionId, {
+        pythonPath, chunkIndex, totalChunks, size: bytes.byteLength, sha256, mimeType,
+        base64: bytes.subarray(chunkIndex * chunk, (chunkIndex + 1) * chunk).toString('base64'),
+      });
+      if (result.done) return { file: result.file, calls: chunkIndex + 1 };
+    }
+    throw new Error('upload never finished');
+  }
+
+  it('uploads: sent in chunks, kept in Storage, in the sandbox before the next step, downloadable, removable, gone with the session', async () => {
+    const csv = 'region,total\nwest,10\n';
+    const { file, calls: firstCalls } = await upload('/uploads/sales.csv', csv, 'text/csv');
+    expect(firstCalls).toBe(3);
     expect(file).toMatchObject({ filename: 'sales.csv', pythonPath: '/uploads/sales.csv', mimeType: 'text/csv', size: 21, sessionId });
     expect(await listUploads(uid, sessionId)).toEqual([file]);
     expect([...storageObjects.keys()].filter((name) => name.includes('/uploads/'))).toHaveLength(1);
+    // The staged chunks are gone, and the client never wrote into the sandbox.
+    expect([...storageObjects.keys()].some((name) => name.includes('/uploadParts/'))).toBe(false);
+    expect(sandboxFiles.has('/uploads/sales.csv')).toBe(false);
     // Uploads count against their own quota, never the session payloads'.
     const usage = (pool: string) => getFirestore().doc(`users/${uid}/usage/${pool}`).get().then((doc) => doc.data());
     expect(await usage('storage-uploads')).toMatchObject({ currentBytes: 21, reservedBytes: 0, objectCount: 1, limitBytes: 2 * 1024 ** 3 });
     expect((await usage('storage-payloads'))?.currentBytes ?? 0).toBe(0);
-    // The same bytes again: nothing new is stored.
-    await commitUpload(uid, sessionId, 'sbx', { pythonPath: '/uploads/sales.csv', mimeType: 'text/csv' });
+    // The same bytes again end at the first chunk; nothing new is stored.
+    expect((await upload('/uploads/sales.csv', csv, 'text/csv')).calls).toBe(1);
     expect([...storageObjects.keys()].filter((name) => name.includes('/uploads/'))).toHaveLength(1);
+    // Bytes that don't match the declared digest are refused.
+    await expect(writeUploadChunk(uid, sessionId, {
+      pythonPath: '/uploads/bad.csv', chunkIndex: 0, totalChunks: 1, size: 3, mimeType: 'text/csv',
+      sha256: createHash('sha256').update('abc').digest('hex'), base64: Buffer.from('xyz').toString('base64'),
+    })).rejects.toThrow('send it again');
+    // Download reads Storage in ranges.
+    expect(await readUploadChunk(uid, sessionId, '/uploads/sales.csv', 0)).toEqual({ base64: Buffer.from(csv).toString('base64'), size: 21, eof: true });
 
     // A saved artifact comes back under /output too.
     const chart: Artifact = { id: 'a1', cellId: 'm1', sessionId, name: 'chart.html', type: 'html', mimeType: 'text/html', data: '<p>chart</p>', createdAt: 1 };
@@ -624,12 +651,20 @@ describeEmulator('review engine', () => {
     expect(sandboxFiles.get('/output/chart.html')?.toString()).toBe('<p>chart</p>');
     expect(sandboxFiles.has(SESSION_FILES_MARKER)).toBe(true);
 
-    await removeUpload(uid, sessionId, 'sbx', '/uploads/sales.csv');
+    // A file added while the sandbox is live is there for the next step too.
+    await upload('/uploads/notes.txt', 'later file', 'text/plain');
+    const next = await startOperatorTurn({ uid, sessionId, content: 'And the notes?', config: config({ team: undefined }) });
+    await drain();
+    expect((await run(next.runId)).status).toBe('completed');
+    expect(sandboxFiles.get('/uploads/notes.txt')?.toString()).toBe('later file');
+
+    await removeUpload(uid, sessionId, '/uploads/sales.csv');
+    await removeUpload(uid, sessionId, '/uploads/notes.txt');
     expect(await listUploads(uid, sessionId)).toEqual([]);
     expect(sandboxFiles.has('/uploads/sales.csv')).toBe(false);
     expect([...storageObjects.keys()].filter((name) => name.includes('/uploads/'))).toHaveLength(0);
     expect(await usage('storage-uploads')).toMatchObject({ currentBytes: 0, objectCount: 0 });
-    await expect(commitUpload(uid, sessionId, 'sbx', { pythonPath: '/uploads/../etc/passwd', mimeType: 'text/plain' })).rejects.toThrow('/uploads/');
+    await expect(upload('/uploads/../etc/passwd', 'x', 'text/plain')).rejects.toThrow('/uploads/');
 
     // Deleting the session takes the server-owned records with it.
     await deleteServerOwnedSessionData(uid, sessionId);
@@ -639,8 +674,7 @@ describeEmulator('review engine', () => {
   });
 
   it('attachments: the composer\'s stay on their message in every call; PDF pages go with each turn\'s first call', async () => {
-    sandboxFiles.set('/uploads/scan.pdf', Buffer.from('%PDF-1.7 fake'));
-    await commitUpload(uid, sessionId, 'sbx', { pythonPath: '/uploads/scan.pdf', mimeType: 'application/pdf' });
+    await upload('/uploads/scan.pdf', '%PDF-1.7 fake', 'application/pdf');
     script = (request) => (hasToolResults(request) ? text('It says hello.') : calls({ id: 'py1', name: 'execute_python', args: { code: 'print(1)' } }));
     const photo = { type: 'image' as const, uri: 'data:image/png;base64,QUJD', mimeType: 'image/png', base64: 'QUJD', fileName: 'photo.png' };
     const { runId } = await startOperatorTurn({ uid, sessionId, content: 'What does it say?', config: config({ team: undefined }), attachments: [photo] });
