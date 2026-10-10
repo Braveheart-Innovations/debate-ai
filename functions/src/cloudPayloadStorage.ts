@@ -230,30 +230,6 @@ function normalizeUsage(data: UsageDoc | undefined, pool: QuotaPool): Required<U
   };
 }
 
-async function assertPaidUser(uid: string): Promise<void> {
-  const userDoc = await db().collection('users').doc(uid).get();
-  const userData = userDoc.data() ?? {};
-  const billingDoc = await db()
-    .collection('users')
-    .doc(uid)
-    .collection('billing')
-    .doc('subscription')
-    .get();
-  const billingData = billingDoc.data() ?? {};
-
-  const billingStatus = String(billingData.status ?? '');
-  const membershipStatus = String(userData.membershipStatus ?? '');
-  const isPaidStatus = ['active', 'trialing'].includes(billingStatus)
-    || ['premium', 'trial', 'lifetime'].includes(membershipStatus);
-
-  if (userData.isPremium !== true || !isPaidStatus) {
-    throw new HttpsError(
-      'failed-precondition',
-      'An active subscription is required for cloud artifact storage',
-    );
-  }
-}
-
 async function releaseReservation(uid: string, reservationId: string, status: 'expired' | 'failed'): Promise<void> {
   const reservationRef = reservationsRef(uid).doc(reservationId);
   await db().runTransaction(async (transaction) => {
@@ -570,8 +546,7 @@ export const reserveCloudPayloadUpload = onCall(async (request) => {
     throw new HttpsError('invalid-argument', 'Uploads are stored by the server');
   }
 
-  await assertPaidUser(uid);
-
+  // Every account syncs (no paid gate); the per-pool quota is the guard.
   return reserveUpload(uid, policy, logicalPath, bytes, sha256, contentType);
 });
 
