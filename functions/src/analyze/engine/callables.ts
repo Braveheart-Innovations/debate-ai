@@ -15,7 +15,7 @@ import { UploadInputError, commitUpload, listUploads, removeUpload } from './upl
 import { isV2Supported } from '../../providers/registry';
 import { getCatalogModel } from '../modelCatalog';
 import { isTerminal, runRef, type AnalyzeRunDoc, type RosterAI, type RunConfig } from './runStore';
-import { SessionBusyError, TurnAlreadyStartedError, startOperatorTurn } from './turns';
+import { SessionBusyError, TurnAlreadyStartedError, startOperatorTurn, type UserMessageContext } from './turns';
 import { NoSessionSandboxError, runCell } from './runCell';
 import { normalizeAnalyzeOutputSelection } from '../contract/types/analyze';
 import { MAX_PANEL_SIZE, TeamArgsError } from '../team/teamTools';
@@ -105,9 +105,21 @@ function parseAttachments(value: unknown): MessageAttachment[] {
   });
 }
 
+/** The composer's context controls on the message: lists of ids, nothing else. */
+function parseMessageContext(value: unknown): UserMessageContext | undefined {
+  const metadata = (value && typeof value === 'object' ? value : {}) as Record<string, unknown>;
+  const selectedConnectorIds = stringList(metadata.selectedConnectorIds, 50).filter((id) => id.length <= 200);
+  const selectedAnalysisLensIds = stringList(metadata.selectedAnalysisLensIds, 50).filter((id) => id.length <= 200);
+  if (selectedConnectorIds.length === 0 && selectedAnalysisLensIds.length === 0) return undefined;
+  return {
+    ...(selectedConnectorIds.length > 0 ? { selectedConnectorIds } : {}),
+    ...(selectedAnalysisLensIds.length > 0 ? { selectedAnalysisLensIds } : {}),
+  };
+}
+
 interface StartTurnRequest {
   sessionId: string;
-  message: { id?: string; content: string; attachments?: unknown };
+  message: { id?: string; content: string; attachments?: unknown; mentions?: unknown; metadata?: unknown };
   ai: RosterAIInput;
   systemPrompt: string;
   toolNames: string[];
@@ -182,6 +194,8 @@ export const analyzeStartTurn = onCall({ region: 'us-central1' }, async (request
       config,
       resolvesOrgEvidenceRequest: data.resolvesOrgEvidenceRequest === true,
       attachments,
+      mentions: stringList(data.message?.mentions, 20).filter((mention) => mention.length <= 200),
+      context: parseMessageContext(data.message?.metadata),
     });
   } catch (error) {
     if (error instanceof SessionBusyError) throw new HttpsError('failed-precondition', error.message);

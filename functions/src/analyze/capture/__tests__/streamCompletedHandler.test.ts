@@ -1492,6 +1492,47 @@ describe('handleStreamCompleted general intent-gated surfacing (non-Salesforce)'
     expect(addDataTab).toHaveBeenCalled();
   });
 
+  it('puts a chart\'s session CSV inline when the chart points at it by path (the empty GDP chart)', () => {
+    const chartSpec = JSON.stringify({
+      version: 1,
+      kind: 'analysis_artifact_spec',
+      title: 'GDP',
+      summary: 'GDP over time.',
+      pages: [{ slug: 'p', title: 'P', blocks: [
+        { kind: 'chart', spec: { type: 'vega-lite', spec: { data: { url: '/output/summary_table.csv' }, mark: 'line', encoding: { x: { field: 'year', type: 'quantitative' } } } } },
+        // A file an earlier turn saved is read from the session's artifacts.
+        { kind: 'chart', spec: { type: 'vega-lite', spec: { data: { url: 'output/earlier.csv' }, mark: 'bar' } } },
+      ] }],
+    });
+    const earlier: Artifact = {
+      id: 'earlier', cellId: 'c0', sessionId: 's', name: 'earlier.csv', type: 'dataset', mimeType: 'text/csv',
+      data: btoa('k,v\na,1\n'), createdAt: 1,
+    };
+    const { artifacts } = runHandler({
+      outputSelection: richHtml,
+      artifacts: [earlier],
+      toolCalls: [
+        { id: 'write', type: 'function', function: { name: 'write_output_file', arguments: '{"path":"/output/report.json"}' } },
+      ],
+      toolExecutionResults: [
+        {
+          toolName: 'execute_python',
+          success: true,
+          content: 'Saved data + report.',
+          dataOutputs: [
+            { filename: 'summary_table.csv', base64: btoa(csv), size: csv.length },
+            { filename: 'report.json', base64: btoa(chartSpec), size: chartSpec.length },
+          ],
+        },
+      ],
+    });
+
+    const report = artifacts.find((artifact) => artifact.type === 'analysis_artifact_spec');
+    const blocks = JSON.parse(report!.data).pages[0].blocks;
+    expect(blocks[0].spec.spec.data).toEqual({ values: [{ year: 2020, gdp: 21000 }, { year: 2021, gdp: 23000 }] });
+    expect(blocks[1].spec.spec.data).toEqual({ values: [{ k: 'a', v: 1 }] });
+  });
+
   it('keeps an embedded_html HTML output as hidden backing alongside the report spec + suppressed CSV', () => {
     const { artifacts } = runHandler({
       outputSelection: richHtml,

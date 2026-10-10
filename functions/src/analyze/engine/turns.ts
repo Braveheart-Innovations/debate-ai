@@ -34,6 +34,33 @@ export interface OperatorTurnInput {
   resolvesOrgEvidenceRequest?: boolean;
   /** Images and documents attached to the message (they go with it in every model call). */
   attachments?: MessageAttachment[];
+  /** Participants the user @-mentioned. */
+  mentions?: string[];
+  /** The composer's context controls, saved on the message (History; a restored session's lens selection). */
+  context?: UserMessageContext;
+}
+
+export interface UserMessageContext {
+  selectedConnectorIds?: string[];
+  selectedAnalysisLensIds?: string[];
+}
+
+/** The user's message as the web's ChatService.createUserMessage builds it, plus what this turn carries. */
+export function buildUserMessage(input: Pick<OperatorTurnInput, 'content' | 'messageId' | 'teamRuns' | 'mentions' | 'context'>, now: number): Message {
+  const metadata = {
+    ...(input.context?.selectedConnectorIds?.length ? { selectedConnectorIds: input.context.selectedConnectorIds } : {}),
+    ...(input.context?.selectedAnalysisLensIds?.length ? { selectedAnalysisLensIds: input.context.selectedAnalysisLensIds } : {}),
+    ...(input.teamRuns?.length ? { teamRuns: input.teamRuns } : {}),
+  };
+  return {
+    id: input.messageId || `msg_${now}`,
+    sender: 'You',
+    senderType: 'user',
+    content: input.content.trim(),
+    timestamp: now,
+    ...(input.mentions?.length ? { mentions: input.mentions } : {}),
+    ...(Object.keys(metadata).length > 0 ? { metadata } : {}),
+  };
 }
 
 function runsPath(uid: string, sessionId: string): string {
@@ -76,15 +103,7 @@ export async function startOperatorTurn(input: OperatorTurnInput): Promise<{ run
     : (await findLatestOperatorRun(uid, sessionId))?.pendingOrgEvidenceRequest;
   const now = Date.now();
   const runId = newRunId(now);
-  // Same shape as the web's ChatService.createUserMessage.
-  const userMessage: Message = {
-    id: input.messageId || `msg_${now}`,
-    sender: 'You',
-    senderType: 'user',
-    content: input.content.trim(),
-    timestamp: now,
-    ...(input.teamRuns?.length ? { metadata: { teamRuns: input.teamRuns } } : {}),
-  };
+  const userMessage = buildUserMessage(input, now);
   const run: AnalyzeRunDoc = removeUndefined({
     runId,
     uid,

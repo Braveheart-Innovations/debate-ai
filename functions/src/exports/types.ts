@@ -127,12 +127,6 @@ export interface SpacerBlock extends CitableReportBlock {
 
 export type ExplanationSize = 's' | 'm' | 'l';
 
-export const EXPLANATION_CHAR_LIMITS: Record<ExplanationSize, number> = {
-  s: 240,
-  m: 480,
-  l: 900,
-};
-
 export interface ArtifactExplanationBlock extends CitableReportBlock {
   kind: 'artifact_explanation';
   artifactId: string;

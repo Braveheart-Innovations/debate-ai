@@ -38,6 +38,7 @@ import {
 import { injectSourceProvenance } from './sourceProvenanceInjection';
 import { injectTeamPanelNote, type TeamPanelRecord } from './teamPanelNote';
 import { decodeBase64ToUtf8 } from '../contract/lib/encoding/utf8Base64';
+import { chartFileReaderFromArtifacts, inlineChartDataFiles, sessionDataPath } from '../contract/services/analyze/charts/inlineChartData';
 import { normalizeRequestSalesforceOrgEvidenceArgs } from '../engine/tools/executeRequestSalesforceOrgEvidenceTool';
 import type { AnalyzeAction } from './types';
 import {
@@ -940,7 +941,19 @@ function extractDataArtifacts(
     // store the canonical id'd form so render, export, and Phase 3 edits all operate
     // on stable block identity.
     if (analysisSpec) {
-      let spec = injectSourceProvenance(analysisSpec, deps.getFetchProvenanceMap());
+      // A chart that names a session file gets its rows inline: the round's files
+      // first, then the session's saved artifacts (the browser can't load sandbox paths).
+      const readChartFile = chartFileReaderFromArtifacts(ctx.existingArtifacts);
+      let spec = inlineChartDataFiles(analysisSpec, (url) => {
+        const path = sessionDataPath(url);
+        const name = path?.split('/').pop();
+        const output = datasToProcess.find((candidate) => candidate.filename === path || candidate.filename === name);
+        if (output) {
+          try { return decodeBase64ToUtf8(output.base64); } catch { return null; }
+        }
+        return readChartFile(url);
+      });
+      spec = injectSourceProvenance(spec, deps.getFetchProvenanceMap());
       // A panel this turn, or one an earlier version of this report recorded (e.g. a
       // post-review revision): the method note stays with the report.
       const teamPanel = deps.getTeamPanel?.() ?? priorSpecVersion?.metadata?.teamPanel ?? null;
