@@ -2,7 +2,8 @@
  * The loop's view of the session sandbox: the same `execute(code, {timeout,
  * signal})` bridge the browser loop used (web SandboxService.execute), backed
  * by the server sandbox service directly instead of the sandboxExecute
- * callable. Abort interrupts the running cell (variables are kept).
+ * callable. Abort interrupts the running cell (variables are kept when the
+ * interrupt works) and the result says it was stopped.
  */
 import { getSandboxService } from '../../sandbox/callables';
 import type { ExecutionResult as ServiceExecutionResult } from '../../sandbox/types';
@@ -70,17 +71,40 @@ export class SandboxCancelledError extends Error {
   }
 }
 
+/** What a cell the user stopped reports (the kernel's own error then is just the interrupt's side effect). */
+export function stoppedCellError(outcome: 'interrupted' | 'restarted' | 'none'): string {
+  return outcome === 'restarted'
+    ? 'Stopped by the user. The Python session was restarted, so variables were cleared; files in /uploads, /output and /data are kept.'
+    : 'Stopped by the user. Variables and files are kept.';
+}
+
 export function createSandboxBridge(uid: string, sessionKey: string, kernelKey?: string): SandboxBridge {
   return {
     async execute(code, options = {}) {
       if (options.signal?.aborted) throw new SandboxCancelledError();
       const service = getSandboxService();
-      const onAbort = () => { void service.interrupt(uid, sessionKey, kernelKey); };
+      let stopping: Promise<'interrupted' | 'restarted' | 'none'> | null = null;
+      const onAbort = () => {
+        stopping = service.interrupt(uid, sessionKey, kernelKey).catch((error) => {
+          console.warn('[analyzeRun] interrupt failed', error);
+          return 'none' as const;
+        });
+      };
       options.signal?.addEventListener('abort', onAbort, { once: true });
       try {
         const result = await service.execute(uid, sessionKey, code, options.timeout ?? 30000, kernelKey);
         if (result.environmentReset) result.stdout = `${ENVIRONMENT_RESET_NOTE}\n${result.stdout}`;
-        return await hydrate(uid, sessionKey, result);
+        const hydrated = await hydrate(uid, sessionKey, result);
+        if (!options.signal?.aborted) return hydrated;
+        // Stopped mid-cell: whatever ended the execution (KeyboardInterrupt, or the
+        // connection closing when the kernel restarted) is the Stop, not a code error.
+        // Output and files it produced before the Stop are kept.
+        return {
+          ...hydrated,
+          success: false,
+          images: [],
+          error: stoppedCellError(await (stopping ?? Promise.resolve('none' as const))),
+        };
       } finally {
         options.signal?.removeEventListener('abort', onAbort);
       }
