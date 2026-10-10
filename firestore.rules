@@ -224,14 +224,15 @@ service cloud.firestore {
       }
 
       // Run notifications (Analyze server loop): created by Cloud Functions
-      // only. The owner reads them for the header bell and may only mark
-      // one read.
+      // only. The owner reads them for the header bell, may only change
+      // `read`, and may delete them (dismiss / clear read).
       match /notifications/{notificationId} {
         allow read: if isOwner(userId);
         allow update: if isOwner(userId)
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
           && request.resource.data.read is bool;
-        allow create, delete: if false;
+        allow delete: if isOwner(userId);
+        allow create: if false;
       }
 
       // Conversations subcollection (path-based auth)
