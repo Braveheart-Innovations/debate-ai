@@ -40,6 +40,7 @@ import { ReviewModelError, afterOperatorCompleted, runReviewerPass } from '../re
 import { deliverPendingReruns } from '../team/reruns';
 import { SessionFilesSync } from './uploads';
 import { loadPdfPageAttachments } from './pdfPages';
+import { notifyTurnEnded } from './notifications';
 
 export { STEP_FUNCTION, enqueueStep, type StepPayload };
 
@@ -222,7 +223,8 @@ export async function runStep(payload: StepPayload, owner: string, finalAttempt 
     await finishRun(ref, outcome, undefined, { postTurnPending: true });
   } else {
     const current = (await ref.get()).data();
-    await finishRun(ref, 'error', current?.status === 'error' ? current.error : { message: crashed?.message || 'The model call failed', code: 'internal' }, { postTurnPending: true });
+    run.error = current?.status === 'error' ? current.error : { message: crashed?.message || 'The model call failed', code: 'internal' };
+    await finishRun(ref, 'error', run.error, { postTurnPending: true });
   }
   await afterOperatorTurn(run, outcome);
   await ref.update({ postTurnPending: false });
@@ -242,8 +244,13 @@ async function operatorMessageStore(uid: string, sessionId: string): Promise<Mes
   };
 }
 
-/** The browser's end-of-turn reactions: queued review items, auto-review, waiting reruns. Best effort. */
+/** The browser's end-of-turn reactions (queued review items, auto-review, waiting reruns), and the user's notification. Best effort. */
 async function afterOperatorTurn(run: AnalyzeRunDoc, outcome: RoundOutcome): Promise<void> {
+  try {
+    await notifyTurnEnded(run, outcome);
+  } catch (error) {
+    console.error('[analyzeRun] notification failed', { runId: run.runId, error });
+  }
   try {
     if (outcome === 'completed') await afterOperatorCompleted(run);
   } catch (error) {

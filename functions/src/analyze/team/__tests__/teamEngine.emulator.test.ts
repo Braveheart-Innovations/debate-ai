@@ -114,7 +114,7 @@ import { runStep } from '../../engine/step';
 import { startOperatorTurn } from '../../engine/turns';
 import { runRef, type AnalyzeRunDoc, type RunConfig } from '../../engine/runStore';
 import { loadSessionMessages, runMessageStore } from '../../engine/sessionStore';
-import { approvePlan, replaceLane, stopWaitingOperator, cancelChildren, workSolo, forceStopStranded } from '../teamStore';
+import { approvePlan, replaceLane, stopWaitingOperator, cancelChildren, workSolo, forceStopStranded, enterWait } from '../teamStore';
 import { startRerun } from '../reruns';
 import { MAX_SWEEPS, STRANDED_MS, sweepStrandedRuns } from '../../engine/sweeper';
 import { SOLO_RESULT_TEXT } from '../teamState';
@@ -123,6 +123,9 @@ import { SESSION_FILES_MARKER, commitUpload, listUploads, removeUpload } from '.
 import { artifactRef, prepareArtifactRecord } from '../../engine/sessionStore';
 import { deleteServerOwnedSessionData } from '../../../cloudPayloadStorage';
 import type { Artifact } from '../../contract/types/notebook';
+import { NoSessionSandboxError, runCell } from '../../engine/runCell';
+import { SessionBusyError } from '../../engine/turns';
+import type { NotificationDoc } from '../../engine/notifications';
 
 const emulator = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
 const describeEmulator = emulator ? describe : describe.skip;
@@ -644,5 +647,108 @@ describeEmulator('review engine', () => {
     await afterOperatorCompleted(await run(runId));
     const again = await getFirestore().collection(`users/${uid}/conversations/${sessionId}/analyzeRuns`).where('kind', '==', 'reviewer').get();
     expect(again.size).toBe(1);
+  });
+});
+
+describeEmulator('step 6 server gaps', () => {
+  jest.setTimeout(60_000);
+
+  async function notifications(): Promise<NotificationDoc[]> {
+    const snapshot = await getFirestore().collection(`users/${uid}/notifications`).where('sessionId', '==', sessionId).get();
+    return snapshot.docs.map((doc) => doc.data() as NotificationDoc).sort((a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id));
+  }
+
+  it('notifies a plan waiting for approval once, keeps it read, then notifies the completed turn', async () => {
+    script = (request) => {
+      if (isTeammate(request)) return text('sub answer');
+      return hasToolResults(request) ? text('Done.') : calls({ id: 'd1', name: 'delegate', args: { task: 'Sum A', agent: 'teammate1' } });
+    };
+    const { runId } = await startOperatorTurn({ uid, sessionId, content: 'Go', config: config() });
+    await drain();
+    const plan = (await run(runId)).pendingTeamPlans![0];
+    let notes = await notifications();
+    expect(notes).toEqual([expect.objectContaining({ id: `${runId}_plan_${plan.id}`, kind: 'awaiting_approval', runId, mode: 'analyze', read: false })]);
+
+    // The user reads it; a later settle while the plan still waits must not flip it back.
+    await getFirestore().doc(`users/${uid}/notifications/${notes[0].id}`).update({ read: true });
+    await enterWait(runRef(uid, sessionId, runId), 'redelivery');
+    expect((await notifications()).map((n) => n.read)).toEqual([true]);
+    await approvePlan(runRef(uid, sessionId, runId), plan.id, { type: 'approve', assignments: plan.assignments });
+    await drain();
+
+    expect((await run(runId)).status).toBe('completed');
+    notes = await notifications();
+    expect(notes.map((n) => [n.kind, n.read])).toEqual([['awaiting_approval', true], ['completed', false]]);
+    expect(notes[1].id).toBe(`${runId}_completed`);
+  });
+
+  it('a turn that asks the user notifies the question, not a completion; Stop notifies nothing', async () => {
+    script = () => calls({ id: 'q1', name: 'ask_user', args: { questions: 'Which region should I use?' } });
+    const { runId } = await startOperatorTurn({ uid, sessionId, content: 'Go', config: config({ teamPlanTurn: true }) });
+    await drain();
+    expect((await run(runId)).status).toBe('completed');
+    expect(await notifications()).toEqual([expect.objectContaining({ id: `${runId}_asked_user`, kind: 'asked_user', detail: 'Which region should I use?' })]);
+
+    script = () => calls({ id: 'd1', name: 'delegate', args: { task: 'A', agent: 'teammate1' } });
+    const second = await startOperatorTurn({ uid, sessionId, content: 'Again', config: config() });
+    await drain();
+    await getFirestore().collection(`users/${uid}/notifications`).doc(`${second.runId}_plan_${(await run(second.runId)).pendingTeamPlans![0].id}`).delete();
+    await runRef(uid, sessionId, second.runId).update({ cancelRequested: true });
+    await stopWaitingOperator(runRef(uid, sessionId, second.runId));
+    await drain();
+    expect((await run(second.runId)).status).toBe('stopped');
+    expect((await notifications()).map((n) => n.kind)).toEqual(['asked_user']);
+  });
+
+  it('a failed turn and a run the sweeper gives up on both notify the error', async () => {
+    script = () => [{ type: 'error', code: 'permission-denied', message: 'Invalid API key' }];
+    const failed = await startOperatorTurn({ uid, sessionId, content: 'Go', config: config() });
+    await drain();
+    expect((await run(failed.runId)).status).toBe('error');
+
+    script = () => text('unused');
+    const stranded = await startOperatorTurn({ uid, sessionId, content: 'Again', config: config() });
+    queue.length = 0;
+    let at = Date.now();
+    for (let i = 0; i <= MAX_SWEEPS; i += 1) {
+      at += STRANDED_MS + 1000;
+      await sweepStrandedRuns(at);
+      queue.length = 0;
+    }
+    expect((await run(stranded.runId)).status).toBe('error');
+
+    const notes = await notifications();
+    expect(notes.map((n) => [n.id, n.kind])).toEqual([[`${failed.runId}_error`, 'error'], [`${stranded.runId}_error`, 'error']]);
+    expect(notes[1].detail).toBe('The run stopped making progress and was ended.');
+  });
+
+  it('runCell: refused with no sandbox and while a turn runs; then runs in the operator kernel without capturing', async () => {
+    await expect(runCell(uid, sessionId, 'x = 1')).rejects.toBeInstanceOf(NoSessionSandboxError);
+
+    script = () => text('Hello.');
+    await startOperatorTurn({ uid, sessionId, content: 'Go', config: config() });
+    await expect(runCell(uid, sessionId, 'x = 1')).rejects.toBeInstanceOf(SessionBusyError);
+    expect(pythonRuns).toHaveLength(0);
+
+    await drain();
+    const artifactsBefore = (await getFirestore().collection(`users/${uid}/conversations/${sessionId}/artifacts`).get()).size;
+    await expect(runCell(uid, sessionId, 'print(42)')).resolves.toEqual({ success: true, stdout: '42', images: [] });
+    expect(pythonRuns).toEqual([{ code: 'print(42)', kernel: undefined }]);
+    expect((await getFirestore().collection(`users/${uid}/conversations/${sessionId}/artifacts`).get()).size).toBe(artifactsBefore);
+  });
+
+  it('live code: execute_python argument deltas land in runEvents, merged per call', async () => {
+    script = (request) => (hasToolResults(request) ? text('Done.') : [
+      { type: 'tool_call_start', index: 0, id: 'py1', name: 'execute_python' },
+      { type: 'tool_call_delta', index: 0, id: 'py1', arguments_delta: '{"code":"pri' },
+      { type: 'tool_call_delta', index: 0, id: 'py1', arguments_delta: 'nt(42)"}' },
+      ...calls({ id: 'py1', name: 'execute_python', args: { code: 'print(42)' } }),
+    ]);
+    const { runId } = await startOperatorTurn({ uid, sessionId, content: 'Go', config: config({ team: undefined }) });
+    await drain();
+
+    const snapshot = await runRef(uid, sessionId, runId).collection('runEvents').orderBy('seq').get();
+    const deltas = snapshot.docs.flatMap((doc) => doc.data().events as Array<Record<string, unknown>>).filter((e) => e.type === 'tool_call_delta');
+    expect(deltas).toEqual([{ type: 'tool_call_delta', messageId: `${runId}_r0`, toolCallId: 'py1', delta: '{"code":"print(42)"}' }]);
   });
 });

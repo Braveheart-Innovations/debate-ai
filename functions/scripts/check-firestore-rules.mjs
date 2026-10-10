@@ -17,6 +17,20 @@ const tc = (method, sub, uid, expectation) => ({
   request: { method, path: base + sub, auth: uid ? { uid } : null, time: new Date().toISOString() },
   expectation,
 });
+const notificationPath = '/databases/(default)/documents/users/owner1/notifications/n1';
+const notification = { id: 'n1', kind: 'completed', mode: 'analyze', sessionId: 's1', runId: 'r1', createdAt: 1, read: false };
+/** A notification case; update cases carry the stored doc and the write's result. */
+const nc = (method, uid, expectation, data) => ({
+  request: {
+    method,
+    path: notificationPath,
+    auth: uid ? { uid } : null,
+    time: new Date().toISOString(),
+    ...(data ? { resource: { data } } : {}),
+  },
+  ...(method === 'update' || method === 'get' || method === 'delete' ? { resource: { data: notification } } : {}),
+  expectation,
+});
 const testCases = [
   // Analyze server-loop runs: owner reads, nobody writes from a client.
   tc('get', '/analyzeRuns/r1', 'owner1', 'ALLOW'),
@@ -31,6 +45,17 @@ const testCases = [
   tc('create', '/analyzeRuns/r1/runEvents/000001', 'owner1', 'DENY'),
   tc('get', '/analyzeRuns/r1/toolCalls/c1', 'owner1', 'DENY'),
   tc('create', '/analyzeRuns/r1/toolCalls/c1', 'owner1', 'DENY'),
+  // Run notifications: owner reads and may only flip `read`; only the server creates.
+  nc('get', 'owner1', 'ALLOW'),
+  nc('list', 'owner1', 'ALLOW'),
+  nc('get', 'intruder', 'DENY'),
+  nc('get', null, 'DENY'),
+  nc('create', 'owner1', 'DENY', { ...notification }),
+  nc('delete', 'owner1', 'DENY'),
+  nc('update', 'owner1', 'ALLOW', { ...notification, read: true }),
+  nc('update', 'intruder', 'DENY', { ...notification, read: true }),
+  nc('update', 'owner1', 'DENY', { ...notification, read: true, kind: 'error' }),
+  nc('update', 'owner1', 'DENY', { ...notification, read: 'yes' }),
   // Existing conversation access is unchanged.
   tc('get', '/messages/m1', 'owner1', 'ALLOW'),
   tc('create', '/messages/m1', 'owner1', 'ALLOW'),
@@ -58,7 +83,7 @@ let failed = 0;
 result.testResults.forEach((res, i) => {
   const c = testCases[i];
   if (res.state !== 'SUCCESS') failed += 1;
-  console.log(`${res.state.padEnd(8)} ${c.request.method.padEnd(6)} expect ${c.expectation.padEnd(5)} ${(c.request.auth?.uid ?? 'anon').padEnd(9)} ${c.request.path.replace(base, '')}`);
+  console.log(`${res.state.padEnd(8)} ${c.request.method.padEnd(6)} expect ${c.expectation.padEnd(5)} ${(c.request.auth?.uid ?? 'anon').padEnd(9)} ${c.request.path.replace(base, '').replace('/databases/(default)/documents/users/owner1', '~')}`);
 });
 console.log(failed ? `${failed} case(s) failed` : `All ${testCases.length} cases passed.`);
 process.exit(failed ? 1 : 0);

@@ -57,6 +57,10 @@ describe('firestore entitlement rules', () => {
     expect(rules).toMatch(/match \/storageReservations\/\{reservationId\} \{\s+allow read: if isOwner\(userId\);\s+allow write: if false;\s+\}/);
   });
 
+  it('lets clients only mark their run notifications read', () => {
+    expect(rules).toMatch(/match \/notifications\/\{notificationId\} \{\s+allow read: if isOwner\(userId\);\s+allow update: if isOwner\(userId\)\s+&& request\.resource\.data\.diff\(resource\.data\)\.affectedKeys\(\)\.hasOnly\(\['read'\]\)\s+&& request\.resource\.data\.read is bool;\s+allow create, delete: if false;\s+\}/);
+  });
+
   it('does not allow broad client writes to users documents', () => {
     expect(rules).not.toContain('allow read, write: if request.auth != null && request.auth.uid == userId;');
   });

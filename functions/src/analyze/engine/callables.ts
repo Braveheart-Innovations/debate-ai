@@ -6,6 +6,7 @@
  *   analyzeRunControl    one run: stop, team plan answers, lanes, auto-approve
  *   analyzeReviewControl the session's review queue: review, verify, send, select…
  *   analyzeUploads       the session's uploads: keep (commit), remove, list
+ *   analyzeRunCell       a manual cell re-run, refused while a turn is running
  */
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import type { MessageAttachment } from '../contract/types';
@@ -15,6 +16,7 @@ import { isV2Supported } from '../../providers/registry';
 import { getCatalogModel } from '../modelCatalog';
 import { isTerminal, runRef, type AnalyzeRunDoc, type RosterAI, type RunConfig } from './runStore';
 import { SessionBusyError, TurnAlreadyStartedError, startOperatorTurn } from './turns';
+import { NoSessionSandboxError, runCell } from './runCell';
 import { normalizeAnalyzeOutputSelection } from '../contract/types/analyze';
 import { MAX_PANEL_SIZE, TeamArgsError } from '../team/teamTools';
 import {
@@ -347,6 +349,24 @@ export const analyzeUploads = onCall(
       if (error instanceof UploadInputError) throw new HttpsError('invalid-argument', error.message);
       console.error('[analyzeUploads] failed', { op: data.op, error });
       throw new HttpsError('internal', 'The upload could not be saved. Please try again.');
+    }
+  },
+);
+
+export const analyzeRunCell = onCall(
+  { region: 'us-central1', secrets: [e2bApiKey], timeoutSeconds: 120 },
+  async (request) => {
+    const uid = requireAllowedUid(request.auth?.uid);
+    const data = (request.data ?? {}) as Record<string, unknown>;
+    const sessionId = requireString(data.sessionId, 'sessionId');
+    if (typeof data.code !== 'string' || data.code.length > 1_000_000) throw new HttpsError('invalid-argument', 'code is required');
+    try {
+      return await runCell(uid, sessionId, data.code);
+    } catch (error) {
+      if (error instanceof SessionBusyError) throw new HttpsError('failed-precondition', 'Wait for the current run to finish before running a cell.');
+      if (error instanceof NoSessionSandboxError) throw new HttpsError('failed-precondition', error.message);
+      console.error('[analyzeRunCell] failed', error);
+      throw new HttpsError('internal', 'The cell could not run. Please try again.');
     }
   },
 );

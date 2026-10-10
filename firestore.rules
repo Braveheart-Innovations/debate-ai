@@ -223,6 +223,17 @@ service cloud.firestore {
         allow write: if false;
       }
 
+      // Run notifications (Analyze server loop): created by Cloud Functions
+      // only. The owner reads them for the header bell and may only mark
+      // one read.
+      match /notifications/{notificationId} {
+        allow read: if isOwner(userId);
+        allow update: if isOwner(userId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+          && request.resource.data.read is bool;
+        allow create, delete: if false;
+      }
+
       // Conversations subcollection (path-based auth)
       match /conversations/{sessionId} {
         allow read, write: if isOwner(userId);

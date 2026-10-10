@@ -61,6 +61,9 @@ export interface SandboxBridge {
   execute: (code: string, options?: { timeout?: number; signal?: AbortSignal }) => Promise<ExecutionResult>;
 }
 
+/** Same note the browser bridge added (web SandboxService.execute). */
+export const ENVIRONMENT_RESET_NOTE = '[The Python environment was restarted: variables and files from earlier steps are gone.]';
+
 export class SandboxCancelledError extends Error {
   constructor() {
     super('Execution cancelled');
@@ -76,10 +79,7 @@ export function createSandboxBridge(uid: string, sessionKey: string, kernelKey?:
       options.signal?.addEventListener('abort', onAbort, { once: true });
       try {
         const result = await service.execute(uid, sessionKey, code, options.timeout ?? 30000, kernelKey);
-        if (result.environmentReset) {
-          // Same note the browser bridge added (web SandboxService.execute).
-          result.stdout = `[The Python environment was restarted: variables and files from earlier steps are gone.]\n${result.stdout}`;
-        }
+        if (result.environmentReset) result.stdout = `${ENVIRONMENT_RESET_NOTE}\n${result.stdout}`;
         return await hydrate(uid, sessionKey, result);
       } finally {
         options.signal?.removeEventListener('abort', onAbort);
