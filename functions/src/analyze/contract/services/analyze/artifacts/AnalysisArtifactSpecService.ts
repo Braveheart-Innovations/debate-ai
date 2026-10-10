@@ -12,6 +12,7 @@ import type { Artifact, BundleManifest } from '../../../types/notebook';
 import type { ReportBlock, ReportSource, ReportSpecV1 } from '../../../types/report-spec';
 import { decodePossiblyBase64Json, repairUtf8Mojibake } from '../../../lib/encoding/utf8Base64';
 import { repairVegaLiteSpec } from '../charts/repairVegaLite';
+import { chartFileReaderFromArtifacts, inlineChartDataFiles } from '../charts/inlineChartData';
 import type { PresentationOverlayV1 } from '../../../types/presentation-overlay';
 import { resolveOverlayTheme } from './PresentationOverlayService';
 import {
@@ -79,16 +80,13 @@ const artifactRefBlockSchema = baseBlockSchema.extend({
 });
 
 // A Vega-Lite top-level spec, kept loose (the full grammar is large) but guarded
-// against empty/garbage and runaway size. vega-lite compiles it at render/export.
+// against empty/garbage. No size limit: inline data is the chart. vega-lite
+// compiles it at render/export.
 const vegaLiteSpecSchema = z.object({}).passthrough()
   .refine(
     (s) => ['mark', 'layer', 'facet', 'hconcat', 'vconcat', 'concat', 'repeat', 'spec']
       .some((key) => key in (s as Record<string, unknown>)),
     { message: 'Vega-Lite spec must define a `mark` or a composition (layer/facet/concat/repeat)' },
-  )
-  .refine(
-    (s) => JSON.stringify(s).length <= 200_000,
-    { message: 'Chart spec is too large' },
   );
 
 const chartBlockSchema = baseBlockSchema.extend({
@@ -1411,6 +1409,8 @@ export function analysisArtifactSpecToReportSpec(
   artifactPool: Artifact[] = [],
   overlay?: PresentationOverlayV1 | null,
 ): ReportSpecV1 {
+  // Charts that name a session file get its rows inline (exports can't load sandbox paths).
+  spec = inlineChartDataFiles(spec, chartFileReaderFromArtifacts(artifactPool));
   const now = Date.now();
   const sources = spec.sources || [];
   const sourceById = buildSourceMap(sources);
