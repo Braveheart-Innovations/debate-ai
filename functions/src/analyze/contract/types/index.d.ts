@@ -341,7 +341,6 @@ export interface ChatSession {
         audienceResult?: AudienceDecisionResult;
         voiceConfig?: DebateVoiceConfig;
     };
-    syncOverride?: boolean;
     stoppedAIs?: string[];
     debateWinner?: string;
     debateScores?: Record<string, {
@@ -349,16 +348,6 @@ export interface ChatSession {
     }>;
 }
 export type SessionType = 'chat' | 'debate' | 'comparison' | 'analyze';
-export interface SyncSettings {
-    global: 'all' | 'none' | 'selective';
-    modes: {
-        chat: boolean;
-        debate: boolean;
-        comparison: boolean;
-        analyze: boolean;
-    };
-    hasCompletedOnboarding: boolean;
-}
 export interface PersonalityConfig {
     id: string;
     name: string;
