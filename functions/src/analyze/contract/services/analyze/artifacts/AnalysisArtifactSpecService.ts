@@ -36,47 +36,47 @@ const citationMarkerRegex = /\[(S\d+)\]/g;
 const slugRegex = /^[a-z0-9][a-z0-9-]*$/;
 
 const baseBlockSchema = z.object({
-  id: z.string().min(1).max(120).optional(),
-  title: z.string().min(1).max(240).optional(),
+  id: z.string().min(1).optional(),
+  title: z.string().min(1).optional(),
   citations: z.array(z.string().regex(citationIdRegex)).optional(),
   provenance: z.object({
     sourceIds: z.array(z.string().regex(citationIdRegex)).optional(),
-    computedAt: z.string().max(120).optional(),
-    inputs: z.array(z.string().max(240)).max(50).optional(),
+    computedAt: z.string().optional(),
+    inputs: z.array(z.string()).optional(),
   }).optional(),
 });
 
 const markdownBlockSchema = baseBlockSchema.extend({
   kind: z.literal('markdown'),
-  markdown: z.string().min(1).max(50_000),
+  markdown: z.string().min(1),
 });
 
 const calloutBlockSchema = baseBlockSchema.extend({
   kind: z.literal('callout'),
   tone: z.enum(['info', 'success', 'warning', 'risk']).optional(),
-  body: z.string().min(1).max(10_000),
+  body: z.string().min(1),
 });
 
 const metricGridBlockSchema = baseBlockSchema.extend({
   kind: z.literal('metric_grid'),
   metrics: z.array(z.object({
-    label: z.string().min(1).max(160),
-    value: z.string().min(1).max(160),
-    detail: z.string().max(320).optional(),
-  })).min(1).max(12),
+    label: z.string().min(1),
+    value: z.string().min(1),
+    detail: z.string().optional(),
+  })).min(1),
 });
 
 const tableBlockSchema = baseBlockSchema.extend({
   kind: z.literal('table'),
-  headers: z.array(z.string().max(240)).min(1).max(12),
-  rows: z.array(z.array(z.string().max(1_000))).max(200),
-  caption: z.string().max(500).optional(),
+  headers: z.array(z.string()).min(1),
+  rows: z.array(z.array(z.string())),
+  caption: z.string().optional(),
 });
 
 const artifactRefBlockSchema = baseBlockSchema.extend({
   kind: z.literal('artifact_ref'),
-  artifactId: z.string().min(1).max(240),
-  caption: z.string().max(500).optional(),
+  artifactId: z.string().min(1),
+  caption: z.string().optional(),
 });
 
 // A Vega-Lite top-level spec, kept loose (the full grammar is large) but guarded
@@ -95,7 +95,7 @@ const chartBlockSchema = baseBlockSchema.extend({
     type: z.literal('vega-lite'),
     spec: vegaLiteSpecSchema,
   }),
-  caption: z.string().max(500).optional(),
+  caption: z.string().optional(),
 });
 
 // Mermaid source text. No mermaid.parse here — validation stays sync and the
@@ -105,16 +105,16 @@ const diagramBlockSchema = baseBlockSchema.extend({
   kind: z.literal('diagram'),
   spec: z.object({
     type: z.literal('mermaid'),
-    code: z.string().min(1).max(20_000),
+    code: z.string().min(1),
   }),
-  caption: z.string().max(500).optional(),
+  caption: z.string().optional(),
 });
 
 const embeddedHtmlBlockSchema = baseBlockSchema.extend({
   kind: z.literal('embedded_html'),
-  artifactId: z.string().min(1).max(240),
-  caption: z.string().max(500).optional(),
-  height: z.number().min(80).max(4000).optional(),
+  artifactId: z.string().min(1),
+  caption: z.string().optional(),
+  height: z.number().positive().optional(),
 });
 
 const blockSchema = z.discriminatedUnion('kind', [
@@ -130,46 +130,46 @@ const blockSchema = z.discriminatedUnion('kind', [
 
 const pageSchema = z.object({
   slug: z.string().regex(slugRegex),
-  title: z.string().min(1).max(240),
-  summary: z.string().max(1_200).optional(),
-  blocks: z.array(blockSchema).min(1).max(80),
+  title: z.string().min(1),
+  summary: z.string().optional(),
+  blocks: z.array(blockSchema).min(1),
   relatedPageSlugs: z.array(z.string().regex(slugRegex)).optional(),
 });
 
 // App-injected verifiable fetch provenance (see injectSourceProvenance). Not
 // model-authored, but validated here since the enriched spec is re-parsed on read.
 const sourceFetchSchema = z.object({
-  endpoint: z.string().max(2_000),
-  method: z.string().max(16),
-  fetchedAt: z.string().max(120),
+  endpoint: z.string(),
+  method: z.string(),
+  fetchedAt: z.string(),
   cacheStatus: z.enum(['fresh', 'cached']),
-  responseHash: z.string().max(256),
-  parameterHash: z.string().max(256).optional(),
-  connectorId: z.string().max(120).optional(),
+  responseHash: z.string(),
+  parameterHash: z.string().optional(),
+  connectorId: z.string().optional(),
 });
 
 const sourceSchema = z.object({
   id: z.string().regex(citationIdRegex),
-  label: z.string().min(1).max(240),
-  title: z.string().max(500).optional(),
+  label: z.string().min(1),
+  title: z.string().optional(),
   url: z.string().url().optional(),
-  retrievedAt: z.string().max(120).optional(),
-  sourceArtifactId: z.string().max(240).optional(),
-  note: z.string().max(1_000).optional(),
-  provenance: z.array(sourceFetchSchema).max(50).optional(),
+  retrievedAt: z.string().optional(),
+  sourceArtifactId: z.string().optional(),
+  note: z.string().optional(),
+  provenance: z.array(sourceFetchSchema).optional(),
 });
 
 export const analysisArtifactSpecV1Schema = z.object({
   version: z.literal(1),
   kind: z.literal('analysis_artifact_spec'),
-  title: z.string().min(1).max(300),
-  audience: z.string().max(240).optional(),
+  title: z.string().min(1),
+  audience: z.string().optional(),
   // Report type the model chose/was pinned to (e.g. 'data_dashboard'). Free-form + capped so a
   // slightly-off value never fails validation; the app reads it for the UI hint and per-type theming.
-  reportTypeId: z.string().max(60).optional(),
-  summary: z.string().min(1).max(4_000),
-  createdAt: z.string().max(120).optional(),
-  pages: z.array(pageSchema).min(1).max(40),
+  reportTypeId: z.string().optional(),
+  summary: z.string().min(1),
+  createdAt: z.string().optional(),
+  pages: z.array(pageSchema).min(1),
   sources: z.array(sourceSchema).optional(),
 }).superRefine((spec, ctx) => {
   const serialized = JSON.stringify(spec);

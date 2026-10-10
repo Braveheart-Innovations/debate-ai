@@ -14,7 +14,6 @@
  */
 import { z } from 'zod';
 import type { ArtifactBrandingOptions, ReportSpecV1, ReportTheme } from './types';
-import { EXPLANATION_CHAR_LIMITS } from './types';
 import { sha256Hex, stableSerialize } from './utils';
 import {
   formatBrandingLine,
@@ -43,36 +42,24 @@ export const DEFAULT_THEME: ReportTheme = {
   },
 };
 
-export const LIMITS = {
-  MAX_PAGES: 100,
-  MAX_BLOCKS_PER_PAGE: 100,
-  MAX_TOTAL_BLOCKS: 1000,
-  MAX_SOURCES: 500,
-  MAX_BLOCK_CITATIONS: 50,
-  MAX_MARKDOWN_LENGTH: 50_000,
-  MAX_HEADING_LENGTH: 500,
-  MAX_CAPTION_LENGTH: 1000,
-  MAX_CHROME_TEXT_LENGTH: 250,
-} as const;
-
 // ============================================================================
 // Zod Schemas (must match web repo)
 // ============================================================================
 
 const citableBlockFields = {
-  citations: z.array(z.string().min(1).max(240)).max(LIMITS.MAX_BLOCK_CITATIONS).optional(),
+  citations: z.array(z.string().min(1)).optional(),
 };
 
 const headingBlockSchema = z.object({
   kind: z.literal('heading'),
   level: z.union([z.literal(1), z.literal(2), z.literal(3)]),
-  text: z.string().min(1).max(LIMITS.MAX_HEADING_LENGTH),
+  text: z.string().min(1),
   ...citableBlockFields,
 });
 
 const paragraphBlockSchema = z.object({
   kind: z.literal('paragraph'),
-  markdown: z.string().max(LIMITS.MAX_MARKDOWN_LENGTH),
+  markdown: z.string(),
   ...citableBlockFields,
 });
 
@@ -90,7 +77,7 @@ const artifactBlockSchema = z.object({
   kind: z.literal('artifact'),
   artifactId: z.string().min(1),
   renderIntent: renderIntentSchema,
-  caption: z.string().max(LIMITS.MAX_CAPTION_LENGTH).optional(),
+  caption: z.string().optional(),
   options: z.object({
     maxWidth: z.number().positive().optional(),
     maxHeight: z.number().positive().optional(),
@@ -103,7 +90,7 @@ const tableBlockSchema = z.object({
   kind: z.literal('table'),
   headers: z.array(z.string()).min(1),
   rows: z.array(z.array(z.string())),
-  caption: z.string().max(LIMITS.MAX_CAPTION_LENGTH).optional(),
+  caption: z.string().optional(),
   ...citableBlockFields,
 });
 
@@ -126,14 +113,7 @@ const artifactExplanationBlockSchema = z.object({
   size: explanationSizeSchema,
   text: z.string(),
   ...citableBlockFields,
-}).refine(
-  (data: { size: 's' | 'm' | 'l'; text: string }) =>
-    data.text.length <= EXPLANATION_CHAR_LIMITS[data.size],
-  {
-    message: 'Explanation text exceeds character limit for selected size',
-    path: ['text'],
-  },
-);
+});
 
 const reportBlockSchema = z.discriminatedUnion('kind', [
   headingBlockSchema,
@@ -169,17 +149,17 @@ const reportThemeSchema = z.object({
 });
 
 const reportPageSchema = z.object({
-  blocks: z.array(reportBlockSchema).max(LIMITS.MAX_BLOCKS_PER_PAGE),
+  blocks: z.array(reportBlockSchema),
 });
 
 const reportSourceSchema = z.object({
-  id: z.string().min(1).max(240),
-  label: z.string().min(1).max(500),
-  title: z.string().max(500).optional(),
+  id: z.string().min(1),
+  label: z.string().min(1),
+  title: z.string().optional(),
   url: z.string().url().optional(),
-  retrievedAt: z.string().max(120).optional(),
-  sourceArtifactId: z.string().max(240).optional(),
-  note: z.string().max(1_000).optional(),
+  retrievedAt: z.string().optional(),
+  sourceArtifactId: z.string().optional(),
+  note: z.string().optional(),
 });
 
 const artifactBrandingOptionsSchema = z.object({
@@ -195,15 +175,15 @@ const reportSpecOptionsSchema = z.object({
   provenanceDetailLevel: z.enum(['brief', 'full']).optional(),
   header: z.object({
     enabled: z.boolean().optional(),
-    left: z.string().max(LIMITS.MAX_CHROME_TEXT_LENGTH).optional(),
-    center: z.string().max(LIMITS.MAX_CHROME_TEXT_LENGTH).optional(),
-    right: z.string().max(LIMITS.MAX_CHROME_TEXT_LENGTH).optional(),
+    left: z.string().optional(),
+    center: z.string().optional(),
+    right: z.string().optional(),
   }).optional(),
   footer: z.object({
     enabled: z.boolean().optional(),
-    left: z.string().max(LIMITS.MAX_CHROME_TEXT_LENGTH).optional(),
-    center: z.string().max(LIMITS.MAX_CHROME_TEXT_LENGTH).optional(),
-    right: z.string().max(LIMITS.MAX_CHROME_TEXT_LENGTH).optional(),
+    left: z.string().optional(),
+    center: z.string().optional(),
+    right: z.string().optional(),
   }).optional(),
   branding: artifactBrandingOptionsSchema,
 });
@@ -213,21 +193,15 @@ export const reportSpecV1Schema = z.object({
   profile: z.literal('ARCHIVE_PORTABLE'),
   title: z.string().min(1),
   authors: z.array(z.string()),
-  abstract: z.string().max(LIMITS.MAX_MARKDOWN_LENGTH).optional(),
+  abstract: z.string().optional(),
   createdAt: z.number(),
   modifiedAt: z.number(),
   sessionId: z.string().min(1),
   theme: reportThemeSchema,
-  pages: z.array(reportPageSchema).min(1).max(LIMITS.MAX_PAGES),
-  sources: z.array(reportSourceSchema).max(LIMITS.MAX_SOURCES).optional(),
+  pages: z.array(reportPageSchema).min(1),
+  sources: z.array(reportSourceSchema).optional(),
   options: reportSpecOptionsSchema.optional(),
-}).refine(
-  (data) => {
-    const total = data.pages.reduce((sum, p) => sum + p.blocks.length, 0);
-    return total <= LIMITS.MAX_TOTAL_BLOCKS;
-  },
-  { message: `Total blocks across all pages must not exceed ${LIMITS.MAX_TOTAL_BLOCKS}` },
-);
+});
 
 // ============================================================================
 // Parse & Validate
