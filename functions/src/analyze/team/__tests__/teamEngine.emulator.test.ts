@@ -34,8 +34,16 @@ jest.mock('../../../tools', () => ({
 const sandboxFiles = new Map<string, Buffer>();
 const pythonRuns: Array<{ code: string; kernel?: string }> = [];
 const released: string[] = [];
+// Every call on the sandbox service (each one starts a sandbox if there isn't one).
+const sandboxCalls: string[] = [];
+const recordingCalls = <T extends Record<string, unknown>>(service: T): T => Object.fromEntries(
+  Object.entries(service).map(([name, method]) => [name, (...args: unknown[]) => {
+    sandboxCalls.push(name);
+    return (method as (...a: unknown[]) => unknown)(...args);
+  }]),
+) as T;
 jest.mock('../../../sandbox/callables', () => ({
-  getSandboxService: () => ({
+  getSandboxService: () => recordingCalls({
     execute: async (_uid: string, _key: string, code: string, _timeout: number, kernel?: string) => {
       if (kernel === 'pdf-pages') {
         // pypdfium2 stand-in: two pages per PDF that exists.
@@ -195,6 +203,7 @@ beforeEach(() => {
   modelCalls.length = 0;
   pythonRuns.length = 0;
   released.length = 0;
+  sandboxCalls.length = 0;
   sandboxFiles.clear();
   storageObjects.clear();
 });
@@ -932,5 +941,53 @@ describeEmulator('step 7 free tier and sandbox time', () => {
     const done = await run(runId);
     expect(done.status).toBe('completed');
     expect(done.compute).toEqual({ sandboxCalls: 2, sandboxExecMs: expect.any(Number) });
+  });
+
+  it('a text-only turn in a session with no files never touches the sandbox', async () => {
+    script = () => text('Hello.');
+    const first = await startOperatorTurn({ uid, sessionId, content: 'Hi', config: config({ team: undefined }) });
+    await drain();
+    const second = await startOperatorTurn({ uid, sessionId, content: 'And again', config: config({ team: undefined }) });
+    await drain();
+    expect((await run(first.runId)).status).toBe('completed');
+    expect((await run(second.runId)).status).toBe('completed');
+    expect(sandboxCalls).toEqual([]);
+  });
+
+  it('with no files, Python still runs; the first saved artifact is mounted on the next round', async () => {
+    script = (request) => (hasToolResults(request) ? text('Done.') : calls({ id: 'py1', name: 'execute_python', args: { code: 'print(1)' } }));
+    const { runId } = await startOperatorTurn({ uid, sessionId, content: 'Go', config: config({ team: undefined }) });
+    await drain();
+    expect((await run(runId)).status).toBe('completed');
+    expect(pythonRuns.map((r) => r.code)).toEqual(['print(1)']);
+    // The sync before the first round left the sandbox alone.
+    expect(sandboxCalls[0]).toBe('execute');
+
+    const chart: Artifact = { id: 'a1', cellId: 'm1', sessionId, name: 'chart.html', type: 'html', mimeType: 'text/html', data: '<p>chart</p>', createdAt: 1 };
+    await artifactRef(uid, sessionId, chart.id).set(await prepareArtifactRecord(uid, sessionId, chart), { merge: true });
+    script = () => text('Seen it.');
+    const next = await startOperatorTurn({ uid, sessionId, content: 'Look', config: config({ team: undefined }) });
+    await drain();
+    expect((await run(next.runId)).status).toBe('completed');
+    expect(sandboxFiles.get('/output/chart.html')?.toString()).toBe('<p>chart</p>');
+    expect(sandboxFiles.has(SESSION_FILES_MARKER)).toBe(true);
+  });
+
+  it('a session\'s first turn with an upload has the file in the sandbox before the first round', async () => {
+    await writeUploadChunk(uid, sessionId, {
+      pythonPath: '/uploads/sales.csv', chunkIndex: 0, totalChunks: 1, size: 8, mimeType: 'text/csv',
+      sha256: createHash('sha256').update('a,b\n1,2\n').digest('hex'),
+      base64: Buffer.from('a,b\n1,2\n').toString('base64'),
+    });
+    let seenAtFirstCall: string | undefined;
+    script = () => {
+      seenAtFirstCall ??= sandboxFiles.get('/uploads/sales.csv')?.toString();
+      return text('Got it.');
+    };
+    const { runId } = await startOperatorTurn({ uid, sessionId, content: 'Read it', config: config({ team: undefined }) });
+    await drain();
+    expect((await run(runId)).status).toBe('completed');
+    expect(seenAtFirstCall).toBe('a,b\n1,2\n');
+    expect(sandboxFiles.has(SESSION_FILES_MARKER)).toBe(true);
   });
 });

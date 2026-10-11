@@ -264,6 +264,8 @@ function unchangedSkippingFiles(uid: string, sandboxSessionKey: string): Pick<Sa
  *    history tells the model they are (toolResultHistory's file summary).
  * sync() runs before every round and before a manual cell re-run. The marker
  * file remembers what's mounted; a round with nothing new costs two queries.
+ * A session with no uploads or saved artifacts doesn't touch the sandbox, so
+ * it starts only when a tool needs it.
  */
 export class SessionFilesSync {
   private marker: { artifactIds: Set<string>; uploads: Record<string, string> } | null = null;
@@ -277,14 +279,18 @@ export class SessionFilesSync {
   async sync(): Promise<void> {
     const { uid, sessionId, sandboxSessionKey } = this;
     const service = getSandboxService();
+    const records = await loadUploadRecords(uid, sessionId);
+    const artifactIds = await listSessionArtifactIds(uid, sessionId);
     if (!this.marker) {
+      // Nothing to mount: leave the sandbox alone. Reading the marker would
+      // start one, and a text-only turn never needs it.
+      if (records.length === 0 && artifactIds.length === 0) return;
       const stored = await readMarker(uid, sandboxSessionKey);
       this.marker = { artifactIds: new Set(stored?.artifactIds ?? []), uploads: { ...(stored?.uploads ?? {}) } };
     }
     const marker = this.marker;
     let changed = false;
 
-    const records = await loadUploadRecords(uid, sessionId);
     for (const upload of records) {
       if (marker.uploads[upload.id] === upload.sha256) continue;
       const bytes = await downloadPayloadBytes(upload.payload);
@@ -304,7 +310,7 @@ export class SessionFilesSync {
       }
     }
 
-    const fresh = (await listSessionArtifactIds(uid, sessionId)).filter((id) => !marker.artifactIds.has(id));
+    const fresh = artifactIds.filter((id) => !marker.artifactIds.has(id));
     if (fresh.length > 0) {
       await mountArtifactsToSandbox(unchangedSkippingFiles(uid, sandboxSessionKey), await loadArtifactsById(uid, sessionId, fresh));
       for (const id of fresh) marker.artifactIds.add(id);
