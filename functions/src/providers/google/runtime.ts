@@ -120,6 +120,7 @@ export class GoogleRuntime implements ProviderRuntime {
         model,
         temperature: request.temperature ?? 0.7,
         maxTokens: request.maxTokens,
+        deepThinking: request.deepThinking,
       }),
     };
 

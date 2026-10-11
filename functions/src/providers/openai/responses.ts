@@ -62,6 +62,8 @@ export interface ResponsesBodyInput {
   tools?: CanonicalToolDefinition[];
   toolChoice?: CanonicalToolChoice;
   stream: boolean;
+  /** reasoning.effort; omitted = the model's default. */
+  reasoningEffort?: 'high';
 }
 
 // ============================================================================
@@ -195,6 +197,7 @@ export function buildResponsesBody(params: ResponsesBodyInput): Record<string, u
   };
   if (instructions) body.instructions = instructions;
   if (params.maxTokens !== undefined) body.max_output_tokens = params.maxTokens;
+  if (params.reasoningEffort) body.reasoning = { effort: params.reasoningEffort };
   if (params.tools && params.tools.length > 0) {
     body.tools = transformToolsForResponses(params.tools);
     if (params.toolChoice) {

@@ -49,6 +49,8 @@ export interface ModelStreamRequest {
   tools?: CanonicalToolDefinition[];
   toolChoice?: CanonicalToolChoice;
   attachments?: CanonicalAttachment[];
+  /** Think harder than the model's default where it has a setting (ProviderRequest.deepThinking). */
+  deepThinking?: boolean;
   /** `encryptionKey.value()` — the caller's function must declare the secret. */
   keyValue: string;
   sessionId?: string;
@@ -184,6 +186,7 @@ async function* streamModelCall(
       tools: request.tools,
       toolChoice,
       attachments: request.attachments,
+      deepThinking: request.deepThinking,
     }, apiKey);
     console.log(JSON.stringify({
       traceId,

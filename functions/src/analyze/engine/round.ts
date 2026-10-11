@@ -164,6 +164,8 @@ function sessionFor(run: AnalyzeRunDoc, messages: Message[]): AnalyzeSession {
 interface RoundTools {
   tools: ToolDefinition[];
   toolChoice?: ToolChoice;
+  /** The round that writes the team plan thinks harder (ProviderRequest.deepThinking). */
+  deepThinking?: boolean;
 }
 
 function teamState(context: RoundContext): TeamTurnState {
@@ -176,6 +178,7 @@ function teamState(context: RoundContext): TeamTurnState {
  * solo; while a Team mode plan is pending, only planning, asking the user, or
  * on a Salesforce workspace the audit and org evidence first, with a call
  * required (streamModel resends unforced for models that can't be forced).
+ * That planning round, first or after a declined plan, thinks harder.
  */
 export function roundTools(context: RoundContext): RoundTools {
   const team = context.team?.members ?? [];
@@ -188,7 +191,7 @@ export function roundTools(context: RoundContext): RoundTools {
   const salesforce = context.run.config.salesforceWorkspace
     ? tools.filter((tool) => SALESFORCE_PLANNING_TOOL_NAMES.has(tool.name))
     : [];
-  return { tools: [...salesforce, proposeTeam, buildAskUserTool()], toolChoice: 'required' };
+  return { tools: [...salesforce, proposeTeam, buildAskUserTool()], toolChoice: 'required', deepThinking: true };
 }
 
 async function callModel(
@@ -236,6 +239,7 @@ async function callModel(
     tools: shaped.tools as CanonicalToolDefinition[] | undefined,
     toolChoice: shaped.toolChoice,
     attachments: shaped.attachments,
+    deepThinking: roundToolSet.deepThinking,
     keyValue: context.keyValue,
     sessionId: run.sessionId,
     sessionType: 'analyze',

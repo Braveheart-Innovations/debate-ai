@@ -24,7 +24,7 @@ import {
   mapClaudeStopReason,
   type ToolCallInProgress,
 } from '../base-runtime';
-import { normalizeProviderTemperature } from '../../modelRegistry';
+import { claudeDeepThinkingEffort, normalizeProviderTemperature } from '../../modelRegistry';
 
 // ============================================================================
 // Claude Message Types
@@ -106,6 +106,12 @@ export class ClaudeRuntime implements ProviderRuntime {
     );
     if (typeof temperature === 'number') {
       body.temperature = temperature;
+    }
+
+    // Adaptive thinking is on by default on the current models; effort is its depth.
+    const effort = request.deepThinking ? claudeDeepThinkingEffort(request.model) : undefined;
+    if (effort) {
+      body.output_config = { effort };
     }
 
     // Add system prompt as top-level field
