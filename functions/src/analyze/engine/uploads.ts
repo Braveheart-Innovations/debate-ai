@@ -1,26 +1,29 @@
 /**
- * Analyze uploads on the server (Phase 3 Step 5). The sandbox holds the
- * working copy at the upload's pythonPath. Storage keeps the original so it
- * outlives the sandbox, which is deleted after 7 idle days. A fresh sandbox
- * gets the session's files back before a step runs tools, as the browser
- * re-mounted IndexedDB uploads and saved artifacts before each send.
+ * Analyze uploads on the server. The client sends a file's bytes here in
+ * chunks (analyzeUploads write); Storage keeps it, quota-counted, and the
+ * record lists it. Clients never touch the sandbox: SessionFilesSync puts
+ * each upload at its pythonPath before every round (and before a manual cell
+ * re-run), so a new or recycled sandbox gets the session's files back.
  *
  *   users/{uid}/conversations/{sessionId}/analyzeUploads/{uploadId}     UploadRecord
  *   Storage users/{uid}/sessions/{sessionId}/uploads/{uploadId}/…/file.bin   the bytes (quota-counted)
+ *   Storage analyzeScratch/users/{uid}/conversations/{sessionId}/uploadParts/…  chunks until the last arrives
  *
  * Rules: owners read the records; only the server writes them.
  */
 import * as crypto from 'crypto';
 import { getFirestore } from 'firebase-admin/firestore';
+import { getStorage } from 'firebase-admin/storage';
 import type { FileMetadata, FileSourceMetadata } from '../contract/services/files/types';
 import { getSandboxService } from '../../sandbox/callables';
+import { FILE_CHUNK_BYTES } from '../../sandbox/service';
 import {
   deletePayloadForUser,
   downloadPayloadBytes,
+  downloadPayloadRange,
   uploadBytesForUser,
   type StoredPayloadRef,
 } from '../../cloudPayloadStorage';
-import { readWholeFile } from './sandboxBridge';
 import type { SandboxFiles } from './tools/sandboxFiles';
 import { listSessionArtifactIds, loadArtifactsById, removeUndefined } from './sessionStore';
 import { mountArtifactsToSandbox } from './artifactFilesystemHydration';
@@ -71,22 +74,93 @@ export async function listUploads(uid: string, sessionId: string): Promise<FileM
   return (await loadUploadRecords(uid, sessionId)).map(toMetadata);
 }
 
+const SCRATCH_BUCKET = 'symposium-ai.firebasestorage.app';
+
+function scratchFile(path: string) {
+  return getStorage().bucket(SCRATCH_BUCKET).file(path);
+}
+
+function partsPrefix(uid: string, sessionId: string, uploadId: string, sha256: string): string {
+  return `analyzeScratch/users/${uid}/conversations/${sessionId}/uploadParts/${uploadId}/${sha256}/`;
+}
+
+export interface UploadChunkInput {
+  pythonPath: string;
+  chunkIndex: number;
+  totalChunks: number;
+  /** This chunk's bytes, base64 (at most FILE_CHUNK_BYTES decoded). */
+  base64: string;
+  /** The whole file's size and sha256, checked when the last chunk arrives. */
+  size: number;
+  sha256: string;
+  mimeType: string;
+  source?: FileSourceMetadata;
+}
+
+/** `done: false` until the last chunk; an unchanged file is done at chunk 0. */
+export type UploadChunkResult = { done: false } | { done: true; file: FileMetadata };
+
 /**
- * Keep a file the client just wrote into the sandbox: copy it to Storage and
- * record it. Re-committing unchanged bytes is a no-op.
+ * One chunk of an upload. Chunks are staged in server-only scratch; the last
+ * one assembles the file, checks it against the declared size and sha256, and
+ * keeps it (Storage + record). Uploading the same bytes again ends at chunk 0.
  */
-export async function commitUpload(
-  uid: string,
-  sessionId: string,
-  sandboxSessionKey: string,
-  input: { pythonPath: string; mimeType: string; source?: FileSourceMetadata },
-): Promise<FileMetadata> {
+export async function writeUploadChunk(uid: string, sessionId: string, input: UploadChunkInput): Promise<UploadChunkResult> {
   const pythonPath = assertUploadPath(input.pythonPath);
+  const { chunkIndex, totalChunks, size } = input;
+  if (!Number.isInteger(totalChunks) || totalChunks < 1 || !Number.isInteger(chunkIndex) || chunkIndex < 0 || chunkIndex >= totalChunks) {
+    throw new UploadInputError('chunkIndex must be within totalChunks');
+  }
+  if (!Number.isInteger(size) || size < 0) throw new UploadInputError('size must be a byte count');
+  if (!/^[0-9a-f]{64}$/.test(input.sha256)) throw new UploadInputError('sha256 must be a hex digest');
   const id = uploadIdFor(pythonPath);
   const ref = uploadsCollection(uid, sessionId).doc(id);
-  const bytes = await readWholeFile(uid, sandboxSessionKey, pythonPath);
-  const sha256 = crypto.createHash('sha256').update(bytes).digest('hex');
 
+  if (chunkIndex === 0) {
+    const existing = (await ref.get()).data() as UploadRecord | undefined;
+    if (existing?.sha256 === input.sha256 && existing.size === size) return { done: true, file: toMetadata(existing) };
+  }
+
+  const bytes = Buffer.from(input.base64, 'base64');
+  if (bytes.byteLength > FILE_CHUNK_BYTES) throw new UploadInputError(`a chunk carries at most ${FILE_CHUNK_BYTES} bytes`);
+  const prefix = partsPrefix(uid, sessionId, id, input.sha256);
+  if (chunkIndex < totalChunks - 1) {
+    await scratchFile(`${prefix}${chunkIndex}`).save(bytes, { contentType: 'application/octet-stream', resumable: false });
+    return { done: false };
+  }
+
+  const parts: Buffer[] = [];
+  for (let index = 0; index < totalChunks - 1; index += 1) {
+    const [part] = await scratchFile(`${prefix}${index}`).download().catch(() => {
+      throw new UploadInputError(`chunk ${index} is missing: send the file again`);
+    });
+    parts.push(part);
+  }
+  parts.push(bytes);
+  const whole = Buffer.concat(parts);
+  const sha256 = crypto.createHash('sha256').update(whole).digest('hex');
+  try {
+    if (whole.byteLength !== size || sha256 !== input.sha256) {
+      throw new UploadInputError('the file arrived incomplete or changed: send it again');
+    }
+    return { done: true, file: await keepUpload(uid, sessionId, pythonPath, whole, sha256, input) };
+  } finally {
+    await getStorage().bucket(SCRATCH_BUCKET).deleteFiles({ prefix, force: true }).catch((error) => {
+      console.warn('[analyzeUploads] could not delete upload chunks', { id, error });
+    });
+  }
+}
+
+async function keepUpload(
+  uid: string,
+  sessionId: string,
+  pythonPath: string,
+  bytes: Buffer,
+  sha256: string,
+  input: { mimeType: string; source?: FileSourceMetadata },
+): Promise<FileMetadata> {
+  const id = uploadIdFor(pythonPath);
+  const ref = uploadsCollection(uid, sessionId).doc(id);
   const existing = (await ref.get()).data() as UploadRecord | undefined;
   if (existing?.sha256 === sha256) return toMetadata(existing);
 
@@ -122,20 +196,39 @@ export async function commitUpload(
   return toMetadata(record);
 }
 
+/** A range of an upload's bytes from Storage (the client's Download). */
+export async function readUploadChunk(
+  uid: string,
+  sessionId: string,
+  path: unknown,
+  offset: number,
+): Promise<{ base64: string; size: number; eof: boolean }> {
+  const pythonPath = assertUploadPath(path);
+  if (!Number.isInteger(offset) || offset < 0) throw new UploadInputError('offset must be a byte offset');
+  const record = (await uploadsCollection(uid, sessionId).doc(uploadIdFor(pythonPath)).get()).data() as UploadRecord | undefined;
+  if (!record) throw new UploadInputError('no such upload');
+  if (offset >= record.size) return { base64: '', size: record.size, eof: true };
+  const end = Math.min(record.size, offset + FILE_CHUNK_BYTES);
+  const bytes = await downloadPayloadRange(record.payload, offset, end);
+  return { base64: bytes.toString('base64'), size: record.size, eof: end >= record.size };
+}
+
 /** Forget an upload: its record, its Storage copy and the sandbox file. */
-export async function removeUpload(uid: string, sessionId: string, sandboxSessionKey: string, path: unknown): Promise<void> {
+export async function removeUpload(uid: string, sessionId: string, path: unknown): Promise<void> {
   const pythonPath = assertUploadPath(path);
   const ref = uploadsCollection(uid, sessionId).doc(uploadIdFor(pythonPath));
   const existing = (await ref.get()).data() as UploadRecord | undefined;
   await ref.delete();
   if (existing) await deletePayloadForUser(uid, existing.payload);
-  await getSandboxService().deleteFile(uid, sandboxSessionKey, pythonPath);
+  await getSandboxService().deleteFile(uid, sessionId, pythonPath);
 }
 
 interface SessionFilesMarker {
   restoredAt: number;
   /** Saved artifacts already mounted under /output. */
   artifactIds?: string[];
+  /** Uploads already in the sandbox: upload id → sha256. */
+  uploads?: Record<string, string>;
 }
 
 async function readMarker(uid: string, sandboxSessionKey: string): Promise<SessionFilesMarker | null> {
@@ -164,17 +257,16 @@ function unchangedSkippingFiles(uid: string, sandboxSessionKey: string): Pick<Sa
 }
 
 /**
- * Keeps a sandbox's files in step with the session, as the browser did before
- * each send (mountStoredFilesToSandbox + mountArtifactsToSandbox):
- *  - a new sandbox (first use, or the old one expired) gets the uploads back;
+ * Keeps a sandbox's files in step with the session:
+ *  - every upload is at its pythonPath (a new sandbox gets them all back; an
+ *    upload added or replaced since the last round is written in);
  *  - saved artifacts not yet mounted go under /output/<name>, where the tool
  *    history tells the model they are (toolResultHistory's file summary).
- * The browser did this once per turn; sync() runs before every round, so a
- * file saved this turn is readable by name in the next round too. The marker
- * file remembers what's mounted; a round with nothing new costs one id query.
+ * sync() runs before every round and before a manual cell re-run. The marker
+ * file remembers what's mounted; a round with nothing new costs two queries.
  */
 export class SessionFilesSync {
-  private mounted: Set<string> | null = null;
+  private marker: { artifactIds: Set<string>; uploads: Record<string, string> } | null = null;
 
   constructor(
     private readonly uid: string,
@@ -185,35 +277,44 @@ export class SessionFilesSync {
   async sync(): Promise<void> {
     const { uid, sessionId, sandboxSessionKey } = this;
     const service = getSandboxService();
+    if (!this.marker) {
+      const stored = await readMarker(uid, sandboxSessionKey);
+      this.marker = { artifactIds: new Set(stored?.artifactIds ?? []), uploads: { ...(stored?.uploads ?? {}) } };
+    }
+    const marker = this.marker;
     let changed = false;
-    if (!this.mounted) {
-      const marker = await readMarker(uid, sandboxSessionKey);
-      this.mounted = new Set(marker?.artifactIds ?? []);
-      if (!marker) {
-        for (const upload of await loadUploadRecords(uid, sessionId)) {
-          const bytes = await downloadPayloadBytes(upload.payload);
-          await service.writeFile(uid, sandboxSessionKey, {
-            path: upload.pythonPath,
-            base64: bytes.toString('base64'),
-            skipIfUnchanged: { size: upload.size, sha256: upload.sha256 },
-          });
-        }
+
+    const records = await loadUploadRecords(uid, sessionId);
+    for (const upload of records) {
+      if (marker.uploads[upload.id] === upload.sha256) continue;
+      const bytes = await downloadPayloadBytes(upload.payload);
+      await service.writeFile(uid, sandboxSessionKey, {
+        path: upload.pythonPath,
+        base64: bytes.toString('base64'),
+        skipIfUnchanged: { size: upload.size, sha256: upload.sha256 },
+      });
+      marker.uploads[upload.id] = upload.sha256;
+      changed = true;
+    }
+    const kept = new Set(records.map((upload) => upload.id));
+    for (const id of Object.keys(marker.uploads)) {
+      if (!kept.has(id)) {
+        delete marker.uploads[id];
         changed = true;
       }
     }
 
-    const mounted = this.mounted;
-    const fresh = (await listSessionArtifactIds(uid, sessionId)).filter((id) => !mounted.has(id));
+    const fresh = (await listSessionArtifactIds(uid, sessionId)).filter((id) => !marker.artifactIds.has(id));
     if (fresh.length > 0) {
       await mountArtifactsToSandbox(unchangedSkippingFiles(uid, sandboxSessionKey), await loadArtifactsById(uid, sessionId, fresh));
-      for (const id of fresh) mounted.add(id);
+      for (const id of fresh) marker.artifactIds.add(id);
       changed = true;
     }
     if (!changed) return;
-    const marker: SessionFilesMarker = { restoredAt: Date.now(), artifactIds: [...mounted] };
+    const stored: SessionFilesMarker = { restoredAt: Date.now(), artifactIds: [...marker.artifactIds], uploads: marker.uploads };
     await service.writeFile(uid, sandboxSessionKey, {
       path: SESSION_FILES_MARKER,
-      base64: Buffer.from(JSON.stringify(marker)).toString('base64'),
+      base64: Buffer.from(JSON.stringify(stored)).toString('base64'),
     });
   }
 }
