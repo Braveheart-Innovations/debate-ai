@@ -166,6 +166,13 @@ interface RoundTools {
   toolChoice?: ToolChoice;
   /** The round that writes the team plan thinks harder (ProviderRequest.deepThinking). */
   deepThinking?: boolean;
+  /** This is the Team mode plan round. */
+  planRound?: boolean;
+}
+
+/** A round runs only the tools it offered; a model can name others it saw earlier in the session. */
+function offeredToolNames(toolSet: RoundTools): ReadonlySet<string> {
+  return new Set(toolSet.tools.map((tool) => tool.name));
 }
 
 function teamState(context: RoundContext): TeamTurnState {
@@ -178,7 +185,10 @@ function teamState(context: RoundContext): TeamTurnState {
  * solo; while a Team mode plan is pending, only planning, asking the user, or
  * on a Salesforce workspace the audit and org evidence first, with a call
  * required (streamModel resends unforced for models that can't be forced).
- * That planning round, first or after a declined plan, thinks harder.
+ * That planning round, first or after a declined plan, thinks harder. A model
+ * that ignores it (calls only tools it wasn't offered, which don't run) spends
+ * it: later rounds get the normal tools (the team tools stay offered) and the
+ * final reply is marked teamModeSkipped.
  */
 export function roundTools(context: RoundContext): RoundTools {
   const team = context.team?.members ?? [];
@@ -187,11 +197,11 @@ export function roundTools(context: RoundContext): RoundTools {
     ? [...context.tools, buildProposeTeamTool(team), buildDelegateTool(team)]
     : context.tools;
   const proposeTeam = tools.find((tool) => tool.name === PROPOSE_TEAM_TOOL_NAME);
-  if (!context.run.config.teamPlanTurn || state.planProposed || !proposeTeam) return { tools };
+  if (!context.run.config.teamPlanTurn || state.planProposed || state.planRoundSpent || !proposeTeam) return { tools };
   const salesforce = context.run.config.salesforceWorkspace
     ? tools.filter((tool) => SALESFORCE_PLANNING_TOOL_NAMES.has(tool.name))
     : [];
-  return { tools: [...salesforce, proposeTeam, buildAskUserTool()], toolChoice: 'required', deepThinking: true };
+  return { tools: [...salesforce, proposeTeam, buildAskUserTool()], toolChoice: 'required', deepThinking: true, planRound: true };
 }
 
 async function callModel(
@@ -482,28 +492,51 @@ async function resolveTeamCalls(context: RoundContext, calls: ToolCall[]): Promi
 }
 
 /**
+ * A call to a tool the round didn't offer isn't run. Its result is stored
+ * like any other, so a resumed step answers it the same way.
+ */
+async function notOfferedResult(context: RoundContext, call: ToolCall, offered: ReadonlySet<string>): Promise<RoundToolResult> {
+  const done = await doneResult(context, call);
+  if (done) return done;
+  const name = call.function.name || 'that tool';
+  const result: StoredToolResult = {
+    success: false,
+    error: `Not run: ${name} isn't available this round. Available: ${Array.from(offered).join(', ') || 'none'}.`,
+  };
+  await markToolCallDone(toolCallRef(context.runRef, call.id), result);
+  return result;
+}
+
+/**
  * Run a round's calls (AnalyzeOrchestrator.executeOperatorTools for the
- * operator), then write every result message in call order. Returns
+ * operator), then write every result message in call order. Only the tools
+ * the round offered run. Returns
  * 'waiting' when the round is held for the team, 'stopped' on Stop.
  */
-async function executeTools(context: RoundContext, calls: ToolCall[]): Promise<RoundOutcome | null> {
+async function executeTools(context: RoundContext, calls: ToolCall[], offered: ReadonlySet<string>): Promise<RoundOutcome | null> {
   context.events.push({ type: 'status', status: 'tool_executing' });
   const results = new Map<string, RoundToolResult>();
   let stopped = false;
 
+  const runnable: ToolCall[] = [];
+  for (const call of calls) {
+    if (offered.has(call.function.name)) runnable.push(call);
+    else results.set(call.id, await notOfferedResult(context, call, offered));
+  }
+
   // Asking the user comes first: a team proposed in the same breath waits for the answer.
-  const askCall = context.team ? calls.find((call) => call.function.name === ASK_USER_TOOL_NAME) : undefined;
+  const askCall = context.team ? runnable.find((call) => call.function.name === ASK_USER_TOOL_NAME) : undefined;
   if (askCall) {
     let questions: string | undefined;
-    for (const call of calls) {
+    for (const call of runnable) {
       const answer = answerWhileAsking(call, askCall);
       results.set(call.id, answer.result);
       questions ??= answer.questions;
     }
     if (questions !== undefined) await context.team!.saveTurnState({ askedUser: { questions } });
   } else {
-    const teamCalls = context.team ? calls.filter((call) => TEAM_TOOL_NAMES.has(call.function.name)) : [];
-    const otherCalls = calls.filter((call) => !teamCalls.includes(call));
+    const teamCalls = context.team ? runnable.filter((call) => TEAM_TOOL_NAMES.has(call.function.name)) : [];
+    const otherCalls = runnable.filter((call) => !teamCalls.includes(call));
     for (const call of otherCalls) {
       if (context.signal.aborted) {
         // Stopped: keep what already finished, run nothing new.
@@ -571,7 +604,7 @@ export async function runRound(context: RoundContext, state: TurnState): Promise
   // writes the results that exist, as the browser did.
   const pending = pendingToolCalls(messages);
   if (pending.length > 0) {
-    const outcome = await executeTools(context, pending);
+    const outcome = await executeTools(context, pending, offeredToolNames(roundTools(context)));
     if (outcome === 'waiting') return 'waiting';
     const toolMessage = lastAssistantMessage(messages);
     if (!toolMessage) return outcome ?? 'continue';
@@ -623,13 +656,20 @@ export async function runRound(context: RoundContext, state: TurnState): Promise
     return finishWithoutTools(context, state, history, prompt, attempt, messageId, toolSet, attachments);
   }
 
-  return runToolRound(context, aiMessage(context, messageId, attempt.text, { toolCalls: attempt.toolCalls }), attempt.toolCalls);
+  return runToolRound(context, aiMessage(context, messageId, attempt.text, { toolCalls: attempt.toolCalls }), attempt.toolCalls, toolSet);
 }
 
 /** Record the assistant's tool calls before running them (see the header), then run and finish the round. */
-async function runToolRound(context: RoundContext, toolMessage: Message, calls: ToolCall[]): Promise<RoundOutcome> {
+async function runToolRound(context: RoundContext, toolMessage: Message, calls: ToolCall[], toolSet: RoundTools): Promise<RoundOutcome> {
   await context.messages.write(toolMessage);
-  const outcome = await executeTools(context, calls);
+  const offered = offeredToolNames(toolSet);
+  const outcome = await executeTools(context, calls, offered);
+  // A plan round the model ignored (none of its calls were planning tools) is
+  // spent: the turn goes on with the normal tools. Planning calls (a Salesforce
+  // audit before the plan) keep the gate until the model proposes.
+  if (toolSet.planRound && !calls.some((call) => offered.has(call.function.name))) {
+    await context.team?.saveTurnState({ planRoundSpent: true });
+  }
   if (outcome === 'waiting') return 'waiting';
   return finishToolRound(context, toolMessage, outcome);
 }
@@ -669,7 +709,7 @@ async function finishWithoutTools(
   if (context.signal.aborted) return 'stopped';
   // A recovery attempt may have produced tool calls after all: record and run them.
   if (!attempt.error && attempt.toolCalls.length > 0) {
-    return runToolRound(context, aiMessage(context, messageId, attempt.text, { toolCalls: attempt.toolCalls }), attempt.toolCalls);
+    return runToolRound(context, aiMessage(context, messageId, attempt.text, { toolCalls: attempt.toolCalls }), attempt.toolCalls, toolSet);
   }
 
   const metadata: Message['metadata'] = {};

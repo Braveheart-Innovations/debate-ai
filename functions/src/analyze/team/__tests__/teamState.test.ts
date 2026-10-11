@@ -161,10 +161,11 @@ describe('team calls: decisions and results', () => {
   });
 
   it('declining a proposal tells the operator to revise and reopens the planning gate', () => {
-    let state: TeamTurnState = { ...held([proposeCall('p1', 'split', [{ task: 'A', agents: ['teammate1'] }])]), planProposed: true };
+    let state: TeamTurnState = { ...held([proposeCall('p1', 'split', [{ task: 'A', agents: ['teammate1'] }])]), planProposed: true, planRoundSpent: true };
     const plan = state.plans![0].plan;
     state = decidePlan(state, plan.id, validateDecision(plan, { type: 'decline', feedback: 'Add a task for B.' }), 'declined', team, 2000);
     expect(state.planProposed).toBe(false);
+    expect(state.planRoundSpent).toBe(false);
     expect(isTeamRoundReady(state)).toBe(true);
     const [r1] = composeTeamResults(state, team);
     expect(r1).toMatchObject({ success: true });
