@@ -4,6 +4,7 @@ const test = require('node:test');
 const {
   SandboxSessionService,
   SandboxInputError,
+  SandboxLimitError,
   assertSessionKey,
   assertSandboxPath,
   clampTimeout,
@@ -19,9 +20,22 @@ const isPre = (code) => code.startsWith('try:\n    _sym_pre\nexcept NameError:')
 
 function memoryStore() {
   const docs = new Map();
+  const awake = new Map(); // uid -> { [sessionKey]: until }
   const key = (uid, sessionKey) => `${uid}/${sessionKey}`;
   return {
     docs,
+    awake,
+    async claimAwake(uid, sessionKey, at, awakeForMs, limit) {
+      const others = Object.entries(awake.get(uid) ?? {}).filter(([k, until]) => k !== sessionKey && until > at);
+      if (others.length >= limit) return { ok: false, freesAt: Math.min(...others.map(([, until]) => until)) };
+      awake.set(uid, { ...Object.fromEntries(others), [sessionKey]: at + awakeForMs });
+      return { ok: true };
+    },
+    async releaseAwake(uid, sessionKey) {
+      const until = { ...(awake.get(uid) ?? {}) };
+      delete until[sessionKey];
+      awake.set(uid, until);
+    },
     async get(uid, sessionKey) { return docs.get(key(uid, sessionKey)) ?? null; },
     async put(uid, sessionKey, record) { docs.set(key(uid, sessionKey), { ...record }); },
     async touch(uid, sessionKey, at) { docs.get(key(uid, sessionKey)).lastUsedAt = at; },
@@ -334,6 +348,44 @@ test('a failed usage write never fails the sandbox call', async () => {
   });
   const result = await svc.execute('u1', 's', 'x = 1', 10_000);
   assert.equal(result.success, true);
+});
+
+test('a user can have 3 sessions with a sandbox awake; the 4th is refused with the wait, until one frees up', async () => {
+  const provider = fakeProvider();
+  const store = memoryStore();
+  let t = 0;
+  const minute = 60_000;
+  const svc = new SandboxSessionService({
+    provider, store, templateFor: () => 'tpl', idleTimeoutMs: 15 * minute, now: () => t, maxAwakePerUser: 3,
+  });
+  await svc.ensure('u1', 's1');
+  t = 4 * minute;
+  await svc.ensure('u1', 's2');
+  await svc.ensure('u1', 's3');
+
+  t = 10 * minute;
+  await assert.rejects(svc.ensure('u1', 's4'), (error) => {
+    assert.ok(error instanceof SandboxLimitError);
+    assert.equal(error.message,
+      'You already have 3 Analyze sessions using Python right now, the most at once. '
+      + 'A session\'s Python environment frees up 15 minutes after its last use; '
+      + 'the next one frees up in about 5 minutes. Try again then, or keep working in one of those sessions.');
+    return true;
+  });
+  assert.equal(provider.calls.filter(([c]) => c === 'create').length, 3);
+  // A session that already has its sandbox awake keeps working, and its slot lasts 15 minutes from now.
+  await svc.ensure('u1', 's1');
+  // Another user isn't affected.
+  await svc.ensure('u2', 's4');
+
+  // s2 and s3 free up 15 minutes after their last use.
+  t = 19 * minute + 1;
+  await svc.ensure('u1', 's4');
+  await svc.ensure('u1', 's2');
+  // A reset frees its slot at once.
+  await assert.rejects(svc.ensure('u1', 's5'), SandboxLimitError);
+  await svc.reset('u1', 's4');
+  await svc.ensure('u1', 's5');
 });
 
 test('reset destroys the sandbox and forgets the mapping', async () => {

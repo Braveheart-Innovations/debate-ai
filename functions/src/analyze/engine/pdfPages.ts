@@ -9,6 +9,7 @@
  */
 import type { MessageAttachment } from '../contract/types';
 import { getSandboxService } from '../../sandbox/callables';
+import { SandboxLimitError } from '../../sandbox/service';
 import { readWholeFile } from './sandboxBridge';
 import { loadUploadRecords, type UploadRecord } from './uploads';
 
@@ -92,12 +93,22 @@ export async function loadPdfPageAttachments(uid: string, sessionId: string, san
   const service = getSandboxService();
   const jobs = pdfs.map((upload) => ({ key: pagesDir(upload), path: upload.pythonPath }));
   let results: Record<string, number | { error: string }> = {};
+  let atLimit = false;
   try {
     const run = await service.execute(uid, sandboxSessionKey, renderScript(jobs), RENDER_TIMEOUT_MS, RENDER_KERNEL);
     results = parseRenderResult(run.stdout);
     if (!run.success) console.warn('[analyzeRun] PDF page rendering failed', { sessionId, error: run.error });
+  } catch (error) {
+    // At the per-user sandbox limit the turn goes without page images.
+    if (!(error instanceof SandboxLimitError)) throw error;
+    atLimit = true;
   } finally {
-    await service.releaseKernel(uid, sandboxSessionKey, RENDER_KERNEL).catch(() => undefined);
+    // Releasing the kernel would wake the sandbox the limit just refused.
+    if (!atLimit) await service.releaseKernel(uid, sandboxSessionKey, RENDER_KERNEL).catch(() => undefined);
+  }
+  if (atLimit) {
+    console.warn('[analyzeRun] PDF pages skipped: sandbox limit', { sessionId });
+    return [];
   }
 
   const attachments: MessageAttachment[] = [];

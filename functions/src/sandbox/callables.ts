@@ -7,6 +7,7 @@ import { FirestoreSandboxStore } from './firestoreStore';
 import { recordSandboxUsage } from '../usageTracking';
 import {
   SandboxInputError,
+  SandboxLimitError,
   SandboxSessionService,
   assertKernelKey,
   assertSandboxPath,
@@ -31,6 +32,8 @@ export function sandboxTemplateFor(uid: string): string {
   return SANDBOX_TEMPLATE_CANDIDATE && SERVER_LOOP_ALLOWED_UIDS.has(uid) ? SANDBOX_TEMPLATE_CANDIDATE : SANDBOX_TEMPLATE;
 }
 const IDLE_TIMEOUT_MS = 15 * 60_000;
+/** Sandboxes one user can have awake at once (Michael, 2026-10-11): E2B Hobby allows 20 for everyone. */
+const MAX_AWAKE_SANDBOXES_PER_USER = 3;
 /** Sandboxes (and the uploaded files inside them) are deleted after this much inactivity. */
 export const SANDBOX_RETENTION_MS = 7 * 24 * 60 * 60_000;
 
@@ -45,6 +48,7 @@ export function getSandboxService(): SandboxSessionService {
       idleTimeoutMs: IDLE_TIMEOUT_MS,
       now: () => Date.now(),
       meter: recordSandboxUsage,
+      maxAwakePerUser: MAX_AWAKE_SANDBOXES_PER_USER,
     });
   }
   return service;
@@ -61,6 +65,7 @@ async function guard<T>(label: string, run: () => Promise<T>): Promise<T> {
   } catch (error) {
     if (error instanceof HttpsError) throw error;
     if (error instanceof SandboxInputError) throw new HttpsError('invalid-argument', error.message);
+    if (error instanceof SandboxLimitError) throw new HttpsError('resource-exhausted', error.message, { reason: 'sandbox-limit' });
     console.error(`[sandbox] ${label} failed`, error);
     throw new HttpsError('internal', error instanceof Error ? error.message : 'Sandbox operation failed');
   }
