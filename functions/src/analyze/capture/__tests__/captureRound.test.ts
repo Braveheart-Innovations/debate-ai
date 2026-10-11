@@ -22,15 +22,6 @@ jest.mock('firebase-admin/firestore', () => ({
   }),
 }));
 
-const savedTraces = new Map<string, string>();
-jest.mock('firebase-admin/storage', () => ({
-  getStorage: () => ({
-    bucket: () => ({
-      file: (path: string) => ({ save: async (text: string) => { savedTraces.set(path, text); } }),
-    }),
-  }),
-}));
-
 jest.mock('../../engine/sessionStore', () => ({
   artifactRef: (_uid: string, _sid: string, id: string) => ({
     path: `artifacts/${id}`,
@@ -105,7 +96,6 @@ beforeEach(() => {
   batchOps.length = 0;
   deletedPayloads.length = 0;
   sandboxFiles = new Map();
-  savedTraces.clear();
 });
 
 // --- tests -------------------------------------------------------------------
@@ -220,27 +210,5 @@ describe('CaptureSession.capture', () => {
 
     const saved = JSON.parse(batchOps.find((op) => op.op === 'update')!.data!.fetchProvenanceJson as string);
     expect(saved).toEqual({ call_f1: provenance });
-  });
-
-  it('saves a trace of the inputs and what was committed when the run asks for one', async () => {
-    const message = aiMessage('run1_r0', [pythonCall('c1')]);
-    storedMessages.push(message);
-    const run = makeRun({ config: { ...makeRun().config, captureTrace: true } });
-
-    await makeSession(run).capture({ message, toolCalls: [pythonCall('c1')], results: [csvResult('c1')] });
-
-    const trace = JSON.parse(savedTraces.get('analyzeScratch/captureTraces/u/s/run1/run1_r0.json')!);
-    expect(trace).toMatchObject({ version: 1, messageId: 'run1_r0', now: 1000 });
-    expect(trace.event.toolExecutionResults[0].dataOutputs[0].base64).toBe(encodeUtf8ToBase64(csv));
-    expect(trace.state.workbook.dataTabs).toEqual([]);
-    expect(trace.output.upserts.map((a: Artifact) => a.id)).toEqual([...artifactWrites.keys()]);
-    expect(trace.output.persistedMessage.metadata.toolExecutionResults).toHaveLength(1);
-  });
-
-  it('saves no trace by default', async () => {
-    const message = aiMessage('run1_r0', [pythonCall('c1')]);
-    storedMessages.push(message);
-    await makeSession().capture({ message, toolCalls: [pythonCall('c1')], results: [csvResult('c1')] });
-    expect(savedTraces.size).toBe(0);
   });
 });

@@ -86,7 +86,7 @@ export async function findLatestOperatorRun(uid: string, sessionId: string): Pro
 
 /** A server-started turn's config: the last operator turn's, with Team mode off (no forced plan). */
 export function followUpConfig(config: RunConfig): RunConfig {
-  const { captureTrace: _trace, followUpSystemPrompt, ...rest } = config;
+  const { followUpSystemPrompt, ...rest } = config;
   return { ...rest, systemPrompt: followUpSystemPrompt ?? config.systemPrompt, teamPlanTurn: false };
 }
 

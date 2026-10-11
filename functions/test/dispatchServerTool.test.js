@@ -22,3 +22,10 @@ test('the shared secret list covers encryption, the sandbox, and every managed c
   assert.ok(SERVER_TOOL_SECRETS.some((s) => s.name === 'ENCRYPTION_KEY'));
   assert.ok(SERVER_TOOL_SECRETS.some((s) => s.name === 'E2B_API_KEY'));
 });
+
+test('fetch_api with no sandbox target is refused (nothing returns a body inline)', async () => {
+  const result = await dispatchServerTool('u1', { toolName: 'fetch_api', toolCallId: 'call-f', args: { url: 'https://api.worldbank.org/v2/country' } }, 'k');
+  assert.equal(result.success, false);
+  assert.equal(result.toolCallId, 'call-f');
+  assert.match(result.error, /sandbox/);
+});

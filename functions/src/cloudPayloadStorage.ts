@@ -347,15 +347,13 @@ export async function deleteAllUserStorage(uid: string): Promise<{ objects: numb
 }
 
 /**
- * Server-private Analyze scratch (tool outputs awaiting capture, capture
- * traces), outside users/ so Storage rules deny clients. Scoped to a
+ * Server-private Analyze scratch (tool outputs awaiting capture), outside users/ so Storage rules deny clients. Scoped to a
  * session when one is given.
  */
 function analyzeScratchPrefixes(uid: string, sessionId?: string): string[] {
   const session = sessionId ? `${sessionId}/` : '';
   return [
     `analyzeScratch/users/${uid}/conversations/${session}`,
-    `analyzeScratch/captureTraces/${uid}/${session}`,
   ];
 }
 

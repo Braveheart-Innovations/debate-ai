@@ -126,7 +126,6 @@ interface StartTurnRequest {
   /** The composer's output selection (AnalyzeOutputSelection); defaults like a new session. */
   outputSelection?: unknown;
   /** Save capture traces for the web parity harness (scripts/analyze-capture-parity). */
-  captureTrace?: boolean;
   /** Roster teammates, in roster order (handles teammate1..). Never the reviewer. */
   teammates?: RosterAIInput[];
   /** Roster reviewers. */
@@ -170,7 +169,6 @@ export const analyzeStartTurn = onCall({ region: 'us-central1' }, async (request
     // The session's own sandbox: clients never name one.
     sandboxSessionKey: sessionId,
     outputSelection: normalizeAnalyzeOutputSelection(data.outputSelection),
-    ...(data.captureTrace === true ? { captureTrace: true } : {}),
     ...(operator.modelConfig ? { modelDisplayName: operator.modelConfig.displayName } : {}),
     // buildTeam: handles are short and stable so models reliably emit them.
     ...(teammates.length > 0 ? { team: teammates.map((ai, index) => ({ handle: `teammate${index + 1}`, ai })) } : {}),
