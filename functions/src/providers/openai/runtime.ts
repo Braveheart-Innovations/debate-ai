@@ -22,6 +22,7 @@ import {
   normalizeProviderTemperature,
   requiresReasoningEffortNoneForTools,
   requiresResponsesApi,
+  openAIDeepThinkingEffort,
 } from '../../modelRegistry';
 import { OPENAI_RESPONSES_URL, buildResponsesBody, parseResponsesStream } from './responses';
 import type { ProviderRuntime, ProviderRequest, BuiltRequest, ProviderConfig } from '../types';
@@ -165,6 +166,7 @@ export class OpenAIRuntime implements ProviderRuntime {
           tools: this.supportsTools ? request.tools : undefined,
           toolChoice: request.toolChoice,
           stream: true,
+          reasoningEffort: request.deepThinking ? openAIDeepThinkingEffort(request.model) : undefined,
         }),
       };
     }

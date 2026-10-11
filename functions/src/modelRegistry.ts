@@ -234,6 +234,36 @@ export function requiresReasoningEffortNoneForTools(modelId: string | undefined)
   return MODELS_REQUIRING_REASONING_EFFORT_NONE_FOR_TOOLS.has(resolveModelAlias(modelId));
 }
 
+// Deep thinking (ProviderRequest.deepThinking): each provider's setting for
+// thinking harder than the model's default, and the models that accept it.
+
+/**
+ * Claude models that take output_config.effort "xhigh" (Opus 4.7 and later,
+ * Sonnet 5 and later, Fable, Haiku 5.5). It sits above every one of their
+ * defaults (Opus 5.5 and Haiku 5.5 default to "medium", the rest to "high").
+ */
+const CLAUDE_XHIGH_EFFORT_MODELS = new Set([
+  'claude-opus-4-7',
+  'claude-opus-4-8',
+  'claude-opus-5',
+  'claude-opus-5-5',
+  'claude-sonnet-5',
+  'claude-sonnet-5-5',
+  'claude-haiku-5-5',
+  'claude-fable-5',
+  'claude-fable-5-1',
+]);
+
+export function claudeDeepThinkingEffort(modelId: string | undefined): 'xhigh' | undefined {
+  if (!modelId) return undefined;
+  return CLAUDE_XHIGH_EFFORT_MODELS.has(resolveModelAlias(modelId)) ? 'xhigh' : undefined;
+}
+
+/** Responses API models take reasoning.effort; "high" is above their "medium" default. */
+export function openAIDeepThinkingEffort(modelId: string | undefined): 'high' | undefined {
+  return requiresResponsesApi(modelId) ? 'high' : undefined;
+}
+
 export function resolveModelAlias(modelId: string): string {
   return MODEL_ALIASES[modelId] || modelId;
 }

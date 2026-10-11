@@ -2,13 +2,32 @@ const TIGHT_OUTPUT_TOKEN_CAP = 2048;
 const DEFAULT_MAX_OUTPUT_TOKENS = 8192;
 
 type GeminiThinkingConfig =
-  | { thinkingLevel: 'minimal' | 'low' }
+  | { thinkingLevel: 'minimal' | 'low' | 'high' }
   | { thinkingBudget: number };
 
 interface GeminiGenerationConfigOptions {
   model: string;
   temperature: number;
   maxTokens?: number;
+  /** Think harder than the default (ProviderRequest.deepThinking). */
+  deepThinking?: boolean;
+}
+
+/**
+ * Gemini 2.5 thinking budget ceilings (Pro 32768, Flash and Flash-Lite 24576),
+ * never above the output budget (thinking counts toward maxOutputTokens).
+ */
+const GEMINI_25_MAX_THINKING_BUDGET: Array<[string, number]> = [
+  ['gemini-2.5-pro', 32768],
+  ['gemini-2.5-flash', 24576],
+];
+
+/** The most thinking each Gemini family takes: thinkingLevel "high" on 3.x, the budget ceiling on 2.5. */
+export function getGeminiDeepThinkingConfig(model: string, maxOutputTokens: number): GeminiThinkingConfig | undefined {
+  const normalizedModel = model.toLowerCase();
+  if (normalizedModel.includes('gemini-3')) return { thinkingLevel: 'high' };
+  const ceiling = GEMINI_25_MAX_THINKING_BUDGET.find(([prefix]) => normalizedModel.includes(prefix))?.[1];
+  return ceiling ? { thinkingBudget: Math.min(ceiling, maxOutputTokens - 1) } : undefined;
 }
 
 function normalizeMaxTokens(maxTokens: number | undefined): number | undefined {
@@ -67,14 +86,18 @@ export function buildGeminiGenerationConfig({
   model,
   temperature,
   maxTokens,
+  deepThinking,
 }: GeminiGenerationConfigOptions): Record<string, unknown> {
   const resolvedMaxTokens = normalizeMaxTokens(maxTokens);
+  const maxOutputTokens = resolvedMaxTokens ?? DEFAULT_MAX_OUTPUT_TOKENS;
   const generationConfig: Record<string, unknown> = {
     temperature,
-    maxOutputTokens: resolvedMaxTokens ?? DEFAULT_MAX_OUTPUT_TOKENS,
+    maxOutputTokens,
   };
 
-  const thinkingConfig = getGeminiThinkingConfig(model, resolvedMaxTokens);
+  const thinkingConfig = deepThinking
+    ? getGeminiDeepThinkingConfig(model, maxOutputTokens)
+    : getGeminiThinkingConfig(model, resolvedMaxTokens);
   if (thinkingConfig) {
     generationConfig.thinkingConfig = thinkingConfig;
   }

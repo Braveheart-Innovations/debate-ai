@@ -8,7 +8,7 @@ import type { Message } from '../../contract/types';
 import type { ToolCall } from '../../contract/lib/ai/tools/types';
 
 const streamQueue: Array<Array<Record<string, unknown>>> = [];
-const streamCalls: Array<{ tools?: Array<{ name: string }>; toolChoice?: unknown }> = [];
+const streamCalls: Array<{ tools?: Array<{ name: string }>; toolChoice?: unknown; deepThinking?: boolean }> = [];
 jest.mock('../../../modelStream', () => ({
   CANCELLED_CODE: 'cancelled',
   streamModel: jest.fn((request: { tools?: Array<{ name: string }>; toolChoice?: unknown }) => {
@@ -125,6 +125,7 @@ describe('Team mode', () => {
     expect(await runRound(context, state(0))).toBe('waiting');
     expect(toolNames(0)).toEqual(['propose_team', 'ask_user']);
     expect(streamCalls[0].toolChoice).toBe('required');
+    expect(streamCalls[0].deepThinking).toBe(true);
     expect(suspended).toHaveLength(1);
     expect(context.run.team?.planProposed).toBe(true);
     // Held: the assistant's calls are recorded; no result messages until the team is done.
@@ -142,6 +143,7 @@ describe('Team mode', () => {
     expect(await runRound(context, state(1))).toBe('completed');
     expect(toolNames(1)).toEqual(['execute_python', 'propose_team', 'delegate']);
     expect(streamCalls[1].toolChoice).not.toBe('required');
+    expect(streamCalls[1].deepThinking).toBeUndefined();
     expect(stored.at(-1)?.metadata?.teamModeSkipped).toBeUndefined();
   });
 

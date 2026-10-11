@@ -39,6 +39,11 @@ export interface ProviderRequest {
   toolChoice?: CanonicalToolChoice;
   /** Attachments (images, documents) */
   attachments?: CanonicalAttachment[];
+  /**
+   * Think harder than the model's default, where the model has a setting for
+   * it (Analyze's Team plan round). Each runtime maps it; others ignore it.
+   */
+  deepThinking?: boolean;
 }
 
 /**
