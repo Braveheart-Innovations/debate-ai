@@ -78,36 +78,60 @@ export function stoppedCellError(outcome: 'interrupted' | 'restarted' | 'none'):
     : 'Stopped by the user. Variables and files are kept.';
 }
 
-export function createSandboxBridge(uid: string, sessionKey: string, kernelKey?: string): SandboxBridge {
+/** Each sandbox call's wall time, for the run's compute totals. */
+export type SandboxTimeListener = (ms: number) => void;
+
+/** Runs a sandbox call and reports its wall time, failed or not. */
+export async function timedSandboxCall<T>(onTime: SandboxTimeListener | undefined, call: () => Promise<T>): Promise<T> {
+  if (!onTime) return call();
+  const startedAt = Date.now();
+  try {
+    return await call();
+  } finally {
+    onTime(Date.now() - startedAt);
+  }
+}
+
+export function createSandboxBridge(uid: string, sessionKey: string, kernelKey?: string, onTime?: SandboxTimeListener): SandboxBridge {
   return {
     async execute(code, options = {}) {
       if (options.signal?.aborted) throw new SandboxCancelledError();
-      const service = getSandboxService();
-      let stopping: Promise<'interrupted' | 'restarted' | 'none'> | null = null;
-      const onAbort = () => {
-        stopping = service.interrupt(uid, sessionKey, kernelKey).catch((error) => {
-          console.warn('[analyzeRun] interrupt failed', error);
-          return 'none' as const;
-        });
-      };
-      options.signal?.addEventListener('abort', onAbort, { once: true });
-      try {
-        const result = await service.execute(uid, sessionKey, code, options.timeout ?? 30000, kernelKey);
-        if (result.environmentReset) result.stdout = `${ENVIRONMENT_RESET_NOTE}\n${result.stdout}`;
-        const hydrated = await hydrate(uid, sessionKey, result);
-        if (!options.signal?.aborted) return hydrated;
-        // Stopped mid-cell: whatever ended the execution (KeyboardInterrupt, or the
-        // connection closing when the kernel restarted) is the Stop, not a code error.
-        // Output and files it produced before the Stop are kept.
-        return {
-          ...hydrated,
-          success: false,
-          images: [],
-          error: stoppedCellError(await (stopping ?? Promise.resolve('none' as const))),
-        };
-      } finally {
-        options.signal?.removeEventListener('abort', onAbort);
-      }
+      return timedSandboxCall(onTime, () => executeCell(uid, sessionKey, code, options, kernelKey));
     },
   };
+}
+
+async function executeCell(
+  uid: string,
+  sessionKey: string,
+  code: string,
+  options: { timeout?: number; signal?: AbortSignal },
+  kernelKey: string | undefined,
+): Promise<ExecutionResult> {
+  const service = getSandboxService();
+  let stopping: Promise<'interrupted' | 'restarted' | 'none'> | null = null;
+  const onAbort = () => {
+    stopping = service.interrupt(uid, sessionKey, kernelKey).catch((error) => {
+      console.warn('[analyzeRun] interrupt failed', error);
+      return 'none' as const;
+    });
+  };
+  options.signal?.addEventListener('abort', onAbort, { once: true });
+  try {
+    const result = await service.execute(uid, sessionKey, code, options.timeout ?? 30000, kernelKey);
+    if (result.environmentReset) result.stdout = `${ENVIRONMENT_RESET_NOTE}\n${result.stdout}`;
+    const hydrated = await hydrate(uid, sessionKey, result);
+    if (!options.signal?.aborted) return hydrated;
+    // Stopped mid-cell: whatever ended the execution (KeyboardInterrupt, or the
+    // connection closing when the kernel restarted) is the Stop, not a code error.
+    // Output and files it produced before the Stop are kept.
+    return {
+      ...hydrated,
+      success: false,
+      images: [],
+      error: stoppedCellError(await (stopping ?? Promise.resolve('none' as const))),
+    };
+  } finally {
+    options.signal?.removeEventListener('abort', onAbort);
+  }
 }

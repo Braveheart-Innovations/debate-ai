@@ -14,6 +14,7 @@ import type {
   SandboxProvider,
   SandboxRecordRef,
   SandboxStore,
+  SandboxUsage,
 } from './types';
 
 /** Inline base64/HTML in one execute response up to this many bytes; the rest is deferred. */
@@ -60,6 +61,15 @@ export function clampTimeout(timeoutMs: unknown, fallback = 60_000): number {
   return Math.max(1_000, Math.min(MAX_EXECUTE_TIMEOUT_MS, Math.round(value)));
 }
 
+export interface WriteFileInput {
+  path: string;
+  base64: string;
+  chunkIndex?: number;
+  totalChunks?: number;
+  /** Skip the write when the existing file has exactly this size and SHA-256. */
+  skipIfUnchanged?: { size: number; sha256: string };
+}
+
 export interface SandboxServiceDeps {
   provider: SandboxProvider;
   store: SandboxStore;
@@ -68,21 +78,43 @@ export interface SandboxServiceDeps {
   idleTimeoutMs: number;
   now: () => number;
   sleep?: (ms: number) => Promise<void>;
+  /** Records each call's sandbox time (usage tracking). A failure here never fails the call. */
+  meter?: (uid: string, usage: SandboxUsage) => Promise<void>;
 }
 
 export class SandboxSessionService {
   private readonly deps: Required<SandboxServiceDeps>;
 
   constructor(deps: SandboxServiceDeps) {
-    this.deps = { sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)), ...deps };
+    this.deps = {
+      sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+      meter: async () => undefined,
+      ...deps,
+    };
+  }
+
+  /** Runs one service call and records its sandbox time. */
+  private async metered<T>(uid: string, call: (usage: SandboxUsage) => Promise<T>): Promise<T> {
+    const usage: SandboxUsage = { calls: 1, executeMs: 0 };
+    const startedAt = this.deps.now();
+    try {
+      return await call(usage);
+    } finally {
+      usage.executeMs = Math.max(0, this.deps.now() - startedAt);
+      await this.deps.meter(uid, usage).catch((error) => console.warn('[sandbox] usage not recorded', error));
+    }
   }
 
   /** Connect to (resuming if paused) or create the sandbox owned by uid for this session. */
-  async ensure(uid: string, sessionKey: string): Promise<{ sandboxId: string; environmentReset: boolean }> {
-    const { provider, store, now } = this.deps;
+  async ensure(uid: string, sessionKey: string, usage?: SandboxUsage): Promise<{ sandboxId: string; environmentReset: boolean }> {
+    const { provider, store, now, idleTimeoutMs } = this.deps;
     const record = await store.get(uid, sessionKey);
-    if (record && await provider.connect(record.sandboxId, this.deps.idleTimeoutMs)) {
+    // The sandbox stayed up after its last use until it paused (idle timeout) or was used again.
+    const idleGap = record ? Math.max(0, now() - record.lastUsedAt) : 0;
+    if (usage && record) usage.awakeMs = Math.min(idleGap, idleTimeoutMs);
+    if (record && await provider.connect(record.sandboxId, idleTimeoutMs)) {
       await store.touch(uid, sessionKey, now());
+      if (usage && idleGap > idleTimeoutMs) usage.resumes = 1;
       return { sandboxId: record.sandboxId, environmentReset: false };
     }
     const template = this.deps.templateFor(uid);
@@ -99,6 +131,7 @@ export class SandboxSessionService {
       createdAt: at,
       lastUsedAt: at,
     });
+    if (usage) usage.creates = 1;
     return { sandboxId, environmentReset: Boolean(record) };
   }
 
@@ -109,8 +142,19 @@ export class SandboxSessionService {
     timeoutMs: number,
     kernelKey: string = DEFAULT_KERNEL,
   ): Promise<ExecutionResult> {
+    return this.metered(uid, (usage) => this.executeCall(usage, uid, sessionKey, code, timeoutMs, kernelKey));
+  }
+
+  private async executeCall(
+    usage: SandboxUsage,
+    uid: string,
+    sessionKey: string,
+    code: string,
+    timeoutMs: number,
+    kernelKey: string,
+  ): Promise<ExecutionResult> {
     const { provider } = this.deps;
-    const { sandboxId, environmentReset } = await this.ensure(uid, sessionKey);
+    const { sandboxId, environmentReset } = await this.ensure(uid, sessionKey, usage);
     const empty = { images: [], htmlOutputs: [], dataOutputs: [], environmentReset };
 
     const pre = await provider.runCode(sandboxId, preCode(kernelKey), BOOTSTRAP_TIMEOUT_MS, kernelKey);
@@ -196,17 +240,19 @@ export class SandboxSessionService {
   async writeFile(
     uid: string,
     sessionKey: string,
-    input: {
-      path: string;
-      base64: string;
-      chunkIndex?: number;
-      totalChunks?: number;
-      /** Skip the write when the existing file has exactly this size and SHA-256. */
-      skipIfUnchanged?: { size: number; sha256: string };
-    },
+    input: WriteFileInput,
+  ): Promise<{ written: boolean; environmentReset: boolean }> {
+    return this.metered(uid, (usage) => this.writeFileCall(usage, uid, sessionKey, input));
+  }
+
+  private async writeFileCall(
+    usage: SandboxUsage,
+    uid: string,
+    sessionKey: string,
+    input: WriteFileInput,
   ): Promise<{ written: boolean; environmentReset: boolean }> {
     const { provider } = this.deps;
-    const { sandboxId, environmentReset } = await this.ensure(uid, sessionKey);
+    const { sandboxId, environmentReset } = await this.ensure(uid, sessionKey, usage);
     const totalChunks = input.totalChunks ?? 1;
     const chunkIndex = input.chunkIndex ?? 0;
     if (!Number.isInteger(totalChunks) || totalChunks < 1 || !Number.isInteger(chunkIndex)
@@ -242,8 +288,17 @@ export class SandboxSessionService {
     sessionKey: string,
     input: { path: string; offset?: number },
   ): Promise<{ base64: string; size: number; eof: boolean }> {
+    return this.metered(uid, (usage) => this.readFileCall(usage, uid, sessionKey, input));
+  }
+
+  private async readFileCall(
+    usage: SandboxUsage,
+    uid: string,
+    sessionKey: string,
+    input: { path: string; offset?: number },
+  ): Promise<{ base64: string; size: number; eof: boolean }> {
     const { provider } = this.deps;
-    const { sandboxId } = await this.ensure(uid, sessionKey);
+    const { sandboxId } = await this.ensure(uid, sessionKey, usage);
     const info = await provider.stat(sandboxId, input.path);
     if (!info || info.isDirectory) throw new SandboxInputError(`File not found: ${input.path}`);
 
@@ -267,17 +322,21 @@ export class SandboxSessionService {
   }
 
   async listFiles(uid: string, sessionKey: string, dir: string): Promise<SandboxFileEntry[]> {
-    const { provider } = this.deps;
-    const { sandboxId } = await this.ensure(uid, sessionKey);
-    const info = await provider.stat(sandboxId, dir);
-    if (!info || !info.isDirectory) return [];
-    return provider.listDir(sandboxId, dir);
+    return this.metered(uid, async (usage) => {
+      const { provider } = this.deps;
+      const { sandboxId } = await this.ensure(uid, sessionKey, usage);
+      const info = await provider.stat(sandboxId, dir);
+      if (!info || !info.isDirectory) return [];
+      return provider.listDir(sandboxId, dir);
+    });
   }
 
   async deleteFile(uid: string, sessionKey: string, path: string): Promise<void> {
-    const { provider } = this.deps;
-    const { sandboxId } = await this.ensure(uid, sessionKey);
-    if (await provider.stat(sandboxId, path)) await provider.remove(sandboxId, path);
+    return this.metered(uid, async (usage) => {
+      const { provider } = this.deps;
+      const { sandboxId } = await this.ensure(uid, sessionKey, usage);
+      if (await provider.stat(sandboxId, path)) await provider.remove(sandboxId, path);
+    });
   }
 
   /** Stop running code in one kernel (user Stop). Python state is kept unless it must restart. */

@@ -6,7 +6,7 @@
  */
 import type { ToolCall, ToolResult } from '../contract/lib/ai/tools/types';
 import { dispatchServerTool } from '../../tools';
-import { createSandboxBridge } from './sandboxBridge';
+import { createSandboxBridge, type SandboxTimeListener } from './sandboxBridge';
 import { createSandboxFiles } from './tools/sandboxFiles';
 import { executePythonTool } from './tools/executePythonTool';
 import { executeReadFileTool } from './tools/executeReadFileTool';
@@ -40,12 +40,14 @@ export interface ToolDispatchContext {
   kernelKey?: string;
   keyValue: string;
   signal: AbortSignal;
+  /** Each sandbox call's wall time (the run's compute totals). */
+  onSandboxTime?: SandboxTimeListener;
 }
 
 export function createToolDispatcher(context: ToolDispatchContext): (call: ToolCall) => Promise<ToolResult> {
   const { uid, sandboxSessionKey, keyValue } = context;
-  const sandbox = createSandboxBridge(uid, sandboxSessionKey, context.kernelKey);
-  const files = createSandboxFiles(uid, sandboxSessionKey);
+  const sandbox = createSandboxBridge(uid, sandboxSessionKey, context.kernelKey, context.onSandboxTime);
+  const files = createSandboxFiles(uid, sandboxSessionKey, context.onSandboxTime);
   // One registry per step, as one per page load was in the browser.
   const datasetRegistry = new DatasetRegistry();
 

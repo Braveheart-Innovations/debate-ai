@@ -176,6 +176,8 @@ export interface AnalyzeRunDoc {
   reportProduced?: boolean;
   latestCompletedOperatorMessageId?: string;
   pendingOrgEvidenceRequest?: AnalyzeOrgEvidenceRequest;
+  /** Sandbox time this run's tools used: wall time of each sandbox call, and how many. */
+  compute?: { sandboxExecMs?: number; sandboxCalls?: number };
 }
 
 export function runRef(uid: string, sessionId: string, runId: string): DocumentReference {

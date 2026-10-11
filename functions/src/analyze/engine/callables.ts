@@ -41,6 +41,7 @@ import {
   startVerification,
 } from '../review/reviewRuns';
 import { SERVER_LOOP_ALLOWED_UIDS } from './allowlist';
+import { assertAnalyzeSessionAllowed, countAnalyzeSession } from './freeTier';
 
 function requireAllowedUid(uid: string | undefined): string {
   if (!uid) throw new HttpsError('unauthenticated', 'Sign in to use Analyze.');
@@ -184,6 +185,8 @@ export const analyzeStartTurn = onCall({ region: 'us-central1' }, async (request
   };
 
   try {
+    // After the request checks (a bad request isn't counted); free accounts get 5 sessions.
+    await countAnalyzeSession(uid, sessionId);
     return await startOperatorTurn({
       uid,
       sessionId,
@@ -350,6 +353,8 @@ export const analyzeUploads = onCall(
     try {
       switch (data.op) {
         case 'write': {
+          // A new session's uploads only check the free tier: its first turn counts it.
+          await assertAnalyzeSessionAllowed(uid, sessionId);
           const source = (data.source && typeof data.source === 'object' ? data.source : {}) as Record<string, unknown>;
           return await writeUploadChunk(uid, sessionId, {
             pythonPath: requireString(data.path, 'path', 1024),

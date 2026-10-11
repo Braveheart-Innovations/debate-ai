@@ -1,4 +1,5 @@
 const assert = require('node:assert/strict');
+const { FieldValue } = require('firebase-admin/firestore');
 const test = require('node:test');
 
 const {
@@ -9,6 +10,8 @@ const {
   normalizeSessionType,
   mapSessionTypeToFreeTier,
   computeFreeTierGate,
+  buildSandboxUsageUpdate,
+  freeTierLimit,
 } = require('../lib/usageTracking');
 
 const DATE = '2026-06-12';
@@ -348,4 +351,16 @@ test('gate: exhausted free tier is rejected', () => {
   });
   assert.deepEqual(result, { allowed: false, reason: 'exhausted', remaining: 0 });
   assert.equal(decrementTo, undefined);
+});
+
+test('free tier: 5 Analyze sessions', () => {
+  assert.equal(freeTierLimit('analyze'), 5);
+});
+
+test('sandbox usage increments only the fields it carries, under the daily doc\'s sandbox map', () => {
+  const update = buildSandboxUsageUpdate({ calls: 1, executeMs: 1234.4, awakeMs: 0, creates: 1 }, DATE);
+  assert.equal(update.date, DATE);
+  assert.deepEqual(Object.keys(update.sandbox).sort(), ['calls', 'creates', 'executeMs']);
+  assert.equal(update.sandbox.executeMs.isEqual(FieldValue.increment(1234)), true);
+  assert.equal(update.sandbox.calls.isEqual(FieldValue.increment(1)), true);
 });

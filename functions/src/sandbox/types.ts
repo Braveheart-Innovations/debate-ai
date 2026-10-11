@@ -78,6 +78,21 @@ export interface SandboxStore {
   listIdle(before: number, limit: number): Promise<SandboxRecordRef[]>;
 }
 
+/**
+ * Sandbox time for one service call (usage recording):
+ *  - calls / executeMs: the call and its wall time
+ *  - awakeMs: the gap since the sandbox's last use, at most the idle timeout
+ *    (an estimate of the time it stayed up; the last gap is counted at the next use)
+ *  - creates / resumes: a new sandbox, or a use after it paused
+ */
+export interface SandboxUsage {
+  calls: number;
+  executeMs: number;
+  awakeMs?: number;
+  creates?: number;
+  resumes?: number;
+}
+
 /** Output file reference; `base64` is omitted when deferred past the inline budget. */
 export interface OutputFile {
   filename: string;

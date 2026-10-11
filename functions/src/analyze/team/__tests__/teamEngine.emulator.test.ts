@@ -127,6 +127,7 @@ import type { Artifact } from '../../contract/types/notebook';
 import { NoSessionSandboxError, runCell } from '../../engine/runCell';
 import { SessionBusyError } from '../../engine/turns';
 import type { NotificationDoc } from '../../engine/notifications';
+import { ANALYZE_FREE_LIMIT_REASON, assertAnalyzeSessionAllowed, countAnalyzeSession } from '../../engine/freeTier';
 
 const emulator = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
 const describeEmulator = emulator ? describe : describe.skip;
@@ -881,5 +882,55 @@ describeEmulator('step 6 server gaps', () => {
     const snapshot = await runRef(uid, sessionId, runId).collection('runEvents').orderBy('seq').get();
     const deltas = snapshot.docs.flatMap((doc) => doc.data().events as Array<Record<string, unknown>>).filter((e) => e.type === 'tool_call_delta');
     expect(deltas).toEqual([{ type: 'tool_call_delta', messageId: `${runId}_r0`, toolCallId: 'py1', delta: '{"code":"print(42)"}' }]);
+  });
+});
+
+describeEmulator('step 7 free tier and sandbox time', () => {
+  jest.setTimeout(60_000);
+  const account = () => `free_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+  const remaining = async (user: string) => (await getFirestore().doc(`users/${user}`).get()).data()?.freeAnalyzesRemaining;
+  const limitError = expect.objectContaining({ code: 'resource-exhausted', details: { reason: ANALYZE_FREE_LIMIT_REASON, limit: 5 } });
+
+  it('a free account gets 5 sessions; follow-ups stay free; the 6th is refused with the typed reason', async () => {
+    const user = account();
+    for (let index = 1; index <= 5; index += 1) await countAnalyzeSession(user, `session${index}`);
+    expect(await remaining(user)).toBe(0);
+    await expect(countAnalyzeSession(user, 'session6')).rejects.toEqual(limitError);
+    // A follow-up on a counted session finds its marker.
+    await expect(countAnalyzeSession(user, 'session1')).resolves.toBeUndefined();
+    expect(await remaining(user)).toBe(0);
+  });
+
+  it('uploads check without counting: allowed while sessions are left, refused after, always allowed on a counted session', async () => {
+    const user = account();
+    await countAnalyzeSession(user, 'counted');
+    await assertAnalyzeSessionAllowed(user, 'fresh');
+    expect(await remaining(user)).toBe(4);
+    expect((await getFirestore().doc(`users/${user}/freeTierInteractions/fresh`).get()).exists).toBe(false);
+
+    await getFirestore().doc(`users/${user}`).set({ freeAnalyzesRemaining: 0 }, { merge: true });
+    await expect(assertAnalyzeSessionAllowed(user, 'fresh')).rejects.toEqual(limitError);
+    await expect(assertAnalyzeSessionAllowed(user, 'counted')).resolves.toBeUndefined();
+  });
+
+  it('a trial (or paid) account has no session cap and nothing is counted', async () => {
+    const user = account();
+    await getFirestore().doc(`users/${user}/billing/subscription`).set({ status: 'trialing' });
+    for (let index = 1; index <= 7; index += 1) await countAnalyzeSession(user, `session${index}`);
+    await assertAnalyzeSessionAllowed(user, 'another');
+    expect(await remaining(user)).toBeUndefined();
+    expect((await getFirestore().collection(`users/${user}/freeTierInteractions`).get()).size).toBe(0);
+  });
+
+  it('a run records its sandbox calls and their time on the run doc', async () => {
+    script = (request) => (hasToolResults(request) ? text('Done.') : calls(
+      { id: 'py1', name: 'execute_python', args: { code: 'print(1)' } },
+      { id: 'py2', name: 'execute_python', args: { code: 'print(2)' } },
+    ));
+    const { runId } = await startOperatorTurn({ uid, sessionId, content: 'Go', config: config({ team: undefined }) });
+    await drain();
+    const done = await run(runId);
+    expect(done.status).toBe('completed');
+    expect(done.compute).toEqual({ sandboxCalls: 2, sandboxExecMs: expect.any(Number) });
   });
 });

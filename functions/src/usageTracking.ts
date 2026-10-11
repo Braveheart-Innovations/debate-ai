@@ -543,81 +543,6 @@ function isActiveServerOwnedPremium(
 }
 
 // ============================================================================
-// Record Free Tier Interaction
-// ============================================================================
-
-export const recordFreeTierInteraction = onCall(
-  {
-    timeoutSeconds: 10,
-    memory: '256MiB',
-  },
-  async (request) => {
-    if (!request.auth) {
-      throw new HttpsError('unauthenticated', 'Must be authenticated');
-    }
-
-    const { type } = request.data || {};
-    if (!type || !Object.prototype.hasOwnProperty.call(FREE_TIER_FIELD_BY_TYPE, type)) {
-      throw new HttpsError('invalid-argument', 'Invalid interaction type');
-    }
-
-    const interactionType = type as FreeTierInteractionType;
-    const usageField = FREE_TIER_FIELD_BY_TYPE[interactionType];
-    const uid = request.auth.uid;
-    const db = getFirestore();
-    const userRef = db.collection('users').doc(uid);
-    const billingRef = userRef.collection('billing').doc('subscription');
-
-    return db.runTransaction(async (transaction) => {
-      const [userDoc, billingDoc] = await Promise.all([
-        transaction.get(userRef),
-        transaction.get(billingRef),
-      ]);
-      const userData = userDoc.data();
-      const billingData = billingDoc.data();
-      const usage = normalizeFreeTierUsage(userData);
-
-      if (isActiveServerOwnedPremium(userData, billingData)) {
-        return {
-          success: true,
-          premium: true,
-          exhausted: false,
-          usage,
-        };
-      }
-
-      const currentRemaining = usage[usageField];
-      if (currentRemaining <= 0) {
-        return {
-          success: false,
-          exhausted: true,
-          remaining: 0,
-          usage,
-        };
-      }
-
-      const remaining = currentRemaining - 1;
-      const updatedUsage: FreeTierUsageState = {
-        ...usage,
-        [usageField]: remaining,
-      };
-
-      transaction.set(userRef, {
-        [usageField]: remaining,
-        updatedAt: FieldValue.serverTimestamp(),
-      }, { merge: true });
-
-      return {
-        success: true,
-        exhausted: remaining <= 0,
-        remaining,
-        usage: updatedUsage,
-      };
-    });
-  }
-);
-
-// ============================================================================
 // Server-authoritative free-tier enforcement for the AI proxies
 // ============================================================================
 
@@ -639,21 +564,15 @@ export interface FreeTierGateResult {
 /**
  * Idempotent, server-authoritative free-tier gate for the AI proxies.
  *
- * The web free tier grants a fixed number of interactions per type. Historically
- * this was enforced only in the web client (which called recordFreeTierInteraction
- * as an advisory decrement), so a caller hitting the proxy directly — or blocking
- * that decrement — got unlimited free usage. This makes the proxy authoritative.
+ * The web free tier grants a fixed number of interactions per type. The proxies
+ * (and analyzeStartTurn, keyed on the session id) are the authority.
  *
  * Metering is keyed on a client-supplied `interactionId` so one interaction
  * (a debate's many turns, a multi-AI compare's parallel calls) counts exactly
  * once; the marker doc also makes the check idempotent across retries. Counted
  * markers are bounded (<= the per-type free limits) per non-paying user.
  *
- * Backward-compatible & rollout-safe: current web clients do NOT send an
- * interactionId (they still meter via recordFreeTierInteraction), so their calls
- * return { allowed: true, reason: 'skipped' } and are unaffected. Enforcement
- * activates only for clients that send interactionId AND stop calling
- * recordFreeTierInteraction — so there is no double-count window.
+ * Calls without an interactionId return { allowed: true, reason: 'skipped' }.
  */
 export function mapSessionTypeToFreeTier(sessionType: string | undefined): FreeTierInteractionType | undefined {
   return sessionType ? FREE_TIER_TYPE_BY_SESSION_TYPE[sessionType] : undefined;
@@ -731,6 +650,79 @@ export async function enforceFreeTierForInteraction(
     }
     return result;
   });
+}
+
+/**
+ * The same decision as enforceFreeTierForInteraction, read-only: nothing is
+ * counted or marked. `allowed` says whether the interaction could start now
+ * (Analyze uploads to a session that hasn't been counted yet).
+ */
+export async function checkFreeTierForInteraction(
+  uid: string,
+  sessionType: string | undefined,
+  interactionId: string | undefined
+): Promise<FreeTierGateResult> {
+  const mappedType = mapSessionTypeToFreeTier(sessionType);
+  if (!mappedType) return { allowed: true, reason: 'not-metered' };
+  if (!interactionId) return { allowed: true, reason: 'skipped' };
+
+  const userRef = getFirestore().collection('users').doc(uid);
+  const [userDoc, billingDoc, markerDoc] = await Promise.all([
+    userRef.get(),
+    userRef.collection('billing').doc('subscription').get(),
+    userRef.collection('freeTierInteractions').doc(interactionId).get(),
+  ]);
+  return computeFreeTierGate({
+    mappedType,
+    interactionId,
+    isPremium: isActiveServerOwnedPremium(userDoc.data(), billingDoc.data()),
+    markerExists: markerDoc.exists,
+    usage: normalizeFreeTierUsage(userDoc.data()),
+  }).result;
+}
+
+/** The free sessions a type grants (the limit card names it). */
+export function freeTierLimit(type: FreeTierInteractionType): number {
+  return FREE_TIER_LIMITS[FREE_TIER_FIELD_BY_TYPE[type]];
+}
+
+// ============================================================================
+// Sandbox time (Analyze)
+// ============================================================================
+
+/**
+ * Sandbox time for the daily usage doc's `sandbox` map:
+ *  - executeMs / calls: wall time of each sandbox call (execute, file reads and writes)
+ *  - awakeMs: an estimate of the time sandboxes stayed up between uses, at most
+ *    the idle timeout per gap (counted at the next use, so a session's last
+ *    idle tail is counted late or never)
+ *  - creates / resumes: new sandboxes, and uses after a pause
+ */
+export interface SandboxUsageRecord {
+  executeMs?: number;
+  calls?: number;
+  awakeMs?: number;
+  creates?: number;
+  resumes?: number;
+}
+
+/** The daily doc update for a sandbox usage record (increments; merge-set). Exported for tests. */
+export function buildSandboxUsageUpdate(record: SandboxUsageRecord, dateStr: string): Record<string, unknown> {
+  const sandbox: Record<string, unknown> = {};
+  for (const [field, value] of Object.entries(record)) {
+    if (typeof value === 'number' && Number.isFinite(value) && value > 0) sandbox[field] = FieldValue.increment(Math.round(value));
+  }
+  return { date: dateStr, sandbox, updatedAt: FieldValue.serverTimestamp() };
+}
+
+export async function recordSandboxUsage(uid: string, record: SandboxUsageRecord): Promise<void> {
+  const dateStr = new Date().toISOString().split('T')[0];
+  const update = buildSandboxUsageUpdate(record, dateStr);
+  if (Object.keys(update.sandbox as Record<string, unknown>).length === 0) return;
+  await getFirestore().collection('users').doc(uid)
+    .collection('usage').doc('daily')
+    .collection('days').doc(dateStr)
+    .set(update, { merge: true });
 }
 
 // ============================================================================

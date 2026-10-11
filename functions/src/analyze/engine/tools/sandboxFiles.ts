@@ -5,7 +5,7 @@
  * the browser imported the singleton.
  */
 import { getSandboxService } from '../../../sandbox/callables';
-import { readWholeFile } from '../sandboxBridge';
+import { readWholeFile, timedSandboxCall, type SandboxTimeListener } from '../sandboxBridge';
 
 export interface SandboxFileInfo {
   name: string;
@@ -26,17 +26,17 @@ function toArrayBuffer(bytes: Buffer): ArrayBuffer {
   return copy.buffer;
 }
 
-export function createSandboxFiles(uid: string, sessionKey: string): SandboxFiles {
+export function createSandboxFiles(uid: string, sessionKey: string, onTime?: SandboxTimeListener): SandboxFiles {
   return {
-    readFile: async (path) => toArrayBuffer(await readWholeFile(uid, sessionKey, path)),
-    listFiles: (dir = '/uploads') => getSandboxService().listFiles(uid, sessionKey, dir),
-    mountFile: async (filename, data, path) => {
+    readFile: (path) => timedSandboxCall(onTime, async () => toArrayBuffer(await readWholeFile(uid, sessionKey, path))),
+    listFiles: (dir = '/uploads') => timedSandboxCall(onTime, () => getSandboxService().listFiles(uid, sessionKey, dir)),
+    mountFile: (filename, data, path) => timedSandboxCall(onTime, async () => {
       const target = path || `/uploads/${filename}`;
       await getSandboxService().writeFile(uid, sessionKey, {
         path: target,
         base64: Buffer.from(data).toString('base64'),
       });
       return target;
-    },
+    }),
   };
 }
