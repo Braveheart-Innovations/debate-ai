@@ -61,23 +61,47 @@ describe('delegate tool + prompts', () => {
 describe('propose_team', () => {
   const team = buildTeam([gemini, claudeTeammate]);
 
-  it('takes a kind, a rationale, and assignments of tasks to teammates', () => {
+  const plan = (assignments: unknown[], extra: Record<string, unknown> = {}) => JSON.stringify({
+    kind: 'split', goal: 'g', approach: 'a', after: 'f', assignments, ...extra,
+  });
+  const task = (extra: Record<string, unknown> = {}) => ({ title: 'T', summary: 'S', deliverable: 'D', task: 't', agents: ['teammate1'], ...extra });
+
+  it('takes a kind, the plan written for the user, and assignments of tasks to teammates', () => {
     const tool = buildProposeTeamTool(team);
     expect(tool.execution).toBe('orchestrator');
-    expect(tool.parameters.required).toEqual(['kind', 'rationale', 'assignments']);
+    expect(tool.parameters.required).toEqual(['kind', 'goal', 'approach', 'assignments', 'after']);
+    expect((tool.parameters.properties as { assignments: { items: { required: string[] } } }).assignments.items.required)
+      .toEqual(['title', 'summary', 'deliverable', 'task', 'agents']);
     expect(tool.description).toContain('"teammate1" = Gemini (gemini-pro)');
+    expect(tool.description).toContain('declines it with feedback');
+    expect(tool.description).not.toContain('tasks)');
     expect(parseProposeTeamArgs(JSON.stringify({
       kind: 'panel',
-      rationale: ' r ',
-      assignments: [{ task: ' t ', agents: ['teammate1', 'teammate2', 'teammate1'] }],
-    }), team)).toEqual({ kind: 'panel', rationale: 'r', assignments: [{ task: 't', agents: ['teammate1', 'teammate2'] }] });
-    expect(() => parseProposeTeamArgs('{"kind":"mob","rationale":"","assignments":[]}', team)).toThrow(/kind/);
-    expect(() => parseProposeTeamArgs('{"kind":"split","rationale":"","assignments":[]}', team)).toThrow(/at least one assignment/);
-    expect(() => parseProposeTeamArgs('{"kind":"split","rationale":"","assignments":[{"task":"t","agents":[]}]}', team)).toThrow(/at least one agent/);
-    expect(() => parseProposeTeamArgs('{"kind":"split","rationale":"","assignments":[{"task":"t","agents":["self"]}]}', team)).toThrow(/Unknown agent "self"/);
+      goal: ' g ',
+      approach: ' a ',
+      after: ' f ',
+      assignments: [{ title: ' T ', summary: ' S ', deliverable: ' D ', task: ' t ', agents: ['teammate1', 'teammate2', 'teammate1'] }],
+    }), team)).toEqual({
+      kind: 'panel', goal: 'g', approach: 'a', after: 'f',
+      assignments: [{ title: 'T', summary: 'S', deliverable: 'D', task: 't', agents: ['teammate1', 'teammate2'] }],
+    });
+    expect(() => parseProposeTeamArgs(plan([task()], { kind: 'mob' }), team)).toThrow(/kind/);
+    expect(() => parseProposeTeamArgs(plan([]), team)).toThrow(/at least one assignment/);
+    expect(() => parseProposeTeamArgs(plan([task({ agents: [] })]), team)).toThrow(/at least one agent/);
+    expect(() => parseProposeTeamArgs(plan([task({ agents: ['self'] })]), team)).toThrow(/Unknown agent "self"/);
+  });
+
+  it('requires every field written for the user', () => {
+    for (const field of ['goal', 'approach', 'after']) {
+      expect(() => parseProposeTeamArgs(plan([task()], { [field]: ' ' }), team)).toThrow(new RegExp(`"${field}"`));
+    }
+    for (const field of ['title', 'summary', 'deliverable']) {
+      expect(() => parseProposeTeamArgs(plan([task({ [field]: undefined })]), team)).toThrow(new RegExp(`assignments\\[0\\]\\.${field}`));
+    }
+    expect(() => parseProposeTeamArgs(plan([task({ task: '' })]), team)).toThrow(/non-empty "task"/);
     const big = buildTeam(Array.from({ length: MAX_PANEL_SIZE + 1 }, (_, i) => ai(`p${i}`, 'google', 'gemini-pro', 'Gemini')));
     expect(() => parseProposeTeamArgs(JSON.stringify({
-      kind: 'panel', rationale: '', assignments: [{ task: 't', agents: big.map((m) => m.handle) }],
+      kind: 'panel', goal: 'g', approach: 'a', after: 'f', assignments: [task({ agents: big.map((m) => m.handle) })],
     }), big)).toThrow(/the most is 5/);
   });
 });

@@ -121,7 +121,7 @@ describe('operator tools', () => {
 describe('Team mode', () => {
   it('starts the turn with a forced team plan, then gives the operator its full tools', async () => {
     const { context, suspended } = makeContext({ teamPlanTurn: true });
-    streamQueue.push([done({ finish_reason: 'tool_calls', tool_calls: [call('p1', 'propose_team', { kind: 'panel', rationale: 'r', assignments: [{ task: 'T', agents: ['teammate1', 'teammate2'] }] })] })]);
+    streamQueue.push([done({ finish_reason: 'tool_calls', tool_calls: [call('p1', 'propose_team', { kind: 'panel', goal: 'g', approach: 'a', after: 'f', assignments: [{ title: 't', summary: 's', deliverable: 'd', task: 'T', agents: ['teammate1', 'teammate2'] }] })] })]);
     expect(await runRound(context, state(0))).toBe('waiting');
     expect(toolNames(0)).toEqual(['propose_team', 'ask_user']);
     expect(streamCalls[0].toolChoice).toBe('required');
@@ -164,7 +164,7 @@ describe('Team mode', () => {
     const { context, suspended, capture } = makeContext({ teamPlanTurn: true });
     streamQueue.push([done({ finish_reason: 'tool_calls', tool_calls: [
       call('a1', 'ask_user', { questions: 'Which year?' }),
-      call('p1', 'propose_team', { kind: 'panel', rationale: 'r', assignments: [{ task: 'T', agents: ['teammate1'] }] }),
+      call('p1', 'propose_team', { kind: 'panel', goal: 'g', approach: 'a', after: 'f', assignments: [{ title: 't', summary: 's', deliverable: 'd', task: 'T', agents: ['teammate1'] }] }),
     ] })]);
     expect(await runRound(context, state(0))).toBe('completed');
     expect(suspended).toHaveLength(0);

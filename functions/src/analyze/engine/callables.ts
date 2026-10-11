@@ -22,6 +22,7 @@ import { MAX_PANEL_SIZE, TeamArgsError } from '../team/teamTools';
 import {
   TeamControlError,
   approvePlan,
+  declinePlan,
   cancelChildren,
   cancelLane,
   forceStopStranded,
@@ -30,7 +31,7 @@ import {
   workSolo,
 } from '../team/teamStore';
 import { startRerun } from '../team/reruns';
-import type { TeamAssignment } from '../team/types';
+import type { ApprovedAgents } from '../team/types';
 import {
   dismissReviewItems,
   reopenReviewItems,
@@ -202,13 +203,13 @@ export const analyzeStartTurn = onCall({ region: 'us-central1' }, async (request
   }
 });
 
-function parseAssignments(value: unknown): TeamAssignment[] {
+/** Who runs each task of the plan; the task text stays the stored plan's. */
+function parseApprovedAgents(value: unknown): ApprovedAgents[] {
   if (!Array.isArray(value)) throw new HttpsError('invalid-argument', 'assignments are required');
-  return value.slice(0, 50).map((entry, index) => {
+  return value.map((entry, index) => {
     const item = (entry && typeof entry === 'object' ? entry : {}) as Record<string, unknown>;
     return {
       id: requireString(item.id, `assignments[${index}].id`, 500),
-      task: requireString(item.task, `assignments[${index}].task`, 200_000),
       agents: stringList(item.agents, MAX_PANEL_SIZE + 1),
     };
   });
@@ -249,7 +250,12 @@ export const analyzeRunControl = onCall({ region: 'us-central1' }, async (reques
       }
       case 'approve_plan': {
         const planId = requireString(data.planId, 'planId', 500);
-        const accepted = await approvePlan(ref, planId, { type: 'approve', assignments: parseAssignments(data.assignments) });
+        const accepted = await approvePlan(ref, planId, parseApprovedAgents(data.assignments));
+        return { accepted };
+      }
+      case 'decline_plan': {
+        const planId = requireString(data.planId, 'planId', 500);
+        const accepted = await declinePlan(ref, planId, requireString(data.feedback, 'feedback', Number.POSITIVE_INFINITY));
         return { accepted };
       }
       case 'work_solo':

@@ -6,7 +6,7 @@
  * Stop can't lose each other's updates; enqueues happen after commit.
  */
 import { randomUUID } from 'node:crypto';
-import { getFirestore, type DocumentReference, type Transaction } from 'firebase-admin/firestore';
+import { FieldValue, getFirestore, type DocumentReference, type Transaction } from 'firebase-admin/firestore';
 import type { AI, Message } from '../contract/types';
 import { enqueueStep } from '../engine/queue';
 import {
@@ -42,7 +42,7 @@ import {
   stopUnstartedSlots,
   validateDecision,
 } from './teamState';
-import type { AgentPurpose, AgentRunResult, TeamMember, TeamPlan, TeamPlanDecision } from './types';
+import type { AgentPurpose, AgentRunResult, ApprovedAgents, TeamMember, TeamPlan, TeamPlanDecision, TeamPlanOutcome } from './types';
 
 export function teamMembers(config: RunConfig): TeamMember[] {
   return (config.team ?? []).map(({ handle, ai }) => ({ handle, ai: ai as unknown as AI }));
@@ -314,8 +314,10 @@ export function createTeamHooks(ref: DocumentReference, run: AnalyzeRunDoc): Tea
     },
     suspend: async (setup: TeamCallSetup) => {
       const now = Date.now();
+      // A new plan answers the one the user declined.
+      const { declinedPlan: _answered, ...current } = run.team ?? {};
       let team: TeamTurnState = {
-        ...run.team,
+        ...current,
         planCounter: setup.planCounter,
         ...(setup.planProposed ? { planProposed: true } : {}),
         plans: setup.plans.map((plan) => ({ plan, status: 'pending' as const })),
@@ -335,14 +337,17 @@ export function createTeamHooks(ref: DocumentReference, run: AnalyzeRunDoc): Tea
       }
       // Status stays running while this step holds the lease; enterWait settles it.
       // Dotted paths: a "do it yourself" (team.solo) written meanwhile must survive.
-      batch.update(ref, removeUndefined({
-        'team.plans': team.plans,
-        'team.calls': team.calls,
-        'team.planCounter': team.planCounter,
-        ...(team.planProposed ? { 'team.planProposed': true } : {}),
-        pendingTeamPlans: pendingPlans(team),
-        updatedAt: now,
-      }));
+      batch.update(ref, {
+        ...removeUndefined({
+          'team.plans': team.plans,
+          'team.calls': team.calls,
+          'team.planCounter': team.planCounter,
+          ...(team.planProposed ? { 'team.planProposed': true } : {}),
+          pendingTeamPlans: pendingPlans(team),
+          updatedAt: now,
+        }),
+        'team.declinedPlan': FieldValue.delete(),
+      });
       await batch.commit();
     },
   };
@@ -373,14 +378,27 @@ export async function enterWait(ref: DocumentReference, owner: string): Promise<
 
 export class TeamControlError extends Error {}
 
-export async function approvePlan(ref: DocumentReference, planId: string, decision: TeamPlanDecision): Promise<boolean> {
-  const outcome = await updateWaitingParent(ref, (parent, team) => {
+/** Answer one pending plan. False when it isn't pending (already answered, or the run moved on). */
+async function decidePendingPlan(ref: DocumentReference, planId: string, decision: TeamPlanDecision, outcome: TeamPlanOutcome): Promise<boolean> {
+  const settled = await updateWaitingParent(ref, (parent, team) => {
     const stored = (team.plans ?? []).find((candidate) => candidate.plan.id === planId);
     if (!stored || stored.status !== 'pending') return null;
-    const valid = validateDecision(stored.plan, decision);
-    return decidePlan(team, planId, valid, valid.type === 'approve' ? 'approved' : 'solo', teamMembers(parent.config), Date.now());
+    return decidePlan(team, planId, validateDecision(stored.plan, decision), outcome, teamMembers(parent.config), Date.now());
   });
-  return outcome !== null;
+  return settled !== null;
+}
+
+export async function approvePlan(ref: DocumentReference, planId: string, assignments: ApprovedAgents[]): Promise<boolean> {
+  return decidePendingPlan(ref, planId, { type: 'approve', assignments }, 'approved');
+}
+
+/**
+ * Decline a plan with the user's feedback: its calls answer with the decline
+ * (once no other plan waits, the operator wakes to revise), and a declined
+ * propose_team makes the next Team mode round plan again.
+ */
+export async function declinePlan(ref: DocumentReference, planId: string, feedback: string): Promise<boolean> {
+  return decidePendingPlan(ref, planId, { type: 'decline', feedback }, 'declined');
 }
 
 /**

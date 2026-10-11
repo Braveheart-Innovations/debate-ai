@@ -55,11 +55,17 @@ export interface DelegateArgs {
   agent: string;
 }
 
-/** The operator's propose_team call: a whole plan, before the work starts. */
+/**
+ * The operator's propose_team call: a whole plan, before the work starts.
+ * goal, approach, after and each task's title, summary and deliverable are
+ * written for the user (the plan card); `task` is the teammate's instructions.
+ */
 export interface ProposeTeamArgs {
   kind: 'panel' | 'split';
-  rationale: string;
-  assignments: Array<{ task: string; agents: string[] }>;
+  goal: string;
+  approach: string;
+  after: string;
+  assignments: Array<{ title: string; summary: string; deliverable: string; task: string; agents: string[] }>;
 }
 
 export interface AgentRunResult {
@@ -84,9 +90,14 @@ export interface AgentRunResult {
 export interface TeamAssignment {
   /** Stable within the plan; for a delegate batch, the delegate call's tool call id. */
   id: string;
+  /** The teammate's instructions. */
   task: string;
   /** Several handles on one task = an independent panel on that task. */
   agents: string[];
+  /** For the user (propose_team only; a delegate handoff has just the task). */
+  title?: string;
+  summary?: string;
+  deliverable?: string;
 }
 
 /** A pool member as the plan card shows it (and offers it when swapping models). */
@@ -105,7 +116,10 @@ export interface TeamPlan {
   id: string;
   source: 'propose_team' | 'delegate';
   kind?: 'panel' | 'split';
-  rationale?: string;
+  /** For the user (propose_team only): what they asked for, how the team tackles it, what the operator does with the results. */
+  goal?: string;
+  approach?: string;
+  after?: string;
   assignments: TeamAssignment[];
   /** Everyone the user may put on an assignment (the roster's teammates). */
   pool: TeamPoolMember[];
@@ -113,13 +127,23 @@ export interface TeamPlan {
   autoApproved?: boolean;
 }
 
-/** The user's answer: run these assignments (possibly edited), or "do it yourself". */
+/** Who runs one of the plan's tasks, as the user approved it. The task text always comes from the stored plan. */
+export interface ApprovedAgents {
+  id: string;
+  agents: string[];
+}
+
+/**
+ * The user's answer: run every task (possibly on other models), send the plan
+ * back with feedback, or "do it yourself".
+ */
 export type TeamPlanDecision =
-  | { type: 'approve'; assignments: TeamAssignment[] }
+  | { type: 'approve'; assignments: ApprovedAgents[] }
+  | { type: 'decline'; feedback: string }
   | { type: 'solo' };
 
-/** How a plan ended (web TeamApprovalGate TeamPlanOutcome). */
-export type TeamPlanOutcome = 'approved' | 'solo' | 'stopped';
+/** How a plan ended. */
+export type TeamPlanOutcome = 'approved' | 'declined' | 'solo' | 'stopped';
 
 /** UI-facing snapshot of a subagent run (the web's lanes and the report's panel note read it). */
 export interface AgentRunView {
