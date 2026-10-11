@@ -114,7 +114,7 @@ import { runStep } from '../../engine/step';
 import { startOperatorTurn } from '../../engine/turns';
 import { runRef, type AnalyzeRunDoc, type RunConfig } from '../../engine/runStore';
 import { loadSessionMessages, runMessageStore } from '../../engine/sessionStore';
-import { approvePlan, replaceLane, stopWaitingOperator, cancelChildren, workSolo, forceStopStranded, enterWait } from '../teamStore';
+import { approvePlan, declinePlan, replaceLane, stopWaitingOperator, cancelChildren, workSolo, forceStopStranded, enterWait } from '../teamStore';
 import { startRerun } from '../reruns';
 import { MAX_SWEEPS, STRANDED_MS, sweepStrandedRuns } from '../../engine/sweeper';
 import { SOLO_RESULT_TEXT } from '../teamState';
@@ -226,13 +226,10 @@ describeEmulator('team engine', () => {
     await drain();
     expect((await run(runId)).status).toBe('awaiting_approval');
 
-    expect(await approvePlan(runRef(uid, sessionId, runId), plan.id, {
-      type: 'approve',
-      assignments: [
-        { id: 'd1', task: 'Sum A', agents: ['teammate2'] },
-        { id: 'd2', task: 'Sum B', agents: ['teammate1', 'teammate2'] },
-      ],
-    })).toBe(true);
+    expect(await approvePlan(runRef(uid, sessionId, runId), plan.id, [
+      { id: 'd1', agents: ['teammate2'] },
+      { id: 'd2', agents: ['teammate1', 'teammate2'] },
+    ])).toBe(true);
     operator = await run(runId);
     expect(operator.status).toBe('waiting_children');
     expect(operator.pendingTeamPlans).toEqual([]);
@@ -322,7 +319,7 @@ describeEmulator('team engine', () => {
         if (request.signal?.aborted) return [{ type: 'error', code: 'cancelled', message: 'aborted' }];
         return text('replacement answer');
       }
-      return hasToolResults(request) ? text('Done.') : calls({ id: 'p1', name: 'propose_team', args: { kind: 'panel', rationale: 'r', assignments: [{ task: 'T', agents: ['teammate1'] }] } });
+      return hasToolResults(request) ? text('Done.') : calls({ id: 'p1', name: 'propose_team', args: { kind: 'panel', goal: 'g', approach: 'a', after: 'f', assignments: [{ title: 't', summary: 's', deliverable: 'd', task: 'T', agents: ['teammate1'] }] } });
     };
     const { runId } = await startOperatorTurn({ uid, sessionId, content: 'Go', config: config({ teamAutoApprove: true }) });
     await drain(async () => (await run(runId)).status === 'waiting_children');
@@ -343,7 +340,7 @@ describeEmulator('team engine', () => {
       if (isTeammate(request)) return text(`answer: ${lastUser(request).split('\n')[0]}`);
       return hasToolResults(request) ? text('Both done.') : calls(
         { id: 'd1', name: 'delegate', args: { task: 'Delegated task', agent: 'teammate1' } },
-        { id: 'p1', name: 'propose_team', args: { kind: 'panel', rationale: 'r', assignments: [{ task: 'Panel task', agents: ['teammate1', 'teammate2'] }] } },
+        { id: 'p1', name: 'propose_team', args: { kind: 'panel', goal: 'g', approach: 'a', after: 'f', assignments: [{ title: 't', summary: 's', deliverable: 'd', task: 'Panel task', agents: ['teammate1', 'teammate2'] }] } },
       );
     };
     const { runId } = await startOperatorTurn({ uid, sessionId, content: 'Go', config: config() });
@@ -353,7 +350,7 @@ describeEmulator('team engine', () => {
     expect(operator.pendingTeamPlans).toHaveLength(2);
     const [delegatePlan, panelPlan] = operator.pendingTeamPlans!;
 
-    expect(await approvePlan(runRef(uid, sessionId, runId), delegatePlan.id, { type: 'approve', assignments: delegatePlan.assignments })).toBe(true);
+    expect(await approvePlan(runRef(uid, sessionId, runId), delegatePlan.id, delegatePlan.assignments)).toBe(true);
     operator = await run(runId);
     expect(operator.status).toBe('awaiting_approval');
     expect(operator.pendingTeamPlans!.map((plan) => plan.id)).toEqual([panelPlan.id]);
@@ -361,7 +358,7 @@ describeEmulator('team engine', () => {
     expect((await children(runId)).map((kid) => kid.status)).toEqual(['completed']);
     expect((await run(runId)).status).toBe('awaiting_approval');
 
-    expect(await approvePlan(runRef(uid, sessionId, runId), panelPlan.id, { type: 'approve', assignments: panelPlan.assignments })).toBe(true);
+    expect(await approvePlan(runRef(uid, sessionId, runId), panelPlan.id, panelPlan.assignments)).toBe(true);
     await drain();
     expect((await run(runId)).status).toBe('completed');
     const results = toolMessages(await loadSessionMessages(uid, sessionId));
@@ -373,7 +370,7 @@ describeEmulator('team engine', () => {
   it('Stop after "Replace with…" starts no replacement and stops the operator', async () => {
     script = async (request) => {
       if (isTeammate(request)) return request.signal?.aborted ? [{ type: 'error', code: 'cancelled', message: 'aborted' }] : text('x');
-      return hasToolResults(request) ? text('unreachable') : calls({ id: 'p1', name: 'propose_team', args: { kind: 'panel', rationale: 'r', assignments: [{ task: 'T', agents: ['teammate1'] }] } });
+      return hasToolResults(request) ? text('unreachable') : calls({ id: 'p1', name: 'propose_team', args: { kind: 'panel', goal: 'g', approach: 'a', after: 'f', assignments: [{ title: 't', summary: 's', deliverable: 'd', task: 'T', agents: ['teammate1'] }] } });
     };
     const { runId } = await startOperatorTurn({ uid, sessionId, content: 'Go', config: config({ teamAutoApprove: true }) });
     await drain(async () => (await run(runId)).status === 'waiting_children');
@@ -749,13 +746,71 @@ describeEmulator('step 6 server gaps', () => {
     await getFirestore().doc(`users/${uid}/notifications/${notes[0].id}`).update({ read: true });
     await enterWait(runRef(uid, sessionId, runId), 'redelivery');
     expect((await notifications()).map((n) => n.read)).toEqual([true]);
-    await approvePlan(runRef(uid, sessionId, runId), plan.id, { type: 'approve', assignments: plan.assignments });
+    await approvePlan(runRef(uid, sessionId, runId), plan.id, plan.assignments);
     await drain();
 
     expect((await run(runId)).status).toBe('completed');
     notes = await notifications();
     expect(notes.map((n) => [n.kind, n.read])).toEqual([['awaiting_approval', true], ['completed', false]]);
     expect(notes[1].id).toBe(`${runId}_completed`);
+  });
+
+  it('Decline sends the plan back with feedback: the operator re-proposes, the new plan notifies, and approval runs it', async () => {
+    const toolTexts = (request: ModelRequest) => request.messages.filter((m) => m.role === 'tool').map((m) => m.content ?? '');
+    const task = (title: string, agents: string[]) => ({ title, summary: `Does ${title}.`, deliverable: 'Figures.', task: `${title} brief`, agents });
+    script = (request) => {
+      if (isTeammate(request)) return text(`answer: ${lastUser(request).split('\n')[0]}`);
+      const results = toolTexts(request);
+      if (results.length === 0) {
+        return calls({ id: 'p1', name: 'propose_team', args: { kind: 'split', goal: 'g', approach: 'a', after: 'f', assignments: [task('A', ['teammate1']), task('B', ['teammate2'])] } });
+      }
+      if (results.length === 1) {
+        return calls({ id: 'p2', name: 'propose_team', args: { kind: 'panel', goal: 'g', approach: 'a2', after: 'f', assignments: [task('A and B', ['teammate1', 'teammate2'])] } });
+      }
+      return text('Final.');
+    };
+    const { runId } = await startOperatorTurn({ uid, sessionId, content: 'Go', config: config({ teamPlanTurn: true }) });
+    await drain();
+    let operator = await run(runId);
+    expect(operator.status).toBe('awaiting_approval');
+    const first = operator.pendingTeamPlans![0];
+    expect(first).toMatchObject({ source: 'propose_team', goal: 'g', approach: 'a', after: 'f' });
+    expect(first.assignments[0]).toMatchObject({ title: 'A', summary: 'Does A.', deliverable: 'Figures.', task: 'A brief' });
+
+    // Approve can't drop a task; the plan still waits.
+    await expect(approvePlan(runRef(uid, sessionId, runId), first.id, [{ id: first.assignments[0].id, agents: ['teammate1'] }])).rejects.toThrow(/Task 2 is missing/);
+    expect((await run(runId)).status).toBe('awaiting_approval');
+
+    expect(await declinePlan(runRef(uid, sessionId, runId), first.id, 'One panel on both, please.')).toBe(true);
+    expect(await declinePlan(runRef(uid, sessionId, runId), first.id, 'Again')).toBe(false);
+    operator = await run(runId);
+    expect(operator.status).toBe('queued');
+    expect(operator.pendingTeamPlans).toEqual([]);
+    expect(operator.team?.planProposed).toBe(false);
+    expect(operator.team?.declinedPlan).toEqual({ planId: first.id, feedback: 'One panel on both, please.' });
+    expect(await children(runId)).toHaveLength(0);
+
+    await drain(async () => (await run(runId)).status === 'awaiting_approval');
+    // The planning gate is closed again: the revision round may only plan or ask, and must call one.
+    expect(modelCalls[1].tools?.map((t) => t.name)).toEqual(['propose_team', 'ask_user']);
+    expect(toolTexts(modelCalls[1])).toEqual([expect.stringContaining('The user declined this plan: One panel on both, please.')]);
+    operator = await run(runId);
+    const second = operator.pendingTeamPlans![0];
+    expect(second.id).not.toBe(first.id);
+    expect(second).toMatchObject({ kind: 'panel', approach: 'a2' });
+    expect(operator.team?.declinedPlan).toBeUndefined();
+    expect((await notifications()).map((n) => n.id)).toEqual([`${runId}_plan_${first.id}`, `${runId}_plan_${second.id}`]);
+
+    expect(await approvePlan(runRef(uid, sessionId, runId), second.id, second.assignments)).toBe(true);
+    await drain();
+    operator = await run(runId);
+    expect(operator.status).toBe('completed');
+    expect((await children(runId)).map((kid) => kid.status)).toEqual(['completed', 'completed']);
+    const results = toolMessages(await loadSessionMessages(uid, sessionId));
+    expect(results.map((m) => m.metadata?.toolCallId)).toEqual(['p1', 'p2']);
+    expect(results[0].metadata?.success).toBe(true);
+    expect(results[1].content).toContain('## Task: A and B');
+    expect(results[1].content).toContain('answer: A and B brief');
   });
 
   it('a turn that asks the user notifies the question, not a completion; Stop notifies nothing', async () => {

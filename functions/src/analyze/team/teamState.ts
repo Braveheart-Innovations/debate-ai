@@ -40,6 +40,13 @@ export const ORG_EVIDENCE_REQUESTED_REPLY = 'I need org-runtime evidence before 
 /** Tool result text when the user has the operator work alone. */
 export const SOLO_RESULT_TEXT = 'The user chose to have you do this yourself; sub-agents aren\'t available for the rest of this run.';
 
+/** Tool result text when the user declines a plan, with what they want changed. */
+export function declinedResultText(toolName: TeamCallState['toolName'], feedback: string): string {
+  return toolName === PROPOSE_TEAM_TOOL_NAME
+    ? `The user declined this plan: ${feedback}\n\nPropose a revised plan with propose_team, ask the user if something is unclear, or say if you'd rather work alone.`
+    : `The user declined this handoff: ${feedback}\n\nRevise it and delegate again, ask the user if something is unclear, or do the work yourself.`;
+}
+
 /** One teammate's place on an approved task. "Replace with…" reruns the slot on another model. */
 export interface TeamSlot {
   handle: string;
@@ -68,7 +75,9 @@ export interface TeamCallState {
   /** propose_team: the plan's assignments as proposed (ids `${toolCallId}:${n}`). */
   proposed?: TeamAssignment[];
   /** Set once the plan is decided. */
-  resolution?: 'approved' | 'solo';
+  resolution?: 'approved' | 'declined' | 'solo';
+  /** What the user wants changed, when they declined the plan. */
+  feedback?: string;
   approved?: ApprovedAssignment[];
 }
 
@@ -80,8 +89,10 @@ export interface StoredTeamPlan {
 
 /** Turn-scoped team state on the operator's run doc (the orchestrator's per-run fields). */
 export interface TeamTurnState {
-  /** A Team mode plan was proposed this turn (the planning gate opens). */
+  /** A Team mode plan was proposed this turn (the planning gate opens). A declined plan closes it again. */
   planProposed?: boolean;
+  /** The last plan the user declined and why; the card shows it until the operator proposes again. */
+  declinedPlan?: { planId: string; feedback: string };
   /** "Have [operator] do it": no sub-agents for the rest of this run. */
   solo?: boolean;
   /** The operator asked the user; the turn ends after this round. */
@@ -107,6 +118,11 @@ export function argsFailure(toolCallId: string, error: unknown): ToolResult {
 function taskTitle(task: string): string {
   const firstLine = task.split('\n').find((line) => line.trim())?.trim() || 'Task';
   return firstLine.length > 80 ? `${firstLine.slice(0, 77)}...` : firstLine;
+}
+
+/** The task's name in results: the title the operator wrote for the user, or the task's first line. */
+function assignmentName(assignment: TeamAssignment): string {
+  return assignment.title || taskTitle(assignment.task);
 }
 
 function sameAgents(a: string[], b: string[]): boolean {
@@ -225,7 +241,16 @@ export function setupTeamCalls(input: {
     }
     const proposed = args.assignments.map((assignment, index) => ({ id: `${call.id}:${index + 1}`, ...assignment }));
     const planId = nextPlanId();
-    plans.push({ id: planId, source: 'propose_team', kind: args.kind, rationale: args.rationale, assignments: proposed, pool });
+    plans.push({
+      id: planId,
+      source: 'propose_team',
+      kind: args.kind,
+      goal: args.goal,
+      approach: args.approach,
+      after: args.after,
+      assignments: proposed,
+      pool,
+    });
     calls.push({ toolCallId: call.id, toolName: PROPOSE_TEAM_TOOL_NAME, planId, proposeArgs: args, proposed });
   }
 
@@ -243,25 +268,37 @@ function slotsFor(assignment: TeamAssignment, team: TeamMember[]): TeamSlot[] {
 }
 
 /**
- * The user's (edited) assignments, checked against the plan: known ids only,
- * a task, pool handles, at most MAX_PANEL_SIZE each.
+ * The user's answer, checked against the plan. Approve runs every task of the
+ * plan (none can be dropped) with the task text as stored, on pool models the
+ * user chose: at least one per task, at most MAX_PANEL_SIZE.
  */
 export function validateDecision(plan: TeamPlan, decision: TeamPlanDecision): TeamPlanDecision {
   if (decision.type === 'solo') return decision;
+  if (decision.type === 'decline') {
+    const feedback = typeof decision.feedback === 'string' ? decision.feedback.trim() : '';
+    if (!feedback) throw new TeamArgsError('Say how the plan should change');
+    return { type: 'decline', feedback };
+  }
   const ids = new Set(plan.assignments.map((assignment) => assignment.id));
+  const unknown = decision.assignments.find((assignment) => !ids.has(assignment.id));
+  if (unknown) throw new TeamArgsError(`Task ${unknown.id} is not in this plan`);
   const pool = new Set(plan.pool.map((member) => member.handle));
-  const assignments = decision.assignments.map((assignment, index) => {
-    if (!ids.has(assignment.id)) throw new TeamArgsError(`Assignment ${index + 1} is not in this plan`);
-    const task = typeof assignment.task === 'string' ? assignment.task.trim() : '';
-    if (!task) throw new TeamArgsError(`Assignment ${index + 1} needs a task`);
-    const agents = Array.from(new Set((assignment.agents ?? []).filter((handle) => pool.has(handle))));
-    if (agents.length > MAX_PANEL_SIZE) throw new TeamArgsError(`Assignment ${index + 1} has more than ${MAX_PANEL_SIZE} agents`);
-    return { id: assignment.id, task, agents };
+  const assignments = plan.assignments.map((assignment, index) => {
+    const chosen = decision.assignments.find((candidate) => candidate.id === assignment.id);
+    if (!chosen) throw new TeamArgsError(`Task ${index + 1} is missing: every task in the plan runs`);
+    const agents = Array.from(new Set((chosen.agents ?? []).filter((handle) => pool.has(handle))));
+    if (agents.length === 0) throw new TeamArgsError(`Task ${index + 1} needs at least one model`);
+    if (agents.length > MAX_PANEL_SIZE) throw new TeamArgsError(`Task ${index + 1} has more than ${MAX_PANEL_SIZE} models`);
+    return { ...assignment, agents };
   });
   return { type: 'approve', assignments };
 }
 
-/** Apply one plan's answer (TeamApprovalGate.settle + what each team call does with it). */
+/**
+ * Apply one plan's answer to the plan and its calls. Approve takes validated
+ * assignments (validateDecision). A declined propose_team closes the planning
+ * gate again, so a Team mode turn's next round must re-propose (or ask).
+ */
 export function decidePlan(
   state: TeamTurnState,
   planId: string,
@@ -276,23 +313,35 @@ export function decidePlan(
   const calls = (state.calls ?? []).map((call) => {
     if (call.planId !== planId || call.resolution) return call;
     if (decision.type === 'solo') return { ...call, resolution: 'solo' as const, approved: [] };
-    const approved = call.toolName === DELEGATE_TOOL_NAME
-      ? decision.assignments.filter((assignment) => assignment.id === call.toolCallId)
-      : decision.assignments;
+    if (decision.type === 'decline') return { ...call, resolution: 'declined' as const, feedback: decision.feedback, approved: [] };
+    const plan = plans.find((stored) => stored.plan.id === planId)?.plan;
+    const approved = decision.assignments
+      .filter((assignment) => call.toolName !== DELEGATE_TOOL_NAME || assignment.id === call.toolCallId)
+      .map((chosen) => ({ ...(plan?.assignments.find((assignment) => assignment.id === chosen.id) as TeamAssignment), agents: chosen.agents }));
     return {
       ...call,
       resolution: 'approved' as const,
       approved: approved.map((assignment) => ({ assignment, slots: slotsFor(assignment, team) })),
     };
   });
-  // requestTeamPlan: a solo answer makes the rest of the run solo.
-  return { ...state, plans, calls, ...(decision.type === 'solo' ? { solo: true } : {}) };
+  if (decision.type === 'solo') return { ...state, plans, calls, solo: true };
+  if (decision.type === 'decline') {
+    const reopens = calls.some((call) => call.planId === planId && call.toolName === PROPOSE_TEAM_TOOL_NAME);
+    return {
+      ...state,
+      plans,
+      calls,
+      declinedPlan: { planId, feedback: decision.feedback },
+      ...(reopens ? { planProposed: false } : {}),
+    };
+  }
+  return { ...state, plans, calls };
 }
 
 /** Answer every pending plan the same way ("do it yourself", or Stop). */
 export function resolvePendingPlans(
   state: TeamTurnState,
-  outcome: Exclude<TeamPlanOutcome, 'approved'>,
+  outcome: Exclude<TeamPlanOutcome, 'approved' | 'declined'>,
   team: TeamMember[],
   now: number,
 ): TeamTurnState {
@@ -443,9 +492,8 @@ interface AssignmentOutcome {
   runs: AnalyzeTeamRunSummary[];
 }
 
-/** runAssignment's outcome once its slots finished; null when no known teammate was on it. */
-function assignmentOutcome(toolCallId: string, entry: ApprovedAssignment): AssignmentOutcome | null {
-  if (entry.slots.length === 0) return null;
+/** runAssignment's outcome once its slots finished. */
+function assignmentOutcome(toolCallId: string, entry: ApprovedAssignment): AssignmentOutcome {
   const sections = entry.slots.map(({ result, replaced }) => {
     const run = result as AgentRunResult;
     const note = replaced.length > 0
@@ -471,11 +519,9 @@ function toTeamToolResult(toolCallId: string, text: string, success: boolean, ru
 }
 
 function delegateResult(call: TeamCallState, team: TeamMember[], solo: boolean): ToolResult {
-  const entry = call.approved?.[0];
-  const outcome = entry ? assignmentOutcome(call.toolCallId, entry) : null;
-  if (!entry || !outcome) {
-    return { toolCallId: call.toolCallId, success: false, error: 'The user removed this task from the plan; it did not run.' };
-  }
+  // Approval runs every task of the plan, so each handoff has its entry.
+  const entry = (call.approved as ApprovedAssignment[])[0];
+  const outcome = assignmentOutcome(call.toolCallId, entry);
   const args = call.delegateArgs as DelegateArgs;
   const changed = sameAgents([args.agent], entry.assignment.agents)
     ? ''
@@ -485,15 +531,12 @@ function delegateResult(call: TeamCallState, team: TeamMember[], solo: boolean):
 }
 
 function proposeResult(call: TeamCallState, team: TeamMember[], solo: boolean): ToolResult {
-  const approved = call.approved ?? [];
   const proposed = call.proposed ?? [];
-  const outcomes = approved.map((entry) => ({ assignment: entry.assignment, outcome: assignmentOutcome(call.toolCallId, entry) }));
-  const approvedIds = new Set(approved.map(({ assignment }) => assignment.id));
-  const removed = proposed.filter((assignment) => !approvedIds.has(assignment.id));
-  const changes = approved.flatMap(({ assignment }) => {
+  const outcomes = (call.approved ?? []).map((entry) => ({ assignment: entry.assignment, outcome: assignmentOutcome(call.toolCallId, entry) }));
+  const changes = outcomes.flatMap(({ assignment }) => {
     const original = proposed.find((candidate) => candidate.id === assignment.id);
     return original && !sameAgents(original.agents, assignment.agents)
-      ? [`"${taskTitle(assignment.task)}" ran on ${describeHandles(assignment.agents, team)}`]
+      ? [`"${assignmentName(assignment)}" ran on ${describeHandles(assignment.agents, team)}`]
       : [];
   });
   // The operator can't otherwise tell that approval happened: state it, and what the user changed.
@@ -502,17 +545,12 @@ function proposeResult(call: TeamCallState, team: TeamMember[], solo: boolean): 
     changes.length > 0 ? `The user changed: ${changes.join('; ')}.` : '',
     'Results by task:',
   ].filter(Boolean).join(' ');
-  const sections = outcomes.map(({ assignment, outcome }) => (
-    `## Task: ${taskTitle(assignment.task)}\n${outcome?.content ?? 'The user removed every teammate from this task; it did not run.'}`
-  ));
-  if (removed.length > 0) {
-    sections.push(`Removed from the plan by the user: ${removed.map((assignment) => `"${taskTitle(assignment.task)}"`).join(', ')}.`);
-  }
+  const sections = outcomes.map(({ assignment, outcome }) => `## Task: ${assignmentName(assignment)}\n${outcome.content}`);
   return toTeamToolResult(
     call.toolCallId,
     [header, ...sections].join('\n\n'),
-    outcomes.some(({ outcome }) => outcome?.success),
-    outcomes.flatMap(({ outcome }) => outcome?.runs ?? []),
+    outcomes.some(({ outcome }) => outcome.success),
+    outcomes.flatMap(({ outcome }) => outcome.runs),
     solo,
   );
 }
@@ -522,6 +560,10 @@ export function composeTeamResults(state: TeamTurnState, team: TeamMember[]): To
   const solo = state.solo === true;
   return (state.calls ?? []).map((call) => {
     if (call.resolution === 'solo') return soloResult(call.toolCallId);
+    if (call.resolution === 'declined') {
+      // Not a failure: the user's answer, like solo.
+      return { toolCallId: call.toolCallId, success: true, content: declinedResultText(call.toolName, call.feedback ?? '') };
+    }
     return call.toolName === DELEGATE_TOOL_NAME ? delegateResult(call, team, solo) : proposeResult(call, team, solo);
   });
 }

@@ -24,7 +24,7 @@ export interface NotificationDoc {
   mode: 'analyze';
   sessionId: string;
   runId: string;
-  /** The question, the error, or the plan's rationale (short). */
+  /** The question, the error, or the plan's goal (short). */
   detail?: string;
   createdAt: number;
   read: boolean;
@@ -88,6 +88,6 @@ export async function notifyTurnEnded(run: AnalyzeRunDoc, outcome: string, now =
 export async function notifyPlansPending(run: AnalyzeRunDoc, plans: TeamPlan[], now = Date.now()): Promise<void> {
   if (run.kind !== 'operator') return;
   for (const plan of plans) {
-    await createOnce(run.uid, base(run, `${run.runId}_plan_${plan.id}`, 'awaiting_approval', plan.rationale, now));
+    await createOnce(run.uid, base(run, `${run.runId}_plan_${plan.id}`, 'awaiting_approval', plan.goal, now));
   }
 }

@@ -9,6 +9,7 @@ import { buildTeam } from '../teamTools';
 import {
   SOLO_RESULT_TEXT,
   activeChildRunIds,
+  declinedResultText,
   assignSlotRun,
   composeTeamResults,
   decidePlan,
@@ -36,7 +37,8 @@ function delegateCall(id: string, agent: string, task: string): ToolCall {
   return { id, type: 'function', function: { name: 'delegate', arguments: JSON.stringify({ task, agent }) } };
 }
 function proposeCall(id: string, kind: 'panel' | 'split', assignments: Array<{ task: string; agents: string[] }>): ToolCall {
-  return { id, type: 'function', function: { name: 'propose_team', arguments: JSON.stringify({ kind, rationale: 'Because.', assignments }) } };
+  const tasks = assignments.map((assignment) => ({ title: assignment.task, summary: `Does ${assignment.task}.`, deliverable: 'Findings.', ...assignment }));
+  return { id, type: 'function', function: { name: 'propose_team', arguments: JSON.stringify({ kind, goal: 'The goal.', approach: 'Because.', assignments: tasks, after: 'Combine them.' }) } };
 }
 
 const modelOf: Record<string, { name: string; model: string; provider: string }> = {
@@ -99,8 +101,11 @@ describe('team calls: setup', () => {
 
   it('a proposal is its own plan, ids per assignment, and opens the planning gate even when malformed', () => {
     const setup = setupTeamCalls({ toolCalls: [proposeCall('p1', 'split', [{ task: 'A', agents: ['teammate1'] }, { task: 'B', agents: ['teammate2'] }])], team, solo: false, planCounter: 2, now: 1000 });
-    expect(setup.plans[0]).toMatchObject({ id: `plan_${(1000).toString(36)}_3`, source: 'propose_team', kind: 'split', rationale: 'Because.' });
+    expect(setup.plans[0]).toMatchObject({
+      id: `plan_${(1000).toString(36)}_3`, source: 'propose_team', kind: 'split', goal: 'The goal.', approach: 'Because.', after: 'Combine them.',
+    });
     expect(setup.plans[0].assignments.map((a) => a.id)).toEqual(['p1:1', 'p1:2']);
+    expect(setup.plans[0].assignments[0]).toEqual({ id: 'p1:1', title: 'A', summary: 'Does A.', deliverable: 'Findings.', task: 'A', agents: ['teammate1'] });
     expect(setup.planProposed).toBe(true);
     const bad = setupTeamCalls({ toolCalls: [{ id: 'p2', type: 'function', function: { name: 'propose_team', arguments: '{' } }], team, solo: false, planCounter: 0, now: 1 });
     expect(bad.planProposed).toBe(true);
@@ -115,8 +120,8 @@ describe('team calls: decisions and results', () => {
     state = decidePlan(state, planId, {
       type: 'approve',
       assignments: [
-        { id: 'd1', task: 'Sum A', agents: ['teammate2'] },
-        { id: 'd2', task: 'Sum B', agents: ['teammate1', 'teammate2'] },
+        { id: 'd1', agents: ['teammate2'] },
+        { id: 'd2', agents: ['teammate1', 'teammate2'] },
       ],
     }, 'approved', team, 2000);
     expect(hasPendingPlans(state)).toBe(false);
@@ -137,15 +142,38 @@ describe('team calls: decisions and results', () => {
     expect(r2.metadata?.teamRuns?.map((run) => run.assignmentKey)).toEqual(['d2', 'd2']);
   });
 
-  it('reports a task the user removed from the plan without running it', () => {
+  it('declining a delegate plan answers each handoff with the feedback; nothing runs', () => {
     let state = held([delegateCall('d1', 'teammate1', 'Sum A'), delegateCall('d2', 'teammate2', 'Sum B')]);
     const plan = state.plans![0].plan;
-    state = decidePlan(state, plan.id, { type: 'approve', assignments: [plan.assignments[1]] }, 'approved', team, 2000);
-    expect(slotsToSpawn(state)).toHaveLength(1);
-    state = runAll(state);
-    const [r1, r2] = composeTeamResults(state, team);
-    expect(r1).toMatchObject({ success: false, error: 'The user removed this task from the plan; it did not run.' });
-    expect(r2.content).toContain('answer from gemini-pro');
+    state = decidePlan(state, plan.id, validateDecision(plan, { type: 'decline', feedback: ' Use one teammate. ' }), 'declined', team, 2000);
+    expect(state.plans![0].status).toBe('declined');
+    expect(state.declinedPlan).toEqual({ planId: plan.id, feedback: 'Use one teammate.' });
+    expect(slotsToSpawn(state)).toHaveLength(0);
+    expect(isTeamRoundReady(state)).toBe(true);
+    expect(state.solo).toBeUndefined();
+    const results = composeTeamResults(state, team);
+    expect(results).toHaveLength(2);
+    for (const r of results) {
+      expect(r.success).toBe(true);
+      expect(r.content).toBe(declinedResultText('delegate', 'Use one teammate.'));
+      expect(r.content).toContain('The user declined this handoff: Use one teammate.');
+    }
+  });
+
+  it('declining a proposal tells the operator to revise and reopens the planning gate', () => {
+    let state: TeamTurnState = { ...held([proposeCall('p1', 'split', [{ task: 'A', agents: ['teammate1'] }])]), planProposed: true };
+    const plan = state.plans![0].plan;
+    state = decidePlan(state, plan.id, validateDecision(plan, { type: 'decline', feedback: 'Add a task for B.' }), 'declined', team, 2000);
+    expect(state.planProposed).toBe(false);
+    expect(isTeamRoundReady(state)).toBe(true);
+    const [r1] = composeTeamResults(state, team);
+    expect(r1).toMatchObject({ success: true });
+    expect(r1.content).toBe('The user declined this plan: Add a task for B.\n\nPropose a revised plan with propose_team, ask the user if something is unclear, or say if you\'d rather work alone.');
+  });
+
+  it('a decline needs feedback', () => {
+    const plan = held([delegateCall('d1', 'teammate1', 'A')]).plans![0].plan;
+    expect(() => validateDecision(plan, { type: 'decline', feedback: '  ' })).toThrow(/how the plan should change/);
   });
 
   it('"do it yourself" on a pending plan: nothing runs, the call says so, and the run goes solo', () => {
@@ -192,14 +220,17 @@ describe('team calls: decisions and results', () => {
     expect(r1.metadata?.teamRuns?.map((run) => run.assignmentKey)).toEqual(['p1:1', 'p1:1']);
   });
 
-  it('a split with one task removed tells the operator what did not run', () => {
+  it('a split with a model swap tells the operator what changed', () => {
     let state = held([proposeCall('p1', 'split', [{ task: 'Task A', agents: ['teammate1'] }, { task: 'Task B', agents: ['teammate2'] }])]);
     const plan = state.plans![0].plan;
-    state = decidePlan(state, plan.id, { type: 'approve', assignments: [{ ...plan.assignments[0], agents: ['teammate2'] }] }, 'approved', team, 2000);
+    const approved = validateDecision(plan, { type: 'approve', assignments: [{ id: 'p1:1', agents: ['teammate2'] }, { id: 'p1:2', agents: ['teammate2'] }] });
+    state = decidePlan(state, plan.id, approved, 'approved', team, 2000);
     state = runAll(state);
     const [r1] = composeTeamResults(state, team);
     expect(r1.content).toContain('The user changed: "Task A" ran on Gemini (gemini-pro).');
-    expect(r1.content).toContain('Removed from the plan by the user: "Task B".');
+    expect(r1.content).toContain('## Task: Task A');
+    expect(r1.content).toContain('## Task: Task B');
+    expect(r1.content).not.toMatch(/removed/i);
   });
 
   it('"Replace with…" reruns the slot on another model and reports both', () => {
@@ -227,12 +258,16 @@ describe('team calls: decisions and results', () => {
     expect(slotsToSpawn(state)).toHaveLength(1);
   });
 
-  it('checks the user\'s edits against the plan', () => {
-    const state = held([delegateCall('d1', 'teammate1', 'A')]);
+  it('checks the user\'s edits against the plan: every task runs, on pool models, with the stored task text', () => {
+    const state = held([delegateCall('d1', 'teammate1', 'A'), delegateCall('d2', 'teammate2', 'B')]);
     const plan = state.plans![0].plan;
-    expect(() => validateDecision(plan, { type: 'approve', assignments: [{ id: 'zz', task: 'A', agents: ['teammate1'] }] })).toThrow(/not in this plan/);
-    expect(() => validateDecision(plan, { type: 'approve', assignments: [{ id: 'd1', task: ' ', agents: ['teammate1'] }] })).toThrow(/needs a task/);
-    expect(validateDecision(plan, { type: 'approve', assignments: [{ id: 'd1', task: ' A2 ', agents: ['teammate1', 'nobody', 'teammate1'] }] }))
-      .toEqual({ type: 'approve', assignments: [{ id: 'd1', task: 'A2', agents: ['teammate1'] }] });
+    const both = [{ id: 'd1', agents: ['teammate1'] }, { id: 'd2', agents: ['teammate2'] }];
+    expect(() => validateDecision(plan, { type: 'approve', assignments: [...both, { id: 'zz', agents: ['teammate1'] }] })).toThrow(/not in this plan/);
+    expect(() => validateDecision(plan, { type: 'approve', assignments: [both[1]] })).toThrow(/Task 1 is missing/);
+    expect(() => validateDecision(plan, { type: 'approve', assignments: [both[0], { id: 'd2', agents: ['nobody'] }] })).toThrow(/Task 2 needs at least one model/);
+    // A client can't rewrite the teammate's instructions: extra fields are ignored.
+    const edited = [{ id: 'd1', task: 'Do something else', agents: ['teammate1', 'nobody', 'teammate1'] }, both[1]];
+    expect(validateDecision(plan, { type: 'approve', assignments: edited }))
+      .toEqual({ type: 'approve', assignments: [{ id: 'd1', task: 'A', agents: ['teammate1'] }, { id: 'd2', task: 'B', agents: ['teammate2'] }] });
   });
 });

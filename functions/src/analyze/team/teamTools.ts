@@ -1,7 +1,7 @@
 /** Ported from symposium-ai-web src/services/analyze/orchestrator/agents/teamTools.ts (Phase 3 Step 4), logic unchanged. */
 import type { ToolDefinition } from '../contract/lib/ai/tools/types';
 import type { AI } from '../contract/types';
-import type { DelegateArgs, ProposeTeamArgs, TeamAssignment, TeamMember, TeamPoolMember } from './types';
+import type { DelegateArgs, ProposeTeamArgs, TeamMember, TeamPoolMember } from './types';
 
 export const DELEGATE_TOOL_NAME = 'delegate';
 export const PROPOSE_TEAM_TOOL_NAME = 'propose_team';
@@ -59,7 +59,7 @@ export function describeMember(member: TeamMember): string {
 export function buildDelegateTool(team: TeamMember[]): ToolDefinition {
   return {
     name: DELEGATE_TOOL_NAME,
-    description: `Give a task to one of your teammates: ${team.map(describeMember).join('; ')}. The user approves each handoff before it runs (and may change the teammate). The teammate works on it with its own tools and Python session and returns its final reply to you. Several delegate calls in one turn run in parallel. The teammate sees only the task text you write, nothing else from this conversation. Its files are saved under /output/agents/.`,
+    description: `Give a task to one of your teammates: ${team.map(describeMember).join('; ')}. The user sees each handoff before it runs and approves it (and may change the teammate), declines it with feedback, or has you do the work yourself. The teammate works on it with its own tools and Python session and returns its final reply to you. Several delegate calls in one turn run in parallel. The teammate sees only the task text you write, nothing else from this conversation. Its files are saved under /output/agents/.`,
     parameters: {
       type: 'object',
       properties: {
@@ -85,7 +85,7 @@ export function buildDelegateTool(team: TeamMember[]): ToolDefinition {
 export function buildProposeTeamTool(team: TeamMember[]): ToolDefinition {
   return {
     name: PROPOSE_TEAM_TOOL_NAME,
-    description: `Propose a team to the user before the work starts. Teammates: ${team.map(describeMember).join('; ')}. kind "panel": one assignment whose agents each work the same task independently (up to ${MAX_PANEL_SIZE}); you then reconcile their answers. kind "split": several assignments, each with one agent, for work that divides. The user approves the plan, changes it (models, panelists, tasks), or has you do the work yourself. Approved runs go in parallel and their final replies come back to you together. Each teammate sees only its task text, nothing else from this conversation, and saves files under /output/agents/.`,
+    description: `Propose a team to the user before the work starts. Teammates: ${team.map(describeMember).join('; ')}. kind "panel": one assignment whose agents each work the same task independently (up to ${MAX_PANEL_SIZE}); you then reconcile their answers. kind "split": several assignments, each with one agent, for work that divides. The user reads the plan on a card: write goal, approach, after, and each task's title, summary and deliverable for them, in plain words; each task's "task" is the teammate's instructions. The user approves it (and may change which models run a task), declines it with feedback, or has you do the work yourself. Approved runs go in parallel and their final replies come back to you together. Each teammate sees only its task text, nothing else from this conversation, and saves files under /output/agents/.`,
     parameters: {
       type: 'object',
       properties: {
@@ -94,9 +94,13 @@ export function buildProposeTeamTool(team: TeamMember[]): ToolDefinition {
           enum: ['panel', 'split'],
           description: '"panel" = same task, several models independently; "split" = different tasks.',
         },
-        rationale: {
+        goal: {
           type: 'string',
-          description: 'One or two sentences for the user: why this team, for this request.',
+          description: 'For the user: what they asked for, in one line.',
+        },
+        approach: {
+          type: 'string',
+          description: 'For the user: how the team will tackle it and why this team, in 2-4 sentences.',
         },
         assignments: {
           type: 'array',
@@ -104,9 +108,21 @@ export function buildProposeTeamTool(team: TeamMember[]): ToolDefinition {
           items: {
             type: 'object',
             properties: {
+              title: {
+                type: 'string',
+                description: 'For the user: this task in a few words.',
+              },
+              summary: {
+                type: 'string',
+                description: 'For the user: what this teammate does and why, in 1-2 sentences.',
+              },
+              deliverable: {
+                type: 'string',
+                description: 'For the user: what comes back (files, figures, findings).',
+              },
               task: {
                 type: 'string',
-                description: 'Everything the teammate needs to know, in your own words.',
+                description: 'For the teammate: everything it needs to know, in your own words.',
               },
               agents: {
                 type: 'array',
@@ -114,11 +130,15 @@ export function buildProposeTeamTool(team: TeamMember[]): ToolDefinition {
                 description: 'Which teammates run this task.',
               },
             },
-            required: ['task', 'agents'],
+            required: ['title', 'summary', 'deliverable', 'task', 'agents'],
           },
         },
+        after: {
+          type: 'string',
+          description: 'For the user: what you do with the results once the team is done (for example: combine or compare them, then write the report).',
+        },
       },
-      required: ['kind', 'rationale', 'assignments'],
+      required: ['kind', 'goal', 'approach', 'assignments', 'after'],
       additionalProperties: false,
     },
     category: 'compute',
@@ -184,16 +204,29 @@ export function parseDelegateArgs(raw: string, team: TeamMember[]): DelegateArgs
   return { task, agent };
 }
 
+/** A propose_team field written for the user: required, non-empty. */
+function planText(value: unknown, field: string): string {
+  const text = typeof value === 'string' ? value.trim() : '';
+  if (!text) throw new TeamArgsError(`propose_team needs a non-empty "${field}"`);
+  return text;
+}
+
 export function parseProposeTeamArgs(raw: string, team: TeamMember[]): ProposeTeamArgs {
   const parsed = parseJsonArgs(raw, PROPOSE_TEAM_TOOL_NAME);
   const kind = parsed.kind === 'panel' || parsed.kind === 'split' ? parsed.kind : null;
   if (!kind) throw new TeamArgsError('propose_team requires kind "panel" or "split"');
-  const rationale = typeof parsed.rationale === 'string' ? parsed.rationale.trim() : '';
   const rawAssignments = Array.isArray(parsed.assignments) ? parsed.assignments : [];
   if (rawAssignments.length === 0) throw new TeamArgsError('propose_team requires at least one assignment');
+  const goal = planText(parsed.goal, 'goal');
+  const approach = planText(parsed.approach, 'approach');
+  const after = planText(parsed.after, 'after');
 
-  const assignments: Array<Omit<TeamAssignment, 'id'>> = rawAssignments.map((entry, index) => {
+  const assignments = rawAssignments.map((entry, index) => {
     const item = (entry && typeof entry === 'object' ? entry : {}) as Record<string, unknown>;
+    const at = `assignments[${index}]`;
+    const title = planText(item.title, `${at}.title`);
+    const summary = planText(item.summary, `${at}.summary`);
+    const deliverable = planText(item.deliverable, `${at}.deliverable`);
     const task = typeof item.task === 'string' ? item.task.trim() : '';
     if (!task) throw new TeamArgsError(`propose_team assignment ${index + 1} needs a non-empty "task"`);
     const agents = Array.from(new Set((Array.isArray(item.agents) ? item.agents : [])
@@ -205,7 +238,7 @@ export function parseProposeTeamArgs(raw: string, team: TeamMember[]): ProposeTe
     if (agents.length > MAX_PANEL_SIZE) {
       throw new TeamArgsError(`propose_team assignment ${index + 1} has ${agents.length} agents; the most is ${MAX_PANEL_SIZE}`);
     }
-    return { task, agents };
+    return { title, summary, deliverable, task, agents };
   });
-  return { kind, rationale, assignments };
+  return { kind, goal, approach, after, assignments };
 }
