@@ -11,6 +11,7 @@ import { createSandboxFiles } from './tools/sandboxFiles';
 import { executePythonTool } from './tools/executePythonTool';
 import { executeReadFileTool } from './tools/executeReadFileTool';
 import { executeWriteOutputFileTool } from './tools/executeWriteOutputFileTool';
+import { guardWebMapTiles } from './tools/webMapTiles';
 import { executeSalesforceMetadataAuditTool } from './tools/executeSalesforceMetadataAuditTool';
 import { executeSalesforceReadSourceTool } from './tools/executeSalesforceReadSourceTool';
 import { executeRequestSalesforceOrgEvidenceTool } from './tools/executeRequestSalesforceOrgEvidenceTool';
@@ -88,11 +89,14 @@ export function createToolDispatcher(context: ToolDispatchContext): (call: ToolC
     try {
       switch (name) {
         case 'execute_python':
-          return await executePythonTool(sandbox, call.id, typeof args.code === 'string' ? args.code : '', context.signal);
+          return await guardWebMapTiles(
+            await executePythonTool(sandbox, call.id, typeof args.code === 'string' ? args.code : '', context.signal),
+            files.readFile,
+          );
         case 'read_file':
           return await executeReadFileTool(files, call.id, args);
         case 'write_output_file':
-          return await executeWriteOutputFileTool(files, call.id, args);
+          return await guardWebMapTiles(await executeWriteOutputFileTool(files, call.id, args), files.readFile);
         case 'salesforce_metadata_audit':
           return await executeSalesforceMetadataAuditTool(files, call.id, args);
         case 'salesforce_read_source':

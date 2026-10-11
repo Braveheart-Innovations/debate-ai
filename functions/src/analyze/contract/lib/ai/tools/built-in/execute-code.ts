@@ -44,7 +44,7 @@ INSTALLED PACKAGES (fixed set - just import them; never pip install):
   (scanned PDFs: page images sent as vision attachments automatically)
 - python-docx (import docx), python-pptx (import pptx), reportlab
 - plotly, bokeh, altair - interactive charts (HTML artifacts)
-- folium - interactive Leaflet tile maps (HTML artifacts) — only when street-level pan/zoom is needed; thematic maps are Vega-Lite chart blocks
+- Maps are Vega-Lite \`geoshape\` chart blocks in the report, never web tile maps (folium/Leaflet, Plotly scattermap, MapLibre): reports have no tile provider
 - geopandas, shapely, pyarrow, lxml, beautifulsoup4, nltk, wordcloud, xarray, astropy, biopython
 
 MAP BOUNDARIES (for geopandas static maps; geopandas.datasets is gone):
