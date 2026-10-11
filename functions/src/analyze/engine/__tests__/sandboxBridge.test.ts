@@ -63,4 +63,14 @@ describe('createSandboxBridge', () => {
     await expect(createSandboxBridge('u', 's').execute('x', { signal: controller.signal })).rejects.toBeInstanceOf(SandboxCancelledError);
     expect(mockExecute).not.toHaveBeenCalled();
   });
+
+  it('reports each call\'s wall time, also when the call fails', async () => {
+    const times: number[] = [];
+    mockExecute.mockResolvedValueOnce(remote()).mockRejectedValueOnce(new Error('sandbox gone'));
+    const bridge = createSandboxBridge('u', 's', undefined, (ms) => times.push(ms));
+    await bridge.execute('x = 1');
+    await expect(bridge.execute('x = 2')).rejects.toThrow('sandbox gone');
+    expect(times).toHaveLength(2);
+    expect(times.every((ms) => ms >= 0)).toBe(true);
+  });
 });

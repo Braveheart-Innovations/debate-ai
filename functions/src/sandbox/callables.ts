@@ -4,6 +4,7 @@ import { defineSecret } from 'firebase-functions/params';
 import { SERVER_LOOP_ALLOWED_UIDS } from '../analyze/engine/allowlist';
 import { E2BSandboxProvider } from './e2bProvider';
 import { FirestoreSandboxStore } from './firestoreStore';
+import { recordSandboxUsage } from '../usageTracking';
 import {
   SandboxInputError,
   SandboxSessionService,
@@ -43,6 +44,7 @@ export function getSandboxService(): SandboxSessionService {
       templateFor: sandboxTemplateFor,
       idleTimeoutMs: IDLE_TIMEOUT_MS,
       now: () => Date.now(),
+      meter: recordSandboxUsage,
     });
   }
   return service;

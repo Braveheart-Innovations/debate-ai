@@ -297,6 +297,45 @@ test('writeFile skips unchanged re-mounts and assembles chunked uploads', async 
   );
 });
 
+test('each call records its sandbox time; awake time is the gap since last use, at most the idle timeout', async () => {
+  const provider = fakeProvider();
+  const store = memoryStore();
+  const usage = [];
+  let t = 0;
+  const svc = new SandboxSessionService({
+    provider, store, templateFor: () => 'tpl', idleTimeoutMs: 15 * 60_000, now: () => t, sleep: async () => {},
+    meter: async (uid, record) => { usage.push({ uid, ...record }); },
+  });
+  provider.runCode = async (id, code) => {
+    t += 1_000;
+    return code.startsWith('_sym_post')
+      ? { stdout: `${POST_MARKER}{"images":[],"html":[],"data":[]}\n`, stderr: '', pngs: [], timedOut: false }
+      : { stdout: '', stderr: '', pngs: [], timedOut: false };
+  };
+
+  await svc.execute('u1', 's', 'x = 1', 10_000);            // new sandbox: pre, code, post
+  t += 5 * 60_000;
+  await svc.writeFile('u1', 's', { path: '/uploads/a.txt', base64: 'YQ==' });
+  t += 60 * 60_000;                                          // paused after 15 minutes
+  await svc.listFiles('u1', 's', '/uploads');
+
+  assert.deepEqual(usage, [
+    { uid: 'u1', calls: 1, executeMs: 3_000, creates: 1 },
+    { uid: 'u1', calls: 1, executeMs: 0, awakeMs: 5 * 60_000 + 3_000 },
+    { uid: 'u1', calls: 1, executeMs: 0, awakeMs: 15 * 60_000, resumes: 1 },
+  ]);
+});
+
+test('a failed usage write never fails the sandbox call', async () => {
+  const provider = fakeProvider();
+  const svc = new SandboxSessionService({
+    provider, store: memoryStore(), templateFor: () => 'tpl', idleTimeoutMs: 1, now: () => 1, sleep: async () => {},
+    meter: async () => { throw new Error('firestore down'); },
+  });
+  const result = await svc.execute('u1', 's', 'x = 1', 10_000);
+  assert.equal(result.success, true);
+});
+
 test('reset destroys the sandbox and forgets the mapping', async () => {
   const provider = fakeProvider();
   const { svc, store } = service(provider);

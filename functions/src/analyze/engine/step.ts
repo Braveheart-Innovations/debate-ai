@@ -11,7 +11,7 @@
  * delivery of model calls.
  */
 import { onTaskDispatched } from 'firebase-functions/v2/tasks';
-import { getFirestore, type DocumentReference } from 'firebase-admin/firestore';
+import { FieldValue, getFirestore, type DocumentReference } from 'firebase-admin/firestore';
 import { encryptionKey } from '../../apiKeys';
 import { SERVER_TOOL_SECRETS } from '../../tools';
 import { getToolDefinitions } from './toolDefinitions';
@@ -139,6 +139,18 @@ export async function runStep(payload: StepPayload, owner: string, finalAttempt 
   let outcome: RoundOutcome = 'continue';
   let retrying = false;
   let crashed: Error | undefined;
+  // Sandbox time since the last run-doc write; it rides along with the next one.
+  const sandboxTime = { ms: 0, calls: 0 };
+  const takeSandboxTime = (): Record<string, FieldValue> => {
+    if (sandboxTime.calls === 0) return {};
+    const fields = {
+      'compute.sandboxExecMs': FieldValue.increment(sandboxTime.ms),
+      'compute.sandboxCalls': FieldValue.increment(sandboxTime.calls),
+    };
+    sandboxTime.ms = 0;
+    sandboxTime.calls = 0;
+    return fields;
+  };
 
   try {
     const keyValue = encryptionKey.value();
@@ -161,6 +173,10 @@ export async function runStep(payload: StepPayload, owner: string, finalAttempt 
         kernelKey: run.config.kernel,
         keyValue,
         signal: cancel.signal,
+        onSandboxTime: (ms) => {
+          sandboxTime.ms += ms;
+          sandboxTime.calls += 1;
+        },
       }),
       toolResults: new Map(),
       messages: isOperator ? await operatorMessageStore(uid, sessionId) : runMessageStore(uid, sessionId, runId),
@@ -177,7 +193,7 @@ export async function runStep(payload: StepPayload, owner: string, finalAttempt 
       await files.sync();
       outcome = await runRound(context, state);
       if (outcome === 'continue') state.round += 1;
-      await ref.update({ round: state.round, retryCount: state.retryCount, updatedAt: Date.now() });
+      await ref.update({ round: state.round, retryCount: state.retryCount, updatedAt: Date.now(), ...takeSandboxTime() });
     }
   } catch (error) {
     console.error('[analyzeRun] step failed', { runId, finalAttempt, error });
@@ -187,7 +203,7 @@ export async function runStep(payload: StepPayload, owner: string, finalAttempt 
       stopHeartbeat();
       cancel.stop();
       await events.close().catch(() => undefined);
-      await ref.update({ lease: null, updatedAt: Date.now() });
+      await ref.update({ lease: null, updatedAt: Date.now(), ...takeSandboxTime() });
       throw error;
     }
     outcome = 'error';
@@ -196,6 +212,10 @@ export async function runStep(payload: StepPayload, owner: string, finalAttempt 
     if (!retrying) {
       stopHeartbeat();
       cancel.stop();
+      const unwritten = takeSandboxTime();
+      if (Object.keys(unwritten).length > 0) {
+        await ref.update(unwritten).catch((error) => console.error('[analyzeRun] sandbox time not recorded', { runId, error }));
+      }
       if (outcome !== 'waiting') {
         events.push({ type: 'status', status: outcome === 'continue' ? 'running' : outcome === 'completed' ? 'completed' : outcome === 'stopped' ? 'stopped' : 'error' });
       }

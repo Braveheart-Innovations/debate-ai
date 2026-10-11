@@ -56,7 +56,6 @@ export {
 export {
   getProviderBalances,
   getUsageStats,
-  recordFreeTierInteraction,
   recordImageGeneration,
   recordMediaGeneration,
 } from './usageTracking';
