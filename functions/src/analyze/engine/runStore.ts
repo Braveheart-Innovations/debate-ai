@@ -74,8 +74,6 @@ export interface RunConfig {
   sandboxSessionKey: string;
   /** The output the user chose (Analyze composer); capture classifies and gates artifacts by it. */
   outputSelection: AnalyzeOutputSelection;
-  /** Save each round's capture inputs and output (capture parity checks; Phase 3 build-out only). */
-  captureTrace?: boolean;
   /** Python kernel for this run (subagents get their own; the operator uses the default). */
   kernel?: string;
   /** The model's display name (roster modelConfig), shown for subagents as the browser did. */

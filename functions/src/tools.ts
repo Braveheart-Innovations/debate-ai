@@ -383,12 +383,6 @@ const BLOCKED_HOSTS = [
   '169.254.',
 ];
 
-/**
- * Inline fetch_api limit: the body travels back to the browser. Only production
- * web v2.3.12 still uses this path; remove it in the first deploy after v2.5.0
- * ships. Sandbox-target requests use MAX_SANDBOX_FETCH_BYTES.
- */
-const MAX_FETCH_API_RESPONSE_BYTES = 750_000;
 const SOCRATA_DOWNLOAD_BLOCK_MESSAGE = 'Blocked bulk download endpoint rows.json?accessType=DOWNLOAD because it is too large for interactive analysis. Query the dataset /resource/{dataset_id}.json endpoint with SoQL filters and a modest $limit (for example: 100-1000 rows), then paginate with $offset.';
 const SALESFORCE_RELEASES_URL = 'https://www.salesforce.com/releases';
 const SALESFORCE_OFFICIAL_HOST_PATTERN = /(^|\.)salesforce\.com$/i;
@@ -1840,7 +1834,7 @@ async function handleFetchApi(
   args: FetchApiArgs,
   uid: string,
   encryptionKeyValue: string,
-  maxBytes: number = MAX_FETCH_API_RESPONSE_BYTES,
+  maxBytes: number,
 ): Promise<ToolResult> {
   const startTime = Date.now();
   let { url } = args;
@@ -2131,6 +2125,18 @@ interface ExecuteToolRequest {
  * fetch_api into the sandbox: the body is written to /data in the caller's own
  * sandbox (uid-bound) and only a summary goes back. Errors pass through.
  */
+/**
+ * fetch_api saves its response into the Analyze session's sandbox; nothing
+ * returns the body inline any more (that was the pre-v2.5 browser loop's path).
+ */
+function noSandboxTarget(toolCallId: string): ToolResult {
+  return {
+    toolCallId,
+    success: false,
+    error: 'fetch_api saves its response into the Analyze session\'s sandbox, and this request named none. Reload the app to update it.',
+  };
+}
+
 async function runSandboxFetch(
   uid: string,
   target: SandboxFetchTarget,
@@ -2217,7 +2223,7 @@ export async function dispatchServerTool(
           });
           result = sandboxTarget
             ? await runSandboxFetch(uid, sandboxTarget, (maxBytes) => handleFetchApi(convertedArgs, uid, keyValue, maxBytes))
-            : await handleFetchApi(convertedArgs, uid, keyValue);
+            : noSandboxTarget(toolCallId);
         } else {
           result = await handleFetchUrl(fetchUrlArgs);
         }
@@ -2232,7 +2238,7 @@ export async function dispatchServerTool(
         const fetchArgs = args as unknown as FetchApiArgs;
         result = sandboxTarget
           ? await runSandboxFetch(uid, sandboxTarget, (maxBytes) => handleFetchApi(fetchArgs, uid, keyValue, maxBytes))
-          : await handleFetchApi(fetchArgs, uid, keyValue);
+          : noSandboxTarget(toolCallId);
         break;
       }
 

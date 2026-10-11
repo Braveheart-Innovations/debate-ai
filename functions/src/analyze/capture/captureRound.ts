@@ -17,7 +17,6 @@
  * are excluded by cellId; deletes only ever land in the final batch).
  */
 import { getFirestore, type DocumentReference } from 'firebase-admin/firestore';
-import { getStorage } from 'firebase-admin/storage';
 import type { Message, ToolResultProvenance } from '../contract/types';
 import type { ToolCall, ToolResult } from '../contract/lib/ai/tools/types';
 import type { Artifact } from '../contract/types/notebook';
@@ -40,43 +39,6 @@ import type { StoredPayloadRefs } from '../../cloudPayloadStorage';
 import { handleStreamCompleted, type StreamCompletedEventData } from './streamCompletedHandler';
 import type { AnalyzeOrgEvidenceRequest } from './types';
 import type { TeamPanelRecord } from './teamPanelNote';
-
-/** Where capture traces go (Storage rules deny clients analyzeScratch/). */
-const TRACE_BUCKET = 'symposium-ai.firebasestorage.app';
-
-export function captureTracePath(uid: string, sessionId: string, runId: string, messageId: string): string {
-  return `analyzeScratch/captureTraces/${uid}/${sessionId}/${runId}/${messageId}.json`;
-}
-
-/**
- * Everything one capture read and produced, for the parity harness (web
- * scripts/analyze-capture-parity): it replays `event` and `state` through the
- * web's handleStreamCompleted and compares the result with `output`.
- */
-export interface CaptureTrace {
-  version: 1;
-  sessionId: string;
-  messageId: string;
-  now: number;
-  event: StreamCompletedEventData;
-  state: {
-    artifacts: Artifact[];
-    messages: Message[];
-    outputSelection: ReturnType<typeof normalizeAnalyzeOutputSelection>;
-    fetchProvenance: Record<string, ToolResultProvenance>;
-    workbook: SessionWorkbookState;
-    /** The turn's independent panel (getTeamPanel); absent in traces from before teams. */
-    teamPanel?: TeamPanelRecord | null;
-  };
-  output: {
-    upserts: Artifact[];
-    removals: string[];
-    persistedMessage: Message | null;
-    pendingOrgEvidenceRequest: AnalyzeOrgEvidenceRequest | null;
-    reportProduced: boolean;
-    fetchProvenance: Record<string, ToolResultProvenance>;
-  };
-}
 
 /** Outside /output, so the sandbox never reports it as a model output. */
 export const WORKBOOK_STATE_PATH = '/home/user/.symposium/session-workbook.json';
@@ -167,16 +129,6 @@ export class CaptureSession {
     });
   }
 
-  private async saveTrace(trace: CaptureTrace): Promise<void> {
-    const { uid, sessionId, run } = this.context;
-    try {
-      await getStorage().bucket(TRACE_BUCKET).file(captureTracePath(uid, sessionId, run.runId, trace.messageId))
-        .save(JSON.stringify(trace), { contentType: 'application/json', resumable: false });
-    } catch (error) {
-      console.warn('[analyzeRun] could not save the capture trace', { messageId: trace.messageId, error });
-    }
-  }
-
   async capture(input: CaptureInput): Promise<void> {
     const { uid, sessionId, run, runRef, now } = this.context;
     const messageId = input.message.id;
@@ -185,7 +137,7 @@ export class CaptureSession {
     const workbookBefore = JSON.stringify(workbook.exportState());
     const teamPanel = this.context.loadTeamPanel ? await this.context.loadTeamPanel() : null;
 
-    // One clock reading per capture, so a trace replays with the same timestamps.
+    // One clock reading per capture.
     const capturedAt = now();
     const loadedMessages = await loadSessionMessages(uid, sessionId);
     const messages = loadedMessages.some((m) => m.id === messageId)
@@ -210,16 +162,6 @@ export class CaptureSession {
       toolCalls: input.toolCalls,
       toolExecutionResults: input.results.map((result, index) => toToolExecutionResult(input.toolCalls[index], result)),
     };
-    const traceState = run.config.captureTrace
-      ? JSON.parse(JSON.stringify({
-          artifacts,
-          messages,
-          outputSelection,
-          fetchProvenance: Object.fromEntries(fetchProvenance),
-          workbook: workbook.exportState(),
-          teamPanel,
-        })) as CaptureTrace['state']
-      : null;
 
     handleStreamCompleted(
       event as unknown as Record<string, unknown>,
@@ -276,25 +218,6 @@ export class CaptureSession {
     );
 
     const upserted = [...upserts.values()];
-    if (traceState) {
-      await this.saveTrace({
-        version: 1,
-        sessionId,
-        messageId,
-        now: capturedAt,
-        event,
-        state: traceState,
-        output: {
-          upserts: upserted,
-          removals: [...removals],
-          persistedMessage: messageToPersist,
-          pendingOrgEvidenceRequest: pendingOrgEvidenceRequest ?? null,
-          reportProduced,
-          fetchProvenance: Object.fromEntries(fetchProvenance),
-        },
-      });
-    }
-
     // 1. Artifacts.
     await runInBatches(upserted, UPSERT_CONCURRENCY, async (artifact) => {
       await artifactRef(uid, sessionId, artifact.id).set(await prepareArtifactRecord(uid, sessionId, artifact), { merge: true });
