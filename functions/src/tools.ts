@@ -4,6 +4,7 @@ import { promises as dns } from 'dns';
 import * as net from 'net';
 import { getDecryptedApiKey, encryptionKey } from './apiKeys';
 import { executeWebSearch } from './web_search';
+import { fetchApiArgsError, parseHeadersArg, parseQueryParamsArg } from './fetchArgs';
 import {
   MAX_SANDBOX_FETCH_BYTES,
   parseSandboxFetchTarget,
@@ -514,32 +515,6 @@ function clampTimeoutMs(timeout: unknown): number {
   return Math.min(Math.max(timeout, 1000), 55000);
 }
 
-function toSafeHeaderMap(headers: unknown): Record<string, string> {
-  const safeHeaders: Record<string, string> = {};
-  if (!headers || typeof headers !== 'object') return safeHeaders;
-
-  for (const [key, value] of Object.entries(headers as Record<string, unknown>)) {
-    // Never forward cloud-metadata probe headers (SSRF hardening).
-    if (typeof value === 'string' && !FORBIDDEN_OUTBOUND_HEADERS.has(key.toLowerCase())) {
-      safeHeaders[key] = value;
-    }
-  }
-
-  return safeHeaders;
-}
-
-function toSafeQueryParamMap(queryParams: unknown): Record<string, string> {
-  const safeParams: Record<string, string> = {};
-  if (!queryParams || typeof queryParams !== 'object') return safeParams;
-
-  for (const [key, value] of Object.entries(queryParams as Record<string, unknown>)) {
-    if (value === null || value === undefined) continue;
-    safeParams[key] = String(value);
-  }
-
-  return safeParams;
-}
-
 function decodeChunks(chunks: Uint8Array[], totalBytes: number): string {
   const merged = new Uint8Array(totalBytes);
   let offset = 0;
@@ -681,8 +656,8 @@ function isBlockedUrl(urlString: string): boolean {
  * server at 169.254.169.254) or by decimal/hex/IPv6 IP encodings. The helpers
  * below actually resolve the host and reject any request that targets a
  * private, loopback, link-local, or otherwise-reserved address. Combined with
- * stripping cloud-metadata request headers (see FORBIDDEN_OUTBOUND_HEADERS in
- * toSafeHeaderMap), this closes the metadata-token-theft path.
+ * stripping cloud-metadata request headers (FORBIDDEN_OUTBOUND_HEADERS in
+ * fetchArgs.ts), this closes the metadata-token-theft path.
  *
  * Known residual: redirects use redirect:'follow' (Node's fetch returns an
  * opaque response for redirect:'manual', so per-hop Location can't be read
@@ -697,17 +672,6 @@ class SsrfBlockedError extends Error {
     this.name = 'SsrfBlockedError';
   }
 }
-
-// Outbound headers a caller must never be able to set — cloud metadata probes.
-const FORBIDDEN_OUTBOUND_HEADERS = new Set([
-  'metadata-flavor',
-  'metadata',
-  'x-goog-metadata',
-  'x-google-metadata',
-  'x-aws-ec2-metadata-token',
-  'x-aws-ec2-metadata-token-ttl-seconds',
-  'x-metadata-token',
-]);
 
 function ipv4IsReserved(ip: string): boolean {
   const parts = ip.split('.').map((p) => Number(p));
@@ -1800,8 +1764,9 @@ function buildSalesforceDocExcerpt(content: string, query: string): string {
 interface FetchApiArgs {
   url: string;
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
-  headers?: Record<string, unknown>;
-  query_params?: Record<string, unknown>;
+  /** An object, or a JSON string of one (fetchArgs.ts). */
+  headers?: Record<string, unknown> | string;
+  query_params?: Record<string, unknown> | string;
   body?: string | Record<string, unknown>;
   response_format?: 'json' | 'text' | 'csv';
   api_key_ref?: string;
@@ -1896,12 +1861,20 @@ async function handleFetchApi(
     };
   }
 
+  const parsedQueryParams = parseQueryParamsArg(rawQueryParams);
+  if (!parsedQueryParams.ok) {
+    return { toolCallId: '', success: false, error: parsedQueryParams.error, metadata: { executionTime: Date.now() - startTime } };
+  }
+  const parsedHeaders = parseHeadersArg(customHeaders);
+  if (!parsedHeaders.ok) {
+    return { toolCallId: '', success: false, error: parsedHeaders.error, metadata: { executionTime: Date.now() - startTime } };
+  }
   const requestHeaders: Record<string, string> = {
     'User-Agent': 'SymposiumAI/1.0 (Analyze Tool)',
     'Accept': 'application/json, text/plain, */*',
-    ...toSafeHeaderMap(customHeaders),
+    ...parsedHeaders.values,
   };
-  const queryParams = toSafeQueryParamMap(rawQueryParams);
+  const queryParams = parsedQueryParams.values;
 
   let connectorRef = api_key_ref;
   if (!connectorRef) {
@@ -2236,6 +2209,12 @@ export async function dispatchServerTool(
           throw new Error('Encryption not configured');
         }
         const fetchArgs = args as unknown as FetchApiArgs;
+        // A malformed query_params / headers fails before any sandbox or network work.
+        const argsError = fetchApiArgsError(fetchArgs);
+        if (argsError) {
+          result = { toolCallId, success: false, error: argsError };
+          break;
+        }
         result = sandboxTarget
           ? await runSandboxFetch(uid, sandboxTarget, (maxBytes) => handleFetchApi(fetchArgs, uid, keyValue, maxBytes))
           : noSandboxTarget(toolCallId);
