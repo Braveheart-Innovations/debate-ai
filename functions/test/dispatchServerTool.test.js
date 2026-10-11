@@ -23,6 +23,13 @@ test('the shared secret list covers encryption, the sandbox, and every managed c
   assert.ok(SERVER_TOOL_SECRETS.some((s) => s.name === 'E2B_API_KEY'));
 });
 
+test('fetch_api with malformed query_params fails with the reason, before any sandbox or network work', async () => {
+  const result = await dispatchServerTool('u1', { toolName: 'fetch_api', toolCallId: 'call-q', args: { url: 'https://api.stlouisfed.org/fred/series/observations', query_params: 'series_id=CPIAUCSL' } }, 'k');
+  assert.equal(result.success, false);
+  assert.equal(result.toolCallId, 'call-q');
+  assert.match(result.error, /^query_params must be an object of key-value pairs/);
+});
+
 test('fetch_api with no sandbox target is refused (nothing returns a body inline)', async () => {
   const result = await dispatchServerTool('u1', { toolName: 'fetch_api', toolCallId: 'call-f', args: { url: 'https://api.worldbank.org/v2/country' } }, 'k');
   assert.equal(result.success, false);
