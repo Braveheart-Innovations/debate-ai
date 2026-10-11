@@ -36,9 +36,15 @@ const pythonRuns: Array<{ code: string; kernel?: string }> = [];
 const released: string[] = [];
 // Every call on the sandbox service (each one starts a sandbox if there isn't one).
 const sandboxCalls: string[] = [];
+// The per-user limit: while set, every call that would wake the sandbox is refused.
+const sandboxLimit = { refused: false };
 const recordingCalls = <T extends Record<string, unknown>>(service: T): T => Object.fromEntries(
   Object.entries(service).map(([name, method]) => [name, (...args: unknown[]) => {
     sandboxCalls.push(name);
+    if (sandboxLimit.refused && name !== 'releaseKernel' && name !== 'interrupt') {
+      const { SandboxLimitError } = jest.requireActual<typeof import('../../../sandbox/service')>('../../../sandbox/service');
+      return Promise.reject(new SandboxLimitError(3, 5 * 60_000, 15 * 60_000));
+    }
     return (method as (...a: unknown[]) => unknown)(...args);
   }]),
 ) as T;
@@ -133,6 +139,7 @@ import { artifactRef, prepareArtifactRecord } from '../../engine/sessionStore';
 import { deleteServerOwnedSessionData } from '../../../cloudPayloadStorage';
 import type { Artifact } from '../../contract/types/notebook';
 import { NoSessionSandboxError, runCell } from '../../engine/runCell';
+import { FirestoreSandboxStore } from '../../../sandbox/firestoreStore';
 import { SessionBusyError } from '../../engine/turns';
 import type { NotificationDoc } from '../../engine/notifications';
 import { ANALYZE_FREE_LIMIT_REASON, assertAnalyzeSessionAllowed, countAnalyzeSession } from '../../engine/freeTier';
@@ -204,6 +211,7 @@ beforeEach(() => {
   pythonRuns.length = 0;
   released.length = 0;
   sandboxCalls.length = 0;
+  sandboxLimit.refused = false;
   sandboxFiles.clear();
   storageObjects.clear();
 });
@@ -971,6 +979,49 @@ describeEmulator('step 7 free tier and sandbox time', () => {
     expect((await run(next.runId)).status).toBe('completed');
     expect(sandboxFiles.get('/output/chart.html')?.toString()).toBe('<p>chart</p>');
     expect(sandboxFiles.has(SESSION_FILES_MARKER)).toBe(true);
+  });
+
+  it('at the per-user sandbox limit the turn still runs: Python gets the wait message, files sync on a later round', async () => {
+    await writeUploadChunk(uid, sessionId, {
+      pythonPath: '/uploads/scan.pdf', chunkIndex: 0, totalChunks: 1, size: 13, mimeType: 'application/pdf',
+      sha256: createHash('sha256').update('%PDF-1.7 fake').digest('hex'),
+      base64: Buffer.from('%PDF-1.7 fake').toString('base64'),
+    });
+    sandboxLimit.refused = true;
+    let toolError: string | undefined;
+    script = (request) => {
+      const results = request.messages.filter((message) => message.role === 'tool');
+      if (results.length === 0) return calls({ id: 'py1', name: 'execute_python', args: { code: 'print(1)' } });
+      toolError ??= String(results[0].content);
+      return text('Python is busy in your other sessions; try again in about 5 minutes.');
+    };
+    const { runId } = await startOperatorTurn({ uid, sessionId, content: 'Read it', config: config({ team: undefined }) });
+    await drain();
+    expect((await run(runId)).status).toBe('completed');
+    expect(toolError).toContain('You already have 3 Analyze sessions using Python right now');
+    expect(toolError).toContain('the next one frees up in about 5 minutes');
+    expect(sandboxFiles.has('/uploads/scan.pdf')).toBe(false);
+
+    // A slot frees up: the next turn syncs the upload before its first round.
+    sandboxLimit.refused = false;
+    script = () => text('Got it.');
+    const next = await startOperatorTurn({ uid, sessionId, content: 'Now?', config: config({ team: undefined }) });
+    await drain();
+    expect((await run(next.runId)).status).toBe('completed');
+    expect(sandboxFiles.get('/uploads/scan.pdf')?.toString()).toBe('%PDF-1.7 fake');
+  });
+
+  it('the awake-slot claim holds under parallel calls: 10 at once with a limit of 3 get exactly 3', async () => {
+    const store = new FirestoreSandboxStore();
+    const user = `slots_${Date.now()}`;
+    const claims = await Promise.all(Array.from({ length: 10 }, (_, index) => store.claimAwake(user, `s${index}`, 1_000, 15 * 60_000, 3)));
+    expect(claims.filter((claim) => claim.ok)).toHaveLength(3);
+    expect(claims.filter((claim) => !claim.ok)).toEqual(Array(7).fill({ ok: false, freesAt: 1_000 + 15 * 60_000 }));
+    const until = (await getFirestore().doc(`users/${user}/sandboxSlots/awake`).get()).data()?.until;
+    expect(Object.keys(until)).toHaveLength(3);
+    // Releasing one lets the next in.
+    await store.releaseAwake(user, Object.keys(until)[0]);
+    expect(await store.claimAwake(user, 's9', 2_000, 15 * 60_000, 3)).toEqual({ ok: true });
   });
 
   it('a session\'s first turn with an upload has the file in the sandbox before the first round', async () => {

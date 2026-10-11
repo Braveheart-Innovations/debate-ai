@@ -17,6 +17,7 @@ import { getCatalogModel } from '../modelCatalog';
 import { isTerminal, runRef, type AnalyzeRunDoc, type RosterAI, type RunConfig } from './runStore';
 import { SessionBusyError, TurnAlreadyStartedError, startOperatorTurn, type UserMessageContext } from './turns';
 import { NoSessionSandboxError, runCell } from './runCell';
+import { SandboxLimitError } from '../../sandbox/service';
 import { normalizeAnalyzeOutputSelection } from '../contract/types/analyze';
 import { MAX_PANEL_SIZE, TeamArgsError } from '../team/teamTools';
 import {
@@ -404,6 +405,7 @@ export const analyzeRunCell = onCall(
     } catch (error) {
       if (error instanceof SessionBusyError) throw new HttpsError('failed-precondition', 'Wait for the current run to finish before running a cell.');
       if (error instanceof NoSessionSandboxError) throw new HttpsError('failed-precondition', error.message);
+      if (error instanceof SandboxLimitError) throw new HttpsError('resource-exhausted', error.message, { reason: 'sandbox-limit' });
       console.error('[analyzeRunCell] failed', error);
       throw new HttpsError('internal', 'The cell could not run. Please try again.');
     }

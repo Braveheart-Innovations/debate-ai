@@ -32,6 +32,25 @@ const SESSION_KEY_PATTERN = /^[A-Za-z0-9_:-][A-Za-z0-9_:.-]{0,127}$/;
 
 export class SandboxInputError extends Error {}
 
+/**
+ * The user already has `limit` sessions with a sandbox awake. A sandbox stays
+ * awake until the idle timeout after its last use, so a slot frees up then.
+ */
+export class SandboxLimitError extends Error {
+  constructor(readonly limit: number, readonly waitMs: number, idleTimeoutMs: number) {
+    const minutes = (ms: number) => {
+      const count = Math.max(1, Math.ceil(ms / 60_000));
+      return `${count} minute${count === 1 ? '' : 's'}`;
+    };
+    super(
+      `You already have ${limit} Analyze sessions using Python right now, the most at once. `
+      + `A session's Python environment frees up ${minutes(idleTimeoutMs)} after its last use; `
+      + `the next one frees up in about ${minutes(waitMs)}. `
+      + 'Try again then, or keep working in one of those sessions.',
+    );
+  }
+}
+
 export function assertSessionKey(sessionKey: unknown): string {
   if (typeof sessionKey !== 'string' || !SESSION_KEY_PATTERN.test(sessionKey)) {
     throw new SandboxInputError('Invalid sessionKey');
@@ -80,6 +99,8 @@ export interface SandboxServiceDeps {
   sleep?: (ms: number) => Promise<void>;
   /** Records each call's sandbox time (usage tracking). A failure here never fails the call. */
   meter?: (uid: string, usage: SandboxUsage) => Promise<void>;
+  /** How many of a user's sessions may have a sandbox awake at once. */
+  maxAwakePerUser?: number;
 }
 
 export class SandboxSessionService {
@@ -89,6 +110,7 @@ export class SandboxSessionService {
     this.deps = {
       sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
       meter: async () => undefined,
+      maxAwakePerUser: Number.POSITIVE_INFINITY,
       ...deps,
     };
   }
@@ -107,7 +129,11 @@ export class SandboxSessionService {
 
   /** Connect to (resuming if paused) or create the sandbox owned by uid for this session. */
   async ensure(uid: string, sessionKey: string, usage?: SandboxUsage): Promise<{ sandboxId: string; environmentReset: boolean }> {
-    const { provider, store, now, idleTimeoutMs } = this.deps;
+    const { provider, store, now, idleTimeoutMs, maxAwakePerUser } = this.deps;
+    // Every use keeps the sandbox up for the idle timeout, so it holds a slot until then.
+    const claimedAt = now();
+    const claim = await store.claimAwake(uid, sessionKey, claimedAt, idleTimeoutMs, maxAwakePerUser);
+    if (!claim.ok) throw new SandboxLimitError(maxAwakePerUser, claim.freesAt - claimedAt, idleTimeoutMs);
     const record = await store.get(uid, sessionKey);
     // The sandbox stayed up after its last use until it paused (idle timeout) or was used again.
     const idleGap = record ? Math.max(0, now() - record.lastUsedAt) : 0;
@@ -401,6 +427,7 @@ export class SandboxSessionService {
     if (record) {
       await provider.destroy(record.sandboxId);
       await store.delete(uid, sessionKey);
+      await store.releaseAwake(uid, sessionKey);
     }
   }
 
@@ -429,6 +456,7 @@ export class SandboxSessionService {
   private async destroyRef(ref: SandboxRecordRef): Promise<void> {
     await this.deps.provider.destroy(ref.record.sandboxId);
     await this.deps.store.delete(ref.uid, ref.sessionKey);
+    await this.deps.store.releaseAwake(ref.uid, ref.sessionKey);
   }
 
   private async isUnchanged(sandboxId: string, path: string, expected: { size: number; sha256: string }): Promise<boolean> {

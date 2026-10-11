@@ -76,7 +76,17 @@ export interface SandboxStore {
   listForUser(uid: string): Promise<SandboxRecordRef[]>;
   /** Records not used since `before`, oldest first. */
   listIdle(before: number, limit: number): Promise<SandboxRecordRef[]>;
+  /**
+   * Marks this session's sandbox awake until `at + awakeForMs`, in one
+   * transaction per user, unless `limit` of the user's other sessions are
+   * still awake. Refused: when the first of those frees up.
+   */
+  claimAwake(uid: string, sessionKey: string, at: number, awakeForMs: number, limit: number): Promise<AwakeClaim>;
+  /** The session's sandbox is gone (reset, destroyed): it no longer holds a slot. */
+  releaseAwake(uid: string, sessionKey: string): Promise<void>;
 }
+
+export type AwakeClaim = { ok: true } | { ok: false; freesAt: number };
 
 /**
  * Sandbox time for one service call (usage recording):

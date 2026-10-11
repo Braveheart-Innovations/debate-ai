@@ -1,6 +1,6 @@
-import { getFirestore } from 'firebase-admin/firestore';
+import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
-import type { SandboxRecord, SandboxRecordRef, SandboxStore } from './types';
+import type { AwakeClaim, SandboxRecord, SandboxRecordRef, SandboxStore } from './types';
 
 /**
  * users/{uid}/analyzeSandboxes/{sessionKey}. No firestore.rules match exists for
@@ -43,6 +43,32 @@ export class FirestoreSandboxStore implements SandboxStore {
       .limit(limit)
       .get();
     return snapshot.docs.map(toRef);
+  }
+
+  /**
+   * users/{uid}/sandboxSlots/awake: { until: { [sessionKey]: ms } }. One doc per
+   * user, so parallel claims serialize on it. Server-only like the records.
+   */
+  async claimAwake(uid: string, sessionKey: string, at: number, awakeForMs: number, limit: number): Promise<AwakeClaim> {
+    const ref = getFirestore().collection('users').doc(uid).collection('sandboxSlots').doc('awake');
+    return getFirestore().runTransaction(async (transaction) => {
+      const stored = ((await transaction.get(ref)).data()?.until ?? {}) as Record<string, number>;
+      const others = Object.entries(stored).filter(([key, until]) => key !== sessionKey && until > at);
+      if (others.length >= limit) return { ok: false, freesAt: Math.min(...others.map(([, until]) => until)) };
+      // Expired entries are dropped as the map is rewritten.
+      transaction.set(ref, { until: { ...Object.fromEntries(others), [sessionKey]: at + awakeForMs } });
+      return { ok: true };
+    });
+  }
+
+  async releaseAwake(uid: string, sessionKey: string): Promise<void> {
+    const ref = getFirestore().collection('users').doc(uid).collection('sandboxSlots').doc('awake');
+    await getFirestore().runTransaction(async (transaction) => {
+      const until = { ...((await transaction.get(ref)).data()?.until ?? {}) } as Record<string, number>;
+      if (!(sessionKey in until)) return;
+      delete until[sessionKey];
+      transaction.set(ref, { until, updatedAt: FieldValue.serverTimestamp() });
+    });
   }
 }
 

@@ -16,7 +16,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import type { FileMetadata, FileSourceMetadata } from '../contract/services/files/types';
 import { getSandboxService } from '../../sandbox/callables';
-import { FILE_CHUNK_BYTES } from '../../sandbox/service';
+import { FILE_CHUNK_BYTES, SandboxLimitError } from '../../sandbox/service';
 import {
   deletePayloadForUser,
   downloadPayloadBytes,
@@ -220,7 +220,12 @@ export async function removeUpload(uid: string, sessionId: string, path: unknown
   const existing = (await ref.get()).data() as UploadRecord | undefined;
   await ref.delete();
   if (existing) await deletePayloadForUser(uid, existing.payload);
-  await getSandboxService().deleteFile(uid, sessionId, pythonPath);
+  try {
+    await getSandboxService().deleteFile(uid, sessionId, pythonPath);
+  } catch (error) {
+    // At the per-user sandbox limit the copy stays in the sandbox; the upload itself is gone.
+    if (!(error instanceof SandboxLimitError)) throw error;
+  }
 }
 
 interface SessionFilesMarker {
@@ -277,6 +282,17 @@ export class SessionFilesSync {
   ) {}
 
   async sync(): Promise<void> {
+    try {
+      await this.syncFiles();
+    } catch (error) {
+      // At the per-user sandbox limit: the round goes ahead, a tool that needs
+      // the sandbox gets the limit message, and the next round syncs again.
+      if (!(error instanceof SandboxLimitError)) throw error;
+      this.marker = null;
+    }
+  }
+
+  private async syncFiles(): Promise<void> {
     const { uid, sessionId, sandboxSessionKey } = this;
     const service = getSandboxService();
     const records = await loadUploadRecords(uid, sessionId);
