@@ -81,8 +81,8 @@ export interface AnalysisArtifactDiagramBlock extends AnalysisArtifactBaseBlock 
     caption?: string;
 }
 /**
- * The escape hatch: an AI-authored interactive component (a street-level map, a
- * linked-brushing dashboard, a custom widget) that Vega/structured blocks can't
+ * The escape hatch: an AI-authored interactive component (a linked-brushing
+ * dashboard, a custom widget; never a tile map) that Vega/structured blocks can't
  * express. The AI saves it as an HTML artifact and references it by id/filename;
  * the app renders it in a sandboxed iframe inside the report (live in HTML export,
  * a static snapshot in PDF/PPTX). Authoring stays the AI's job; assembly the app's.
