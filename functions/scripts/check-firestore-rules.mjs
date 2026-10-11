@@ -45,13 +45,15 @@ const testCases = [
   tc('create', '/analyzeRuns/r1/runEvents/000001', 'owner1', 'DENY'),
   tc('get', '/analyzeRuns/r1/toolCalls/c1', 'owner1', 'DENY'),
   tc('create', '/analyzeRuns/r1/toolCalls/c1', 'owner1', 'DENY'),
-  // Run notifications: owner reads and may only flip `read`; only the server creates.
+  // Run notifications: owner reads, may only flip `read`, and may delete; only the server creates.
   nc('get', 'owner1', 'ALLOW'),
   nc('list', 'owner1', 'ALLOW'),
   nc('get', 'intruder', 'DENY'),
   nc('get', null, 'DENY'),
   nc('create', 'owner1', 'DENY', { ...notification }),
-  nc('delete', 'owner1', 'DENY'),
+  nc('delete', 'owner1', 'ALLOW'),
+  nc('delete', 'intruder', 'DENY'),
+  nc('delete', null, 'DENY'),
   nc('update', 'owner1', 'ALLOW', { ...notification, read: true }),
   nc('update', 'intruder', 'DENY', { ...notification, read: true }),
   nc('update', 'owner1', 'DENY', { ...notification, read: true, kind: 'error' }),

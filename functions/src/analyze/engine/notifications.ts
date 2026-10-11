@@ -6,7 +6,8 @@
  *   users/{uid}/notifications/{id}
  *
  * The web header bell reads them (and Phase 4 mobile push will). Rules: the
- * owner reads them and may only set `read`; only the server creates them.
+ * owner reads them, may only set `read`, and may delete them (dismiss / clear
+ * read); only the server creates them.
  * Ids are deterministic per run and event, and a write never replaces an
  * existing doc, so a redelivered step neither duplicates a notification nor
  * marks a read one unread.
