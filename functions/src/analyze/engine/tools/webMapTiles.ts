@@ -13,7 +13,8 @@
  * The signs below are map libraries' tile layers, not anything per provider.
  */
 import type { ToolResult } from '../../contract/lib/ai/tools/types';
-import { decodePossiblyBase64Json } from '../../contract/lib/encoding/utf8Base64';
+import { decodePossiblyBase64Json, parseJsonLenient } from '../../contract/lib/encoding/utf8Base64';
+import { withNotes } from './toolResultNotes';
 
 const TILE_SIGNS: Array<{ pattern: RegExp; label: string }> = [
   { pattern: /\{z\}[^"'`\s]*\{x\}[^"'`\s]*\{-?y\}|\{z\}[^"'`\s]*\{-?y\}[^"'`\s]*\{x\}/i, label: 'a map tile URL template ({z}/{x}/{y})' },
@@ -47,7 +48,7 @@ interface EmbeddedHtmlRef {
 function embeddedHtmlRefs(base64: string): EmbeddedHtmlRef[] | null {
   let parsed: unknown;
   try {
-    parsed = JSON.parse(decodePossiblyBase64Json(Buffer.from(base64, 'base64').toString('utf8')));
+    parsed = parseJsonLenient(decodePossiblyBase64Json(Buffer.from(base64, 'base64').toString('utf8')));
   } catch {
     return null;
   }
@@ -65,15 +66,6 @@ function embeddedHtmlRefs(base64: string): EmbeddedHtmlRef[] | null {
     });
   });
   return refs;
-}
-
-function withNotes(result: ToolResult, notes: string[]): ToolResult {
-  const text = notes.join('\n\n');
-  return {
-    ...result,
-    content: result.content ? `${result.content}\n\n${text}` : text,
-    ...(result.success ? {} : { error: result.error ? `${result.error}\n\n${text}` : text }),
-  };
 }
 
 /**

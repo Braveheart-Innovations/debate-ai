@@ -37,7 +37,7 @@ import {
 } from '../contract/services/analyze/artifacts/AnalysisArtifactSpecService';
 import { injectSourceProvenance } from './sourceProvenanceInjection';
 import { injectTeamPanelNote, type TeamPanelRecord } from './teamPanelNote';
-import { decodeBase64ToUtf8 } from '../contract/lib/encoding/utf8Base64';
+import { decodeBase64ToUtf8, parseJsonLenient } from '../contract/lib/encoding/utf8Base64';
 import { chartFileReaderFromArtifacts, inlineChartDataFiles, sessionDataPath } from '../contract/services/analyze/charts/inlineChartData';
 import { normalizeRequestSalesforceOrgEvidenceArgs } from '../engine/tools/executeRequestSalesforceOrgEvidenceTool';
 import type { AnalyzeAction } from './types';
@@ -391,7 +391,7 @@ function hasStructuredReportDeliverable(
 function getDeclaredSpecValidationErrors(decodedText: string): string[] | null {
   let candidate: unknown;
   try {
-    candidate = JSON.parse(decodedText);
+    candidate = parseJsonLenient(decodedText);
   } catch {
     return null;
   }
