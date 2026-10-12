@@ -10,7 +10,7 @@ import type {
 } from '../../../types/analysis-artifact-spec';
 import type { Artifact, BundleManifest } from '../../../types/notebook';
 import type { ReportBlock, ReportSource, ReportSpecV1 } from '../../../types/report-spec';
-import { decodePossiblyBase64Json, repairUtf8Mojibake } from '../../../lib/encoding/utf8Base64';
+import { decodePossiblyBase64Json, parseJsonLenient, repairUtf8Mojibake } from '../../../lib/encoding/utf8Base64';
 import { repairVegaLiteSpec } from '../charts/repairVegaLite';
 import { chartFileReaderFromArtifacts, inlineChartDataFiles } from '../charts/inlineChartData';
 import type { PresentationOverlayV1 } from '../../../types/presentation-overlay';
@@ -619,7 +619,9 @@ export function tryParseAnalysisArtifactSpecText(raw: string): AnalysisArtifactS
     // corrupted reports on display) and capture (a model that copies visible
     // mojibake from a prior version gets it repaired before we persist the spec),
     // so the corruption can't self-perpetuate across edits. Safe no-op on clean text.
-    const parsed = JSON.parse(repairUtf8Mojibake(decodePossiblyBase64Json(raw))) as unknown;
+    // Lenient: Python's json.dumps writes NaN/Infinity, which read as null here
+    // rather than sinking the whole report (Step 8 re-run R1).
+    const parsed = parseJsonLenient(repairUtf8Mojibake(decodePossiblyBase64Json(raw)));
     if (!parsed || typeof parsed !== 'object') return null;
     const candidate = parsed as { version?: unknown; kind?: unknown };
     if (candidate.version !== 1 || candidate.kind !== 'analysis_artifact_spec') return null;

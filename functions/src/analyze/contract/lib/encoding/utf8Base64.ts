@@ -102,9 +102,55 @@ export function decodePossiblyBase64Json(value: string): string {
   try {
     const decoded = decodeBase64ToUtf8(value);
     if (!looksLikeJsonString(decoded)) return value;
-    JSON.parse(decoded);
+    parseJsonLenient(decoded);
     return decoded;
   } catch {
     return value;
   }
+}
+
+/**
+ * JSON.parse that also reads the bare `NaN`, `Infinity` and `-Infinity` Python's
+ * `json.dumps` writes by default, as null. Strict JSON parses exactly as before;
+ * the tokens are only rewritten outside strings, and only when strict parsing fails.
+ */
+export function parseJsonLenient(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch (strictError) {
+    const healed = replaceNonFiniteNumberTokens(text);
+    if (healed === text) throw strictError;
+    return JSON.parse(healed);
+  }
+}
+
+function replaceNonFiniteNumberTokens(text: string): string {
+  let out = '';
+  let inString = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inString) {
+      out += ch;
+      if (ch === '\\') {
+        out += text[i + 1] ?? '';
+        i++;
+      } else if (ch === '"') {
+        inString = false;
+      }
+      continue;
+    }
+    if (ch === '"') {
+      inString = true;
+      out += ch;
+      continue;
+    }
+    const token = /^-?(?:NaN|Infinity)(?![A-Za-z0-9_])/.exec(text.slice(i, i + 9));
+    if (token) {
+      out += 'null';
+      i += token[0].length - 1;
+      continue;
+    }
+    out += ch;
+  }
+  return out;
 }
