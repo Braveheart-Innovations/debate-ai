@@ -142,12 +142,14 @@ export class GoogleRuntime implements ProviderRuntime {
       }
     }
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${apiKey}&alt=sse`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`;
 
     return {
       url,
+      // The key rides in a header, never the URL: URLs end up in logs.
       headers: {
         'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey,
       },
       body,
     };

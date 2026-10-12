@@ -686,7 +686,7 @@ async function callGemini(
   searchPerformed?: boolean;
 }> {
   const modelId = model || 'gemini-2.5-flash';
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent`;
 
   // Build contents with attachments in the last user message
   const contents = messages
@@ -753,7 +753,7 @@ async function callGemini(
 
   const response = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
     body: JSON.stringify(requestBody),
   });
 

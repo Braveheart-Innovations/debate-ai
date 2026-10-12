@@ -44,8 +44,8 @@ const PROBES: Record<string, ProviderProbe> = {
   },
   google: {
     request: (key) => ({
-      url: `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(key)}`,
-      init: { method: 'GET' },
+      url: 'https://generativelanguage.googleapis.com/v1beta/models',
+      init: { method: 'GET', headers: { 'x-goog-api-key': key } },
     }),
   },
   mistral: {

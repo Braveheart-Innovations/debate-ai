@@ -66,3 +66,17 @@ describe('GoogleRuntime thinking controls', () => {
     });
   });
 });
+
+describe('GoogleRuntime API key', () => {
+  it('sends the key in the x-goog-api-key header, never in the URL', () => {
+    const runtime = new GoogleRuntime();
+    const request = runtime.buildRequest(
+      { model: 'gemini-3.8-flash', messages: [{ role: 'user', content: 'hi' }] },
+      'AIza-secret-key'
+    );
+
+    assert.equal(request.headers['x-goog-api-key'], 'AIza-secret-key');
+    assert.ok(!request.url.includes('AIza-secret-key'), request.url);
+    assert.ok(!/[?&]key=/.test(request.url), request.url);
+  });
+});
