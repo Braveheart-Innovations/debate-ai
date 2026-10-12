@@ -80,7 +80,9 @@ export async function executeReadFileTool(
         if (result.jsonKeys) summary += `\nKeys: ${result.jsonKeys.join(', ')}`;
         summary += '\n';
       }
-      if (result.lineCount) {
+      if (result.pageCount) {
+        summary += `Pages: ${result.pageCount} (extracted text)\n`;
+      } else if (result.lineCount) {
         summary += `Lines: ${result.lineCount}\n`;
       }
       const start = result.contentOffset ?? 0;

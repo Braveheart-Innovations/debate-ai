@@ -18,7 +18,7 @@ import type { ToolDefinition } from '../types';
 export const readFileTool: ToolDefinition = {
   name: 'read_file',
 
-  description: `Parse and read files from the session filesystem with automatic format detection. Supports files under /uploads, /output, and /data. Faster and more reliable than Python for initial file inspection. Supports CSV, JSON, Excel (.xlsx), and plain text with encoding detection. Returns structured data preview with schema information.
+  description: `Parse and read files from the session filesystem with automatic format detection. Supports files under /uploads, /output, and /data. Faster and more reliable than Python for initial file inspection. Supports CSV, JSON, Excel (.xlsx), PDF (its extracted text, page by page), and plain text with encoding detection. Returns structured data preview with schema information.
 
 Use this tool to quickly inspect file contents, column names, data types, and preview rows before doing deeper analysis with execute_python. For large JSON, Markdown, HTML, CSS, or text files, use format="text" plus offset/max_chars to page through content without print() truncation.
 
@@ -136,6 +136,8 @@ export interface ReadFileResult {
   fileSize?: number;
   /** Line count (for text files) */
   lineCount?: number;
+  /** Pages (PDF: the content is the extracted text, one "--- Page N ---" section per page) */
+  pageCount?: number;
   /** Whether data was sampled */
   sampled?: boolean;
   /** Whether data was truncated due to max_rows */
