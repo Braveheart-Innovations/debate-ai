@@ -2,7 +2,6 @@ import {
   DEFAULT_KERNEL,
   filterStderr,
   formatTraceback,
-  isValidKernelKey,
   parsePostScan,
   postCode,
   preCode,
@@ -21,14 +20,11 @@ import type {
 export const INLINE_OUTPUT_BUDGET_BYTES = 6 * 1024 * 1024;
 /** Chunk size for file transfer; keeps callable payloads well under platform limits. */
 export const FILE_CHUNK_BYTES = 4 * 1024 * 1024;
-export const MAX_EXECUTE_TIMEOUT_MS = 300_000;
 const BOOTSTRAP_TIMEOUT_MS = 120_000;
 const POST_TIMEOUT_MS = 60_000;
 const COMMAND_TIMEOUT_MS = 60_000;
 const PROBE_TIMEOUT_MS = 5_000;
 const RESTART_READY_DEADLINE_MS = 30_000;
-
-const SESSION_KEY_PATTERN = /^[A-Za-z0-9_:-][A-Za-z0-9_:.-]{0,127}$/;
 
 export class SandboxInputError extends Error {}
 
@@ -57,33 +53,8 @@ export class SandboxLimitError extends Error {
  */
 export const SANDBOX_LIMIT_MODEL_NOTE = 'Nothing ran. Don\'t retry Python, file, or data-fetch tools in this turn: answer from what you already have, or tell the user they can reply once a slot frees up.';
 
-export function assertSessionKey(sessionKey: unknown): string {
-  if (typeof sessionKey !== 'string' || !SESSION_KEY_PATTERN.test(sessionKey)) {
-    throw new SandboxInputError('Invalid sessionKey');
-  }
-  return sessionKey;
-}
-
-export function assertKernelKey(kernelKey: unknown): string {
-  if (kernelKey === undefined || kernelKey === null) return DEFAULT_KERNEL;
-  if (!isValidKernelKey(kernelKey)) throw new SandboxInputError('Invalid kernelKey');
-  return kernelKey;
-}
-
-export function assertSandboxPath(path: unknown): string {
-  if (typeof path !== 'string' || !path.startsWith('/') || path.length > 1024 || path.includes('\0')) {
-    throw new SandboxInputError('Invalid path');
-  }
-  return path;
-}
-
 export function shellQuote(value: string): string {
   return `'${value.replace(/'/g, `'\\''`)}'`;
-}
-
-export function clampTimeout(timeoutMs: unknown, fallback = 60_000): number {
-  const value = typeof timeoutMs === 'number' && Number.isFinite(timeoutMs) ? timeoutMs : fallback;
-  return Math.max(1_000, Math.min(MAX_EXECUTE_TIMEOUT_MS, Math.round(value)));
 }
 
 export interface WriteFileInput {

@@ -16,12 +16,6 @@ export const POST_MARKER = '__SYMPOSIUM_POST__';
  * their own keys and write to /output/agents/<key>/.
  */
 export const DEFAULT_KERNEL = 'main';
-const KERNEL_KEY_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
-
-export function isValidKernelKey(key: unknown): key is string {
-  return typeof key === 'string' && KERNEL_KEY_PATTERN.test(key);
-}
-
 /** Written by each kernel's bootstrap so the server can SIGINT that kernel only. */
 export function kernelPidFile(key: string): string {
   return `/tmp/symposium_kernel_${key}.pid`;

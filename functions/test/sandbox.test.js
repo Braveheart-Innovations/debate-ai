@@ -5,16 +5,12 @@ const {
   SandboxSessionService,
   SandboxInputError,
   SandboxLimitError,
-  assertSessionKey,
-  assertSandboxPath,
-  clampTimeout,
   shellQuote,
   INLINE_OUTPUT_BUDGET_BYTES,
 } = require('../lib/sandbox/service');
 const {
   POST_MARKER, parsePostScan, filterStderr, stripAnsi, formatTraceback, preCode, postCode, kernelPidFile, outputScope,
 } = require('../lib/sandbox/runtime');
-const { assertKernelKey } = require('../lib/sandbox/service');
 
 const isPre = (code) => code.startsWith('try:\n    _sym_pre\nexcept NameError:');
 
@@ -492,24 +488,8 @@ test('execute, stop and release are scoped to one kernel', async () => {
   await assert.rejects(svc.releaseKernel('u1', 's', 'main'), SandboxInputError);
 });
 
-test('input validation', () => {
-  assert.equal(assertSessionKey('analyze_123:chat-1.x'), 'analyze_123:chat-1.x');
-  for (const bad of ['', '..', 'a/b', 'x'.repeat(129), 7, null]) {
-    assert.throws(() => assertSessionKey(bad), SandboxInputError);
-  }
-  assert.equal(assertSandboxPath('/output/a.csv'), '/output/a.csv');
-  for (const bad of ['relative.csv', '/a\0b', 5]) {
-    assert.throws(() => assertSandboxPath(bad), SandboxInputError);
-  }
-  assert.equal(clampTimeout(10), 1000);
-  assert.equal(clampTimeout(10_000_000), 300_000);
-  assert.equal(clampTimeout(undefined), 60_000);
+test('shell quoting', () => {
   assert.equal(shellQuote("a'b"), "'a'\\''b'");
-  assert.equal(assertKernelKey(undefined), 'main');
-  assert.equal(assertKernelKey('agent-r_1'), 'agent-r_1');
-  for (const bad of ['', 'a b', '../x', 'x'.repeat(65), 3]) {
-    assert.throws(() => assertKernelKey(bad), SandboxInputError);
-  }
 });
 
 test('runtime helpers', () => {
