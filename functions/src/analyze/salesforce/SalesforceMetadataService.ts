@@ -2974,7 +2974,7 @@ export function buildSalesforceInventory(index: SalesforceMetadataIndex): string
     documentationTopics: index.documentationTopics,
     insightPackets: index.insightPackets,
     importedFindings: index.importedFindings,
-  }, null, 2);
+  });
 }
 
 export function buildSalesforceDocumentationTopics(index: SalesforceMetadataIndex, query?: string): string {
@@ -3006,7 +3006,7 @@ export function buildSalesforceDocumentationTopics(index: SalesforceMetadataInde
       riskSignalIds,
       maxResultsPerTopic: 2,
     },
-  }, null, 2);
+  });
 }
 
 export function buildSalesforceDependencyMap(index: SalesforceMetadataIndex): string {
@@ -3030,7 +3030,7 @@ export function buildSalesforceDependencyMap(index: SalesforceMetadataIndex): st
         audienceImpact: finding.audienceImpact,
       }))
     ),
-  }, null, 2);
+  });
 }
 
 export function buildSalesforceAuditReport(index: SalesforceMetadataIndex): string {
@@ -3153,7 +3153,7 @@ export function buildSalesforceRemediationBacklog(index: SalesforceMetadataIndex
     testGuidance: ['Use the packet evidence refs as starting context.', 'Run targeted Salesforce validation for matched components.'],
   }));
 
-  return JSON.stringify([...deterministicTasks, ...importedTasks], null, 2);
+  return JSON.stringify([...deterministicTasks, ...importedTasks]);
 }
 
 export function buildSalesforceSignalEvidence(index: SalesforceMetadataIndex): string {
@@ -3214,7 +3214,7 @@ export function buildSalesforceSignalEvidence(index: SalesforceMetadataIndex): s
       evidenceSpans: item.evidenceSpans,
       evidenceDetails: item.evidenceDetails,
     })),
-  }, null, 2);
+  });
 }
 
 export function buildSalesforceEvidenceLedger(index: SalesforceMetadataIndex): string {
@@ -3242,7 +3242,7 @@ export function buildSalesforceEvidenceLedger(index: SalesforceMetadataIndex): s
       runtime_unverified: 'Claim depends on org runtime/setup state not available in uploaded metadata.',
     },
     claims: index.evidenceLedger,
-  }, null, 2);
+  });
 }
 
 export function buildSalesforceFlowDrilldowns(index: SalesforceMetadataIndex): string {
@@ -3256,7 +3256,7 @@ export function buildSalesforceFlowDrilldowns(index: SalesforceMetadataIndex): s
       subflowReferences: unique(index.flowDrilldowns.flatMap((item) => item.subflowReferences)).length,
     },
     drilldowns: index.flowDrilldowns,
-  }, null, 2);
+  });
 }
 
 export function buildSalesforceApexDrilldowns(index: SalesforceMetadataIndex): string {
@@ -3270,11 +3270,11 @@ export function buildSalesforceApexDrilldowns(index: SalesforceMetadataIndex): s
       emailReferenceCount: index.apexDrilldowns.reduce((sum, item) => sum + item.emailReferences.length, 0),
     },
     drilldowns: index.apexDrilldowns,
-  }, null, 2);
+  });
 }
 
 export function buildSalesforceFeatureReferenceMap(index: SalesforceMetadataIndex): string {
-  return JSON.stringify(index.featureReferenceMap, null, 2);
+  return JSON.stringify(index.featureReferenceMap);
 }
 
 function buildDependencyCountsByComponent(index: SalesforceMetadataIndex): Map<string, number> {
@@ -3405,7 +3405,7 @@ export function buildSalesforceWorkbenchSummary(index: SalesforceMetadataIndex):
       stakeholderVisualPlanIsCapped: true,
       useDependencyMapForFullGraph: true,
     },
-  }, null, 2);
+  });
 }
 
 export function buildSalesforceFeatureReadinessBrief(index: SalesforceMetadataIndex, goal?: string): string {
@@ -3825,7 +3825,7 @@ export function buildSalesforceInsightPacketSummary(
       optionalFiles: ['transcript.md'],
       boundary: index.sourceSummary.safetyBoundary,
     },
-  }, null, 2);
+  });
 }
 
 export function buildSalesforceStakeholderArtifactPlan(index: SalesforceMetadataIndex): string {
@@ -3950,7 +3950,7 @@ export function buildSalesforceStakeholderArtifactPlan(index: SalesforceMetadata
     },
     audienceCounts,
     boundary: index.sourceSummary.safetyBoundary,
-  }, null, 2);
+  });
 }
 
 export function buildSalesforceExecutiveBrief(index: SalesforceMetadataIndex, goal?: string): string {

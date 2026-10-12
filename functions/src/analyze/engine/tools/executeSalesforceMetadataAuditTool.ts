@@ -403,7 +403,7 @@ function buildArtifactFiles(
     outputs.push(
       { filename: 'salesforce-feature-readiness-brief.md', content: buildSalesforceFeatureReadinessBrief(index, args.query) },
       { filename: 'salesforce-executive-brief.md', content: buildSalesforceExecutiveBrief(index, args.query) },
-      { filename: 'salesforce-vscode-handoff.json', content: JSON.stringify(buildSalesforceVsCodeHandoff(index, args.query), null, 2) },
+      { filename: 'salesforce-vscode-handoff.json', content: JSON.stringify(buildSalesforceVsCodeHandoff(index, args.query)) },
     );
   } else if (args.operation === 'inventory' || args.operation === 'search' || args.operation === 'component') {
     outputs.push({ filename: 'salesforce-component-index.json', content: buildSalesforceInventory(index) });
@@ -432,7 +432,7 @@ function buildArtifactFiles(
     );
   } else if (args.operation === 'handoff') {
     outputs.push(
-      { filename: 'salesforce-vscode-handoff.json', content: JSON.stringify(buildSalesforceVsCodeHandoff(index, args.query), null, 2) },
+      { filename: 'salesforce-vscode-handoff.json', content: JSON.stringify(buildSalesforceVsCodeHandoff(index, args.query)) },
       { filename: 'salesforce-evidence-ledger.json', content: buildSalesforceEvidenceLedger(index) },
       { filename: 'salesforce-feature-reference-map.json', content: buildSalesforceFeatureReferenceMap(index) },
       { filename: 'salesforce-doc-topics.json', content: buildSalesforceDocumentationTopics(index, args.query) },
@@ -471,7 +471,7 @@ function buildArtifactFiles(
     ...outputs,
     {
       filename: 'artifact-manifest.json',
-      content: JSON.stringify(manifest, null, 2),
+      content: JSON.stringify(manifest),
     },
   ];
 }
@@ -614,45 +614,22 @@ function buildSalesforceArtifactSchema(index: SalesforceMetadataIndex): string {
 async function persistArtifactFilesToFilesystem(sandbox: SandboxFiles, files: SalesforceArtifactFile[]): Promise<SalesforceArtifactFilesystemEntry[]> {
   const entries = files.map((file) => buildFilesystemEntry(file.filename));
 
-  for (const file of files) {
-    const entry = entries.find((item) => item.filename === file.filename)!;
-    await writeTextFile(sandbox, entry.outputPath, file.content);
-    await writeTextFile(sandbox, entry.dataPath, file.content);
-    for (const aliasPath of entry.aliases) {
-      await writeTextFile(sandbox, aliasPath, file.content);
-    }
+  // Each file is written once; its other paths are links to it inside the sandbox.
+  // Writing every path from here held several copies of each output in memory and
+  // ran a real-size workspace out of memory (Step 8 re-run R3).
+  for (const [i, file] of files.entries()) {
+    const entry = entries[i];
+    await sandbox.writeFile(entry.outputPath, Buffer.from(file.content, 'utf8'));
   }
+  await sandbox.linkFiles(entries.map((entry) => ({ target: entry.outputPath, links: [entry.dataPath, ...entry.aliases] })));
 
   return entries;
 }
 
-async function writeTextFile(sandbox: SandboxFiles, path: string, content: string): Promise<void> {
-  const bytes = new TextEncoder().encode(content);
-  const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-  await sandbox.mountFile(path.split('/').pop() || 'artifact.txt', buffer, path);
-}
-
 function encodeArtifactOutputs(outputs: SalesforceArtifactFile[]): NonNullable<ToolResult['dataOutputs']> {
-  return outputs.map((output) => {
-    const encoded = encodeTextOutput(output.content);
-    return {
-      filename: output.filename,
-      base64: encoded.base64,
-      size: encoded.size,
-    };
-  });
-}
-
-function encodeTextOutput(content: string): { base64: string; size: number } {
-  const bytes = new TextEncoder().encode(content);
-  let binary = '';
-  const chunkSize = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    const chunk = bytes.subarray(i, i + chunkSize);
-    binary += String.fromCharCode(...chunk);
-  }
-  return {
-    base64: btoa(binary),
-    size: bytes.byteLength,
-  };
+  return outputs.map((output) => ({
+    filename: output.filename,
+    base64: Buffer.from(output.content, 'utf8').toString('base64'),
+    size: Buffer.byteLength(output.content, 'utf8'),
+  }));
 }

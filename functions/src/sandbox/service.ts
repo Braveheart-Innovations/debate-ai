@@ -307,7 +307,7 @@ export class SandboxSessionService {
       return { written: false, environmentReset };
     }
 
-    const bytes = new Uint8Array(Buffer.from(input.base64, 'base64'));
+    const bytes = Buffer.from(input.base64, 'base64');
     if (totalChunks === 1) {
       await provider.writeFile(sandboxId, input.path, bytes);
       return { written: true, environmentReset };
@@ -324,6 +324,33 @@ export class SandboxSessionService {
       if (joined.exitCode !== 0) throw new Error(`Failed to assemble ${input.path}`);
     }
     return { written: true, environmentReset };
+  }
+
+  /** Write bytes the server already holds (no base64 round trip). */
+  async writeBytes(uid: string, sessionKey: string, path: string, bytes: Uint8Array): Promise<void> {
+    return this.metered(uid, async (usage) => {
+      const { sandboxId } = await this.ensure(uid, sessionKey, usage);
+      await this.deps.provider.writeFile(sandboxId, path, bytes);
+    });
+  }
+
+  /**
+   * Make each link path name the same file as its target (a hard link; a copy
+   * where the paths are on different filesystems). One command for all of them.
+   */
+  async linkFiles(uid: string, sessionKey: string, groups: Array<{ target: string; links: string[] }>): Promise<void> {
+    const commands = groups.flatMap(({ target, links }) => links
+      .filter((link) => link !== target)
+      .map((link) => {
+        const dir = link.slice(0, link.lastIndexOf('/')) || '/';
+        return `mkdir -p ${shellQuote(dir)} && { ln -f ${shellQuote(target)} ${shellQuote(link)} 2>/dev/null || cp -f ${shellQuote(target)} ${shellQuote(link)}; }`;
+      }));
+    if (commands.length === 0) return;
+    return this.metered(uid, async (usage) => {
+      const { sandboxId } = await this.ensure(uid, sessionKey, usage);
+      const result = await this.deps.provider.runCommand(sandboxId, commands.join(' && '), COMMAND_TIMEOUT_MS);
+      if (result.exitCode !== 0) throw new Error('Failed to link files in the sandbox');
+    });
   }
 
   async readFile(
