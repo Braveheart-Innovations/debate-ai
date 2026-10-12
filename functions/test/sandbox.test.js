@@ -388,6 +388,20 @@ test('a user can have 3 sessions with a sandbox awake; the 4th is refused with t
   await svc.ensure('u1', 's5');
 });
 
+test('claimSlot claims a session\'s awake slot without waking a sandbox, and refuses past the limit (F5)', async () => {
+  const provider = fakeProvider();
+  const svc = new SandboxSessionService({
+    provider, store: memoryStore(), templateFor: () => 'tpl', idleTimeoutMs: 15 * 60_000, now: () => 0, maxAwakePerUser: 1,
+  });
+  await svc.claimSlot('u1', 's1');
+  assert.equal(provider.calls.length, 0);
+  // The claim holds the slot as ensure would: a second session is refused.
+  await assert.rejects(svc.claimSlot('u1', 's2'), SandboxLimitError);
+  await assert.rejects(svc.ensure('u1', 's2'), SandboxLimitError);
+  // The session that holds it keeps it.
+  await svc.claimSlot('u1', 's1');
+});
+
 test('reset destroys the sandbox and forgets the mapping', async () => {
   const provider = fakeProvider();
   const { svc, store } = service(provider);
