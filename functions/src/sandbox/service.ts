@@ -51,6 +51,12 @@ export class SandboxLimitError extends Error {
   }
 }
 
+/**
+ * Added to the limit message where a model reads it (a tool result): retrying
+ * can't succeed until a slot frees up, so it shouldn't spend the turn trying.
+ */
+export const SANDBOX_LIMIT_MODEL_NOTE = 'Nothing ran. Don\'t retry Python, file, or data-fetch tools in this turn: answer from what you already have, or tell the user they can reply once a slot frees up.';
+
 export function assertSessionKey(sessionKey: unknown): string {
   if (typeof sessionKey !== 'string' || !SESSION_KEY_PATTERN.test(sessionKey)) {
     throw new SandboxInputError('Invalid sessionKey');
@@ -125,6 +131,17 @@ export class SandboxSessionService {
       usage.executeMs = Math.max(0, this.deps.now() - startedAt);
       await this.deps.meter(uid, usage).catch((error) => console.warn('[sandbox] usage not recorded', error));
     }
+  }
+
+  /**
+   * Claim this session's awake slot (as ensure does) without waking the
+   * sandbox: a call about to need it learns first whether it can have one.
+   */
+  async claimSlot(uid: string, sessionKey: string): Promise<void> {
+    const { store, now, idleTimeoutMs, maxAwakePerUser } = this.deps;
+    const claimedAt = now();
+    const claim = await store.claimAwake(uid, sessionKey, claimedAt, idleTimeoutMs, maxAwakePerUser);
+    if (!claim.ok) throw new SandboxLimitError(maxAwakePerUser, claim.freesAt - claimedAt, idleTimeoutMs);
   }
 
   /** Connect to (resuming if paused) or create the sandbox owned by uid for this session. */

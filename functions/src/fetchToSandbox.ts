@@ -1,4 +1,6 @@
 import * as crypto from 'crypto';
+import type { ToolResult } from './tools';
+import { SANDBOX_LIMIT_MODEL_NOTE, SandboxLimitError } from './sandbox/service';
 
 /**
  * fetch_api responses written straight into the caller's Analyze sandbox
@@ -74,4 +76,54 @@ export async function saveFetchToSandbox(
     preview: content.slice(0, SANDBOX_FETCH_PREVIEW_CHARS),
     previewTruncated: content.length > SANDBOX_FETCH_PREVIEW_CHARS,
   };
+}
+
+/** The sandbox calls a fetch-to-sandbox makes (the session service, or a test's fake). */
+export interface FetchSandbox {
+  claimSlot(uid: string, sessionKey: string): Promise<void>;
+  writeFile(uid: string, sessionKey: string, input: { path: string; base64: string }): Promise<unknown>;
+}
+
+/**
+ * Fetch a response straight into the session's sandbox. The slot is claimed
+ * first: a refused sandbox is refused before anything is downloaded (Step 8 F5).
+ */
+export async function runSandboxFetch(
+  uid: string,
+  target: SandboxFetchTarget,
+  sandbox: FetchSandbox,
+  fetch: (maxBytes: number) => Promise<ToolResult>,
+): Promise<ToolResult> {
+  try {
+    await sandbox.claimSlot(uid, target.sessionKey);
+  } catch (error) {
+    if (!(error instanceof SandboxLimitError)) throw error;
+    return { toolCallId: '', success: false, error: `${error.message} ${SANDBOX_LIMIT_MODEL_NOTE}` };
+  }
+  const result = await fetch(MAX_SANDBOX_FETCH_BYTES);
+  if (!result.success || typeof result.content !== 'string') return result;
+  try {
+    const summary = await saveFetchToSandbox(target, result.content, result.metadata?.contentType, async (sessionKey, path, base64) => {
+      await sandbox.writeFile(uid, sessionKey, { path, base64 });
+    });
+    return {
+      ...result,
+      content: summary.preview,
+      metadata: {
+        ...result.metadata,
+        sandboxPath: summary.path,
+        bytes: summary.bytes,
+        responseHash: summary.responseHash,
+        previewTruncated: summary.previewTruncated,
+      },
+    };
+  } catch (error) {
+    console.error('[executeTool] Failed to save fetch_api response to the sandbox', { uid, sessionKey: target.sessionKey, error });
+    return {
+      toolCallId: result.toolCallId,
+      success: false,
+      error: `Fetched ${Buffer.byteLength(result.content, 'utf8')} bytes but could not save them to the sandbox: ${error instanceof Error ? error.message : String(error)}${error instanceof SandboxLimitError ? ` ${SANDBOX_LIMIT_MODEL_NOTE}` : ''}`,
+      metadata: result.metadata,
+    };
+  }
 }

@@ -19,6 +19,7 @@ import { packageSalesforceDocsLookupEvidence } from './tools/executeSalesforceDo
 import { ServerToolExecutor } from './tools/serverToolExecutor';
 import { buildFetchProvenance } from './tools/provenance';
 import { DatasetRegistry } from './dataset/DatasetRegistry';
+import { SANDBOX_LIMIT_MODEL_NOTE, SandboxLimitError } from '../../sandbox/service';
 
 /** The browser's client tools (ClientToolExecutor), run here against the session sandbox. */
 const SANDBOX_TOOLS = new Set([
@@ -110,7 +111,9 @@ export function createToolDispatcher(context: ToolDispatchContext): (call: ToolC
       return {
         toolCallId: call.id,
         success: false,
-        error: error instanceof Error ? error.message : 'Tool execution failed',
+        error: error instanceof SandboxLimitError
+          ? `${error.message} ${SANDBOX_LIMIT_MODEL_NOTE}`
+          : error instanceof Error ? error.message : 'Tool execution failed',
       };
     }
   };

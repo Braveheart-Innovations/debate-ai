@@ -6,9 +6,8 @@ import { getDecryptedApiKey, encryptionKey } from './apiKeys';
 import { executeWebSearch } from './web_search';
 import { fetchApiArgsError, parseHeadersArg, parseQueryParamsArg } from './fetchArgs';
 import {
-  MAX_SANDBOX_FETCH_BYTES,
   parseSandboxFetchTarget,
-  saveFetchToSandbox,
+  runSandboxFetch,
   type SandboxFetchTarget,
 } from './fetchToSandbox';
 import { e2bApiKey, getSandboxService } from './sandbox/callables';
@@ -2110,39 +2109,6 @@ function noSandboxTarget(toolCallId: string): ToolResult {
   };
 }
 
-async function runSandboxFetch(
-  uid: string,
-  target: SandboxFetchTarget,
-  fetch: (maxBytes: number) => Promise<ToolResult>,
-): Promise<ToolResult> {
-  const result = await fetch(MAX_SANDBOX_FETCH_BYTES);
-  if (!result.success || typeof result.content !== 'string') return result;
-  try {
-    const summary = await saveFetchToSandbox(target, result.content, result.metadata?.contentType, async (sessionKey, path, base64) => {
-      await getSandboxService().writeFile(uid, sessionKey, { path, base64 });
-    });
-    return {
-      ...result,
-      content: summary.preview,
-      metadata: {
-        ...result.metadata,
-        sandboxPath: summary.path,
-        bytes: summary.bytes,
-        responseHash: summary.responseHash,
-        previewTruncated: summary.previewTruncated,
-      },
-    };
-  } catch (error) {
-    console.error('[executeTool] Failed to save fetch_api response to the sandbox', { uid, sessionKey: target.sessionKey, error });
-    return {
-      toolCallId: result.toolCallId,
-      success: false,
-      error: `Fetched ${Buffer.byteLength(result.content, 'utf8')} bytes but could not save them to the sandbox: ${error instanceof Error ? error.message : String(error)}`,
-      metadata: result.metadata,
-    };
-  }
-}
-
 /** Secrets the server tools read: the calling function must declare all of them. */
 export const SERVER_TOOL_SECRETS = [
   encryptionKey,
@@ -2195,7 +2161,7 @@ export async function dispatchServerTool(
             responseFormat: convertedArgs.response_format,
           });
           result = sandboxTarget
-            ? await runSandboxFetch(uid, sandboxTarget, (maxBytes) => handleFetchApi(convertedArgs, uid, keyValue, maxBytes))
+            ? await runSandboxFetch(uid, sandboxTarget, getSandboxService(), (maxBytes) => handleFetchApi(convertedArgs, uid, keyValue, maxBytes))
             : noSandboxTarget(toolCallId);
         } else {
           result = await handleFetchUrl(fetchUrlArgs);
@@ -2216,7 +2182,7 @@ export async function dispatchServerTool(
           break;
         }
         result = sandboxTarget
-          ? await runSandboxFetch(uid, sandboxTarget, (maxBytes) => handleFetchApi(fetchArgs, uid, keyValue, maxBytes))
+          ? await runSandboxFetch(uid, sandboxTarget, getSandboxService(), (maxBytes) => handleFetchApi(fetchArgs, uid, keyValue, maxBytes))
           : noSandboxTarget(toolCallId);
         break;
       }
