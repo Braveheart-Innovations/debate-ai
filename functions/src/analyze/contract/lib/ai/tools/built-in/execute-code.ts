@@ -40,12 +40,17 @@ INSTALLED PACKAGES (fixed set - just import them; never pip install):
 - numpy, pandas, matplotlib - pre-imported as np, pd, plt
 - scipy, scikit-learn, statsmodels, sympy, networkx, seaborn, Pillow, scikit-image
 - openpyxl, xlsxwriter - Excel read/write (pd.read_excel / df.to_excel)
-- pypdf (from pypdf import PdfReader) - read and extract text from PDF files
-  (scanned PDFs: page images sent as vision attachments automatically)
+- pypdf (from pypdf import PdfReader) - PDF text; pdfplumber - PDF text with layout and tables (page.extract_table());
+  pypdfium2 - render PDF pages to images (scanned PDFs: page images are sent as vision attachments automatically)
+- duckdb - SQL over CSV/Parquet files (duckdb.sql("select ... from '/uploads/x.parquet'").df()); polars
+- pyreadstat - SPSS/Stata/SAS; pyxlsb (.xlsb), odfpy (.ods), python-calamine (fast pd.read_excel engine='calamine')
 - python-docx (import docx), python-pptx (import pptx), reportlab
-- plotly, bokeh, altair - interactive charts (HTML artifacts)
+- plotly, bokeh, altair - interactive charts (HTML artifacts); Plotly also exports images: fig.write_image('/output/x.png')
+- charts use the report's house style already (Inter, report palette) - don't override fonts or colours unless asked
 - Maps are Vega-Lite \`geoshape\` chart blocks in the report, never web tile maps (folium/Leaflet, Plotly scattermap, MapLibre): reports have no tile provider
-- geopandas, shapely, pyarrow, lxml, beautifulsoup4, nltk, wordcloud, xarray, astropy, biopython
+- lightgbm, xgboost, lifelines (survival), statsforecast (forecasting), great_tables (table images: GT(df).gtsave('/output/t.png'))
+- spacy (spacy.load('en_core_web_sm')), nltk (punkt, stopwords, vader_lexicon bundled), textblob, opencv (import cv2)
+- geopandas (+ mapclassify for classed maps: gdf.plot(column=..., scheme='NaturalBreaks')), shapely, pyarrow, lxml, beautifulsoup4, wordcloud, xarray, astropy, biopython
 
 MAP BOUNDARIES (for geopandas static maps; geopandas.datasets is gone):
 - /opt/geo/world/ne_50m_admin_0_countries.shp - Natural Earth 1:50m countries; join on ISO_A3_EH (ISO_A3 is -99 for France and Norway), ISO_A2_EH, NAME
@@ -56,7 +61,7 @@ MAP BOUNDARIES (for geopandas static maps; geopandas.datasets is gone):
 NO INTERNET ACCESS:
 - requests/urllib cannot reach the web → USE fetch_api for REST APIs and fetch_url for web pages
 - pip install does not work - the package set is fixed
-- cv2, tensorflow, torch, pytesseract, easyocr → NOT AVAILABLE (use vision attachments for scanned PDFs)
+- tensorflow, torch, pytesseract, easyocr → NOT AVAILABLE (use vision attachments for scanned PDFs)
 
 Use this tool for:
 - Calculations and mathematical operations

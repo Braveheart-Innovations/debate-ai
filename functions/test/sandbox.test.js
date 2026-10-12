@@ -122,12 +122,12 @@ test('each new sandbox uses the template chosen for its user, and the record kee
   assert.equal(store.docs.get('someone/s').template, 'tpl');
 });
 
-test('only allowlisted users get the candidate template', () => {
-  const { sandboxTemplateFor, SANDBOX_TEMPLATE, SANDBOX_TEMPLATE_CANDIDATE } = require('../lib/sandbox/callables');
-  const { SERVER_LOOP_ALLOWED_UIDS } = require('../lib/analyze/engine/allowlist');
-  const [allowed] = SERVER_LOOP_ALLOWED_UIDS;
-  assert.equal(sandboxTemplateFor('not-allowlisted'), SANDBOX_TEMPLATE);
-  assert.equal(sandboxTemplateFor(allowed), SANDBOX_TEMPLATE_CANDIDATE ?? SANDBOX_TEMPLATE);
+test('everyone gets the v2 template; only testers would get a candidate', () => {
+  const { sandboxTemplateFor, SANDBOX_TEMPLATE, SANDBOX_TEMPLATE_CANDIDATE, SANDBOX_TEMPLATE_TESTERS } = require('../lib/sandbox/callables');
+  const [tester] = SANDBOX_TEMPLATE_TESTERS;
+  assert.equal(SANDBOX_TEMPLATE, 'symposium-analyze-v2');
+  assert.equal(sandboxTemplateFor('anyone'), SANDBOX_TEMPLATE);
+  assert.equal(sandboxTemplateFor(tester), SANDBOX_TEMPLATE_CANDIDATE ?? SANDBOX_TEMPLATE);
 });
 
 test('sandboxes are never shared across users with the same session key', async () => {

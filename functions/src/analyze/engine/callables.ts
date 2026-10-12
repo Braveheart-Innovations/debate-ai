@@ -42,14 +42,10 @@ import {
   startReviewPass,
   startVerification,
 } from '../review/reviewRuns';
-import { SERVER_LOOP_ALLOWED_UIDS } from './allowlist';
 import { assertAnalyzeSessionAllowed, countAnalyzeSession } from './freeTier';
 
-function requireAllowedUid(uid: string | undefined): string {
+function requireUid(uid: string | undefined): string {
   if (!uid) throw new HttpsError('unauthenticated', 'Sign in to use Analyze.');
-  if (!SERVER_LOOP_ALLOWED_UIDS.has(uid)) {
-    throw new HttpsError('permission-denied', 'Server-side Analyze is not available for this account yet.');
-  }
   return uid;
 }
 
@@ -147,7 +143,7 @@ interface StartTurnRequest {
 }
 
 export const analyzeStartTurn = onCall({ region: 'us-central1' }, async (request) => {
-  const uid = requireAllowedUid(request.auth?.uid);
+  const uid = requireUid(request.auth?.uid);
   const data = (request.data ?? {}) as Partial<StartTurnRequest>;
   const sessionId = requireString(data.sessionId, 'sessionId');
   const attachments = parseAttachments(data.message?.attachments);
@@ -234,7 +230,7 @@ function controlFailure(error: unknown): never {
 }
 
 export const analyzeRunControl = onCall({ region: 'us-central1' }, async (request) => {
-  const uid = requireAllowedUid(request.auth?.uid);
+  const uid = requireUid(request.auth?.uid);
   const data = (request.data ?? {}) as Record<string, unknown>;
   const sessionId = requireString(data.sessionId, 'sessionId');
   const runId = requireString(data.runId, 'runId');
@@ -306,7 +302,7 @@ function parseAnswers(value: unknown, itemIds: string[]): Record<string, string>
 }
 
 export const analyzeReviewControl = onCall({ region: 'us-central1' }, async (request) => {
-  const uid = requireAllowedUid(request.auth?.uid);
+  const uid = requireUid(request.auth?.uid);
   const data = (request.data ?? {}) as Record<string, unknown>;
   const sessionId = requireString(data.sessionId, 'sessionId');
   const itemIds = stringList(data.itemIds);
@@ -354,7 +350,7 @@ export const analyzeReviewControl = onCall({ region: 'us-central1' }, async (req
 export const analyzeUploads = onCall(
   { region: 'us-central1', secrets: [e2bApiKey], memory: '1GiB', timeoutSeconds: 300 },
   async (request) => {
-    const uid = requireAllowedUid(request.auth?.uid);
+    const uid = requireUid(request.auth?.uid);
     const data = (request.data ?? {}) as Record<string, unknown>;
     const sessionId = requireString(data.sessionId, 'sessionId');
     try {
@@ -402,7 +398,7 @@ export const analyzeUploads = onCall(
 export const analyzeRunCell = onCall(
   { region: 'us-central1', secrets: [e2bApiKey], timeoutSeconds: 120 },
   async (request) => {
-    const uid = requireAllowedUid(request.auth?.uid);
+    const uid = requireUid(request.auth?.uid);
     const data = (request.data ?? {}) as Record<string, unknown>;
     const sessionId = requireString(data.sessionId, 'sessionId');
     if (typeof data.code !== 'string' || data.code.length > 1_000_000) throw new HttpsError('invalid-argument', 'code is required');
