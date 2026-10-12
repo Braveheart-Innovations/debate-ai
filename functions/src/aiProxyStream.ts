@@ -529,7 +529,7 @@ async function streamGemini(
   attachments?: MessageAttachment[]
 ): Promise<{ inputTokens: number; outputTokens: number; citations?: Citation[] }> {
   const modelId = model || 'gemini-2.5-flash';
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:streamGenerateContent?key=${apiKey}&alt=sse`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:streamGenerateContent?alt=sse`;
 
   // Build contents with attachments
   const contents = messages
@@ -590,7 +590,7 @@ async function streamGemini(
 
   const response = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
     body: JSON.stringify(requestBody),
   });
 

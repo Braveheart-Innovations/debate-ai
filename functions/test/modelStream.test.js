@@ -157,3 +157,28 @@ test('a failed usage write does not fail the stream', async () => {
   const events = await collect(streamModel(request(), d));
   assert.equal(events.at(-1).type, 'message_complete');
 });
+
+test('a Gemini call keeps the API key out of the URL and out of every log line', async () => {
+  const secret = 'AIza-secret-key';
+  const geminiReply = [{ candidates: [{ content: { parts: [{ text: 'Hi' }] }, finishReason: 'STOP' }], usageMetadata: { promptTokenCount: 3, candidatesTokenCount: 1 } }];
+  const { deps: d, calls } = deps({
+    getApiKey: async () => secret,
+    fetch: async (url, init) => {
+      calls.fetch.push({ url, init });
+      return new Response(sse(geminiReply), { status: 200 });
+    },
+  });
+  const logged = [];
+  const originals = { log: console.log, warn: console.warn, error: console.error, info: console.info };
+  for (const level of Object.keys(originals)) console[level] = (...args) => logged.push(args.map(String).join(' '));
+  try {
+    await collect(streamModel(request({ providerId: 'google', model: 'gemini-3.8-flash' }), d));
+  } finally {
+    Object.assign(console, originals);
+  }
+  assert.equal(calls.fetch.length, 1);
+  assert.ok(!calls.fetch[0].url.includes(secret), calls.fetch[0].url);
+  assert.equal(calls.fetch[0].init.headers['x-goog-api-key'], secret);
+  assert.ok(logged.length > 0);
+  for (const line of logged) assert.ok(!line.includes(secret), `a log line carries the key: ${line}`);
+});

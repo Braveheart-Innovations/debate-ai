@@ -192,7 +192,6 @@ async function* streamModelCall(
       traceId,
       event: 'provider_request',
       providerId,
-      url: built.url,
       hasBody: !!built.body,
       messageCount: (built.body as { messages?: unknown[] } | undefined)?.messages?.length || 0,
     }));
