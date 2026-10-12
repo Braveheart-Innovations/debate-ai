@@ -246,6 +246,56 @@ describe('handleStreamCompleted bundle outputs', () => {
     expect(artifacts[0].metadata?.reportSpecVersion).toBe(1);
   });
 
+  it('saves a spec written with Python NaN as a clean report, with no parse warning (R1)', () => {
+    const artifacts: Artifact[] = [];
+    const messages: Message[] = [{ id: 'ai-3', sender: 'AI', senderType: 'ai', content: '', timestamp: 1 }];
+    const pythonJson = '{"version": 1, "kind": "analysis_artifact_spec", "title": "NaN save test", "summary": "S", '
+      + '"pages": [{"slug": "test", "title": "Test", "blocks": [{"kind": "table", "headers": ["name", "value"], "rows": [["a", 1.0], ["b", NaN]]}]}]}';
+    const encoded = encodeUtf8ToBase64(pythonJson);
+
+    handleStreamCompleted(
+      {
+        messageId: 'ai-3',
+        finalContent: 'Done',
+        toolCalls: [{ id: 'call-3', type: 'function', function: { name: 'execute_python', arguments: '{"code":"json.dumps(spec)"}' } }],
+        toolExecutionResults: [
+          {
+            toolName: 'execute_python',
+            success: true,
+            content: 'Executed successfully.',
+            dataOutputs: [{ filename: 'nan_test_report.json', base64: encoded, size: pythonJson.length }],
+          },
+        ],
+      },
+      {
+        dispatch: (action) => {
+          if (action.type === 'ADD_ARTIFACT') artifacts.push(action.payload);
+        },
+        getState: () => ({
+          artifacts,
+          outputSelection: createDefaultAnalyzeOutputSelection(),
+          currentSession: { id: 'session-1' },
+          messages,
+        }),
+        now: () => Date.now(),
+        persistMessage: jest.fn(),
+        getFetchProvenanceMap: () => new Map(),
+        setFetchProvenanceMap: jest.fn(),
+        setLatestCompletedOperatorMessageId: jest.fn(),
+        getSessionWorkbookManager: () => ({
+          initialized: true,
+          reset: jest.fn(),
+          addDataTab: jest.fn(),
+        }) as unknown as ReturnType<StreamCompletedDeps['getSessionWorkbookManager']>,
+      },
+    );
+
+    const report = artifacts.find((artifact) => artifact.name === 'nan_test_report.json');
+    expect(report?.type).toBe('analysis_artifact_spec');
+    expect(report?.metadata?.validationReport).toBeUndefined();
+    expect(JSON.parse(report!.data).pages[0].blocks[0].rows).toEqual([['a', '1'], ['b', '']]);
+  });
+
   it('flags a declared-but-invalid spec with a validation report instead of silently downgrading', () => {
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     const artifacts: Artifact[] = [];

@@ -815,8 +815,9 @@ function extractDataArtifacts(
       artifactType = 'html';
     }
 
-    // JSON tabular detection
-    if (artifactType === 'data' && mimeType === 'application/json' && ext === 'json') {
+    // JSON tabular detection (a report spec is never a table, and it may hold the
+    // NaN that only the spec parser reads: R1)
+    if (artifactType === 'data' && mimeType === 'application/json' && ext === 'json' && !analysisSpec) {
       try {
         const decoded = decodeBase64ToUtf8(data.base64);
         const parsed = JSON.parse(decoded);
