@@ -3,6 +3,7 @@ import * as admin from 'firebase-admin';
 import { FieldValue, Timestamp, getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import * as crypto from 'crypto';
+import { destroySessionSandbox, e2bApiKey } from './sandbox/callables';
 
 try { admin.app(); } catch { admin.initializeApp(); }
 
@@ -373,6 +374,23 @@ export async function deleteServerOwnedSessionData(uid: string, sessionId: strin
   }
 }
 
+/**
+ * A deleted session's sandbox goes with it (privacy policy). A failure is
+ * logged, not thrown: the session's records are already gone, and the daily
+ * retention sweep removes the sandbox after 7 idle days.
+ */
+export async function deleteSessionSandbox(
+  uid: string,
+  sessionId: string,
+  destroy: (uid: string, sessionKey: string) => Promise<void> = destroySessionSandbox,
+): Promise<void> {
+  try {
+    await destroy(uid, sessionId);
+  } catch (error) {
+    console.error('[deleteCloudPayloadsForPath] could not destroy the session sandbox', { uid, sessionId, error });
+  }
+}
+
 async function deleteReservationsForSession(uid: string, sessionId: string): Promise<number> {
   let deleted = 0;
   while (true) {
@@ -656,7 +674,7 @@ export const deleteCloudPayload = onCall(async (request) => {
   return { success: true, bytesDeleted: deleted.bytes, objectCount: deleted.deleted ? 1 : 0 };
 });
 
-export const deleteCloudPayloadsForPath = onCall(async (request) => {
+export const deleteCloudPayloadsForPath = onCall({ secrets: [e2bApiKey] }, async (request) => {
   const uid = requireUid(request.auth);
   const basePath = stringValue((request.data as Record<string, unknown>).basePath, 'basePath', 1024);
   const parts = basePath.split('/');
@@ -674,6 +692,7 @@ export const deleteCloudPayloadsForPath = onCall(async (request) => {
   await deleteReservationsForSession(uid, parts[3]);
   // Every session delete calls this; the server-owned records go with it (clients can't delete them).
   await deleteServerOwnedSessionData(uid, parts[3]);
+  await deleteSessionSandbox(uid, parts[3]);
   return { success: true, bytesDeleted: result.bytes, objectCount: result.objects };
 });
 

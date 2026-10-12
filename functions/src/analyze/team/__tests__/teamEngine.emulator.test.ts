@@ -74,12 +74,20 @@ jest.mock('../../../sandbox/callables', () => ({
     writeFile: async (_uid: string, _key: string, { path, base64 }: { path: string; base64: string }) => {
       sandboxFiles.set(path, Buffer.from(base64, 'base64'));
     },
+    writeBytes: async (_uid: string, _key: string, path: string, bytes: Uint8Array) => {
+      sandboxFiles.set(path, Buffer.from(bytes));
+    },
+    linkFiles: async (_uid: string, _key: string, groups: Array<{ target: string; links: string[] }>) => {
+      for (const { target, links } of groups) for (const link of links) sandboxFiles.set(link, sandboxFiles.get(target)!);
+    },
     listFiles: async (_uid: string, _key: string, dir: string) => [...sandboxFiles.keys()]
       .filter((path) => path.startsWith(`${dir}/`))
       .map((path) => ({ name: path.split('/').pop(), path, size: 1, isDirectory: false })),
     releaseKernel: async (_uid: string, _key: string, kernel: string) => { released.push(kernel); },
     deleteFile: async (_uid: string, _key: string, path: string) => { sandboxFiles.delete(path); },
   }),
+  e2bApiKey: jest.requireActual('firebase-functions/params').defineSecret('E2B_API_KEY'),
+  destroySessionSandbox: async () => undefined,
 }));
 // Storage, in memory (scratch, payload offload and upload copies round-trip for real).
 const storageObjects = new Map<string, Buffer>();

@@ -15,6 +15,7 @@ import { fetchOfficialDocContent, inferSalesforceDocumentationStatus, lookupSale
 import {
   getDecryptedDataServiceKey,
   CONNECTOR_AUTH_CONFIG,
+  connectorTakesKey,
   VALID_CONNECTOR_IDS,
   fredApiKey,
   socrataAppToken,
@@ -1914,8 +1915,8 @@ async function handleFetchApi(
       };
     }
 
-    // Only resolve a key if the connector authenticates: a named param/header, or a managed (e.g. bearer) key.
-    if (authConfig.authType !== 'none' && (authConfig.authKeyName || authConfig.getManagedKey)) {
+    // Only resolve a key if the connector authenticates (a bearer token, or a named param/header).
+    if (connectorTakesKey(authConfig)) {
       // Try user's stored key first, then fall back to Symposium-managed key
       const rawApiKey = await getDecryptedDataServiceKey(uid, connectorRef, encryptionKeyValue)
         || authConfig.getManagedKey?.()

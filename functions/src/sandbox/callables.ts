@@ -53,6 +53,11 @@ export function getSandboxService(): SandboxSessionService {
   return service;
 }
 
+/** Session deletion: destroy the session's sandbox (its variables, uploads and outputs). */
+export async function destroySessionSandbox(uid: string, sessionKey: string): Promise<void> {
+  await getSandboxService().reset(uid, sessionKey);
+}
+
 /** Account deletion: destroy every sandbox the user owns. Call before deleting users/{uid}. */
 export async function destroyUserSandboxes(uid: string): Promise<number> {
   return getSandboxService().destroyAllForUser(uid);

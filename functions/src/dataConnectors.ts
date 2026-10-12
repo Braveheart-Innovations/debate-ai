@@ -123,6 +123,16 @@ export const CONNECTOR_AUTH_CONFIG: Record<string, ConnectorAuthConfig> = {
 };
 
 /**
+ * Whether fetch_api resolves a key for this connector (the user's, else the
+ * managed one): a bearer token always goes in the Authorization header, the
+ * other types need the param or header name to put it in.
+ */
+export function connectorTakesKey(authConfig: ConnectorAuthConfig): boolean {
+  if (authConfig.authType === 'none') return false;
+  return authConfig.authType === 'bearer' || Boolean(authConfig.authKeyName);
+}
+
+/**
  * Save an API key for a data connector.
  * Encrypts the key before storing in Firestore.
  */
