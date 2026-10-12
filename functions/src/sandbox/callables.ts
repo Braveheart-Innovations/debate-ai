@@ -1,7 +1,6 @@
 import { onCall, HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { defineSecret } from 'firebase-functions/params';
-import { SERVER_LOOP_ALLOWED_UIDS } from '../analyze/engine/allowlist';
 import { E2BSandboxProvider } from './e2bProvider';
 import { FirestoreSandboxStore } from './firestoreStore';
 import { recordSandboxUsage } from '../usageTracking';
@@ -21,15 +20,24 @@ export const e2bApiKey = defineSecret('E2B_API_KEY');
  * Built from scripts/build-sandbox-template.mjs. Templates are versioned by name and
  * never rebuilt in place: a same-name rebuild reaches every new sandbox at once.
  */
-export const SANDBOX_TEMPLATE = 'symposium-analyze';
+export const SANDBOX_TEMPLATE = 'symposium-analyze-v2';
 /**
- * The next template, dark-tested on the server-loop allowlist before the switch.
+ * The next template, dark-tested by SANDBOX_TEMPLATE_TESTERS before the switch.
  * The switch is: SANDBOX_TEMPLATE = this, then this = null.
  */
-export const SANDBOX_TEMPLATE_CANDIDATE: string | null = 'symposium-analyze-v2';
+export const SANDBOX_TEMPLATE_CANDIDATE: string | null = null;
+/**
+ * Accounts that get SANDBOX_TEMPLATE_CANDIDATE while one is set:
+ *  - mspencer@braveheartinnovations.com (Michael's web account)
+ *  - the live-proxy test account (automated harness)
+ */
+export const SANDBOX_TEMPLATE_TESTERS: ReadonlySet<string> = new Set([
+  'NIxWoHSaoZbleBOUfnJVpocHTY22',
+  'm8zEMeTFGUaZ0xXyuZ6Fu57rWa72',
+]);
 
 export function sandboxTemplateFor(uid: string): string {
-  return SANDBOX_TEMPLATE_CANDIDATE && SERVER_LOOP_ALLOWED_UIDS.has(uid) ? SANDBOX_TEMPLATE_CANDIDATE : SANDBOX_TEMPLATE;
+  return SANDBOX_TEMPLATE_CANDIDATE && SANDBOX_TEMPLATE_TESTERS.has(uid) ? SANDBOX_TEMPLATE_CANDIDATE : SANDBOX_TEMPLATE;
 }
 const IDLE_TIMEOUT_MS = 15 * 60_000;
 /** Sandboxes one user can have awake at once (Michael, 2026-10-11): E2B Hobby allows 20 for everyone. */
