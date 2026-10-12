@@ -17,10 +17,11 @@ test('key-dependent tools fail cleanly when encryption is not configured', async
 });
 
 test('the shared secret list covers encryption, the sandbox, and every managed connector key', () => {
-  assert.equal(SERVER_TOOL_SECRETS.length, 10);
-  assert.equal(new Set(SERVER_TOOL_SECRETS.map((s) => s.name)).size, 10);
+  assert.equal(SERVER_TOOL_SECRETS.length, 11);
+  assert.equal(new Set(SERVER_TOOL_SECRETS.map((s) => s.name)).size, 11);
   assert.ok(SERVER_TOOL_SECRETS.some((s) => s.name === 'ENCRYPTION_KEY'));
   assert.ok(SERVER_TOOL_SECRETS.some((s) => s.name === 'E2B_API_KEY'));
+  assert.ok(SERVER_TOOL_SECRETS.some((s) => s.name === 'UN_POPULATION_API_TOKEN'));
 });
 
 test('fetch_api with malformed query_params fails with the reason, before any sandbox or network work', async () => {
@@ -35,4 +36,11 @@ test('fetch_api with no sandbox target is refused (nothing returns a body inline
   assert.equal(result.success, false);
   assert.equal(result.toolCallId, 'call-f');
   assert.match(result.error, /sandbox/);
+});
+
+test('the UN Population connector sends the managed Data Portal token as a bearer header (F4)', () => {
+  const { CONNECTOR_AUTH_CONFIG } = require('../lib/dataConnectors');
+  const config = CONNECTOR_AUTH_CONFIG.un_population;
+  assert.equal(config.authType, 'bearer');
+  assert.equal(typeof config.getManagedKey, 'function');
 });

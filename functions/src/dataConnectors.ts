@@ -26,6 +26,8 @@ const blsRegistrationKey = defineSecret('BLS_REGISTRATION_KEY');
 const fbiCrimeApiKey = defineSecret('FBI_CRIME_API_KEY');
 const stackExchangeApiKey = defineSecret('STACK_EXCHANGE_API_KEY');
 const librariesIoApiKey = defineSecret('LIBRARIES_IO_API_KEY');
+// UN Population Division Data Portal bearer token (issued for one year; renew before it lapses).
+const unPopulationApiToken = defineSecret('UN_POPULATION_API_TOKEN');
 
 // Valid data connector IDs (must match client-side data-connectors.ts)
 const VALID_CONNECTOR_IDS = [
@@ -98,7 +100,7 @@ export const CONNECTOR_AUTH_CONFIG: Record<string, ConnectorAuthConfig> = {
   oecd: { authType: 'none' },
   imf: { authType: 'none' },
   eurostat: { authType: 'none' },
-  un_population: { authType: 'none' },
+  un_population: { authType: 'bearer', getManagedKey: () => unPopulationApiToken.value() || undefined },
   npm_registry: { authType: 'none' },
   hacker_news: { authType: 'none' },
   pypi: { authType: 'none' },
@@ -242,4 +244,5 @@ export {
   fbiCrimeApiKey,
   stackExchangeApiKey,
   librariesIoApiKey,
+  unPopulationApiToken,
 };

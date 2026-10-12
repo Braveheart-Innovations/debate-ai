@@ -24,6 +24,7 @@ import {
   fbiCrimeApiKey,
   stackExchangeApiKey,
   librariesIoApiKey,
+  unPopulationApiToken,
 } from './dataConnectors';
 
 // ============================================================================
@@ -402,6 +403,7 @@ const KNOWN_API_HOSTS = new Set([
   'imf.org',
   'ec.europa.eu',
   'unstats.un.org',
+  'population.un.org',
   'registry.npmjs.org',
   'api.npmjs.org',
   'hacker-news.firebaseio.com',
@@ -436,6 +438,10 @@ const CONNECTOR_INFERENCE_RULES: ConnectorInferenceRule[] = [
   { connectorId: 'openweathermap', matches: (url) => normalizeHost(url.hostname) === 'api.openweathermap.org' },
   { connectorId: 'newsapi', matches: (url) => normalizeHost(url.hostname) === 'newsapi.org' },
   { connectorId: 'github', matches: (url) => normalizeHost(url.hostname) === 'api.github.com' },
+  {
+    connectorId: 'un_population',
+    matches: (url) => normalizeHost(url.hostname) === 'population.un.org' && url.pathname.startsWith('/dataportalapi/'),
+  },
   { connectorId: 'socrata', matches: (url) => isSocrataHost(url) },
 ];
 
@@ -1908,8 +1914,8 @@ async function handleFetchApi(
       };
     }
 
-    // Only resolve key if connector requires authentication
-    if (authConfig.authType !== 'none' && authConfig.authKeyName) {
+    // Only resolve a key if the connector authenticates: a named param/header, or a managed (e.g. bearer) key.
+    if (authConfig.authType !== 'none' && (authConfig.authKeyName || authConfig.getManagedKey)) {
       // Try user's stored key first, then fall back to Symposium-managed key
       const rawApiKey = await getDecryptedDataServiceKey(uid, connectorRef, encryptionKeyValue)
         || authConfig.getManagedKey?.()
@@ -1927,13 +1933,14 @@ async function handleFetchApi(
       // Inject auth based on connector type
       switch (authConfig.authType) {
         case 'query_param':
-          queryParams[authConfig.authKeyName] = apiKey;
+          if (authConfig.authKeyName) queryParams[authConfig.authKeyName] = apiKey;
           break;
         case 'header':
-          requestHeaders[authConfig.authKeyName] = apiKey;
+          if (authConfig.authKeyName) requestHeaders[authConfig.authKeyName] = apiKey;
           break;
         case 'bearer':
-          requestHeaders['Authorization'] = `Bearer ${apiKey}`;
+          // A token saved with its "Bearer " prefix works as is.
+          requestHeaders['Authorization'] = /^bearer\s/i.test(apiKey) ? apiKey : `Bearer ${apiKey}`;
           break;
       }
     }
@@ -2121,6 +2128,7 @@ export const SERVER_TOOL_SECRETS = [
   fbiCrimeApiKey,
   stackExchangeApiKey,
   librariesIoApiKey,
+  unPopulationApiToken,
 ];
 
 export interface ServerToolCall {
