@@ -85,7 +85,7 @@ export function buildDelegateTool(team: TeamMember[]): ToolDefinition {
 export function buildProposeTeamTool(team: TeamMember[]): ToolDefinition {
   return {
     name: PROPOSE_TEAM_TOOL_NAME,
-    description: `Propose a team to the user before the work starts. Teammates: ${team.map(describeMember).join('; ')}. kind "panel": one assignment whose agents each work the same task independently (up to ${MAX_PANEL_SIZE}); you then reconcile their answers. kind "split": several assignments, each with one agent, for work that divides. The user reads the plan on a card: write goal, approach, after, and each task's title, summary and deliverable for them, in plain words; each task's "task" is the teammate's instructions. The user approves it (and may change which models run a task), declines it with feedback, or has you do the work yourself. Approved runs go in parallel and their final replies come back to you together. Each teammate sees only its task text, nothing else from this conversation, and saves files under /output/agents/.`,
+    description: `Propose a team to the user before the work starts. Teammates: ${team.map(describeMember).join('; ')}. kind "panel": one assignment whose agents each work the same task independently (up to ${MAX_PANEL_SIZE}); you then reconcile their answers. kind "split": several assignments, each with one agent, for work that divides. The user reads the plan on a card: write goal, approach, after, and each task's title, summary and deliverable for them, in plain words; each task's "task" is the teammate's instructions. If one model is enough, propose a split with a single task for one teammate and say in the approach why one is enough. The user approves it (and may change which models run a task), declines it with feedback, or has you do the work yourself. Approved runs go in parallel and their final replies come back to you together. Each teammate sees only its task text, nothing else from this conversation, and saves files under /output/agents/.`,
     parameters: {
       type: 'object',
       properties: {
@@ -156,7 +156,7 @@ export function buildProposeTeamTool(team: TeamMember[]): ToolDefinition {
 export function buildAskUserTool(): ToolDefinition {
   return {
     name: ASK_USER_TOOL_NAME,
-    description: 'Ask the user what you need to know before proposing a team. Your turn ends here; the user\'s answer comes as their next message.',
+    description: 'Ask the user what you need to know before proposing a team: only what you can\'t plan without (what to analyze, which data, what to deliver). Choices you can make yourself, such as layout, chart types, or defaults, go in the plan\'s approach instead. Your other tools aren\'t gone; they come back once the plan is settled. Asking ends your turn; the user\'s answer comes as their next message.',
     parameters: {
       type: 'object',
       properties: {
