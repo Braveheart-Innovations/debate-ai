@@ -328,6 +328,49 @@ function parseText(content: string, offset: number, maxChars: number): ReadFileR
 }
 
 // ============================================================================
+// PDF
+// ============================================================================
+
+const PDF_MAGIC = '%PDF-';
+const NO_TEXT_LAYER = "This PDF has no text layer (it's likely scanned). Its pages are sent to you as images with the turn's first message; to look closer, render pages in Python with pypdfium2.";
+
+/** A PDF by extension or by its header (a PDF read as "text" would otherwise come back as raw PDF syntax). */
+function isPdf(path: string, raw: ArrayBuffer): boolean {
+  if (path.toLowerCase().endsWith('.pdf')) return true;
+  return new TextDecoder('latin1').decode(raw.slice(0, PDF_MAGIC.length)) === PDF_MAGIC;
+}
+
+let pdfJsPromise: Promise<typeof import('pdfjs-dist/legacy/build/pdf.mjs')> | null = null;
+
+/** The PDF's text, page by page, each page under a "--- Page N ---" line. */
+async function extractPdfText(raw: ArrayBuffer): Promise<{ text: string; pageCount: number }> {
+  pdfJsPromise ??= import('pdfjs-dist/legacy/build/pdf.mjs');
+  const pdfjs = await pdfJsPromise;
+  const document = await pdfjs.getDocument({
+    data: new Uint8Array(raw),
+    isEvalSupported: false,
+    useWorkerFetch: false,
+    // Errors only: text extraction doesn't need the standard font files pdf.js warns about.
+    verbosity: 0,
+  }).promise;
+  const pageCount = Number(document.numPages) || 0;
+  const pages: string[] = [];
+  for (let pageNumber = 1; pageNumber <= pageCount; pageNumber += 1) {
+    const page = await document.getPage(pageNumber);
+    const content = await page.getTextContent();
+    const pageText = content.items
+      .map((item) => ('str' in item ? item.str + (item.hasEOL ? '\n' : ' ') : ''))
+      .join('')
+      .replace(/[ \t]+\n/g, '\n')
+      .replace(/[ \t]{2,}/g, ' ')
+      .trim();
+    pages.push(`--- Page ${pageNumber} ---\n${pageText}`);
+  }
+  const hasText = pages.some((page) => page.replace(/^--- Page \d+ ---\n/, '').trim().length > 0);
+  return { text: hasText ? pages.join('\n\n') : '', pageCount };
+}
+
+// ============================================================================
 // Main Entry Point
 // ============================================================================
 
@@ -372,6 +415,13 @@ export async function parseFile(
       `Cannot read file "${path}". ` +
       (error instanceof Error ? error.message : 'File not found or not accessible.')
     );
+  }
+
+  // A PDF's text, paged like any text file (unless the caller asked for a table format).
+  if ((format === 'auto' || format === 'text') && isPdf(path, rawData)) {
+    const { text, pageCount } = await extractPdfText(rawData);
+    const result = parseText(text || NO_TEXT_LAYER, offset, maxChars);
+    return { ...result, format: 'pdf', filename, fileSize: rawData.byteLength, pageCount };
   }
 
   // For text-based formats, decode ArrayBuffer to string
