@@ -90,7 +90,7 @@ export { createHtmlPdfExport } from './exports/createHtmlPdfExport';
 export { renderHtmlSnapshots } from './exports/renderHtmlSnapshots';
 
 // Analyze remote Python sandbox (E2B)
-export { sandboxExecute, sandboxFiles, sandboxSession, sandboxRetentionSweep } from './sandbox/callables';
+export { sandboxRetentionSweep } from './sandbox/callables';
 
 // Analyze server-side loop (Phase 3; allowlisted until the v2.6 cutover)
 export { analyzeStartTurn, analyzeRunControl, analyzeReviewControl, analyzeUploads, analyzeRunCell } from './analyze/engine/callables';

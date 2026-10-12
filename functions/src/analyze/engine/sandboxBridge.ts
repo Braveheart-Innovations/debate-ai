@@ -1,8 +1,7 @@
 /**
  * The loop's view of the session sandbox: the same `execute(code, {timeout,
  * signal})` bridge the browser loop used (web SandboxService.execute), backed
- * by the server sandbox service directly instead of the sandboxExecute
- * callable. Abort interrupts the running cell (variables are kept when the
+ * by the server sandbox service directly. Abort interrupts the running cell (variables are kept when the
  * interrupt works) and the result says it was stopped.
  */
 import { getSandboxService } from '../../sandbox/callables';
