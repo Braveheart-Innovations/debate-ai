@@ -141,7 +141,7 @@ import type { Artifact } from '../../contract/types/notebook';
 import { NoSessionSandboxError, runCell } from '../../engine/runCell';
 import { FirestoreSandboxStore } from '../../../sandbox/firestoreStore';
 import { SessionBusyError } from '../../engine/turns';
-import type { NotificationDoc } from '../../engine/notifications';
+import { resolveSessionQuestions, type NotificationDoc } from '../../engine/notifications';
 import { ANALYZE_FREE_LIMIT_REASON, assertAnalyzeSessionAllowed, countAnalyzeSession } from '../../engine/freeTier';
 
 const emulator = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
@@ -769,7 +769,8 @@ describeEmulator('step 6 server gaps', () => {
 
     expect((await run(runId)).status).toBe('completed');
     notes = await notifications();
-    expect(notes.map((n) => [n.kind, n.read])).toEqual([['awaiting_approval', true], ['completed', false]]);
+    // The approved plan no longer needs the user (F2).
+    expect(notes.map((n) => [n.kind, n.read, n.resolved ?? false])).toEqual([['awaiting_approval', true, true], ['completed', false, false]]);
     expect(notes[1].id).toBe(`${runId}_completed`);
   });
 
@@ -801,6 +802,7 @@ describeEmulator('step 6 server gaps', () => {
 
     expect(await declinePlan(runRef(uid, sessionId, runId), first.id, 'One panel on both, please.')).toBe(true);
     expect(await declinePlan(runRef(uid, sessionId, runId), first.id, 'Again')).toBe(false);
+    expect(await notifications()).toEqual([expect.objectContaining({ id: `${runId}_plan_${first.id}`, resolved: true, read: true })]);
     operator = await run(runId);
     expect(operator.status).toBe('queued');
     expect(operator.pendingTeamPlans).toEqual([]);
@@ -823,6 +825,7 @@ describeEmulator('step 6 server gaps', () => {
     await drain();
     operator = await run(runId);
     expect(operator.status).toBe('completed');
+    expect((await notifications()).filter((n) => n.kind === 'awaiting_approval').map((n) => n.resolved)).toEqual([true, true]);
     expect((await children(runId)).map((kid) => kid.status)).toEqual(['completed', 'completed']);
     const results = toolMessages(await loadSessionMessages(uid, sessionId));
     expect(results.map((m) => m.metadata?.toolCallId)).toEqual(['p1', 'p2']);
@@ -831,22 +834,24 @@ describeEmulator('step 6 server gaps', () => {
     expect(results[1].content).toContain('answer: A and B brief');
   });
 
-  it('a turn that asks the user notifies the question, not a completion; Stop notifies nothing', async () => {
+  it('a turn that asks the user notifies the question, not a completion; the answer resolves it; Stop resolves the waiting plan and notifies nothing new', async () => {
     script = () => calls({ id: 'q1', name: 'ask_user', args: { questions: 'Which region should I use?' } });
     const { runId } = await startOperatorTurn({ uid, sessionId, content: 'Go', config: config({ teamPlanTurn: true }) });
     await drain();
     expect((await run(runId)).status).toBe('completed');
-    expect(await notifications()).toEqual([expect.objectContaining({ id: `${runId}_asked_user`, kind: 'asked_user', detail: 'Which region should I use?' })]);
+    expect(await notifications()).toEqual([expect.objectContaining({ id: `${runId}_asked_user`, kind: 'asked_user', detail: 'Which region should I use?', read: false })]);
 
     script = () => calls({ id: 'd1', name: 'delegate', args: { task: 'A', agent: 'teammate1' } });
-    const second = await startOperatorTurn({ uid, sessionId, content: 'Again', config: config() });
+    const second = await startOperatorTurn({ uid, sessionId, content: 'Europe', config: config() });
+    // What analyzeStartTurn does after the user's message starts the turn (F2).
+    await resolveSessionQuestions(uid, sessionId);
+    expect(await notifications()).toEqual([expect.objectContaining({ kind: 'asked_user', resolved: true, read: true })]);
     await drain();
-    await getFirestore().collection(`users/${uid}/notifications`).doc(`${second.runId}_plan_${(await run(second.runId)).pendingTeamPlans![0].id}`).delete();
     await runRef(uid, sessionId, second.runId).update({ cancelRequested: true });
     await stopWaitingOperator(runRef(uid, sessionId, second.runId));
     await drain();
     expect((await run(second.runId)).status).toBe('stopped');
-    expect((await notifications()).map((n) => n.kind)).toEqual(['asked_user']);
+    expect((await notifications()).map((n) => [n.kind, n.resolved ?? false])).toEqual([['asked_user', true], ['awaiting_approval', true]]);
   });
 
   it('a failed turn and a run the sweeper gives up on both notify the error', async () => {
