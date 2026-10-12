@@ -461,22 +461,24 @@ export const DATA_CONNECTORS: DataConnectorProfile[] = [
   },
   {
     id: 'un_population',
-    name: 'UN Population Data',
+    name: 'UN World Population Prospects',
     category: 'economics',
-    description: 'UN SDG population-related indicators and country-level series metadata',
-    baseUrl: 'https://unstats.un.org/SDGAPI/v1/sdg',
-    authType: 'none',
+    description: 'UN Population Division estimates (1950–2023) and projections to 2100: population, fertility, mortality, migration, and age structure by country and region',
+    baseUrl: 'https://population.un.org/dataportalapi/api/v1',
+    authType: 'bearer',
     requiresUserKey: false,
     managedBySymposium: true,
     rateLimits: { requests: 60, period: 'minute' },
-    documentation: `UN SDG API for population and development indicators. Endpoints:
-  - /GeoArea/List - List geo area codes (M49-aligned country/region codes)
-  - /Series/List - List series metadata and indicator codes
-  - /Series/Data?seriesCode={code}&areaCode={m49} - Indicator observations
-  Example series EN_LND_CNSPOP reports population density values.`,
+    documentation: `UN DESA Population Division, World Population Prospects 2024 (CC BY 3.0 IGO; cite "United Nations, DESA, Population Division, World Population Prospects 2024"). Estimates 1950-2023; projections 2024-2100. Endpoints:
+  - /data/indicators/{indicatorIds}/locations/{locationIds}/start/{startYear}/end/{endYear} - Data rows under "data" (location, indicatorDisplayName, variant, sex, ageLabel, timeLabel, value). Several ids comma-separated. Responses are paged: pass pageSize (e.g. 1000) and follow nextPage until it's null.
+  - /indicators?pageSize=200 - Every indicator (id, shortName, name, unit)
+  - /locations/{codes} - Locations by M49 id, ISO2 or ISO3 (e.g. /locations/USA,CHN)
+  Common indicators: 49 total population by sex, 19 total fertility rate, 61 life expectancy at birth, 67 median age, 22 infant mortality rate, 24 under-five mortality rate, 55 crude birth rate, 59 crude death rate, 66 net migration rate, 46 population by 5-year age group and sex, 86 total dependency ratio.
+  Locations (M49): countries such as 840 USA, 156 China, 356 India; regions 900 World, 903 Africa, 935 Asia, 908 Europe, 904 Latin America and the Caribbean, 905 Northern America, 909 Oceania.
+  Population values are numbers of people (not thousands). Each year comes in several variants: "Median" is the estimate (to 2023) and the main projection; the 80%/95% bounds give the projection's uncertainty. Rows also split by sex ("Both sexes", "Male", "Female"): filter to the rows you need.`,
     exampleCalls: [
-      'fetch_api(url="https://unstats.un.org/SDGAPI/v1/sdg/GeoArea/List")',
-      'fetch_api(url="https://unstats.un.org/SDGAPI/v1/sdg/Series/Data", query_params={"seriesCode":"EN_LND_CNSPOP","areaCode":"840"})',
+      'fetch_api(url="https://population.un.org/dataportalapi/api/v1/data/indicators/49/locations/904,935/start/2005/end/2030", query_params={"pageSize":"1000"}, api_key_ref="un_population")',
+      'fetch_api(url="https://population.un.org/dataportalapi/api/v1/indicators", query_params={"pageSize":"200"}, api_key_ref="un_population")',
     ],
   },
   {
