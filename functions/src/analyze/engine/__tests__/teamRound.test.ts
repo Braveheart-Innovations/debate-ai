@@ -39,7 +39,7 @@ jest.mock('../runStore', () => ({
 
 import { runRound, roundTools, type RoundContext, type TeamHooks, type TurnState } from '../round';
 import { buildTeam } from '../../team/teamTools';
-import { ORG_EVIDENCE_REQUESTED_REPLY, SOLO_RESULT_TEXT, type TeamCallSetup } from '../../team/teamState';
+import { ORG_EVIDENCE_REQUESTED_REPLY, type TeamCallSetup } from '../../team/teamState';
 import type { AI } from '../../contract/types';
 import { executeCodeTool } from '../../contract/lib/ai/tools/built-in/execute-code';
 import type { CaptureInput } from '../../capture/captureRound';
@@ -147,6 +147,40 @@ describe('Team mode', () => {
     expect(stored.at(-1)?.metadata?.teamModeSkipped).toBeUndefined();
   });
 
+  it('a plan round the operator ignores is spent: its other calls don\'t run, and the turn goes on with the normal tools (F9)', async () => {
+    const { context, executeTool } = makeContext({ teamPlanTurn: true });
+    streamQueue.push([done({ finish_reason: 'tool_calls', tool_calls: [call('x1', 'execute_python', { code: 'print(1)' })] })]);
+    expect(await runRound(context, state(0))).toBe('continue');
+    expect(toolNames(0)).toEqual(['propose_team', 'ask_user']);
+    expect(executeTool).not.toHaveBeenCalled();
+    expect(toolMessages()[0].content).toContain("Not run: execute_python isn't available this round. Available: propose_team, ask_user.");
+    expect(context.run.team?.planRoundSpent).toBe(true);
+
+    streamQueue.push([done({ finish_reason: 'tool_calls', tool_calls: [call('x2', 'execute_python', { code: 'print(2)' })] })]);
+    expect(await runRound(context, state(1))).toBe('continue');
+    expect(toolNames(1)).toEqual(['execute_python', 'propose_team', 'delegate']);
+    expect(streamCalls[1].toolChoice).not.toBe('required');
+    expect(streamCalls[1].deepThinking).toBeUndefined();
+    expect(executeTool).toHaveBeenCalledTimes(1);
+
+    streamQueue.push([{ type: 'text_delta', delta: 'Done alone.' }, done()]);
+    expect(await runRound(context, state(2))).toBe('completed');
+    expect(stored.at(-1)?.metadata?.teamModeSkipped).toBe(true);
+  });
+
+  it('a call blocked in the plan round stays blocked when a later step resumes it with wider tools', async () => {
+    const { context, executeTool } = makeContext({ teamPlanTurn: true });
+    stored = [user, {
+      id: 'run1_r0', sender: 'Claude', senderType: 'ai', content: '', timestamp: 2,
+      metadata: { toolCalls: [call('x1', 'execute_python', { code: 'print(1)' })] },
+    }];
+    toolRecords.set('x1', { state: 'done', result: { success: false, error: "Not run: execute_python isn't available this round. Available: propose_team, ask_user." } });
+    context.run.team = { planRoundSpent: true };
+    expect(await runRound(context, state(0))).toBe('continue');
+    expect(executeTool).not.toHaveBeenCalled();
+    expect(toolMessages()[0].content).toContain('Not run: execute_python');
+  });
+
   it('notes it when the operator answers without a plan (models that can\'t be forced)', async () => {
     const { context } = makeContext({ teamPlanTurn: true });
     streamQueue.push([{ type: 'text_delta', delta: 'Here is my answer.' }, done()]);
@@ -191,6 +225,18 @@ describe('Team mode', () => {
       expect(executeTool).toHaveBeenCalledTimes(1);
       expect(stored.find((m) => m.id === 'run1_r0')?.content).toBe(ORG_EVIDENCE_REQUESTED_REPLY);
     });
+
+    it('an audit in the plan round runs and keeps the planning gate (it isn\'t ignoring the plan round)', async () => {
+      const { context, executeTool } = makeContext({ teamPlanTurn: true, salesforceWorkspace: true });
+      context.tools = [executeCodeTool, auditTool, orgEvidenceTool];
+      streamQueue.push([done({ finish_reason: 'tool_calls', tool_calls: [call('a1', 'salesforce_metadata_audit', {})] })]);
+      expect(await runRound(context, state(0))).toBe('continue');
+      expect(executeTool).toHaveBeenCalledTimes(1);
+      expect(context.run.team?.planRoundSpent).toBeUndefined();
+      streamQueue.push([{ type: 'text_delta', delta: 'x' }, done()]);
+      await runRound(context, state(1));
+      expect(toolNames(1)).toEqual(['salesforce_metadata_audit', 'request_salesforce_org_evidence', 'propose_team', 'ask_user']);
+    });
   });
 
   it('ends a solo turn when the operator requests org evidence', async () => {
@@ -229,11 +275,20 @@ describe('team calls in a round', () => {
   });
 
   it('answers at once, without holding, when every team call is answered immediately', async () => {
+    const { context, suspended } = makeContext();
+    streamQueue.push([done({ finish_reason: 'tool_calls', tool_calls: [call('d1', 'delegate', { task: 'A', agent: 'nobody' })] })]);
+    expect(await runRound(context, state(0))).toBe('continue');
+    expect(suspended).toHaveLength(0);
+    expect(toolMessages()).toHaveLength(1);
+    expect(toolMessages()[0].metadata?.success).toBe(false);
+  });
+
+  it('once solo, a delegate call is not run: the team tools are no longer offered', async () => {
     const { context, suspended } = makeContext({}, { solo: true });
     streamQueue.push([done({ finish_reason: 'tool_calls', tool_calls: [call('d1', 'delegate', { task: 'A', agent: 'teammate1' })] })]);
     expect(await runRound(context, state(0))).toBe('continue');
     expect(suspended).toHaveLength(0);
-    expect(toolMessages()[0].content).toContain(SOLO_RESULT_TEXT);
+    expect(toolMessages()[0].content).toContain("Not run: delegate isn't available this round. Available: execute_python.");
   });
 
   it('a stopped operator writes the results that exist and captures the round', async () => {

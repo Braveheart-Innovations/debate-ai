@@ -91,6 +91,8 @@ export interface StoredTeamPlan {
 export interface TeamTurnState {
   /** A Team mode plan was proposed this turn (the planning gate opens). A declined plan closes it again. */
   planProposed?: boolean;
+  /** The model ignored the plan round (called no tool it offered): later rounds get the normal tools. A declined plan resets it. */
+  planRoundSpent?: boolean;
   /** The last plan the user declined and why; the card shows it until the operator proposes again. */
   declinedPlan?: { planId: string; feedback: string };
   /** "Have [operator] do it": no sub-agents for the rest of this run. */
@@ -332,7 +334,7 @@ export function decidePlan(
       plans,
       calls,
       declinedPlan: { planId, feedback: decision.feedback },
-      ...(reopens ? { planProposed: false } : {}),
+      ...(reopens ? { planProposed: false, planRoundSpent: false } : {}),
     };
   }
   return { ...state, plans, calls };

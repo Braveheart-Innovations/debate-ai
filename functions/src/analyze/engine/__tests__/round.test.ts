@@ -1,5 +1,6 @@
 import type { Message } from '../../contract/types';
-import type { ToolCall } from '../../contract/lib/ai/tools/types';
+import type { ToolCall, ToolDefinition } from '../../contract/lib/ai/tools/types';
+import { executeCodeTool } from '../../contract/lib/ai/tools/built-in/execute-code';
 
 // --- mocks -------------------------------------------------------------------
 const streamQueue: Array<Array<Record<string, unknown>>> = [];
@@ -43,6 +44,8 @@ import type { CaptureInput } from '../../capture/captureRound';
 const user: Message = { id: 'u1', sender: 'You', senderType: 'user', content: 'Analyze sales', timestamp: 1 };
 const call = (id: string, name = 'execute_python'): ToolCall => ({ id, type: 'function', function: { name, arguments: '{"code":"print(1)"}' } });
 const done = (extra: Record<string, unknown> = {}) => ({ type: 'message_complete', finish_reason: 'stop', ...extra });
+// The tools the run offers (a real round gets its config's tool definitions).
+const offered: ToolDefinition[] = [executeCodeTool, { ...executeCodeTool, name: 'write_file' }];
 
 function makeContext(overrides: Partial<RoundContext> = {}) {
   const executeTool = jest.fn(async (c: ToolCall) => ({ toolCallId: c.id, success: true, content: 'ok' }));
@@ -65,7 +68,7 @@ function makeContext(overrides: Partial<RoundContext> = {}) {
     events: events as unknown as RoundContext['events'],
     signal: controller.signal,
     keyValue: 'k',
-    tools: [],
+    tools: offered,
     executeTool,
     toolResults: new Map(),
     messages: {
