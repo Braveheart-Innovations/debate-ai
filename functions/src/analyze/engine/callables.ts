@@ -17,6 +17,7 @@ import { getCatalogModel } from '../modelCatalog';
 import { isTerminal, runRef, type AnalyzeRunDoc, type RosterAI, type RunConfig } from './runStore';
 import { SessionBusyError, TurnAlreadyStartedError, startOperatorTurn, type UserMessageContext } from './turns';
 import { NoSessionSandboxError, runCell } from './runCell';
+import { resolveSessionQuestions } from './notifications';
 import { SandboxLimitError } from '../../sandbox/service';
 import { normalizeAnalyzeOutputSelection } from '../contract/types/analyze';
 import { MAX_PANEL_SIZE, TeamArgsError } from '../team/teamTools';
@@ -188,7 +189,7 @@ export const analyzeStartTurn = onCall({ region: 'us-central1' }, async (request
   try {
     // After the request checks (a bad request isn't counted); free accounts get 5 sessions.
     await countAnalyzeSession(uid, sessionId);
-    return await startOperatorTurn({
+    const started = await startOperatorTurn({
       uid,
       sessionId,
       content,
@@ -199,6 +200,11 @@ export const analyzeStartTurn = onCall({ region: 'us-central1' }, async (request
       mentions: stringList(data.message?.mentions, 20).filter((mention) => mention.length <= 200),
       context: parseMessageContext(data.message?.metadata),
     });
+    // The user's message answers any question an earlier turn asked. Best effort.
+    await resolveSessionQuestions(uid, sessionId).catch((error) => {
+      console.error('[analyzeRun] question notification resolve failed', { sessionId, error });
+    });
+    return started;
   } catch (error) {
     if (error instanceof SessionBusyError) throw new HttpsError('failed-precondition', error.message);
     if (error instanceof TurnAlreadyStartedError) throw new HttpsError('already-exists', 'This message was already sent.');

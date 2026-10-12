@@ -11,6 +11,9 @@
  * Ids are deterministic per run and event, and a write never replaces an
  * existing doc, so a redelivered step neither duplicates a notification nor
  * marks a read one unread.
+ *
+ * A plan or a question stops needing the user once it's answered: the server
+ * marks its notification `resolved` (and read), so "Needs you" drops it.
  */
 import { getFirestore } from 'firebase-admin/firestore';
 import type { AnalyzeRunDoc } from './runStore';
@@ -28,11 +31,16 @@ export interface NotificationDoc {
   detail?: string;
   createdAt: number;
   read: boolean;
+  /** A plan or question that's been answered (or its run stopped): it no longer needs the user. */
+  resolved?: boolean;
+  resolvedAt?: number;
 }
 
 const DETAIL_CHARS = 300;
 /** Firestore's ALREADY_EXISTS. */
 const ALREADY_EXISTS = 6;
+/** Firestore's NOT_FOUND. */
+const NOT_FOUND = 5;
 
 function notificationsPath(uid: string): string {
   return `users/${uid}/notifications`;
@@ -89,5 +97,32 @@ export async function notifyPlansPending(run: AnalyzeRunDoc, plans: TeamPlan[], 
   if (run.kind !== 'operator') return;
   for (const plan of plans) {
     await createOnce(run.uid, base(run, `${run.runId}_plan_${plan.id}`, 'awaiting_approval', plan.goal, now));
+  }
+}
+
+async function resolve(uid: string, id: string, now: number): Promise<void> {
+  try {
+    await getFirestore().doc(`${notificationsPath(uid)}/${id}`).update({ resolved: true, read: true, resolvedAt: now });
+  } catch (error) {
+    // Never notified (a crash lost it, or the plan was auto-approved): nothing to resolve.
+    if ((error as { code?: number }).code !== NOT_FOUND) throw error;
+  }
+}
+
+/** Plans that stopped waiting (approved, declined, "do it yourself", Stop). */
+export async function resolvePlanNotifications(run: AnalyzeRunDoc, planIds: string[], now = Date.now()): Promise<void> {
+  for (const planId of planIds) await resolve(run.uid, `${run.runId}_plan_${planId}`, now);
+}
+
+/** The user sent a message in the session: the questions its turns asked are answered. */
+export async function resolveSessionQuestions(uid: string, sessionId: string, now = Date.now()): Promise<void> {
+  const snapshot = await getFirestore()
+    .collection(notificationsPath(uid))
+    .where('sessionId', '==', sessionId)
+    .where('kind', '==', 'asked_user')
+    .get();
+  for (const doc of snapshot.docs) {
+    if ((doc.data() as NotificationDoc).resolved) continue;
+    await resolve(uid, doc.id, now);
   }
 }
