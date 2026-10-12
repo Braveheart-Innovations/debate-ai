@@ -180,7 +180,9 @@ export class E2BSandboxProvider implements SandboxProvider {
   }
 
   async writeFile(sandboxId: string, path: string, data: Uint8Array): Promise<void> {
-    const buffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
+    // The view's own buffer when it spans all of it; a copy only for a slice.
+    const whole = data.byteOffset === 0 && data.byteLength === data.buffer.byteLength;
+    const buffer = (whole ? data.buffer : data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)) as ArrayBuffer;
     await this.get(sandboxId).files.write(path, buffer);
   }
 

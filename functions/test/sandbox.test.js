@@ -311,6 +311,27 @@ test('writeFile skips unchanged re-mounts and assembles chunked uploads', async 
   );
 });
 
+test('writeBytes writes server-held bytes as is; linkFiles links every path in one command (R3)', async () => {
+  const provider = fakeProvider();
+  const { svc } = service(provider);
+  const bytes = Buffer.from('{"a":1}');
+  await svc.writeBytes('u1', 's', '/output/salesforce/a.json', bytes);
+  assert.equal(provider.files.get('/output/salesforce/a.json'), bytes);
+
+  await svc.linkFiles('u1', 's', [
+    { target: '/output/salesforce/a.json', links: ['/data/salesforce/a.json', "/data/it's.json", '/output/salesforce/a.json'] },
+    { target: '/output/salesforce/b.json', links: [] },
+  ]);
+  const commands = provider.calls.filter(([c]) => c === 'command').map(([, command]) => command);
+  assert.equal(commands.length, 1);
+  assert.match(commands[0], /^mkdir -p '\/data\/salesforce' && \{ ln -f '\/output\/salesforce\/a\.json' '\/data\/salesforce\/a\.json' 2>\/dev\/null \|\| cp -f /);
+  assert.match(commands[0], /'\/data\/it'\\''s\.json'/);
+  assert.doesNotMatch(commands[0], /ln -f '\/output\/salesforce\/a\.json' '\/output\/salesforce\/a\.json'/);
+
+  provider.runCommand = async () => ({ stdout: '', exitCode: 1 });
+  await assert.rejects(svc.linkFiles('u1', 's', [{ target: '/a', links: ['/b'] }]), /Failed to link/);
+});
+
 test('each call records its sandbox time; awake time is the gap since last use, at most the idle timeout', async () => {
   const provider = fakeProvider();
   const store = memoryStore();

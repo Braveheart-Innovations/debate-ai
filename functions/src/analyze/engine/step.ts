@@ -52,7 +52,7 @@ export const analyzeRunStep = onTaskDispatched<StepPayload>(
   {
     region: 'us-central1',
     timeoutSeconds: 1800,
-    memory: '1GiB',
+    memory: '2GiB',
     secrets: SERVER_TOOL_SECRETS,
     // A delivery that finds a live lease fails on purpose; retry around the
     // 30 s lease so a crashed step's run resumes within about a minute.

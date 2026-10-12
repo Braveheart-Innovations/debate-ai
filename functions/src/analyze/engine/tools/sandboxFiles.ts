@@ -18,6 +18,10 @@ export interface SandboxFiles {
   readFile: (path: string) => Promise<ArrayBuffer>;
   listFiles: (dir?: string) => Promise<SandboxFileInfo[]>;
   mountFile: (filename: string, data: ArrayBuffer, path?: string) => Promise<string>;
+  /** Write bytes at a path (no base64 round trip). */
+  writeFile: (path: string, bytes: Uint8Array) => Promise<void>;
+  /** Make each link path the same file as its target. */
+  linkFiles: (groups: Array<{ target: string; links: string[] }>) => Promise<void>;
 }
 
 function toArrayBuffer(bytes: Buffer): ArrayBuffer {
@@ -30,6 +34,8 @@ export function createSandboxFiles(uid: string, sessionKey: string, onTime?: San
   return {
     readFile: (path) => timedSandboxCall(onTime, async () => toArrayBuffer(await readWholeFile(uid, sessionKey, path))),
     listFiles: (dir = '/uploads') => timedSandboxCall(onTime, () => getSandboxService().listFiles(uid, sessionKey, dir)),
+    writeFile: (path, bytes) => timedSandboxCall(onTime, () => getSandboxService().writeBytes(uid, sessionKey, path, bytes)),
+    linkFiles: (groups) => timedSandboxCall(onTime, () => getSandboxService().linkFiles(uid, sessionKey, groups)),
     mountFile: (filename, data, path) => timedSandboxCall(onTime, async () => {
       const target = path || `/uploads/${filename}`;
       await getSandboxService().writeFile(uid, sessionKey, {

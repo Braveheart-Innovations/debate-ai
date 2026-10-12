@@ -7,10 +7,15 @@ const mockSandboxService = {
   listFiles: jest.fn(),
   readFile: jest.fn(),
   mountFile: jest.fn(),
+  writeFile: jest.fn(),
+  linkFiles: jest.fn(),
 };
 
-function decodeBuffer(data: ArrayBuffer): string {
-  return new TextDecoder().decode(data);
+// What the tool left in the sandbox: written files plus the paths linked to them.
+const sandboxFiles = new Map<string, string>();
+
+function writtenFile(path: string): string | undefined {
+  return sandboxFiles.get(path);
 }
 
 describe('executeSalesforceMetadataAuditTool', () => {
@@ -19,6 +24,17 @@ describe('executeSalesforceMetadataAuditTool', () => {
     mockSandboxService.readFile.mockReset();
     mockSandboxService.mountFile.mockReset();
     mockSandboxService.mountFile.mockImplementation(async (_filename: string, _data: ArrayBuffer, path: string) => path);
+    sandboxFiles.clear();
+    mockSandboxService.writeFile.mockReset();
+    mockSandboxService.writeFile.mockImplementation(async (path: string, bytes: Uint8Array) => {
+      sandboxFiles.set(path, Buffer.from(bytes).toString('utf8'));
+    });
+    mockSandboxService.linkFiles.mockReset();
+    mockSandboxService.linkFiles.mockImplementation(async (groups: Array<{ target: string; links: string[] }>) => {
+      for (const { target, links } of groups) {
+        for (const link of links) sandboxFiles.set(link, sandboxFiles.get(target) ?? '');
+      }
+    });
   });
 
   it('writes generated Salesforce artifacts to deterministic filesystem paths for follow-up Python analysis', async () => {
@@ -94,47 +110,17 @@ describe('executeSalesforceMetadataAuditTool', () => {
       ])
     );
 
-    expect(mockSandboxService.mountFile).toHaveBeenCalledWith(
-      'salesforce-insight-packets.json',
-      expect.anything(),
-      '/output/salesforce/salesforce-insight-packets.json',
-    );
-    expect(mockSandboxService.mountFile).toHaveBeenCalledWith(
-      'salesforce-insight-packets.json',
-      expect.anything(),
-      '/data/salesforce/salesforce-insight-packets.json',
-    );
-    expect(mockSandboxService.mountFile).toHaveBeenCalledWith(
-      'salesforce_insight_packet_summary.json',
-      expect.anything(),
-      '/data/salesforce_insight_packet_summary.json',
-    );
-    expect(mockSandboxService.mountFile).toHaveBeenCalledWith(
-      'salesforce_artifact_schema.json',
-      expect.anything(),
-      '/data/salesforce_artifact_schema.json',
-    );
-    expect(mockSandboxService.mountFile).toHaveBeenCalledWith(
-      'salesforce_doc_topics.json',
-      expect.anything(),
-      '/data/salesforce_doc_topics.json',
-    );
-    expect(mockSandboxService.mountFile).toHaveBeenCalledWith(
-      'salesforce_signal_evidence.json',
-      expect.anything(),
-      '/data/salesforce_signal_evidence.json',
-    );
-    expect(mockSandboxService.mountFile).toHaveBeenCalledWith(
-      'salesforce_workbench_summary.json',
-      expect.anything(),
-      '/data/salesforce_workbench_summary.json',
-    );
+    expect(writtenFile('/output/salesforce/salesforce-insight-packets.json')).toBeDefined();
+    expect(writtenFile('/data/salesforce/salesforce-insight-packets.json')).toBeDefined();
+    expect(writtenFile('/data/salesforce_insight_packet_summary.json')).toBeDefined();
+    expect(writtenFile('/data/salesforce_artifact_schema.json')).toBeDefined();
+    expect(writtenFile('/data/salesforce_doc_topics.json')).toBeDefined();
+    expect(writtenFile('/data/salesforce_signal_evidence.json')).toBeDefined();
+    expect(writtenFile('/data/salesforce_workbench_summary.json')).toBeDefined();
 
-    const insightPacketWrite = mockSandboxService.mountFile.mock.calls.find((call) =>
-      call[2] === '/output/salesforce/salesforce-insight-packets.json'
-    );
+    const insightPacketWrite = writtenFile('/output/salesforce/salesforce-insight-packets.json');
     expect(insightPacketWrite).toBeDefined();
-    expect(JSON.parse(decodeBuffer(insightPacketWrite![1]))).toMatchObject({
+    expect(JSON.parse(insightPacketWrite!)).toMatchObject({
       schema: {
         keyPaths: {
           importedFindings: 'importedFindings[]',
@@ -151,11 +137,17 @@ describe('executeSalesforceMetadataAuditTool', () => {
       ],
     });
 
-    const manifestWrite = mockSandboxService.mountFile.mock.calls.find((call) =>
-      call[2] === '/output/salesforce/artifact-manifest.json'
-    );
+    // Each output is written once; its other paths are links, in one sandbox call.
+    const writtenPaths = mockSandboxService.writeFile.mock.calls.map((call) => call[0]);
+    expect(writtenPaths.every((path) => path.startsWith('/output/salesforce/'))).toBe(true);
+    expect(new Set(writtenPaths).size).toBe(writtenPaths.length);
+    expect(mockSandboxService.linkFiles).toHaveBeenCalledTimes(1);
+    expect(writtenFile('/data/salesforce/salesforce-insight-packets.json')).toBe(writtenFile('/output/salesforce/salesforce-insight-packets.json'));
+    expect(writtenFile('/output/salesforce/salesforce-insight-packets.json')).not.toMatch(/\n {2}"/);
+
+    const manifestWrite = writtenFile('/output/salesforce/artifact-manifest.json');
     expect(manifestWrite).toBeDefined();
-    expect(JSON.parse(decodeBuffer(manifestWrite![1]))).toMatchObject({
+    expect(JSON.parse(manifestWrite!)).toMatchObject({
       outputRoot: '/output/salesforce',
       dataRoot: '/data/salesforce',
       files: expect.arrayContaining([
@@ -258,11 +250,9 @@ describe('executeSalesforceMetadataAuditTool', () => {
       ])
     );
 
-    const insightPacketWrite = mockSandboxService.mountFile.mock.calls.find((call) =>
-      call[2] === '/output/salesforce/salesforce-insight-packets.json'
-    );
+    const insightPacketWrite = writtenFile('/output/salesforce/salesforce-insight-packets.json');
     expect(insightPacketWrite).toBeDefined();
-    const summary = JSON.parse(decodeBuffer(insightPacketWrite![1]));
+    const summary = JSON.parse(insightPacketWrite!);
     expect(summary.validPackets[0].warnings).toEqual([
       'source.gitBranch is missing or empty; imported with gitBranch set to "unknown".',
     ]);
@@ -370,16 +360,8 @@ public without sharing class CaseService {
       ])
     );
 
-    expect(mockSandboxService.mountFile).toHaveBeenCalledWith(
-      'salesforce-troubleshooting-brief.md',
-      expect.anything(),
-      '/output/salesforce/salesforce-troubleshooting-brief.md',
-    );
-    expect(mockSandboxService.mountFile).toHaveBeenCalledWith(
-      'salesforce_troubleshooting_brief.md',
-      expect.anything(),
-      '/data/salesforce_troubleshooting_brief.md',
-    );
+    expect(writtenFile('/output/salesforce/salesforce-troubleshooting-brief.md')).toBeDefined();
+    expect(writtenFile('/data/salesforce_troubleshooting_brief.md')).toBeDefined();
   });
 
   it('reports invalid insight packets through packet_findings without manual ZIP parsing', async () => {
@@ -410,11 +392,9 @@ public without sharing class CaseService {
     expect(result.content).toContain('Imported agent evidence from .symposium packets: 0');
     expect(result.content).toContain('Invalid insight packets / validation warnings: 1');
 
-    const insightPacketWrite = mockSandboxService.mountFile.mock.calls.find((call) =>
-      call[2] === '/output/salesforce/salesforce-insight-packets.json'
-    );
+    const insightPacketWrite = writtenFile('/output/salesforce/salesforce-insight-packets.json');
     expect(insightPacketWrite).toBeDefined();
-    const summary = JSON.parse(decodeBuffer(insightPacketWrite![1]));
+    const summary = JSON.parse(insightPacketWrite!);
     expect(summary.invalidPackets[0]).toMatchObject({
       runId: 'bad-run',
       errors: expect.arrayContaining(['kind must be salesforce_insight_packet.']),
