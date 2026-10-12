@@ -49,7 +49,8 @@
     "eas-build-post-install": "bash scripts/eas-prebuild.sh",
     "release:preflight": "node scripts/release/preflight-version.mjs",
     "release:build": "npm run release:preflight && eas build --platform all --profile production --non-interactive --no-wait",
-    "release:submit": "npm run release:preflight -- --phase submit && eas submit --platform ios --profile production --latest --non-interactive && eas submit --platform android --profile production --latest --non-interactive"
+    "release:submit": "npm run release:preflight -- --phase submit && eas submit --platform ios --profile production --latest --non-interactive && eas submit --platform android --profile production --latest --non-interactive",
+    "storage:cors": "gcloud storage buckets update gs://symposium-ai.firebasestorage.app --cors-file=storage.cors.json"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
