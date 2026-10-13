@@ -1,4 +1,21 @@
-import { isRecipeFilename, parseRecipeParams, recipeOutputDir, validateRecipeValues } from '../recipeParams';
+import { isRecipeFilename, parseRecipeDocstring, parseRecipeParams, recipeOutputDir, validateRecipeValues } from '../recipeParams';
+
+describe('parseRecipeDocstring', () => {
+  it('takes the first line as the title and the rest as the summary, keeping paragraphs', () => {
+    const source = '# -*- coding: utf-8 -*-\n\n"""Clinic staffing\n\nHow many staff keep the\n  mean wait under 10 minutes.\n\nM/M/c queue.\n"""\nPARAMS = {}\n';
+    expect(parseRecipeDocstring(source)).toEqual({
+      title: 'Clinic staffing',
+      summary: 'How many staff keep the mean wait under 10 minutes.\n\nM/M/c queue.',
+    });
+  });
+
+  it('reads one-line and single-quoted docstrings, and nothing when there is none', () => {
+    expect(parseRecipeDocstring("'''Mortgage affordability'''\n")).toEqual({ title: 'Mortgage affordability' });
+    expect(parseRecipeDocstring('"Price elasticity"\nPARAMS = {}\n')).toEqual({ title: 'Price elasticity' });
+    expect(parseRecipeDocstring('PARAMS = {}\n"""Not a docstring"""\n')).toEqual({});
+    expect(parseRecipeDocstring('"""   """\n')).toEqual({});
+  });
+});
 
 const STAFFING = `
 """Staffing model."""

@@ -26,6 +26,25 @@ export function recipeOutputDir(recipeName: string): string {
   return normalized.slice(0, normalized.length - RECIPE_SUFFIX.length);
 }
 
+/**
+ * The recipe's name and description, from its module docstring: the first
+ * line is the title, the rest the summary (paragraphs kept, lines joined).
+ */
+export function parseRecipeDocstring(source: string): { title?: string; summary?: string } {
+  const match = /^(?:[ \t]*(?:#[^\n]*)?\r?\n)*[ \t]*[rRuU]?(?:("{3}|'{3})([\s\S]*?)\1|(["'])([^\n]*?)\3)/.exec(source);
+  if (!match) return {};
+  const text = (match[2] ?? match[4] ?? '').trim();
+  if (!text) return {};
+  const [first, ...rest] = text.split(/\r?\n/);
+  const summary = rest
+    .join('\n')
+    .split(/\n\s*\n/)
+    .map((paragraph) => paragraph.split('\n').map((line) => line.trim()).filter(Boolean).join(' '))
+    .filter(Boolean)
+    .join('\n\n');
+  return { title: first.trim(), ...(summary ? { summary } : {}) };
+}
+
 // ── A Python literal reader (dict, list, tuple, str, int, float, bool, None) ──
 
 type PyValue = string | number | boolean | null | PyValue[] | { [key: string]: PyValue };

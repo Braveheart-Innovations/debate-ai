@@ -46,10 +46,26 @@ export interface AnalyzePortableOutputConfig {
   formats: AnalyzePortableFormat[];
 }
 
+/**
+ * What the user wants back from a turn: a report to read, a model to try
+ * inputs on, or `auto` (the agent picks from the request: a model when the
+ * answer rests on assumptions the user may want to change, a report otherwise,
+ * both when both help). The report type (rich.documentPreset) applies to reports.
+ */
+export const ANALYZE_DELIVERABLES = ['auto', 'report', 'model'] as const;
+export type AnalyzeDeliverable = typeof ANALYZE_DELIVERABLES[number];
+export const DEFAULT_ANALYZE_DELIVERABLE: AnalyzeDeliverable = 'auto';
+
+export function isAnalyzeDeliverable(value: unknown): value is AnalyzeDeliverable {
+  return typeof value === 'string' && (ANALYZE_DELIVERABLES as readonly string[]).includes(value);
+}
+
 export interface AnalyzeOutputSelection {
   mode: AnalyzeOutputMode | null;
   rich: AnalyzeRichOutputConfig;
   portable: AnalyzePortableOutputConfig;
+  /** Absent on selections saved before deliverables existed: read as `auto`. */
+  deliverable?: AnalyzeDeliverable;
 }
 
 export type AnalyzeOutputSelectionValidationReason =
@@ -63,6 +79,7 @@ export interface AnalyzeOutputSelectionValidation {
 }
 
 export const DEFAULT_ANALYZE_OUTPUT_SELECTION: AnalyzeOutputSelection = {
+  deliverable: DEFAULT_ANALYZE_DELIVERABLE,
   mode: null,
   rich: {
     type: null,
@@ -97,6 +114,7 @@ export function createDefaultAnalyzeOutputSelection(): AnalyzeOutputSelection {
   // Modes retired (Phase 4): every run produces the structured report. The mode/
   // rich/portable fields are vestigial; new sessions start as the structured report.
   return {
+    deliverable: DEFAULT_ANALYZE_DELIVERABLE,
     mode: 'rich',
     rich: {
       type: 'single_page_html',
@@ -134,6 +152,7 @@ export function normalizeAnalyzeOutputSelection(value: unknown): AnalyzeOutputSe
     : [];
 
   return {
+    deliverable: isAnalyzeDeliverable(candidate.deliverable) ? candidate.deliverable : DEFAULT_ANALYZE_DELIVERABLE,
     mode,
     rich: {
       type: richType,
