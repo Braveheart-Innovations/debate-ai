@@ -634,7 +634,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
     shouldGuard: isProcessing,
     title: 'Leave this comparison?',
     message: 'The active responses will be stopped and saved so you can retry them later.',
-    onSaveAndLeave: async () => {
+    onLeave: async () => {
       try { getStreamingService().cancelAllStreams('cancelled'); } catch { /* ignore */ }
       setLeftTyping(false);
       setRightTyping(false);

@@ -3,10 +3,9 @@
  * Handles construction of prompts for different phases of debate
  */
 
-import { AI, Message, PersonalityTone, PersonalityDebateProfile } from '../../types';
+import { AI, Message } from '../../types';
 import { DEBATE_CONSTANTS } from '../../config/debateConstants';
 import type { FormatSpec, PhaseId } from '../../config/debate/formats';
-import { generateStyleNudge } from '@/lib/personality';
 import { getDebateSpeechLengthGuidance } from './debateSpeechLength';
 
 export interface PromptContext {
@@ -136,27 +135,16 @@ export class DebatePromptBuilder {
     guidance?: string; // from FormatSpec
     format?: FormatSpec;
     presetId?: string;
-    personalityId?: string;
     messageLabel?: string;
     roleBrief?: string;
     sameSpeakerPreviousMessage?: string;
     cxRole?: 'questioner' | 'answerer';
     audienceQuestion?: string;
-    // Optional customized personality data for style nudges
-    customizedTone?: Partial<PersonalityTone>;
-    customizedDebateProfile?: Partial<PersonalityDebateProfile>;
   }): string {
-    const { topic, phase, previousMessage, isFinalRound, guidance, format, presetId, personalityId, messageLabel, roleBrief, sameSpeakerPreviousMessage, cxRole, audienceQuestion, customizedTone, customizedDebateProfile } = params;
+    const { topic, phase, previousMessage, isFinalRound, guidance, format, presetId, messageLabel, roleBrief, sameSpeakerPreviousMessage, cxRole, audienceQuestion } = params;
     const base = guidance || '';
     const prev = previousMessage ? `${DEBATE_CONSTANTS.PROMPT_MARKERS.PREVIOUS_SPEAKER}"${previousMessage}"` : '';
     const isSocratic = format?.id === 'socratic';
-    // Generate a compact per-turn style nudge from customized personality data.
-    let styleNudge = '';
-    if (customizedTone || customizedDebateProfile) {
-      styleNudge = generateStyleNudge(customizedTone, customizedDebateProfile);
-    } else if (personalityId === 'george') {
-      styleNudge = 'Use PG-13 observational satire: expose contradictions with sarcasm; mild profanity is allowed sparingly, never slurs or personal attacks.';
-    }
     const prevGuarded = phase === 'opening' || phase === 'constructive' ? '' : prev;
     // Human-friendly phase labels (format-aware for Socratic)
     const defaultLabelMap: Record<PhaseId, string> = {
@@ -221,7 +209,6 @@ export class DebatePromptBuilder {
       prevGuarded,
       base,
       `Respond about "${topic}". Maintain your assigned stance strictly; do not switch sides.`,
-      styleNudge,
       finalCue,
       // Prose guidance remains in the system prompt to avoid duplication
     ].filter(Boolean).join('\n');

@@ -4,13 +4,12 @@ import { act, fireEvent, waitFor } from '@testing-library/react-native';
 import { renderWithProviders } from '../../test-utils/renderWithProviders';
 import { capturePropsOf } from '@test-utils/mockComponents';
 import { createMockDebateSpeech, createMockMessage } from '@test-utils/fixtures';
-import { createAppStore, showSheet, startStreaming } from '@/store';
+import { createAppStore, showSheet } from '@/store';
 import type { AI, DebateVoiceConfig, Message } from '@/types';
 import type { DemoDebate } from '@/types/demo';
 import { getPresetForFormat } from '@/config/debate/formats';
 import { DemoContentService } from '@/services/demo/DemoContentService';
 import { primeDebate } from '@/services/demo/DemoPlaybackRouter';
-import type { AppLifecycleHandler } from '@/services/lifecycle/AppLifecycleService';
 import type { DebateSessionHeader } from '@/components/organisms/debate/DebateSessionHeader';
 import type { AudienceQuestionsModal } from '@/components/organisms/debate/AudienceQuestionsModal';
 import type {
@@ -33,15 +32,6 @@ const mockHandleWithToast = jest.fn();
 const mockShowInfo = jest.fn();
 const mockShowWarning = jest.fn();
 const mockShowSuccess = jest.fn();
-const mockSaveActiveSnapshot = jest.fn().mockResolvedValue(undefined);
-const mockLoadLatestActiveSnapshot = jest.fn().mockResolvedValue(null);
-const mockLoadActiveSnapshot = jest.fn().mockResolvedValue(null);
-const mockClearActiveSnapshot = jest.fn(async (..._args: unknown[]) => undefined);
-const mockLifecycleHandlers = new Map<string, AppLifecycleHandler>();
-const mockLifecycleRegister = jest.fn((handler: AppLifecycleHandler) => {
-  mockLifecycleHandlers.set(handler.id, handler);
-  return jest.fn(() => mockLifecycleHandlers.delete(handler.id));
-});
 
 jest.mock('@/services/errors/ErrorService', () => ({
   ErrorService: {
@@ -49,21 +39,6 @@ jest.mock('@/services/errors/ErrorService', () => ({
     showInfo: (...args: unknown[]) => mockShowInfo(...args),
     showWarning: (...args: unknown[]) => mockShowWarning(...args),
     showSuccess: (...args: unknown[]) => mockShowSuccess(...args),
-  },
-}));
-
-jest.mock('@/services/lifecycle/ActiveSessionPersistenceService', () => ({
-  ActiveSessionPersistenceService: {
-    saveSnapshot: (...args: unknown[]) => mockSaveActiveSnapshot(...args),
-    loadLatestSnapshot: (...args: unknown[]) => mockLoadLatestActiveSnapshot(...args),
-    loadSnapshot: (...args: unknown[]) => mockLoadActiveSnapshot(...args),
-    clearSnapshot: (...args: unknown[]) => mockClearActiveSnapshot(...args),
-  },
-}));
-
-jest.mock('@/services/lifecycle/AppLifecycleService', () => ({
-  AppLifecycleService: {
-    register: (handler: AppLifecycleHandler) => mockLifecycleRegister(handler),
   },
 }));
 
@@ -298,11 +273,6 @@ type DebateRouteParams = React.ComponentProps<typeof DebateScreenComponent>['rou
 beforeEach(() => {
   jest.clearAllMocks();
   mockStreamingService.cancelAllStreams.mockClear();
-  mockSaveActiveSnapshot.mockResolvedValue(undefined);
-  mockLoadLatestActiveSnapshot.mockResolvedValue(null);
-  mockLoadActiveSnapshot.mockResolvedValue(null);
-  mockLifecycleHandlers.clear();
-  mockLifecycleRegister.mockClear();
   mockHeader.reset();
   mockContextBar.reset();
   mockTopicSelector.reset();
@@ -324,43 +294,12 @@ const flushMicrotasks = async () => {
   });
 };
 
-const createDebateSnapshot = (overrides: Record<string, unknown> = {}) => ({
-  version: 1,
-  mode: 'debate',
-  sessionId: 'debate_1',
-  status: 'backgrounded',
-  createdAt: 100,
-  updatedAt: 200,
-  selectedAIs: baseAIs,
-  messages: [],
-  interruptedMessageIds: [],
-  debateSession: {
-    id: 'debate_1',
-    topic: 'Topic',
-    participants: baseAIs,
-    personalities: {},
-    startTime: 100,
-    status: 'active',
-    currentRound: 1,
-    messageCount: 0,
-    messageIndex: 1,
-    currentAIIndex: 0,
-    totalRounds: 1,
-    totalMessages: 2,
-    formatId: 'oxford',
-    presetId: 'short',
-    stances: {},
-  },
-  ...overrides,
-});
-
 const createSessionState = (overrides: Record<string, unknown> = {}) => ({
   session: null,
   orchestrator: null,
   isInitialized: false,
   initializeSession: jest.fn().mockResolvedValue(undefined),
   resetSession: jest.fn(),
-  hydrateSessionFromSnapshot: jest.fn().mockResolvedValue(undefined),
   error: null,
   ...overrides,
 });
@@ -637,184 +576,6 @@ describe('DebateScreen', () => {
     fireEvent.press(renderResult.getByTestId('debate-continuation-button'));
 
     expect(continueDebate).toHaveBeenCalledTimes(1);
-  });
-
-  it('checkpoints active debate streams on background without marking them interrupted', async () => {
-    const store = createAppStore();
-    store.dispatch(startStreaming({ messageId: 'stream-1', aiProvider: 'left' }));
-    const createSnapshot = jest.fn((status, savedMessages) => createDebateSnapshot({
-      status,
-      messages: savedMessages,
-      interruptedMessageIds: [],
-    }));
-
-    renderScreen({
-      store,
-      flow: { isDebateActive: true },
-      messages: {
-        messages: [
-          createMockMessage({ id: 'stream-1', sender: 'Claude', senderType: 'ai', content: '', timestamp: 1 }),
-        ],
-      },
-      session: {
-        isInitialized: true,
-        session: { id: 'debate_1', topic: 'Topic' },
-        orchestrator: { createSnapshot },
-      },
-    });
-
-    await flushMicrotasks();
-    mockSaveActiveSnapshot.mockClear();
-
-    const handler = mockLifecycleHandlers.get('debate-debate_1');
-    await act(async () => {
-      await requireDefined(handler?.onBackground, 'onBackground')('background');
-    });
-
-    expect(createSnapshot).toHaveBeenLastCalledWith('active', expect.any(Array));
-    expect(mockSaveActiveSnapshot).toHaveBeenCalledWith(expect.objectContaining({
-      status: 'active',
-      pendingTurn: expect.objectContaining({
-        kind: 'debate_message',
-        reason: 'app_backgrounded',
-        messageIds: ['stream-1'],
-      }),
-    }));
-  });
-
-  it('saves backgrounded debate checkpoints when no debate stream is active', async () => {
-    const createSnapshot = jest.fn((status, savedMessages) => createDebateSnapshot({
-      status,
-      messages: savedMessages,
-      interruptedMessageIds: [],
-    }));
-
-    renderScreen({
-      flow: { isDebateActive: true },
-      messages: {
-        messages: [
-          createMockMessage({ id: 'm1', sender: 'Claude', senderType: 'ai', content: 'Opening', timestamp: 1 }),
-        ],
-      },
-      session: {
-        isInitialized: true,
-        session: { id: 'debate_1', topic: 'Topic' },
-        orchestrator: { createSnapshot },
-      },
-    });
-
-    await flushMicrotasks();
-    mockSaveActiveSnapshot.mockClear();
-
-    const handler = mockLifecycleHandlers.get('debate-debate_1');
-    await act(async () => {
-      await requireDefined(handler?.onBackground, 'onBackground')('background');
-    });
-
-    expect(createSnapshot).toHaveBeenLastCalledWith('backgrounded', expect.any(Array));
-    expect(mockSaveActiveSnapshot).toHaveBeenCalledWith(expect.objectContaining({
-      status: 'backgrounded',
-      pendingTurn: undefined,
-    }));
-    expect(handler?.onForeground).toBeUndefined();
-  });
-
-  it('clears the checkpoint of a finished debate instead of saving it', async () => {
-    const completedSession = { ...createDebateSnapshot().debateSession, status: 'completed' };
-    const createSnapshot = jest.fn((status, savedMessages) => createDebateSnapshot({
-      status,
-      messages: savedMessages,
-      debateSession: completedSession,
-    }));
-
-    renderScreen({
-      flow: { isDebateEnded: true },
-      messages: {
-        messages: [
-          createMockMessage({ id: 'm1', sender: 'Claude', senderType: 'ai', content: 'Closing', timestamp: 1 }),
-        ],
-      },
-      session: {
-        isInitialized: true,
-        session: { id: 'debate_1', topic: 'Topic' },
-        orchestrator: { createSnapshot },
-      },
-    });
-    await flushMicrotasks();
-
-    const handler = mockLifecycleHandlers.get('debate-debate_1');
-    await act(async () => {
-      await requireDefined(handler?.onBackground, 'onBackground')('background');
-    });
-
-    expect(mockClearActiveSnapshot).toHaveBeenCalledWith('debate', 'debate_1');
-    expect(mockSaveActiveSnapshot).not.toHaveBeenCalled();
-  });
-
-  it('starts a new debate instead of restoring a finished one with the same lineup and motion', async () => {
-    jest.useFakeTimers();
-    const hydrateSessionFromSnapshot = jest.fn(async () => undefined);
-    const initializeSession = jest.fn(async () => undefined);
-    // Written before finished debates cleared their checkpoint.
-    mockLoadLatestActiveSnapshot.mockResolvedValueOnce(createDebateSnapshot({
-      debateSession: { ...createDebateSnapshot().debateSession, status: 'completed' },
-    }));
-
-    renderScreen({
-      session: { orchestrator: {}, isInitialized: false, initializeSession, hydrateSessionFromSnapshot },
-      flow: { startDebate: jest.fn(async () => undefined) },
-      routeParams: { topic: 'Topic' },
-    });
-    await flushMicrotasks();
-    await act(async () => {
-      jest.runOnlyPendingTimers();
-      await Promise.resolve();
-    });
-    await flushMicrotasks();
-
-    expect(hydrateSessionFromSnapshot).not.toHaveBeenCalled();
-    expect(initializeSession).toHaveBeenCalledWith('Topic', baseAIs, expect.any(Object), expect.any(Object));
-    jest.useRealTimers();
-  });
-
-  it('hydrates stale active debate snapshots as retryable interrupted turns without rendering a recovery banner', async () => {
-    const hydrateSessionFromSnapshot = jest.fn().mockResolvedValue(undefined);
-    const snapshot = createDebateSnapshot({
-      status: 'active',
-      pendingTurn: {
-        kind: 'debate_message',
-        messageIds: ['stream-1'],
-      },
-      messages: [
-        createMockMessage({ id: 'stream-1', sender: 'Claude', senderType: 'ai', content: '', timestamp: 1 }),
-      ],
-    });
-    mockLoadLatestActiveSnapshot.mockResolvedValueOnce(snapshot);
-
-    const { renderResult } = renderScreen({
-      session: {
-        orchestrator: {},
-        isInitialized: false,
-        hydrateSessionFromSnapshot,
-      },
-    });
-
-    await waitFor(() => {
-      expect(hydrateSessionFromSnapshot).toHaveBeenCalledWith(expect.objectContaining({
-        status: 'interrupted',
-        pendingTurn: expect.objectContaining({
-          kind: 'debate_message',
-          reason: 'stale_active_restore',
-          messageIds: ['stream-1'],
-        }),
-      }));
-    });
-
-    expect(mockSaveActiveSnapshot).toHaveBeenCalledWith(expect.objectContaining({
-      status: 'interrupted',
-      pendingTurn: expect.objectContaining({ reason: 'stale_active_restore' }),
-    }));
-    expect(renderResult.queryByText('This debate was interrupted. Retry the paused turn when ready.')).toBeNull();
   });
 
   it('shows the audience questions modal and submits questions', async () => {
@@ -1351,6 +1112,28 @@ describe('DebateScreen', () => {
 
     // Info message is now shown via ErrorService.showInfo instead of Alert.alert
     expect(mockShowInfo).toHaveBeenCalledWith('No messages to display in transcript.', 'debate');
+  });
+
+  it('tells the user that leaving a live debate ends it without saving', async () => {
+    const resetSession = jest.fn();
+    const { navigation } = renderScreen({
+      flow: { isDebateActive: true },
+      session: { resetSession },
+    });
+
+    requireDefined(mockHeader.latest().onBack, 'onBack')();
+
+    const [title, message, buttons = []] = jest.mocked(Alert.alert).mock.calls[0];
+    expect(title).toBe('Leave this debate?');
+    expect(message).toBe("It will end and won't be saved to History.");
+
+    await act(async () => {
+      requireDefined(buttons.find((btn) => btn.text === 'Leave')?.onPress, 'Leave')();
+    });
+
+    expect(mockStreamingService.cancelAllStreams).toHaveBeenCalledWith('cancelled');
+    expect(resetSession).toHaveBeenCalled();
+    expect(navigation.navigate).toHaveBeenCalledWith('MainTabs', expect.objectContaining({ screen: 'DebateTab' }));
   });
 
   it('stops streams and resets session after confirming start over', async () => {

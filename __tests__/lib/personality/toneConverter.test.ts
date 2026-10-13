@@ -1,7 +1,6 @@
 import {
   toneToModifiers,
   debateProfileToGuidance,
-  generateStyleNudge,
   shouldApplyToneModifiers,
   getToneDescription,
   getDebateProfileDescription,
@@ -198,36 +197,6 @@ describe('debateProfileToGuidance', () => {
     expect(result).toContain('focus on logical arguments');
     expect(result).toContain('assertive, direct challenges');
     expect(result).toContain('stand firm on positions');
-  });
-});
-
-describe('generateStyleNudge', () => {
-  it('returns empty string when no inputs provided', () => {
-    expect(generateStyleNudge()).toBe('');
-    expect(generateStyleNudge(undefined, undefined)).toBe('');
-  });
-
-  it('returns tone modifiers only when tone provided', () => {
-    const tone: Partial<PersonalityTone> = { formality: 0.8 };
-    const result = generateStyleNudge(tone);
-    expect(result).toContain('[Style:');
-    expect(result).not.toContain('[Debate style:');
-  });
-
-  it('returns debate guidance only when profile provided', () => {
-    const profile: Partial<PersonalityDebateProfile> = { argumentStyle: 'logical' };
-    const result = generateStyleNudge(undefined, profile);
-    expect(result).toContain('[Debate style:');
-    expect(result).not.toContain('[Style:');
-  });
-
-  it('combines tone and debate profile with space separator', () => {
-    const tone: Partial<PersonalityTone> = { formality: 0.8 };
-    const profile: Partial<PersonalityDebateProfile> = { argumentStyle: 'logical' };
-    const result = generateStyleNudge(tone, profile);
-    expect(result).toContain('[Style:');
-    expect(result).toContain('[Debate style:');
-    expect(result).toContain(' ');
   });
 });
 

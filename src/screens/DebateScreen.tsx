@@ -51,9 +51,8 @@ import * as Clipboard from 'expo-clipboard';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import AppendToPackService from '@/services/demo/AppendToPackService';
-import { shallowEqual, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import type { RootState } from '@/store';
-import { getStreamingContentSnapshot } from '@/services/streaming/StreamingContentStore';
 import { DebateRecordPickerModal } from '@/components/organisms/demo/DebateRecordPickerModal';
 import { FORMATS, getPresetForFormat, getPresetIdForRounds, type OxfordAudienceQuestions } from '@/config/debate/formats';
 import { getDebateSpeakerRoleLabel } from '@/utils/debateLabels';
@@ -61,15 +60,12 @@ import {
   buildDebatePodcastCompilePlan,
   buildRematchNavigationParams,
   createDebatePodcastGalleryEntry,
-  DebateStatus,
   getDebateVoicePackCandidates,
   type DebateVoicePackCandidate,
 } from '@/services/debate';
 import DebateAudioCompileService, { type DebateAudioCompileStage } from '@/services/debate/debateAudioCompileService';
 import { sanitizeDebateSpeechForTTS } from '@/services/debate/debateAudioSanitizer';
 import { estimateElevenLabsTtsCreditCost } from '@/services/media/elevenLabsCredits';
-import { ActiveSessionPersistenceService, type ActiveDebateSessionSnapshot } from '@/services/lifecycle/ActiveSessionPersistenceService';
-import { AppLifecycleService } from '@/services/lifecycle/AppLifecycleService';
 import { useRecoverableExitGuard } from '@/hooks/lifecycle/useRecoverableExitGuard';
 import { GeneratedContentReportModal } from '@/components/organisms/report/GeneratedContentReportModal';
 import type { GeneratedContentReportTarget } from '@/services/reports/GeneratedContentReportService';
@@ -140,7 +136,6 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
   const [isSavingVoicePack, setIsSavingVoicePack] = useState(false);
   const [voicePackSaveStage, setVoicePackSaveStage] = useState<DebateAudioCompileStage | null>(null);
   const [pendingGalleryFocusMediaId, setPendingGalleryFocusMediaId] = useState<string | null>(null);
-  const [debateRecoveryChecked, setDebateRecoveryChecked] = useState(false);
   const [reportTarget, setReportTarget] = useState<GeneratedContentReportTarget | null>(null);
   const selectedSampleRef = React.useRef<DemoDebate | null>(null);
   // No custom controls modal
@@ -159,15 +154,6 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
   });
   const { isDemo, canStartTrial } = useFeatureAccess();
   const { getPersonality: getMergedPersonality } = usePersonality();
-  const activeStreamingMessageIds = useSelector((state: RootState) => (
-    Object.values(state.streaming.streamingMessages)
-      .filter(stream => stream.isStreaming)
-      .map(stream => stream.messageId)
-  ), shallowEqual);
-  const activeDebateStreamIds = useMemo(() => {
-    const debateMessageIds = new Set(messages.messages.map(message => message.id));
-    return activeStreamingMessageIds.filter(messageId => debateMessageIds.has(messageId));
-  }, [activeStreamingMessageIds, messages.messages]);
   const voicePackCandidates = useMemo(
     () => getDebateVoicePackCandidates(messages.messages),
     [messages.messages]
@@ -181,111 +167,6 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
     [readyVoicePackCandidates]
   );
   const shouldOfferPodcastGeneration = Boolean(voiceConfig?.enabled && voicePackCandidates.length > 0);
-
-  const saveActiveDebateSnapshot = useCallback(async (
-    status: ActiveDebateSessionSnapshot['status'] = 'active',
-    reason?: string
-  ) => {
-    if (typeof session.orchestrator?.createSnapshot !== 'function') return;
-    const messagesWithStreamingContent = messages.messages.map((message) => {
-      const stream = getStreamingContentSnapshot(message.id);
-      return stream.exists && stream.content ? { ...message, content: stream.content } : message;
-    });
-    const snapshot = session.orchestrator.createSnapshot(status, messagesWithStreamingContent);
-    if (!snapshot) return;
-    if (snapshot.debateSession.status === DebateStatus.COMPLETED) {
-      // A finished debate lives in History. Left behind, its snapshot would be restored
-      // in place of the next debate with the same lineup and motion (e.g. a Rematch).
-      await ActiveSessionPersistenceService.clearSnapshot('debate', snapshot.sessionId);
-      return;
-    }
-    const pendingMessageIds = activeDebateStreamIds.length > 0
-      ? activeDebateStreamIds
-      : snapshot.interruptedMessageIds || [];
-    const shouldPersistPendingTurn = status === 'interrupted'
-      || (status === 'active' && pendingMessageIds.length > 0);
-
-    await ActiveSessionPersistenceService.saveSnapshot({
-      ...snapshot,
-      status,
-      pendingTurn: shouldPersistPendingTurn
-        ? {
-          kind: 'debate_message',
-          reason,
-          messageIds: pendingMessageIds,
-          interruptedAt: status === 'interrupted' ? Date.now() : undefined,
-        }
-        : snapshot.pendingTurn,
-    });
-  }, [activeDebateStreamIds, messages.messages, session.orchestrator]);
-
-  const debateRecoveryAttemptedRef = React.useRef(false);
-  useEffect(() => {
-    if (debateRecoveryAttemptedRef.current || !session.orchestrator || session.isInitialized) return;
-    debateRecoveryAttemptedRef.current = true;
-
-    const restoreDebateSnapshot = async () => {
-      try {
-        const snapshot = await ActiveSessionPersistenceService.loadLatestSnapshot<ActiveDebateSessionSnapshot>('debate');
-        if (!snapshot || snapshot.status === 'completed' || snapshot.debateSession.status === DebateStatus.COMPLETED) return;
-
-        const snapshotParticipantIds = snapshot.debateSession.participants.map(ai => ai.id).join('|');
-        const routeParticipantIds = selectedAIs.map(ai => ai.id).join('|');
-        const matchesParticipants = snapshotParticipantIds === routeParticipantIds;
-        const matchesTopic = !initialTopic || snapshot.debateSession.topic === initialTopic;
-        if (!matchesParticipants || !matchesTopic) return;
-
-        const stalePendingTurn = snapshot.status === 'active' ? snapshot.pendingTurn : undefined;
-        const shouldTreatAsStaleTurn = Boolean(stalePendingTurn);
-        const snapshotToHydrate: ActiveDebateSessionSnapshot = stalePendingTurn
-          ? {
-            ...snapshot,
-            status: 'interrupted',
-            pendingTurn: {
-              ...stalePendingTurn,
-              reason: stalePendingTurn.reason || 'stale_active_restore',
-              interruptedAt: stalePendingTurn.interruptedAt || Date.now(),
-            },
-          }
-          : snapshot;
-
-        if (shouldTreatAsStaleTurn) {
-          await ActiveSessionPersistenceService.saveSnapshot(snapshotToHydrate);
-        }
-
-        await session.hydrateSessionFromSnapshot(snapshotToHydrate);
-      } finally {
-        setDebateRecoveryChecked(true);
-      }
-    };
-
-    void restoreDebateSnapshot();
-  }, [initialTopic, selectedAIs, session]);
-
-  useEffect(() => {
-    if (!session.session) return undefined;
-
-    return AppLifecycleService.register({
-      id: `debate-${session.session.id}`,
-      onBackground: () => saveActiveDebateSnapshot(
-        activeDebateStreamIds.length > 0 ? 'active' : 'backgrounded',
-        'app_backgrounded'
-      ),
-    });
-  }, [activeDebateStreamIds.length, saveActiveDebateSnapshot, session.session]);
-
-  useEffect(() => {
-    if (!session.session) return;
-    void saveActiveDebateSnapshot(activeDebateStreamIds.length > 0 ? 'active' : 'backgrounded');
-  }, [
-    activeDebateStreamIds.length,
-    flow.continuation,
-    flow.audienceQuestionsPrompt,
-    messages.messages.length,
-    saveActiveDebateSnapshot,
-    session.session,
-    voting.voteRecords.length,
-  ]);
 
   const handleOpenVoicePackModal = useCallback(() => {
     if (voicePackCandidates.length === 0) {
@@ -498,7 +379,7 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
   ]);
   
   // Auto-start debate if topic is provided from DebateSetupScreen
-  const canAutoStart = Boolean(initialTopic && debateRecoveryChecked && !session.isInitialized && selectedAIs.length >= 2 && session.orchestrator);
+  const canAutoStart = Boolean(initialTopic && !session.isInitialized && selectedAIs.length >= 2 && session.orchestrator);
   const autoStartedRef = React.useRef(false);
   useEffect(() => {
     if (canAutoStart && !autoStartedRef.current) {
@@ -557,9 +438,8 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
     navigation,
     shouldGuard: Boolean(flow.isDebateActive && !flow.isDebateEnded),
     title: 'Leave this debate?',
-    message: 'The debate will be paused and saved so you can retry or continue it later.',
-    onSaveAndLeave: async () => {
-      await saveActiveDebateSnapshot('interrupted', 'user_exit');
+    message: "It will end and won't be saved to History.",
+    onLeave: () => {
       try { getStreamingService().cancelAllStreams('cancelled'); } catch { /* ignore */ }
       try { session.resetSession(); } catch { /* ignore */ }
     },
@@ -592,8 +472,7 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
         {
           text: 'Start Over',
           style: 'destructive',
-          onPress: async () => {
-            await saveActiveDebateSnapshot('interrupted', 'start_over');
+          onPress: () => {
             stopDebateNow();
             // Navigate back to the Debate tab (DebateSetupScreen)
             navigateToDebateSetup();

@@ -124,23 +124,14 @@ const isValidNavigationState = (value: unknown, depth = 0): value is InitialStat
 const PERSISTED_PARAM_ALLOWLIST: Record<string, readonly string[]> = {
   MainTabs: ['screen'],
   Chat: ['sessionId', 'resuming', 'searchTerm', 'selectedAIs', 'aiPersonalities', 'selectedModels'],
-  Debate: [
-    'selectedAIs',
-    'topic',
-    'personalities',
-    'formatId',
-    'rounds',
-    'exchanges',
-    'voiceConfig',
-    'demoDebateId',
-  ],
   CompareSession: ['leftAI', 'rightAI', 'sessionId', 'resuming'],
   CreateSession: ['focusAssetId', 'focusMediaId', 'galleryTab'],
 };
 
 // Routes whose identity IS a payload (e.g. a full session object) are never
-// persisted; a restore lands on the screen beneath them instead.
-const NEVER_PERSISTED_ROUTES = new Set(['DebateTranscript']);
+// persisted; a restore lands on the screen beneath them instead. A debate
+// cannot be resumed, and restoring its route would start a new one unasked.
+const NEVER_PERSISTED_ROUTES = new Set(['Debate', 'DebateTranscript']);
 
 interface PersistableRoute {
   name: string;
@@ -172,9 +163,6 @@ const sanitizeRouteForPersistence = (route: unknown, depth: number): Persistable
   // Requirements mirror isValidNavigationRoute: a route that cannot render
   // from its surviving params is dropped rather than persisted broken.
   if (route.name === 'Chat' && !(typeof params?.sessionId === 'string' && params.sessionId.length > 0)) {
-    return undefined;
-  }
-  if (route.name === 'Debate' && !Array.isArray(params?.selectedAIs)) {
     return undefined;
   }
   if (route.name === 'CompareSession' && !(isRecord(params?.leftAI) && isRecord(params?.rightAI))) {
@@ -276,6 +264,10 @@ const normalizeRestoredNavigationState = (state: InitialState | undefined): Init
 
   const setupTab = getSetupTabForStackRoute(activeRouteName);
   if (!setupTab) return state;
+  // A state saved by an older build can still hold one of these routes.
+  if (NEVER_PERSISTED_ROUTES.has(activeRouteName)) {
+    return { index: 0, routes: [createMainTabsRoute(setupTab)] };
+  }
 
   return {
     ...state,

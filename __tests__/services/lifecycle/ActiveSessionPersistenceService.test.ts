@@ -207,4 +207,16 @@ describe('ActiveSessionPersistenceService', () => {
       expect.objectContaining({ sessionId: 'session-valid' })
     );
   });
+
+  it('deletes debate snapshots left behind by older builds', async () => {
+    const debateKey = 'activeSessionSnapshot_v1_debate_debate_1';
+    await AsyncStorage.setItem(debateKey, JSON.stringify({ version: 1, mode: 'debate', sessionId: 'debate_1' }));
+    await AsyncStorage.setItem('activeSessionSnapshots_index_v1', JSON.stringify([
+      { mode: 'debate', sessionId: 'debate_1', key: debateKey, status: 'interrupted', updatedAt: 2000 },
+    ]));
+
+    expect(await ActiveSessionPersistenceService.getAllSnapshots()).toEqual([]);
+    expect(await AsyncStorage.getItem(debateKey)).toBeNull();
+    expect(JSON.parse(await AsyncStorage.getItem('activeSessionSnapshots_index_v1') ?? 'null')).toEqual([]);
+  });
 });
