@@ -38,10 +38,6 @@ import { buildPersonalityRuntime, mergeRuntimeModelParameters } from '@/services
 import { applyDebateOutputTokenCap, getDebateSpeechLengthGuidance } from './debateSpeechLength';
 import { DebateTurnRunner, type DebateTurnFailed } from './DebateTurnRunner';
 import { createDebateInterstitialMessage } from './DebateInterstitialService';
-import type {
-  ActiveDebateSessionSnapshot,
-  ActiveDebateVoteRecord,
-} from '@/services/lifecycle/ActiveSessionPersistenceService';
 
 export interface DebateSession {
   id: string;
@@ -902,7 +898,6 @@ export class DebateOrchestrator {
         guidance: format.guidance[phase] ?? '',
         format,
         presetId: preset.id,
-        personalityId,
         messageLabel: messageSpec.label,
         roleBrief: roleContext.roleBrief,
         sameSpeakerPreviousMessage,
@@ -2101,139 +2096,6 @@ export class DebateOrchestrator {
    */
   getSession(): DebateSession | null {
     return this.session;
-  }
-
-  createSnapshot(
-    status: ActiveDebateSessionSnapshot['status'] = 'active',
-    messages: Message[] = this.currentMessages
-  ): ActiveDebateSessionSnapshot | null {
-    if (!this.session) return null;
-
-    return {
-      version: 1,
-      mode: 'debate',
-      sessionId: this.session.id,
-      status,
-      createdAt: this.session.startTime,
-      updatedAt: Date.now(),
-      selectedAIs: this.session.participants,
-      messages,
-      debateSession: {
-        id: this.session.id,
-        topic: this.session.topic,
-        participants: this.session.participants,
-        personalities: this.session.personalities,
-        startTime: this.session.startTime,
-        status: this.session.status,
-        currentRound: this.session.currentRound,
-        messageCount: this.session.messageCount,
-        messageIndex: this.session.messageIndex,
-        currentAIIndex: this.session.currentAIIndex,
-        totalRounds: this.session.totalRounds,
-        totalMessages: this.session.totalMessages,
-        formatId: this.session.format.id,
-        presetId: this.session.presetId,
-        stances: this.session.stances,
-        audienceResult: this.session.audienceResult,
-        audienceQuestions: this.session.audienceQuestions,
-        webSearchEnabled: this.session.webSearchEnabled,
-        voiceConfig: this.session.voiceConfig,
-      },
-      voteRecords: this.votingService?.getVoteRecords() as ActiveDebateVoteRecord[] | undefined,
-      currentVoteIndex: this.currentVoteIndex,
-      currentAudienceVoteStage: this.currentAudienceVoteStage,
-      continuation: this.pendingContinuation
-        ? {
-          title: this.pendingContinuation.title,
-          message: this.pendingContinuation.message,
-          buttonLabel: this.pendingContinuation.buttonLabel,
-          isFinalReview: this.pendingContinuation.isFinalReview,
-          completedMessageIndex: this.pendingContinuation.completedMessageIndex,
-          nextMessageIndex: this.pendingContinuation.nextMessageIndex,
-          continueAction: this.pendingContinuation.continueAction,
-          retryMessageId: this.pendingContinuation.retryMessageId,
-          voteRound: this.pendingContinuation.voteRound,
-          isFinalRoundVote: this.pendingContinuation.isFinalRoundVote,
-        }
-        : null,
-      audienceQuestionsPrompt: this.pendingAudienceQuestions
-        ? {
-          title: this.pendingAudienceQuestions.title,
-          message: this.pendingAudienceQuestions.message,
-          completedMessageIndex: this.pendingAudienceQuestions.completedMessageIndex,
-          nextMessageIndex: this.pendingAudienceQuestions.nextMessageIndex,
-          affirmativeLabel: this.pendingAudienceQuestions.affirmativeLabel,
-          negativeLabel: this.pendingAudienceQuestions.negativeLabel,
-          required: true,
-        }
-        : null,
-      interruptedMessageIds: messages
-        .filter(message => message.metadata?.lifecycle?.status === 'interrupted')
-        .map(message => message.id),
-    };
-  }
-
-  hydrateFromSnapshot(snapshot: ActiveDebateSessionSnapshot): DebateSession {
-    const format = getFormat(snapshot.debateSession.formatId);
-    const preset = getPresetForFormat(snapshot.debateSession.formatId, snapshot.debateSession.presetId);
-    const session: DebateSession = {
-      id: snapshot.debateSession.id,
-      topic: snapshot.debateSession.topic,
-      participants: snapshot.debateSession.participants,
-      personalities: snapshot.debateSession.personalities,
-      startTime: snapshot.debateSession.startTime,
-      status: snapshot.status === 'interrupted'
-        ? DebateStatus.PAUSED_FOR_REVIEW
-        : snapshot.debateSession.status as DebateStatus,
-      currentRound: snapshot.debateSession.currentRound,
-      messageCount: snapshot.debateSession.messageCount,
-      messageIndex: snapshot.debateSession.messageIndex,
-      currentAIIndex: snapshot.debateSession.currentAIIndex,
-      totalRounds: snapshot.debateSession.totalRounds,
-      totalMessages: snapshot.debateSession.totalMessages,
-      format,
-      preset,
-      presetId: preset.id,
-      stances: snapshot.debateSession.stances,
-      audienceResult: snapshot.debateSession.audienceResult,
-      audienceQuestions: snapshot.debateSession.audienceQuestions,
-      webSearchEnabled: snapshot.debateSession.webSearchEnabled,
-      voiceConfig: snapshot.debateSession.voiceConfig,
-    };
-
-    this.session = session;
-    this.currentMessages = snapshot.messages || [];
-    this.currentVoteIndex = snapshot.currentVoteIndex || 0;
-    this.currentAudienceVoteStage = snapshot.currentAudienceVoteStage;
-    this.votingService = new VotingService(session.participants, preset, format.id);
-    this.votingService.hydrateVoteRecords(snapshot.voteRecords || []);
-    this.rulesEngine = new DebateRulesEngine(preset);
-    this.pendingContinuation = snapshot.continuation
-      ? {
-        ...snapshot.continuation,
-        messages: snapshot.messages || [],
-      }
-      : snapshot.status === 'interrupted'
-        ? {
-          title: 'Debate paused',
-          message: 'The active response was interrupted. Retry this turn when you are ready.',
-          buttonLabel: 'Retry Turn',
-          isFinalReview: false,
-          completedMessageIndex: Math.max(session.messageIndex - 1, 0),
-          nextMessageIndex: session.messageIndex,
-          continueAction: 'retry_message',
-          retryMessageId: snapshot.interruptedMessageIds?.[0],
-          messages: snapshot.messages || [],
-        }
-        : null;
-    this.pendingAudienceQuestions = snapshot.audienceQuestionsPrompt
-      ? {
-        ...snapshot.audienceQuestionsPrompt,
-        messages: snapshot.messages || [],
-      }
-      : null;
-
-    return session;
   }
 
   getPendingContinuation(): DebateContinuationPrompt | null {

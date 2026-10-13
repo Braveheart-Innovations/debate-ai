@@ -22,16 +22,14 @@ describe('DebatePromptBuilder', () => {
       guidance: 'Stay factual and cite evidence.',
       format: OXFORD_FORMAT,
       presetId: 'short',
-      personalityId: 'george',
     });
 
     expect(prompt).toContain('Turn: Rebuttal');
     expect(prompt).toContain('Directly refute');
     expect(prompt).toContain('AI should assist in education.');
-    expect(prompt).toContain('Use PG-13 observational satire');
-    expect(prompt).toContain('mild profanity is allowed sparingly');
-    expect(prompt).not.toContain('PG humor');
-    // Tone comes from the personality alone; no intensity line competes with it.
+    // Personas live in the system prompt, the same way for every persona; the turn prompt
+    // carries no persona text and no intensity line that could compete with it.
+    expect(prompt).not.toContain('satire');
     expect(prompt).not.toContain('Debate intensity');
     expect(prompt).toContain('Length guidance: Keep this rebuttal brief and targeted');
     expect(prompt).not.toContain('words maximum');

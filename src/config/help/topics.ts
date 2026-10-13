@@ -525,7 +525,7 @@ Features:
 - View all past sessions (chats, debates, comparisons)
 - Search by message content or AI names
 - Filter by session type
-- Resume any previous conversation
+- Resume past chats and comparisons; completed debates open as a transcript, with Rematch to run them again
 - Delete individual sessions or clear all
 
 Session Stats:

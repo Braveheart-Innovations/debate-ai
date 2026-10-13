@@ -319,6 +319,31 @@ describe('AppNavigator', () => {
     });
   });
 
+  it('restores a debate saved by an older build to Debate setup, never the debate itself', async () => {
+    // Remounting the Debate screen from its params would start a new debate unasked.
+    await AsyncStorage.setItem('navigationState_v2', JSON.stringify({
+      index: 1,
+      routes: [
+        { name: 'MainTabs' },
+        { name: 'Debate', params: { selectedAIs: [{ id: 'claude' }, { id: 'openai' }], topic: 'AI' } },
+      ],
+    }));
+
+    renderWithProviders(<AppNavigator />, {
+      preloadedState: {
+        auth: resolvedAuth,
+        settings: { ...baseSettings, hasCompletedOnboarding: true },
+      },
+    });
+
+    await waitFor(() => {
+      expect(mockNavigationContainerProps?.initialState).toEqual({
+        index: 0,
+        routes: [mainTabsStateFor('DebateTab')],
+      });
+    });
+  });
+
   it('does not restore the legacy Debate setup tab state that caused OTA reload loops', async () => {
     await AsyncStorage.setItem('navigationState_v1', JSON.stringify({
       index: 0,
@@ -503,7 +528,7 @@ describe('AppNavigator', () => {
       });
     });
 
-    it('never persists DebateTranscript and refocuses the surviving route beneath it', () => {
+    it('never persists Debate or DebateTranscript and refocuses the surviving route beneath them', () => {
       const sanitized = sanitizeNavigationStateForPersistence({
         index: 2,
         routes: [
@@ -514,11 +539,8 @@ describe('AppNavigator', () => {
       });
 
       expect(sanitized).toEqual({
-        index: 1,
-        routes: [
-          { name: 'MainTabs' },
-          { name: 'Debate', params: { selectedAIs: [{ id: 'claude' }], topic: 'AI' } },
-        ],
+        index: 0,
+        routes: [{ name: 'MainTabs' }],
       });
     });
 

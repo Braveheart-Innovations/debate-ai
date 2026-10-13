@@ -1,19 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { AIConfig, ChatSession, Message, DebateVoiceConfig } from '@/types';
-import type {
-  AudienceDecisionResult,
-  AudienceStance,
-  AudienceVoteStage,
-  DebateFormatId,
-  OxfordAudienceQuestions,
-} from '@/config/debate/formats';
+import type { AIConfig, ChatSession, Message } from '@/types';
 import { ErrorService } from '@/services/errors/ErrorService';
 
-export type ActiveSessionMode = 'chat' | 'comparison' | 'debate' | 'create';
+export type ActiveSessionMode = 'chat' | 'comparison' | 'create';
 export type ActiveSessionStatus = 'active' | 'backgrounded' | 'interrupted' | 'cancelled' | 'failed' | 'completed';
 
 export interface ActivePendingTurn {
-  kind: 'chat_response' | 'compare_response' | 'debate_message' | 'create_task';
+  kind: 'chat_response' | 'compare_response' | 'create_task';
   prompt?: string;
   messageId?: string;
   messageIds?: string[];
@@ -61,74 +54,6 @@ export interface ActiveCompareSessionSnapshot extends ActiveSessionBaseSnapshot 
   continuedSide?: 'left' | 'right' | null;
 }
 
-export interface ActiveDebateSessionData {
-  id: string;
-  topic: string;
-  participants: AIConfig[];
-  personalities: Record<string, string>;
-  startTime: number;
-  status: string;
-  currentRound: number;
-  messageCount: number;
-  messageIndex: number;
-  currentAIIndex: number;
-  totalRounds: number;
-  totalMessages: number;
-  formatId: DebateFormatId;
-  presetId: string;
-  stances: Record<string, 'pro' | 'con'>;
-  audienceResult?: AudienceDecisionResult;
-  audienceQuestions?: OxfordAudienceQuestions;
-  webSearchEnabled?: boolean;
-  voiceConfig?: DebateVoiceConfig;
-}
-
-export interface ActiveDebateVoteRecord {
-  round: number;
-  winnerId: string;
-  winnerName?: string;
-  votingLabel: string;
-  criterion: string;
-  timestamp: number;
-  voteKind?: 'checkpoint' | 'audience_stance';
-  audienceVoteStage?: AudienceVoteStage;
-  audienceStance?: AudienceStance;
-}
-
-export interface ActiveDebateContinuationSnapshot {
-  title: string;
-  message: string;
-  buttonLabel: string;
-  isFinalReview: boolean;
-  completedMessageIndex: number;
-  nextMessageIndex?: number;
-  continueAction?: 'next_message' | 'vote' | 'end_debate' | 'retry_message' | 'audience_questions';
-  retryMessageId?: string;
-  voteRound?: number;
-  isFinalRoundVote?: boolean;
-}
-
-export interface ActiveDebateAudienceQuestionsSnapshot {
-  title: string;
-  message: string;
-  completedMessageIndex: number;
-  nextMessageIndex: number;
-  affirmativeLabel: string;
-  negativeLabel: string;
-  required: true;
-}
-
-export interface ActiveDebateSessionSnapshot extends ActiveSessionBaseSnapshot {
-  mode: 'debate';
-  debateSession: ActiveDebateSessionData;
-  messages: Message[];
-  voteRecords?: ActiveDebateVoteRecord[];
-  currentVoteIndex?: number;
-  currentAudienceVoteStage?: AudienceVoteStage;
-  continuation?: ActiveDebateContinuationSnapshot | null;
-  audienceQuestionsPrompt?: ActiveDebateAudienceQuestionsSnapshot | null;
-}
-
 export interface ActiveCreateSessionSnapshot extends ActiveSessionBaseSnapshot {
   mode: 'create';
 }
@@ -136,13 +61,11 @@ export interface ActiveCreateSessionSnapshot extends ActiveSessionBaseSnapshot {
 export type ActiveSessionSnapshot =
   | ActiveChatSessionSnapshot
   | ActiveCompareSessionSnapshot
-  | ActiveDebateSessionSnapshot
   | ActiveCreateSessionSnapshot;
 
 export type ActiveSessionSnapshotInput =
   | (Omit<ActiveChatSessionSnapshot, 'version' | 'updatedAt'> & { version?: 1; updatedAt?: number })
   | (Omit<ActiveCompareSessionSnapshot, 'version' | 'updatedAt'> & { version?: 1; updatedAt?: number })
-  | (Omit<ActiveDebateSessionSnapshot, 'version' | 'updatedAt'> & { version?: 1; updatedAt?: number })
   | (Omit<ActiveCreateSessionSnapshot, 'version' | 'updatedAt'> & { version?: 1; updatedAt?: number });
 
 interface ActiveSessionIndexEntry {
@@ -164,7 +87,9 @@ const getSnapshotKey = (mode: ActiveSessionMode, sessionId: string): string =>
 const isObject = (value: unknown): value is Record<string, unknown> =>
   Boolean(value && typeof value === 'object' && !Array.isArray(value));
 
-const ACTIVE_SESSION_MODES: ReadonlySet<unknown> = new Set<ActiveSessionMode>(['chat', 'comparison', 'debate', 'create']);
+const ACTIVE_SESSION_MODES: ReadonlySet<unknown> = new Set<ActiveSessionMode>(['chat', 'comparison', 'create']);
+// Debates cannot be resumed, so their snapshots are no longer written; older builds left some behind.
+const RETIRED_SESSION_MODES: ReadonlySet<unknown> = new Set(['debate']);
 const ACTIVE_SESSION_STATUSES: ReadonlySet<unknown> = new Set<ActiveSessionStatus>([
   'active',
   'backgrounded',
@@ -214,10 +139,6 @@ const isModeCompatibleSnapshot = (value: Record<string, unknown>): boolean => {
     return isValidChatSnapshot(value);
   }
 
-  if (value.mode === 'debate') {
-    return isObject(value.debateSession) && Array.isArray(value.messages);
-  }
-
   return true;
 };
 
@@ -245,7 +166,7 @@ const isSnapshot = (value: unknown): value is ActiveSessionSnapshot => {
   return value.version === STORAGE_VERSION
     && typeof value.sessionId === 'string'
     && typeof value.updatedAt === 'number'
-    && ['chat', 'comparison', 'debate', 'create'].includes(String(value.mode))
+    && ACTIVE_SESSION_MODES.has(value.mode)
     && isModeCompatibleSnapshot(value);
 };
 
@@ -254,8 +175,18 @@ export class ActiveSessionPersistenceService {
     try {
       const raw = await AsyncStorage.getItem(INDEX_KEY);
       if (!raw) return [];
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed.filter(isIndexEntry) : [];
+      const parsed: unknown = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      const entries = parsed.filter(isIndexEntry);
+      const retiredKeys = parsed
+        .filter((entry): entry is Record<string, unknown> => isObject(entry) && RETIRED_SESSION_MODES.has(entry.mode))
+        .map((entry) => entry.key)
+        .filter((key): key is string => typeof key === 'string');
+      if (retiredKeys.length > 0) {
+        await Promise.all(retiredKeys.map((key) => AsyncStorage.removeItem(key)));
+        await this.saveIndex(entries);
+      }
+      return entries;
     } catch (error) {
       ErrorService.handleSilent(error, { action: 'ActiveSessionPersistenceService.getIndex' });
       return [];

@@ -111,33 +111,6 @@ export function debateProfileToGuidance(profile: Partial<PersonalityDebateProfil
 }
 
 /**
- * Generate a complete style nudge combining tone and debate profile
- * for use in debate prompts
- */
-export function generateStyleNudge(
-  tone?: Partial<PersonalityTone>,
-  debateProfile?: Partial<PersonalityDebateProfile>
-): string {
-  const parts: string[] = [];
-
-  if (tone) {
-    const toneModifier = toneToModifiers(tone);
-    if (toneModifier) {
-      parts.push(toneModifier);
-    }
-  }
-
-  if (debateProfile) {
-    const debateGuidance = debateProfileToGuidance(debateProfile);
-    if (debateGuidance) {
-      parts.push(debateGuidance);
-    }
-  }
-
-  return parts.join(' ');
-}
-
-/**
  * Determine if tone modifiers should be applied to this message
  * Based on message count - applies periodically (every 5th message)
  */

@@ -20,7 +20,7 @@ interface RecoverableExitGuardOptions {
   title: string;
   message: string;
   leaveText?: string;
-  onSaveAndLeave: () => void | Promise<void>;
+  onLeave: () => void | Promise<void>;
 }
 
 export const useRecoverableExitGuard = ({
@@ -29,7 +29,7 @@ export const useRecoverableExitGuard = ({
   title,
   message,
   leaveText = 'Leave',
-  onSaveAndLeave,
+  onLeave,
 }: RecoverableExitGuardOptions): ((continueNavigation?: () => void) => void) => {
   const confirmLeave = useCallback((continueNavigation?: () => void) => {
     if (!shouldGuard) {
@@ -46,14 +46,14 @@ export const useRecoverableExitGuard = ({
           text: leaveText,
           style: 'destructive',
           onPress: () => {
-            void Promise.resolve(onSaveAndLeave()).finally(() => {
+            void Promise.resolve(onLeave()).finally(() => {
               continueNavigation?.();
             });
           },
         },
       ]
     );
-  }, [leaveText, message, onSaveAndLeave, shouldGuard, title]);
+  }, [leaveText, message, onLeave, shouldGuard, title]);
 
   useEffect(() => {
     if (!navigation.addListener) return undefined;

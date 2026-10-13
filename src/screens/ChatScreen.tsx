@@ -476,7 +476,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation, route }) => {
     shouldGuard: Boolean(activeStreams > 0 || aiResponses.isProcessing),
     title: 'Leave this chat?',
     message: 'The active response will be stopped and saved so you can retry it later.',
-    onSaveAndLeave: async () => {
+    onLeave: async () => {
       markActiveStreamsInterrupted('cancelled', 'user_exit');
       try { getStreamingService().cancelAllStreams('cancelled'); } catch { /* no-op */ }
       dispatch(cancelAllStreams({ reason: 'cancelled' }));
