@@ -54,6 +54,24 @@ describe('run_recipe', () => {
     expect(result().params).toEqual({ staff: 5, region: 'East "coast"' });
   });
 
+  it('reads /output and /uploads from _SYM_ROOT when one is set, as a downloaded model does', () => {
+    // A model's download bundle runs this same runner with _SYM_ROOT at its own folder.
+    fs.mkdirSync(path.join(dir, 'output', 'm'), { recursive: true });
+    fs.mkdirSync(path.join(dir, 'uploads'), { recursive: true });
+    fs.writeFileSync(path.join(dir, 'output', 'm', 'data.json'), '{"value": 7}');
+    fs.writeFileSync(path.join(dir, 'uploads', 'note.txt'), 'hello');
+    fs.writeFileSync(path.join(dir, 'output', 'm.recipe.py'), [
+      'import json, os',
+      'PARAMS = {"name": "note"}',
+      'value = json.load(open("/output/m/data.json"))["value"]',
+      'note = open(os.path.join("/uploads", f"{PARAMS[\'name\']}.txt")).read()',
+      'show_metric("Value", value, detail=note)',
+    ].join('\n'));
+    runPython(dir, `_SYM_ROOT = ${JSON.stringify(dir)}\nrun_recipe("m.recipe.py")`);
+    const results = JSON.parse(fs.readFileSync(path.join(dir, 'output', 'm', 'model.json'), 'utf8'));
+    expect(results.items).toEqual([{ kind: 'metric', label: 'Value', value: 7, detail: 'hello' }]);
+  });
+
   it('refuses a name PARAMS does not declare', () => {
     expect(() => runPython(dir, `run_recipe(${JSON.stringify(recipe)}, nurses=2)`)).toThrow(/Unknown recipe parameter\(s\): nurses/);
   });

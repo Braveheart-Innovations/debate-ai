@@ -182,6 +182,8 @@ export interface Artifact {
       /** The rest of the docstring: what the model answers. */
       summary?: string;
     };
+    /** The name the user gave a Model scenario (a version of its results file). */
+    scenarioName?: string;
     /** An output a Model re-run made (analyzeRunRecipe): which recipe, which run, with what values. */
     recipeRun?: {
       recipeName: string;

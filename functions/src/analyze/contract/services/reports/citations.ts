@@ -77,7 +77,8 @@ function collectBlockCitationIds(block: ReportBlock): string[] {
       case 'artifact_explanation':
         return collectInlineCitationIds(block.text);
       case 'chart':
-        return block.caption ? collectInlineCitationIds(block.caption) : [];
+        // A chart's own text (a legend entry, an axis title) can cite too.
+        return extractInlineCitationArtifactIdsFromValue([block.spec.spec, block.caption]);
       case 'diagram':
         return block.caption ? collectInlineCitationIds(block.caption) : [];
       case 'embedded_html':
@@ -131,6 +132,48 @@ export function replaceInlineCitationTokens(
     const index = citationIndexByArtifactId.get(artifactId);
     return index ? `[${index}]` : '[?]';
   });
+}
+
+/** Every string in a value, nested arrays and objects included, passed through `map`. Keys stay as they are. */
+export function mapStrings<T>(value: T, map: (text: string) => string): T {
+  if (typeof value === 'string') return map(value) as T;
+  if (Array.isArray(value)) return value.map((entry) => mapStrings(entry, map)) as T;
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, mapStrings(entry, map)])) as T;
+  }
+  return value;
+}
+
+/**
+ * The spec with every inline citation token resolved to what the reader sees:
+ * `[n]`, or nothing when the report has no endnotes. It reaches every string a
+ * block carries (headings, table headers and cells, metric cards, a chart's
+ * titles and legend entries), so no export prints a raw `[cite:…]` wherever its
+ * renderer happens not to process a field. The numbers must come from the
+ * unresolved spec: resolving removes the tokens they are counted from.
+ *
+ * A block's `citations` keep only the sources its text doesn't already cite:
+ * the DOCX and PPTX exporters list those under the block, and they find the
+ * inline ones by their tokens, which are gone once resolved.
+ */
+export function resolveSpecCitationTokens(
+  spec: ReportSpecV1,
+  citationStyle: CitationStyle,
+  citationIndexByArtifactId: Map<string, number>,
+): ReportSpecV1 {
+  const resolve = (text: string) => replaceInlineCitationTokens(text, citationStyle, citationIndexByArtifactId);
+  return {
+    ...spec,
+    ...(spec.abstract !== undefined ? { abstract: resolve(spec.abstract) } : {}),
+    pages: spec.pages.map((page) => ({
+      ...page,
+      blocks: page.blocks.map((block) => {
+        const inline = new Set(extractInlineCitationArtifactIdsFromValue(block));
+        const resolved = mapStrings(block, resolve);
+        return block.citations ? { ...resolved, citations: block.citations.filter((id) => !inline.has(id)) } : resolved;
+      }),
+    })),
+  };
 }
 
 export interface CitationPreflightWarning {
