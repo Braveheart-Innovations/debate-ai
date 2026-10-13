@@ -15,6 +15,7 @@
  *    no bundling, no report-material demotion. A file whose bytes didn't
  *    change is not a new version.
  */
+import { randomBytes } from 'node:crypto';
 import { getFirestore } from 'firebase-admin/firestore';
 import type { Artifact, RecipeParamValue } from '../contract/types/notebook';
 import { repairModelAuthoredHtml } from '../contract/services/artifacts/htmlProfiles';
@@ -201,7 +202,7 @@ export interface RunRecipeDeps {
 
 const defaultDeps: RunRecipeDeps = {
   now: () => Date.now(),
-  newRunId: () => `recipe_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`,
+  newRunId: () => `recipe_${Date.now()}_${randomBytes(6).toString('hex')}`,
 };
 
 export async function runRecipe(

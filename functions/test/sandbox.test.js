@@ -12,7 +12,8 @@ const {
   POST_MARKER, parsePostScan, filterStderr, stripAnsi, formatTraceback, preCode, postCode, kernelPidFile, outputScope,
 } = require('../lib/sandbox/runtime');
 
-const isPre = (code) => code.startsWith('try:\n    _sym_pre\nexcept NameError:');
+// The bootstrap cell: install the runtime unless this kernel already has it.
+const isPre = (code) => /^try:\n    _sym_pre\n(    \w+\n)*except NameError:/.test(code);
 
 function memoryStore() {
   const docs = new Map();
