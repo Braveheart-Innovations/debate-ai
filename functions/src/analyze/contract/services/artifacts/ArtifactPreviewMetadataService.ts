@@ -329,10 +329,14 @@ export function buildArtifactPreviewMetadata(input: PreviewInput): ArtifactPrevi
     // A model: its name, what it answers and its inputs, not its code.
     const recipe = input.metadata?.recipe;
     const inputs = (recipe?.params ?? []).map((param) => param.label ?? param.name.replace(/_/g, ' ')).join(', ');
+    const fileTitle = (input.name.split('/').pop() ?? input.name)
+      .replace(/\.recipe\.py$/i, '')
+      .replace(/[_-]+/g, ' ')
+      .replace(/\b\w/g, (letter) => letter.toUpperCase());
     return {
       version: 1,
       kind: 'text',
-      title: recipe?.title || input.name,
+      title: recipe?.title || fileTitle,
       subtitle: 'model',
       excerpt: truncate([recipe?.summary, inputs ? `Inputs: ${inputs}` : null].filter(Boolean).join('\n\n') || 'A model you can run again with other inputs.', MAX_EXCERPT_CHARS),
     };
