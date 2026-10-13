@@ -3,9 +3,8 @@
  * Manages the debate flow orchestration and event handling
  */
 
-import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '../../store';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { useDispatch } from 'react-redux';
 import { addMessage, setTypingAI, updateMessage } from '../../store';
 import {
   startStreaming,
@@ -80,9 +79,7 @@ const buildTurnLabel = (
 
 export const useDebateFlow = (orchestrator: DebateOrchestrator | null): UseDebateFlowReturn => {
   const dispatch = useDispatch();
-  const currentSession = useSelector((state: RootState) => state.chat.currentSession);
-  const messages = useMemo(() => currentSession?.messages || [], [currentSession?.messages]);
-  
+
   const [isDebateActive, setIsDebateActive] = useState(false);
   const [isDebateEnded, setIsDebateEnded] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -425,7 +422,7 @@ export const useDebateFlow = (orchestrator: DebateOrchestrator | null): UseDebat
       hasStartedRef.current = true;
       setIsDebateActive(true);
       
-      await orchestrator.startDebate(messages);
+      await orchestrator.startDebate();
       
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to start debate';
@@ -433,7 +430,7 @@ export const useDebateFlow = (orchestrator: DebateOrchestrator | null): UseDebat
       setIsDebateActive(false);
       hasStartedRef.current = false;
     }
-  }, [orchestrator, messages]);
+  }, [orchestrator]);
   
   // Reset when orchestrator changes
   useEffect(() => {

@@ -20,7 +20,6 @@ describe('DebatePromptBuilder', () => {
       previousMessage: 'The opponent argued that AI removes teachers.',
       isFinalRound: false,
       guidance: 'Stay factual and cite evidence.',
-      civilityLevel: 5,
       format: OXFORD_FORMAT,
       presetId: 'short',
       personalityId: 'george',
@@ -32,9 +31,8 @@ describe('DebatePromptBuilder', () => {
     expect(prompt).toContain('Use PG-13 observational satire');
     expect(prompt).toContain('mild profanity is allowed sparingly');
     expect(prompt).not.toContain('PG humor');
-    expect(prompt).toContain('Debate intensity: Hostile.');
-    expect(prompt).toContain('Attack assumptions, expose weak logic');
-    expect(prompt).toContain('do not use insults, slurs, stereotypes, or personal attacks');
+    // Tone comes from the personality alone; no intensity line competes with it.
+    expect(prompt).not.toContain('Debate intensity');
     expect(prompt).toContain('Length guidance: Keep this rebuttal brief and targeted');
     expect(prompt).not.toContain('words maximum');
     expect(prompt).toContain(DEBATE_CONSTANTS.PROMPT_MARKERS.PREVIOUS_SPEAKER);

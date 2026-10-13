@@ -12,7 +12,8 @@ import {
   clearPreservedTopic,
 } from '@/store';
 import { resolveProviderModelId } from '@/config/modelConfigs';
-import type { AIConfig } from '@/types';
+import { getPersonality } from '@/config/personalities';
+import type { AIConfig, DebateVoiceConfig } from '@/types';
 import type { RootState } from '@/store';
 import type { FormatModal } from '@/components/organisms/debate/FormatModal';
 import type { DebateTopicSelector } from '@/components/organisms/debate/DebateTopicSelector';
@@ -32,6 +33,7 @@ const baseAIs: AIConfig[] = [
   { id: 'google', provider: 'google', name: 'Gemini', model: 'gemini-1.5' },
 ];
 
+const george = requireDefined(getPersonality('george'), 'george personality');
 const mockDispatch = jest.fn();
 let currentState: RootState;
 const mockUseSelector = jest.fn<unknown, [(state: RootState) => unknown]>();
@@ -529,9 +531,50 @@ describe('DebateSetupScreen', () => {
     }));
 
     act(() => {
-      requireDefined(mockSlotConfigSheet.latest().onChangePersonality, 'onChangePersonality')('friendly');
+      requireDefined(mockSlotConfigSheet.latest().onChangePersonality, 'onChangePersonality')('george');
     });
-    expect(mockDispatch).toHaveBeenCalledWith(setAIPersonality({ aiId: slotId, personalityId: 'friendly' }));
+    expect(mockSlotConfigSheet.latest().personalityId).toBe('george');
+    expect(mockTeamsCard.latest().slots[0].personalityLabel).toBe(`${george.emoji} ${george.name}`);
+  });
+
+  it('keeps slot personalities when the shared chat personalities are reset', async () => {
+    const { renderResult, navigation } = renderScreen({ featureAccess: { isDemo: false } });
+    await setTopic('Climate Action');
+    await fillSlot(0, 'claude');
+    await fillSlot(1, 'openai');
+
+    const choosePersonality = async (index: number, personalityId: string) => {
+      act(() => {
+        mockTeamsCard.latest().onSlotPress(mockTeamsCard.latest().slots[index]);
+      });
+      await flush();
+      act(() => {
+        requireDefined(mockSlotConfigSheet.latest().onChangePersonality, 'onChangePersonality')(personalityId);
+      });
+      act(() => {
+        mockSlotConfigSheet.latest().onClose();
+      });
+      await flush();
+    };
+    await choosePersonality(0, 'george');
+    await choosePersonality(1, 'prof_sage');
+    const [affirmative, negative] = mockTeamsCard.latest().slots.map(slot => filledAI(slot.ai));
+
+    // Starting any chat or debate session resets state.chat.aiPersonalities.
+    currentState = buildRootState({ ...defaultState(), chat: { ...defaultState().chat, aiPersonalities: {} } });
+    renderResult.rerender(<DebateSetupScreen navigation={navigation} route={{ params: {} }} />);
+    await flush();
+
+    expect(mockTeamsCard.latest().slots[0].personalityLabel).toBe(`${george.emoji} ${george.name}`);
+    fireEvent.press(renderResult.getByTestId('start-debate-button'));
+    expect(navigation.navigate).toHaveBeenCalledWith('Debate', expect.objectContaining({
+      personalities: { [affirmative.id]: 'george', [negative.id]: 'prof_sage' },
+      selectedAIs: [
+        expect.objectContaining({ id: affirmative.id, personality: 'george' }),
+        expect.objectContaining({ id: negative.id, personality: 'prof_sage' }),
+      ],
+    }));
+    expect(mockDispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: setAIPersonality.type }));
   });
 
   it('removes a debater and reopens the provider picker on change provider', async () => {
@@ -602,22 +645,19 @@ describe('DebateSetupScreen', () => {
       topic: 'Climate Action',
       formatId: 'oxford',
       rounds: 3,
-      civility: 3,
     }));
     expect(mockDispatch).toHaveBeenCalledWith(clearPreservedTopic());
   });
 
-  it('passes intensity changes through to the debate', async () => {
+  it('leaves tone to the personalities: there is no intensity setting', async () => {
     const { renderResult, navigation } = renderScreen({ featureAccess: { isDemo: false } });
     await setTopic('Climate Action');
     await fillSlot(0, 'claude');
     await fillSlot(1, 'openai');
 
-    fireEvent.press(renderResult.getByText('Hostile'));
-    await flush();
-
+    expect(renderResult.queryByText('Intensity')).toBeNull();
     fireEvent.press(renderResult.getByTestId('start-debate-button'));
-    expect(navigation.navigate).toHaveBeenCalledWith('Debate', expect.objectContaining({ civility: 5 }));
+    expect(navigation.navigate).toHaveBeenCalledWith('Debate', expect.not.objectContaining({ civility: expect.anything() }));
   });
 
   it('opens demo debate picker and navigates with selected sample', async () => {
@@ -732,6 +772,68 @@ describe('DebateSetupScreen', () => {
           [claudeDebater.id]: { voiceId: 'voice-1', voiceName: 'Voice One' },
           [openaiDebater.id]: { voiceId: 'voice-2', voiceName: 'Voice Two' },
         },
+      },
+    }));
+  });
+
+  it('pre-fills every setting from a rematch so the same debate can start unchanged', async () => {
+    const claudeModel = resolveProviderModelId('claude', 'claude-custom') || 'claude-custom';
+    const openaiModel = resolveProviderModelId('openai', 'gpt-custom') || 'gpt-custom';
+    const affirmative: AIConfig = { id: 'claude-debater-slot-1-0', provider: 'claude', name: 'Claude', model: claudeModel, personality: 'george' };
+    const negative: AIConfig = { id: 'openai-debater-slot-2-1', provider: 'openai', name: 'GPT-4', model: openaiModel, personality: 'prof_sage' };
+    const voiceConfig: DebateVoiceConfig = {
+      enabled: true,
+      providerId: 'elevenlabs',
+      ttsModelId: 'eleven_multilingual_v2',
+      debaterVoices: {
+        [affirmative.id]: { voiceId: 'voice-1', voiceName: 'Voice One' },
+        [negative.id]: { voiceId: 'voice-2', voiceName: 'Voice Two' },
+      },
+      podcast: {
+        enabled: true,
+        scriptMode: 'byok_ai',
+        outputMode: 'playlist',
+        mc: { id: 'google-debater-slot-3-2', provider: 'google', name: 'Gemini', model: 'gemini-1.5' },
+        mcVoice: { voiceId: 'voice-host', voiceName: 'Host Voice' },
+      },
+    };
+    const { renderResult, navigation } = renderScreen({
+      featureAccess: { isDemo: false },
+      state: elevenLabsState(),
+      route: {
+        rematch: {
+          selectedAIs: [affirmative, negative],
+          topic: 'Cities should ban cars',
+          formatId: 'oxford',
+          exchanges: 3,
+          voiceConfig,
+        },
+        rematchKey: 'rematch-1',
+      },
+    });
+    await flush();
+
+    expect(mockTopicSelector.latest()).toEqual(expect.objectContaining({ topicMode: 'custom', customTopic: 'Cities should ban cars' }));
+    expect(mockTeamsCard.latest().slots.map(slot => [slot.ai?.id, slot.personalityLabel, slot.voiceLabel])).toEqual([
+      [affirmative.id, `${george.emoji} ${george.name}`, '🔊 Voice One'],
+      [negative.id, expect.stringContaining('Sage'), '🔊 Voice Two'],
+    ]);
+    expect(renderResult.getByTestId('debate-podcast-mc-row')).toBeTruthy();
+
+    fireEvent.press(renderResult.getByTestId('start-debate-button'));
+
+    expect(navigation.navigate).toHaveBeenCalledWith('Debate', expect.objectContaining({
+      topic: 'Cities should ban cars',
+      formatId: 'oxford',
+      rounds: 3,
+      personalities: { [affirmative.id]: 'george', [negative.id]: 'prof_sage' },
+      selectedAIs: [
+        expect.objectContaining({ id: affirmative.id, model: claudeModel, personality: 'george' }),
+        expect.objectContaining({ id: negative.id, model: openaiModel, personality: 'prof_sage' }),
+      ],
+      voiceConfig: {
+        ...voiceConfig,
+        podcast: { ...voiceConfig.podcast, mc: { ...voiceConfig.podcast?.mc, model: resolveProviderModelId('google', 'gemini-1.5') || 'gemini-1.5' } },
       },
     }));
   });

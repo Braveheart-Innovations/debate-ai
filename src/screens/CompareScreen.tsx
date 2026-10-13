@@ -229,7 +229,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
   // Get models and user status from Redux
   const selectedModels = useSelector((state: RootState) => state.chat.selectedModels);
   const expertModeConfigs = useSelector((state: RootState) => state.settings.expertMode || {});
-  const currentUser = useSelector((state: RootState) => state.user.currentUser);
+  const isPremium = useSelector((state: RootState) => state.auth.isPremium);
   const streamingState = useSelector((state: RootState) => state.streaming);
   
   // Check if we're resuming a session
@@ -532,8 +532,6 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
     if (userMessages.length === 0) return; // Don't save empty sessions
     
     try {
-      const isPremium = currentUser?.subscription === 'pro' || currentUser?.subscription === 'business';
-      
       // Check if this session already exists
       const existingSession = await StorageService.loadSession(sessionId);
       
@@ -574,7 +572,7 @@ const CompareScreen: React.FC<CompareScreenProps> = ({ navigation, route }) => {
     } catch (error) {
       console.error('Failed to save comparison to history:', error);
     }
-  }, [userMessages, leftMessages, rightMessages, leftAI, rightAI, currentUser, continuedSide, sessionId, hasBeenSaved]);
+  }, [userMessages, leftMessages, rightMessages, leftAI, rightAI, isPremium, continuedSide, sessionId, hasBeenSaved]);
 
   const isProcessing = leftTyping || rightTyping;
 

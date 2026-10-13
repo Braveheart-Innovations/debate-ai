@@ -58,7 +58,6 @@ export interface DebateSession {
   currentAIIndex: number;
   totalRounds: number;
   totalMessages: number;
-  civility: 1 | 2 | 3 | 4 | 5;
   format: FormatSpec;
   preset: PresetConfig;
   presetId: string;
@@ -657,7 +656,6 @@ export class DebateOrchestrator {
       formatId?: DebateFormatId;
       presetId?: string;
       rounds?: number; // 1–5
-      civility?: 1 | 2 | 3 | 4 | 5;
       stances?: { [aiId: string]: 'pro' | 'con' };
       /** Optional pre-merged personalities from context (includes user customizations) */
       mergedPersonalities?: Record<string, PersonalityOption>;
@@ -692,7 +690,6 @@ export class DebateOrchestrator {
 
     const totalRounds = preset.voteCount;
     const totalMessages = preset.messages.length;
-    const civility = (options?.civility as 1|2|3|4|5) || 3;
     const stances: { [aiId: string]: 'pro' | 'con' } = {};
     resolvedParticipants.forEach((participant, index) => {
       const side = this.getSideForParticipantIndex(index, preset);
@@ -720,7 +717,6 @@ export class DebateOrchestrator {
       currentAIIndex: 0,
       totalRounds,
       totalMessages,
-      civility,
       format,
       preset,
       presetId: preset.id,
@@ -755,7 +751,7 @@ export class DebateOrchestrator {
   /**
    * Start the debate with the first AI
    */
-  async startDebate(existingMessages: Message[]): Promise<void> {
+  async startDebate(): Promise<void> {
     if (!this.session) {
       throw new AppError({
         code: ErrorCode.APP_SESSION_NOT_FOUND,
@@ -768,17 +764,13 @@ export class DebateOrchestrator {
     // Enforce storage limits BEFORE starting the debate
     // This ensures we have room for this new debate
     try {
-      const state = store.getState();
-      const currentUser = state.user.currentUser;
-      const isPremium = currentUser?.subscription === 'pro' || currentUser?.subscription === 'business';
-      
-      await StorageService.enforceStorageLimits('debate', isPremium, true);
+      await StorageService.enforceStorageLimits('debate', store.getState().auth.isPremium, true);
     } catch {
       // Continue anyway - don't block the debate
     }
-    
-    // Store the initial messages
-    this.currentMessages = [...existingMessages];
+
+    // Every debate starts with its own empty transcript; nothing from an earlier debate carries over.
+    this.currentMessages = [];
 
     if (this.votingService?.isAudienceStanceVoteModel() && !this.votingService.hasAudienceVote('initial')) {
       this.showAudienceStanceVoting('initial');
@@ -811,7 +803,7 @@ export class DebateOrchestrator {
       });
     }
 
-    const { participants, personalities, topic, format, preset, totalRounds, civility } = this.session;
+    const { participants, personalities, topic, format, preset, totalRounds } = this.session;
     const maxMessages = preset.messages.length;
 
     // Check if debate should end
@@ -910,7 +902,6 @@ export class DebateOrchestrator {
         guidance: format.guidance[phase] ?? '',
         format,
         presetId: preset.id,
-        civilityLevel: civility,
         personalityId,
         messageLabel: messageSpec.label,
         roleBrief: roleContext.roleBrief,
@@ -977,7 +968,6 @@ export class DebateOrchestrator {
           finalVoteRequired: preset.finalVoteRequired,
           opponentName: opponent?.name || 'Opponent',
           opponentPersonality: opponentPersona,
-          civility,
         },
       });
       const runtimeParameters = applyDebateOutputTokenCap(
@@ -1010,7 +1000,6 @@ export class DebateOrchestrator {
               personalityId,
               personalityName: runtime.debug.personalityName,
               stance,
-              civility,
               format: { id: format.id, name: format.name },
               phase,
               round: currentRound,
@@ -1980,7 +1969,6 @@ export class DebateOrchestrator {
           rounds: this.session.totalRounds,
           tempo: 'streaming',
           postStreamPauseMs: DEBATE_CONSTANTS.DELAYS.POST_STREAM_PAUSE,
-          civility: this.session.civility,
           voteResults: this.votingService?.getVoteRecords(),
           audienceResult: this.session.audienceResult,
           audienceQuestions: this.session.audienceQuestions,
@@ -1990,8 +1978,9 @@ export class DebateOrchestrator {
       
       // Save to storage
       await StorageService.saveSession(debateSession);
-    } catch (error) {
-      console.error('Failed to save debate to history:', error);
+    } catch {
+      // saveSession already reported the cause; the user needs to know History won't have it.
+      ErrorService.showWarning('This debate could not be saved to History.', 'debate');
     }
   }
   
@@ -2142,7 +2131,6 @@ export class DebateOrchestrator {
         currentAIIndex: this.session.currentAIIndex,
         totalRounds: this.session.totalRounds,
         totalMessages: this.session.totalMessages,
-        civility: this.session.civility,
         formatId: this.session.format.id,
         presetId: this.session.presetId,
         stances: this.session.stances,
@@ -2203,7 +2191,6 @@ export class DebateOrchestrator {
       currentAIIndex: snapshot.debateSession.currentAIIndex,
       totalRounds: snapshot.debateSession.totalRounds,
       totalMessages: snapshot.debateSession.totalMessages,
-      civility: snapshot.debateSession.civility,
       format,
       preset,
       presetId: preset.id,

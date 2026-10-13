@@ -22,32 +22,6 @@ export interface PromptContext {
 
 type CxRole = 'questioner' | 'answerer';
 
-const getDebateIntensityDirective = (civilityLevel?: 1 | 2 | 3 | 4 | 5): string => {
-  if (!civilityLevel) return '';
-
-  if (civilityLevel <= 2) {
-    return [
-      'Debate intensity: Friendly.',
-      'Be charitable and warm while still disagreeing clearly.',
-      'Steelman the opponent before answering, use light wit, and avoid ridicule, contempt, or gotcha framing.',
-    ].join(' ');
-  }
-
-  if (civilityLevel >= 5) {
-    return [
-      'Debate intensity: Hostile.',
-      'Attack assumptions, expose weak logic, press contradictions, and make the clash feel high-stakes.',
-      'Use sharp cross-examination pressure and direct language, but do not use insults, slurs, stereotypes, or personal attacks.',
-    ].join(' ');
-  }
-
-  return [
-    'Debate intensity: Neutral.',
-    'Be professional, concise, evidence-first, and direct.',
-    'Challenge claims without warmth-padding or theatrical aggression.',
-  ].join(' ');
-};
-
 const getFormatPhaseConstraint = (
   formatId: FormatSpec['id'] | undefined,
   phase: PhaseId,
@@ -160,7 +134,6 @@ export class DebatePromptBuilder {
     previousMessage?: string;
     isFinalRound?: boolean;
     guidance?: string; // from FormatSpec
-    civilityLevel?: 1 | 2 | 3 | 4 | 5;
     format?: FormatSpec;
     presetId?: string;
     personalityId?: string;
@@ -173,11 +146,10 @@ export class DebatePromptBuilder {
     customizedTone?: Partial<PersonalityTone>;
     customizedDebateProfile?: Partial<PersonalityDebateProfile>;
   }): string {
-    const { topic, phase, previousMessage, isFinalRound, guidance, civilityLevel, format, presetId, personalityId, messageLabel, roleBrief, sameSpeakerPreviousMessage, cxRole, audienceQuestion, customizedTone, customizedDebateProfile } = params;
+    const { topic, phase, previousMessage, isFinalRound, guidance, format, presetId, personalityId, messageLabel, roleBrief, sameSpeakerPreviousMessage, cxRole, audienceQuestion, customizedTone, customizedDebateProfile } = params;
     const base = guidance || '';
     const prev = previousMessage ? `${DEBATE_CONSTANTS.PROMPT_MARKERS.PREVIOUS_SPEAKER}"${previousMessage}"` : '';
     const isSocratic = format?.id === 'socratic';
-    const tone = getDebateIntensityDirective(civilityLevel);
     // Generate a compact per-turn style nudge from customized personality data.
     let styleNudge = '';
     if (customizedTone || customizedDebateProfile) {
@@ -250,7 +222,6 @@ export class DebatePromptBuilder {
       base,
       `Respond about "${topic}". Maintain your assigned stance strictly; do not switch sides.`,
       styleNudge,
-      tone,
       finalCue,
       // Prose guidance remains in the system prompt to avoid duplication
     ].filter(Boolean).join('\n');

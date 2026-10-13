@@ -31,6 +31,11 @@ export {
   applyDebateOutputTokenCap,
   getDebateSpeechLengthGuidance,
 } from './debateSpeechLength';
+export {
+  buildRematchNavigationParams,
+  buildRematchSetupFromSavedDebate,
+  type DebateRematchSetup,
+} from './debateRematch';
 
 export type { 
   DebateSession,

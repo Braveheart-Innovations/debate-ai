@@ -74,7 +74,6 @@ export interface ActiveDebateSessionData {
   currentAIIndex: number;
   totalRounds: number;
   totalMessages: number;
-  civility: 1 | 2 | 3 | 4 | 5;
   formatId: DebateFormatId;
   presetId: string;
   stances: Record<string, 'pro' | 'con'>;

@@ -46,7 +46,6 @@ const createDebateSession = (overrides: Partial<DebateSession> = {}): DebateSess
     currentAIIndex: 0,
     totalRounds: 3,
     totalMessages: preset.messages.length,
-    civility: 3,
     format: getFormat('oxford'),
     preset,
     presetId: preset.id,
@@ -96,7 +95,8 @@ describe('useDebateFlow', () => {
     resetStreamingContentStore();
   });
 
-  const initialMessages: Message[] = [
+  // Whatever the store still holds when a debate starts belongs to an earlier session.
+  const previousSessionMessages: Message[] = [
     createMockMessage({ id: 'user-1', content: 'Let us debate', timestamp: 1 }),
   ];
 
@@ -105,7 +105,7 @@ describe('useDebateFlow', () => {
       currentSession: createMockChatSession({
         id: 'debate-session',
         selectedAIs: [],
-        messages: initialMessages,
+        messages: previousSessionMessages,
         createdAt: 0,
         sessionType: 'debate',
       }),
@@ -193,7 +193,7 @@ describe('useDebateFlow', () => {
     });
 
     expect(orchestrator.startDebate).toHaveBeenCalledTimes(1);
-    expect(orchestrator.startDebate).toHaveBeenCalledWith(initialMessages);
+    expect(orchestrator.startDebate).toHaveBeenCalledWith();
 
     act(() => {
       orchestrator.emit({ type: 'debate_ended', data: {}, timestamp: Date.now() });

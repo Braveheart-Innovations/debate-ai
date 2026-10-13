@@ -261,9 +261,19 @@ describe('useSessionActions', () => {
     act(() => {
       buttons?.find(btn => btn.text === 'Rematch')?.onPress?.();
     });
-    expect(navigation.navigate).toHaveBeenCalledWith('MainTabs', expect.objectContaining({
+    // Debate setup itself receives the pre-filled configuration (it is the Debate tab).
+    expect(navigation.navigate).toHaveBeenCalledWith('MainTabs', {
       screen: 'DebateTab',
-    }));
+      params: {
+        rematch: expect.objectContaining({
+          topic: 'The future of AI',
+          selectedAIs: debateSession.selectedAIs,
+          formatId: 'oxford',
+          exchanges: 3,
+        }),
+        rematchKey: expect.any(String),
+      },
+    });
 
     alertSpy.mockRestore();
   });

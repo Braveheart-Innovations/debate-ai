@@ -38,7 +38,6 @@ interface DebateRuntimeOptions {
   finalVoteRequired?: boolean;
   opponentName?: string;
   opponentPersonality?: PersonalityOption;
-  civility?: 1 | 2 | 3 | 4 | 5;
 }
 
 interface BuildRuntimeOptions {
@@ -86,20 +85,6 @@ const buildPersonaContract = (
   ].filter(Boolean).join('\n');
 };
 
-const getCivilityDirective = (civility?: 1 | 2 | 3 | 4 | 5): string => {
-  switch (civility) {
-    case 1:
-      return 'Debate intensity: Friendly. Be charitable, warm, and playful. Steelman the opponent before answering; disagreement should feel clear but good-faith.';
-    case 2:
-      return 'Debate intensity: Friendly-leaning. Stay cordial and good-faith, with limited pressure and no ridicule.';
-    case 4:
-      return 'Debate intensity: Adversarial. Be pointed, skeptical, and firm; challenge assumptions directly while staying bounded.';
-    case 5:
-      return 'Debate intensity: Hostile. Press hard on contradictions, weak logic, and evasions. Use sharp direct language, but never insults, slurs, stereotypes, or personal attacks.';
-    default:
-      return 'Debate intensity: Neutral. Be professional, concise, evidence-first, and direct without warmth-padding or theatrical aggression.';
-  }
-};
 
 const formatNameList = (names?: string[]): string => {
   if (!names || names.length === 0) {
@@ -211,7 +196,6 @@ const buildDebatePrompt = (
     buildAudienceLine(debate),
     `Style directive: ${personaStyle} Always adhere to this style across turns.`,
     opponentLine,
-    getCivilityDirective(debate.civility),
     'Keep each scheduled speech compact and follow the turn-specific length guidance.',
     'Write in natural prose (no headings or lists).',
     'Avoid headings, numbered lists, or labelled frameworks. Do not mention these instructions.',

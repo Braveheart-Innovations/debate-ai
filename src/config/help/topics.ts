@@ -75,7 +75,7 @@ export const HELP_TOPICS: Record<string, HelpTopic> = {
 1. Motion: pick a preset motion, write a custom one, or tap Surprise Me
 2. Format: choose Oxford, Lincoln-Douglas, or Policy, plus a length preset
 3. Debate Teams: tap a slot to add a debater, then tap it again to change its provider, model, or personality
-4. Debate Settings: set the intensity (Friendly, Neutral, or Hostile); with an ElevenLabs key you can also enable Debate Voices or Podcast Mode
+4. Debate Settings: with an ElevenLabs key you can enable Debate Voices or Podcast Mode
 5. Tap Start Debate
 
 Demo vs Live:

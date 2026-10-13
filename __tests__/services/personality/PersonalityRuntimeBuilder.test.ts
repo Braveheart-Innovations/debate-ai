@@ -56,7 +56,6 @@ describe('PersonalityRuntimeBuilder', () => {
         totalRounds: 3,
         stance: 'pro',
         opponentName: 'GPT-4',
-        civility: 5,
       },
     });
 
@@ -64,8 +63,9 @@ describe('PersonalityRuntimeBuilder', () => {
     expect(runtime.personalityConfig?.systemPrompt).toContain('Affirmative (FOR)');
     expect(runtime.personalityConfig?.systemPrompt).toContain('Contradiction first');
     expect(runtime.personalityConfig?.systemPrompt).toContain('Mild profanity is allowed sparingly');
-    expect(runtime.personalityConfig?.systemPrompt).toContain('Debate intensity: Hostile');
-    expect(runtime.personalityConfig?.systemPrompt).toContain('Press hard on contradictions');
+    // The persona sets the tone; no intensity directive overrides it.
+    expect(runtime.personalityConfig?.systemPrompt).not.toContain('Debate intensity');
+    expect(runtime.personalityConfig?.systemPrompt).not.toContain('theatrical aggression');
     expect(runtime.personalityConfig?.systemPrompt).toContain('Keep each scheduled speech compact');
     expect(runtime.personalityConfig?.systemPrompt).not.toContain('PG humor');
   });

@@ -5,7 +5,7 @@ import { renderWithProviders } from '../../test-utils/renderWithProviders';
 import { capturePropsOf } from '@test-utils/mockComponents';
 import { createMockDebateSpeech, createMockMessage } from '@test-utils/fixtures';
 import { createAppStore, showSheet, startStreaming } from '@/store';
-import type { AI, Message } from '@/types';
+import type { AI, DebateVoiceConfig, Message } from '@/types';
 import type { DemoDebate } from '@/types/demo';
 import { getPresetForFormat } from '@/config/debate/formats';
 import { DemoContentService } from '@/services/demo/DemoContentService';
@@ -36,6 +36,7 @@ const mockShowSuccess = jest.fn();
 const mockSaveActiveSnapshot = jest.fn().mockResolvedValue(undefined);
 const mockLoadLatestActiveSnapshot = jest.fn().mockResolvedValue(null);
 const mockLoadActiveSnapshot = jest.fn().mockResolvedValue(null);
+const mockClearActiveSnapshot = jest.fn(async (..._args: unknown[]) => undefined);
 const mockLifecycleHandlers = new Map<string, AppLifecycleHandler>();
 const mockLifecycleRegister = jest.fn((handler: AppLifecycleHandler) => {
   mockLifecycleHandlers.set(handler.id, handler);
@@ -56,6 +57,7 @@ jest.mock('@/services/lifecycle/ActiveSessionPersistenceService', () => ({
     saveSnapshot: (...args: unknown[]) => mockSaveActiveSnapshot(...args),
     loadLatestSnapshot: (...args: unknown[]) => mockLoadLatestActiveSnapshot(...args),
     loadSnapshot: (...args: unknown[]) => mockLoadActiveSnapshot(...args),
+    clearSnapshot: (...args: unknown[]) => mockClearActiveSnapshot(...args),
   },
 }));
 
@@ -345,7 +347,6 @@ const createDebateSnapshot = (overrides: Record<string, unknown> = {}) => ({
     currentAIIndex: 0,
     totalRounds: 1,
     totalMessages: 2,
-    civility: 3,
     formatId: 'oxford',
     presetId: 'short',
     stances: {},
@@ -456,7 +457,6 @@ const renderScreen = (options: RenderOptions = {}) => {
   const navigation = {
     goBack: jest.fn(),
     navigate: jest.fn(),
-    replace: jest.fn(),
   };
 
   const defaultRoute = {
@@ -717,6 +717,64 @@ describe('DebateScreen', () => {
       pendingTurn: undefined,
     }));
     expect(handler?.onForeground).toBeUndefined();
+  });
+
+  it('clears the checkpoint of a finished debate instead of saving it', async () => {
+    const completedSession = { ...createDebateSnapshot().debateSession, status: 'completed' };
+    const createSnapshot = jest.fn((status, savedMessages) => createDebateSnapshot({
+      status,
+      messages: savedMessages,
+      debateSession: completedSession,
+    }));
+
+    renderScreen({
+      flow: { isDebateEnded: true },
+      messages: {
+        messages: [
+          createMockMessage({ id: 'm1', sender: 'Claude', senderType: 'ai', content: 'Closing', timestamp: 1 }),
+        ],
+      },
+      session: {
+        isInitialized: true,
+        session: { id: 'debate_1', topic: 'Topic' },
+        orchestrator: { createSnapshot },
+      },
+    });
+    await flushMicrotasks();
+
+    const handler = mockLifecycleHandlers.get('debate-debate_1');
+    await act(async () => {
+      await requireDefined(handler?.onBackground, 'onBackground')('background');
+    });
+
+    expect(mockClearActiveSnapshot).toHaveBeenCalledWith('debate', 'debate_1');
+    expect(mockSaveActiveSnapshot).not.toHaveBeenCalled();
+  });
+
+  it('starts a new debate instead of restoring a finished one with the same lineup and motion', async () => {
+    jest.useFakeTimers();
+    const hydrateSessionFromSnapshot = jest.fn(async () => undefined);
+    const initializeSession = jest.fn(async () => undefined);
+    // Written before finished debates cleared their checkpoint.
+    mockLoadLatestActiveSnapshot.mockResolvedValueOnce(createDebateSnapshot({
+      debateSession: { ...createDebateSnapshot().debateSession, status: 'completed' },
+    }));
+
+    renderScreen({
+      session: { orchestrator: {}, isInitialized: false, initializeSession, hydrateSessionFromSnapshot },
+      flow: { startDebate: jest.fn(async () => undefined) },
+      routeParams: { topic: 'Topic' },
+    });
+    await flushMicrotasks();
+    await act(async () => {
+      jest.runOnlyPendingTimers();
+      await Promise.resolve();
+    });
+    await flushMicrotasks();
+
+    expect(hydrateSessionFromSnapshot).not.toHaveBeenCalled();
+    expect(initializeSession).toHaveBeenCalledWith('Topic', baseAIs, expect.any(Object), expect.any(Object));
+    jest.useRealTimers();
   });
 
   it('hydrates stale active debate snapshots as retryable interrupted turns without rendering a recovery banner', async () => {
@@ -1162,9 +1220,25 @@ describe('DebateScreen', () => {
     });
   });
 
-  it('starts a rematch with the same debate configuration', async () => {
+  it('opens debate setup pre-filled with the same configuration for a rematch', async () => {
     const resetSession = jest.fn();
-    const personalities = { left: 'sage', right: 'default' };
+    const personalities = { left: 'prof_sage', right: 'default' };
+    const voiceConfig: DebateVoiceConfig = {
+      enabled: true,
+      providerId: 'elevenlabs',
+      ttsModelId: 'eleven_flash_v2_5',
+      debaterVoices: {
+        left: { voiceId: 'voice-left', voiceName: 'Left Voice' },
+        right: { voiceId: 'voice-right', voiceName: 'Right Voice' },
+      },
+      podcast: {
+        enabled: true,
+        scriptMode: 'byok_ai',
+        outputMode: 'playlist',
+        mc: { id: 'mc-1', provider: 'openai', name: 'ChatGPT', model: 'gpt-5' },
+        mcVoice: { voiceId: 'voice-host', voiceName: 'Host Voice' },
+      },
+    };
     const { navigation } = renderScreen({
       flow: { isDebateEnded: true },
       messages: {
@@ -1192,7 +1266,7 @@ describe('DebateScreen', () => {
         formatId: 'policy',
         rounds: 5,
         exchanges: 5,
-        civility: 3,
+        voiceConfig,
       },
     });
 
@@ -1204,16 +1278,22 @@ describe('DebateScreen', () => {
 
     expect(mockStreamingService.cancelAllStreams).toHaveBeenCalled();
     expect(resetSession).toHaveBeenCalled();
-    expect(navigation.replace).toHaveBeenCalledWith('Debate', expect.objectContaining({
-      selectedAIs: baseAIs,
-      topic: 'Resolved: AI should be regulated.',
-      personalities,
-      formatId: 'policy',
-      rounds: 5,
-      exchanges: 5,
-      civility: 3,
-      rematchKey: expect.any(String),
-    }));
+    expect(navigation.navigate).toHaveBeenCalledWith('MainTabs', {
+      screen: 'DebateTab',
+      params: {
+        rematch: {
+          selectedAIs: [
+            expect.objectContaining({ id: 'left', personality: 'prof_sage' }),
+            expect.objectContaining({ id: 'right', personality: 'default' }),
+          ],
+          topic: 'Resolved: AI should be regulated.',
+          formatId: 'policy',
+          exchanges: 5,
+          voiceConfig,
+        },
+        rematchKey: expect.any(String),
+      },
+    });
   });
 
   it('starts over from the victory screen by returning to debate setup', async () => {
