@@ -1,4 +1,31 @@
-import { isRecipeFilename, parseRecipeParams, recipeOutputDir, validateRecipeValues } from '../recipeParams';
+import { isRecipeFilename, parseRecipeDocstring, parseRecipeParams, recipeOutputDir, validateRecipeValues } from '../recipeParams';
+
+describe('parseRecipeDocstring', () => {
+  it('takes the first line as the title and the rest as the summary, keeping paragraphs', () => {
+    const source = '# -*- coding: utf-8 -*-\n\n"""Clinic staffing\n\nHow many staff keep the\n  mean wait under 10 minutes.\n\nM/M/c queue.\n"""\nPARAMS = {}\n';
+    expect(parseRecipeDocstring(source)).toEqual({
+      title: 'Clinic staffing',
+      summary: 'How many staff keep the mean wait under 10 minutes.\n\nM/M/c queue.',
+    });
+  });
+
+  it('reads one-line and single-quoted docstrings, and nothing when there is none', () => {
+    expect(parseRecipeDocstring("'''Mortgage affordability'''\n")).toEqual({ title: 'Mortgage affordability' });
+    expect(parseRecipeDocstring('"Price elasticity"\nPARAMS = {}\n')).toEqual({ title: 'Price elasticity' });
+    expect(parseRecipeDocstring('PARAMS = {}\n"""Not a docstring"""\n')).toEqual({});
+    expect(parseRecipeDocstring('"""   """\n')).toEqual({});
+  });
+
+  it('reads CRLF sources and raw-string docstrings, and stays linear on many comment lines (no backtracking)', () => {
+    expect(parseRecipeDocstring('# note\r\n"""Queue model\r\n\r\nWait times.\r\n"""\r\n')).toEqual({ title: 'Queue model', summary: 'Wait times.' });
+    expect(parseRecipeDocstring('r"""Raw title"""\n')).toEqual({ title: 'Raw title' });
+    const pathological = `${'#\r\n'.repeat(50_000)}"""Still found"""`;
+    const startedAt = Date.now();
+    expect(parseRecipeDocstring(pathological)).toEqual({ title: 'Still found' });
+    expect(parseRecipeDocstring(`${'#\r\n'.repeat(50_000)}x`)).toEqual({});
+    expect(Date.now() - startedAt).toBeLessThan(1000);
+  });
+});
 
 const STAFFING = `
 """Staffing model."""

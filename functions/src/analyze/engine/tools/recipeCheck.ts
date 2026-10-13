@@ -1,10 +1,13 @@
 /**
- * A recipe the Model panel can't read must not pass silently (the same rule
- * as reportSpecCheck). After execute_python / write_output_file, each saved
- * `<name>.recipe.py` gets a note: its parameters as the app will show them,
- * or why PARAMS / PARAM_SPECS couldn't be read.
+ * A Model the app can't read must not pass silently (the same rule as
+ * reportSpecCheck). After execute_python / write_output_file:
+ *  - each saved `<name>.recipe.py` gets a note: its parameters as the Model
+ *    view will show them, or why PARAMS / PARAM_SPECS couldn't be read;
+ *  - each saved `<folder>/model.json` that doesn't match the results format
+ *    gets a "results NOT readable" note with the reason.
  */
 import type { ToolResult } from '../../contract/lib/ai/tools/types';
+import { isModelResultsFilename, modelResultsProblem } from '../../contract/services/analyze/models/modelResults';
 import { isRecipeFilename, parseRecipeParams } from '../../recipes/recipeParams';
 import { withNotes } from './toolResultNotes';
 
@@ -15,6 +18,13 @@ function outputPath(filename: string): string {
 export function checkRecipes(result: ToolResult): ToolResult {
   const notes: string[] = [];
   for (const output of result.dataOutputs ?? []) {
+    if (isModelResultsFilename(output.filename)) {
+      const problem = modelResultsProblem(Buffer.from(output.base64, 'base64').toString('utf8'));
+      if (problem) {
+        notes.push(`Model results NOT readable: ${outputPath(output.filename)}: ${problem}. Don't write model.json by hand: call show_metric / show_chart / show_table / show_note in the recipe and run it with run_recipe, which writes the file.`);
+      }
+      continue;
+    }
     if (!isRecipeFilename(output.filename)) continue;
     const path = outputPath(output.filename);
     try {

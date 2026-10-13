@@ -26,6 +26,43 @@ export function recipeOutputDir(recipeName: string): string {
   return normalized.slice(0, normalized.length - RECIPE_SUFFIX.length);
 }
 
+/**
+ * The recipe's name and description, from its module docstring: the first
+ * line is the title, the rest the summary (paragraphs kept, lines joined).
+ */
+export function parseRecipeDocstring(source: string): { title?: string; summary?: string } {
+  // A line scan, not a regex: recipe source comes from the model (no backtracking on odd input).
+  const lines = source.replace(/\r\n?/g, '\n').split('\n');
+  let start = 0;
+  while (start < lines.length && (lines[start].trim() === '' || lines[start].trim().startsWith('#'))) start += 1;
+  let body = lines.slice(start).join('\n').trimStart();
+  if ('rRuU'.includes(body[0] ?? '') && (body[1] === '"' || body[1] === "'")) body = body.slice(1);
+  let text: string;
+  const triple = body.slice(0, 3);
+  if (triple === '"""' || triple === "'''") {
+    const close = body.indexOf(triple, 3);
+    if (close < 0) return {};
+    text = body.slice(3, close);
+  } else if (body[0] === '"' || body[0] === "'") {
+    const close = body.indexOf(body[0], 1);
+    const lineEnd = body.indexOf('\n');
+    if (close < 0 || (lineEnd >= 0 && lineEnd < close)) return {};
+    text = body.slice(1, close);
+  } else {
+    return {};
+  }
+  text = text.trim();
+  if (!text) return {};
+  const [first, ...rest] = text.split('\n');
+  const summary = rest
+    .join('\n')
+    .split(/\n[ \t]*\n/)
+    .map((paragraph) => paragraph.split('\n').map((line) => line.trim()).filter(Boolean).join(' '))
+    .filter(Boolean)
+    .join('\n\n');
+  return { title: first.trim(), ...(summary ? { summary } : {}) };
+}
+
 // ── A Python literal reader (dict, list, tuple, str, int, float, bool, None) ──
 
 type PyValue = string | number | boolean | null | PyValue[] | { [key: string]: PyValue };

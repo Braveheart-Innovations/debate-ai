@@ -177,6 +177,10 @@ export interface Artifact {
       params: RecipeParam[];
       outputDir: string;
       paramsError?: string;
+      /** The first line of the recipe's docstring: the model's name. */
+      title?: string;
+      /** The rest of the docstring: what the model answers. */
+      summary?: string;
     };
     /** An output a Model re-run made (analyzeRunRecipe): which recipe, which run, with what values. */
     recipeRun?: {

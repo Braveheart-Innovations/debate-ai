@@ -4,17 +4,18 @@
  * including a report round that would otherwise replace them).
  */
 import type { Artifact } from '../contract/types/notebook';
-import { isRecipeFilename, parseRecipeParams, recipeOutputDir } from './recipeParams';
+import { isRecipeFilename, parseRecipeDocstring, parseRecipeParams, recipeOutputDir } from './recipeParams';
 
 export const RECIPE_MIME_TYPE = 'text/x-python';
 
-/** metadata.recipe for a recipe's source: its parameters, or why they couldn't be read. */
+/** metadata.recipe for a recipe's source: its parameters (or why they couldn't be read), name and description. */
 export function recipeMetadata(name: string, source: string): NonNullable<NonNullable<Artifact['metadata']>['recipe']> {
   const outputDir = recipeOutputDir(name);
+  const docstring = parseRecipeDocstring(source);
   try {
-    return { params: parseRecipeParams(source), outputDir };
+    return { params: parseRecipeParams(source), outputDir, ...docstring };
   } catch (error) {
-    return { params: [], outputDir, paramsError: error instanceof Error ? error.message : String(error) };
+    return { params: [], outputDir, paramsError: error instanceof Error ? error.message : String(error), ...docstring };
   }
 }
 
