@@ -38,6 +38,8 @@ import {
 import { injectSourceProvenance } from './sourceProvenanceInjection';
 import { injectTeamPanelNote, type TeamPanelRecord } from './teamPanelNote';
 import { decodeBase64ToUtf8, parseJsonLenient } from '../contract/lib/encoding/utf8Base64';
+import { isRecipeOutputFilename, recipeMetadata, recipeOutputDirs, RECIPE_MIME_TYPE } from '../recipes/recipeArtifacts';
+import { isRecipeFilename } from '../recipes/recipeParams';
 import { chartFileReaderFromArtifacts, inlineChartDataFiles, sessionDataPath } from '../contract/services/analyze/charts/inlineChartData';
 import { normalizeRequestSalesforceOrgEvidenceArgs } from '../engine/tools/executeRequestSalesforceOrgEvidenceTool';
 import type { AnalyzeAction } from './types';
@@ -206,7 +208,7 @@ function preprocessBundles(
 // MIME Type Map
 // ============================================================================
 
-const MIME_MAP: Record<string, string> = {
+export const MIME_MAP: Record<string, string> = {
   'csv': 'text/csv',
   'json': 'application/json',
   'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -227,6 +229,7 @@ const MIME_MAP: Record<string, string> = {
   'html': 'text/html',
   'htm': 'text/html',
   'log': 'text/plain',
+  'py': RECIPE_MIME_TYPE,
 };
 
 type SalesforceRole = NonNullable<NonNullable<Artifact['metadata']>['salesforceRole']>;
@@ -702,6 +705,9 @@ function extractDataArtifacts(
 ): Artifact[] {
   const created: Artifact[] = [];
   const seenFilenames = new Set<string>();
+  // A recipe and the files it writes version on every run, even in a report
+  // round (which otherwise replaces same-name intermediates).
+  const recipeDirs = recipeOutputDirs(ctx.existingArtifacts, datasToProcess.map((data) => data.filename));
 
   datasToProcess.forEach((data, dataIndex) => {
     if (seenFilenames.has(data.filename)) return;
@@ -709,6 +715,8 @@ function extractDataArtifacts(
 
     const ext = data.filename.split('.').pop()?.toLowerCase() || '';
     const mimeType = MIME_MAP[ext] || 'application/octet-stream';
+    const isRecipe = isRecipeFilename(data.filename);
+    const versionsWithRecipe = isRecipe || isRecipeOutputFilename(data.filename, recipeDirs);
     const salesforceRole = getSalesforceArtifactRole(data.filename);
     const existingByName = ctx.existingArtifacts.find(a => a.name === data.filename);
     if (salesforceRole && ctx.suppressSalesforcePacketArtifacts) {
@@ -781,13 +789,13 @@ function extractDataArtifacts(
       if (existingByName && isSunkDeclaredSpecArtifact(existingByName)) {
         if (!lineage) lineage = deriveArtifactLineage(existingByName, ctx.existingArtifacts);
         deps.dispatch({ type: 'REMOVE_ARTIFACT', payload: existingByName.id });
-      } else if (existingByName && ctx.suppressNonDeliverableData) {
+      } else if (existingByName && ctx.suppressNonDeliverableData && !versionsWithRecipe) {
         deps.dispatch({ type: 'REMOVE_ARTIFACT', payload: existingByName.id });
       } else if (existingByName && !lineage) {
         lineage = deriveArtifactLineage(existingByName, ctx.existingArtifacts);
       }
     } else if (existingByName) {
-      if (ctx.suppressNonDeliverableData) {
+      if (ctx.suppressNonDeliverableData && !versionsWithRecipe) {
         deps.dispatch({ type: 'REMOVE_ARTIFACT', payload: existingByName.id });
       } else {
         lineage = deriveArtifactLineage(existingByName, ctx.existingArtifacts);
@@ -813,6 +821,10 @@ function extractDataArtifacts(
     }
     if (artifactType === 'data' && mimeType === 'text/html') {
       artifactType = 'html';
+    }
+    if (isRecipe) {
+      artifactType = 'recipe';
+      artifactMeta = { ...artifactMeta, recipe: recipeMetadata(data.filename, decodedTextData) };
     }
 
     // JSON tabular detection (a report spec is never a table, and it may hold the
@@ -906,8 +918,9 @@ function extractDataArtifacts(
     }
 
     // The structured report (analysis_artifact_spec) is the deliverable, so it stays
-    // visible (output) and is never demoted to report material.
-    const isDeliverableSpec = artifactType === 'analysis_artifact_spec';
+    // visible (output) and is never demoted to report material. So is a recipe:
+    // it's the Model the user opens.
+    const isDeliverableSpec = artifactType === 'analysis_artifact_spec' || artifactType === 'recipe';
     const reportMaterialRole = ctx.suppressNonDeliverableData && !isDeliverableSpec
       ? getReportMaterialRole(artifactType, mimeType, data.filename)
       : null;
@@ -932,6 +945,7 @@ function extractDataArtifacts(
 
     let artifactData = artifactType === 'html'
       || artifactType === 'analysis_artifact_spec'
+      || artifactType === 'recipe'
       || isSalesforceArtifactType(artifactType)
       ? decodedTextData
       : data.base64;

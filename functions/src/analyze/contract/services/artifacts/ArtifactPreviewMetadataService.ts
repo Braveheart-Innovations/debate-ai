@@ -325,13 +325,13 @@ export function buildArtifactPreviewMetadata(input: PreviewInput): ArtifactPrevi
     };
   }
 
-  if (input.type === 'code') {
+  if (input.type === 'code' || input.type === 'recipe') {
     const lines = text.trim().split(/\r?\n/).slice(0, MAX_CODE_LINES).join('\n');
     return {
       version: 1,
       kind: 'code',
       title: input.name,
-      subtitle: input.metadata?.language || 'code',
+      subtitle: input.type === 'recipe' ? 'model' : input.metadata?.language || 'code',
       excerpt: truncateMultiline(lines, MAX_EXCERPT_CHARS),
     };
   }

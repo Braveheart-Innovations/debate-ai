@@ -24,7 +24,29 @@ export type ArtifactType = 'code' | 'image' | 'table' | 'data' | 'html'
   | 'salesforce_audit_report'
   | 'salesforce_component_index'
   | 'salesforce_dependency_map'
-  | 'salesforce_vscode_handoff';
+  | 'salesforce_vscode_handoff'
+  | 'recipe';
+
+/** A recipe parameter value: what PARAMS declares and the Model panel sends. */
+export type RecipeParamValue = number | boolean | string;
+
+/**
+ * A parameter a recipe (`/output/<name>.recipe.py`) declares in PARAMS, with the
+ * control hints from PARAM_SPECS. The server reads it from the source without
+ * running it; the Model panel draws a control per parameter.
+ */
+export interface RecipeParam {
+  name: string;
+  type: 'number' | 'integer' | 'boolean' | 'string';
+  default: RecipeParamValue;
+  label?: string;
+  help?: string;
+  unit?: string;
+  min?: number;
+  max?: number;
+  step?: number;
+  options?: Array<{ value: string | number; label?: string }>;
+}
 
 /** Placeholder used when an artifact listing intentionally omits payload data. */
 export const ARTIFACT_DATA_NOT_LOADED = '__ARTIFACT_DATA_NOT_LOADED__';
@@ -146,6 +168,23 @@ export interface Artifact {
     previousReportSpecArtifactId?: string;
     /** Previous artifact ID in the version chain (generic — Analyze regenerations) */
     previousArtifactId?: string;
+    /**
+     * A recipe artifact (type 'recipe'): the parameters it declares and the folder
+     * (relative to /output) its outputs go to. `paramsError` says why PARAMS
+     * couldn't be read; the recipe still runs with its own defaults.
+     */
+    recipe?: {
+      params: RecipeParam[];
+      outputDir: string;
+      paramsError?: string;
+    };
+    /** An output a Model re-run made (analyzeRunRecipe): which recipe, which run, with what values. */
+    recipeRun?: {
+      recipeName: string;
+      runId: string;
+      values: Record<string, RecipeParamValue>;
+      ranAt: number;
+    };
     /** Monotonically increasing version number within lineage */
     versionNumber?: number;
     /** Shared ID linking companion artifacts from the same analysis output group */
