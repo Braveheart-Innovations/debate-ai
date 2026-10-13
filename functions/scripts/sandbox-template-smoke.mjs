@@ -3,10 +3,10 @@
  * probe per template capability. Creates a sandbox exactly as production does
  * (E2BSandboxProvider: no internet access), so offline gaps show up here.
  *
- *   E2B_API_KEY=... node scripts/sandbox-template-smoke.mjs [--template symposium-analyze-v2] [--out DIR] [--compare symposium-analyze]
+ *   E2B_API_KEY=... node scripts/sandbox-template-smoke.mjs [--template symposium-analyze-v3] [--out DIR] [--compare symposium-analyze-v2]
  *
  * --out saves the probe images (house-style chart, Plotly export, choropleth, PDF page,
- * table image) for the screen-cap review. --compare also draws the sample chart
+ * table image, diagrams, animation) for the screen-cap review. --compare also draws the sample chart
  * on another template, so the two can be viewed side by side.
  * Exits non-zero if any probe fails.
  */
@@ -19,7 +19,7 @@ const option = (name, fallback) => {
   const at = args.indexOf(`--${name}`);
   return at >= 0 ? args[at + 1] : fallback;
 };
-const TEMPLATE = option('template', 'symposium-analyze-v2');
+const TEMPLATE = option('template', 'symposium-analyze-v3');
 const OUT = option('out', null);
 const COMPARE = option('compare', null);
 
@@ -34,7 +34,7 @@ mem = int(open('/proc/meminfo').read().split()[1]) // 1024
 disk = shutil.disk_usage('/')
 print('python', sys.version.split()[0], '| cpus', os.cpu_count(), '| memory', mem, 'MB | free disk', disk.free // 2**30, 'GB')
 print('packages', len(list(md.distributions())))
-print('programs', {p: bool(shutil.which(p)) for p in ['chromium', 'R', 'java', 'node', 'convert', 'libreoffice', 'pandoc', 'tesseract']})
+print('programs', {p: bool(shutil.which(p)) for p in ['chromium', 'dot', 'd2', 'rsvg-convert', 'ffmpeg', 'R', 'java', 'node', 'convert', 'libreoffice', 'pandoc', 'tesseract']})
 fams = subprocess.run(['fc-list', ':', 'family'], capture_output=True, text=True).stdout.split('\\n')
 print('fonts', sorted({f.split(',')[0] for f in fams if f}))
 print('fontconfig defaults', {g: subprocess.run(['fc-match', g], capture_output=True, text=True).stdout.strip() for g in ['sans-serif', 'serif', 'monospace']})
@@ -149,9 +149,128 @@ import pandas as pd
 from great_tables import GT
 GT(pd.DataFrame({'Center': ['Austin', 'Denver'], 'Utilisation': [0.87, 0.95]})).fmt_percent('Utilisation').gtsave('/output/smoke-table.png')
 import os; print(os.path.getsize('/output/smoke-table.png'), 'bytes')`],
+  // v3 (from here down).
+  ['v2 packages unchanged', `
+import importlib.metadata as md, re
+norm = lambda name: re.sub(r'[-_.]+', '-', name).lower()
+have = {norm(d.metadata['Name']): d.version for d in md.distributions()}
+want = dict(line.strip().split('==') for line in open('/opt/symposium/constraints.txt') if '==' in line and not line.startswith('#'))
+drift = {name: (version, have.get(norm(name))) for name, version in want.items() if have.get(norm(name)) != version}
+assert not drift, drift
+print(len(want), 'packages at their v2 versions')`],
+  ['graphviz house style', `
+import graphviz, re, struct
+g = graphviz.Digraph('intake', graph_attr={'rankdir': 'LR'})
+with g.subgraph(name='cluster_front') as c:
+    c.attr(label='Front desk')
+    c.edge('Inquiry', 'Tour', label='3 days')
+for a, b, label in [('Tour', 'Application', '62%'), ('Application', 'Enrolled', '81%'), ('Tour', 'Lost', '38%')]:
+    g.edge(a, b, label=label)
+g.render('/output/smoke-graphviz', format='png', cleanup=True)
+svg = g.pipe(format='svg', encoding='utf-8')
+assert set(re.findall(r'font-family="([^"]+)"', svg)) == {'Inter'}, re.findall(r'font-family="([^"]+)"', svg)
+png = open('/output/smoke-graphviz.png', 'rb').read()
+width_pt = float(re.search(r'<svg width="([0-9.]+)pt"', svg).group(1))
+assert abs(struct.unpack('>I', png[16:20])[0] - width_pt * 150 / 72) < 4, 'PNG not at 150 dpi'
+mono = graphviz.Digraph(node_attr={'fontname': 'JetBrains Mono'}, graph_attr={'dpi': '72'})
+mono.edge('a', 'b')
+assert 'fontname="JetBrains Mono"' in mono.source and struct.unpack('>I', mono.pipe(format='png')[16:20])[0] < 100, 'explicit attributes must win'
+print(width_pt, 'pt wide')`],
+  ['diagrams', `
+from diagrams import Diagram
+from diagrams.onprem.client import Users
+from diagrams.generic.compute import Rack
+from diagrams.generic.database import SQL
+with Diagram('Enrollment system', filename='/output/smoke-diagrams', show=False, outformat='png'):
+    Users('Families') >> Rack('Web app') >> SQL('Enrollments')
+print('ok')`],
+  ['d2 to png', `
+import subprocess
+open('/data/smoke.d2', 'w').write('inquiry -> tour: 3 days\\ntour -> application: 62%\\napplication -> enrolled: 81%\\ntour -> lost: 38%\\n')
+subprocess.run(['d2', '--layout=elk', '/data/smoke.d2', '/output/smoke-d2.svg'], check=True, capture_output=True)
+subprocess.run(['rsvg-convert', '--zoom', '2', '--background-color', 'white', '-o', '/output/smoke-d2.png', '/output/smoke-d2.svg'], check=True)
+print(subprocess.run(['d2', '--version'], capture_output=True, text=True).stdout.strip())`],
+  ['schemdraw', `
+import schemdraw
+from schemdraw import flow
+schemdraw.use('matplotlib')
+with schemdraw.Drawing(show=False) as d:
+    flow.Start().label('Inquiry')
+    flow.Arrow().down()
+    flow.Decision(w=4, h=2, E='No', S='Yes').label('Tour booked?')
+    flow.Arrow().down()
+    flow.Box().label('Enroll')
+d.save('/output/smoke-schemdraw.png', dpi=150)
+print(schemdraw.__version__)`],
+  ['simpy', `
+import simpy, random
+random.seed(1)
+waits = []
+def family(env, desk):
+    arrive = env.now
+    with desk.request() as req:
+        yield req
+        waits.append(env.now - arrive)
+        yield env.timeout(random.expovariate(1 / 8))
+def source(env, desk):
+    while True:
+        yield env.timeout(random.expovariate(1 / 10))
+        env.process(family(env, desk))
+env = simpy.Environment()
+desk = simpy.Resource(env, capacity=1)
+env.process(source(env, desk))
+env.run(until=8 * 60)
+assert len(waits) > 20, len(waits)
+print(len(waits), 'served, mean wait', round(sum(waits) / len(waits), 1), 'min')`],
+  ['pulp with CBC', `
+import pulp
+p = pulp.LpProblem('staffing', pulp.LpMinimize)
+x = pulp.LpVariable.dicts('t', range(3), lowBound=0, cat='Integer')
+p += pulp.lpSum([30 * x[0], 25 * x[1], 40 * x[2]])
+p += x[0] + x[1] >= 4
+p += x[1] + x[2] >= 5
+p += x[0] + x[2] >= 3
+status = p.solve(pulp.PULP_CBC_CMD(msg=0))
+assert pulp.LpStatus[status] == 'Optimal' and pulp.value(p.objective) == 185, (pulp.LpStatus[status], pulp.value(p.objective))
+print(pulp.__version__, pulp.value(p.objective))`],
+  ['ortools CP-SAT', `
+from ortools.sat.python import cp_model
+m = cp_model.CpModel()
+s = [m.new_int_var(0, 20, f's{i}') for i in range(3)]
+for a, b, d in [(0, 1, 3), (1, 2, 4)]:
+    m.add(s[b] >= s[a] + d)
+m.minimize(s[2])
+solver = cp_model.CpSolver()
+assert solver.solve(m) == cp_model.OPTIMAL and solver.value(s[2]) == 7
+print([solver.value(v) for v in s])`],
+  ['pint', `
+import pint
+u = pint.UnitRegistry()
+q = (60 * u.mile / u.hour).to(u.km / u.hour)
+assert abs(q.magnitude - 96.56) < 0.01, q
+print(q)`],
+  ['ffmpeg animation (LGPL)', `
+import subprocess, numpy as np, matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+fig, ax = plt.subplots(figsize=(6, 3.4))
+x = np.linspace(0, 2 * np.pi, 200)
+line, = ax.plot(x, np.sin(x))
+anim = FuncAnimation(fig, lambda i: line.set_ydata(np.sin(x + i / 5)), frames=40)
+anim.save('/output/smoke-anim.mp4', fps=20)
+anim.save('/output/smoke-anim.gif', fps=20)
+plt.close(fig)
+info = subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'stream=codec_name,width,height,nb_frames', '-of', 'csv=p=0', '/output/smoke-anim.mp4'], capture_output=True, text=True).stdout.strip()
+assert info.startswith('h264'), info
+subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', '/output/smoke-anim.mp4', '-frames:v', '1', '/output/smoke-anim-frame.png'], check=True)
+build = subprocess.run(['ffmpeg', '-hide_banner', '-buildconf'], capture_output=True, text=True).stdout
+assert '--enable-gpl' not in build and '--enable-nonfree' not in build, 'ffmpeg must be an LGPL build'
+print(info)`],
 ];
 
-const IMAGES = ['smoke-house-style.png', 'smoke-plotly.png', 'smoke-plotly-geo.png', 'smoke-plotly-math.png', 'smoke-choropleth.png', 'smoke-pdf-page.png', 'smoke-table.png'];
+const IMAGES = [
+  'smoke-house-style.png', 'smoke-plotly.png', 'smoke-plotly-geo.png', 'smoke-plotly-math.png', 'smoke-choropleth.png', 'smoke-pdf-page.png', 'smoke-table.png',
+  'smoke-graphviz.png', 'smoke-diagrams.png', 'smoke-d2.png', 'smoke-schemdraw.png', 'smoke-anim.gif', 'smoke-anim-frame.png',
+];
 
 async function open(template) {
   const t0 = Date.now();
