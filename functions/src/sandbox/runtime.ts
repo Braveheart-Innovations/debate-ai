@@ -32,12 +32,70 @@ export function outputScope(key: string): { root: string; excludeAgents: boolean
     : { root: `/output/agents/${key}`, excludeAgents: false };
 }
 
-// Mirrors scanForDataOutputs in the retired pyodide-worker.js.
+// Mirrors scanForDataOutputs in the retired pyodide-worker.js, plus recipes
+// (`<name>.recipe.py`, a Model's script; other .py files stay uncaptured).
 const DATA_EXTENSIONS = [
   '.csv', '.json', '.xlsx', '.xls', '.tsv', '.parquet', '.pdf', '.txt', '.md', '.docx',
   '.rtf', '.log', '.xml', '.yaml', '.yml', '.toml', '.css', '.js', '.svg', '.png', '.jpg',
-  '.jpeg', '.gif', '.webp', '.woff', '.woff2',
+  '.jpeg', '.gif', '.webp', '.woff', '.woff2', '.recipe.py',
 ];
+
+/**
+ * run_recipe(path, params=None, **values): runs a recipe the way a Model re-run
+ * does, so the agent's own run proves the recipe stands alone.
+ *  - Fresh globals: a recipe that leans on notebook variables fails here, not
+ *    later in a re-run on a new sandbox.
+ *  - PARAMS is read with ast.literal_eval and the given values replace its
+ *    defaults in the source before it runs; unknown names are refused.
+ *  - OUTPUT_DIR (/output/<name>/) exists before the recipe runs; figures left
+ *    open are saved there as figure-<n>.png (stable names, so a re-run
+ *    versions them instead of adding new charts).
+ */
+export const RECIPE_RUNNER_SOURCE = `
+def _sym_run_recipe(path, params=None, **values):
+    import ast as _ast
+    if not path.startswith('/'):
+        path = _sym_os.path.join('/output', path)
+    if not path.endswith('.recipe.py'):
+        raise ValueError(f"A recipe file must end in .recipe.py: {path}")
+    with open(path, encoding='utf-8') as _src_file:
+        _src = _src_file.read()
+    _tree = _ast.parse(_src, filename=path)
+    _given = dict(params or {})
+    _given.update(values)
+    _declared = None
+    for _node in _tree.body:
+        if isinstance(_node, _ast.Assign):
+            _targets = _node.targets
+        elif isinstance(_node, _ast.AnnAssign) and _node.value is not None:
+            _targets = [_node.target]
+        else:
+            continue
+        if not any(isinstance(_t, _ast.Name) and _t.id == 'PARAMS' for _t in _targets):
+            continue
+        _declared = _ast.literal_eval(_node.value)
+        if not isinstance(_declared, dict):
+            raise ValueError('PARAMS must be a dict of name -> default value')
+        _unknown = sorted(set(_given) - set(_declared))
+        if _unknown:
+            raise KeyError(f"Unknown recipe parameter(s): {', '.join(_unknown)}. PARAMS declares: {', '.join(_declared)}")
+        _node.value = _ast.parse(repr({**_declared, **_given}), mode='eval').body
+        break
+    if _declared is None and _given:
+        raise ValueError('This recipe declares no PARAMS, so it takes no values')
+    _ast.fix_missing_locations(_tree)
+    _out_dir = path[:-len('.recipe.py')]
+    _sym_os.makedirs(_out_dir, exist_ok=True)
+    plt.close('all')
+    _globals = {'__name__': '__main__', '__file__': path, 'OUTPUT_DIR': _out_dir}
+    exec(compile(_tree, path, 'exec'), _globals)
+    for _index, _num in enumerate(plt.get_fignums(), start=1):
+        plt.figure(_num).savefig(_sym_os.path.join(_out_dir, f'figure-{_index}.png'), dpi=150, bbox_inches='tight', facecolor='white', edgecolor='none')
+    plt.close('all')
+    print(f"Recipe ran: {path} (outputs in {_out_dir}/)")
+
+run_recipe = _sym_run_recipe
+`;
 
 const bootstrap = (key: string) => `
 import os as _sym_os, json as _sym_json, base64 as _sym_base64, io as _sym_io
@@ -93,7 +151,7 @@ def _sym_post(include_visuals, scan_root, exclude_agents):
         elif lower.endswith(_SYM_DATA_EXT):
             data.append(entry)
     print('${POST_MARKER}' + _sym_json.dumps({'images': images, 'html': html, 'data': data}))
-`;
+${RECIPE_RUNNER_SOURCE}`;
 
 function scopeArgs(key: string): string {
   const { root, excludeAgents } = outputScope(key);
@@ -102,8 +160,10 @@ function scopeArgs(key: string): string {
 
 /** Runs before every cell; installs the runtime on a fresh or restarted kernel. */
 export function preCode(key: string = DEFAULT_KERNEL): string {
+  // A kernel bootstrapped by an older runtime lacks the newer helpers: install again.
   return `try:
     _sym_pre
+    _sym_run_recipe
 except NameError:
 ${bootstrap(key).split('\n').map((line) => (line ? `    ${line}` : line)).join('\n')}
 _sym_pre(${scopeArgs(key)})

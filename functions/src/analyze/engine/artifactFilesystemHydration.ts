@@ -49,6 +49,7 @@ function isRawTextArtifact(artifact: Artifact): boolean {
     || artifact.type === 'code'
     || artifact.type === 'analysis_artifact_spec'
     || artifact.type === 'report_spec'
+    || artifact.type === 'recipe'
     || artifact.type.startsWith('salesforce_')
   ) {
     return true;

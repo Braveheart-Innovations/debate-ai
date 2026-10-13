@@ -10,6 +10,7 @@ import { enqueueStep } from './queue';
 import { OPERATOR_ACTIVE, finishRun, runRef, saveMessageAttachments, type AnalyzeRunDoc, type RunConfig } from './runStore';
 import { buildMessageRecord, removeUndefined } from './sessionStore';
 import { newRunId } from '../team/teamStore';
+import { activeRecipeRunIn } from '../recipes/recipeRunStore';
 
 export class SessionBusyError extends Error {
   constructor() {
@@ -129,9 +130,11 @@ export async function startOperatorTurn(input: OperatorTurnInput): Promise<{ run
   await db.runTransaction(async (tx) => {
     if (input.messageId && (await tx.get(messageDoc)).exists) throw new TurnAlreadyStartedError(userMessage.id);
     const active = await tx.get(runs.where('status', 'in', OPERATOR_ACTIVE));
+    // A Model re-run in progress holds the session too (its outputs would race this turn's).
+    const recipeRunning = await activeRecipeRunIn(tx, uid, sessionId, Date.now());
     // Items dismissed since the user picked them are simply not queued.
     const items = await Promise.all((input.reviewItemIds ?? []).map((itemId) => tx.get(db.doc(`users/${uid}/conversations/${sessionId}/reviewItems/${itemId}`))));
-    if (active.docs.some((doc) => (doc.data() as AnalyzeRunDoc).kind === 'operator')) throw new SessionBusyError();
+    if (recipeRunning || active.docs.some((doc) => (doc.data() as AnalyzeRunDoc).kind === 'operator')) throw new SessionBusyError();
     tx.set(messageDoc, buildMessageRecord(sessionId, userMessage));
     tx.set(runRef(uid, sessionId, runId), run);
     for (const item of items) if (item.exists) tx.update(item.ref, { status: 'queued' });

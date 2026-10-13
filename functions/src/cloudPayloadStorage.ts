@@ -366,7 +366,7 @@ function analyzeScratchPrefixes(uid: string, sessionId?: string): string[] {
  */
 export async function deleteServerOwnedSessionData(uid: string, sessionId: string): Promise<void> {
   const session = db().doc(`users/${uid}/conversations/${sessionId}`);
-  for (const name of ['analyzeRuns', 'reviewItems', 'analyzeUploads']) {
+  for (const name of ['analyzeRuns', 'reviewItems', 'analyzeUploads', 'recipeRuns']) {
     await db().recursiveDelete(session.collection(name));
   }
   for (const prefix of analyzeScratchPrefixes(uid, sessionId)) {

@@ -7,6 +7,7 @@
  *   analyzeReviewControl the session's review queue: review, verify, send, select…
  *   analyzeUploads       the session's uploads: write (chunked), download, remove, list
  *   analyzeRunCell       a manual cell re-run, refused while a turn is running
+ *   analyzeRunRecipe     a Model re-run: a recipe with the user's values, outputs saved as versions
  */
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import type { MessageAttachment } from '../contract/types';
@@ -17,6 +18,7 @@ import { getCatalogModel } from '../modelCatalog';
 import { isTerminal, runRef, type AnalyzeRunDoc, type RosterAI, type RunConfig } from './runStore';
 import { SessionBusyError, TurnAlreadyStartedError, startOperatorTurn, type UserMessageContext } from './turns';
 import { NoSessionSandboxError, runCell } from './runCell';
+import { NoRecipeSandboxError, RecipeNotFoundError, RecipeValuesError, runRecipe } from '../recipes/runRecipe';
 import { resolveSessionQuestions } from './notifications';
 import { SandboxLimitError } from '../../sandbox/service';
 import { normalizeAnalyzeOutputSelection } from '../contract/types/analyze';
@@ -410,6 +412,29 @@ export const analyzeRunCell = onCall(
       if (error instanceof SandboxLimitError) throw new HttpsError('resource-exhausted', error.message, { reason: 'sandbox-limit' });
       console.error('[analyzeRunCell] failed', error);
       throw new HttpsError('internal', 'The cell could not run. Please try again.');
+    }
+  },
+);
+
+export const analyzeRunRecipe = onCall(
+  // The recipe's own limit (RECIPE_RUN_TIMEOUT_MS) plus sync and capture; capture holds the outputs in memory.
+  { region: 'us-central1', secrets: [e2bApiKey], timeoutSeconds: 540, memory: '1GiB' },
+  async (request) => {
+    const uid = requireUid(request.auth?.uid);
+    const data = (request.data ?? {}) as Record<string, unknown>;
+    const sessionId = requireString(data.sessionId, 'sessionId');
+    const artifactId = requireString(data.artifactId, 'artifactId');
+    const values = data.values ?? {};
+    if (typeof values !== 'object' || values === null || Array.isArray(values)) throw new HttpsError('invalid-argument', 'values must be an object');
+    try {
+      return await runRecipe(uid, sessionId, artifactId, values as Record<string, unknown>);
+    } catch (error) {
+      if (error instanceof SessionBusyError) throw new HttpsError('failed-precondition', 'Wait for the current run to finish before running the model.');
+      if (error instanceof RecipeNotFoundError || error instanceof NoRecipeSandboxError) throw new HttpsError('failed-precondition', error.message);
+      if (error instanceof RecipeValuesError) throw new HttpsError('invalid-argument', error.message);
+      if (error instanceof SandboxLimitError) throw new HttpsError('resource-exhausted', error.message, { reason: 'sandbox-limit' });
+      console.error('[analyzeRunRecipe] failed', error);
+      throw new HttpsError('internal', 'The model could not run. Please try again.');
     }
   },
 );

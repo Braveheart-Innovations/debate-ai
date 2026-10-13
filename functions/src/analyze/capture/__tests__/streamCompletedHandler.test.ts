@@ -1225,6 +1225,50 @@ describe('handleStreamCompleted general intent-gated surfacing (non-Salesforce)'
     return { artifacts, addDataTab };
   }
 
+  describe('recipes (Models)', () => {
+    const recipeSource = 'PARAMS = {"staff": 3}\nPARAM_SPECS = {"staff": {"min": 1, "max": 10}}\n';
+    const recipeResult = (chart: string) => ({
+      toolName: 'execute_python',
+      success: true,
+      content: 'Ran the model.',
+      dataOutputs: [
+        { filename: 'staffing.recipe.py', base64: btoa(recipeSource), size: recipeSource.length },
+        { filename: 'staffing/wait.png', base64: btoa(chart), size: chart.length },
+      ],
+    });
+    const call = (id: string) => ({ id, type: 'function' as const, function: { name: 'execute_python', arguments: '{}' } });
+
+    it('captures a .recipe.py as a visible recipe with its parameters, even in a report round', () => {
+      const { artifacts } = runHandler({
+        outputSelection: richHtml,
+        toolCalls: [call('c1'), call('c2')],
+        toolExecutionResults: [recipeResult('PNG-1'), specResult()],
+      });
+      const recipe = artifacts.find((artifact) => artifact.name === 'staffing.recipe.py');
+      expect(recipe).toMatchObject({ type: 'recipe', mimeType: 'text/x-python', data: recipeSource });
+      expect(recipe?.metadata?.recipe).toEqual({
+        params: [{ name: 'staff', type: 'integer', default: 3, min: 1, max: 10 }],
+        outputDir: 'staffing',
+      });
+      expect(visibleArtifacts(artifacts).map((artifact) => artifact.type).sort()).toEqual(['analysis_artifact_spec', 'recipe']);
+    });
+
+    it('versions a recipe output in a later report round instead of replacing it', () => {
+      const first = runHandler({ outputSelection: richHtml, toolCalls: [call('c1')], toolExecutionResults: [recipeResult('PNG-1')], messageId: 'ai-1' });
+      const v1 = first.artifacts.find((artifact) => artifact.name === 'staffing/wait.png')!;
+      const { artifacts } = runHandler({
+        outputSelection: richHtml,
+        toolCalls: [call('c2'), call('c3')],
+        toolExecutionResults: [recipeResult('PNG-2'), specResult()],
+        artifacts: first.artifacts,
+        messageId: 'ai-2',
+      });
+      const charts = artifacts.filter((artifact) => artifact.name === 'staffing/wait.png');
+      expect(charts).toHaveLength(2);
+      expect(charts[1].metadata).toMatchObject({ lineageRootId: v1.id, versionNumber: 2, previousArtifactId: v1.id });
+    });
+  });
+
   describe('independent panel note', () => {
     const panel: TeamPanelRecord = {
       operatorName: 'ChatGPT',

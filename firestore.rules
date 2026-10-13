@@ -291,6 +291,13 @@ service cloud.firestore {
           allow read: if isOwner(userId);
           allow write: if false;
         }
+
+        // Model re-runs (analyzeRunRecipe): the server records each run; the
+        // Model panel reads them. Runs start through the callable only.
+        match /recipeRuns/{runId} {
+          allow read: if isOwner(userId);
+          allow write: if false;
+        }
       }
     }
 
