@@ -8,6 +8,8 @@
  * records the kernel pid so a timeout or Stop can SIGINT it (keeping variables).
  */
 
+import { RECIPE_RUNNER_SOURCE } from '../analyze/contract/services/analyze/models/recipeRunner';
+
 export const POST_MARKER = '__SYMPOSIUM_POST__';
 
 /**
@@ -42,150 +44,12 @@ const DATA_EXTENSIONS = [
 
 /**
  * run_recipe(path, params=None, **values): runs a recipe the way a Model re-run
- * does, so the agent's own run proves the recipe stands alone.
- *  - Fresh globals: a recipe that leans on notebook variables fails here, not
- *    later in a re-run on a new sandbox.
- *  - PARAMS is read with ast.literal_eval and the given values replace its
- *    defaults in the source before it runs; unknown names are refused.
- *  - OUTPUT_DIR (/output/<name>/) exists before the recipe runs.
- *  - The recipe shows its results with show_metric / show_chart / show_table /
- *    show_note; run_recipe writes them, with the values the run used, to
- *    OUTPUT_DIR/model.json (the app's Model view draws that file; each run is
- *    a new version of it). Figures left open are saved as figure-<n>.png
- *    (stable names, so a re-run versions them instead of adding charts).
+ * does, so the agent's own run proves the recipe stands alone. Its source lives
+ * in the web app (services/analyze/models/recipeRunner.ts, synced here): a
+ * model's download bundle runs the same code on the user's computer, so a
+ * recipe gives the same results in both places.
  */
-export const RECIPE_RUNNER_SOURCE = `
-def _sym_jsonable(value):
-    import math as _math
-    if value is None or isinstance(value, (bool, str)):
-        return value
-    if isinstance(value, int):
-        return value
-    if isinstance(value, float):
-        return value if _math.isfinite(value) else None
-    if isinstance(value, dict):
-        return {str(_k): _sym_jsonable(_v) for _k, _v in value.items()}
-    if isinstance(value, (list, tuple)):
-        return [_sym_jsonable(_v) for _v in value]
-    if hasattr(value, 'tolist') and not hasattr(value, 'isoformat'):
-        return _sym_jsonable(value.tolist())
-    try:
-        import pandas as _pd
-        if _pd.isna(value):
-            return None
-    except Exception:
-        pass
-    if hasattr(value, 'isoformat'):
-        return value.isoformat()
-    if hasattr(value, 'item'):
-        return _sym_jsonable(value.item())
-    return str(value)
-
-def _sym_records(data):
-    if hasattr(data, 'to_dict') and hasattr(data, 'columns'):
-        return _sym_jsonable(data.to_dict(orient='records'))
-    if isinstance(data, list):
-        return _sym_jsonable(data)
-    raise TypeError('Pass a pandas DataFrame or a list of dicts')
-
-def _sym_table(data, headers=None):
-    if hasattr(data, 'columns') and hasattr(data, 'values'):
-        if getattr(data.index, 'name', None) is not None or any(getattr(data.index, 'names', None) or []):
-            data = data.reset_index()
-        return [str(_c) for _c in data.columns], _sym_jsonable(data.values.tolist())
-    if isinstance(data, list) and data and isinstance(data[0], dict):
-        _headers = list(headers or data[0].keys())
-        return [str(_h) for _h in _headers], [[_sym_jsonable(_row.get(_h)) for _h in _headers] for _row in data]
-    if isinstance(data, list) and headers is not None:
-        return [str(_h) for _h in headers], _sym_jsonable([list(_row) for _row in data])
-    raise TypeError('show_table takes a pandas DataFrame, a list of dicts, or rows with headers=[...]')
-
-def _sym_run_recipe(path, params=None, **values):
-    import ast as _ast
-    if not path.startswith('/'):
-        path = _sym_os.path.join('/output', path)
-    if not path.endswith('.recipe.py'):
-        raise ValueError(f"A recipe file must end in .recipe.py: {path}")
-    with open(path, encoding='utf-8') as _src_file:
-        _src = _src_file.read()
-    _tree = _ast.parse(_src, filename=path)
-    _given = dict(params or {})
-    _given.update(values)
-    _declared = None
-    _merged = {}
-    for _node in _tree.body:
-        if isinstance(_node, _ast.Assign):
-            _targets = _node.targets
-        elif isinstance(_node, _ast.AnnAssign) and _node.value is not None:
-            _targets = [_node.target]
-        else:
-            continue
-        if not any(isinstance(_t, _ast.Name) and _t.id == 'PARAMS' for _t in _targets):
-            continue
-        _declared = _ast.literal_eval(_node.value)
-        if not isinstance(_declared, dict):
-            raise ValueError('PARAMS must be a dict of name -> default value')
-        _unknown = sorted(set(_given) - set(_declared))
-        if _unknown:
-            raise KeyError(f"Unknown recipe parameter(s): {', '.join(_unknown)}. PARAMS declares: {', '.join(_declared)}")
-        _merged = {**_declared, **_given}
-        _node.value = _ast.parse(repr(_merged), mode='eval').body
-        break
-    if _declared is None and _given:
-        raise ValueError('This recipe declares no PARAMS, so it takes no values')
-    _ast.fix_missing_locations(_tree)
-    _out_dir = path[:-len('.recipe.py')]
-    _sym_os.makedirs(_out_dir, exist_ok=True)
-    _items = []
-
-    def show_metric(label, value, unit=None, detail=None, decimals=None):
-        _item = {'kind': 'metric', 'label': str(label), 'value': _sym_jsonable(value)}
-        if not isinstance(_item['value'], (int, float, str, type(None))) or isinstance(_item['value'], bool):
-            _item['value'] = str(_item['value'])
-        if unit is not None:
-            _item['unit'] = str(unit)
-        if detail is not None:
-            _item['detail'] = str(detail)
-        if decimals is not None:
-            _item['decimals'] = int(decimals)
-        _items.append(_item)
-
-    def show_chart(spec, data=None, title=None):
-        if not isinstance(spec, dict):
-            raise TypeError('show_chart takes a Vega-Lite spec (a dict)')
-        _spec = dict(spec)
-        if data is not None:
-            _spec['data'] = {'values': _sym_records(data)}
-        _item = {'kind': 'chart', 'spec': _sym_jsonable(_spec)}
-        if title is not None:
-            _item['title'] = str(title)
-        _items.append(_item)
-
-    def show_table(data, title=None, headers=None):
-        _headers, _rows = _sym_table(data, headers)
-        _item = {'kind': 'table', 'headers': _headers, 'rows': _rows}
-        if title is not None:
-            _item['title'] = str(title)
-        _items.append(_item)
-
-    def show_note(text):
-        _items.append({'kind': 'note', 'text': str(text)})
-
-    plt.close('all')
-    _globals = {
-        '__name__': '__main__', '__file__': path, 'OUTPUT_DIR': _out_dir,
-        'show_metric': show_metric, 'show_chart': show_chart, 'show_table': show_table, 'show_note': show_note,
-    }
-    exec(compile(_tree, path, 'exec'), _globals)
-    for _index, _num in enumerate(plt.get_fignums(), start=1):
-        plt.figure(_num).savefig(_sym_os.path.join(_out_dir, f'figure-{_index}.png'), dpi=150, bbox_inches='tight', facecolor='white', edgecolor='none')
-    plt.close('all')
-    with open(_sym_os.path.join(_out_dir, 'model.json'), 'w', encoding='utf-8') as _results_file:
-        _sym_json.dump({'version': 1, 'kind': 'model_results', 'values': _sym_jsonable(_merged), 'items': _items}, _results_file, allow_nan=False)
-    print(f"Recipe ran: {path} ({len(_items)} result(s) in {_out_dir}/model.json)")
-
-run_recipe = _sym_run_recipe
-`;
+export { RECIPE_RUNNER_SOURCE };
 
 const bootstrap = (key: string) => `
 import os as _sym_os, json as _sym_json, base64 as _sym_base64, io as _sym_io
@@ -253,7 +117,7 @@ function scopeArgs(key: string): string {
  * still running an older runtime (a resumed sandbox outlives a deploy) installs
  * the new one before its next cell.
  */
-export const RUNTIME_VERSION = 3;
+export const RUNTIME_VERSION = 4;
 
 /** Runs before every cell; installs the runtime on a fresh, restarted or outdated kernel. */
 export function preCode(key: string = DEFAULT_KERNEL): string {

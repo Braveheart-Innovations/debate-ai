@@ -21,7 +21,7 @@ import {
 } from '../../branding/ArtifactBrandingService';
 import { getRenderIntent } from '../../reports/ReportBuilderService';
 import { normalizeReportTypeId, reportTypeHasCoverChrome, resolveReportTypeBaseTheme } from '../../reports/constants';
-import { buildCitationOrder } from '../../reports/citations';
+import { buildCitationOrder, mapStrings } from '../../reports/citations';
 
 const PLACEHOLDER_PATTERNS = [
   /content omitted from history/i,
@@ -1180,6 +1180,16 @@ function collectSourceIdsFromText(text: string | undefined): string[] {
   return Array.from(new Set(Array.from(text.matchAll(/\[(S\d+)\]/g)).map((match) => match[1])));
 }
 
+/** The sources cited anywhere in a value's strings (a chart spec's titles, legend entries, data). */
+function collectSourceIdsFromValue(value: unknown): string[] {
+  const ids: string[] = [];
+  mapStrings(value, (text) => {
+    ids.push(...collectSourceIdsFromText(text));
+    return text;
+  });
+  return Array.from(new Set(ids));
+}
+
 function mergeSourceIds(...groups: Array<readonly string[] | undefined>): string[] | undefined {
   const merged = Array.from(new Set(groups.flatMap((group) => group ?? []).filter(Boolean)));
   return merged.length > 0 ? merged : undefined;
@@ -1289,7 +1299,7 @@ function blockToReportBlocks(
 ): ReportBlock[] {
   const blocks: ReportBlock[] = [];
   if (block.title) {
-    blocks.push({ kind: 'heading', level: 2, text: block.title });
+    blocks.push({ kind: 'heading', level: 2, text: replaceSpecCitationMarkers(block.title, sourceById) });
   }
 
   if (block.kind === 'markdown') {
@@ -1324,13 +1334,14 @@ function blockToReportBlocks(
       kind: 'metric_grid',
       metrics: block.metrics.map((metric) => ({
         label: replaceSpecCitationMarkers(metric.label, sourceById),
-        value: metric.value,
+        value: replaceSpecCitationMarkers(metric.value, sourceById),
         detail: metric.detail ? replaceSpecCitationMarkers(metric.detail, sourceById) : undefined,
       })),
       citations: mergeSourceIds(
         block.citations,
         block.metrics.flatMap((metric) => [
           ...collectSourceIdsFromText(metric.label),
+          ...collectSourceIdsFromText(metric.value),
           ...collectSourceIdsFromText(metric.detail),
         ]),
       ),
@@ -1344,13 +1355,15 @@ function blockToReportBlocks(
   } else if (block.kind === 'table') {
     blocks.push({
       kind: 'table',
-      headers: block.headers,
+      // A header cites like a cell: "National median price [S2]" (2026-10-13, printed raw).
+      headers: block.headers.map((header) => replaceSpecCitationMarkers(header, sourceById)),
       rows: block.rows.map((row) => row.map((cell) => replaceSpecCitationMarkers(cell, sourceById))),
       caption: block.caption ? replaceSpecCitationMarkers(block.caption, sourceById) : undefined,
       citations: mergeSourceIds(
         block.citations,
-        collectSourceIdsFromText(block.caption),
+        block.headers.flatMap((header) => collectSourceIdsFromText(header)),
         block.rows.flatMap((row) => row.flatMap((cell) => collectSourceIdsFromText(cell))),
+        collectSourceIdsFromText(block.caption),
       ),
     });
     if ((block.citations || []).length > 0) {
@@ -1379,11 +1392,18 @@ function blockToReportBlocks(
       });
     }
   } else if (block.kind === 'chart') {
+    // A chart's own text cites too (a legend's "National median [S2]"): its citations
+    // become tokens like the prose's, which each export prints as the same [n].
+    const chartSpec = mapStrings(block.spec, (text) => replaceSpecCitationMarkers(text, sourceById));
     blocks.push({
       kind: 'chart',
-      spec: block.spec,
+      spec: chartSpec,
       caption: block.caption ? replaceSpecCitationMarkers(block.caption, sourceById) : undefined,
-      citations: mergeSourceIds(block.citations, collectSourceIdsFromText(block.caption)),
+      citations: mergeSourceIds(
+        block.citations,
+        collectSourceIdsFromValue(block.spec.spec),
+        collectSourceIdsFromText(block.caption),
+      ),
     });
   } else if (block.kind === 'diagram') {
     blocks.push({
@@ -1405,33 +1425,20 @@ function blockToReportBlocks(
   return blocks;
 }
 
-export function analysisArtifactSpecToReportSpec(
+/** The spec's pages as report blocks: each page's title and summary, its blocks, and links to related pages. */
+function reportPagesFromSpec(
   spec: AnalysisArtifactSpecV1,
-  sessionId: string,
-  artifactPool: Artifact[] = [],
+  sourceById: Map<string, AnalysisArtifactSource>,
+  artifactById: Map<string, Artifact>,
   overlay?: PresentationOverlayV1 | null,
-): ReportSpecV1 {
-  // Charts that name a session file get its rows inline (exports can't load sandbox paths).
-  spec = inlineChartDataFiles(spec, chartFileReaderFromArtifacts(artifactPool));
-  const now = Date.now();
-  const sources = spec.sources || [];
-  const sourceById = buildSourceMap(sources);
+): ReportSpecV1['pages'] {
   // Presentation overlay: page breaks are keyed by stable block id and injected at
   // the spec-block boundary (before each block expands into multiple ReportBlocks),
   // so the break lands in the right place without tracking ids through expansion.
   const pageBreakBeforeBlockIds = new Set(overlay?.pageBreakBeforeBlockIds ?? []);
-  // Resolve artifact_ref by id OR by name (the model references figures by the
-  // filename it saved). Name keys first so id keys win on collision.
-  const artifactById = new Map<string, Artifact>();
-  for (const artifact of artifactPool) {
-    if (artifact.name) artifactById.set(artifact.name, artifact);
-  }
-  for (const artifact of artifactPool) {
-    artifactById.set(artifact.id, artifact);
-  }
-  const pages: ReportSpecV1['pages'] = spec.pages.map((page) => ({
+  return spec.pages.map((page) => ({
     blocks: [
-      { kind: 'heading', level: 1, text: page.title } as ReportBlock,
+      { kind: 'heading', level: 1, text: replaceSpecCitationMarkers(page.title, sourceById) } as ReportBlock,
       ...(page.summary ? [{
         kind: 'paragraph',
         markdown: replaceSpecCitationMarkers(page.summary, sourceById),
@@ -1455,14 +1462,57 @@ export function analysisArtifactSpecToReportSpec(
     ],
   }));
 
+}
+
+/** Each cited source's number, [1], [2], …, in the order the report first cites it. */
+function citationNumbersOf(
+  abstractText: string,
+  pages: ReportSpecV1['pages'],
+  sourceById: Map<string, AnalysisArtifactSource>,
+): Map<string, number> {
+  const order = buildCitationOrder({ abstract: abstractText, pages } as unknown as ReportSpecV1)
+    .filter((id) => sourceById.has(id));
+  return new Map(order.map((id, index) => [id, index + 1]));
+}
+
+/**
+ * The number each cited source carries in this report: the on-screen report
+ * shows the same [n] as every export, counted the same way.
+ */
+export function analysisSpecCitationNumbers(spec: AnalysisArtifactSpecV1): Map<string, number> {
+  const sourceById = buildSourceMap(spec.sources || []);
+  const pages = reportPagesFromSpec(spec, sourceById, new Map());
+  return citationNumbersOf(replaceSpecCitationMarkers(spec.summary, sourceById), pages, sourceById);
+}
+
+export function analysisArtifactSpecToReportSpec(
+  spec: AnalysisArtifactSpecV1,
+  sessionId: string,
+  artifactPool: Artifact[] = [],
+  overlay?: PresentationOverlayV1 | null,
+): ReportSpecV1 {
+  // Charts that name a session file get its rows inline (exports can't load sandbox paths).
+  spec = inlineChartDataFiles(spec, chartFileReaderFromArtifacts(artifactPool));
+  const now = Date.now();
+  const sources = spec.sources || [];
+  const sourceById = buildSourceMap(sources);
+  // Resolve artifact_ref by id OR by name (the model references figures by the
+  // filename it saved). Name keys first so id keys win on collision.
+  const artifactById = new Map<string, Artifact>();
+  for (const artifact of artifactPool) {
+    if (artifact.name) artifactById.set(artifact.name, artifact);
+  }
+  for (const artifact of artifactPool) {
+    artifactById.set(artifact.id, artifact);
+  }
+  const pages = reportPagesFromSpec(spec, sourceById, artifactById, overlay);
   const abstractText = replaceSpecCitationMarkers(spec.summary, sourceById);
 
   if (sources.length > 0) {
     // Number the references by inline-citation order so the list lines up with the
     // `[N]` markers the exporters render (numeric_endnotes uses the same order).
-    const citationOrder = buildCitationOrder({ abstract: abstractText, pages } as unknown as ReportSpecV1)
-      .filter((id) => sourceById.has(id));
-    const numberById = new Map(citationOrder.map((id, index) => [id, index + 1]));
+    const numberById = citationNumbersOf(abstractText, pages, sourceById);
+    const citationOrder = Array.from(numberById.keys());
     const orderedSources = [
       ...citationOrder.map((id) => sourceById.get(id)!),
       ...sources.filter((source) => !numberById.has(source.id)),
