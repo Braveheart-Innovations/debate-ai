@@ -1,5 +1,5 @@
-# Symposium house style for Plotly (symposium-analyze-v2 and later). IPython runs
-# this at every kernel start; matplotlib's half is the default matplotlibrc.
+# Symposium house style for Plotly and Graphviz. IPython runs this at every kernel
+# start; matplotlib's half is the default matplotlibrc.
 # Mirrors the report's Vega-Lite config (symposium-ai-web vegaChart.ts).
 import os as _sym_style_os
 
@@ -34,8 +34,38 @@ def _sym_plotly_template():
     pio.defaults.topojson = 'file:///opt/plotly-topojson/'
 
 
-try:
-    _sym_plotly_template()
-except Exception:  # a broken style must never stop the kernel from starting
-    pass
-del _sym_plotly_template
+def _sym_graphviz_defaults():
+    # Graphviz (symposium-analyze-v3 and later) in the report's typeface and sharp enough
+    # to print, as defaults the code can override. dot's -N/-E/-G flags beat what the
+    # file says, so Inter goes into each top-level graph's source instead. Raster output
+    # gets -Gresolution=150: dot reads dpi before resolution, so a dpi the code sets still
+    # wins, and SVG keeps its size (both attributes scale SVG).
+    import graphviz.backend.dot_command as dot_command
+    import graphviz.graphs as graphs
+
+    init = graphs.BaseGraph.__init__
+
+    def house_init(self, *args, **kwargs):
+        init(self, *args, **kwargs)
+        if self.strict is not None:  # subgraphs (strict=None) inherit from their parent
+            for attrs in (self.graph_attr, self.node_attr, self.edge_attr):
+                attrs.setdefault('fontname', 'Inter')
+
+    command = dot_command.command
+
+    def house_command(engine, format_, **kwargs):
+        cmd = command(engine, format_, **kwargs)
+        if format_ in ('png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'tif', 'tiff'):
+            cmd.append('-Gresolution=150')
+        return cmd
+
+    graphs.BaseGraph.__init__ = house_init
+    dot_command.command = house_command
+
+
+for _sym_style in (_sym_plotly_template, _sym_graphviz_defaults):
+    try:
+        _sym_style()
+    except Exception:  # a broken style must never stop the kernel from starting
+        pass
+del _sym_plotly_template, _sym_graphviz_defaults, _sym_style

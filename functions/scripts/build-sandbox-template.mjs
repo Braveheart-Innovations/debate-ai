@@ -13,9 +13,16 @@
  * Plotly image export, NLP data, a house chart style that matches the report
  * (Inter; scripts/sandbox-template/), PDF and statistics-file readers, and analytical
  * packages. Plan: symposium-ai-web docs/analyze-sandbox-template-v2-plan.md.
+ * v3 adds diagram pictures (Graphviz, D2, diagrams, schemdraw), simulation and
+ * optimisation (SimPy, PuLP with CBC, OR-Tools, pint) and ffmpeg for animation. Plan:
+ * symposium-ai-web docs/analyze-beyond-reports-plan.md (Template v3). It installs
+ * against sandbox-template/constraints.txt, v2's pip freeze, so every package v2 had
+ * keeps its version.
  * Sandboxes run with no internet access, so anything Analyze needs must be baked in.
  * Every download is pinned by SHA-256 so an upstream change fails the build. Only
- * permissive licences (MIT, BSD, Apache-2.0, OFL): no AGPL (PyMuPDF), no GPL.
+ * permissive licences (MIT, BSD, Apache-2.0, OFL), plus programs under weak copyleft
+ * (Graphviz EPL-1.0, D2 MPL-2.0, CBC EPL-2.0, ffmpeg LGPL): no AGPL (PyMuPDF), no GPL
+ * (so not Debian's ffmpeg, which is built with GPL parts).
  *
  * Map boundaries for geopandas live under /opt/geo (geopandas.datasets is gone and
  * the sandbox can't download): official sources, pinned by SHA-256 so an upstream
@@ -27,7 +34,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Template, defaultBuildLogger } from 'e2b';
 
-const TEMPLATE = 'symposium-analyze-v2';
+const TEMPLATE = 'symposium-analyze-v3';
 const here = dirname(fileURLToPath(import.meta.url));
 
 const PACKAGES = [
@@ -50,11 +57,34 @@ const PACKAGES = [
   'duckdb', 'polars', 'lightgbm', 'xgboost-cpu', 'lifelines', 'statsforecast',
   // v2: table images (GT.gtsave renders through Chromium).
   'great_tables',
+  // v3: diagram pictures. diagrams needs graphviz < 0.21.
+  'graphviz==0.20.3', 'diagrams==0.25.1', 'schemdraw==0.23',
+  // v3: simulation, optimisation and units. PuLP 3.3.2, not 4: 4 dropped the bundled CBC
+  // and PULP_CBC_CMD, which is what models write.
+  'simpy==4.1.2', 'pulp==3.3.2', 'ortools==9.15.6755', 'pint==0.26.1',
 ];
+// v2's pip freeze: pipInstall resolves against it, so nothing v2 had changes version.
+const CONSTRAINTS = '/opt/symposium/constraints.txt';
 
 // Debian packages (the base image's apt sources are a dated snapshot, so these pin too).
-// Chromium serves kaleido (Plotly fig.write_image) and great_tables (GT.gtsave).
-const APT_PACKAGES = ['chromium'];
+// Chromium serves kaleido (Plotly fig.write_image) and great_tables (GT.gtsave). v3:
+// Graphviz draws the dot layouts; rsvg-convert turns D2's SVG into PNG (D2's own PNG
+// export downloads a browser, which can't work offline).
+const APT_PACKAGES = ['chromium', 'graphviz', 'librsvg2-bin'];
+
+// v3 programs. D2 (MPL-2.0) is one Go binary. ffmpeg is BtbN's LGPL static build (no
+// x264/x265; H.264 goes through openh264) from a month-end build, which BtbN keeps for
+// two years.
+const D2 = {
+  url: 'https://github.com/d2lang/d2/releases/download/v0.9.0/d2-v0.9.0-linux-amd64.tar.gz',
+  sha256: '5669ddc46b99e942cc96078f4a4e36d5e62103348f4c05179ede27802fdd87a9',
+  dir: 'd2-v0.9.0',
+};
+const FFMPEG = {
+  url: 'https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-09-30-13-08/ffmpeg-n8.1.3-9-g29e619e767-linux64-lgpl-8.1.tar.xz',
+  sha256: 'dfa863a00ca81f1bdf58a372b18cff4820f0017e55de32778de8ecd8ed92a02e',
+  dir: 'ffmpeg-n8.1.3-9-g29e619e767-linux64-lgpl-8.1',
+};
 
 // Fonts, all OFL. Inter 4.1's static TTFs are byte-identical to the report PDF's
 // (symposium-ai-web public/fonts), so charts and report text match exactly.
@@ -174,6 +204,20 @@ const installPlotlyAssets = [
   'rm /tmp/mathjax.tgz /tmp/topojson.tgz',
 ].join(' && ');
 
+// Only the programs and their licences; ffplay, docs and headers stay out.
+const installPrograms = [
+  'mkdir -p /usr/share/doc/d2 /usr/share/doc/ffmpeg-lgpl',
+  ...fetchPinned(D2.url, D2.sha256, '/tmp/d2.tgz'),
+  `tar xzf /tmp/d2.tgz --no-same-owner -C /usr/local/bin --strip-components=2 ${D2.dir}/bin/d2`,
+  `tar xzf /tmp/d2.tgz --no-same-owner -C /usr/share/doc/d2 --strip-components=1 ${D2.dir}/LICENSE.txt ${D2.dir}/THIRD_PARTY_NOTICES.txt`,
+  ...fetchPinned(FFMPEG.url, FFMPEG.sha256, '/tmp/ffmpeg.txz'),
+  `tar xJf /tmp/ffmpeg.txz --no-same-owner -C /usr/local/bin --strip-components=2 ${FFMPEG.dir}/bin/ffmpeg ${FFMPEG.dir}/bin/ffprobe`,
+  `tar xJf /tmp/ffmpeg.txz --no-same-owner -C /usr/share/doc/ffmpeg-lgpl --strip-components=1 ${FFMPEG.dir}/LICENSE.txt`,
+  'rm /tmp/d2.tgz /tmp/ffmpeg.txz',
+  'd2 --version',
+  'ffmpeg -hide_banner -version',
+].join(' && ');
+
 // The kernel runs as root, and Chromium refuses to start as root without --no-sandbox.
 // Debian's chromium wrapper reads /etc/chromium.d; the E2B microVM is the isolation boundary.
 const configureChromium = `echo 'export CHROMIUM_FLAGS="$CHROMIUM_FLAGS --no-sandbox"' > /etc/chromium.d/symposium-no-sandbox`;
@@ -199,7 +243,8 @@ if (!live || live === TEMPLATE) {
 
 const template = Template({ fileContextPath: join(here, 'sandbox-template') })
   .fromTemplate('code-interpreter-v1')
-  .pipInstall(PACKAGES)
+  .copy('constraints.txt', CONSTRAINTS, { user: 'root', mode: 0o644 })
+  .pipInstall(['-c', CONSTRAINTS, ...PACKAGES])
   .setUser('root')
   .aptInstall(APT_PACKAGES, { noInstallRecommends: true })
   .runCmd(configureChromium)
@@ -209,6 +254,7 @@ const template = Template({ fileContextPath: join(here, 'sandbox-template') })
   .runCmd(installFonts)
   .runCmd(installNlp)
   .runCmd(installPlotlyAssets)
+  .runCmd(installPrograms)
   .copy('matplotlibrc', '/opt/symposium/matplotlibrc', { user: 'root', mode: 0o644 })
   .copy('fonts.conf', '/etc/fonts/local.conf', { user: 'root', mode: 0o644 })
   .copy('90_symposium_style.py', '/root/.ipython/profile_default/startup/90_symposium_style.py', { user: 'root', mode: 0o644 })
