@@ -159,23 +159,28 @@ drift = {name: (version, have.get(norm(name))) for name, version in want.items()
 assert not drift, drift
 print(len(want), 'packages at their v2 versions')`],
   ['graphviz house style', `
-import graphviz, re, struct
-g = graphviz.Digraph('intake', graph_attr={'rankdir': 'LR'})
-with g.subgraph(name='cluster_front') as c:
-    c.attr(label='Front desk')
-    c.edge('Inquiry', 'Tour', label='3 days')
-for a, b, label in [('Tour', 'Application', '62%'), ('Application', 'Enrolled', '81%'), ('Tour', 'Lost', '38%')]:
-    g.edge(a, b, label=label)
-g.render('/output/smoke-graphviz', format='png', cleanup=True)
-svg = g.pipe(format='svg', encoding='utf-8')
-assert set(re.findall(r'font-family="([^"]+)"', svg)) == {'Inter'}, re.findall(r'font-family="([^"]+)"', svg)
-png = open('/output/smoke-graphviz.png', 'rb').read()
+import graphviz, re, struct, subprocess
+fonts = lambda svg: set(re.findall(r'font-family="([^"]+)"', svg))
+width = lambda png: struct.unpack('>I', png[16:20])[0]
+dot = 'digraph { rankdir=LR; node [shape=box style=rounded]; subgraph cluster_front { label="Front desk"; Inquiry -> Tour [label="3 days"] } Tour -> Application [label="62%"]; Application -> Enrolled [label="81%"]; Tour -> Lost [label="38%"] }'
+g = graphviz.Digraph(graph_attr={'rankdir': 'LR'})
+g.edge('Inquiry', 'Tour', label='3 days')
+svg = graphviz.Source(dot).pipe(format='svg', encoding='utf-8')
 width_pt = float(re.search(r'<svg width="([0-9.]+)pt"', svg).group(1))
-assert abs(struct.unpack('>I', png[16:20])[0] - width_pt * 150 / 72) < 4, 'PNG not at 150 dpi'
-mono = graphviz.Digraph(node_attr={'fontname': 'JetBrains Mono'}, graph_attr={'dpi': '72'})
-mono.edge('a', 'b')
-assert 'fontname="JetBrains Mono"' in mono.source and struct.unpack('>I', mono.pipe(format='png')[16:20])[0] < 100, 'explicit attributes must win'
-print(width_pt, 'pt wide')`],
+# Every way models call Graphviz: the package, graphviz.Source, and dot itself.
+assert fonts(g.pipe(format='svg', encoding='utf-8')) == {'Inter'}, 'Digraph'
+assert fonts(svg) == {'Inter'}, fonts(svg)
+assert fonts(subprocess.run(['dot', '-Tsvg'], input=dot, capture_output=True, text=True).stdout) == {'Inter'}, 'subprocess dot'
+graphviz.Source(dot).render('/output/smoke-graphviz', format='png', cleanup=True)
+assert abs(width(open('/output/smoke-graphviz.png', 'rb').read()) - width_pt * 150 / 72) < 4, 'PNG not at 150 dpi'
+assert abs(width(subprocess.run(['dot', '-Tpng'], input=dot.encode(), capture_output=True).stdout) - width_pt * 150 / 72) < 4, 'dot -Tpng not at 150 dpi'
+# What the graph sets wins.
+own = dot.replace('style=rounded', 'style=rounded fontname="JetBrains Mono"').replace('{', '{ graph [dpi=72];', 1)
+own_svg = subprocess.run(['dot', '-Tsvg'], input=own, capture_output=True, text=True).stdout
+assert 'JetBrains Mono' in fonts(own_svg), 'explicit font must win'
+own_pt = float(re.search(r'<svg width="([0-9.]+)pt"', own_svg).group(1))
+assert abs(width(subprocess.run(['dot', '-Tpng'], input=own.encode(), capture_output=True).stdout) - own_pt) < 4, 'explicit dpi must win'
+print(subprocess.run(['dot', '-V'], capture_output=True, text=True, timeout=10).stderr.strip(), '|', width_pt, 'pt wide')`],
   ['diagrams', `
 from diagrams import Diagram
 from diagrams.onprem.client import Users

@@ -1,0 +1,45 @@
+#!/bin/sh
+# Graphviz house defaults for Analyze (symposium-analyze-v3 and later). Installed in
+# /usr/local/bin under each layout program's name, ahead of Debian's in /usr/bin, so
+# every caller goes through it: the graphviz package, graphviz.Source, subprocess,
+# diagrams.
+#  - Inter, the report's typeface, when the graph names no font. dot's -N/-E/-G flags
+#    beat what a file says, so they're added only when no fontname appears at all.
+#  - 150 dpi for raster output. dot reads dpi before resolution, so a dpi the graph
+#    sets still wins, and vector output keeps its size.
+real="/usr/bin/${0##*/}"
+raster=
+inputs=
+font=
+next=
+for arg in "$@"; do
+  if [ -n "$next" ]; then
+    [ "$next" = T ] && case "$arg" in png*|jpg*|jpeg*|gif*|bmp*|webp*|tif*) raster=1 ;; esac
+    next=
+    continue
+  fi
+  case "$arg" in
+    -V|-c|-P|-\?|--*) exec "$real" "$@" ;;
+    -T) next=T ;;
+    -o|-K|-l|-G|-N|-E) next=1 ;;
+    -Tpng*|-Tjpg*|-Tjpeg*|-Tgif*|-Tbmp*|-Twebp*|-Ttif*) raster=1 ;;
+    -*) ;;
+    *) inputs=1; grep -qis fontname -- "$arg" && font=1 ;;
+  esac
+done
+
+set -- ${raster:+-Gresolution=150} "$@"
+inter="-Gfontname=Inter -Nfontname=Inter -Efontname=Inter"
+if [ -n "$inputs" ]; then
+  [ -n "$font" ] && exec "$real" "$@"
+  exec "$real" $inter "$@"
+fi
+
+# The graph comes on stdin: read it once to look for a font.
+source=$(mktemp) || exec "$real" "$@"
+cat > "$source"
+if grep -qi fontname -- "$source"; then inter=; fi
+"$real" $inter "$@" < "$source"
+status=$?
+rm -f "$source"
+exit $status
