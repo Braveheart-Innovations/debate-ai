@@ -59,7 +59,9 @@ import { FORMATS, getPresetForFormat, getPresetIdForRounds, type OxfordAudienceQ
 import { getDebateSpeakerRoleLabel } from '@/utils/debateLabels';
 import {
   buildDebatePodcastCompilePlan,
+  buildRematchNavigationParams,
   createDebatePodcastGalleryEntry,
+  DebateStatus,
   getDebateVoicePackCandidates,
   type DebateVoicePackCandidate,
 } from '@/services/debate';
@@ -79,7 +81,6 @@ interface DebateScreenProps {
   navigation: {
     goBack: () => void;
     navigate: (screen: string, params?: Record<string, unknown>) => void;
-    replace: (screen: string, params?: Record<string, unknown>) => void;
     dispatch?: (action: unknown) => void;
     addListener?: (event: 'beforeRemove', callback: (event: { preventDefault: () => void; data?: { action?: unknown } }) => void) => (() => void) | undefined;
   };
@@ -94,7 +95,6 @@ interface DebateScreenProps {
       civility?: 1|2|3|4|5;
       demoDebateId?: string;
       demoSample?: DemoDebate;
-      rematchKey?: string;
       voiceConfig?: DebateVoiceConfig;
     };
   };
@@ -194,6 +194,12 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
     });
     const snapshot = session.orchestrator.createSnapshot(status, messagesWithStreamingContent);
     if (!snapshot) return;
+    if (snapshot.debateSession.status === DebateStatus.COMPLETED) {
+      // A finished debate lives in History. Left behind, its snapshot would be restored
+      // in place of the next debate with the same lineup and motion (e.g. a Rematch).
+      await ActiveSessionPersistenceService.clearSnapshot('debate', snapshot.sessionId);
+      return;
+    }
     const pendingMessageIds = activeDebateStreamIds.length > 0
       ? activeDebateStreamIds
       : snapshot.interruptedMessageIds || [];
@@ -222,7 +228,7 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
     const restoreDebateSnapshot = async () => {
       try {
         const snapshot = await ActiveSessionPersistenceService.loadLatestSnapshot<ActiveDebateSessionSnapshot>('debate');
-        if (!snapshot || snapshot.status === 'completed') return;
+        if (!snapshot || snapshot.status === 'completed' || snapshot.debateSession.status === DebateStatus.COMPLETED) return;
 
         const snapshotParticipantIds = snapshot.debateSession.participants.map(ai => ai.id).join('|');
         const routeParticipantIds = selectedAIs.map(ai => ai.id).join('|');
@@ -615,37 +621,30 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
 
     stopDebateNow();
     setShowTranscript(false);
-
-    const rematchParams = {
-      ...route.params,
-      selectedAIs,
+    navigation.navigate('MainTabs', buildRematchNavigationParams({
+      selectedAIs: selectedAIs.map((ai) => ({
+        ...ai,
+        personality: initialPersonalities?.[ai.id] || ai.personality || 'default',
+      })),
       topic: rematchTopic,
-      personalities: initialPersonalities,
       formatId: formatId || 'oxford',
-      rounds,
-      exchanges,
-      civility,
-      demoDebateId,
-      demoSample,
-      rematchKey: Date.now().toString(),
-    };
-
-    navigation.replace('Debate', rematchParams);
+      exchanges: exchanges || rounds || 3,
+      civility: civility || 3,
+      voiceConfig,
+    }));
   }, [
     civility,
-    demoDebateId,
-    demoSample,
     exchanges,
     formatId,
     initialPersonalities,
     initialTopic,
     navigation,
-    route.params,
     rounds,
     selectedAIs,
     session.session?.topic,
     stopDebateNow,
     topicSelection.finalTopic,
+    voiceConfig,
   ]);
   
   // Handle view transcript

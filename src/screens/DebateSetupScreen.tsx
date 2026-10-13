@@ -3,7 +3,7 @@ import { ScrollView, Alert, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useSelector, useDispatch } from 'react-redux';
-import { RootState, setAIPersonality, setAIModel, preserveTopic, clearPreservedTopic, isApiKeyConfigured } from '../store';
+import { RootState, setAIModel, preserveTopic, clearPreservedTopic, isApiKeyConfigured } from '../store';
 
 import { Box, ResponsiveContainer } from '../components/atoms';
 import { Button, Typography, GradientButton, HeaderIcon, InfoButton, SegmentedControl } from '../components/molecules';
@@ -23,6 +23,7 @@ import type { DemoDebate } from '@/types/demo';
 import { AI_PROVIDERS } from '../config/aiProviders';
 import { FormatModal } from '../components/organisms/debate/FormatModal';
 import { TopicService } from '../services/debate/TopicService';
+import type { DebateRematchSetup } from '../services/debate/debateRematch';
 import { getModelById, getProviderDefaultModel, resolveProviderModelId } from '@/config/modelConfigs';
 import { getAIProviderIcon } from '../utils/aiProviderAssets';
 import { isValidProviderId } from '../utils/typeGuards';
@@ -60,6 +61,8 @@ interface DebateSetupScreenProps {
       prefilledTopic?: string;
       resetDebateSetup?: boolean;
       resetKey?: string;
+      rematch?: DebateRematchSetup;
+      rematchKey?: string;
     };
   };
 }
@@ -208,6 +211,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
   const scrollViewRef = useRef<ScrollView>(null);
   const debaterSlotCounterRef = useRef(0);
   const handledResetKeyRef = useRef<string | null>(null);
+  const handledRematchKeyRef = useRef<string | null>(null);
   const { rs } = useResponsive();
   const apiKeys = useSelector((state: RootState) => state.settings.apiKeys || {});
   const verifiedProviders = useSelector((state: RootState) => state.settings.verifiedProviders || []);
@@ -302,6 +306,9 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
   const [configSheetTarget, setConfigSheetTarget] = useState<SlotTarget | null>(null);
   const [debateVoiceOptions, setDebateVoiceOptions] = useState<MediaProviderVoiceOption[]>([]);
   const [debateVoiceSelections, setDebateVoiceSelections] = useState<Record<string, DebateVoiceSelection>>({});
+  // Slot personalities are setup-local like voices and models: the shared chat
+  // personalities are reset whenever a chat or debate session starts.
+  const [slotPersonalities, setSlotPersonalities] = useState<Record<string, string>>({});
   const [debateVoicesLoading, setDebateVoicesLoading] = useState(false);
   const [debateVoiceError, setDebateVoiceError] = useState<string | null>(null);
   const [debateVoicesLoadAttempted, setDebateVoicesLoadAttempted] = useState(false);
@@ -360,13 +367,18 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
         delete next[slot.id];
         return next;
       });
-      dispatch(setAIPersonality({ aiId: slot.id, personalityId: 'default' }));
+      setSlotPersonalities(prev => {
+        if (!(slot.id in prev)) return prev;
+        const next = { ...prev };
+        delete next[slot.id];
+        return next;
+      });
     });
     setDebaterSlots((current) => {
       const resized = Array.from({ length: maxAIs }, (_, index) => current[index] || null);
       return normalizeDebateSlots(resized, configuredAIs);
     });
-  }, [configuredAIs, dispatch, maxAIs]);
+  }, [configuredAIs, maxAIs]);
 
   const loadDebateVoices = useCallback(async (
     query: ElevenLabsVoiceListQuery = DEFAULT_DEBATE_VOICE_QUERY
@@ -687,7 +699,53 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
       setProviderPickerTarget(null);
       setConfigSheetTarget(null);
       setDebateVoiceSelections({});
+      setSlotPersonalities({});
       dispatch(clearPreservedTopic());
+      scrollSetupToTop(false);
+      return;
+    }
+
+    if (params.rematch) {
+      const rematchKey = params.rematchKey ?? 'unkeyed-rematch';
+      if (handledRematchKeyRef.current === rematchKey) {
+        return;
+      }
+      handledRematchKeyRef.current = rematchKey;
+
+      const rematch = params.rematch;
+      const debaters = rematch.selectedAIs.filter(ai => isValidProviderId(ai.provider));
+      const slotCount = getRequiredDebaterCountForPreset(
+        getPresetForFormat(rematch.formatId, getPresetIdForRounds(rematch.exchanges))
+      );
+      const voiceConfig = rematch.voiceConfig?.enabled ? rematch.voiceConfig : undefined;
+      const podcast = voiceConfig?.podcast?.enabled ? voiceConfig.podcast : undefined;
+      const mcBase = podcast ? configuredAIs.find(ai => ai.provider === podcast.mc.provider) : undefined;
+      const mc = podcast && mcBase
+        ? { ...mcBase, id: podcast.mc.id, name: podcast.mc.name, model: podcast.mc.model, personality: 'default' }
+        : null;
+
+      setFormatId(rematch.formatId);
+      setExchanges(rematch.exchanges);
+      setCivility(rematch.civility);
+      setDebaterSlots(buildDebaterSlotsFromAIs(debaters, slotCount, configuredAIs));
+      setSelectedModels(prev => ({
+        ...prev,
+        ...Object.fromEntries(debaters.map(ai => [ai.id, ai.model])),
+        ...(mc ? { [mc.id]: mc.model } : {}),
+      }));
+      setSlotPersonalities(Object.fromEntries(debaters.map(ai => [ai.id, ai.personality || 'default'])));
+      // Custom mode shows the motion in an editable field, so it can be tweaked before starting.
+      setTopicMode('custom');
+      setSelectedTopic(rematch.topic);
+      setCustomTopic(rematch.topic);
+      setVoiceDebateEnabled(Boolean(voiceConfig));
+      setDebateTtsModelId(voiceConfig?.ttsModelId || ELEVENLABS_DEFAULT_TTS_MODEL);
+      setDebateVoiceSelections(voiceConfig?.debaterVoices || {});
+      setPodcastModeEnabled(Boolean(mc));
+      setPodcastMC(mc);
+      setPodcastMCVoice(mc ? podcast?.mcVoice : undefined);
+      setProviderPickerTarget(null);
+      setConfigSheetTarget(null);
       scrollSetupToTop(false);
       return;
     }
@@ -747,8 +805,13 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
       delete next[slotId];
       return next;
     });
-    dispatch(setAIPersonality({ aiId: slotId, personalityId: 'default' }));
-  }, [dispatch]);
+    setSlotPersonalities(prev => {
+      if (!(slotId in prev)) return prev;
+      const next = { ...prev };
+      delete next[slotId];
+      return next;
+    });
+  }, []);
 
   const handleProviderPicked = useCallback((providerId: string) => {
     const base = configuredAIs.find(ai => ai.provider === providerId);
@@ -804,8 +867,12 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
   }, [clearSlotState, podcastMC?.id]);
 
   const handlePersonalityChange = (aiId: string, personalityId: string) => {
-    dispatch(setAIPersonality({ aiId, personalityId: personalityId || 'default' }));
+    setSlotPersonalities(prev => ({ ...prev, [aiId]: personalityId || 'default' }));
   };
+
+  const getSlotPersonalityId = useCallback((ai: AIConfig): string => (
+    slotPersonalities[ai.id] || ai.personality || 'default'
+  ), [slotPersonalities]);
 
   const handleModelChange = (aiId: string, modelId: string) => {
     const providerId = debaterSlots.find(ai => ai?.id === aiId)?.provider
@@ -847,7 +914,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
     Array.from({ length: maxAIs }, (_, index) => {
       const ai = debaterSlots[index] || null;
       const personaMeta = ai && !access.isDemo
-        ? UNIVERSAL_PERSONALITIES.find(p => p.id === (aiPersonalities[ai.id] || 'default')) || UNIVERSAL_PERSONALITIES[0]
+        ? UNIVERSAL_PERSONALITIES.find(p => p.id === getSlotPersonalityId(ai)) || UNIVERSAL_PERSONALITIES[0]
         : undefined;
       const voiceSelection = ai && voiceControlsActive && hasVerifiedElevenLabs
         ? debateVoiceSelections[ai.id]
@@ -865,11 +932,11 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
     })
   ), [
     access.isDemo,
-    aiPersonalities,
     debaterSlots,
     debateVoiceSelections,
     getModelLabel,
     getSlotLabel,
+    getSlotPersonalityId,
     hasVerifiedElevenLabs,
     maxAIs,
     voiceControlsActive,
@@ -920,7 +987,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
     navigation.navigate('Debate', {
       selectedAIs: aiConfigs,
       topic,
-      personalities: aiPersonalities,
+      personalities: Object.fromEntries(aiConfigs.map(ai => [ai.id, ai.personality || 'default'])),
       formatId,
       rounds: exchanges,
       civility,
@@ -933,7 +1000,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
   const mapSelectedAIsWithModels = () => selectedAIs.map(ai => ({
     ...ai,
     model: resolveProviderModelId(ai.provider, selectedModels[ai.id] || selectedModels[ai.provider] || ai.model) || ai.model,
-    personality: aiPersonalities[ai.id] || ai.personality || 'default',
+    personality: getSlotPersonalityId(ai),
   }));
 
   const openDemoPicker = async (aiConfigs: AIConfig[], personaKey: string) => {
@@ -1490,7 +1557,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
         }}
         personalityId={configSheetIsMC || access.isDemo || !configSheetAI
           ? undefined
-          : (aiPersonalities[configSheetAI.id] || 'default')}
+          : getSlotPersonalityId(configSheetAI)}
         onChangePersonality={(personalityId) => {
           if (configSheetAI) handlePersonalityChange(configSheetAI.id, personalityId);
         }}

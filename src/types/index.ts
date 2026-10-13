@@ -346,7 +346,6 @@ export type RootStackParamList = {
     civility?: 1 | 2 | 3 | 4 | 5;
     demoDebateId?: string;
     demoSample?: import('@/types/demo').DemoDebate;
-    rematchKey?: string;
     voiceConfig?: DebateVoiceConfig;
   };
   DebateTranscript: { session: ChatSession };

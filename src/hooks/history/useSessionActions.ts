@@ -8,6 +8,9 @@ import { UseSessionActionsReturn, HistoryScreenNavigationProps } from '../../typ
 import useFeatureAccess from '@/hooks/useFeatureAccess';
 import { showTrialCTA } from '@/utils/demoGating';
 import { ErrorService } from '@/services/errors/ErrorService';
+import { buildRematchNavigationParams, buildRematchSetupFromSavedDebate } from '@/services/debate/debateRematch';
+
+const UNKNOWN_DEBATE_TOPIC = 'Unknown Topic';
 
 export const useSessionActions = (
   navigation: HistoryScreenNavigationProps,
@@ -78,7 +81,7 @@ export const useSessionActions = (
         case 'debate': {
           // Debates are completed events - view transcript or rematch
           // Use stored topic first, fall back to extraction for older sessions
-          let topic = session.topic || 'Unknown Topic';
+          let topic = session.topic || UNKNOWN_DEBATE_TOPIC;
           let winner = '';
           
           if (!session.topic) {
@@ -87,7 +90,7 @@ export const useSessionActions = (
             if (topicMessage) {
               // Topic is in quotes at the beginning of the host message
               const topicMatch = topicMessage.content.match(/^"([^"]+)"/);
-              topic = topicMatch ? topicMatch[1] : 'Unknown Topic';
+              topic = topicMatch ? topicMatch[1] : UNKNOWN_DEBATE_TOPIC;
             }
           }
           
@@ -118,18 +121,13 @@ export const useSessionActions = (
               { 
                 text: 'Rematch', 
                 onPress: () => {
-                  // Navigate to debate setup with pre-filled data
-                  navigation.navigate('MainTabs', { 
-                    screen: 'DebateTab',
-                    initial: false,
-                    params: {
-                      screen: 'DebateSetup',
-                      params: {
-                        preselectedAIs: session.selectedAIs,
-                        prefilledTopic: topic
-                      }
-                    }
-                  });
+                  // Debate setup, pre-filled with this debate's configuration
+                  const rematch = buildRematchSetupFromSavedDebate(
+                    topic === UNKNOWN_DEBATE_TOPIC ? session : { ...session, topic }
+                  );
+                  navigation.navigate('MainTabs', rematch
+                    ? buildRematchNavigationParams(rematch)
+                    : { screen: 'DebateTab' });
                 }
               },
               { text: 'Close', style: 'cancel' }

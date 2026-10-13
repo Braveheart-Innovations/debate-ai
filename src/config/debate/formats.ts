@@ -405,3 +405,10 @@ export function getPresetIdForRounds(rounds?: number): string {
   if (rounds === 7) return 'long';
   return 'short';
 }
+
+/** Inverse of getPresetIdForRounds: the setup length (exchanges) a preset was chosen with. */
+export function getRoundsForPresetId(presetId?: string): number {
+  if (presetId === 'standard') return 5;
+  if (presetId === 'long') return 7;
+  return 3;
+}

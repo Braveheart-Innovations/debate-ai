@@ -755,7 +755,7 @@ export class DebateOrchestrator {
   /**
    * Start the debate with the first AI
    */
-  async startDebate(existingMessages: Message[]): Promise<void> {
+  async startDebate(): Promise<void> {
     if (!this.session) {
       throw new AppError({
         code: ErrorCode.APP_SESSION_NOT_FOUND,
@@ -768,17 +768,13 @@ export class DebateOrchestrator {
     // Enforce storage limits BEFORE starting the debate
     // This ensures we have room for this new debate
     try {
-      const state = store.getState();
-      const currentUser = state.user.currentUser;
-      const isPremium = currentUser?.subscription === 'pro' || currentUser?.subscription === 'business';
-      
-      await StorageService.enforceStorageLimits('debate', isPremium, true);
+      await StorageService.enforceStorageLimits('debate', store.getState().auth.isPremium, true);
     } catch {
       // Continue anyway - don't block the debate
     }
-    
-    // Store the initial messages
-    this.currentMessages = [...existingMessages];
+
+    // Every debate starts with its own empty transcript; nothing from an earlier debate carries over.
+    this.currentMessages = [];
 
     if (this.votingService?.isAudienceStanceVoteModel() && !this.votingService.hasAudienceVote('initial')) {
       this.showAudienceStanceVoting('initial');
@@ -1990,8 +1986,9 @@ export class DebateOrchestrator {
       
       // Save to storage
       await StorageService.saveSession(debateSession);
-    } catch (error) {
-      console.error('Failed to save debate to history:', error);
+    } catch {
+      // saveSession already reported the cause; the user needs to know History won't have it.
+      ErrorService.showWarning('This debate could not be saved to History.', 'debate');
     }
   }
   

@@ -132,7 +132,6 @@ const PERSISTED_PARAM_ALLOWLIST: Record<string, readonly string[]> = {
     'rounds',
     'exchanges',
     'civility',
-    'rematchKey',
     'voiceConfig',
     'demoDebateId',
   ],

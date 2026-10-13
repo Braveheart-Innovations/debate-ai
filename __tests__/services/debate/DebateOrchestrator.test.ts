@@ -3,11 +3,13 @@ import { DEBATE_CONSTANTS } from '@/config/debateConstants';
 import { getPresetForFormat } from '@/config/debate/formats';
 import { BaseAdapter } from '@/services/ai/base/BaseAdapter';
 import type { AIService } from '@/services/aiAdapter';
-import type { AI, DebateVoiceConfig, Message } from '@/types';
+import type { AI, ChatSession, DebateVoiceConfig, Message } from '@/types';
 import type { AdapterCapabilities, FormattedMessage, SendMessageResponse } from '@/services/ai/types/adapter.types';
 import { setProviderVerificationError } from '@/store/streamingSlice';
 import { createMockAIConfig, createMockUser } from '@test-utils/fixtures';
 import { buildRootState } from '@test-utils/services/state';
+import { StorageService } from '@/services/chat/StorageService';
+import { ErrorService } from '@/services/errors/ErrorService';
 
 // A realistic-length debate speech for stubs (above the assessTurn short-fragment floor).
 const VALID_SPEECH = 'Cancel culture, properly understood, is communities choosing to withdraw their support from people who have caused real and demonstrable harm. That is a feature of free association, not a flaw, and the proposition has offered no principled reason why ordinary citizens should be compelled to keep platforming those who abuse their influence.';
@@ -26,6 +28,16 @@ interface FakeAIService {
 }
 const asAIService = (fake: FakeAIService): AIService => fake as AIService;
 
+const emptyAdapterConfig = (): Record<string, unknown> => ({});
+
+/** A non-streaming debater adapter double. */
+const createTurnAdapter = () => ({
+  config: emptyAdapterConfig(),
+  getCapabilities: jest.fn(() => ({ streaming: false })),
+  setTemporaryPersonality: jest.fn(() => undefined),
+  debugGetSystemPrompt: jest.fn(() => ''),
+});
+
 const mockMergeAvailabilitiesStrict = jest.fn();
 jest.mock('@/hooks/multimodal/useModalityAvailability', () => ({
   mergeAvailabilitiesStrict: (...args: unknown[]) => mockMergeAvailabilitiesStrict(...args),
@@ -34,6 +46,7 @@ jest.mock('@/hooks/multimodal/useModalityAvailability', () => ({
 jest.mock('@/services/chat/StorageService', () => ({
   StorageService: {
     enforceStorageLimits: jest.fn().mockResolvedValue(undefined),
+    saveSession: jest.fn<Promise<void>, [ChatSession]>().mockResolvedValue(undefined),
   },
 }));
 
@@ -174,7 +187,7 @@ describe('DebateOrchestrator', () => {
     const events: string[] = [];
     orchestrator.addEventListener(event => events.push(event.type));
 
-    await orchestrator.startDebate([]);
+    await orchestrator.startDebate();
 
     expect(aiService.sendMessage).toHaveBeenCalled();
     expect(store.dispatch).toHaveBeenCalledWith(
@@ -223,7 +236,7 @@ describe('DebateOrchestrator', () => {
     });
 
     await orchestrator.initializeDebate('AI ethics', googleParticipants, {}, { formatId: 'lincoln_douglas', rounds: 3 });
-    await orchestrator.startDebate([]);
+    await orchestrator.startDebate();
 
     expect(orchestrator.getSession()?.status).toBe(DebateStatus.PAUSED_FOR_REVIEW);
     expect(completedEvents[0]).toEqual(expect.objectContaining({
@@ -279,7 +292,7 @@ describe('DebateOrchestrator', () => {
     });
 
     await orchestrator.initializeDebate('AI ethics', googleParticipants, {}, { formatId: 'lincoln_douglas', rounds: 3 });
-    await orchestrator.startDebate([]);
+    await orchestrator.startDebate();
 
     expect(adapter.sendMessage).toHaveBeenCalledTimes(1);
     expect(orchestrator.getSession()?.status).toBe(DebateStatus.PAUSED_FOR_REVIEW);
@@ -331,7 +344,7 @@ describe('DebateOrchestrator', () => {
     const orchestrator = new DebateOrchestrator(asAIService(aiService));
 
     await orchestrator.initializeDebate('Climate policy', participants, {}, { formatId: 'lincoln_douglas', rounds: 3 });
-    await orchestrator.startDebate([]);
+    await orchestrator.startDebate();
 
     expect(aiService.sendMessage).not.toHaveBeenCalled();
     expect(streamChunks).toHaveLength(1);
@@ -365,7 +378,7 @@ describe('DebateOrchestrator', () => {
     orchestrator.addEventListener(event => events.push({ type: event.type, data: event.data }));
 
     await orchestrator.initializeDebate('Climate policy', participants, {}, { formatId: 'lincoln_douglas', rounds: 3 });
-    await orchestrator.startDebate([]);
+    await orchestrator.startDebate();
 
     const eventTypes = events.map(event => event.type);
     expect(events.find(event => event.type === 'typing_started')?.data).toEqual(expect.objectContaining({
@@ -402,7 +415,7 @@ describe('DebateOrchestrator', () => {
 
     const orchestrator = new DebateOrchestrator(asAIService(aiService));
     await orchestrator.initializeDebate('AI regulation should be stricter.', participants, { claude: 'george' }, { formatId: 'lincoln_douglas', rounds: 3, civility: 5 });
-    await orchestrator.startDebate([]);
+    await orchestrator.startDebate();
 
     expect(adapter.setTemporaryPersonality).toHaveBeenCalledWith(expect.objectContaining({
       id: 'george',
@@ -494,7 +507,7 @@ describe('DebateOrchestrator', () => {
       formatId: 'oxford',
       rounds: 3,
     });
-    await orchestrator.startDebate([]);
+    await orchestrator.startDebate();
 
     expect(aiService.sendMessage).not.toHaveBeenCalled();
     expect(votingEvents[0]).toEqual(expect.objectContaining({
@@ -570,7 +583,7 @@ describe('DebateOrchestrator', () => {
       rounds: 3,
       voiceConfig,
     });
-    await orchestrator.startDebate([]);
+    await orchestrator.startDebate();
 
     expect(mcAdapter.sendMessage).not.toHaveBeenCalled();
     expect(aiService.sendMessage).not.toHaveBeenCalled();
@@ -667,6 +680,67 @@ describe('DebateOrchestrator', () => {
     jest.useRealTimers();
   });
 
+  it('saves the finished debate to History', async () => {
+    jest.useFakeTimers();
+    const aiService = {
+      getAdapter: jest.fn(() => createTurnAdapter()),
+      sendMessage: jest.fn(async () => ({ response: VALID_SPEECH })),
+    };
+    const orchestrator = new DebateOrchestrator(asAIService(aiService));
+    const session = await orchestrator.initializeDebate('AI ethics', participants, {}, { formatId: 'oxford', rounds: 3 });
+
+    await orchestrator.startDebate();
+    await orchestrator.recordVote(0, 'undecided');
+    await orchestrator.executeDebateMessage(session.preset.messages.length, []);
+    await orchestrator.recordVote(0, 'for');
+    await jest.advanceTimersByTimeAsync(0);
+
+    expect(StorageService.saveSession).toHaveBeenCalledTimes(1);
+    const saved = jest.mocked(StorageService.saveSession).mock.calls[0][0];
+    expect(saved).toEqual(expect.objectContaining({ id: session.id, sessionType: 'debate', topic: 'AI ethics' }));
+    expect(saved.messages.map((message) => message.content)).toContain(VALID_SPEECH);
+    jest.clearAllTimers();
+    jest.useRealTimers();
+  });
+
+  it('keeps every debate in History for premium users', async () => {
+    jest.mocked(store.getState).mockReturnValue(buildRootState({ auth: { isPremium: true } }));
+    const aiService = {
+      getAdapter: jest.fn(() => undefined),
+      sendMessage: jest.fn(async () => ({ response: VALID_SPEECH })),
+    };
+    const orchestrator = new DebateOrchestrator(asAIService(aiService));
+    await orchestrator.initializeDebate('AI ethics', participants, {}, { formatId: 'oxford', rounds: 3 });
+
+    await orchestrator.startDebate();
+
+    expect(StorageService.enforceStorageLimits).toHaveBeenCalledWith('debate', true, true);
+  });
+
+  it('tells the user when a finished debate cannot be saved to History', async () => {
+    jest.useFakeTimers();
+    jest.mocked(StorageService.saveSession).mockRejectedValueOnce(new Error('Storage is full'));
+    const showWarning = jest.spyOn(ErrorService, 'showWarning').mockImplementation(() => undefined);
+    const turnAdapter = createTurnAdapter();
+    const aiService = {
+      getAdapter: jest.fn(() => turnAdapter),
+      sendMessage: jest.fn(async () => ({ response: VALID_SPEECH })),
+    };
+    const orchestrator = new DebateOrchestrator(asAIService(aiService));
+    const session = await orchestrator.initializeDebate('AI ethics', participants, {}, { formatId: 'oxford', rounds: 3 });
+
+    await orchestrator.startDebate();
+    await orchestrator.recordVote(0, 'undecided');
+    await orchestrator.executeDebateMessage(session.preset.messages.length, []);
+    await orchestrator.recordVote(0, 'for');
+    await jest.advanceTimersByTimeAsync(0);
+
+    expect(showWarning).toHaveBeenCalledWith('This debate could not be saved to History.', 'debate');
+    showWarning.mockRestore();
+    jest.clearAllTimers();
+    jest.useRealTimers();
+  });
+
   it('keeps same-provider podcast MC and debater adapter parameters isolated', async () => {
     jest.useFakeTimers();
     const mcAdapter = {
@@ -730,7 +804,7 @@ describe('DebateOrchestrator', () => {
       rounds: 3,
       voiceConfig,
     });
-    await orchestrator.startDebate([]);
+    await orchestrator.startDebate();
 
     expect(mcAdapter.sendMessage).toHaveBeenCalledTimes(1);
     expect(debaterAdapter.sendMessage).not.toHaveBeenCalled();
@@ -874,7 +948,7 @@ describe('DebateOrchestrator', () => {
       formatId: 'lincoln_douglas',
       rounds: 3,
     });
-    await orchestrator.startDebate([]);
+    await orchestrator.startDebate();
 
     expect(streamErrors[0]).toEqual(expect.objectContaining({
       error: 'Streaming returned an empty response',
@@ -943,7 +1017,7 @@ describe('DebateOrchestrator', () => {
       rounds: 3,
       voiceConfig,
     });
-    await orchestrator.startDebate([]);
+    await orchestrator.startDebate();
 
     expect(mockStreamingService.streamResponse).not.toHaveBeenCalled();
     await jest.advanceTimersByTimeAsync(DEBATE_CONSTANTS.DELAYS.MC_HANDOFF_PAUSE);
@@ -1000,7 +1074,7 @@ describe('DebateOrchestrator', () => {
       rounds: 3,
       voiceConfig,
     });
-    await orchestrator.startDebate([]);
+    await orchestrator.startDebate();
     expect(mcMessages).toHaveLength(0);
 
     await orchestrator.recordVote(0, 'undecided');
@@ -1834,7 +1908,7 @@ describe('DebateOrchestrator', () => {
 
       const orchestrator = new DebateOrchestrator(asAIService(aiService));
       await orchestrator.initializeDebate('AI ethics', participants, {}, { formatId: 'lincoln_douglas', rounds: 3 });
-      await orchestrator.startDebate([]);
+      await orchestrator.startDebate();
 
       expect(adapter.config.webSearchEnabled).toBe(true);
 
@@ -1871,7 +1945,7 @@ describe('DebateOrchestrator', () => {
 
       const orchestrator = new DebateOrchestrator(asAIService(aiService));
       await orchestrator.initializeDebate('AI ethics', participants, {}, { formatId: 'lincoln_douglas', rounds: 3 });
-      await orchestrator.startDebate([]);
+      await orchestrator.startDebate();
 
       expect(adapter.config.webSearchEnabled).toBe(false);
 
@@ -1908,7 +1982,7 @@ describe('DebateOrchestrator', () => {
 
       const first = new DebateOrchestrator(asAIService(aiService));
       await first.initializeDebate('AI ethics', participants, {}, { formatId: 'lincoln_douglas', rounds: 3 });
-      await first.startDebate([]);
+      await first.startDebate();
       expect(adapter.config.webSearchEnabled).toBe(true);
 
       mockMergeAvailabilitiesStrict.mockReturnValueOnce({
@@ -1921,7 +1995,7 @@ describe('DebateOrchestrator', () => {
 
       const second = new DebateOrchestrator(asAIService(aiService));
       await second.initializeDebate('AI ethics', participants, {}, { formatId: 'lincoln_douglas', rounds: 3 });
-      await second.startDebate([]);
+      await second.startDebate();
       expect(adapter.config.webSearchEnabled).toBe(false);
 
       jest.clearAllTimers();
@@ -1968,7 +2042,7 @@ describe('DebateOrchestrator', () => {
       });
 
       await orchestrator.initializeDebate('AI ethics', participants, {}, { formatId: 'lincoln_douglas', rounds: 3 });
-      await orchestrator.startDebate([]);
+      await orchestrator.startDebate();
 
     expect(aiService.sendMessage).toHaveBeenCalledWith(
       'claude',
