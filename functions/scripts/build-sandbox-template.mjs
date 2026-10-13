@@ -17,7 +17,8 @@
  * optimisation (SimPy, PuLP with CBC, OR-Tools, pint) and ffmpeg for animation. Plan:
  * symposium-ai-web docs/analyze-beyond-reports-plan.md (Template v3). It installs
  * against sandbox-template/constraints.txt, v2's pip freeze, so every package v2 had
- * keeps its version.
+ * keeps its version. Graphviz draws in the house style through a wrapper on its
+ * programs (sandbox-template/symposium-graphviz), the one place every caller passes.
  * Sandboxes run with no internet access, so anything Analyze needs must be baked in.
  * Every download is pinned by SHA-256 so an upstream change fails the build. Only
  * permissive licences (MIT, BSD, Apache-2.0, OFL), plus programs under weak copyleft
@@ -222,6 +223,13 @@ const installPrograms = [
 // Debian's chromium wrapper reads /etc/chromium.d; the E2B microVM is the isolation boundary.
 const configureChromium = `echo 'export CHROMIUM_FLAGS="$CHROMIUM_FLAGS --no-sandbox"' > /etc/chromium.d/symposium-no-sandbox`;
 
+// Graphviz house defaults (Inter, 150 dpi raster) for every layout program, ahead of
+// Debian's in /usr/bin. A patch on the Python graphviz package missed graphviz.Source
+// and subprocess calls, which models write as often.
+const installGraphvizDefaults = ['dot', 'neato', 'fdp', 'sfdp', 'circo', 'twopi', 'osage', 'patchwork']
+  .map((program) => `ln -sf symposium-graphviz /usr/local/bin/${program}`)
+  .join(' && ');
+
 const installChartStyle = [
   'mkdir -p /opt/symposium /root/.config/matplotlib /root/.ipython/profile_default/startup',
   'cp /opt/symposium/matplotlibrc /root/.config/matplotlib/.matplotlibrc',
@@ -255,6 +263,8 @@ const template = Template({ fileContextPath: join(here, 'sandbox-template') })
   .runCmd(installNlp)
   .runCmd(installPlotlyAssets)
   .runCmd(installPrograms)
+  .copy('symposium-graphviz', '/usr/local/bin/symposium-graphviz', { user: 'root', mode: 0o755 })
+  .runCmd(installGraphvizDefaults)
   .copy('matplotlibrc', '/opt/symposium/matplotlibrc', { user: 'root', mode: 0o644 })
   .copy('fonts.conf', '/etc/fonts/local.conf', { user: 'root', mode: 0o644 })
   .copy('90_symposium_style.py', '/root/.ipython/profile_default/startup/90_symposium_style.py', { user: 'root', mode: 0o644 })
