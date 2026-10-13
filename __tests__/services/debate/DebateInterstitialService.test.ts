@@ -34,7 +34,6 @@ const createSession = (): DebateSession => {
     currentAIIndex: 0,
     totalRounds: preset.voteCount,
     totalMessages: preset.messages.length,
-    civility: 3,
     format,
     preset,
     presetId: preset.id,

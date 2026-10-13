@@ -279,7 +279,6 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
   const [selectedModels, setSelectedModels] = useState<Record<string, string>>(selectedModelsFromStore || {});
   const [formatId, setFormatId] = useState<DebateFormatId>('oxford');
   const [exchanges, setExchanges] = useState<number>(3);
-  const [civility, setCivility] = useState<1|2|3|4|5>(3);
   const [formatModalVisible, setFormatModalVisible] = useState(false);
   const [recordPickerVisible, setRecordPickerVisible] = useState(false);
   const [recordMeta, setRecordMeta] = useState<{
@@ -689,7 +688,6 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
       setSelectedModels(selectedModelsFromStore || {});
       setFormatId('oxford');
       setExchanges(3);
-      setCivility(3);
       setVoiceDebateEnabled(false);
       setPodcastModeEnabled(false);
       setPodcastMC(null);
@@ -726,7 +724,6 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
 
       setFormatId(rematch.formatId);
       setExchanges(rematch.exchanges);
-      setCivility(rematch.civility);
       setDebaterSlots(buildDebaterSlotsFromAIs(debaters, slotCount, configuredAIs));
       setSelectedModels(prev => ({
         ...prev,
@@ -990,7 +987,6 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
       personalities: Object.fromEntries(aiConfigs.map(ai => [ai.id, ai.personality || 'default'])),
       formatId,
       rounds: exchanges,
-      civility,
       demoDebateId: options?.demoSampleId,
       demoSample: options?.demoSample,
       voiceConfig: options?.voiceConfig,
@@ -1289,39 +1285,14 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
           </Card>
 
           {/* Debate settings */}
+          {(showVoiceSection || !access.isDemo) && (
           <Card shadow style={{ marginBottom: theme.spacing.md }}>
             <Typography variant="subtitle" weight="semibold" style={{ marginBottom: theme.spacing.sm }}>
               🎛️ Debate Settings
             </Typography>
 
-            <Box style={{ marginBottom: theme.spacing.md }}>
-              <Typography variant="body" weight="semibold" style={{ marginBottom: theme.spacing.xs }}>
-                Intensity
-              </Typography>
-              <SegmentedControl
-                options={[
-                  { label: 'Friendly', value: 1 },
-                  { label: 'Neutral', value: 3 },
-                  { label: 'Hostile', value: 5 },
-                ]}
-                value={civility}
-                onChange={(value) => setCivility(value as 1 | 3 | 5)}
-                fullWidth
-              />
-              <Typography variant="caption" color="secondary" style={{ marginTop: theme.spacing.xs }}>
-                Controls how confrontational the arguments are; hostile still forbids insults and personal attacks.
-              </Typography>
-            </Box>
-
             {showVoiceSection && (
-              <Box
-                style={{
-                  marginBottom: theme.spacing.md,
-                  paddingTop: theme.spacing.md,
-                  borderTopWidth: 1,
-                  borderTopColor: theme.colors.border,
-                }}
-              >
+              <Box style={{ marginBottom: theme.spacing.md }}>
                 <Box style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: theme.spacing.md }}>
                   <Box style={{ flex: 1 }}>
                     <Typography variant="body" weight="semibold">
@@ -1410,11 +1381,11 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
 
             {!access.isDemo && (
               <Box
-                style={{
+                style={showVoiceSection ? {
                   paddingTop: theme.spacing.md,
                   borderTopWidth: 1,
                   borderTopColor: theme.colors.border,
-                }}
+                } : undefined}
               >
                 <Box style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: theme.spacing.md }}>
                   <Box style={{ flex: 1 }}>
@@ -1492,6 +1463,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
               </Box>
             )}
           </Card>
+          )}
         </ResponsiveContainer>
       </ScrollView>
 

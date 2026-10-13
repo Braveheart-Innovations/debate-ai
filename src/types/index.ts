@@ -254,7 +254,6 @@ export interface ChatSession {
     rounds?: number;
     tempo?: 'streaming' | 'fixed';
     postStreamPauseMs?: number;
-    civility?: 1 | 2 | 3 | 4 | 5; // 1=friendly, 3=neutral, 5=hostile but bounded
     voteResults?: DebateVoteResult[];
     audienceResult?: AudienceDecisionResult;
     audienceQuestions?: OxfordAudienceQuestions;
@@ -343,7 +342,6 @@ export type RootStackParamList = {
     formatId?: 'oxford' | 'lincoln_douglas' | 'policy' | 'socratic';
     rounds?: number;
     exchanges?: number;
-    civility?: 1 | 2 | 3 | 4 | 5;
     demoDebateId?: string;
     demoSample?: import('@/types/demo').DemoDebate;
     voiceConfig?: DebateVoiceConfig;

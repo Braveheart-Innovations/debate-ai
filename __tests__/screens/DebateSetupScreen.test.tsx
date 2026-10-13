@@ -645,22 +645,19 @@ describe('DebateSetupScreen', () => {
       topic: 'Climate Action',
       formatId: 'oxford',
       rounds: 3,
-      civility: 3,
     }));
     expect(mockDispatch).toHaveBeenCalledWith(clearPreservedTopic());
   });
 
-  it('passes intensity changes through to the debate', async () => {
+  it('leaves tone to the personalities: there is no intensity setting', async () => {
     const { renderResult, navigation } = renderScreen({ featureAccess: { isDemo: false } });
     await setTopic('Climate Action');
     await fillSlot(0, 'claude');
     await fillSlot(1, 'openai');
 
-    fireEvent.press(renderResult.getByText('Hostile'));
-    await flush();
-
+    expect(renderResult.queryByText('Intensity')).toBeNull();
     fireEvent.press(renderResult.getByTestId('start-debate-button'));
-    expect(navigation.navigate).toHaveBeenCalledWith('Debate', expect.objectContaining({ civility: 5 }));
+    expect(navigation.navigate).toHaveBeenCalledWith('Debate', expect.not.objectContaining({ civility: expect.anything() }));
   });
 
   it('opens demo debate picker and navigates with selected sample', async () => {
@@ -809,7 +806,6 @@ describe('DebateSetupScreen', () => {
           topic: 'Cities should ban cars',
           formatId: 'oxford',
           exchanges: 3,
-          civility: 4,
           voiceConfig,
         },
         rematchKey: 'rematch-1',
@@ -830,7 +826,6 @@ describe('DebateSetupScreen', () => {
       topic: 'Cities should ban cars',
       formatId: 'oxford',
       rounds: 3,
-      civility: 4,
       personalities: { [affirmative.id]: 'george', [negative.id]: 'prof_sage' },
       selectedAIs: [
         expect.objectContaining({ id: affirmative.id, model: claudeModel, personality: 'george' }),

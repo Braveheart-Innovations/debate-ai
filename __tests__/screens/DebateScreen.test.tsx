@@ -347,7 +347,6 @@ const createDebateSnapshot = (overrides: Record<string, unknown> = {}) => ({
     currentAIIndex: 0,
     totalRounds: 1,
     totalMessages: 2,
-    civility: 3,
     formatId: 'oxford',
     presetId: 'short',
     stances: {},
@@ -1267,7 +1266,6 @@ describe('DebateScreen', () => {
         formatId: 'policy',
         rounds: 5,
         exchanges: 5,
-        civility: 4,
         voiceConfig,
       },
     });
@@ -1291,7 +1289,6 @@ describe('DebateScreen', () => {
           topic: 'Resolved: AI should be regulated.',
           formatId: 'policy',
           exchanges: 5,
-          civility: 4,
           voiceConfig,
         },
         rematchKey: expect.any(String),

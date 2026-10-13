@@ -414,7 +414,7 @@ describe('DebateOrchestrator', () => {
     });
 
     const orchestrator = new DebateOrchestrator(asAIService(aiService));
-    await orchestrator.initializeDebate('AI regulation should be stricter.', participants, { claude: 'george' }, { formatId: 'lincoln_douglas', rounds: 3, civility: 5 });
+    await orchestrator.initializeDebate('AI regulation should be stricter.', participants, { claude: 'george' }, { formatId: 'lincoln_douglas', rounds: 3 });
     await orchestrator.startDebate();
 
     expect(adapter.setTemporaryPersonality).toHaveBeenCalledWith(expect.objectContaining({
@@ -423,6 +423,9 @@ describe('DebateOrchestrator', () => {
     }));
     expect(adapter.setTemporaryPersonality).toHaveBeenCalledWith(expect.objectContaining({
       systemPrompt: expect.stringContaining('Affirmative (FOR)'),
+    }));
+    expect(adapter.setTemporaryPersonality).not.toHaveBeenCalledWith(expect.objectContaining({
+      systemPrompt: expect.stringContaining('Debate intensity'),
     }));
     expect(adapter.config.parameters).toEqual(expect.objectContaining({
       temperature: 0.9,

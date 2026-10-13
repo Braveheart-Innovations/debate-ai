@@ -25,7 +25,7 @@ const voiceConfig: DebateVoiceConfig = {
 };
 
 describe('buildRematchSetupFromSavedDebate', () => {
-  it('restores the debaters, motion, format, length, intensity and voices of a saved debate', () => {
+  it('restores the debaters, motion, format, length and voices of a saved debate', () => {
     const saved = createMockChatSession({
       id: 'debate_1',
       sessionType: 'debate',
@@ -35,7 +35,6 @@ describe('buildRematchSetupFromSavedDebate', () => {
         formatId: 'lincoln_douglas',
         presetId: 'standard',
         rounds: 2,
-        civility: 2,
         voiceConfig,
       },
     });
@@ -46,18 +45,16 @@ describe('buildRematchSetupFromSavedDebate', () => {
       formatId: 'lincoln_douglas',
       // The saved `rounds` is the vote count; the setup length comes from the preset.
       exchanges: 5,
-      civility: 2,
       voiceConfig,
     });
   });
 
-  it('falls back to the default format, length and intensity for older saves', () => {
+  it('falls back to the default format and length for older saves', () => {
     const saved = createMockChatSession({ sessionType: 'debate', topic: 'Tea beats coffee', selectedAIs: debaters });
 
     expect(buildRematchSetupFromSavedDebate(saved)).toEqual(expect.objectContaining({
       formatId: 'oxford',
       exchanges: 3,
-      civility: 3,
       voiceConfig: undefined,
     }));
   });
@@ -74,7 +71,6 @@ describe('buildRematchNavigationParams', () => {
       topic: 'Cities should ban cars',
       formatId: 'oxford',
       exchanges: 3,
-      civility: 3,
     };
 
     expect(buildRematchNavigationParams(rematch)).toEqual({

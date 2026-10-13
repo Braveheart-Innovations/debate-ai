@@ -27,7 +27,6 @@ export interface UseDebateSessionReturn {
       formatId?: DebateFormatId;
       presetId?: string;
       rounds?: number;
-      civility?: 1|2|3|4|5;
       stances?: { [aiId: string]: 'pro' | 'con' };
       /** Optional pre-merged personalities from context (includes user customizations) */
       mergedPersonalities?: Record<string, PersonalityOption>;
@@ -75,7 +74,6 @@ export const useDebateSession = (_selectedAIs: AI[]): UseDebateSessionReturn => 
       formatId?: DebateFormatId;
       presetId?: string;
       rounds?: number;
-      civility?: 1|2|3|4|5;
       stances?: { [aiId: string]: 'pro' | 'con' };
       mergedPersonalities?: Record<string, PersonalityOption>;
       voiceConfig?: DebateVoiceConfig;
@@ -150,7 +148,6 @@ export const useDebateSession = (_selectedAIs: AI[]): UseDebateSessionReturn => 
           formatId: debateSession.format.id,
           presetId: debateSession.presetId,
           rounds: debateSession.totalRounds,
-          civility: debateSession.civility,
           voteResults: snapshot.voteRecords,
           audienceResult: debateSession.audienceResult,
           audienceQuestions: debateSession.audienceQuestions,

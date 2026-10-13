@@ -92,7 +92,6 @@ interface DebateScreenProps {
       formatId?: 'oxford' | 'lincoln_douglas' | 'policy' | 'socratic';
       rounds?: number;
       exchanges?: number;
-      civility?: 1|2|3|4|5;
       demoDebateId?: string;
       demoSample?: DemoDebate;
       voiceConfig?: DebateVoiceConfig;
@@ -127,7 +126,7 @@ function getPodcastGenerationLabel(stage: DebateAudioCompileStage | null): strin
 const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
   const { theme } = useTheme();
   const dispatch = useDispatch<AppDispatch>();
-  const { selectedAIs, topic: initialTopic, personalities: initialPersonalities, formatId, rounds, exchanges, civility, demoDebateId, demoSample, voiceConfig } = route.params;
+  const { selectedAIs, topic: initialTopic, personalities: initialPersonalities, formatId, rounds, exchanges, demoDebateId, demoSample, voiceConfig } = route.params;
   const [showTranscript, setShowTranscript] = useState(false);
   const [debateSamples, setDebateSamples] = useState<Array<{ id: string; title: string; topic: string }>>([]);
   const [isRecording, setIsRecording] = useState(false);
@@ -462,7 +461,6 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
         {
           formatId: formatId || 'oxford',
           rounds: (exchanges || rounds || 3),
-          civility: (civility as 1|2|3|4|5) || 3,
           mergedPersonalities,
           voiceConfig,
         }
@@ -491,7 +489,6 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
     formatId,
     exchanges,
     rounds,
-    civility,
     session,
     messages,
     flow,
@@ -629,11 +626,9 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
       topic: rematchTopic,
       formatId: formatId || 'oxford',
       exchanges: exchanges || rounds || 3,
-      civility: civility || 3,
       voiceConfig,
     }));
   }, [
-    civility,
     exchanges,
     formatId,
     initialPersonalities,

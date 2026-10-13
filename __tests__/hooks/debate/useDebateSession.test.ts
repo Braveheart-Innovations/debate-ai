@@ -56,7 +56,6 @@ describe('useDebateSession', () => {
     currentAIIndex: 0,
     totalRounds: 3,
     totalMessages: 6,
-    civility: 1,
     format: getFormat('oxford'),
     preset: getPresetForFormat('oxford', 'short'),
     presetId: 'short',

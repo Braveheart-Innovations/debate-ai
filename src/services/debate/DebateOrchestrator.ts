@@ -58,7 +58,6 @@ export interface DebateSession {
   currentAIIndex: number;
   totalRounds: number;
   totalMessages: number;
-  civility: 1 | 2 | 3 | 4 | 5;
   format: FormatSpec;
   preset: PresetConfig;
   presetId: string;
@@ -657,7 +656,6 @@ export class DebateOrchestrator {
       formatId?: DebateFormatId;
       presetId?: string;
       rounds?: number; // 1–5
-      civility?: 1 | 2 | 3 | 4 | 5;
       stances?: { [aiId: string]: 'pro' | 'con' };
       /** Optional pre-merged personalities from context (includes user customizations) */
       mergedPersonalities?: Record<string, PersonalityOption>;
@@ -692,7 +690,6 @@ export class DebateOrchestrator {
 
     const totalRounds = preset.voteCount;
     const totalMessages = preset.messages.length;
-    const civility = (options?.civility as 1|2|3|4|5) || 3;
     const stances: { [aiId: string]: 'pro' | 'con' } = {};
     resolvedParticipants.forEach((participant, index) => {
       const side = this.getSideForParticipantIndex(index, preset);
@@ -720,7 +717,6 @@ export class DebateOrchestrator {
       currentAIIndex: 0,
       totalRounds,
       totalMessages,
-      civility,
       format,
       preset,
       presetId: preset.id,
@@ -807,7 +803,7 @@ export class DebateOrchestrator {
       });
     }
 
-    const { participants, personalities, topic, format, preset, totalRounds, civility } = this.session;
+    const { participants, personalities, topic, format, preset, totalRounds } = this.session;
     const maxMessages = preset.messages.length;
 
     // Check if debate should end
@@ -906,7 +902,6 @@ export class DebateOrchestrator {
         guidance: format.guidance[phase] ?? '',
         format,
         presetId: preset.id,
-        civilityLevel: civility,
         personalityId,
         messageLabel: messageSpec.label,
         roleBrief: roleContext.roleBrief,
@@ -973,7 +968,6 @@ export class DebateOrchestrator {
           finalVoteRequired: preset.finalVoteRequired,
           opponentName: opponent?.name || 'Opponent',
           opponentPersonality: opponentPersona,
-          civility,
         },
       });
       const runtimeParameters = applyDebateOutputTokenCap(
@@ -1006,7 +1000,6 @@ export class DebateOrchestrator {
               personalityId,
               personalityName: runtime.debug.personalityName,
               stance,
-              civility,
               format: { id: format.id, name: format.name },
               phase,
               round: currentRound,
@@ -1976,7 +1969,6 @@ export class DebateOrchestrator {
           rounds: this.session.totalRounds,
           tempo: 'streaming',
           postStreamPauseMs: DEBATE_CONSTANTS.DELAYS.POST_STREAM_PAUSE,
-          civility: this.session.civility,
           voteResults: this.votingService?.getVoteRecords(),
           audienceResult: this.session.audienceResult,
           audienceQuestions: this.session.audienceQuestions,
@@ -2139,7 +2131,6 @@ export class DebateOrchestrator {
         currentAIIndex: this.session.currentAIIndex,
         totalRounds: this.session.totalRounds,
         totalMessages: this.session.totalMessages,
-        civility: this.session.civility,
         formatId: this.session.format.id,
         presetId: this.session.presetId,
         stances: this.session.stances,
@@ -2200,7 +2191,6 @@ export class DebateOrchestrator {
       currentAIIndex: snapshot.debateSession.currentAIIndex,
       totalRounds: snapshot.debateSession.totalRounds,
       totalMessages: snapshot.debateSession.totalMessages,
-      civility: snapshot.debateSession.civility,
       format,
       preset,
       presetId: preset.id,

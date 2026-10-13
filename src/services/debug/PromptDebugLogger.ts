@@ -7,7 +7,6 @@ export type PromptDebugPayload = {
   personalityId?: string;
   personalityName?: string;
   stance?: 'pro' | 'con';
-  civility?: 1 | 2 | 3 | 4 | 5;
   format?: { id: string; name: string };
   phase?: string;
   round?: number;

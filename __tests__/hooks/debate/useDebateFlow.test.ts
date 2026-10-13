@@ -46,7 +46,6 @@ const createDebateSession = (overrides: Partial<DebateSession> = {}): DebateSess
     currentAIIndex: 0,
     totalRounds: 3,
     totalMessages: preset.messages.length,
-    civility: 3,
     format: getFormat('oxford'),
     preset,
     presetId: preset.id,

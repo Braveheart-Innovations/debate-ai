@@ -1,8 +1,6 @@
 import { getRoundsForPresetId, type DebateFormatId } from '@/config/debate/formats';
 import type { AIConfig, ChatSession, DebateVoiceConfig } from '@/types';
 
-type Civility = 1 | 2 | 3 | 4 | 5;
-
 /**
  * Everything Debate setup needs to stage a debate again: the user lands on setup
  * with it pre-filled and can start as-is or adjust it first.
@@ -14,7 +12,6 @@ export interface DebateRematchSetup {
   formatId: DebateFormatId;
   /** The setup length choice (3, 5 or 7). */
   exchanges: number;
-  civility: Civility;
   voiceConfig?: DebateVoiceConfig;
 }
 
@@ -34,7 +31,6 @@ export const buildRematchSetupFromSavedDebate = (session: ChatSession): DebateRe
     topic: session.topic,
     formatId: config?.formatId || 'oxford',
     exchanges: getRoundsForPresetId(config?.presetId),
-    civility: config?.civility || 3,
     voiceConfig: config?.voiceConfig,
   };
 };
