@@ -996,9 +996,12 @@ function extractDataArtifacts(
         }
         return readChartFile(url);
       });
-      // A reference to a diagram file becomes a diagram block carrying its data
-      // model as it stands now (this round's save first): the report keeps that
-      // version, drawn by the app like the Diagram view.
+      // A reference to a diagram file becomes a diagram block carrying the file
+      // as it stands now (this round's save first): this version of the report
+      // keeps it, drawn by the app like the Diagram view. The sandbox gets the
+      // stored report back, baked, so a block already baked from a file is drawn
+      // from that file again (refresh): an edited diagram reaches the report at
+      // its next save.
       const readSessionDiagram = diagramReaderFromArtifacts(ctx.existingArtifacts);
       spec = inlineDiagramRefs(spec, (name) => {
         const wanted = name.split('/').pop();
@@ -1007,7 +1010,7 @@ function extractDataArtifacts(
           try { return decodeBase64ToUtf8(output.base64); } catch { return null; }
         }
         return readSessionDiagram(name);
-      });
+      }, { refresh: true });
       spec = injectSourceProvenance(spec, deps.getFetchProvenanceMap());
       // A panel this turn, or one an earlier version of this report recorded (e.g. a
       // post-review revision): the method note stays with the report.
