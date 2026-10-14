@@ -4,7 +4,8 @@ import type { Artifact } from '../../../types/notebook';
 
 /**
  * Charts whose data is a session file (`"data": {"url": "/output/x.csv"}`) get
- * that file's rows inline (`"data": {"values": [...]}`).
+ * that file's rows inline (`"data": {"values": [...], "file": {"path":
+ * "/output/x.csv"}}`).
  *
  * The output contract asks for inline `data.values`, but models sometimes point
  * at the CSV they just saved instead. That path exists only in the sandbox, so
@@ -12,6 +13,12 @@ import type { Artifact } from '../../../types/notebook';
  * Applied when a report is captured (the round's files are in hand) and when a
  * stored report is rendered or published (the session's artifacts), which also
  * heals reports saved before this existed.
+ *
+ * The sandbox gets the stored report back (its rows inline), so an inlined
+ * definition remembers its `file` (Vega-Lite ignores the key), and capture
+ * (`refresh`) reads the rows of a report saved again from that file as it is
+ * now: changed data reaches the chart at the report's next save, while each
+ * version of the report keeps the rows it was saved with.
  */
 
 /** Text of a session file by the path a chart named, or null when it isn't known. */
@@ -127,6 +134,8 @@ function valueAtProperty(value: unknown, property: unknown): unknown {
 /** The data definition with the file's rows inline, or null when it can't be inlined. */
 function inlineDataDefinition(data: LooseRecord, read: ChartFileReader): LooseRecord | null {
   if (typeof data.url !== 'string') return null;
+  const file: LooseRecord = { path: data.url };
+  if (isRecord(data.format)) file.format = data.format;
   const path = sessionDataPath(data.url);
   if (!path) return null;
   const format = isRecord(data.format) ? data.format : undefined;
@@ -148,7 +157,7 @@ function inlineDataDefinition(data: LooseRecord, read: ChartFileReader): LooseRe
     values = parseDelimitedRows(text, delimiter);
   }
 
-  const inlined: LooseRecord = { ...data, values };
+  const inlined: LooseRecord = { ...data, values, file };
   delete inlined.url;
   delete inlined.format;
   // A declared field parse (e.g. dates) still applies to inline rows.
@@ -156,11 +165,31 @@ function inlineDataDefinition(data: LooseRecord, read: ChartFileReader): LooseRe
   return inlined;
 }
 
+/**
+ * An inlined definition with its file's rows as they are now; null when it
+ * names no file, the file can't be read, or the rows haven't changed.
+ */
+function refreshedDataDefinition(data: LooseRecord, read: ChartFileReader): LooseRecord | null {
+  if (!isRecord(data.file) || typeof data.file.path !== 'string' || !Array.isArray(data.values)) return null;
+  const source: LooseRecord = { ...data, url: data.file.path };
+  delete source.values;
+  delete source.file;
+  delete source.format;
+  if (isRecord(data.file.format)) source.format = data.file.format;
+  const fresh = inlineDataDefinition(source, read);
+  if (!fresh) return null;
+  return JSON.stringify(fresh.values) === JSON.stringify(data.values) ? null : { ...data, values: fresh.values };
+}
+
 // Inline rows never name a file; don't walk them.
 const SKIP_KEYS = new Set(['values', 'datasets']);
 
-/** Every data definition in a Vega-Lite spec (top level, layers, lookups, nested views). */
-export function inlineVegaLiteDataFiles<T>(spec: T, read: ChartFileReader): T {
+/**
+ * Every data definition in a Vega-Lite spec (top level, layers, lookups,
+ * nested views). With `refresh` (capture), a definition inlined before is read
+ * from its file again.
+ */
+export function inlineVegaLiteDataFiles<T>(spec: T, read: ChartFileReader, options: { refresh?: boolean } = {}): T {
   const walk = (node: unknown): unknown => {
     if (Array.isArray(node)) {
       const mapped = node.map(walk);
@@ -171,7 +200,7 @@ export function inlineVegaLiteDataFiles<T>(spec: T, read: ChartFileReader): T {
     for (const [key, value] of Object.entries(node)) {
       if (SKIP_KEYS.has(key)) continue;
       const next = key === 'data' && isRecord(value)
-        ? inlineDataDefinition(value, read) ?? walk(value)
+        ? inlineDataDefinition(value, read) ?? (options.refresh ? refreshedDataDefinition(value, read) : null) ?? walk(value)
         : walk(value);
       if (next !== value) (out ??= { ...node })[key] = next;
     }
@@ -180,8 +209,8 @@ export function inlineVegaLiteDataFiles<T>(spec: T, read: ChartFileReader): T {
   return walk(spec) as T;
 }
 
-/** Every chart block of a report spec. Returns the input itself when nothing changed. */
-export function inlineChartDataFiles<T>(spec: T, read: ChartFileReader): T {
+/** Every chart block of a report spec (`refresh` as above). Returns the input itself when nothing changed. */
+export function inlineChartDataFiles<T>(spec: T, read: ChartFileReader, options: { refresh?: boolean } = {}): T {
   if (!isRecord(spec) || !Array.isArray(spec.pages)) return spec;
   let changed = false;
   const pages = spec.pages.map((page) => {
@@ -190,7 +219,7 @@ export function inlineChartDataFiles<T>(spec: T, read: ChartFileReader): T {
     const blocks = page.blocks.map((block) => {
       if (!isRecord(block) || block.kind !== 'chart' || !isRecord(block.spec)) return block;
       const vega = block.spec.spec;
-      const inlined = inlineVegaLiteDataFiles(vega, read);
+      const inlined = inlineVegaLiteDataFiles(vega, read, options);
       if (inlined === vega) return block;
       pageChanged = true;
       return { ...block, spec: { ...block.spec, spec: inlined } };
@@ -219,9 +248,12 @@ function artifactText(data: string): string {
 /** Reads chart files from the session's artifacts, by file name. */
 export function chartFileReaderFromArtifacts(artifacts: Artifact[] | undefined): ChartFileReader {
   const byName = new Map<string, Artifact>();
+  const newer = (a: Artifact, b: Artifact) => ((a.metadata?.versionNumber ?? 1) - (b.metadata?.versionNumber ?? 1)) || (a.createdAt - b.createdAt);
   for (const artifact of artifacts ?? []) {
     if (artifact.name && typeof artifact.data === 'string' && !artifact.data.startsWith('__')) {
-      byName.set(artifact.name, artifact);
+      const held = byName.get(artifact.name);
+      // A file saved more than once: its newest version.
+      if (!held || newer(artifact, held) >= 0) byName.set(artifact.name, artifact);
     }
   }
   return (url) => {

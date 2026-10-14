@@ -986,6 +986,9 @@ function extractDataArtifacts(
     if (analysisSpec) {
       // A chart that names a session file gets its rows inline: the round's files
       // first, then the session's saved artifacts (the browser can't load sandbox paths).
+      // The sandbox gets the stored report back with the rows inline, so a chart
+      // inlined before reads its file again (refresh): changed data reaches the
+      // chart at the report's next save.
       const readChartFile = chartFileReaderFromArtifacts(ctx.existingArtifacts);
       let spec = inlineChartDataFiles(analysisSpec, (url) => {
         const path = sessionDataPath(url);
@@ -995,7 +998,7 @@ function extractDataArtifacts(
           try { return decodeBase64ToUtf8(output.base64); } catch { return null; }
         }
         return readChartFile(url);
-      });
+      }, { refresh: true });
       // A reference to a diagram file becomes a diagram block carrying the file
       // as it stands now (this round's save first): this version of the report
       // keeps it, drawn by the app like the Diagram view. The sandbox gets the
