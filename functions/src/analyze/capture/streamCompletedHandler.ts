@@ -996,8 +996,9 @@ function extractDataArtifacts(
         }
         return readChartFile(url);
       });
-      // A reference to a diagram file becomes its Mermaid figure, as the diagram
-      // stands now (this round's save first): the report keeps that picture.
+      // A reference to a diagram file becomes a diagram block carrying its data
+      // model as it stands now (this round's save first): the report keeps that
+      // version, drawn by the app like the Diagram view.
       const readSessionDiagram = diagramReaderFromArtifacts(ctx.existingArtifacts);
       spec = inlineDiagramRefs(spec, (name) => {
         const wanted = name.split('/').pop();

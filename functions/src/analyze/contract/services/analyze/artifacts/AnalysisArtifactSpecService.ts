@@ -13,7 +13,7 @@ import type { ReportBlock, ReportSource, ReportSpecV1 } from '../../../types/rep
 import { decodePossiblyBase64Json, parseJsonLenient, repairUtf8Mojibake } from '../../../lib/encoding/utf8Base64';
 import { repairVegaLiteSpec } from '../charts/repairVegaLite';
 import { chartFileReaderFromArtifacts, inlineChartDataFiles } from '../charts/inlineChartData';
-import { diagramReaderFromArtifacts, inlineDiagramRefs } from '../diagrams/diagramMermaid';
+import { diagramReaderFromArtifacts, diagramSpecText, inlineDiagramRefs } from '../diagrams/diagramMermaid';
 import type { PresentationOverlayV1 } from '../../../types/presentation-overlay';
 import { resolveOverlayTheme } from './PresentationOverlayService';
 import {
@@ -104,10 +104,17 @@ const chartBlockSchema = baseBlockSchema.extend({
 // render time (code-block fallback) instead of sinking the spec.
 const diagramBlockSchema = baseBlockSchema.extend({
   kind: z.literal('diagram'),
-  spec: z.object({
-    type: z.literal('mermaid'),
-    code: z.string().min(1),
-  }),
+  spec: z.union([
+    z.object({
+      type: z.literal('mermaid'),
+      code: z.string().min(1),
+    }),
+    // A data model baked from a diagram file; checked when drawn, so it can't sink the spec.
+    z.object({
+      type: z.literal('data_model'),
+      model: z.record(z.string(), z.unknown()),
+    }),
+  ]),
   caption: z.string().optional(),
 });
 
@@ -362,6 +369,8 @@ function normalizeSpecBlock(block: unknown): unknown {
     const alreadyWrapped =
       b.kind === 'diagram' && !!s && s.type === 'mermaid' && typeof s.code === 'string';
     if (alreadyWrapped) return block;
+    // A data model baked from a diagram file (inlineDiagramRefs) is already canonical.
+    if (b.kind === 'diagram' && !!s && s.type === 'data_model') return block;
 
     const aliasKeys = ['code', 'mermaid', 'mermaidCode', 'source'];
     const raw = [
@@ -830,7 +839,7 @@ function renderBlock(block: AnalysisArtifactBlock, sources: AnalysisArtifactSour
     return [
       '<section class="content-block diagram-block">',
       title,
-      `<pre class="diagram-source">${escapeHtml(block.spec.code)}</pre>`,
+      `<pre class="diagram-source">${escapeHtml(diagramSpecText(block.spec))}</pre>`,
       block.caption ? `<p class="figcaption">${renderInlineMarkdown(block.caption, sources)}</p>` : '',
       '</section>',
     ].join('');

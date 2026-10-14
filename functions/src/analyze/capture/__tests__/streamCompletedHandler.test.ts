@@ -1334,7 +1334,7 @@ describe('handleStreamCompleted general intent-gated surfacing (non-Salesforce)'
       expect(files.map((artifact) => artifact.type)).toEqual(['diagram']);
     });
 
-    it('draws a report\'s reference to a diagram as its Mermaid figure, as the diagram stood', () => {
+    it('bakes a report\'s reference to a diagram into the report, as the diagram stood', () => {
       const reportWithDiagram = (artifactId: string) => {
         const text = JSON.stringify({
           version: 1, kind: 'analysis_artifact_spec', title: 'Families', summary: 'The model.',
@@ -1354,8 +1354,9 @@ describe('handleStreamCompleted general intent-gated surfacing (non-Salesforce)'
       });
       const report = artifacts.find((artifact) => artifact.type === 'analysis_artifact_spec')!;
       const block = JSON.parse(report.data).pages[0].blocks[0];
-      expect(block).toMatchObject({ kind: 'diagram', caption: 'The data model', spec: { type: 'mermaid' } });
-      expect(block.spec.code).toContain('child }o--|| family : ""');
+      // The file's data model itself, drawn by the app like the Diagram view.
+      expect(block).toMatchObject({ kind: 'diagram', caption: 'The data model', spec: { type: 'data_model', model: { title: 'Families', kind: 'data_model' } } });
+      expect(block.spec.model.entities.map((entity: { id: string }) => entity.id)).toEqual(['family', 'child']);
       expect(block).not.toHaveProperty('artifactId');
 
       // Saved in an earlier round: the session's newest version.
