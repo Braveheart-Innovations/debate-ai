@@ -18,7 +18,8 @@
 import { decodeBase64ToUtf8, looksLikeBase64 } from '../../../lib/encoding/utf8Base64';
 import type { Artifact } from '../../../types/notebook';
 import type { DiagramBlockSpec } from '../../../types/report-spec';
-import { isDiagramFilename, reviewDiagram, reviewDiagramText, type Cardinality, type DataModelDiagram } from './diagramFile';
+import { isDiagramFilename, reviewDiagram, reviewDiagramText, type Cardinality, type DataModelDiagram, type DiagramFileV1, type ProcessFlowDiagram } from './diagramFile';
+import { describeNode, shareLabel } from './processFlows';
 
 /** The text of a diagram file by the name a report gave, or null when it isn't known. */
 export type DiagramFileReader = (name: string) => string | null;
@@ -92,11 +93,43 @@ export function diagramToMermaid(diagram: DataModelDiagram): string {
   return lines.join('\n');
 }
 
+/** A process flow as a Mermaid flowchart, left to right: starts and ends as pills, decisions as diamonds, steps with their numbers. */
+export function processFlowToMermaid(diagram: ProcessFlowDiagram): string {
+  const lines = ['flowchart LR'];
+  const names = new Map<string, string>();
+  const taken = new Set<string>();
+  for (const node of diagram.nodes) {
+    let name = mermaidWord(node.id);
+    for (let n = 2; taken.has(name); n += 1) name = `${mermaidWord(node.id)}_${n}`;
+    taken.add(name);
+    names.set(node.id, name);
+  }
+  for (const node of diagram.nodes) {
+    const details = describeNode(node, diagram);
+    const label = quoted(details ? `${node.label} · ${details}` : node.label);
+    const name = names.get(node.id);
+    lines.push(node.type === 'decision' ? `  ${name}{${label}}` : node.type === 'step' ? `  ${name}[${label}]` : `  ${name}([${label}])`);
+  }
+  for (const flow of diagram.flows) {
+    const from = names.get(flow.from);
+    const to = names.get(flow.to);
+    if (!from || !to) continue;
+    const text = [flow.label, shareLabel(flow.share)].filter(Boolean).join(' · ');
+    lines.push(text ? `  ${from} -->|${quoted(text)}| ${to}` : `  ${from} --> ${to}`);
+  }
+  return lines.join('\n');
+}
+
+/** Any diagram file as Mermaid text: an erDiagram for a data model, a flowchart for a process flow. */
+export function diagramFileToMermaid(diagram: DiagramFileV1): string {
+  return diagram.kind === 'data_model' ? diagramToMermaid(diagram) : processFlowToMermaid(diagram);
+}
+
 /** A diagram block's source as text: what a fallback shows when the figure can't be drawn. */
 export function diagramSpecText(spec: DiagramBlockSpec): string {
   if (spec.type === 'mermaid') return spec.code;
   const review = reviewDiagram(spec.model);
-  return review.diagram ? diagramToMermaid(review.diagram) : JSON.stringify(spec.model, null, 2);
+  return review.diagram ? diagramFileToMermaid(review.diagram) : JSON.stringify(spec.model, null, 2);
 }
 
 function artifactText(data: string): string {
@@ -142,7 +175,9 @@ export function inlineDiagramRefs<T>(spec: T, read: DiagramFileReader): T {
       if (!diagram) return block;
       pageChanged = true;
       const rest = Object.fromEntries(Object.entries(block).filter(([key]) => key !== 'artifactId'));
-      return { ...rest, kind: 'diagram', spec: { type: 'data_model', model: diagram }, caption: typeof block.caption === 'string' && block.caption ? block.caption : diagram.title };
+      // A data model draws like the Diagram view; a process flow reads well as a flowchart.
+      const spec = diagram.kind === 'data_model' ? { type: 'data_model', model: diagram } : { type: 'mermaid', code: processFlowToMermaid(diagram) };
+      return { ...rest, kind: 'diagram', spec, caption: typeof block.caption === 'string' && block.caption ? block.caption : diagram.title };
     });
     if (!pageChanged) return page;
     changed = true;

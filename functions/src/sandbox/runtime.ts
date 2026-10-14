@@ -117,7 +117,7 @@ function scopeArgs(key: string): string {
  * still running an older runtime (a resumed sandbox outlives a deploy) installs
  * the new one before its next cell.
  */
-export const RUNTIME_VERSION = 4;
+export const RUNTIME_VERSION = 5;
 
 /** Runs before every cell; installs the runtime on a fresh, restarted or outdated kernel. */
 export function preCode(key: string = DEFAULT_KERNEL): string {

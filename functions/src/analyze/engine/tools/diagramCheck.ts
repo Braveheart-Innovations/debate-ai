@@ -22,7 +22,10 @@ export function checkDiagrams(result: ToolResult): ToolResult {
       notes.push(`Diagram NOT readable: ${path}: ${review.problems.join('; ')}. The user can't open it in Outputs; fix these and save it again.`);
       continue;
     }
-    const size = `${plural(review.diagram.entities.length, 'entity', 'entities')}, ${plural(review.diagram.relationships.length, 'relationship', 'relationships')}`;
+    const diagram = review.diagram;
+    const size = diagram.kind === 'data_model'
+      ? `${plural(diagram.entities.length, 'entity', 'entities')}, ${plural(diagram.relationships.length, 'relationship', 'relationships')}`
+      : `${plural(diagram.nodes.length, 'node', 'nodes')}, ${plural(diagram.flows.length, 'flow', 'flows')}`;
     notes.push(review.warnings.length > 0
       ? `Diagram saved: ${path} (${size}), with warnings the user sees in the editor: ${review.warnings.join('; ')}. Fix them unless they're intended, and save it again.`
       : `Diagram saved: ${path} (${size}). The user can open it in Outputs and edit it.`);

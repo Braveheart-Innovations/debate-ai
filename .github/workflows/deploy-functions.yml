@@ -35,6 +35,15 @@ jobs:
         run: npm ci
         working-directory: functions
 
+      # The process simulator's tests run SimPy (the sandbox template's pin).
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install SimPy
+        run: python -m pip install simpy==4.1.2
+
       - name: Functions quality gate
         run: npm run check:functions
 
