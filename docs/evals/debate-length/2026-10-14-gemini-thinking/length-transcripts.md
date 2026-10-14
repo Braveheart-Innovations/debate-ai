@@ -1,0 +1,743 @@
+# Debate length experiment: transcripts
+
+## current/default: Default on gemini-3.8-flash vs gemini-3.8-flash
+
+### Affirmative Opening Statement: Gemini (Default) (209 words)
+
+> Length guidance: Keep this as a compact opening. Make the core case in 2-3 short paragraphs, with no headings or lists, then stop.
+
+The motion before us asks a fundamental question about the purpose and design of our urban cores: whether dense city centres should continue to be dominated by the private automobile, or whether they should be reclaimed for the public good. The Affirmative stands firmly in favor of the motion to ban private cars from city centres. Our burden in this debate is to demonstrate that the unrestricted presence of personal vehicles imposes severe, systemic costs on public health, environmental sustainability, and economic vitality, and that removing them creates a safer, more equitable, and significantly more functional urban environment.
+
+City centres are shared, finite spaces, yet private cars monopolize an overwhelming proportion of street acreage while moving a fraction of the people that mass transit and active mobility can accommodate. This spatial inefficiency generates chronic congestion, elevated emissions of harmful pollutants, persistent noise pollution, and substantial risks to pedestrian safety. In contrast, reserving central zones exclusively for public transit, essential service vehicles, cyclists, and pedestrians revitalizes local commerce, dramatically improves air quality, and creates accessible, human-scaled spaces where residents and visitors can navigate their surroundings safely and efficiently. Transforming our city centres away from car dependency is not only achievable, but an urgent and necessary step toward sustainable urban living.
+
+### Negative Opening Statement: Gemini (Default) (259 words)
+
+> Length guidance: Keep this as a compact opening. Make the core case in 2-3 short paragraphs, with no headings or lists, then stop.
+
+The motion before us proposes a total, uncompromising measure: the outright prohibition of private automobiles from city centres. The Negative does not stand before you to defend traffic gridlock or unrestrained pollution, but to demonstrate that a blanket ban is a blunt, coercive, and counterproductive policy. Vibrant urban cores depend upon accessibility, adaptability, and social inclusion. Treating vehicular access as an all-or-nothing proposition ignores the operational complexity of modern metropolitan life and risks fracturing the communities that cities are meant to unite.
+
+First and foremost, an outright ban severely undermines urban equity and accessibility. Millions of citizens—including individuals with disabilities, the elderly, late-night shift workers, and residents of peripheral neighborhoods poorly served by public transit—depend upon personal vehicles for essential mobility. Barring private cars creates an insurmountable barrier for those who cannot easily walk, cycle, or rely on fixed-route transit schedules, effectively turning city centres into exclusive enclaves accessible only to the able-bodied and centrally housed. Furthermore, small business owners, local tradespeople, and independent contractors rely on the flexibility of vehicular transport to maintain the commercial fabric that sustains urban life.
+
+A draconian ban also threatens the long-term economic vitality of downtown districts, risking an exodus of commerce, jobs, and retail toward automobile-friendly suburban peripheries. Genuine urban livability is achieved not through ideological prohibitions that penalize necessary travel, but through pragmatic, proportional policies such as congestion pricing, low-emission standards, and targeted pedestrianized corridors that balance environmental goals with the practical demands of everyday citizens. For the economic resilience, fairness, and accessibility of our cities, this motion must be rejected.
+
+### Affirmative Floor Speech: Gemini (Default) (309 words)
+
+> Length guidance: Keep this rebuttal brief and targeted. Answer one or two decisive claims, rebuild your side, and stop.
+
+The Negative rests its case on two fundamental misapprehensions: that banning private cars inherently disenfranchises vulnerable populations, and that downtown commerce will wither without drive-in customers. Both claims dissolve when confronted with how urban transit and local economies actually function.
+
+First, the Negative invokes accessibility to defend the status quo, yet car dependency is itself the single greatest impediment to equitable urban mobility. Clogged streets paralyze surface transit systems like buses and trams, which carry the overwhelming majority of elderly, disabled, and low-income urban residents who cannot drive or afford private vehicle ownership. Banning private automobiles from central zones does not mean locking out people with limited mobility; every functional car-free model cleanly accommodates designated paratransit services, emergency vehicles, and authorized mobility aids. What it eliminates is the daily inundation of single-occupancy commuter vehicles that render crossings hazardous, degrade air quality for the vulnerable, and delay essential mass transit.
+
+Second, the assertion that commercial vitality depends upon private vehicular access flies in the face of empirical evidence. Cities that have decisively restricted central vehicle traffic—from Pontevedra and Ghent to parts of Madrid and Ljubljana—have seen foot traffic surge and retail revenues climb, not collapse. Shoppers do not spend money from behind windshields at thirty miles per hour; they spend when streets are safe, clean, and walkable, encouraging extended dwell times and active street-level engagement. The suburban flight the Negative fears is driven by broader macroeconomic trends, not by pedestrianized downtowns, which remain the most desirable, resilient commercial corridors in modern urban geography.
+
+When private cars monopolize up to seventy percent of public street space to transport an inefficient, high-emission minority, they hold the collective functioning of the city hostage. Removing private vehicles is neither ideological nor exclusionary; it is the necessary reallocation of scarce public space to preserve public health, protect street-level commerce, and restore transit efficiency for everyone.
+
+## current/default: Bestie on gemini-3.8-flash vs gemini-3.8-flash
+
+### Affirmative Opening Statement: Gemini (Default) (270 words)
+
+> Length guidance: Keep this as a compact opening. Make the core case in 2-3 short paragraphs, with no headings or lists, then stop.
+
+The motion before us today proposes a necessary and overdue transformation of our urban cores: the prohibition of private automobiles within city centres. At its heart, this debate asks what purpose a downtown should serve and whose welfare it ought to prioritize. For nearly a century, urban planning has subordinated public health, communal space, and environmental sustainability to the logistical demands of personal vehicles. The burden of the Affirmative is to demonstrate that reclaiming these dense, shared environments from private cars yields profound net benefits for air quality, civic safety, and economic vitality, while establishing a transit model fit for the modern era.
+
+Private vehicles are fundamentally incompatible with the spatial reality of city centres. They consume vast amounts of scarce land for parking and multilane thoroughfares, generate localized emissions that endanger public health, and cause chronic gridlock that impairs essential municipal functions. Replacing car dominance with comprehensive mass transit, cycling networks, and pedestrianization dramatically reduces urban emissions and traffic fatalities. More than an environmental measure, this policy revitalizes downtown economies by converting inactive asphalt into vibrant spaces where local businesses thrive on increased foot traffic rather than fleeting curbside visibility.
+
+Crucially, the motion targets private cars specifically, leaving room for emergency vehicles, commercial deliveries, and dedicated public transit to operate with unprecedented speed and efficiency. Urban cores represent the cultural and civic heart of our communities, and they function best when designed around people rather than machines. By removing private cars, we create cities that are cleaner, safer, and inherently more accessible for all residents. It is for these reasons that we urge the audience to support the motion.
+
+### Negative Opening Statement: Gemini (Default) (255 words)
+
+> Length guidance: Keep this as a compact opening. Make the core case in 2-3 short paragraphs, with no headings or lists, then stop.
+
+The proposition before the house—to enact an absolute ban on private cars in city centres—is a dangerously blunt instrument applied to an intricate urban ecosystem. Cities thrive on accessibility, connectivity, and diversity of movement. In debating this motion, the fundamental question is not whether urban centres should strive for cleaner air or reduced congestion, but whether an outright, categorical prohibition is a sensible or just mechanism to achieve those ends. The threshold for justifying a blanket ban requires proving that personal vehicular access possesses zero legitimate utility and that no balanced, regulatory alternative could suffice.
+
+An outright ban fundamentally threatens urban equity and economic viability. Public transit networks rarely provide seamless, round-the-clock coverage across entire metropolitan areas, leaving peripheral workers, shift laborers, families, and individuals with hidden disabilities or reduced mobility stranded without viable alternatives to reach downtown services and employment. Moreover, urban retail, cultural venues, and service businesses rely heavily on patrons and clients visiting from outside the immediate urban core. Imposing an absolute barrier does not dissolve travel demand; it simply diverts economic activity toward car-accessible suburban commercial zones, hollowing out downtown districts and eroding municipal tax bases.
+
+Sensible urban governance requires calibrated, evidence-based management rather than ideological exclusion. Tools such as congestion pricing, low-emission zones, dynamic traffic management, and expanded pedestrian corridors successfully curb pollution and gridlock while preserving the flexibility that a functioning city demands. Banning private vehicles wholesale sacrifices the complex realities of human movement for an unworkable urban purity, and for these reasons, this house must oppose the motion.
+
+### Affirmative Floor Speech: Gemini (Default) (287 words)
+
+> Length guidance: Keep this rebuttal brief and targeted. Answer one or two decisive claims, rebuild your side, and stop.
+
+The opposition’s defense of the status quo hinges on two flawed assertions: that removing private cars hollows out downtown economies, and that targeted measures like congestion pricing are inherently fairer to working commuters. Neither claim withstands scrutiny.
+
+The fear that eliminating personal vehicles will drive consumers to suburban strip malls contradicts empirical urban economic data. Cities that have phased out private cars from their centres—from Ljubljana and Pontevedra to pedestrianized commercial districts across Paris and Ghent—have repeatedly observed higher retail turnover, increased restaurant foot traffic, and longer consumer dwell times. Private vehicles represent an extraordinarily inefficient mechanism for delivering patrons to storefronts, as a single car occupies scarce square footage that could accommodate dozens of pedestrians. Downtown businesses do not depend on curbside parking; they depend on pedestrian volume and an inviting public realm.
+
+Furthermore, the opposition presents congestion pricing and incremental regulations as more equitable solutions, but pricing mechanisms merely turn road access into a pay-to-pollute privilege for affluent drivers. In major metropolitan areas, the vast majority of peripheral workers and lower-income residents do not drive private vehicles into dense urban cores; they rely on regional buses, trams, and rail. Under the current regime, those mass transit systems are held hostage by the congestion caused by a minority of private car users. Removing private automobiles immediately clears surface lanes, allowing buses and emergency services to travel rapidly and predictably. Legitimate accessibility needs for individuals with limited mobility are seamlessly integrated through targeted paratransit and medical permits in every working model of a car-free centre. 
+
+An outright ban is neither blunt nor punitive; it is the only structural reform that fundamentally realigns urban space with the collective public good. We urge the house to support the motion.
+
+## current/default: Brody on gemini-3.8-flash vs gemini-3.8-flash
+
+### Affirmative Opening Statement: Gemini (Default) (264 words)
+
+> Length guidance: Keep this as a compact opening. Make the core case in 2-3 short paragraphs, with no headings or lists, then stop.
+
+The motion before us today asks whether cities should take the decisive step of banning private automobiles from their central cores. In affirming this motion, our burden is to demonstrate that the unrestricted presence of private vehicles in dense urban centres inflicts systemic harms on public health, economic vitality, and urban livability that far exceed any private convenience. This policy does not propose an end to urban mobility; rather, it reallocates scarce public space to mass transit, active transportation, emergency access, and essential logistics, ensuring our civic centres serve people rather than personal passenger vehicles.
+
+Private cars represent the most spatial- and energy-inefficient mode of urban transport ever conceived. In historic and modern downtowns alike, vast swathes of irreplaceable land are surrendered to multi-lane thoroughfares and parking facilities, designed to accommodate two-ton machines that sit idle for the vast majority of their existence. This automotive dominance generates chronic gridlock, throttles local economic dynamism by deterring foot traffic, and imposes an enormous financial burden on municipal maintenance. Reclaiming these corridors allows cities to expand pedestrian plazas, outdoor commerce, and high-capacity public transit corridors, transforming congested chokepoints into accessible, thriving destinations.
+
+Furthermore, the environmental and public safety imperatives are undeniable. Dense urban populations bear the brunt of localized tailpipe emissions, chronic noise pollution, and pedestrian casualties. By removing private cars from downtown districts, cities can instantaneously slash respiratory pollutants, eliminate the primary threat of traffic collisions, and foster healthier, more equitable urban communities. The car-free model is not an untested theory, but a proven blueprint already revitalizing cities worldwide. We urge you to affirm the motion.
+
+### Negative Opening Statement: Gemini (Default) (242 words)
+
+> Length guidance: Keep this as a compact opening. Make the core case in 2-3 short paragraphs, with no headings or lists, then stop.
+
+The motion before us proposes a blunt, absolute prohibition on private cars within city centres. In opposing this motion, our position is rooted in the conviction that cities thrive on accessibility, connectivity, and flexibility, rather than rigid exclusion. While managing urban congestion and emissions is a legitimate civic imperative, a blanket ban represents a disproportionate and regressive measure. It ignores the diverse mobility requirements of complex metropolitan populations and threatens the economic health of downtown commercial hubs.
+
+A total prohibition on personal vehicles inherently penalizes those who reside outside the immediate reach of high-frequency public transit, including suburban commuters, rural visitors, shift workers, and tradespeople who rely on private transport for their livelihoods. Furthermore, it creates severe barriers for individuals with limited mobility, families with young children, and the elderly, for whom mass transit is often neither accessible nor practical. Rather than fostering an inclusive urban fabric, an outright ban effectively isolates the city centre, incentivizing businesses, shoppers, and essential services to relocate to car-friendly suburban peripheries, ultimately draining downtown areas of vitality and tax revenue.
+
+Sensible urban governance does not require the blunt instrument of prohibition. Effective policy relies on targeted, evidence-based management tools—such as congestion charging, dynamic parking pricing, low-emission zones, and selective pedestrianization of key corridors. These proven interventions reduce traffic volume and lower emissions while preserving vital urban access and economic resilience. We urge the audience to reject an unyielding ban in favour of pragmatic, balanced urban stewardship.
+
+### Affirmative Floor Speech: Gemini (Default) (214 words)
+
+> Length guidance: Keep this rebuttal brief and targeted. Answer one or two decisive claims, rebuild your side, and stop.
+
+The Negative contends that removing private vehicles drains downtown commerce and isolates city centres. This claim fundamentally misreads how urban economies function. Real-world transitions in cities like Madrid, Pontevedra, and Ljubljana demonstrate that pedestrianization and the removal of private vehicles reliably increase retail foot traffic, lower commercial vacancy rates, and stimulate local spending. Motorists passing through a downtown core contribute primarily to congestion, not to local storefronts; it is pedestrians, cyclists, and transit riders who linger, enter shops, and sustain vibrant commercial ecosystems. The fear of economic abandonment is contradicted by every major European city that has restricted private vehicular access.
+
+Furthermore, the Negative argues that incremental pricing mechanisms, such as congestion charges, offer a sufficient remedy. This ignores the fundamental spatial reality of urban centres. Congestion pricing does not solve the geometric crisis of the street; it merely turns public space into a commodity accessible only to the wealthy, allowing affluent drivers to continue choking narrow roadways with private vehicles. A price tag cannot magically widen a street to accommodate rapid bus transit, emergency response, and safe cycling lanes alongside lanes of private passenger cars. Only a clear prohibition on private vehicles liberates the contiguous right-of-way required to build a fast, reliable, and equitable transit network that truly serves the entire metropolitan population.
+
+## current/default: Devlin on gemini-3.8-flash vs gemini-3.8-flash
+
+### Affirmative Opening Statement: Gemini (Default) (270 words)
+
+> Length guidance: Keep this as a compact opening. Make the core case in 2-3 short paragraphs, with no headings or lists, then stop.
+
+The motion before us—that this house would ban private cars from city centres—addresses an urgent crisis in modern urban planning, public health, and civic life. Urban cores are fundamentally communal spaces designed for commerce, culture, and human interaction, yet they have been increasingly overwhelmed by the physical and environmental toll of private passenger vehicles. The burden of the Affirmative is to demonstrate that removing private cars from city centres is not merely a viable policy, but an essential structural intervention to restore the livability, safety, and economic vitality of our urban centers.
+
+Private vehicles are the most spatially and environmentally inefficient mode of transit in dense urban environments. They consume scarce public land for transit lanes and parking, generate toxic air pollution and pervasive noise, and produce gridlock that paralyzes mass transit and municipal services. Banning private cars reclaims this public realm for pedestrians, active transport, and high-efficiency public transit. In turn, this transition sharply reduces local carbon emissions, curbs severe respiratory ailments, and eliminates the primary source of urban traffic fatalities, creating streets where residents and visitors can navigate safely and freely.
+
+This measure does not cut off city centres; instead, it establishes an urban model that prioritizes collective mobility, public health, and social equity over private convenience. Targeted exemptions for emergency vehicles, commercial logistics during designated hours, and residents with specific accessibility needs ensure that downtown economies remain fully functional and inclusive. By removing the spatial monopoly of private cars and reinvesting in robust public transit, cities can build cleaner, safer, and economically resilient downtowns built for people rather than vehicles. For these reasons, the motion must stand.
+
+### Negative Opening Statement: Gemini (Default) (281 words)
+
+> Length guidance: Keep this as a compact opening. Make the core case in 2-3 short paragraphs, with no headings or lists, then stop.
+
+The motion before us—that this house would ban private cars from city centres—demands that we endorse a blunt, total prohibition as the primary solution to urban congestion and environmental challenges. The Negative firmly opposes this motion. While the pursuit of cleaner, safer, and more navigable urban environments is vital, an outright ban is an excessively rigid and disproportionate measure. The burden of justifying a total ban cannot be met when balanced, targeted interventions—such as congestion pricing, low-emission zones, and targeted pedestrian corridors—can successfully achieve environmental objectives without severing the fundamental connective tissue of our cities.
+
+Crucially, an uncompromising ban ignores the stark realities of accessibility and spatial equity. Public transit infrastructure across most metropolitan areas remains uneven, frequently failing those who commute from peripheral transit deserts, work non-traditional hours, or carry caregiving responsibilities. Furthermore, for individuals with mobility impairments, chronic illnesses, or specialized access needs, personal vehicular transport is often not a luxury, but an indispensable lifeline. Erecting an administrative barrier around the city core inevitably penalizes and excludes these vulnerable populations, turning the urban centre into an enclave accessible only to those fortunate enough to live along well-funded transit lines.
+
+Beyond the severe social costs, a blanket prohibition jeopardizes the economic resilience of urban downtowns. City centres thrive as regional hubs of commerce, culture, and retail precisely because they are accessible to diverse populations from across the broader metropolitan area. Imposing an outright ban risks driving consumers, skilled workers, and capital toward car-accessible suburban commercial zones, hollowing out downtown districts at a moment when urban vitality is already under pressure. Sustainable urban progress requires smart management and the positive incentivization of transit alternatives, not the coercive exclusion of private mobility.
+
+### Affirmative Floor Speech: Gemini (Default) (239 words)
+
+> Length guidance: Keep this rebuttal brief and targeted. Answer one or two decisive claims, rebuild your side, and stop.
+
+The Negative contends that eliminating private vehicles from urban centres inevitably devastates local commerce and isolates vulnerable populations from the economic core. Both assertions collapse under the weight of empirical evidence. 
+
+First, the claim that commercial vitality hinges on private car access is contradicted by real-world implementations across Europe. When cities like Ghent, Pontevedra, and Ljubljana closed their central cores to private passenger cars, local retail and hospitality did not migrate to the suburbs. Instead, pedestrian footfall surged, dwell times increased, and retail spending rose substantially. Private cars occupy disproportionate street space while transporting very few patrons; replacing lanes and parking bays with walkable public space and efficient public transit actually broadens the customer base and delivers higher, more reliable consumer volume to city businesses.
+
+Second, the assertion regarding accessibility misrepresents how car-free zones function in practice. A ban on private passenger vehicles does not exclude those with specialized mobility requirements; every functional model explicitly retains exemptions for credentialed paratransit, emergency response, and drivers with disabilities. In fact, removing thousands of non-essential, single-occupant commuter cars clears congested corridors, allowing surface mass transit and specialized mobility vehicles to operate without paralysis. 
+
+By continuing to prioritize private vehicles, we preserve an inequitable status quo that subsidizes convenience for a minority at the cost of public space, safety, and transit efficiency. Removing private cars is not an act of exclusion, but the prerequisite for a healthy, accessible, and economically resilient city core.
+
+## current/default: George on gemini-3.8-flash vs gemini-3.8-flash
+
+### Affirmative Opening Statement: Gemini (Default) (296 words)
+
+> Length guidance: Keep this as a compact opening. Make the core case in 2-3 short paragraphs, with no headings or lists, then stop.
+
+City centres are the shared cultural, civic, and economic hearts of our communities, yet for decades they have been compromised by an overwhelming reliance on private automobiles. The Affirmative stands for a fundamental reclamation of these urban spaces by removing private vehicles from central districts in order to prioritize public transit, active mobility, and human-scale living. Our burden today is straightforward: to demonstrate that private cars impose disproportionate environmental, social, and economic costs on urban cores, and that a decisive ban is the most effective and necessary mechanism to cultivate safer, cleaner, and more vibrant cities.
+
+The urgent necessity for this transition is grounded in public health and environmental integrity. Dense downtown areas bear the brunt of localized tailpipe emissions, fine particulate matter, and pervasive noise pollution, all of which directly contribute to chronic respiratory diseases and degraded living standards. Beyond pollution, allocating massive proportions of scarce downtown land to moving and parked vehicles—the vast majority carrying only a single occupant—represents a profound misallocation of public space. Banning private cars immediately eliminates the gridlock that paralyses city centres, freeing vast streetscapes for green infrastructure, dedicated bus lanes, and safe pedestrian corridors that protect lives and restore ecological balance.
+
+Moreover, eliminating private cars revitalizes the economic and social fabric of urban centres. Global evidence demonstrates that pedestrianized districts generate higher foot traffic, bolster patronage for local businesses, and foster robust community engagement far better than congested thoroughfares. When private vehicles are removed, public transit networks operate with unprecedented speed and reliability, and active transit options like cycling become safe for citizens of all ages. By shifting the priority from accommodating machines to empowering people, this motion guarantees an urban future that is equitable, accessible, and economically resilient. For these reasons, we urge you to affirm the motion.
+
+### Negative Opening Statement: Gemini (Default) (289 words)
+
+> Length guidance: Keep this as a compact opening. Make the core case in 2-3 short paragraphs, with no headings or lists, then stop.
+
+The motion before us proposes a blunt, total prohibition: an outright ban on private cars in city centres. The burden of justification for such an extreme measure is exceptionally high; it requires demonstrating not merely that congestion is undesirable, but that complete exclusion is the only viable and equitable remedy. The Negative rejects this premise. Urban vitality depends fundamentally on accessibility, integration, and proportionate governance. A categorical ban replaces sophisticated, adaptable urban management with an inflexible mandate that ignores the intricate economic and social realities of contemporary metropolitan life.
+
+First and foremost, an outright ban severely undermines equity and universal access. City centres are not monolithic spaces populated solely by young, able-bodied individuals who can easily walk, cycle, or navigate crowded transit hubs. For elderly residents, individuals with physical disabilities, and working parents, private vehicular access often represents an essential lifeline rather than a disposable luxury. Furthermore, public transit networks in most cities are structurally uneven, frequently failing the peripheral workers, non-standard shift laborers, and lower-income commuters who must reach central business districts. Stripping away vehicular access risks turning our urban hearts into exclusionary zones that penalize those who need flexible mobility the most.
+
+Beyond accessibility, a blanket prohibition threatens the economic resilience of urban cores while disregarding far superior policy alternatives. Arbitrarily severing direct vehicular access deters regional visitors, disrupts local commercial vitality, and actively incentivizes commercial sprawl toward peripheral, auto-dependent suburbs. Managing congestion and reducing emissions do not require punitive, total bans. Cities can and do achieve sustainable outcomes through targeted mechanisms such as congestion pricing, ultra-low emission zones, and strategic public transit investments—policies that curtail excess traffic while preserving essential freedom of movement. For a balanced, accessible, and economically vibrant city, the motion must be defeated.
+
+### Affirmative Floor Speech: Gemini (Default) (307 words)
+
+> Length guidance: Keep this rebuttal brief and targeted. Answer one or two decisive claims, rebuild your side, and stop.
+
+The Negative’s case rests on the assumption that banning private cars creates an inequitable, economically fragile urban core, and that half-measures like congestion pricing can achieve the same ends. Both arguments fundamentally misunderstand both the nature of our proposal and the physical realities of urban space.
+
+First, the Negative warns that excluding private cars harms vulnerable populations, including the elderly, disabled individuals, and shift workers. This conflates private automobile dominance with genuine accessibility. Car-choked streets create physical barriers, dangerous pedestrian crossings, and toxic air that disproportionately endanger elderly and disabled citizens, while the high financial barrier of car ownership excludes lower-income residents entirely. A ban on private cars does not eliminate specialized paratransit, emergency vehicles, or accessible electric circulators; instead, it clears the asphalt of gridlock so that essential mobility services and mass transit can operate without obstruction. The true engine of equity is reliable, universal transit and barrier-free pedestrian space, not the preservation of private vehicles that only an affluent minority can drive and park in downtown cores.
+
+Second, the assertion that commercial vitality requires car access and can be preserved through congestion pricing is refuted by consistent empirical evidence. Cities like Pontevedra, Ljubljana, and central Paris did not experience economic decline when they restricted private vehicles; rather, pedestrianization sparked significant surges in foot traffic, retail revenue, and civic vibrancy. Pricing mechanisms, which the Negative champions as a superior compromise, simply allow wealthy drivers to buy their way into central streets, failing to resolve the fundamental problem of spatial misallocation. A moving or parked private car occupies the same scarce physical space regardless of the toll paid. Only a decisive ban frees that land to build rapid transit lanes, cycle networks, and safe public squares. By eliminating private cars, we do not wall off the city; we finally make it functional, prosperous, and open to all.
+
+## current/default: Kai on gemini-3.8-flash vs gemini-3.8-flash
+
+### Affirmative Opening Statement: Gemini (Default) (304 words)
+
+> Length guidance: Keep this as a compact opening. Make the core case in 2-3 short paragraphs, with no headings or lists, then stop.
+
+Central urban cores exist to facilitate human interaction, cultural vitality, and dense economic exchange, yet their potential is fundamentally compromised by the spatial and environmental demands of private automobiles. In affirming the motion that this house would ban private cars from city centres, the proposition carries the clear burden of demonstrating that removing individual passenger vehicles from our urban hearts is both necessary and proportionate. The central issue is one of basic geometric and public priority: cities cannot sustainably grant disproportionate rights-of-way and public acreage to two-ton private vehicles carrying single occupants, while the broader public bears the collective costs of gridlock, degraded air, and fractured streetscapes.
+
+The core of our case rests on the physical reality that private cars are structurally incompatible with dense urban centers. The sheer volume of street capacity and real estate surrendered to moving and storing private vehicles paralyzes urban mobility, displaces pedestrian life, and chokes local commerce under clouds of toxic particulate matter. By removing private passenger cars from city cores—while preserving dedicated access for mass transit, emergency services, essential freight, and individuals with specialized mobility needs—municipalities unlock the space required for rapid surface transit, safe cycling corridors, and vibrant public squares. Far from restricting freedom of movement, replacing personal vehicular dominance with robust active and public transit fundamentally enhances accessibility, efficiency, and safety for the vast majority of residents and visitors.
+
+This policy represents a vital structural transition away from an outdated twentieth-century paradigm toward cities designed for human beings. Banning private cars from city centres directly mitigates catastrophic urban emissions, eliminates severe traffic collisions, and reclaims precious civic space for the collective good. The affirmative asks the audience to recognize that a city centre cannot thrive as both a highway and a home; it is time to return our downtowns to the people who inhabit them.
+
+### Negative Opening Statement: Gemini (Default) (207 words)
+
+> Length guidance: Keep this as a compact opening. Make the core case in 2-3 short paragraphs, with no headings or lists, then stop.
+
+The motion before us calls for an absolute prohibition: banning private cars entirely from city centres. To sustain this motion, the burden requires demonstrating that an indiscriminate, blanket ban is both necessary and desirable, rather than a blunt instrument that severs urban cores from their surrounding regions. The Negative firmly opposes this motion because an outright ban is socially regressive, economically damaging, and fundamentally unnecessary to achieve clean, livable, and well-functioning urban spaces.
+
+City centres are dynamic regional hubs, not insular enclaves. A categorical ban ignores the lived reality of diverse urban populations, disproportionately penalizing the elderly, persons with hidden or complex mobility limitations, night-shift workers, and commuters from transit-starved peripheral communities. Furthermore, stripping away personal vehicle access threatens the economic vitality of downtown retail, cultural institutions, and independent services, risking commercial flight to car-friendly suburban developments and eroding the tax bases that fund public infrastructure in the first place.
+
+Responsible urban governance requires precision rather than prohibition. Nuanced, proven policy tools—such as congestion pricing, low-emission zones, prioritized transit corridors, and targeted pedestrianization—successfully mitigate traffic and pollution without imposing rigid, universal restrictions. Rejecting this blanket ban preserves the accessibility, inclusivity, and regional connectivity that make cities thrive, achieving environmental progress through balanced management rather than coercive exclusion.
+
+### Affirmative Floor Speech: Gemini (Default) (302 words)
+
+> Length guidance: Keep this rebuttal brief and targeted. Answer one or two decisive claims, rebuild your side, and stop.
+
+The opposition’s case against banning private cars rests on two fundamental misapprehensions: first, that eliminating private cars damages local economic vitality, and second, that incremental mechanisms like congestion pricing are sufficient alternatives. Both assertions collapse under real-world evidence.
+
+The claim that commerce requires private car access contradicts empirical reality across European and global urban centers. When cities like Pontevedra, Ljubljana, and Oslo removed private cars from their centers, downtown commercial revenues and foot traffic did not collapse; they increased substantially. Foot traffic drives retail revenue, not drive-by throughput. In car-dominated downtowns, motorists do not stop and patronize local businesses; they search for parking or pass through. Once streets are reclaimed for people, footfall increases, dwell times lengthen, and street-level commerce thrives. The fear of economic flight to the suburbs mistakes an obsolete habit of vehicular access for the actual lifeblood of city centers, which is human density and foot traffic.
+
+Furthermore, the opposition suggests that pricing schemes and low-emission zones are adequate substitutes for a direct ban. They are not. Congestion pricing merely converts public space into a commodity for the affluent, who gladly absorb the toll while continuing to occupy limited street space. Nor does an electric or low-emission vehicle solve the immutable problem of urban geometry. A car—regardless of its propulsion or the wealth of its driver—consumes roughly ten to fifteen square meters of public right-of-way while stationary or moving, paralyzing mass transit and endangering pedestrians. You cannot price your way out of a spatial impossibility. 
+
+By removing private cars, cities unlock the physical capacity required to run uninterrupted, high-frequency public transit, expand accessible infrastructure, and protect vulnerable road users. Banning private passenger cars is not an act of exclusion; it is the prerequisite for liberating the city centre to serve the greatest number of people safely, equitably, and sustainably.
+
+## current/default: Prof. Sage on gemini-3.8-flash vs gemini-3.8-flash
+
+### Affirmative Opening Statement: Gemini (Default) (272 words)
+
+> Length guidance: Keep this as a compact opening. Make the core case in 2-3 short paragraphs, with no headings or lists, then stop.
+
+The motion before us asks whether private cars should be excluded from the hearts of our cities. As the Affirmative, our burden is to demonstrate that city centres exist primarily for people rather than personal passenger vehicles, and that automobile dominance has become the single greatest obstacle to urban livability, environmental sustainability, and public safety. City centres represent dense cultural, social, and commercial crossroads where public space is inherently scarce and precious. Dedicating vast portions of this shared realm to multi-ton personal vehicles is an inefficient and damaging use of urban land that generates persistent air pollution, endangers pedestrians, and degrades civic life.
+
+Banning private cars from downtown cores is not a limitation on mobility, but a necessary liberation of it. Private vehicles monopolize thoroughfares and curbsides while carrying an average of barely more than one occupant per trip, imposing crippling congestion and dangerous emissions on everyone else. Replacing this private-vehicle paradigm with reliable mass transit, protected cycling networks, and pedestrianized streets allows cities to move far more people with significantly lower ecological and spatial footprints. The experience of pedestrianized districts across the globe consistently shows that removing private cars revitalizes local retail, restores urban air quality, and substantially reduces traffic collisions.
+
+Access to a thriving city centre should not require the ownership of a private vehicle, nor should the public bear the collective health, safety, and environmental burdens of private vehicular convenience. A comprehensive ban on private cars in the core—paired with common-sense exemptions for emergency services, essential municipal deliveries, and individuals with mobility impairments—establishes a cleaner, more equitable, and economically resilient urban commons. We urge you to support the motion.
+
+### Negative Opening Statement: Gemini (Default) (277 words)
+
+> Length guidance: Keep this as a compact opening. Make the core case in 2-3 short paragraphs, with no headings or lists, then stop.
+
+The motion before us calls for an extreme and blunt instrument: the absolute prohibition of private automobiles from city centres. To justify such sweeping state intervention, the affirmative must prove not merely that traffic congestion and emissions are serious urban challenges, but that a total, coercive ban is the only viable remedy across diverse cities, regardless of their geography, local transit capacity, or economic fabric. The Negative rejects this premise. City centres are not cloistered enclaves that exist in isolation; they are metropolitan crossroads that depend on seamless, dependable access for residents, workers, and visitors alike. 
+
+A blanket ban fundamentally ignores the socioeconomic realities of modern metropolitan regions. Millions of people who sustain downtown economies live in outer boroughs, suburbs, and rural peripheries where public transit is either nonexistent, prohibitively slow, or inadequate for irregular work hours, caregiving responsibilities, and family needs. Imposing an outright ban on private vehicles before adequate regional infrastructure exists does not liberate citizens—it isolates them. Such policy creates severe geographic disenfranchisement, penalizes small independent businesses that rely on regional foot traffic, and risks driving commerce and culture away from historic downtowns toward suburban commercial corridors.
+
+Responsible urban stewardship does not require draconian prohibitions that treat personal mobility as an inherent social ill. Modern cities already possess far more flexible, equitable, and effective mechanisms to manage urban space. Dynamic congestion pricing, targeted low-emission zones, and the pedestrianization of specific corridors achieve environmental and safety improvements while continuing to accommodate essential vehicular access and generating revenue to expand public transit. Because a total ban is economically damaging, socially regressive, and far inferior to balanced regulatory policy, we urge you to vote against the motion.
+
+### Affirmative Floor Speech: Gemini (Default) (314 words)
+
+> Length guidance: Keep this rebuttal brief and targeted. Answer one or two decisive claims, rebuild your side, and stop.
+
+The Negative side rests its case on two flawed assumptions: first, that car-free policies economically devastate urban centres by alienating suburban commuters, and second, that pricing mechanisms like congestion charges are sufficient substitutes for a complete structural transition. Neither claim holds up against the empirical reality of modern urban transformation.
+
+The assertion that excluding private vehicles hollows out local commerce is contradicted by the facts. When cities remove private cars, retail and hospitality do not flee to suburban malls; they flourish. European centres that instituted decisive private vehicle bans or radical car-restricted zones—such as Pontevedra, Ghent, and central Madrid—saw retail vacancies plunge, consumer foot traffic surge, and merchant revenues outpace car-reliant districts. Downtown vibrancy is generated by foot traffic, not through-traffic. The vast majority of suburbanites entering a dense core arrive by regional rail, express bus networks, or park-and-ride transit hubs. Devoting prime urban real estate to parking and multi-lane roadways for a vocal minority of drivers does not protect suburban access; it strangulates the very environment people travel there to experience.
+
+Furthermore, the Negative’s faith in half-measures such as congestion pricing fails the fundamental test of spatial equity. Congestion fees simply convert urban space into a luxury good, allowing affluent drivers to purchase the right to emit toxic particulate matter and obstruct streetcars while lower-income commuters are priced off the asphalt. A pricing scheme does not reclaim asphalt; it merely taxes it. It leaves the street grid carved up for cars rather than reallocated to dedicated bus rapid transit corridors, segregated cycle lanes, and safe public squares.
+
+To dismantle the status quo of gridlock, respiratory illness, and pedestrian danger, cities cannot rely on polite economic nudges that perpetuate private vehicular dominance. A clear, coordinated ban on private cars is the prerequisite for building an equitable, fast, and green transit system that serves the entire metropolitan area. We urge you to uphold the motion.
+
+## current/default: Scout on gemini-3.8-flash vs gemini-3.8-flash
+
+### Affirmative Opening Statement: Gemini (Default) (268 words)
+
+> Length guidance: Keep this as a compact opening. Make the core case in 2-3 short paragraphs, with no headings or lists, then stop.
+
+The motion before us addresses a fundamental question about the purpose and design of our urban hearts: whether city centres exist primarily to serve human life and community, or to accommodate private vehicles. Urban centres represent our densest hubs of commerce, culture, and civic interaction, yet they are increasingly strangled by traffic congestion, degraded by toxic exhaust, and fragmented by road space dedicated almost exclusively to private automobiles. Affirming this motion does not mean restricting human mobility; rather, it means deliberately liberating the urban core so that public transit, walking, cycling, and essential service and emergency vehicles can function efficiently.
+
+Our burden on the Affirmative is to demonstrate that an outright ban on private cars in central districts is both necessary and proportionate to solve these systemic crises. Market-based nudges such as congestion charges and incremental lane reductions have proven insufficient to reclaim urban space or curb the critical health and climate impacts of vehicle emissions. Private cars represent the least spatially and energetically efficient method of transporting individuals through densely populated cores, consuming vast amounts of valuable public land for driving and parking while imposing disproportionate safety risks and respiratory harms on residents and pedestrians alike.
+
+By removing private cars from city centres, we establish accessible, vibrant, and sustainable urban environments. Transit corridors operate without interference, local businesses thrive in safer, pedestrian-friendly public spaces, and cities make meaningful strides toward meeting urgent public health and climate goals. We ask the audience to recognize that genuine freedom of movement belongs to people, not personal vehicles, and to support the motion to ban private cars from our city centres.
+
+### Negative Opening Statement: Gemini (Default) (257 words)
+
+> Length guidance: Keep this as a compact opening. Make the core case in 2-3 short paragraphs, with no headings or lists, then stop.
+
+The motion before us calls for a blunt and absolute prohibition: a total ban on private cars across our city centres. The Negative side approaches this debate with an unwavering commitment to sustainable, vibrant urban spaces, but we reject the premise that an indiscriminate ban is either necessary, equitable, or beneficial. The central issue for the audience is whether the total exclusion of personal vehicles is a proportionate response to urban transport challenges, or whether it represents a counterproductive overreach that compromises the economic vitality, social equity, and practical functionality of the metropolitan core.
+
+Imposing a universal ban ignores the complex logistical realities of modern urban life. City centres do not exist in isolation; they are regional hubs that depend on seamless interaction with peripheral suburbs and rural communities where comprehensive public transit is neither feasible nor available. An outright ban penalizes those who rely on personal transport out of structural necessity, including shift workers with irregular hours, individuals with mobility limitations or non-visible disabilities, and caregivers. Furthermore, severing vehicular access risks devastating downtown commerce by driving shoppers, diners, and commercial activity away from traditional city centres and toward sprawling, car-accessible suburban developments.
+
+Sustainable urbanism does not require heavy-handed bans that restrict basic mobility. Cities worldwide have demonstrated that flexible, targeted mechanisms—such as congestion pricing, low-emission standards, dedicated transit corridors, and strategic pedestrian zones—deliver profound environmental and spatial improvements without cutting cities off from their broader populations. Because an absolute ban is an exclusionary, economically volatile, and unnecessary policy, we urge the house to oppose the motion.
+
+### Affirmative Floor Speech: Gemini (Default) (254 words)
+
+> Length guidance: Keep this rebuttal brief and targeted. Answer one or two decisive claims, rebuild your side, and stop.
+
+The Negative warns that removing private cars will devastate downtown commerce and drive consumers toward car-accessible suburbs. The empirical reality of urban transformations proves the exact opposite. When cities such as Pontevedra, Ljubljana, and Oslo reclaimed their historic cores from private vehicles, commercial vacancies plummeted, pedestrian footfall surged, and local retail revenues experienced sustained growth. Motorists passing through do not patronize local shops; pedestrians do. Private vehicles create noise, danger, and severance that deter street life, whereas vibrant, pedestrianized corridors attract foot traffic, prolong visits, and significantly enhance spending in local economies. 
+
+The Negative also argues that flexible half-measures, such as congestion charges and incremental restrictions, are sufficient to solve the crisis. Yet congestion pricing fundamentally fails to solve the geometric problem of the city; it merely transforms the public realm into a pay-to-pollute corridor for the affluent. A private vehicle occupies the same disproportionate thirty square meters of street space and generates the same collision risks regardless of whether a toll was paid. Market-based nudges leave road networks choked with traffic, paralyzing public buses and preserving vast tracts of land for parked steel rather than green space, affordable housing, or dedicated cycling infrastructure.
+
+Only a definitive ban breaks the vicious cycle of automobile dependence. By eliminating private cars, we liberate finite surface area to operate rapid, unobstructed public transit networks and create safe, accessible streets for every citizen, not just those who can afford a private vehicle. We must reclaim our city centres for people, and for that reason, the motion must stand.
+
+## words/default: Default on gemini-3.8-flash vs gemini-3.8-flash
+
+### Affirmative Opening Statement: Gemini (Default) (188 words)
+
+> Length guidance: about 190 words (between 162 and 218), in natural prose with no headings or lists, then stop.
+
+Urban centres are the vibrant hearts of human civilization, yet for decades they have been compromised by the dominance of the private automobile. As the Affirmative, we firmly propose that this house should ban private cars from city centres. Our burden is to demonstrate that reclaiming urban cores from private vehicles creates healthier, more equitable, and economically resilient cities.
+
+Today, private vehicles occupy an overwhelming share of municipal space while carrying a tiny fraction of urban travelers, generating chronic congestion, deadly air pollution, and severe carbon emissions. By removing private cars, cities can repurpose vast swathes of asphalt currently lost to traffic lanes and parking into green public spaces, protected bike corridors, and dedicated transit arteries. Essential access remains fully preserved through comprehensive public transit, emergency services, paratransit, and commercial delivery windows.
+
+International precedent shows that pedestrianized cores revitalize local businesses, increase foot traffic, and dramatically lower pedestrian fatalities. Cities are fundamentally spaces for people, not personal vehicles. Transitioning our urban centres away from private car dependency is not merely an environmental imperative; it is a profound restoration of civic life. We urge you to affirm the motion.
+
+### Negative Opening Statement: Gemini (Default) (194 words)
+
+> Length guidance: about 190 words (between 162 and 218), in natural prose with no headings or lists, then stop.
+
+The motion before us proposes an absolute prohibition: the outright ban of private cars from city centres. The Negative firmly rejects this blunt mechanism. Our burden today is to show that blanket bans disregard the socioeconomic realities of modern metropolitan regions, whereas balanced, evidence-based management fosters healthier, more accessible urban cores without causing systemic disruption.
+
+City centres are not isolated sanctuaries; they are regional hubs linking dense cores with underserved suburban and rural peripheries. Millions of citizens—including shift workers, small tradespeople, families, and individuals with chronic mobility impairments—depend on private vehicle access where public transit remains fragmented or nonexistent. Denying them entry under the penalty of an outright ban creates profound geographic and socioeconomic inequality, effectively walling off civic life from those living beyond immediate transit corridors.
+
+Furthermore, total exclusion threatens local commerce. Retailers and cultural institutions depend on regional patrons; arbitrary prohibition accelerates the migration of business toward suburban car-centric sprawl, ironically compounding total vehicle miles traveled. True sustainability requires nuanced policy: targeted congestion pricing, electrified infrastructure, and transit expansion. We must manage urban mobility intelligently rather than imposing an inflexible mandate that isolates communities and damages local economies. Vote against the motion.
+
+### Affirmative Floor Speech: Gemini (Default) (146 words)
+
+> Length guidance: about 150 words (between 128 and 173), in natural prose with no headings or lists, then stop.
+
+The Negative cautions that removing private vehicles devastates city centre commerce and isolates peripheral workers. Yet real-world implementations directly disprove this economic fear. When cities like Oslo and Madrid restricted private vehicular traffic in central zones, local foot traffic increased and retail revenues surged, because streets designed for people foster sustained commerce far better than congested thoroughfares. Furthermore, the claim that car bans inherently discriminate against the mobility-impaired misrepresents the policy. Banning private commuter cars does not eliminate paratransit, emergency response, or tailored accessibility exemptions; rather, it clears gridlock so these critical vehicles can move freely. The true inequality lies in dedicating seventy percent of valuable urban space to private vehicles that serve an affluent minority while polluting the air breathed by all. By replacing vehicular congestion with rapid surface transit and safe, walkable streets, a comprehensive ban creates an economically resilient, fully inclusive public core.
+
+## words/default: Bestie on gemini-3.8-flash vs gemini-3.8-flash
+
+### Affirmative Opening Statement: Gemini (Default) (189 words)
+
+> Length guidance: about 190 words (between 162 and 218), in natural prose with no headings or lists, then stop.
+
+The motion before the house is clear: we must ban private cars from city centres. At its core, this debate is about how we allocate our most vital shared spaces and whether cities should be engineered for machines or built for people. As the Affirmative, our burden is to demonstrate that the compounding crises of congestion, environmental degradation, and public safety necessitate a decisive transformation of urban cores.
+
+First, public health demands urgent intervention. Dense vehicular traffic traps toxic pollutants in narrow urban corridors, exposing residents, commuters, and workers to hazardous particulate matter and chronic respiratory disease. Removing private vehicles directly cleanses urban air, reduces persistent noise pollution, and curtails emissions at the source.
+
+Second, the private car represents a catastrophic misallocation of finite public space. Personal automobiles sit idle or crawl through gridlock, monopolizing valuable streetscapes that ought to support green parks, community gatherings, and thriving local commerce. When private vehicles are removed in favor of robust mass transit, cycling networks, and pedestrian infrastructure, downtown centres become safer, more equitable, and economically resilient. For a sustainable and truly livable future, we urge the audience to affirm the motion.
+
+### Negative Opening Statement: Gemini (Default) (192 words)
+
+> Length guidance: about 190 words (between 162 and 218), in natural prose with no headings or lists, then stop.
+
+The motion before us proposes a blanket prohibition: to completely ban private cars from city centres. The Negative firmly opposes this measure. Our burden is to demonstrate that a total ban is an inflexible, disproportionate mechanism that threatens the economic vitality and social inclusivity of urban life. Cities are dynamic ecosystems requiring nuanced management, not rigid exclusion.
+
+First, accessibility is a matter of fundamental equity. Millions of citizens rely on personal vehicles out of sheer necessity, including individuals with disabilities, elderly residents, late-night shift workers, and families traveling from peripheral communities where public transit remains inadequate or non-existent. Stripping their ability to drive into the urban core isolates vulnerable populations, effectively turning downtown districts into enclaves accessible only to those fortunate enough to live directly along rail corridors.
+
+Second, local economies rely on continuous connectivity. An outright ban severely penalizes small businesses, independent retailers, and cultural venues that depend on diverse regional patronage, inadvertently accelerating commercial flight toward sprawling suburban shopping centres.
+
+Sustainable urban progress demands expanding clean transit and optimizing street design, not imposing an absolute prohibition that fractures regional integration. We respectfully urge the audience to vote against the motion.
+
+### Affirmative Floor Speech: Gemini (Default) (143 words)
+
+> Length guidance: about 150 words (between 128 and 173), in natural prose with no headings or lists, then stop.
+
+The Negative cautions that removing private vehicles will devastate local commerce and disenfranchise vulnerable populations, yet empirical evidence decisively contradicts both assertions. In cities from Madrid to Pontevedra that restricted personal vehicular access, retail foot traffic and commercial revenues substantially increased; vibrant, walkable streetscapes actively attract customers rather than repelling them to sprawling suburbs. Furthermore, personal cars disproportionately benefit affluent commuters while imposing severe health hazards and transit delays upon the broader public. Framing car bans as an accessibility crisis fundamentally ignores that car-centric planning already isolates the non-driving elderly, youth, and low-income citizens. Targeted exemptions readily accommodate residents with disabilities and essential service providers without sacrificing public space to gridlock. By reallocating finite street capacity away from inefficient private automobiles, we establish high-frequency mass transit and clean corridors that genuinely democratize urban access for all residents. We must affirm this transformative motion.
+
+## words/default: Brody on gemini-3.8-flash vs gemini-3.8-flash
+
+### Affirmative Opening Statement: Gemini (Default) (181 words)
+
+> Length guidance: about 190 words (between 162 and 218), in natural prose with no headings or lists, then stop.
+
+Distinguished audience, the motion before us asks whether we should ban private cars from our city centres. The Affirmative stands firmly in favor of this transformation. For nearly a century, urban planning has subordinated human well-being to vehicular throughput, choking our civic hearts with congestion, toxic emissions, and acoustic blight. Private automobiles occupy disproportionate real estate, transforming vibrant communal squares into asphalt arteries and parking lots that serve only a minority of urban commuters. By enacting a decisive ban, we reclaim these central districts for pedestrians, micro-mobility, and high-capacity public transit. The burden we gladly accept is to demonstrate that removing private cars dramatically improves public health, cuts carbon emissions, and revitalizes urban commerce. This policy does not paralyze cities; rather, it liberates them, preserving access for essential services, emergency vehicles, and paratransit while dismantling the structural dependence on private vehicles that paralyzes modern downtowns. When we remove private cars from the core, public transportation becomes faster and more reliable, streets become safer, and local economies flourish under the foot traffic of engaged citizens. We urge you to affirm the motion.
+
+### Negative Opening Statement: Gemini (Default) (184 words)
+
+> Length guidance: about 190 words (between 162 and 218), in natural prose with no headings or lists, then stop.
+
+Distinguished audience, we stand firmly against the motion to ban private cars from city centres. This debate is not about whether we value clean air or pedestrian safety; it is about whether a blunt, total prohibition is a responsible instrument of urban policy. A blanket ban fundamentally misunderstands the interconnected reality of modern metropolitan life. City centres are not isolated playgrounds for affluent downtown residents; they are regional economic engines that depend upon accessible connectivity for workers, families, tradespeople, and visitors commuting from underserved peripheral areas. 
+
+Enacting an outright ban imposes a regressive burden on those who cannot afford central housing or rely on fragmented public transit networks. It threatens local commerce, limits mobility for citizens with diverse physical needs, and arbitrarily severs cities from their surrounding regions. Modern urban governance demands nuanced, flexible stewardship—such as congestion pricing, low-emission zones, and targeted infrastructure investments—not sweeping mandates that disenfranchise entire communities. The Negative asks you to reject this heavy-handed measure and recognize that sustainable, thriving cities are built through intelligent integration and equitable access, not absolute exclusion. We urge you to vote against the motion.
+
+### Affirmative Floor Speech: Gemini (Default) (147 words)
+
+> Length guidance: about 150 words (between 128 and 173), in natural prose with no headings or lists, then stop.
+
+The Negative contends that banning private cars devastates local commerce and disproportionately harms peripheral commuters. This argument relies on an outdated economic myth. Empirical evidence from cities that pedestrianized their central districts, such as Pontevedra and Madrid, demonstrates the exact opposite: when vehicular traffic is removed, foot traffic surges, boosting retail turnover and hospitality revenues significantly. Far from disenfranchising peripheral workers, removing private cars dramatically accelerates public surface transit, enabling buses and light rail to operate free from gridlock. Furthermore, the Negative’s preferred alternatives, such as congestion pricing, merely establish regressive pay-to-pollute schemes that favor affluent drivers while leaving systemic congestion intact. A decisive ban eliminates the spatial inefficiency of private automobiles, opening valuable urban space for expanded bus lanes, micro-mobility, and active corridors. Reclaiming our city centres is neither exclusionary nor economically destructive; it is the prerequisite for an accessible, vibrant, and genuinely equitable urban core.
+
+## words/default: Devlin on gemini-3.8-flash vs gemini-3.8-flash
+
+### Affirmative Opening Statement: Gemini (Default) (188 words)
+
+> Length guidance: about 190 words (between 162 and 218), in natural prose with no headings or lists, then stop.
+
+Members of the audience, the motion before us asks whether we should prioritize human well-being, public health, and urban vitality over the convenience of personal vehicle ownership in our dense urban cores. The Affirmative firmly supports the motion that this House would ban private cars from city centres. Our burden is to demonstrate that city centres are shared civic spaces whose primary purpose is to serve people, culture, and commerce, and that private automobiles fundamentally undermine these objectives.
+
+Today, private vehicles occupy a vastly disproportionate share of valuable metropolitan land, choke air quality with toxic emissions, and generate lethal safety hazards for pedestrians and cyclists alike. Decades of urban planning demonstrate that accommodating personal cars in concentrated downtowns induces gridlock, damages local retail foot traffic, and deepens environmental inequities. By removing private cars, municipalities can reclaim precious public space for reliable, electrified transit, expansive cycling networks, and accessible pedestrian plazas. This intervention is neither radical nor anti-mobility; rather, it shifts the focus of transportation from moving heavy metal boxes to moving human beings efficiently and sustainably. For the future of thriving, liveable cities, the affirmative urges your vote.
+
+### Negative Opening Statement: Gemini (Default) (185 words)
+
+> Length guidance: about 190 words (between 162 and 218), in natural prose with no headings or lists, then stop.
+
+Members of the audience, the motion before us proposes a blunt, sweeping instrument for a complex urban ecosystem: an outright ban on private cars in city centres. As the Negative, our position is that an absolute prohibition is neither practically workable nor socially equitable. Modern metropolitan centres are not insular, curated enclaves; they are regional economic engines and civic crossroads serving diverse populations across vast metropolitan hinterlands.
+
+A total ban disproportionately penalizes individuals who cannot simply walk, cycle, or rely on often overburdened public transit networks. For people with mobility impairments, elderly citizens, shift workers, and families traveling from peripheral communities where transit infrastructure remains sparse, personal vehicles represent an essential lifeline. Imposing an absolute exclusion erects an artificial barrier around our downtowns, severing outer regions from vital cultural, medical, and commercial hubs, while risking serious economic disruption for local enterprises.
+
+True urban progress does not require dogmatic prohibition. Sustainability is far more effectively achieved through measured stewardship, such as congestion pricing, targeted low-emission zones, and expanded transit capacity, preserving access for all. We ask you to oppose this motion and protect dynamic, inclusive cities.
+
+### Affirmative Floor Speech: Gemini (Default) (148 words)
+
+> Length guidance: about 150 words (between 128 and 173), in natural prose with no headings or lists, then stop.
+
+The Negative cautions that removing private vehicles damages local commerce and disenfranchises individuals with mobility constraints, yet real-world evidence systematically disproves both concerns. In cities like Pontevedra, Madrid, and Ljubljana, eliminating private cars caused retail revenues and foot traffic to surge, dispelling the myth that downtown businesses rely on curbside parking rather than vibrant pedestrian presence. Furthermore, banning private passenger cars does not eliminate dedicated paratransit, emergency response, or delivery access; instead, it rescues them from chronic congestion. 
+
+While the opposition advocates half-measures like congestion pricing, market-based tolls merely grant affluent drivers a paid license to pollute and congest shared civic space. An absolute ban on private personal automobiles is the only policy that fundamentally reallocates finite urban acreage toward rapid, electrified transit and universally accessible public streets, unlocking equitable mobility for all residents rather than an elite driving minority. For these reasons, the affirmative case firmly stands.
+
+## words/default: George on gemini-3.8-flash vs gemini-3.8-flash
+
+**Stopped:** Affirmative Opening Statement interrupted: token_limit
+
+### Affirmative Opening Statement: Gemini (Default) (198 words)
+
+> Length guidance: about 190 words (between 162 and 218), in natural prose with no headings or lists, then stop.
+
+The motion before us is clear: this house would ban private cars from city centres. As the Affirmative, our burden is to demonstrate that completely removing private automobiles from our urban cores is a necessary, viable, and profoundly beneficial transformation for modern civic life.
+
+For decades, urban centres have been designed around the private vehicle, producing severe traffic congestion, dangerous air pollution, and fragmented public spaces. Banning private cars reclaims valuable streetscapes for people, enabling vibrant commercial corridors, expansive green spaces, and dedicated lanes for high-capacity public transit and active mobility. When cities prioritize efficient transit, walking, and cycling over single-occupancy vehicles, travel times become more reliable and carbon emissions drop precipitously.
+
+This policy does not eliminate accessibility; rather, it reserves inner-city roads for essential emergency services, paratransit, and commercial delivery fleets, while providing robust park-and-ride networks at the periphery. Ultimately, city centres must function as shared, accessible hubs of culture, commerce, and human interaction rather than parking lots and arterial bottlenecks. Removing private cars establishes sustainable, safe, and livable cities capable of thriving in the century ahead. We urge you to affirm the motion.
+
+_Gemini could not finish this turn. Retry the turn when you are ready._
+
+## words/default: Kai on gemini-3.8-flash vs gemini-3.8-flash
+
+### Affirmative Opening Statement: Gemini (Default) (187 words)
+
+> Length guidance: about 190 words (between 162 and 218), in natural prose with no headings or lists, then stop.
+
+Distinguished audience, the proposition before us today is clear: city centres must be reserved for people, not personal vehicles. As urbanization accelerates, urban cores face an unsustainable collision between human life and automotive congestion. The burden of this debate rests on establishing whether removing private cars from downtown areas creates healthier, safer, and economically resilient cities. The affirmative firmly maintains that it does.
+
+Private automobiles are uniquely ill-suited for dense urban environments. They occupy disproportionate public space for transit and parking, choke streets with paralyzing traffic, and degrade ambient air quality, directly harming public health. When municipalities eliminate private vehicles from their commercial centres, they unlock tremendous civic potential. Streets transform into vibrant, accessible pedestrian corridors that boost local foot traffic and commerce. Furthermore, this transition catalyzes vital investment in high-capacity public transit, cycling infrastructure, and micro-mobility, ensuring reliable access for all residents rather than privileged drivers.
+
+Banning private cars from city centres is not an act of restriction, but of liberation. It reclaims shared public space, eradicates toxic emissions at street level, and builds an equitable, forward-looking model of urban life. We urge an affirmative vote.
+
+### Negative Opening Statement: Gemini (Default) (198 words)
+
+> Length guidance: about 190 words (between 162 and 218), in natural prose with no headings or lists, then stop.
+
+Distinguished audience, the motion before us proposes an absolute and unyielding remedy: a total ban on private cars in city centres. The burden on the proposition is not merely to show that traffic is frustrating or that cleaner air is desirable, but to prove that an outright prohibition is the only justifiable and effective solution. The negative stands firmly against this motion because urban vitality relies on dynamic accessibility, balance, and inclusion, not blanket disenfranchisement.
+
+A blunt ban ignores the complex operational realities of modern cities. Urban cores are not pristine architectural showcases; they are bustling economic ecosystems. Imposing a mandatory prohibition severs essential connections for residents, commuters, and small businesses alike. Crucially, public transit systems rarely accommodate everyone equally. Shift workers operating outside regular timetables, suburban families without viable alternatives, and individuals with non-visible disabilities or chronic mobility limitations are effectively locked out of downtown cores. Furthermore, driving customers away from urban businesses accelerates the flight of commerce toward sprawling suburban retail parks, eroding municipal tax bases.
+
+True urban progress is achieved through proportional, targeted management, such as dynamic congestion pricing, electrification, and selective pedestrian corridors, not sweeping exclusion. We urge you to reject this radical ban.
+
+### Affirmative Floor Speech: Gemini (Default) (143 words)
+
+> Length guidance: about 150 words (between 128 and 173), in natural prose with no headings or lists, then stop.
+
+The negative claims that banning private cars erodes downtown commerce and disenfranchises vulnerable populations. Real-world evidence demonstrates the exact opposite. When cities like Oslo and Pontevedra removed private vehicles from their centres, foot traffic increased, retail revenues rose, and commercial vacancy rates plummeted. Thriving downtown economies depend on people lingering in vibrant streets, not vehicles circling for parking. 
+
+Furthermore, the opposition’s equity argument fundamentally mischaracterizes targeted urban policy. Car-free zones routinely preserve essential access exemptions for people with disabilities, emergency services, and delivery logistics, while ending the implicit municipal subsidy of automobile infrastructure that actively marginalizes the non-driving majority. By reallocating vast street space to rapid public transit, active mobility, and green public areas, a complete ban delivers genuine universal access and eradicates street-level pollution. Removing private cars does not isolate our city centres; it revitalizes them as inclusive, sustainable hubs for everyone.
+
+## words/default: Prof. Sage on gemini-3.8-flash vs gemini-3.8-flash
+
+### Affirmative Opening Statement: Gemini (Default) (190 words)
+
+> Length guidance: about 190 words (between 162 and 218), in natural prose with no headings or lists, then stop.
+
+The motion before this house calls for an overdue transformation of modern urban life: the prohibition of private cars from city centres. As the Affirmative, our burden is to demonstrate that dense urban cores should serve human beings rather than multi-ton vehicles. Today, private automobiles monopolize valuable public space, paralyze streets with chronic congestion, and poison the air our communities breathe. This status quo is neither sustainable nor equitable. By removing private cars, cities can repurpose vast road expanses and parking lots into vibrant pedestrian plazas, dedicated transit lanes, and flourishing green spaces that stimulate local commerce. Far from crippling mobility, this policy accelerates it by prioritizing high-capacity public transit, active cycling networks, and accessible micro-mobility, while preserving vital access for emergency, commercial, and disability services. The evidence across pioneering global metropolises proves that car-free city centres dramatically lower respiratory illnesses, slash carbon emissions, and revive civic culture. The choice before us is clear: we can continue prioritizing private vehicular convenience at immense collective cost, or we can build safer, cleaner, and more prosperous urban centres designed for people. For these reasons, I urge the audience to affirm the motion.
+
+### Negative Opening Statement: Gemini (Default) (186 words)
+
+> Length guidance: about 190 words (between 162 and 218), in natural prose with no headings or lists, then stop.
+
+Ladies and gentlemen, the motion before us demands a total prohibition: that this house would ban private cars from city centres. The Negative fundamentally opposes this blunt, sweeping measure. A blanket ban is an impractical, regressive overreach that sacrifices economic vitality, equity, and basic mobility for an ideological absolute.
+
+City centres are not isolated amusement parks; they are dynamic economic and civic hubs that rely on seamless connectivity with surrounding regions. Millions of citizens—including shift workers, small business patrons, tradespeople, and caregivers—live in transit deserts where private vehicles remain indispensable. Stripping them of downtown vehicular access effectively disenfranchises non-urban dwellers and starves central retail and hospitality businesses of essential footfall and revenue.
+
+Furthermore, outright bans inherently discriminate against vulnerable populations, including the elderly and disabled, for whom public transit is often structurally inadequate or physically punishing. Responsible urbanism does not demand total exclusion. Nuanced policies such as congestion pricing, dedicated transit corridors, and pedestrian zones achieve environmental and congestion goals while preserving essential access. 
+
+We urge you to reject this inflexible mandate and recognize that sustainable cities require pragmatic integration, not coercive exclusion. Oppose the motion.
+
+### Affirmative Floor Speech: Gemini (Default) (137 words)
+
+> Length guidance: about 150 words (between 128 and 173), in natural prose with no headings or lists, then stop.
+
+The opposition warns that banning private cars will economically starve downtown retail and penalize vulnerable residents. Both claims are contradicted by empirical reality. First, far from gutting local commerce, pedestrianization revitalizes it. When Madrid and Oslo removed private vehicles from central districts, pedestrian foot traffic and retail revenues consistently increased, proving that people, not cars, drive business. Cars simply congest streets; pedestrians stop, browse, and spend. Second, the opposition sets up a false choice regarding accessibility. A targeted ban on private commuter traffic frees clogged arteries, allowing municipal transit, paratransit, and essential vehicles for the disabled to operate swiftly without competing against single-occupancy gridlock. Standard implementations explicitly protect blue-badge exemptions. Congestion pricing merely allows wealthy drivers to buy road privilege, leaving systemic pollution untouched. Only a definitive ban reclaims public space for human safety and shared prosperity.
+
+## words/default: Scout on gemini-3.8-flash vs gemini-3.8-flash
+
+### Affirmative Opening Statement: Gemini (Default) (198 words)
+
+> Length guidance: about 190 words (between 162 and 218), in natural prose with no headings or lists, then stop.
+
+Distinguished audience, urban centres were built for human communion, commerce, and civic life, yet they have been overwhelmed by the private automobile. The motion before us calls for an essential and overdue transition: to ban private cars from our city cores. In taking up the affirmative burden, we argue that city centres must prioritize the collective welfare of the public over the spatial inefficiency of the individual driver.
+
+Every day, private vehicles choke urban arteries, generating acute congestion, toxic particulate emissions, and preventable traffic accidents. A single private car typically carries just one occupant while occupying an immense amount of scarce public realm for movement and parking. By removing private cars, cities can repurpose valuable streetscapes into vibrant pedestrian corridors, dedicated green spaces, and rapid public transit lanes that move exponentially more people cleanly and reliably. Essential services, emergency vehicles, and commercial deliveries will naturally remain regulated and permitted, ensuring economic vitality and accessibility for all residents. Banning private vehicles is not an assault on mobility, but its overdue revitalization. It restores dense urban cores to their true purpose: clean, equitable, and thriving environments designed for people rather than stationary metal. We urge your vote for the motion.
+
+### Negative Opening Statement: Gemini (Default) (199 words)
+
+> Length guidance: about 190 words (between 162 and 218), in natural prose with no headings or lists, then stop.
+
+Distinguished audience, the motion before us demands an extreme measure: an outright, blanket ban on private cars in city centres. Modern cities thrive on accessibility, connectivity, and inclusion. While the desire for cleaner, less congested urban areas is entirely understandable, solving complex urban challenges requires targeted calibration, not blunt and coercive prohibition.
+
+A blanket ban fundamentally overlooks the indispensable role personal vehicles play for countless individuals. Public transit networks, despite their virtues, frequently fail shift workers, families with young children, the elderly, and people with mobility impairments who cannot navigate crowded transit hubs or arduous pedestrian journeys. Furthermore, metropolitan cores depend economically on regional visitors from suburban and rural communities where reliable mass transit is nonexistent. Severing direct vehicle access deprives downtown commercial, cultural, and hospitality sectors of essential patronage, risking the unintended acceleration of suburban sprawl and economic stagnation.
+
+The proper duty of municipal governance is not to eliminate personal mobility, but to manage it constructively through dynamic congestion pricing, targeted low-emission zones, and dedicated investment in multimodal infrastructure. A total ban is an exclusionary instrument that punishes those with the fewest alternatives. To preserve accessibility, economic resilience, and fundamental fairness, we urge you to oppose the motion.
+
+### Affirmative Floor Speech: Gemini (Default) (151 words)
+
+> Length guidance: about 150 words (between 128 and 173), in natural prose with no headings or lists, then stop.
+
+The opposition claims that banning private cars depresses downtown commerce and excludes vulnerable citizens. Both assertions collapse under real-world evidence. When Pontevedra and Ljubljana removed private vehicles from their city centres, local retail revenues did not stagnate; foot traffic surged, commercial vacancies plummeted, and local businesses thrived because walkable streets attract paying patrons far more effectively than gridlock. 
+
+Furthermore, our opponent’s accessibility critique creates a false dilemma. Car-free policies routinely incorporate sensible exemptions for paratransit, disabled access permits, and municipal shuttles. In truth, private automobiles actively impede mobility by congesting roadways, blocking drop-off points, and degrading air quality for those who rely on surface transit. Removing thousands of private commuter vehicles clears the streets, allowing dedicated transit, paratransit, and emergency services to reach their destinations without obstruction. A car-free centre does not alienate vulnerable populations; it reclaims urban public space to foster an accessible, healthy, and commercially vibrant environment for everyone.
+
+## words/verbose: Default on gemini-3.8-flash vs gemini-3.8-flash
+
+### Affirmative Opening Statement: Gemini (Default) (330 words)
+
+> Length guidance: about 350 words (between 298 and 402), in natural prose with no headings or lists, then stop.
+
+Distinguished audience, we stand at a critical juncture in the evolution of our cities. The motion before us today—that this house would ban private cars from city centres—calls for a fundamental reimagining of urban space. To frame this debate properly, the Affirmative defines a ban on private automobiles not as an abandonment of mobility, but as a deliberate reallocation of our most scarce public resource: urban space. Under this proposal, private commuter vehicles are excluded from designated central districts, while vital accommodations remain for public transit, emergency services, commercial deliveries during regulated windows, and individuals with disabilities. Our burden in this debate is straightforward: to demonstrate that dedicating the physical core of our cities to the private automobile is environmentally destructive, socially inequitable, and economically counterproductive, and that a decisive transition to car-free centres yields profound benefits for the public good.
+
+Our case rests on three foundational pillars. First, public health and ecological survival require bold intervention. Private motor vehicles are the leading urban source of localized air pollutants, notably nitrogen oxides and fine particulate matter, which drive chronic respiratory illness and premature mortality. Replacing vehicular traffic with active mobility and clean transit drastically curtails these emissions, dampens persistent noise pollution, and eliminates the daily danger of traffic violence against pedestrians and cyclists.
+
+Second, private cars are catastrophically inefficient users of finite urban geometry. In major city centres, single-occupancy vehicles consume immense acreage for movement and stationary storage, stifling the very vitality that downtowns are built to cultivate. By reclaiming roads and parking lots, municipalities can convert tarmac into green corridors, affordable housing, and dedicated transit arteries that move vastly more people far more reliably.
+
+Finally, vibrant commerce thrives on footfall, not traffic flow. International precedents, from Madrid to Ljubljana, consistently demonstrate that pedestrianization stimulates retail foot traffic, invigorates local businesses, and enhances commercial property values. Far from isolating downtowns, removing private cars democratizes access, transforming congested transit corridors into flourishing public spaces. We urge you to affirm the motion.
+
+### Negative Opening Statement: Gemini (Default) (337 words)
+
+> Length guidance: about 350 words (between 298 and 402), in natural prose with no headings or lists, then stop.
+
+Distinguished audience, the motion before us today proposes a sweeping and blunt measure: an outright ban on private cars in city centres. The Negative does not stand before you to defend gridlock, toxic emissions, or unchecked urban sprawl. Rather, our burden is to demonstrate that an absolute prohibition is a fundamentally flawed, regressive policy that fractures the organic connection between a city and its broader metropolitan region, whereas targeted, proportionate management accomplishes sustainability goals without devastating unintended consequences.
+
+The first fundamental flaw of an outright ban lies in its profound socio-economic inequity. Modern cities do not exist in isolation; their central districts serve as vital civic, economic, and medical anchors for surrounding suburbs and regional peripheries. In reality, vast swathes of working-class families, peripheral shift workers, caregivers, and individuals with specialized accessibility needs live in transit deserts where public transportation is either non-existent, infrequent, or unsafe during odd hours. To arbitrarily sever the core from vehicular access is to construct an exclusionary barrier, effectively turning city centres into privileged enclaves accessible primarily to affluent residents who can afford inner-city housing and active transport.
+
+Second, a categorical ban jeopardizes the economic vitality of urban centres. City cores depend on commerce, professional services, cultural venues, and regional retail. Stripping away automotive accessibility does not magically convert every car commuter into a transit passenger; instead, it frequently drives consumer spending, foot traffic, and private investment out toward car-friendly suburban shopping parks and decentralized commercial developments. Hollowing out the commercial tax base of the urban centre deprives local governments of the very revenue necessary to fund clean public transit networks in the first place.
+
+Finally, an outright ban is an unnecessary, blunt instrument when superior, nuanced policy alternatives already succeed across the world. Congestion pricing, low-emission zones, intelligent parking management, and targeted pedestrianization reduce emissions and alleviate congestion while preserving essential mobility and economic flexibility. A resilient, modern city balances environmental stewardship with universal accessibility. For these reasons, we urge you to reject this prohibition and vote firmly against the motion.
+
+### Affirmative Floor Speech: Gemini (Default) (242 words)
+
+> Length guidance: about 260 words (between 221 and 299), in natural prose with no headings or lists, then stop.
+
+The opposition argues that removing private cars creates an exclusionary enclave, penalizing suburban workers who lack public transit. This claim fundamentally misdiagnoses urban equity. Under the status quo, an affluent minority of car owners monopolizes finite road space, inflicts toxic air pollution on dense neighborhoods, and severely delays the surface buses that working-class commuters actually rely upon. Preserving car dominance out of concern for transit deserts guarantees that those outlying areas will never receive the rapid, unimpeded transit corridors they desperately need. Far from isolating peripheral workers, removing private cars liberates critical street real estate to establish dedicated, high-frequency bus rapid transit and light rail networks that move regional commuters far faster and more affordably than gridlocked private vehicles ever could.
+
+Furthermore, the Negative warns that commerce will flee to suburban strip malls, devastating the urban tax base. Empirical evidence from car-free initiatives across Europe thoroughly dismantles this fear. When Pontevedra, Ljubljana, and central Oslo restricted private vehicles, foot traffic surged, retail vacancy rates plummeted, and consumer spending materially increased. People, not cars, spend money. Pedestrianized cores transform congested, hostile corridors into vibrant destinations where residents linger, socialize, and patronize local businesses. Incremental measures like congestion pricing merely grant wealthy drivers the right to clog public streets for a fee, leaving structural bottlenecks and safety hazards intact.
+
+A decisive ban is neither blunt nor punitive; it is the indispensable prerequisite for an equitable, flourishing metropolitan core. We urge you to vote Affirmative.
+
+## words/verbose: Bestie on gemini-3.8-flash vs gemini-3.8-flash
+
+### Affirmative Opening Statement: Gemini (Default) (353 words)
+
+> Length guidance: about 350 words (between 298 and 402), in natural prose with no headings or lists, then stop.
+
+The motion before us today proposes a necessary and transformative evolution in how we conceive of our collective life: this House would ban private cars from city centres. To frame this debate properly, the Affirmative defines the core principle at stake. This motion does not demand the abolition of mobility, nor does it ignore essential transit needs. Emergency vehicles, accessible transport for persons with disabilities, and scheduled logistical deliveries must and will retain access. Rather, the burden we embrace is to demonstrate that the unrestricted presence of personal, private passenger vehicles in dense urban cores is fundamentally incompatible with ecological sustainability, public health, and social equity.
+
+For nearly a century, urban centres have been engineered around the spatial and mechanical demands of the private automobile, with disastrous consequences. The geometric reality of the private car is inherently inefficient: a multi-ton vehicle carrying an average of just over one occupant occupies vastly disproportionate street space, generating chronic congestion that paralyzes metropolitan arteries. By removing private cars from these central districts, we reclaim immense public real estate currently surrendered to moving lanes and parking infrastructure. That reclaimed space can immediately be reallocated to rapid, high-capacity public transit, dedicated cycling networks, pedestrian plazas, and green infrastructure that actively mitigates urban heat island effects.
+
+Furthermore, the public health imperative is urgent. Private combustion and electric vehicles alike contribute significantly to toxic ambient particulate matter through tailpipe emissions, brake dust, and tire wear, driving acute respiratory and cardiovascular diseases across urban populations. Automobile dominance also inflicts a relentless toll in pedestrian injuries and fatalities. Relegating personal cars outside central zones decisively eliminates these localized hazards, creating cleaner, quieter, and safer environments where commerce and civic community organically flourish.
+
+Cities exist to bring human beings together, yet personal automobiles fragment and endanger the very spaces meant for shared prosperity. When city centres prioritize people over private vehicles, economic vitality increases, transit efficiency multiplies, and carbon footprints dramatically shrink. We urge the audience to recognize that an urban future centered on human flourishing begins by clearing the streets of private cars, and on that basis, we proudly affirm the motion.
+
+### Negative Opening Statement: Gemini (Default) (334 words)
+
+> Length guidance: about 350 words (between 298 and 402), in natural prose with no headings or lists, then stop.
+
+The motion before us demands an extreme and inflexible measure: the total prohibition of private automobiles from city centres. In approaching this debate, the Negative side establishes a fundamental distinction between the responsible, modern management of urban mobility and the blunt coercion of an outright ban. Our burden today is not to defend unmitigated gridlock or environmental complacency, but to demonstrate that a sweeping prohibition is economically damaging, socially regressive, and fundamentally unnecessary. True urban vitality requires accessibility, balance, and adaptability, not the punitive exclusion of citizens who rely on personal transport.
+
+First, consider the principle of social equity and regional connectivity. A city centre is not an isolated enclave for affluent inner-city residents who live within walking distance of high-frequency metro lines; it is the civic, medical, cultural, and commercial heart of an entire metropolitan region. Millions of people live in peripheral suburbs or exurban areas poorly served by public transit. Among them are parents transporting multiple young children, individuals with mobility challenges or hidden disabilities, caregivers, and tradespeople carrying essential tools. A categorical ban erects a geographic and socioeconomic wall around the city core, disenfranchising those who cannot endure long, multi-leg journeys on fixed transit lines and disproportionately harming working-class commuters.
+
+Second, an outright ban imperils the economic resilience of urban cores. Central business districts are already grappling with shifting consumer behaviors and remote work. Depriving businesses of patrons who commute from outside the transit grid accelerates the migration of commerce to suburban shopping complexes and sprawling auto-friendly office parks. This hollows out downtown retail and diminishes the municipal tax base without actually reducing aggregate vehicle miles traveled.
+
+Finally, effective urban planning relies on proportional instruments rather than categorical bans. Dynamic congestion pricing, targeted low-emission zones, smart traffic management, and sustained investments in public transit achieve genuine carbon reductions and congestion relief without alienating regional communities. We must cultivate a vibrant, interconnected city that integrates diverse needs, rather than imposing an exclusionary mandate. For these reasons, the Negative firmly opposes the motion.
+
+### Affirmative Floor Speech: Gemini (Default) (265 words)
+
+> Length guidance: about 260 words (between 221 and 299), in natural prose with no headings or lists, then stop.
+
+The Negative warns that banning private cars imperils downtown commerce and creates an exclusionary wall for peripheral communities, but both claims collapse under empirical scrutiny. First, the assertion that retailers depend on car access is contradicted by real-world evidence from cities that took this decisive step. When Madrid established its Central low-emission zone and Ljubljana fully pedestrianized its historic core, local business revenues did not plummet; retail sales and foot traffic surged. Foot travelers linger longer, visit more storefronts, and spend more per trip than drivers rushing through gridlocked thoroughfares. The true threat to downtown vitality is not the absence of cars, but streets choked by noise and bumper-to-bumper traffic that drive pedestrians away.
+
+Second, the Negative’s appeal to social equity is fundamentally inverted. Private automobile ownership in metropolitan areas is heavily concentrated among wealthier demographics, yet lower-income residents disproportionately endure the severe respiratory illnesses, pedestrian hazards, and transit delays caused by automobile dominance. Permitting a privileged minority to clog shared urban corridors with multi-ton personal vehicles actively disenfranchises the vast majority who rely on surface transit. Removing private vehicles directly untangles surface streets, allowing bus networks, light rail, and emergency services to operate at unprecedented speed and reliability. 
+
+Pricing schemes and low-emission zones are half-measures that preserve spatial inequality; wealthy commuters simply pay the fee and continue monopolizing civic space. A decisive ban breaks this cycle, reclaiming hundreds of acres of prime public land for affordable community amenities, dedicated transit, and livable streets. To build an equitable, economically resilient city core, we must eliminate private cars, and we urge you to affirm the motion.
+
+## words/verbose: Brody on gemini-3.8-flash vs gemini-3.8-flash
+
+### Affirmative Opening Statement: Gemini (Default) (340 words)
+
+> Length guidance: about 350 words (between 298 and 402), in natural prose with no headings or lists, then stop.
+
+Distinguished audience, the motion before us today proposes a vital and necessary transformation of urban life: that this house would ban private cars from city centres. At its core, this debate is not an assault on personal mobility, but a principled reclamation of our shared public commons. Urban centres are the economic, cultural, and social hearts of our civilization, yet for nearly a century they have been surrendered to the spatial and environmental dominance of the private passenger automobile.
+
+Our burden in this debate is to demonstrate that prohibiting private cars from dense urban cores yields substantial, irreplaceable benefits for public welfare, economic vitality, and environmental sustainability. To clarify the operational scope, this prohibition applies specifically to private passenger vehicles. It preserves full, unimpeded access for emergency response services, high-capacity public transit, municipal maintenance fleets, scheduled commercial deliveries during off-peak windows, and dedicated transport for individuals with mobility impairments.
+
+The justification for this measure rests on three fundamental pillars. First, the spatial geometry of the private car is fundamentally incompatible with urban density. A standard automobile typically transports just over one passenger while consuming dozens of square metres of precious roadway and storage space. By removing private vehicles, cities reclaim vast expanses of land for pedestrian walkways, dedicated transit corridors, protected cycle paths, and green public squares that invigorate local commerce and community life.
+
+Second, the public health imperatives are urgent and undeniable. Dense urban populations suffer disproportionately from toxic exhaust fumes, fine particulate pollution, and relentless noise, which directly drive elevated rates of respiratory illness, cardiovascular disease, and chronic stress. Eliminating private vehicle traffic produces immediate, measurable air quality improvements and substantially eliminates the leading cause of urban pedestrian and cyclist trauma.
+
+Finally, this transition democratizes urban mobility and accelerates climate action. It refocuses municipal resources on equitable, reliable mass transit, ensuring that access to the heart of the city is never contingent upon the steep financial burden of car ownership. Cities must exist for people rather than vehicles. For these reasons, we urge you to affirm the motion.
+
+### Negative Opening Statement: Gemini (Default) (327 words)
+
+> Length guidance: about 350 words (between 298 and 402), in natural prose with no headings or lists, then stop.
+
+Distinguished audience, the motion before us demands an extreme, inflexible policy: an outright prohibition of private automobiles from our urban hearts. The negative fundamentally opposes this motion. While every thriving metropolis must manage traffic and foster sustainable mobility, an absolute ban is an economically perilous and socially regressive instrument that mistakes ideological purity for sound governance.
+
+Our burden in this debate is to demonstrate that a blanket ban inflicts severe, structural harm upon urban vitality and equity, and that a vibrant city core cannot survive by severing itself from the broader metropolitan region it serves. A city centre is not an insular playground for affluent downtown residents; it is the economic, civic, and cultural focal point for an entire metropolitan ecosystem. Millions of workers, consumers, and families live in outer suburbs, satellite towns, and rural peripheries where public transit infrastructure is sparse, fragmented, or nonexistent. When a municipality institutes an outright ban on private vehicles, it does not magically produce comprehensive transit overnight. Instead, it creates a formidable physical barrier, effectively locking out regional citizens and driving retail expenditure, office tenancy, and dining revenue away from the core toward decentralized, car-accessible suburban malls.
+
+Furthermore, blanket bans inherently punish the vulnerable. Shift workers who travel during nocturnal hours when mass transit operates at reduced schedules, tradespeople transporting essential equipment, caregivers assisting elderly relatives, and families with young children face severe disruption. While proponents often promise exemptions, bureaucratic administrative hurdles routinely fail to accommodate the complex, fluid realities of human movement, reducing accessibility to an arbitrary municipal checklist.
+
+True urban progress relies on pragmatic, calibrated demand management, such as targeted pedestrianization, congestion pricing, and low-emission zones, integrated alongside sustained transit investment. These proportional measures successfully curtail congestion and emissions while preserving critical connectivity. An outright ban, by contrast, is a blunt mandate that sacrifices regional inclusivity and economic resilience for an exclusionary vision of urban life. We respectfully urge you to reject this prohibition and vote against the motion.
+
+### Affirmative Floor Speech: Gemini (Default) (256 words)
+
+> Length guidance: about 260 words (between 221 and 299), in natural prose with no headings or lists, then stop.
+
+The opposition paints a catastrophic picture of economic abandonment, arguing that excluding private vehicles severs the core from regional commuters and hollows out local commerce. This premise collapses under empirical scrutiny. When cities systematically prioritize people over private vehicles, local economies do not wither; they flourish. In cities like Oslo, Ghent, and Pontevedra, the removal of private cars led directly to surges in retail foot traffic, lower commercial vacancy rates, and increased consumer spending. Retail health depends on pedestrian footfall, not traffic congestion. Customers do not spend money from behind windshields idling in gridlock; they spend when streets are safe, quiet, and welcoming.
+
+Furthermore, the negative mischaracterizes the car as an engine of accessibility, claiming a ban punishes regional workers. In reality, dedicating massive downtown acreage to private car lanes and parking subsidizes an affluent minority at the direct expense of the broader public. Single-occupancy vehicles generate the very gridlock that paralyses municipal transit networks. By eliminating private cars, cities liberate critical surface street capacity for rapid, unobstructed bus rapid transit, light rail, and emergency access, complemented by high-frequency park-and-ride terminals at peripheral transit hubs. This does not strand suburban or shift workers; it grants them faster, cheaper, and more dependable journeys without requiring them to pay extortionate parking fees.
+
+Relying on timid pricing mechanisms merely prices out the working class while wealthy drivers absorb tolls and perpetuate congestion. A definitive ban provides the structural certainty needed to convert vehicular corridors into thriving pedestrian squares and dedicated transit lines. We urge you to affirm the motion.
+
+## words/verbose: Devlin on gemini-3.8-flash vs gemini-3.8-flash
+
+### Affirmative Opening Statement: Gemini (Default) (344 words)
+
+> Length guidance: about 350 words (between 298 and 402), in natural prose with no headings or lists, then stop.
+
+Members of the audience, the motion before us today proposes a necessary and overdue transformation of our shared urban landscape: that this house would ban private cars from city centres. As the Affirmative, our burden is to demonstrate that the modern city core can no longer sustain the overwhelming costs imposed by private vehicle dominance, and that reclaiming this civic space offers a healthier, more equitable, and more prosperous future for urban communities.
+
+For over a century, urban planning has operated under a profound distortion, sacrificing communal life to accommodate private automobiles. The consequences of this priority are now undeniable. City centres represent dense hubs of commerce, culture, and residential density, yet disproportionate amounts of their most valuable land are consumed by asphalt, multi-lane thoroughfares, and parking structures. This allocation is fundamentally inefficient. Private cars sit idle for roughly ninety-five percent of their operational lifespan, yet while in motion, they generate severe congestion, compromise public safety, and degrade air quality through harmful particulate emissions that directly undermine public health.
+
+To affirm this motion is not to oppose mobility; rather, it is to elevate mobility to a higher standard of collective efficiency and human dignity. By removing private passenger cars from central districts, municipalities can immediately reallocate street space toward robust, rapid public transit networks, dedicated cycling infrastructure, and walkable pedestrian boulevards. Cities that have initiated bold pedestrianization policies demonstrate that commercial vitality increases, local businesses thrive, and communities become safer and more socially cohesive when streets are returned to people.
+
+Crucially, our proposal targets the private passenger vehicle, recognizing that legitimate urban functions—such as emergency response, municipal maintenance, parcel delivery during designated hours, and accessible transit for individuals with reduced mobility—must and will be accommodated. What we refuse to tolerate any longer is the private entitlement to monopolize scarce public space with inefficient machinery. We ask the audience to recognize that modern cities belong to the people who inhabit and work within them, not to the cars that choke their avenues. For these reasons, we urge you to vote in favor of the motion.
+
+### Negative Opening Statement: Gemini (Default) (346 words)
+
+> Length guidance: about 350 words (between 298 and 402), in natural prose with no headings or lists, then stop.
+
+Members of the audience, the motion before us today proposes a sweeping and coercive mandate: an outright ban on private cars from city centres. As the Negative, our position is clear. We oppose this motion because an absolute prohibition is a blunt, regressive instrument that harms urban economic vitality, deepens socioeconomic inequality, and mistakes crude exclusion for thoughtful urban planning. Our burden in this debate is to demonstrate that modern cities thrive on connectivity rather than isolation, and that sustainable mobility requires nuanced management rather than total bans.
+
+First, consider the economic lifeblood of the urban core. City centres do not exist in a vacuum; they serve as commercial, service, and cultural hubs for entire metropolitan regions. When municipalities enforce a total ban on private vehicles, they erect an artificial wall between central businesses and regional patrons. Suburban families, independent tradespeople, and regional visitors who face inadequate transit connections are effectively locked out. The predictable consequence is not a flourishing paradise of foot traffic, but capital flight: commerce and consumer spending migrate toward suburban shopping corridors and edge cities, hollowing out the historic core and threatening independent retailers who rely on regional access to survive.
+
+Second, an outright ban fundamentally disregards equity and accessibility. Advocates of blanket bans often imagine a homogenous urban population composed entirely of able-bodied residents living along pristine subway corridors. The reality is far harsher. Millions of citizens—including shift workers traveling outside standard operating hours, elderly residents, parents managing multi-stop daily commutes, and people living in transit deserts—rely on private vehicles out of sheer necessity, not luxury. A categorical ban penalizes these vulnerable demographics, forcing them into longer, more precarious journeys while assuming that public transit infrastructure is universally comprehensive and accessible.
+
+Finally, sensible governance relies on proportionate policy, not absolute prohibition. Cities can achieve reduced emissions and improved public spaces through dynamic congestion pricing, low-emission zones, and targeted infrastructure investments without stripping citizens of personal agency. Blanket bans sacrifice real-world functionality for ideological simplicity. We must reject this heavy-handed measure and choose a resilient, inclusive urban future. Vote against the motion.
+
+### Affirmative Floor Speech: Gemini (Default) (264 words)
+
+> Length guidance: about 260 words (between 221 and 299), in natural prose with no headings or lists, then stop.
+
+The Negative warns that banning private cars will hollow out downtown commerce and disadvantage working-class commuters. Both arguments collapse under empirical scrutiny. First, the fear of regional capital flight fundamentally misreads modern retail dynamics. Real-world precedents from cities like Pontevedra and Ljubljana, as well as pedestrianized corridors from Oslo to Madrid, demonstrate precisely the opposite outcome. When cars are removed, foot traffic surges, consumer dwell time increases, and local retail revenues consistently climb. Suburban shopping malls do not capture urban trade; rather, people actively gravitate toward vibrant, walkable, and safe civic spaces. Cars do not spend money; people do. 
+
+Second, the opposition’s equity defense of the automobile inverts reality. In dense metropolitan areas, private car ownership is predominantly an affluent privilege, whereas lower-income residents, shift workers, and marginalized communities rely overwhelmingly on public buses and regional rail. Yet under the status quo, these public transit riders are trapped in gridlock created by single-occupancy private vehicles, while absorbing disproportionate burdens of localized asthma, traffic violence, and particulate pollution. Reclaiming street space from private automobiles enables dedicated bus corridors, rapid tramways, and accessible micro-mobility, vastly accelerating transit times for working populations who cannot afford the exorbitant costs of vehicle maintenance, fuel, and downtown parking.
+
+The central clash of this debate is spatial and structural. A city center possesses finite physical geometry that cannot simultaneously accommodate millions of individual private vehicles and function as a livable, accessible community. By replacing the private automobile with collective transit and pedestrian space, we do not isolate the city; we democratize it, ensuring it serves everyone rather than a motorized minority.
+
+## words/verbose: George on gemini-3.8-flash vs gemini-3.8-flash
+
+### Affirmative Opening Statement: Gemini (Default) (344 words)
+
+> Length guidance: about 350 words (between 298 and 402), in natural prose with no headings or lists, then stop.
+
+Ladies and gentlemen, the modern city centre stands at a decisive crossroads. For nearly a century, urban planners designed the hearts of our cities around a single, inefficient machine: the private automobile. The motion before us today, that this House would ban private cars from city centres, asks us to dismantle that outdated paradigm and reclaim our urban cores for the people who inhabit them. As the Affirmative, our burden is straightforward. We must demonstrate that the unrestricted presence of private vehicles in dense urban cores inflicts intolerable costs on public health, spatial equity, and economic vitality, and that a decisive transition to pedestrian, cycling, and public transit networks offers a vastly superior model for human flourishing.
+
+The first pillar of our case is spatial equity. City centres are, by definition, areas where space is most scarce and valuable. Yet private vehicles consume an astonishingly disproportionate share of this precious public realm. Multi-lane roads and curbside parking monopolize land that could otherwise sustain green parks, outdoor commerce, and civic life. The private automobile is mechanically ill-suited to high-density environments; a vehicle occupying substantial square footage often carries a single commuter, gridlocking streets and stranding thousands who rely on surface transit. By removing private cars, we do not restrict mobility; we liberate it, reallocating urban acreage toward high-capacity transit and active travel modes that move people with far greater efficiency.
+
+The second pillar encompasses public health, environmental survival, and community safety. Urban centres concentrate human populations in direct proximity to toxic tailpipe emissions and brake dust particulates, driving up rates of pediatric asthma and cardiovascular disease. Beyond chemical pollution, the constant roar of urban traffic creates chronic acoustic stress, while vehicular collisions remain an ongoing hazard to pedestrians and cyclists. Banning private automobiles instantly revitalizes street-level air quality, dramatically reduces urban carbon footprints, and transforms hostile roadways into safe spaces where citizens can walk without fear.
+
+Ultimately, dense downtowns thrive on human interaction and foot traffic, not vehicular congestion. To preserve the livability, health, and economic future of our cities, we urge an affirmative vote.
+
+### Negative Opening Statement: Gemini (Default) (329 words)
+
+> Length guidance: about 350 words (between 298 and 402), in natural prose with no headings or lists, then stop.
+
+Ladies and gentlemen, the vitality of a city depends on its accessibility. The motion before us calls for an outright ban on private cars from city centres. As the Negative, our burden today is to show that a total vehicular ban is a dangerously blunt, economically destabilizing, and socially regressive instrument. While the aspiration to reduce congestion and improve air quality is understandable, an absolute prohibition mistakes an ideological shortcut for sound urban governance. The genuine path toward thriving, sustainable cities lies in calibrated management, targeted infrastructure investment, and progressive incentives, rather than sweeping exclusion.
+
+Our case rests on three foundational realities. First, an absolute ban inflicts severe economic harm on urban commercial cores. Downtown districts are regional economic hubs that draw customers, specialized labor, and visitors from surrounding areas that lack dense transit networks. Stripping regional residents of vehicular access forces commerce outward into suburban shopping strips and peripheral office parks, eroding municipal tax revenues and driving independent downtown merchants out of business.
+
+Second, a blanket prohibition creates severe inequities for vulnerable populations. For the elderly, parents with young children, shift workers, and individuals with chronic mobility impairments, private transportation is not a luxury; it is a necessity for basic participation in public life. Transit systems, with their fixed routes, operational timetables, and physical access hurdles, cannot fully replace point-to-point transit. Blanket bans transform vibrant city centres into exclusionary enclaves that privilege able-bodied, childless professionals while marginalizing those who require adaptable transport.
+
+Finally, prohibition is unnecessary because far superior, evidence-based alternatives exist. Cities worldwide have demonstrated that congestion pricing, dynamic parking fees, vehicle electrification, and dedicated transit corridors drastically cut emissions and traffic without severing economic lifelines. By pricing congestion rather than outlawing access, municipalities generate the very revenues needed to build world-class public transport.
+
+An inclusive, prosperous city must connect people, not sever them. Because an outright ban sacrifices accessibility, equity, and economic health in pursuit of a rigid ideal, we urge you to reject this motion.
+
+### Affirmative Floor Speech: Gemini (Default) (253 words)
+
+> Length guidance: about 260 words (between 221 and 299), in natural prose with no headings or lists, then stop.
+
+The Negative cautions that banishing private automobiles will hollow out downtown commerce and disadvantage vulnerable populations. This assertion collapses under empirical scrutiny. First, the claim that retail vitality depends on vehicular access fundamentally misjudges urban economics. Cars do not spend money; pedestrians do. Real-world implementations in cities like Pontevedra, Oslo, and Ghent reveal that pedestrianizing city centres consistently increases foot traffic, lowers retail vacancy rates, and boosts local merchant revenues. When roadways are converted into welcoming public realms, dwell time increases, directly driving retail and hospitality sales rather than dispersing them to the suburbs.
+
+Second, the Negative constructs a false dichotomy between universal vehicular access and disability inclusion. Banning private commuter traffic does not preclude tightly regulated exemptions for municipal paratransit, emergency services, and vehicles carrying residents with documented mobility impairments. In reality, the status quo championed by the Negative harms the vulnerable most. Clogged arteries delay dial-a-ride services, narrow pavements restrict wheelchair navigation, and hazardous intersections endanger those with reduced mobility. Removing general private traffic liberates surface space for barrier-free pedestrian corridors, grade-level tramways, and unobstructed specialized transit.
+
+Congestion pricing schemes, which the Negative proposes as a milder alternative, merely price out working-class commuters while allowing wealthy drivers to purchase the right to pollute and congest city centres. A comprehensive ban treats public space as an indivisible civic commons, not a commodity for the highest bidder. By decisively removing the private car, we revitalize urban commerce, guarantee genuine physical equity, and replace toxic gridlock with thriving, accessible streetscapes built to human scale.
+
+## words/verbose: Kai on gemini-3.8-flash vs gemini-3.8-flash
+
+**Stopped:** Affirmative Opening Statement interrupted: token_limit
+
+### Affirmative Opening Statement: Gemini (Default) (193 words)
+
+> Length guidance: about 350 words (between 298 and 402), in natural prose with no headings or lists, then stop.
+
+The motion before us asserts that this house would ban private cars from city centres. When evaluating a proposal of this magnitude, the burden rests on demonstrating that a blanket, categorical prohibition is both necessary and justifiable to achieve the ends of a livable urban core. It is not enough to show that traffic congestion is frustrating or that cleaner air is desirable; one must establish that an absolute ban is the proper mechanism. It is precisely against this motion that our case stands, because an outright prohibition misdiagnoses urban mobility, imposes profound socio-economic harm, and discards superior, measured alternatives.
+
+A complete ban on private vehicles in urban cores operates as a blunt instrument against an intricately layered reality. Urban centres are not mere recreational parks; they are dynamic ecosystems housing diverse populations, commercial districts, and regional medical facilities. Stripping individuals of vehicular access penalizes residents who rely on cars not out of luxury, but out of necessity. Those with mobility impairments, chronic illnesses, or specialized transit requirements cannot seamlessly navigate mass transit networks that remain notoriously uneven in accessibility.
+
+_Gemini could not finish this turn. Retry the turn when you are ready._
+
+## words/verbose: Prof. Sage on gemini-3.8-flash vs gemini-3.8-flash
+
+### Affirmative Opening Statement: Gemini (Default) (344 words)
+
+> Length guidance: about 350 words (between 298 and 402), in natural prose with no headings or lists, then stop.
+
+Distinguished audience, we stand at a critical crossroads regarding how we design, inhabit, and experience our urban spaces. The motion before us today, that this House would ban private cars from city centres, addresses a foundational question: who are our cities built for? For nearly a century, urban planning has subordinated human well-being, public health, and community life to the demands of the private automobile. Our burden on the Affirmative is to demonstrate that removing private cars from urban cores delivers profound, measurable benefits for environmental sustainability, human safety, and economic vitality, while establishing a far more humane and efficient model of civic life.
+
+To understand the necessity of this motion, one must confront the severe spatial and environmental failure of the private car in dense urban environments. Private vehicles are an astonishingly inefficient means of moving people, occupying enormous acreage of prime urban land for driving and parking while carrying an average of barely more than one person per trip. By monopolizing public roadways, cars generate crippling congestion, pervasive noise, and toxic emissions that disproportionately poison the air breathed by residents and pedestrians. Banning private automobiles allows municipalities to reclaim thousands of square meters of asphalt, transforming dangerous corridors into green spaces, dedicated transit pathways, and vibrant public squares that foster social cohesion and local commerce.
+
+Furthermore, this policy addresses an urgent public health imperative. Traffic violence and ambient air pollution claim millions of lives worldwide each year. In contrast, cities that prioritize active transit and pedestrianization see immediate drops in respiratory illness and fatal collisions, alongside measurable increases in physical activity and mental well-being. Our proposal is neither radical nor impractical; it reflects the proven successes of forward-looking cities worldwide, accompanied by comprehensive public transit networks, expanded micro-mobility, and clear, sensible exemptions for emergency services, essential logistics, and individuals with disabilities. 
+
+When we remove the private car, we do not restrict freedom; we liberate our city centres to become the accessible, safe, and flourishing communities they were always intended to be. For these reasons, the Affirmative urges you to support the motion.
+
+### Negative Opening Statement: Gemini (Default) (337 words)
+
+> Length guidance: about 350 words (between 298 and 402), in natural prose with no headings or lists, then stop.
+
+Distinguished audience, the motion before us demands that we endorse an absolute, sweeping prohibition: the complete banning of private cars from our city centres. The burden on those who support such a drastic measure is immense. They must prove not merely that cities face congestion or environmental challenges, but that the only viable solution is a total, blunt ban—one that disregards local geography, transit readiness, and human necessity. The Negative contends that an outright ban is an economically damaging, socially regressive, and needlessly rigid policy that harms the very communities it purports to protect.
+
+At its core, a blanket ban ignores the lived realities of millions who depend on urban centres but cannot rely exclusively on mass transit. Public transportation networks rarely offer universal, round-the-clock coverage, particularly for workers with non-standard shifts, parents managing complex caretaking routines, or individuals with mobility constraints and invisible disabilities. For these populations, personal vehicular access is not an indulgence; it is an essential lifeline connecting them to employment, specialized healthcare, and civic life. By decreeing that private cars are entirely unwelcome, we effectively construct an invisible wall around the urban core, pricing out or shutting out those who live on the geographic and economic margins where transit infrastructure remains chronically underfunded.
+
+Moreover, a categorical prohibition threatens the fragile economic vitality of our downtown districts. City centres thrive when they remain dynamic, accessible hubs of commerce, culture, and hospitality. Stripping away personal vehicular access risks driving consumers and businesses toward sprawling suburban shopping complexes, hollowing out downtown commercial corridors and eroding municipal tax bases. A thriving city does not mandate an artificial monoculture of mobility through coercive mandates. Instead, modern urban governance succeeds through nuanced, balanced interventions—such as dynamic congestion pricing, targeted low-emission zones, and the organic expansion of cycling and pedestrian zones—which manage traffic without extinguishing personal autonomy. We must build inclusive, resilient urban spaces through investment and smart regulation, rather than imposing a heavy-handed ban that isolates the urban core. For these reasons, we urge you to oppose the motion.
+
+### Affirmative Floor Speech: Gemini (Default) (249 words)
+
+> Length guidance: about 260 words (between 221 and 299), in natural prose with no headings or lists, then stop.
+
+The Negative cautions that removing private vehicles will hollow out downtown commerce and disadvantage vulnerable populations. Both claims dissolve under scrutiny. First, the fear of economic collapse contradicts empirical reality. When cities like Madrid, Oslo, and Pontevedra removed private automobiles from their historic cores, local businesses did not shutter; retail revenues increased. Cars do not buy goods; pedestrians do. By reclaiming asphalt for broad sidewalks, outdoor dining, and accessible public squares, pedestrianization fosters longer dwell times and sustained commercial vitality far superior to congested streets that deter foot traffic.
+
+Second, our opponent mischaracterizes our proposal as an exclusionary wall that ignores human need. In truth, car dominance is the truly regressive model, monopolizing public space for a relatively affluent minority while burdening lower-income residents with asthma-inducing particulate matter and lethal traffic violence. The Affirmative case explicitly integrates paratransit access, dedicated exemptions for individuals with mobility impairments, and delivery logistics, ensuring true accessibility without opening the floodgates to gridlock. Mass transit, cycling infrastructure, and walkability democratize the city core, offering affordable, dependable access to shift workers and families who cannot shoulder the crushing costs of vehicle ownership and urban parking.
+
+Dynamic pricing schemes, which the Negative champions as a moderate alternative, merely allow the wealthy to purchase the right to pollute and congest our shared commons. A decisive ban is necessary to fundamentally reorient municipal transit priorities and solve the geometric impossibility of private vehicle dominance. We must choose vibrant, healthy communities over asphalt, and I urge an Affirmative vote.
+
+## words/verbose: Scout on gemini-3.8-flash vs gemini-3.8-flash
+
+### Affirmative Opening Statement: Gemini (Default) (329 words)
+
+> Length guidance: about 350 words (between 298 and 402), in natural prose with no headings or lists, then stop.
+
+Distinguished audience, the debate before us today addresses a defining challenge of modern civic life: how we allocate the scarce, shared space of our urban hearts. The motion before the House is unequivocal: this House would ban private cars from city centres. To affirm this motion is to recognize a simple yet profound reality—that the private automobile, while a marvel of individual convenience in sprawling geographies, has become fundamentally incompatible with the ecological, spatial, and social survival of dense city centres.
+
+Our burden as the Affirmative is clear. We must demonstrate that removing private passenger vehicles from city cores resolves acute urban crises that incremental measures fail to solve, while unlocking a more prosperous, sustainable, and humane civic environment. In defining this policy, we distinguish private passenger vehicles from essential services. Emergency responders, public transit networks, municipal fleets, and vehicles assisting individuals with reduced mobility will retain access. What we end is the expectation that individual citizens may occupy dozens of square metres of precious communal space simply to transport themselves.
+
+We advance our case upon two foundational pillars. The first is spatial justice and public safety. City centres are by definition dense, social spaces intended for human aggregation. Yet private cars consume the overwhelming majority of street space for traffic and parking, leaving pedestrians, micro-mobility users, and community infrastructure relegated to narrow margins. Banning private cars reclaims streets for public life, drastically reduces road traffic casualties, and eliminates the localized air and noise pollution that directly impairs public health.
+
+The second pillar is economic and environmental efficiency. A transit-first, pedestrianized core does not harm commerce; global evidence repeatedly demonstrates that foot traffic drives retail vitality, increases dwell times, and invigorates local enterprise. Simultaneously, removing private congestion unblocks public transit systems, allowing buses, trams, and shared mobility to operate with unprecedented speed and reliability, creating a virtuous cycle of decarbonization.
+
+We do not propose abandoning mobility, but restoring it to human scale. I urge you to support the motion.
+
+### Negative Opening Statement: Gemini (Default) (347 words)
+
+> Length guidance: about 350 words (between 298 and 402), in natural prose with no headings or lists, then stop.
+
+Ladies and gentlemen, the motion before the House calls for an absolute and sweeping measure: an outright ban on private cars from city centres. To oppose this motion is not to defend gridlock, pollution, or the unrestricted reign of the automobile over civic life. Rather, the Negative stands before you today to defend proportionality, economic vitality, and social equity. We ask the audience to recognize that cities are intricate, living ecosystems that require nuanced stewardship, not the blunt instrument of blanket prohibition.
+
+Our burden on the Negative is straightforward. We must demonstrate that an outright ban is an excessive, regressive, and counterproductive mechanism that inflicts severe socioeconomic harm while failing to deliver a realistic, sustainable urban future. Effective urban policy does not operate through total bans; it operates through sophisticated integration, calibrated incentives, and targeted infrastructure investment.
+
+We anchor our case upon two primary principles. First, a blanket ban creates profound socioeconomic exclusion. Urban centres do not belong solely to affluent residents who live within walking distance of downtown transit lines. They belong to entire metropolitan regions, including shift workers, tradespeople, rural visitors, and those with complex caretaking obligations for whom fixed-route public transit is either practically unviable or non-existent. By imposing an uncompromising ban, we do not democratize public space; we construct an artificial barrier that isolates the urban core from surrounding communities, disproportionately penalizing those already pushed out by the rising costs of central housing.
+
+Second, an outright ban undermines the economic resilience of the urban core itself. When access for private vehicles is arbitrarily extinguished without the prior establishment of comprehensive regional alternatives, commerce does not simply shift to public transport. Instead, consumer spending and commercial vitality migrate outward. Retailers, leisure activities, and business services relocate to peripheral shopping parks and suburban office campuses that remain accessible, accelerating suburban sprawl and increasing overall regional vehicular mileage. Pragmatic mechanisms such as congestion pricing, ultra-low emission zones, and managed parking achieve environmental goals while preserving essential connectivity.
+
+We urge you to reject an inflexible ban in favor of balanced, equitable urbanism, and vote against the motion.
+
+### Affirmative Floor Speech: Gemini (Default) (251 words)
+
+> Length guidance: about 260 words (between 221 and 299), in natural prose with no headings or lists, then stop.
+
+The Negative’s case rests on the assumption that car bans devastate urban commerce and socially exclude peripheral commuters. Both claims crumble under empirical scrutiny. First, the assertion that commercial vitality migrates outward when cars are removed is thoroughly contradicted by global evidence. In cities like Oslo, Ghent, and Pontevedra, pedestrianizing city centres triggered measurable increases in foot traffic, hospitality spending, and retail turnover. Motorists do not drive urban trade; pedestrians, cyclists, and transit users do, precisely because streets become hospitable environments where people choose to linger rather than endure gridlock.
+
+Second, our opponents champion congestion pricing as a more equitable compromise, yet they ignore that market pricing mechanisms are inherently regressive. Congestion charges effectively turn public roads into private expressways for the affluent, who easily absorb the fee, while lower-income commuters bear the financial penalty. True spatial justice does not mean allowing the wealthy to buy their way into gridlocking communal streets. It requires eliminating private vehicles to liberate road space entirely for high-frequency, reliable public buses and light rail.
+
+When private cars are cleared from urban cores, surface transit travel times plummet and service reliability soars, directly benefiting the peripheral workers the Negative claims to protect. Shift workers and suburban commuters are not served by perpetuating the delusion that thousands of personal automobiles can efficiently traverse finite urban corridors. They are served by rapid, uninhibited transit arteries. By ending the spatial monopoly of the private vehicle, we do not wall off the city centre; we finally open it to everyone.
