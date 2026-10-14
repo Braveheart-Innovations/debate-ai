@@ -19,7 +19,7 @@ import { decodeBase64ToUtf8, looksLikeBase64 } from '../../../lib/encoding/utf8B
 import type { Artifact } from '../../../types/notebook';
 import type { DiagramBlockSpec } from '../../../types/report-spec';
 import { isDiagramFilename, reviewDiagram, reviewDiagramText, type Cardinality, type DataModelDiagram, type DiagramFileV1, type ProcessFlowDiagram } from './diagramFile';
-import { describeNode, shareLabel } from './processFlows';
+import { describeNode, flowLabel } from './processFlows';
 
 /** The text of a diagram file by the name a report gave, or null when it isn't known. */
 export type DiagramFileReader = (name: string) => string | null;
@@ -114,7 +114,7 @@ export function processFlowToMermaid(diagram: ProcessFlowDiagram): string {
     const from = names.get(flow.from);
     const to = names.get(flow.to);
     if (!from || !to) continue;
-    const text = [flow.label, shareLabel(flow.share)].filter(Boolean).join(' · ');
+    const text = flowLabel(flow);
     lines.push(text ? `  ${from} -->|${quoted(text)}| ${to}` : `  ${from} --> ${to}`);
   }
   return lines.join('\n');

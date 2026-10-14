@@ -75,7 +75,7 @@ export function describeNode(node: FlowNode, diagram: ProcessFlowDiagram): strin
   }
   if (node.type === 'step' && node.duration) {
     const resource = node.resource ? diagram.resources.find((candidate) => candidate.id === node.resource) : undefined;
-    const capacity = resource ? `${resource.label} (${resource.capacity})` : `${node.capacity ?? 1} at once`;
+    const capacity = resource ? `${resource.label} (${resource.capacity})` : node.capacity === 'unlimited' ? 'no waiting' : `${node.capacity ?? 1} at once`;
     return `${describeDistribution(node.duration, diagram.timeUnit)} · ${capacity}`;
   }
   return '';
@@ -84,6 +84,13 @@ export function describeNode(node: FlowNode, diagram: ProcessFlowDiagram): strin
 /** A branch's share as a percentage: "85%". */
 export function shareLabel(share: number | undefined): string {
   return share === undefined ? '' : `${Number((share * 100).toFixed(1))}%`;
+}
+
+/** A flow's label as drawn: its own words and its share, without the share twice ("Yes 15%" stays as it is). */
+export function flowLabel(flow: Flow): string {
+  const share = shareLabel(flow.share);
+  if (flow.label && (!share || flow.label.includes(share) || /\d\s*%/.test(flow.label))) return flow.label;
+  return [flow.label, share].filter(Boolean).join(' · ');
 }
 
 // ── Edits ────────────────────────────────────────────────────────────────────
