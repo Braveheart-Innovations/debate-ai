@@ -13,9 +13,9 @@
  *
  * What a run does:
  *  - Work arrives at each start (time between arrivals drawn from its
- *    distribution), queues for each step's capacity (or a shared resource),
- *    takes the step's drawn duration, branches at decisions by share, and
- *    leaves at an end.
+ *    distribution), queues for each step's capacity (or a shared resource;
+ *    a step with capacity "unlimited" has no queue), takes the step's drawn
+ *    duration, branches at decisions by share, and leaves at an end.
  *  - Results count only what happens after the warm-up. `replications` runs,
  *    each with its own seed (seed + i), are averaged; ranges are 95%
  *    confidence across runs (Student's t).
@@ -113,7 +113,7 @@ def _sym_apply_overrides(flow, overrides):
             if prop == 'capacity':
                 if node.get('resource'):
                     raise KeyError('override %r: %s uses the shared resource %r; override %r instead' % (key, target, node['resource'], node['resource'] + '.capacity'))
-                node['capacity'] = int(value)
+                node['capacity'] = 'unlimited' if value == 'unlimited' else int(value)
             elif prop in ('arrivals', 'duration'):
                 node[prop] = dict(value)
             else:
@@ -141,11 +141,18 @@ def _sym_simulate_once(flow, seed, duration, warmup):
         out.setdefault(f['from'], []).append(f)
     shared = {r['id']: _simpy.Resource(env, capacity=int(r['capacity'])) for r in flow.get('resources', [])}
     resource_of = {}
+    unlimited = set()
     for n in flow['nodes']:
-        if n['type'] == 'step':
-            resource_of[n['id']] = shared[n['resource']] if n.get('resource') in shared else _simpy.Resource(env, capacity=int(n.get('capacity', 1)))
+        if n['type'] != 'step':
+            continue
+        if n.get('resource') in shared:
+            resource_of[n['id']] = shared[n['resource']]
+        elif n.get('capacity') == 'unlimited':
+            unlimited.add(n['id'])
+        else:
+            resource_of[n['id']] = _simpy.Resource(env, capacity=int(n.get('capacity', 1)))
     window = duration - warmup
-    waits = {sid: [] for sid in resource_of}
+    waits = {sid: [] for sid in list(resource_of) + list(unlimited)}
     busy = {}
     queue_samples = {sid: [] for sid in resource_of}
     cycle_times = []
@@ -178,7 +185,12 @@ def _sym_simulate_once(flow, seed, duration, warmup):
                 if born >= warmup:
                     cycle_times.append(env.now - born)
                 return
-            if node['type'] == 'step':
+            if node['type'] == 'step' and node_id in unlimited:
+                # No queue: everyone starts at once.
+                if env.now >= warmup:
+                    waits[node_id].append(0.0)
+                yield env.timeout(_sym_draw(node['duration'], rng))
+            elif node['type'] == 'step':
                 res = resource_of[node_id]
                 asked = env.now
                 with res.request() as req:
@@ -215,13 +227,16 @@ def _sym_simulate_once(flow, seed, duration, warmup):
     env.run(until=duration)
 
     steps = {}
-    for sid, res in resource_of.items():
+    for sid in waits:
+        res = resource_of.get(sid)
         steps[sid] = {
             'wait_mean': _sym_mean(waits[sid]) if waits[sid] else 0.0,
             'wait_p90': _sym_percentile(waits[sid], 0.9) if waits[sid] else 0.0,
+            'wait_p95': _sym_percentile(waits[sid], 0.95) if waits[sid] else 0.0,
             'served': len(waits[sid]),
-            'queue_mean': _sym_mean(queue_samples[sid]) or 0.0,
-            'utilization': busy.get(id(res), 0.0) / (res.capacity * window) if window > 0 else 0.0,
+            'queue_mean': (_sym_mean(queue_samples[sid]) or 0.0) if res is not None else 0.0,
+            # A step with no queue has no capacity to be busy against.
+            'utilization': (busy.get(id(res), 0.0) / (res.capacity * window) if window > 0 else 0.0) if res is not None else None,
         }
     return {
         'completed': len(cycle_times),
@@ -257,18 +272,21 @@ def _sym_simulate_process(flow, overrides=None, replications=None, seed=None, du
             continue
         sid = n['id']
         resource = resources.get(n.get('resource'))
+        capacity = int(resource['capacity']) if resource else ('unlimited' if n.get('capacity') == 'unlimited' else int(n.get('capacity', 1)))
         steps.append({
             'id': sid,
             'label': n.get('label', sid),
             'who': resource['label'] if resource else None,
-            'capacity': int(resource['capacity']) if resource else int(n.get('capacity', 1)),
+            'capacity': capacity,
             'utilization': _sym_summary([r['steps'][sid]['utilization'] for r in runs]),
             'wait': _sym_summary([r['steps'][sid]['wait_mean'] for r in runs]),
             'wait_p90': _sym_mean([r['steps'][sid]['wait_p90'] for r in runs]),
+            'wait_p95': _sym_mean([r['steps'][sid]['wait_p95'] for r in runs]),
             'queue': _sym_mean([r['steps'][sid]['queue_mean'] for r in runs]),
             'served': _sym_mean([r['steps'][sid]['served'] for r in runs]),
         })
-    busiest = max(steps, key=lambda s: s['utilization']['mean'] or 0.0) if steps else None
+    queued = [s for s in steps if s['utilization']['mean'] is not None]
+    busiest = max(queued, key=lambda s: s['utilization']['mean']) if queued else None
     return {
         'kind': 'simulation_results',
         'title': flow.get('title'),
@@ -313,21 +331,22 @@ def _sym_show_simulation(results, show_metric, show_chart, show_table, show_note
                 'x': {'field': 'Average wait', 'type': 'quantitative', 'title': 'Average wait before the step (%s)' % short},
             },
         }, data=waits, title=title or 'Where work waits')
-        busy = [{'Step': s['label'], 'Busy': round(s['utilization']['mean'] or 0.0, 4)} for s in steps]
-        show_chart({
-            'mark': {'type': 'bar'},
-            'encoding': {
-                'y': {'field': 'Step', 'type': 'nominal', 'sort': None, 'title': None},
-                'x': {'field': 'Busy', 'type': 'quantitative', 'title': 'Share of time busy', 'axis': {'format': '%'}, 'scale': {'domain': [0, 1]}},
-            },
-        }, data=busy, title='How busy each step is')
+        busy = [{'Step': s['label'], 'Busy': round(s['utilization']['mean'], 4)} for s in steps if s['utilization']['mean'] is not None]
+        if busy:
+            show_chart({
+                'mark': {'type': 'bar'},
+                'encoding': {
+                    'y': {'field': 'Step', 'type': 'nominal', 'sort': None, 'title': None},
+                    'x': {'field': 'Busy', 'type': 'quantitative', 'title': 'Share of time busy', 'axis': {'format': '%'}, 'scale': {'domain': [0, 1]}},
+                },
+            }, data=busy, title='How busy each step is')
         show_table([
             {
                 'Step': s['label'],
-                'Who': '%s (%d)' % (s['who'], s['capacity']) if s['who'] else '%d at once' % s['capacity'],
+                'Who': '%s (%d)' % (s['who'], s['capacity']) if s['who'] else ('no waiting' if s['capacity'] == 'unlimited' else '%d at once' % s['capacity']),
                 'Average wait (%s)' % short: round(s['wait']['mean'] or 0.0, 1),
                 '9 in 10 wait under (%s)' % short: round(s['wait_p90'] or 0.0, 1),
-                'Busy': '%d%%' % round((s['utilization']['mean'] or 0.0) * 100),
+                'Busy': '%d%%' % round(s['utilization']['mean'] * 100) if s['utilization']['mean'] is not None else 'n/a',
                 'Average queue': round(s['queue'] or 0.0, 1),
                 'Served per run': round(s['served'] or 0.0),
             } for s in steps

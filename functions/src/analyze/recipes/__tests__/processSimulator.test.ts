@@ -82,6 +82,25 @@ describe('the process simulator', () => {
     expect(one).toBeGreaterThan(10 * two);
   });
 
+  it('runs an unlimited step with no queue, and reports the 95th-percentile wait', () => {
+    const out = python(dir, [
+      `flow = _sym_json.load(open(${JSON.stringify(path.join(dir, 'dropoff.diagram.json'))}))`,
+      'for node in flow["nodes"]:',
+      '    if node["id"] == "fix":',
+      '        node["capacity"] = "unlimited"',
+      'r = _sym_simulate_process(flow, overrides={"desk.capacity": 2})',
+      'steps = {s["id"]: s for s in r["steps"]}',
+      'print(_sym_json.dumps({"fix": steps["fix"], "checkin": steps["checkin"], "busiest": r["busiest"]["id"]}))',
+    ].join('\n'));
+    const { fix, checkin, busiest } = JSON.parse(out.trim().split('\n').pop()!);
+    expect(fix.capacity).toBe('unlimited');
+    expect(fix.wait.mean).toBe(0);
+    expect(fix.utilization.mean).toBeNull();
+    expect(fix.served).toBeGreaterThan(0);
+    expect(busiest).toBe('checkin');
+    expect(checkin.wait_p95).toBeGreaterThanOrEqual(checkin.wait_p90);
+  });
+
   it('matches M/M/1 queueing theory', () => {
     const out = python(dir, [
       'mm1 = {"version": 1, "kind": "process_flow", "title": "MM1", "summary": "s", "timeUnit": "minutes",',

@@ -125,8 +125,11 @@ const flowNodeSchema = z.object({
   arrivals: distributionSchema.optional(),
   /** step: how long the work takes. */
   duration: distributionSchema.optional(),
-  /** step: how many it serves at once (staff, rooms, machines); 1 when left out. */
-  capacity: z.number().int().min(1).optional(),
+  /**
+   * step: how many it serves at once (staff, rooms, machines), 1 when left
+   * out; "unlimited" for a step nobody queues for (self-service, travel time).
+   */
+  capacity: z.union([z.number().int().min(1), z.literal('unlimited')]).optional(),
   /** step: a shared resource (resources[].id), used instead of its own capacity. */
   resource: nameSchema.optional(),
 });
