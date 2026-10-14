@@ -2,8 +2,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-import { getProviderDefaultModel } from '@/config/modelConfigs';
-import { UNIVERSAL_PERSONALITIES, type PersonalityOption } from '@/config/personalities';
+import { UNIVERSAL_PERSONALITIES } from '@/config/personalities';
 import { getDebateSpeechLengthGuidance } from '@/services/debate/debateSpeechLength';
 import { isDemoModeEnabled } from '@/services/demo/demoMode';
 import { store } from '@/store';
@@ -23,6 +22,14 @@ import {
   type GeneratedDebate,
   type GeneratedSpeech,
 } from '@test-utils/liveDebateEval';
+import {
+  RUBRIC_VERSION,
+  callJudge,
+  judgeBlindAttribution,
+  loadJudge,
+  type Attribution,
+  type JudgeConfig,
+} from '@test-utils/debatePersonaJudge';
 
 /**
  * Live debate persona eval: the real DebateOrchestrator and adapters, driven the way the app
@@ -47,7 +54,6 @@ const judgeEnabled = process.env.LIVE_DEBATE_PERSONAS_JUDGE === '1';
 const outDir = process.env.DEBATE_EVAL_OUT || path.join(os.tmpdir(), 'debate-persona-eval');
 const generationFile = path.join(outDir, 'generation.json');
 
-const RUBRIC_VERSION = 1;
 const MOTION = 'This house would ban private cars from city centres';
 // Speeches 0-2 of Oxford 1v1: Affirmative opening, Negative opening, Affirmative floor speech.
 const SPEECHES_PER_DEBATE = 3;
@@ -56,7 +62,6 @@ const JUDGE_CONCURRENCY = 6;
 const DEBATE_TIMEOUT_MS = 6 * 60_000;
 
 const DEBATERS = [LIVE_DEBATERS.claude, LIVE_DEBATERS.google];
-const JUDGE: { provider: AIProvider; keyEnv: string } = { provider: 'openai', keyEnv: 'OPENAI_API_KEY' };
 
 interface GenerationFile {
   rubricVersion: number;
@@ -93,26 +98,8 @@ const renderTranscripts = (generation: GenerationFile): string => [
 
 // ── Judge ───────────────────────────────────────────────────────────────────
 
-const PERSONA_IDS = UNIVERSAL_PERSONALITIES.map(persona => persona.id);
-const PERSONA_NAME_PATTERN = new RegExp(
-  `\\b(?:${UNIVERSAL_PERSONALITIES.filter(persona => persona.id !== 'default')
-    .flatMap(persona => [persona.name, persona.name.replace(/^Prof\.\s*/, '')])
-    .map(name => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-    .join('|')})\\b`,
-  'g',
-);
 
-const personaCard = (persona: PersonalityOption): string =>
-  `- ${persona.id}: ${persona.id === 'default' ? 'Default' : '[name]'}. ${persona.tagline}. ${persona.description}. ${persona.bio.replace(PERSONA_NAME_PATTERN, '[name]')}`;
 
-const ATTRIBUTION_INSTRUCTIONS = [
-  'You are judging speeches from an AI debate app. Each debater was assigned one of the personas below and argued a motion in an Oxford-style debate. Persona names in the speech and the list are replaced with [name].',
-  'Decide which persona gave the speech from its voice: word choice, humour, rhetorical moves and structure. Ignore which side it argues and how good the argument is.',
-  'Default means no persona was applied: a plain, capable debater. Choose Default when no persona voice is recognisable.',
-  '',
-  'Personas:',
-  ...UNIVERSAL_PERSONALITIES.map(personaCard),
-].join('\n');
 
 const ADHERENCE_INSTRUCTIONS = [
   'You are checking one speech from an AI debate app against the persona and the debate rules its speaker was given.',
@@ -125,17 +112,6 @@ const PHASE_RULES: Record<string, string> = {
   rebuttal: 'Floor speech: directly answer at least one specific claim from the previous speech, then rebuild the case.',
 };
 
-const attributionSchema = {
-  type: 'object',
-  additionalProperties: false,
-  required: ['persona', 'runner_up', 'confidence', 'evidence'],
-  properties: {
-    persona: { type: 'string', enum: PERSONA_IDS },
-    runner_up: { type: 'string', enum: PERSONA_IDS },
-    confidence: { type: 'integer', enum: [1, 2, 3, 4, 5] },
-    evidence: { type: 'string', description: 'One sentence naming what in the speech decided it.' },
-  },
-};
 
 const adherenceSchema = {
   type: 'object',
@@ -159,12 +135,6 @@ const adherenceSchema = {
   },
 };
 
-interface Attribution {
-  persona: string;
-  runner_up: string;
-  confidence: number;
-  evidence: string;
-}
 
 interface Adherence {
   stance_held: boolean;
@@ -175,9 +145,6 @@ interface Adherence {
   note: string;
 }
 
-const isAttribution = (value: unknown): value is Attribution =>
-  isRecord(value) && typeof value.persona === 'string' && typeof value.runner_up === 'string'
-  && typeof value.confidence === 'number' && typeof value.evidence === 'string';
 
 const isAdherence = (value: unknown): value is Adherence =>
   isRecord(value) && typeof value.stance_held === 'boolean' && typeof value.phase_rule_followed === 'boolean'
@@ -186,43 +153,7 @@ const isAdherence = (value: unknown): value is Adherence =>
   && (typeof value.in_character === 'number' || value.in_character === null)
   && typeof value.note === 'string';
 
-const extractOutputText = (body: unknown): string => {
-  if (!isRecord(body)) return '';
-  if (typeof body.output_text === 'string') return body.output_text;
-  const output = Array.isArray(body.output) ? body.output : [];
-  return output.flatMap(item => (isRecord(item) && Array.isArray(item.content) ? item.content : []))
-    .map(part => (isRecord(part) && part.type === 'output_text' && typeof part.text === 'string' ? part.text : ''))
-    .join('');
-};
 
-const callJudge = async <T>(
-  apiKey: string,
-  model: string,
-  name: string,
-  instructions: string,
-  input: string,
-  schema: Record<string, unknown>,
-  guard: (value: unknown) => value is T,
-): Promise<T> => {
-  const response = await nativeFetch('https://api.openai.com/v1/responses', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model,
-      instructions,
-      input,
-      text: { format: { type: 'json_schema', name, strict: true, schema } },
-    }),
-  });
-  const body: unknown = await response.json();
-  if (!response.ok) {
-    const message = isRecord(body) && isRecord(body.error) ? String(body.error.message) : response.statusText;
-    throw new Error(`Judge ${name} failed (${response.status}): ${message}`);
-  }
-  const parsed: unknown = JSON.parse(extractOutputText(body));
-  if (!guard(parsed)) throw new Error(`Judge ${name} returned an unexpected shape: ${JSON.stringify(parsed)}`);
-  return parsed;
-};
 
 interface FormatCheck {
   words: number;
@@ -259,12 +190,9 @@ interface JudgedSpeech {
 const judgeSpeech = async (
   debate: GeneratedDebate,
   speech: GeneratedSpeech,
-  apiKey: string,
-  model: string,
+  judge: JudgeConfig,
 ): Promise<JudgedSpeech> => {
-  const redactions = speech.content.match(PERSONA_NAME_PATTERN)?.length ?? 0;
-  const blind = speech.content.replace(PERSONA_NAME_PATTERN, '[name]');
-  const attribution = await callJudge(apiKey, model, 'attribution', ATTRIBUTION_INSTRUCTIONS, `Speech (${speech.label}):\n\n${blind}`, attributionSchema, isAttribution);
+  const { redactions, attribution } = await judgeBlindAttribution(judge, speech);
 
   const persona = findPersona(speech.personalityId);
   const previous = debate.speeches.filter(entry => entry.index < speech.index).pop();
@@ -285,7 +213,7 @@ const judgeSpeech = async (
     'Speech to check:',
     speech.content,
   ].join('\n');
-  const adherence = await callJudge(apiKey, model, 'adherence', ADHERENCE_INSTRUCTIONS, adherenceInput, adherenceSchema, isAdherence);
+  const adherence = await callJudge(judge.apiKey, judge.model, 'adherence', ADHERENCE_INSTRUCTIONS, adherenceInput, adherenceSchema, isAdherence);
 
   return {
     debateId: debate.id,
@@ -435,15 +363,15 @@ describeJudge('Live debate persona eval: judge', () => {
     if (!isGenerationFile(generation)) {
       throw new Error(`${generationFile} is not a generation file`);
     }
-    const apiKey = requireKey(JUDGE.keyEnv);
-    const model = getProviderDefaultModel(JUDGE.provider)?.id ?? '';
+    const judge = loadJudge();
+    const { model } = judge;
     const work = generation.debates.flatMap(debate => debate.speeches
       .filter(speech => speech.side === 'aff' && !speech.lifecycle)
       .map(speech => ({ debate, speech })));
     process.stdout.write(`\nJudging ${work.length} speeches with ${model}: ${work.length * 2} calls, ${JUDGE_CONCURRENCY} at a time.\n`);
 
     const judged = await mapWithConcurrency(work, JUDGE_CONCURRENCY, ({ debate, speech }) =>
-      judgeSpeech(debate, speech, apiKey, model));
+      judgeSpeech(debate, speech, judge));
     fs.writeFileSync(path.join(outDir, 'judgments.json'), JSON.stringify({ rubricVersion: RUBRIC_VERSION, judgeModel: model, judged }, null, 2));
     fs.writeFileSync(path.join(outDir, 'report.md'), renderReport(generation, judged, model));
     process.stdout.write(`Debate persona report written to ${outDir}\n`);

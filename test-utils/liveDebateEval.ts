@@ -68,6 +68,73 @@ export const isRecord = (value: unknown): value is Record<string, unknown> =>
 // Voice mode changes only the orchestrator's token safety cap; audio is made later, by the app.
 const VOICE_CONFIG: DebateVoiceConfig = { enabled: true, providerId: 'elevenlabs', debaterVoices: {} };
 
+/** Token usage of one provider response, read from its raw JSON body. */
+export interface ProviderUsage {
+  provider: AIProvider;
+  /** Visible output tokens (reasoning excluded). */
+  outputTokens?: number;
+  /** Hidden reasoning tokens; undefined when the provider reports none. */
+  reasoningTokens?: number;
+  /** The provider's own finish field (Gemini finishReason, OpenAI status, Claude stop_reason). */
+  rawFinish?: string;
+}
+
+const { AsyncLocalStorage } = process.getBuiltinModule('node:async_hooks');
+const usageSink = new AsyncLocalStorage<ProviderUsage[]>();
+
+const numberOrUndefined = (value: unknown): number | undefined => (typeof value === 'number' ? value : undefined);
+const stringOrUndefined = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
+
+const readUsage = (url: string, body: unknown): ProviderUsage | undefined => {
+  if (!isRecord(body)) return undefined;
+  if (url.includes('generativelanguage.googleapis.com')) {
+    const usage = isRecord(body.usageMetadata) ? body.usageMetadata : {};
+    const candidate = Array.isArray(body.candidates) && isRecord(body.candidates[0]) ? body.candidates[0] : {};
+    return {
+      provider: 'google',
+      outputTokens: numberOrUndefined(usage.candidatesTokenCount),
+      reasoningTokens: numberOrUndefined(usage.thoughtsTokenCount) ?? 0,
+      rawFinish: stringOrUndefined(candidate.finishReason),
+    };
+  }
+  if (url.includes('api.openai.com')) {
+    // Responses API: output_tokens includes reasoning_tokens.
+    const usage = isRecord(body.usage) ? body.usage : {};
+    const details = isRecord(usage.output_tokens_details) ? usage.output_tokens_details : {};
+    const reasoning = numberOrUndefined(details.reasoning_tokens) ?? 0;
+    const output = numberOrUndefined(usage.output_tokens);
+    return {
+      provider: 'openai',
+      outputTokens: output === undefined ? undefined : output - reasoning,
+      reasoningTokens: reasoning,
+      rawFinish: stringOrUndefined(body.status),
+    };
+  }
+  if (url.includes('api.anthropic.com')) {
+    const usage = isRecord(body.usage) ? body.usage : {};
+    return { provider: 'claude', outputTokens: numberOrUndefined(usage.output_tokens), rawFinish: stringOrUndefined(body.stop_reason) };
+  }
+  return undefined;
+};
+
+/**
+ * nativeFetch that also records the token usage of each JSON provider response made inside
+ * recordUsage. Outside recordUsage, and for streamed responses, it is plain nativeFetch.
+ */
+export const usageFetch: typeof fetch = async (input, init) => {
+  const response = await nativeFetch(input, init);
+  const sink = usageSink.getStore();
+  if (sink && response.headers.get('content-type')?.includes('application/json')) {
+    const url = typeof input === 'string' ? input : 'href' in input ? input.href : input.url;
+    const usage = readUsage(url, await response.clone().json().catch(() => undefined));
+    if (usage) sink.push(usage);
+  }
+  return response;
+};
+
+/** Runs fn with every provider response it makes through usageFetch recorded into sink. */
+export const recordUsage = <T>(sink: ProviderUsage[], fn: () => Promise<T>): Promise<T> => usageSink.run(sink, fn);
+
 const isMessage = (value: unknown): value is Message =>
   typeof value === 'object' && value !== null && 'senderType' in value && 'content' in value;
 

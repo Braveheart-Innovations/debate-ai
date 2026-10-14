@@ -18,13 +18,16 @@ import {
   isRecord,
   loadEnvFile,
   mapWithConcurrency,
-  nativeFetch,
+  recordUsage,
   requireKey,
   runLiveDebate,
+  usageFetch,
   wordCount,
   type GeneratedDebate,
   type LiveDebater,
+  type ProviderUsage,
 } from '@test-utils/liveDebateEval';
+import { RUBRIC_VERSION, judgeBlindAttribution, loadJudge, type Attribution } from '@test-utils/debatePersonaJudge';
 
 /**
  * Live debate length experiment: how closely does each way of stating speech length hold, at each
@@ -37,10 +40,14 @@ import {
  *
  *   npm run test:debate-length:live
  *   npm run test:debate-length:report   (re-renders length-report.md from a stored length.json; no calls)
+ *   npm run test:debate-length:judge    (blind persona attribution of the stored run's Affirmative
+ *                                        speeches: one call each to the persona eval's judge)
  *
  * DEBATE_LENGTH_MECHANISMS (default current,words,time,structure), DEBATE_LENGTH_LEVELS
  * (default concise,verbose) and DEBATE_LENGTH_PERSONAS (default default,brody,kai) set the matrix;
- * DEBATE_LENGTH_VOICE=1 runs every debate in voice mode (the voice token cap; no audio is made).
+ * DEBATE_LENGTH_PAIRINGS (default claude-google,google-openai,openai-claude: Affirmative-Negative)
+ * picks the providers; DEBATE_LENGTH_VOICE=1 runs every debate in voice mode (the voice token cap;
+ * no audio is made).
  * The run prints its call count before the first call. Output: DEBATE_EVAL_OUT
  * (default <tmpdir>/debate-length-eval), which is also where the report step reads length.json.
  */
@@ -51,12 +58,14 @@ jest.mock('@/services/demo/demoMode', () => ({
 
 const liveEnabled = process.env.LIVE_DEBATE_LENGTH_TEST === '1';
 const reportEnabled = process.env.DEBATE_LENGTH_REPORT === '1';
+const judgeEnabled = process.env.LIVE_DEBATE_LENGTH_JUDGE === '1';
 const voiceMode = process.env.DEBATE_LENGTH_VOICE === '1';
 const outDir = process.env.DEBATE_EVAL_OUT || path.join(os.tmpdir(), 'debate-length-eval');
 
 const MOTION = 'This house would ban private cars from city centres';
 const SPEECHES_PER_DEBATE = 3;
 const DEBATE_CONCURRENCY = 6;
+const JUDGE_CONCURRENCY = 6;
 const HIT_TOLERANCE = 0.2;
 
 const MECHANISMS = ['current', 'words', 'time', 'structure'] as const;
@@ -126,6 +135,8 @@ interface AuditEntry {
   systemNeutralised: boolean;
   /** The output-token cap on the adapter when the request went out (absent in files before 2026-10-14). */
   maxTokens?: number;
+  /** Token usage of each provider response for this request (absent before 2026-10-14). */
+  usage?: ProviderUsage[];
 }
 
 /** Wraps every adapter in this debate's service so each request carries the condition's length line. */
@@ -146,15 +157,26 @@ const installCondition = (service: AIService, condition: Condition, audit: Audit
           };
         }
       }
+      const usage: ProviderUsage[] = [];
       audit.push({
         label,
         lengthLine: sent.match(LENGTH_LINE)?.[0] ?? '(missing)',
         systemNeutralised: Boolean(adapter.config.personality?.systemPrompt.includes(SYSTEM_NEUTRAL_LINE)),
         maxTokens: adapter.config.parameters?.maxTokens,
+        usage,
       });
-      return send(sent, ...rest);
+      return recordUsage(usage, () => send(sent, ...rest));
     };
   }
+};
+
+const PAIRING_IDS = ['claude-google', 'google-openai', 'openai-claude', 'google-google'] as const;
+type PairingId = (typeof PAIRING_IDS)[number];
+const PAIRINGS: Record<PairingId, [LiveDebater, LiveDebater]> = {
+  'claude-google': [LIVE_DEBATERS.claude, LIVE_DEBATERS.google],
+  'google-openai': [LIVE_DEBATERS.google, LIVE_DEBATERS.openai],
+  'openai-claude': [LIVE_DEBATERS.openai, LIVE_DEBATERS.claude],
+  'google-google': [LIVE_DEBATERS.google, LIVE_DEBATERS.google],
 };
 
 const readList = <T extends string>(envName: string, allowed: readonly T[], fallback: T[]): T[] => {
@@ -325,6 +347,25 @@ const renderReport = (runs: LengthRun[], conditions: Condition[], debaters: Live
     return `| ${mechanism} | ${lowest.level} to ${highest.level} | ${cells.join(' | ')} |`;
   });
 
+  // Every provider response, per condition: how much of the cap hidden reasoning used.
+  const usageOf = (condition: Condition, provider: AIProvider): ProviderUsage[] => runs
+    .filter(run => run.condition.mechanism === condition.mechanism && run.condition.level === condition.level)
+    .flatMap(run => run.audit.flatMap(entry => entry.usage ?? []))
+    .filter(usage => usage.provider === provider);
+  const usageCell = (usages: ProviderUsage[]): string => {
+    const reasoning = usages.map(usage => usage.reasoningTokens).filter((value): value is number => typeof value === 'number');
+    const totals = usages.map(usage => (usage.outputTokens ?? 0) + (usage.reasoningTokens ?? 0));
+    if (usages.length === 0) return 'n/a';
+    const reasoningPart = reasoning.length ? `${median(reasoning)} (max ${Math.max(...reasoning)})` : 'not reported';
+    return `${reasoningPart}; peak ${Math.max(...totals)}`;
+  };
+  const hasUsage = runs.some(run => run.audit.some(entry => entry.usage?.length));
+  const usageRows = conditions.map(condition =>
+    `| ${conditionKey(condition)} | ${providers.map(provider => usageCell(usageOf(condition, provider))).join(' | ')} |`);
+  const providerFinishes = runs.flatMap(run => run.audit.flatMap(entry => (entry.usage ?? [])
+    .filter(usage => usage.rawFinish && !['STOP', 'completed', 'end_turn'].includes(usage.rawFinish))
+    .map(usage => `- ${run.debate.id}, ${entry.label}: ${usage.provider} finished "${usage.rawFinish}" after ${usage.reasoningTokens ?? 0} reasoning and ${usage.outputTokens ?? 0} visible tokens`)));
+
   const failures = runs.filter(run => run.debate.error);
   const callCount = runs.reduce((sum, run) => sum + run.audit.length, 0);
 
@@ -346,6 +387,17 @@ const renderReport = (runs: LengthRun[], conditions: Condition[], debaters: Live
     '| --- | --- | --- | --- |',
     ...spreadRows,
     '',
+    ...(hasUsage ? [
+      `## Output tokens against the ${tokenCap(meta.voiceMode)}-token cap`,
+      '',
+      'Per provider response: median hidden reasoning tokens (max), and the largest reasoning plus visible output. Claude runs without extended thinking, so it reports no reasoning.',
+      '',
+      `| Condition | ${debaters.map(debater => debater.name).join(' | ')} |`,
+      `| --- | ${providers.map(() => '---').join(' | ')} |`,
+      ...usageRows,
+      '',
+      ...(providerFinishes.length ? ['Responses that did not finish normally:', '', ...providerFinishes, ''] : []),
+    ] : []),
     '## Median ratio by provider',
     '',
     `| Condition | ${debaters.map(debater => debater.name).join(' | ')} |`,
@@ -390,7 +442,7 @@ describeLive('Live debate length experiment', () => {
     loadEnvFile('.env.local');
     loadEnvFile('.env');
     jest.mocked(isDemoModeEnabled).mockReturnValue(false);
-    global.fetch = nativeFetch;
+    global.fetch = usageFetch;
     store.dispatch(setGlobalStreaming(false));
   });
 
@@ -403,12 +455,9 @@ describeLive('Live debate length experiment', () => {
       ? [{ mechanism, level: 'default' }]
       : [...levels].sort((a, b) => LEVELS.indexOf(a) - LEVELS.indexOf(b)).map(level => ({ mechanism, level }))));
 
-    // Every provider debates once on each side.
-    const pairings: Array<[LiveDebater, LiveDebater]> = [
-      [LIVE_DEBATERS.claude, LIVE_DEBATERS.google],
-      [LIVE_DEBATERS.google, LIVE_DEBATERS.openai],
-      [LIVE_DEBATERS.openai, LIVE_DEBATERS.claude],
-    ];
+    // By default every provider debates once on each side.
+    const pairingIds = readList('DEBATE_LENGTH_PAIRINGS', PAIRING_IDS, ['claude-google', 'google-openai', 'openai-claude']);
+    const pairings = pairingIds.map(id => PAIRINGS[id]);
     const keys = Object.fromEntries(Object.values(LIVE_DEBATERS).map(({ provider, keyEnv }) => [provider, requireKey(keyEnv)]));
     const plan = conditions.flatMap(condition => personas.flatMap(personalityId =>
       pairings.map(([debater, opponent]) => ({ condition, personalityId, debater, opponent }))));
@@ -464,10 +513,7 @@ const describeReport = reportEnabled ? describe : describe.skip;
 
 describeReport('Debate length report from stored results', () => {
   it('re-renders length-report.md from length.json without calling any model', () => {
-    const file = path.join(outDir, 'length.json');
-    const stored: unknown = JSON.parse(fs.readFileSync(file, 'utf8'));
-    if (!isLengthFile(stored)) throw new Error(`${file} is not a length experiment file`);
-    if (stored.motion !== MOTION) throw new Error(`${file} used a different motion: ${stored.motion}`);
+    const stored = readLengthFile();
     const unique = <T,>(values: T[]): T[] => [...new Set(values)];
     const conditionKeys = unique(stored.runs.map(run => conditionKey(run.condition)));
     const conditions = conditionKeys.map(key => {
@@ -484,5 +530,123 @@ describeReport('Debate length report from stored results', () => {
     fs.writeFileSync(path.join(outDir, 'length-report.md'),
       renderReport(stored.runs, conditions, debaters, personas, { runAt: stored.runAt, voiceMode: Boolean(stored.voiceMode) }));
     process.stdout.write(`\nLength report re-rendered in ${outDir}\n`);
+  });
+});
+
+const readLengthFile = (): LengthFile => {
+  const file = path.join(outDir, 'length.json');
+  const stored: unknown = JSON.parse(fs.readFileSync(file, 'utf8'));
+  if (!isLengthFile(stored)) throw new Error(`${file} is not a length experiment file`);
+  if (stored.motion !== MOTION) throw new Error(`${file} used a different motion: ${stored.motion}`);
+  return stored;
+};
+
+interface JudgedLengthSpeech {
+  debateId: string;
+  condition: Condition;
+  personalityId: string;
+  provider: AIProvider;
+  label: string;
+  phase: LengthPhase;
+  words: number;
+  redactions: number;
+  attribution: Attribution;
+}
+
+const percent = (count: number, total: number): string => (total ? `${Math.round((count / total) * 100)}%` : 'n/a');
+
+const renderPersonaReport = (stored: LengthFile, judged: JudgedLengthSpeech[], model: string): string => {
+  const unique = <T,>(values: T[]): T[] => [...new Set(values)];
+  const keys = unique(judged.map(entry => conditionKey(entry.condition)));
+  const isCorrect = (entry: JudgedLengthSpeech): boolean => entry.attribution.persona === entry.personalityId;
+  const tally = (entries: JudgedLengthSpeech[]): string =>
+    `${entries.filter(isCorrect).length} of ${entries.length} (${percent(entries.filter(isCorrect).length, entries.length)})`;
+  const at = (key: string): JudgedLengthSpeech[] => judged.filter(entry => conditionKey(entry.condition) === key);
+  const nameOf = (id: string): string => findPersona(id).name;
+  const providerName = (provider: AIProvider): string =>
+    Object.values(LIVE_DEBATERS).find(entry => entry.provider === provider)?.name ?? provider;
+
+  const levelRows = keys.map(key => {
+    const entries = at(key);
+    const confidence = entries.reduce((sum, entry) => sum + entry.attribution.confidence, 0) / (entries.length || 1);
+    return `| ${key} | ${tally(entries)} | ${tally(entries.filter(entry => entry.phase === 'opening'))} | ${tally(entries.filter(entry => entry.phase === 'rebuttal'))} | ${median(entries.map(entry => entry.words))} | ${confidence.toFixed(1)} |`;
+  });
+  const cell = (entries: JudgedLengthSpeech[]): string => `${entries.filter(isCorrect).length}/${entries.length}`;
+  const personaRows = unique(judged.map(entry => entry.personalityId)).map(id =>
+    `| ${nameOf(id)} | ${keys.map(key => cell(at(key).filter(entry => entry.personalityId === id))).join(' | ')} |`);
+  const providerRows = unique(judged.map(entry => entry.provider)).map(provider =>
+    `| ${providerName(provider)} | ${keys.map(key => cell(at(key).filter(entry => entry.provider === provider))).join(' | ')} |`);
+  const misreads = judged.filter(entry => !isCorrect(entry)).map(entry =>
+    `- ${conditionKey(entry.condition)}: ${nameOf(entry.personalityId)} read as ${nameOf(entry.attribution.persona)} (${providerName(entry.provider)}, ${entry.label}, ${entry.words} words, confidence ${entry.attribution.confidence}): ${entry.attribution.evidence}`);
+
+  return [
+    '# Debate length experiment: persona attribution',
+    '',
+    `Judged by ${model} with rubric v${RUBRIC_VERSION}: the persona eval's blind attribution prompt, persona names redacted, one call per speech. Speeches are the Affirmative openings and floor speeches of the length run of ${stored.runAt} (${stored.voiceMode ? 'voice' : 'text'} mode). Chance is 1 in 8 (13%).`,
+    '',
+    '## By level',
+    '',
+    '| Condition | Correct | Openings | Floor speeches | Median words | Mean confidence (1-5) |',
+    '| --- | --- | --- | --- | --- | --- |',
+    ...levelRows,
+    '',
+    '## Correct by persona',
+    '',
+    `| Persona | ${keys.join(' | ')} |`,
+    `| --- | ${keys.map(() => '---').join(' | ')} |`,
+    ...personaRows,
+    '',
+    '## Correct by provider',
+    '',
+    `| Provider | ${keys.join(' | ')} |`,
+    `| --- | ${keys.map(() => '---').join(' | ')} |`,
+    ...providerRows,
+    '',
+    '## Misreads',
+    '',
+    ...(misreads.length ? misreads : ['None.']),
+    '',
+  ].join('\n');
+};
+
+const describeJudge = judgeEnabled ? describe : describe.skip;
+
+describeJudge('Live debate length experiment: persona attribution', () => {
+  jest.setTimeout(60 * 60_000);
+
+  beforeAll(() => {
+    loadEnvFile('.env.local');
+    loadEnvFile('.env');
+  });
+
+  it('judges which persona gave each Affirmative speech, blind, at each level', async () => {
+    const stored = readLengthFile();
+    const judge = loadJudge();
+    const work = stored.runs.flatMap(run => run.debate.speeches
+      .filter(speech => speech.side === 'aff' && !speech.lifecycle && PHASE_BY_LABEL.has(speech.label))
+      .map(speech => ({ run, speech })));
+    process.stdout.write(`\nJudging ${work.length} speeches with ${judge.model}: ${work.length} calls, ${JUDGE_CONCURRENCY} at a time.\n`);
+
+    const judged = await mapWithConcurrency(work, JUDGE_CONCURRENCY, async ({ run, speech }): Promise<JudgedLengthSpeech> => {
+      const phase = PHASE_BY_LABEL.get(speech.label);
+      if (!phase) throw new Error(`No length phase for ${speech.label}`);
+      const { redactions, attribution } = await judgeBlindAttribution(judge, speech);
+      return {
+        debateId: run.debate.id,
+        condition: run.condition,
+        personalityId: speech.personalityId,
+        provider: speech.provider,
+        label: speech.label,
+        phase,
+        words: wordCount(speech.content),
+        redactions,
+        attribution,
+      };
+    });
+    fs.writeFileSync(path.join(outDir, 'length-judgments.json'), JSON.stringify({ rubricVersion: RUBRIC_VERSION, judgeModel: judge.model, lengthRunAt: stored.runAt, judged }, null, 2));
+    fs.writeFileSync(path.join(outDir, 'length-persona-report.md'), renderPersonaReport(stored, judged, judge.model));
+    process.stdout.write(`Persona attribution written to ${outDir}\n`);
+
+    expect(judged).toHaveLength(work.length);
   });
 });
