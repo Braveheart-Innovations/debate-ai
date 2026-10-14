@@ -141,11 +141,21 @@ export interface ChartBlock extends CitableReportBlock {
   caption?: string;
 }
 
-/** A structural diagram (flow/architecture/sequence/ER/state) authored as Mermaid source. */
+/**
+ * A diagram's source: Mermaid text, or a data model baked from a diagram file
+ * (`<name>.diagram.json`, its layout included) when a report placed one
+ * (diagramMermaid.inlineDiagramRefs). The model is checked when it's drawn
+ * (diagramRender), so a bad one degrades to its text, never sinks the report.
+ */
+export type DiagramBlockSpec =
+  | { type: 'mermaid'; code: string }
+  | { type: 'data_model'; model: Record<string, unknown> };
+
+/** A structural diagram (flow/architecture/sequence/ER/state), or a data model from a diagram file. */
 export interface DiagramBlock extends CitableReportBlock {
   kind: 'diagram';
   /** Diagram source. The app owns layout: live SVG in-app, rasterized figure in exports. */
-  spec: { type: 'mermaid'; code: string };
+  spec: DiagramBlockSpec;
   caption?: string;
 }
 
