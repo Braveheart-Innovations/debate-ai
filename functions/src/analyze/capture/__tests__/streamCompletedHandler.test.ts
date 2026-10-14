@@ -1803,8 +1803,42 @@ describe('handleStreamCompleted general intent-gated surfacing (non-Salesforce)'
 
     const report = artifacts.find((artifact) => artifact.type === 'analysis_artifact_spec');
     const blocks = JSON.parse(report!.data).pages[0].blocks;
-    expect(blocks[0].spec.spec.data).toEqual({ values: [{ year: 2020, gdp: 21000 }, { year: 2021, gdp: 23000 }] });
-    expect(blocks[1].spec.spec.data).toEqual({ values: [{ k: 'a', v: 1 }] });
+    expect(blocks[0].spec.spec.data).toEqual({ values: [{ year: 2020, gdp: 21000 }, { year: 2021, gdp: 23000 }], file: { path: '/output/summary_table.csv' } });
+    expect(blocks[1].spec.spec.data).toEqual({ values: [{ k: 'a', v: 1 }], file: { path: 'output/earlier.csv' } });
+  });
+
+  it('reads the chart rows of a report saved again (as the sandbox got it back) from the file as it is now', () => {
+    const reportText = (chartData: unknown) => JSON.stringify({
+      version: 1, kind: 'analysis_artifact_spec', title: 'GDP', summary: 'GDP over time.',
+      pages: [{ slug: 'p', title: 'P', blocks: [{ kind: 'chart', spec: { type: 'vega-lite', spec: { data: chartData, mark: 'line' } } }] }],
+    });
+    const save = (outputs: Array<{ filename: string; text: string }>) => ({
+      toolName: 'execute_python', success: true, content: 'Saved.',
+      dataOutputs: outputs.map((output) => ({ filename: output.filename, base64: btoa(output.text), size: output.text.length })),
+    });
+    const write = (id: string) => ({ id, type: 'function' as const, function: { name: 'execute_python', arguments: '{}' } });
+    const first = runHandler({
+      outputSelection: richHtml,
+      toolCalls: [write('c1')],
+      toolExecutionResults: [save([{ filename: 'gdp.csv', text: csv }, { filename: 'report.json', text: reportText({ url: '/output/gdp.csv' }) }])],
+      messageId: 'ai-1',
+    });
+    const stored = first.artifacts.find((artifact) => artifact.type === 'analysis_artifact_spec')!;
+    const bakedData = JSON.parse(stored.data).pages[0].blocks[0].spec.spec.data;
+    // The agent rewrites the CSV, then saves the report again from the copy the sandbox got back.
+    const updated = 'year,gdp\n2020,21000\n2021,23000\n2022,25000';
+    const rewritten = runHandler({ outputSelection: richHtml, toolCalls: [write('c2')], toolExecutionResults: [save([{ filename: 'gdp.csv', text: updated }])], artifacts: first.artifacts, messageId: 'ai-2' });
+    const resaved = runHandler({
+      outputSelection: richHtml,
+      toolCalls: [write('c3')],
+      toolExecutionResults: [save([{ filename: 'report.json', text: reportText(bakedData) }])],
+      artifacts: rewritten.artifacts,
+      messageId: 'ai-3',
+    });
+    const latest = resaved.artifacts.filter((artifact) => artifact.type === 'analysis_artifact_spec').at(-1)!;
+    expect(JSON.parse(latest.data).pages[0].blocks[0].spec.spec.data.values).toHaveLength(3);
+    // The first version keeps the rows it was saved with.
+    expect(JSON.parse(stored.data).pages[0].blocks[0].spec.spec.data.values).toHaveLength(2);
   });
 
   it('keeps an embedded_html HTML output as hidden backing alongside the report spec + suppressed CSV', () => {
