@@ -1,18 +1,18 @@
 # Debate length experiment
 
-Run 2026-10-14T02:18:36.416Z. Motion: "This house would ban private cars from city centres". Oxford 1v1, text mode, web search as in the app. Each debate ran both openings and the Affirmative floor speech; the Negative is always Default. 63 debates, 189 calls, 189 speeches measured. "Ratio" is words divided by the level's target (1.00 = on target); "within" counts speeches within 20% of target. `current` is today's prompt, measured against the default targets.
+Run 2026-10-14T02:18:36.400Z. Motion: "This house would ban private cars from city centres". Oxford 1v1, text mode (output-token safety cap 6144), web search as in the app. Each debate ran both openings and the Affirmative floor speech; the Negative is always Default. 63 debates, 189 calls, 189 speeches measured. "Ratio" is words divided by the level's target (1.00 = on target); "within" counts speeches within 20% of target. "Cut off" counts turns that stopped on the token limit or failed, plus speeches whose spoken text ends mid-sentence. "Over audio limit" counts speeches whose spoken text exceeds the 3000-character text-to-speech budget, which the app trims to the last full sentence. `current` is today's prompt, measured against the default targets.
 
 ## By condition
 
-| Mechanism | Level | Opening target | Opening words: median (range) | Floor target | Floor words: median (range) | Median ratio | Within |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| current | default | 190 | 266.5 (204-391) | 150 | 273 (235-350) | 1.59 | 4/27 |
-| words | concise | 100 | 104 (96-108) | 80 | 82 (78-95) | 1.04 | 27/27 |
-| words | verbose | 350 | 355 (323-404) | 260 | 270 (254-300) | 1.02 | 27/27 |
-| time | concise | 100 | 103.5 (92-168) | 80 | 85 (70-92) | 1.05 | 25/27 |
-| time | verbose | 350 | 343.5 (293-395) | 260 | 257 (226-292) | 0.99 | 27/27 |
-| structure | concise | 100 | 159.5 (131-262) | 80 | 144 (126-246) | 1.67 | 0/27 |
-| structure | verbose | 350 | 470 (315-546) | 260 | 367 (283-505) | 1.34 | 7/27 |
+| Mechanism | Level | Opening target | Opening words: median (range) | Floor target | Floor words: median (range) | Median ratio | Within | Cut off | Over audio limit |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| current | default | 190 | 266.5 (204-391) | 150 | 273 (235-350) | 1.59 | 4/27 | 0/27 | 0/27 (longest 2282) |
+| words | concise | 100 | 104 (96-108) | 80 | 82 (78-95) | 1.04 | 27/27 | 0/27 | 0/27 (longest 797) |
+| words | verbose | 350 | 355 (323-404) | 260 | 270 (254-300) | 1.02 | 27/27 | 0/27 | 0/27 (longest 2572) |
+| time | concise | 100 | 103.5 (92-168) | 80 | 85 (70-92) | 1.05 | 25/27 | 0/27 | 0/27 (longest 1008) |
+| time | verbose | 350 | 343.5 (293-395) | 260 | 257 (226-292) | 0.99 | 27/27 | 0/27 | 0/27 (longest 2610) |
+| structure | concise | 100 | 159.5 (131-262) | 80 | 144 (126-246) | 1.67 | 0/27 | 0/27 | 0/27 (longest 1660) |
+| structure | verbose | 350 | 470 (315-546) | 260 | 367 (283-505) | 1.34 | 7/27 | 0/27 | 9/27 (longest 4172) |
 
 ## Does the level move the length?
 

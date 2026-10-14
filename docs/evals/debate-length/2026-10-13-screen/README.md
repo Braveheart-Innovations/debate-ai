@@ -15,5 +15,27 @@ the system prompt's "compact" line) changes per condition.
 | structure | "one paragraph of 5 sentences" | 7 of 54 |
 
 Word targets moved length 3.4x from concise to verbose (intended 3.5x) and held on every provider and
-persona tested. No speech mentioned its word count or time. Limits: one motion, one run, three personas,
-and persona voice at each level is not yet judged. See `length-report.md` for the full tables.
+persona tested. No speech mentioned its word count or time. None of the 189 speeches was cut off: no
+turn stopped on the token limit and every spoken text ends on a full sentence. Limits: one motion, one
+run, text mode only (output-token safety cap 6144), three personas, and persona voice at each level is
+not yet judged. See `length-report.md` for the full tables; `npm run test:debate-length:report` with
+`DEBATE_EVAL_OUT` set to this folder re-renders it from `length.json` without calling any model.
+
+## Earlier word limits and cut-off speeches
+
+Numeric limits were in the prompt twice before, and both times they shipped next to a tight token cap:
+
+- Until `b02dd8e6` (2025-09-12) the prompt said "concise (120-180 words)" and Gemini had a default
+  2048-token output cap. That commit removed both, with the comment "Do not enforce numeric word bounds;
+  keep guidance general to avoid truncation".
+- `314f89db` (2026-05-24) added "Length: 154-220 words maximum" together with a token cap of
+  `max(320, 2.2 x maxWords)`, 484 tokens for an opening, which could only lower any existing cap.
+  `3072243a` (2026-05-26) replaced the numbers with qualitative text and raised the text cap to 6144.
+- `8afe6796` (2026-06-02) diagnosed voice speeches cut off mid-sentence: the voice cap (2.5 x maxWords)
+  "was used as a length control in the wrong unit". Since then the cap is a fixed safety net (6144 text,
+  1536 voice), and a token-limit finish pauses the debate on a retry card instead of showing a partial.
+
+In each case the word limit and the cap changed together, so the history alone cannot say which one cut
+speeches off. This screen separates them for text mode: word targets with the current cap cut nothing.
+Voice mode is not yet tested; there the 1536-token cap may also have to cover reasoning tokens on
+ChatGPT and Gemini (the adapters send it as `max_output_tokens` / `maxOutputTokens`).

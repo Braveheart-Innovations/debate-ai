@@ -48,6 +48,7 @@
     "test:debate-personas:live": "LIVE_DEBATE_PERSONAS_TEST=1 jest --runInBand --runTestsByPath __tests__/integration/liveDebatePersonas.test.ts",
     "test:debate-personas:judge": "LIVE_DEBATE_PERSONAS_JUDGE=1 jest --runInBand --runTestsByPath __tests__/integration/liveDebatePersonas.test.ts",
     "test:debate-length:live": "LIVE_DEBATE_LENGTH_TEST=1 jest --runInBand --runTestsByPath __tests__/integration/liveDebateLength.test.ts",
+    "test:debate-length:report": "DEBATE_LENGTH_REPORT=1 jest --runInBand --runTestsByPath __tests__/integration/liveDebateLength.test.ts",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage --maxWorkers=50%",
     "eas-build-post-install": "bash scripts/eas-prebuild.sh",

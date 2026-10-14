@@ -4,6 +4,9 @@ import path from 'path';
 
 import { getPresetForFormat } from '@/config/debate/formats';
 import type { AIService } from '@/services/aiAdapter';
+import { sanitizeDebateSpeechForTTS } from '@/services/debate/debateAudioSanitizer';
+import { getDebateSpeechLengthGuidance } from '@/services/debate/debateSpeechLength';
+import { DEBATE_AUDIO_TTS_PROMPT_LIMIT } from '@/services/debate/DebateVoiceService';
 import { isDemoModeEnabled } from '@/services/demo/demoMode';
 import { store } from '@/store';
 import { setGlobalStreaming } from '@/store/streamingSlice';
@@ -11,6 +14,8 @@ import type { AIProvider } from '@/types';
 import {
   LIVE_DEBATERS,
   findPersona,
+  isGeneratedSpeech,
+  isRecord,
   loadEnvFile,
   mapWithConcurrency,
   nativeFetch,
@@ -27,13 +32,17 @@ import {
  * "Length guidance" line and neutralises the system prompt's "compact" line (except for the
  * `current` control), then measures each speech against its level's word target. Prompt only: the
  * token safety cap is untouched. Every debate runs both openings and the Affirmative floor speech.
+ * Each speech is also checked for being cut off (a token-limit or failed turn, or text that ends
+ * mid-sentence) and for fitting one audio clip.
  *
  *   npm run test:debate-length:live
+ *   npm run test:debate-length:report   (re-renders length-report.md from a stored length.json; no calls)
  *
  * DEBATE_LENGTH_MECHANISMS (default current,words,time,structure), DEBATE_LENGTH_LEVELS
  * (default concise,verbose) and DEBATE_LENGTH_PERSONAS (default default,brody,kai) set the matrix;
- * the run prints its call count before the first call. Output: DEBATE_EVAL_OUT
- * (default <tmpdir>/debate-length-eval).
+ * DEBATE_LENGTH_VOICE=1 runs every debate in voice mode (the voice token cap; no audio is made).
+ * The run prints its call count before the first call. Output: DEBATE_EVAL_OUT
+ * (default <tmpdir>/debate-length-eval), which is also where the report step reads length.json.
  */
 
 jest.mock('@/services/demo/demoMode', () => ({
@@ -41,6 +50,8 @@ jest.mock('@/services/demo/demoMode', () => ({
 }));
 
 const liveEnabled = process.env.LIVE_DEBATE_LENGTH_TEST === '1';
+const reportEnabled = process.env.DEBATE_LENGTH_REPORT === '1';
+const voiceMode = process.env.DEBATE_LENGTH_VOICE === '1';
 const outDir = process.env.DEBATE_EVAL_OUT || path.join(os.tmpdir(), 'debate-length-eval');
 
 const MOTION = 'This house would ban private cars from city centres';
@@ -93,6 +104,10 @@ const lengthDirective = (mechanism: Exclude<Mechanism, 'current'>, phase: Length
       return `Length guidance: ${STRUCTURE_BUDGET[phase][level]}, ${PROSE}`;
   }
 };
+
+// The output-token safety cap the orchestrator sets for these speeches in each mode.
+const tokenCap = (voice: boolean): number =>
+  getDebateSpeechLengthGuidance({ formatId: 'oxford', presetId: 'short', phase: 'opening', voiceMode: voice }).maxTokens;
 
 const PHASE_BY_LABEL = new Map<string, LengthPhase>(
   getPresetForFormat('oxford', 'short').messages
@@ -155,6 +170,23 @@ interface LengthRun {
   audit: AuditEntry[];
 }
 
+interface LengthFile {
+  runAt: string;
+  motion: string;
+  voiceMode?: boolean;
+  runs: LengthRun[];
+}
+
+const isCondition = (value: unknown): value is Condition =>
+  isRecord(value) && MECHANISMS.some(mechanism => mechanism === value.mechanism) && LEVELS.some(level => level === value.level);
+
+const isLengthFile = (value: unknown): value is LengthFile =>
+  isRecord(value) && typeof value.runAt === 'string' && typeof value.motion === 'string' && Array.isArray(value.runs)
+  && value.runs.every(run => isRecord(run) && isCondition(run.condition) && Array.isArray(run.audit)
+    && isRecord(run.debate) && typeof run.debate.id === 'string' && typeof run.debate.personalityId === 'string'
+    && typeof run.debate.provider === 'string' && typeof run.debate.model === 'string'
+    && Array.isArray(run.debate.speeches) && run.debate.speeches.every(isGeneratedSpeech));
+
 interface MeasuredSpeech {
   mechanism: Mechanism;
   level: Level;
@@ -167,14 +199,27 @@ interface MeasuredSpeech {
   ratio: number;
   paragraphs: number;
   sentences: number;
+  debateId: string;
+  label: string;
+  /** Lifecycle of a turn that did not complete (token limit, failure); its text is not measured. */
+  stopped?: string;
+  endsMidSentence: boolean;
+  /** Characters the app would send to text to speech. */
+  spokenChars: number;
+  ending: string;
 }
 
+// Spoken text (citations, links and markdown removed) must end on sentence punctuation, allowing for
+// closing quotes and brackets.
+const endsAtSentence = (spoken: string): boolean => /[.!?\u2026]$/.test(spoken.replace(/["'\u201d\u2019()[\]*_\s]+$/, ''));
+
 const measure = (runs: LengthRun[]): MeasuredSpeech[] => runs.flatMap(({ condition, debate }) =>
-  debate.speeches.filter(speech => !speech.lifecycle).flatMap(speech => {
+  debate.speeches.flatMap(speech => {
     const phase = PHASE_BY_LABEL.get(speech.label);
     if (!phase) return [];
     const words = wordCount(speech.content);
     const target = TARGET_WORDS[phase][condition.level];
+    const spoken = sanitizeDebateSpeechForTTS(speech.content);
     return [{
       mechanism: condition.mechanism,
       level: condition.level,
@@ -187,8 +232,16 @@ const measure = (runs: LengthRun[]): MeasuredSpeech[] => runs.flatMap(({ conditi
       ratio: words / target,
       paragraphs: speech.content.split(/\n\s*\n/).filter(part => part.trim()).length,
       sentences: speech.content.match(/[.!?]+(?=\s|$)/g)?.length ?? 0,
+      debateId: debate.id,
+      label: speech.label,
+      stopped: speech.lifecycle ? `${speech.lifecycle}${speech.lifecycleReason ? ` (${speech.lifecycleReason})` : ''}` : undefined,
+      endsMidSentence: !endsAtSentence(spoken),
+      spokenChars: spoken.length,
+      ending: spoken.slice(-80),
     }];
   }));
+
+const isCutOff = (speech: MeasuredSpeech): boolean => Boolean(speech.stopped) || speech.endsMidSentence;
 
 const median = (values: number[]): number => {
   if (values.length === 0) return Number.NaN;
@@ -211,20 +264,38 @@ const hitCell = (speeches: MeasuredSpeech[]): string => {
   return `${hits}/${speeches.length}`;
 };
 
+const cutOffCell = (speeches: MeasuredSpeech[]): string => `${speeches.filter(isCutOff).length}/${speeches.length}`;
+
+const audioCell = (speeches: MeasuredSpeech[]): string => {
+  if (speeches.length === 0) return 'n/a';
+  const over = speeches.filter(speech => speech.spokenChars > DEBATE_AUDIO_TTS_PROMPT_LIMIT).length;
+  return `${over}/${speeches.length} (longest ${Math.max(...speeches.map(speech => speech.spokenChars))})`;
+};
+
 const conditionKey = ({ mechanism, level }: Condition): string => `${mechanism}/${level}`;
 
-const renderReport = (runs: LengthRun[], conditions: Condition[], debaters: LiveDebater[], personas: string[]): string => {
-  const measured = measure(runs);
+interface ReportMeta {
+  runAt: string;
+  voiceMode: boolean;
+}
+
+const renderReport = (runs: LengthRun[], conditions: Condition[], debaters: LiveDebater[], personas: string[], meta: ReportMeta): string => {
+  const everySpeech = measure(runs);
+  const measured = everySpeech.filter(speech => !speech.stopped);
   const providers = debaters.map(debater => debater.provider);
-  const of = (condition: Condition): MeasuredSpeech[] =>
-    measured.filter(speech => speech.mechanism === condition.mechanism && speech.level === condition.level);
+  const matches = (condition: Condition) => (speech: MeasuredSpeech): boolean =>
+    speech.mechanism === condition.mechanism && speech.level === condition.level;
+  const of = (condition: Condition): MeasuredSpeech[] => measured.filter(matches(condition));
 
   const summaryRows = conditions.map(condition => {
     const speeches = of(condition);
     const openings = speeches.filter(speech => speech.phase === 'opening');
     const floors = speeches.filter(speech => speech.phase === 'rebuttal');
-    return `| ${condition.mechanism} | ${condition.level} | ${TARGET_WORDS.opening[condition.level]} | ${wordsCell(openings)} | ${TARGET_WORDS.rebuttal[condition.level]} | ${wordsCell(floors)} | ${ratioCell(speeches)} | ${hitCell(speeches)} |`;
+    return `| ${condition.mechanism} | ${condition.level} | ${TARGET_WORDS.opening[condition.level]} | ${wordsCell(openings)} | ${TARGET_WORDS.rebuttal[condition.level]} | ${wordsCell(floors)} | ${ratioCell(speeches)} | ${hitCell(speeches)} | ${cutOffCell(everySpeech.filter(matches(condition)))} | ${audioCell(speeches)} |`;
   });
+
+  const cutOffNotes = everySpeech.filter(isCutOff).map(speech =>
+    `- ${speech.debateId}, ${speech.label}: ${speech.stopped ?? `ends mid-sentence: "...${speech.ending}"`}`);
 
   const providerRows = conditions.map(condition => {
     const cells = providers.map(provider => ratioCell(of(condition).filter(speech => speech.provider === provider)));
@@ -257,14 +328,15 @@ const renderReport = (runs: LengthRun[], conditions: Condition[], debaters: Live
   return [
     '# Debate length experiment',
     '',
-    `Run ${new Date().toISOString()}. Motion: "${MOTION}". Oxford 1v1, text mode, web search as in the app. Each debate ran both openings and the Affirmative floor speech; the Negative is always Default. ${runs.length} debates, ${callCount} calls, ${measured.length} speeches measured. "Ratio" is words divided by the level's target (1.00 = on target); "within" counts speeches within ${HIT_TOLERANCE * 100}% of target. \`current\` is today's prompt, measured against the default targets.`,
+    `Run ${meta.runAt}. Motion: "${MOTION}". Oxford 1v1, ${meta.voiceMode ? 'voice' : 'text'} mode (output-token safety cap ${tokenCap(meta.voiceMode)}), web search as in the app. Each debate ran both openings and the Affirmative floor speech; the Negative is always Default. ${runs.length} debates, ${callCount} calls, ${measured.length} speeches measured. "Ratio" is words divided by the level's target (1.00 = on target); "within" counts speeches within ${HIT_TOLERANCE * 100}% of target. "Cut off" counts turns that stopped on the token limit or failed, plus speeches whose spoken text ends mid-sentence. "Over audio limit" counts speeches whose spoken text exceeds the ${DEBATE_AUDIO_TTS_PROMPT_LIMIT}-character text-to-speech budget, which the app trims to the last full sentence. \`current\` is today's prompt, measured against the default targets.`,
     '',
     '## By condition',
     '',
-    '| Mechanism | Level | Opening target | Opening words: median (range) | Floor target | Floor words: median (range) | Median ratio | Within |',
-    '| --- | --- | --- | --- | --- | --- | --- | --- |',
+    '| Mechanism | Level | Opening target | Opening words: median (range) | Floor target | Floor words: median (range) | Median ratio | Within | Cut off | Over audio limit |',
+    '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
     ...summaryRows,
     '',
+    ...(cutOffNotes.length ? ['Cut-off speeches:', '', ...cutOffNotes, ''] : []),
     '## Does the level move the length?',
     '',
     '| Mechanism | Levels | Opening | Floor speech |',
@@ -339,6 +411,7 @@ describeLive('Live debate length experiment', () => {
       pairings.map(([debater, opponent]) => ({ condition, personalityId, debater, opponent }))));
     process.stdout.write(`\nLength experiment: ${conditions.length} conditions x ${personas.length} personas x ${pairings.length} pairings = ${plan.length} debates, ${plan.length * SPEECHES_PER_DEBATE} calls, ${DEBATE_CONCURRENCY} at a time.\n`);
 
+    const runAt = new Date().toISOString();
     const runs = await mapWithConcurrency(plan, DEBATE_CONCURRENCY, async ({ condition, personalityId, debater, opponent }): Promise<LengthRun> => {
       const audit: AuditEntry[] = [];
       const debate = await runLiveDebate({
@@ -349,6 +422,7 @@ describeLive('Live debate length experiment', () => {
         opponent,
         keys,
         speeches: SPEECHES_PER_DEBATE,
+        voice: voiceMode,
         prepareService: service => installCondition(service, condition, audit),
       });
       return { condition, debate, audit };
@@ -356,15 +430,16 @@ describeLive('Live debate length experiment', () => {
 
     fs.mkdirSync(outDir, { recursive: true });
     fs.writeFileSync(path.join(outDir, 'length.json'), JSON.stringify({
-      runAt: new Date().toISOString(),
+      runAt,
       motion: MOTION,
+      voiceMode,
       targets: TARGET_WORDS,
       directives: Object.fromEntries((['words', 'time', 'structure'] as const).map(mechanism => [mechanism,
         Object.fromEntries((['opening', 'rebuttal'] as const).map(phase => [phase,
           Object.fromEntries(LEVELS.map(level => [level, lengthDirective(mechanism, phase, level)]))]))])),
       runs,
     }, null, 2));
-    fs.writeFileSync(path.join(outDir, 'length-report.md'), renderReport(runs, conditions, pairings.map(([debater]) => debater), personas));
+    fs.writeFileSync(path.join(outDir, 'length-report.md'), renderReport(runs, conditions, pairings.map(([debater]) => debater), personas, { runAt, voiceMode }));
     fs.writeFileSync(path.join(outDir, 'length-transcripts.md'), renderTranscripts(runs));
     process.stdout.write(`Length experiment written to ${outDir}\n`);
 
@@ -378,5 +453,32 @@ describeLive('Live debate length experiment', () => {
       }
     }
     expect(runs.filter(run => run.debate.error).map(run => `${run.debate.id}: ${run.debate.error}`)).toEqual([]);
+  });
+});
+
+const describeReport = reportEnabled ? describe : describe.skip;
+
+describeReport('Debate length report from stored results', () => {
+  it('re-renders length-report.md from length.json without calling any model', () => {
+    const file = path.join(outDir, 'length.json');
+    const stored: unknown = JSON.parse(fs.readFileSync(file, 'utf8'));
+    if (!isLengthFile(stored)) throw new Error(`${file} is not a length experiment file`);
+    if (stored.motion !== MOTION) throw new Error(`${file} used a different motion: ${stored.motion}`);
+    const unique = <T,>(values: T[]): T[] => [...new Set(values)];
+    const conditionKeys = unique(stored.runs.map(run => conditionKey(run.condition)));
+    const conditions = conditionKeys.map(key => {
+      const match = stored.runs.find(run => conditionKey(run.condition) === key);
+      if (!match) throw new Error(`No run for ${key}`);
+      return match.condition;
+    });
+    const personas = unique(stored.runs.map(run => run.debate.personalityId));
+    const debaters = unique(stored.runs.map(run => run.debate.provider)).map(provider => {
+      const debater = Object.values(LIVE_DEBATERS).find(entry => entry.provider === provider);
+      if (!debater) throw new Error(`Unknown provider ${provider}`);
+      return debater;
+    });
+    fs.writeFileSync(path.join(outDir, 'length-report.md'),
+      renderReport(stored.runs, conditions, debaters, personas, { runAt: stored.runAt, voiceMode: Boolean(stored.voiceMode) }));
+    process.stdout.write(`\nLength report re-rendered in ${outDir}\n`);
   });
 });

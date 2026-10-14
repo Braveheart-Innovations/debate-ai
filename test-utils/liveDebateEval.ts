@@ -5,7 +5,7 @@ import { getProviderDefaultModel } from '@/config/modelConfigs';
 import { UNIVERSAL_PERSONALITIES, type PersonalityOption } from '@/config/personalities';
 import { AIService } from '@/services/aiAdapter';
 import { DebateOrchestrator } from '@/services/debate/DebateOrchestrator';
-import type { AI, AIProvider, Message } from '@/types';
+import type { AI, AIProvider, DebateVoiceConfig, Message } from '@/types';
 import { createMockAIConfig } from './fixtures';
 
 /**
@@ -65,6 +65,9 @@ export const mapWithConcurrency = async <T, R>(items: T[], limit: number, fn: (i
 export const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
+// Voice mode changes only the orchestrator's token safety cap; audio is made later, by the app.
+const VOICE_CONFIG: DebateVoiceConfig = { enabled: true, providerId: 'elevenlabs', debaterVoices: {} };
+
 const isMessage = (value: unknown): value is Message =>
   typeof value === 'object' && value !== null && 'senderType' in value && 'content' in value;
 
@@ -98,6 +101,8 @@ export interface GeneratedDebate {
   opponentProvider: AIProvider;
   opponentModel: string;
   webSearchEnabled: boolean;
+  /** Voice mode: the orchestrator lowers the token safety cap; no audio is generated here. */
+  voiceMode?: boolean;
   speeches: GeneratedSpeech[];
   error?: string;
 }
@@ -119,6 +124,8 @@ export interface LiveDebateOptions {
   /** Oxford 1v1 speeches to run, from the first: 3 = both openings and the Affirmative floor speech. */
   speeches: number;
   timeoutMs?: number;
+  /** Run in voice mode, as the app does with voice on. */
+  voice?: boolean;
   /** Runs once this debate's adapters exist, before the first speech: the hook for prompt experiments. */
   prepareService?: (service: AIService) => void;
 }
@@ -149,6 +156,7 @@ export const runLiveDebate = async (options: LiveDebateOptions): Promise<Generat
     opponentProvider: opponent.provider,
     opponentModel: participants[1].model,
     webSearchEnabled: false,
+    voiceMode: Boolean(options.voice),
     speeches: [],
   };
 
@@ -156,7 +164,7 @@ export const runLiveDebate = async (options: LiveDebateOptions): Promise<Generat
     motion,
     participants,
     { [participants[0].id]: personalityId, [participants[1].id]: 'default' },
-    { formatId: 'oxford', presetId: 'short' },
+    { formatId: 'oxford', presetId: 'short', voiceConfig: options.voice ? VOICE_CONFIG : undefined },
   );
   debate.webSearchEnabled = Boolean(session.webSearchEnabled);
 
