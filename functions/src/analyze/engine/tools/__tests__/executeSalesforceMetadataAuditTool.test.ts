@@ -37,6 +37,64 @@ describe('executeSalesforceMetadataAuditTool', () => {
     });
   });
 
+  describe('operation=data_model', () => {
+    const fieldXml = (name: string, body: string) => `<?xml version="1.0" encoding="UTF-8"?><CustomField><fullName>${name}</fullName>${body}</CustomField>`;
+
+    it('writes the objects as a diagram file in /output and returns it for capture', async () => {
+      const zip = new JSZip();
+      zip.file('force-app/main/default/objects/Center__c/Center__c.object-meta.xml', '<CustomObject><label>Center</label><nameField><label>Center Name</label><type>Text</type></nameField></CustomObject>');
+      zip.file('force-app/main/default/objects/Enrollment__c/Enrollment__c.object-meta.xml', '<CustomObject><label>Enrollment</label></CustomObject>');
+      zip.file('force-app/main/default/objects/Enrollment__c/fields/Center__c.field-meta.xml', fieldXml('Center__c', '<label>Center</label><type>MasterDetail</type><referenceTo>Center__c</referenceTo>'));
+      zip.file('force-app/main/default/objects/Enrollment__c/fields/Contact__c.field-meta.xml', fieldXml('Contact__c', '<label>Contact</label><type>Lookup</type><referenceTo>Contact</referenceTo>'));
+      mockSandboxService.readFile.mockResolvedValue(await zip.generateAsync({ type: 'arraybuffer' }));
+
+      const result = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-dm', {
+        operation: 'data_model',
+        paths: ['/uploads/salesforce-metadata-kc.zip'],
+        name: 'Enrollment Model.diagram.json',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.dataOutputs?.map((output) => output.filename)).toEqual(['enrollment_model.diagram.json']);
+      const written = JSON.parse(writtenFile('/output/enrollment_model.diagram.json')!);
+      expect(written).toMatchObject({ kind: 'data_model', platform: 'salesforce', summary: '2 objects with their fields and relationships, read from salesforce-metadata-kc.zip.' });
+      expect(written.entities.map((entity: { id: string }) => entity.id)).toEqual(['Center__c', 'Enrollment__c', 'Contact']);
+      expect(written.relationships).toHaveLength(2);
+      expect(Buffer.from(result.dataOutputs![0].base64, 'base64').toString('utf8')).toBe(writtenFile('/output/enrollment_model.diagram.json'));
+      expect(result.content).toContain('Data model written to /output/enrollment_model.diagram.json from the uploaded metadata: 2 objects with their fields (Center__c, Enrollment__c) and 2 relationships.');
+      expect(result.content).toContain('Added without fields, because a field points at them: Contact.');
+      // Nothing of the audit bundle.
+      expect(writtenFile('/output/salesforce/artifact-manifest.json')).toBeUndefined();
+    });
+
+    it('reads a metadata-format .object upload and says which objects it could not find', async () => {
+      mockSandboxService.readFile.mockResolvedValue(new TextEncoder().encode(
+        '<CustomObject><label>Invoice</label><fields><fullName>Amount__c</fullName><type>Currency</type><precision>16</precision><scale>2</scale></fields></CustomObject>',
+      ).buffer);
+      const result = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-dm-legacy', {
+        operation: 'data_model',
+        paths: ['/uploads/unpackaged/objects/Invoice__c.object'],
+        objects: ['Invoice__c', 'Payment__c'],
+      });
+      expect(result.success).toBe(true);
+      expect(result.dataOutputs?.[0].filename).toBe('salesforce_data_model.diagram.json');
+      expect(result.content).toContain('Not in the upload: Payment__c.');
+      expect(JSON.parse(writtenFile('/output/salesforce_data_model.diagram.json')!).entities[0].fields).toEqual([
+        { name: 'Amount__c', type: 'Currency(16,2)' },
+      ]);
+    });
+
+    it('fails with what a data model needs when the upload has no object metadata', async () => {
+      mockSandboxService.readFile.mockResolvedValue(new TextEncoder().encode('public class A {}').buffer);
+      const result = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-dm-none', {
+        operation: 'data_model',
+        paths: ['/uploads/force-app/main/default/classes/A.cls'],
+      });
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('a data model needs objects/<Object>/fields/<Field>.field-meta.xml');
+    });
+  });
+
   it('writes generated Salesforce artifacts to deterministic filesystem paths for follow-up Python analysis', async () => {
     const manifest = {
       version: 1,

@@ -7,6 +7,8 @@ import type { ToolResult } from '../../contract/lib/ai/tools/types';
 import type { SalesforceMetadataAuditArgs, SalesforceMetadataAuditOperation } from '../../contract/lib/ai/tools/built-in/salesforce-metadata-audit';
 import { SALESFORCE_ANALYSIS_LENSES } from '../../contract/config/analysis-lenses';
 import type { SandboxFiles } from './sandboxFiles';
+import { diagramFileText } from '../../contract/services/analyze/diagrams/diagramFile';
+import { buildSalesforceDataModel } from '../../salesforce/salesforceDataModel';
 import {
   buildSalesforceAuditReport,
   buildSalesforceApexDrilldowns,
@@ -34,6 +36,7 @@ import {
   summarizeSalesforceIndex,
   type SalesforceInvalidInsightPacket,
   type SalesforceMetadataIndex,
+  type SalesforceSourceFile,
 } from '../../salesforce/SalesforceMetadataService';
 
 const DEFAULT_OPERATION: SalesforceMetadataAuditOperation = 'audit';
@@ -67,6 +70,10 @@ export async function executeSalesforceMetadataAuditTool(
         success: false,
         error: 'No Salesforce metadata source files were found. Upload a Salesforce DX project ZIP, metadata ZIP, or source files such as .cls, .trigger, *-meta.xml, package.xml, or sfdx-project.json. Optional agent insight packets can be included under .symposium/salesforce-insights/<run-id>/ alongside the source.',
       };
+    }
+
+    if (parsedArgs.operation === 'data_model') {
+      return await writeSalesforceDataModel(files, toolCallId, sourceFiles, parsedArgs);
     }
 
     const index = buildSalesforceMetadataIndex(sourceFiles, parsedArgs.paths || [], insightPackets, parsedArgs.query);
@@ -127,11 +134,15 @@ function normalizeArgs(args: Record<string, unknown>): SalesforceMetadataAuditAr
     query: typeof args.query === 'string' ? args.query : undefined,
     component: typeof args.component === 'string' ? args.component : undefined,
     include_artifacts: typeof args.include_artifacts === 'boolean' ? args.include_artifacts : true,
+    objects: Array.isArray(args.objects)
+      ? args.objects.filter((object): object is string => typeof object === 'string' && object.trim().length > 0)
+      : undefined,
+    name: typeof args.name === 'string' ? args.name : undefined,
   };
 }
 
 function isOperation(value: string): value is SalesforceMetadataAuditOperation {
-  return ['audit', 'inventory', 'search', 'component', 'dependencies', 'risks', 'packet_findings', 'handoff', 'feature_readiness', 'troubleshooting'].includes(value);
+  return ['audit', 'inventory', 'search', 'component', 'dependencies', 'risks', 'packet_findings', 'handoff', 'feature_readiness', 'troubleshooting', 'data_model'].includes(value);
 }
 
 /**
@@ -632,4 +643,58 @@ function encodeArtifactOutputs(outputs: SalesforceArtifactFile[]): NonNullable<T
     base64: Buffer.from(output.content, 'utf8').toString('base64'),
     size: Buffer.byteLength(output.content, 'utf8'),
   }));
+}
+
+/** The data model file's name: a short snake_case name, without `.diagram.json`. */
+export function dataModelFileName(name: string | undefined): string {
+  const cleaned = (name ?? '')
+    .replace(/^\/?output\//, '')
+    .replace(/\.diagram\.json$/i, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9_]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  return cleaned || 'salesforce_data_model';
+}
+
+/**
+ * operation=data_model: the workspace's objects, fields and relationships as a
+ * diagram file (/output/<name>.diagram.json), written into the sandbox for the
+ * agent to change and returned for capture, which makes it a diagram.
+ */
+async function writeSalesforceDataModel(
+  files: SandboxFiles,
+  toolCallId: string,
+  sourceFiles: SalesforceSourceFile[],
+  args: SalesforceMetadataAuditArgs,
+): Promise<ToolResult> {
+  const uploads = [...new Set(sourceFiles.map((file) => (file.sourcePath ?? '').split('/').pop()).filter(Boolean))];
+  const { diagram, notFound, referenced } = buildSalesforceDataModel(sourceFiles, {
+    objects: args.objects,
+    uploadName: uploads.length === 1 ? uploads[0] : undefined,
+  });
+  if (diagram.entities.length === 0) {
+    return {
+      toolCallId,
+      success: false,
+      error: [
+        'No object metadata was found: a data model needs objects/<Object>/fields/<Field>.field-meta.xml (source format) or objects/<Object>.object (metadata format) in the upload.',
+        notFound.length > 0 ? `Not in the upload: ${notFound.join(', ')}.` : '',
+      ].filter(Boolean).join(' '),
+    };
+  }
+  const filename = `${dataModelFileName(args.name)}.diagram.json`;
+  const text = diagramFileText(diagram);
+  await files.writeFile(`/output/${filename}`, Buffer.from(text, 'utf8'));
+  const withFields = diagram.entities.filter((entity) => !referenced.includes(entity.id)).map((entity) => entity.id);
+  return {
+    toolCallId,
+    success: true,
+    content: [
+      `Data model written to /output/${filename} from the uploaded metadata: ${withFields.length} ${withFields.length === 1 ? 'object' : 'objects'} with their fields (${withFields.join(', ')}) and ${diagram.relationships.length} ${diagram.relationships.length === 1 ? 'relationship' : 'relationships'}.`,
+      referenced.length > 0 ? `Added without fields, because a field points at them: ${referenced.join(', ')}. Name them in objects to include their fields.` : '',
+      notFound.length > 0 ? `Not in the upload: ${notFound.join(', ')}.` : '',
+      'Each object and field names its source file. It is the user\'s diagram: to change it, read the file, change only what the question needs (objects or fields you design are marked "assumed"), and save it to the same name. Set a title and summary that say what it covers.',
+    ].filter(Boolean).join('\n'),
+    dataOutputs: [{ filename, base64: Buffer.from(text, 'utf8').toString('base64'), size: Buffer.byteLength(text, 'utf8') }],
+  };
 }
