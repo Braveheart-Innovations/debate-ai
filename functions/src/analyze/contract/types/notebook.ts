@@ -210,6 +210,12 @@ export interface Artifact {
     };
     /** Monotonically increasing version number within lineage */
     versionNumber?: number;
+    /**
+     * The turn (Analyze run) whose agent saved this version. A later save of the
+     * same file in the same turn replaces it, so a turn leaves one version per
+     * output (capture, debate-ai streamCompletedHandler).
+     */
+    turnId?: string;
     /** Shared ID linking companion artifacts from the same analysis output group */
     artifactGroupId?: string;
     /** Whether this artifact is a primary user-requested output or hidden report material. */

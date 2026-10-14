@@ -83,6 +83,8 @@ export interface StreamCompletedDeps {
 
 export interface StreamCompletedEventData {
   messageId: string;
+  /** The turn (Analyze run) this round belongs to: a turn keeps one version per output. */
+  turnId?: string;
   /** The app replaced an empty operator reply with a notice (see MessageMetadata.appNotice). */
   appNotice?: MessageMetadata['appNotice'];
   /** Team mode was on but the operator answered without a team plan. */
@@ -684,10 +686,51 @@ function extractHtmlArtifacts(
 // Data Artifact Extraction
 // ============================================================================
 
+/** A version a later save in the same turn replaces: the turn's own, unless the user made it or named it. */
+function replacesTurnVersion(prior: Artifact, type: Artifact['type'], turnId: string | undefined): boolean {
+  const meta = prior.metadata;
+  return Boolean(turnId)
+    && meta?.turnId === turnId
+    && prior.type === type
+    && !meta?.scenarioName
+    && !meta?.recipeRun
+    && !meta?.diagram?.savedByUser;
+}
+
+/** Where a version sits in its lineage (none for a first version), to put its replacement in the same place. */
+function lineagePlace(prior: Artifact): Partial<ArtifactLineageFields> {
+  const meta = prior.metadata;
+  if (!meta?.lineageRootId) return {};
+  return {
+    lineageRootId: meta.lineageRootId,
+    versionNumber: meta.versionNumber ?? 1,
+    ...(meta.previousArtifactId ? { previousArtifactId: meta.previousArtifactId } : {}),
+  };
+}
+
+/** A model results file's inputs (its `values`), as text to compare; null when it can't be read. */
+function scenarioValues(text: string | null): string | null {
+  if (!text) return null;
+  try {
+    const values = (JSON.parse(text) as { values?: unknown }).values;
+    return values && typeof values === 'object' ? JSON.stringify(values) : null;
+  } catch {
+    return null;
+  }
+}
+
+function storedText(artifact: Artifact): string | null {
+  if (!artifact.data || artifact.data.startsWith('__')) return null;
+  if (artifact.data.trimStart().startsWith('{')) return artifact.data;
+  try { return decodeBase64ToUtf8(artifact.data); } catch { return null; }
+}
+
 function extractDataArtifacts(
   datasToProcess: Array<{ filename: string; base64: string; size: number }>,
   ctx: {
     messageId: string;
+    /** The turn this round belongs to (see replacesTurnVersion). */
+    turnId?: string;
     sessionId: string;
     outputSelection: AnalyzeOutputSelection;
     execIndex: number;
@@ -715,6 +758,33 @@ function extractDataArtifacts(
   // A recipe, the files it writes and a diagram version on every save, even in
   // a report round (which otherwise replaces same-name intermediates).
   const recipeDirs = recipeOutputDirs(ctx.existingArtifacts, datasToProcess.map((data) => data.filename));
+
+  // A model's files replace the turn's own only for the same inputs: results with
+  // other values are another scenario (the agent comparing staffing levels).
+  const scenarioByDir = new Map<string, boolean>();
+  const sameScenario = (filename: string): boolean => {
+    const normalized = filename.replace(/^\/?output\//, '');
+    const dir = recipeDirs.find((candidate) => normalized.startsWith(`${candidate}/`));
+    if (!dir) return true;
+    const known = scenarioByDir.get(dir);
+    if (known !== undefined) return known;
+    const resultsName = `${dir}/model.json`;
+    const fresh = datasToProcess.find((candidate) => candidate.filename.replace(/^\/?output\//, '') === resultsName);
+    const stored = ctx.existingArtifacts
+      .filter((artifact) => artifact.name.replace(/^\/?output\//, '') === resultsName)
+      .sort((a, b) => ((b.metadata?.versionNumber ?? 1) - (a.metadata?.versionNumber ?? 1)) || (b.createdAt - a.createdAt))[0];
+    let same = true;
+    if (fresh && stored) {
+      let freshText: string | null = null;
+      try { freshText = decodeBase64ToUtf8(fresh.base64); } catch { freshText = null; }
+      const freshValues = scenarioValues(freshText);
+      const storedValues = scenarioValues(storedText(stored));
+      // Inputs that can't be read can't be shown to be the same: keep both.
+      same = freshValues !== null && freshValues === storedValues;
+    }
+    scenarioByDir.set(dir, same);
+    return same;
+  };
 
   datasToProcess.forEach((data, dataIndex) => {
     if (seenFilenames.has(data.filename)) return;
@@ -1056,6 +1126,23 @@ function extractDataArtifacts(
       );
     }
 
+    // One version per output per turn. A save identical to the latest version adds
+    // nothing; a later save in the same turn replaces the turn's own version and
+    // takes its place (number and predecessor), so the draft and its fixes don't
+    // pile up as versions. A version the user made, or a scenario with other
+    // inputs, always stays.
+    const priorVersion = lineage ? ctx.existingArtifacts.find((artifact) => artifact.id === lineage?.previousArtifactId) : undefined;
+    if (priorVersion && priorVersion.type === artifactType && priorVersion.data === artifactData) return;
+    if (priorVersion && replacesTurnVersion(priorVersion, artifactType, ctx.turnId) && sameScenario(data.filename)) {
+      deps.dispatch({ type: 'REMOVE_ARTIFACT', payload: priorVersion.id });
+      const rest = { ...artifactMeta };
+      delete rest.lineageRootId;
+      delete rest.versionNumber;
+      delete rest.previousArtifactId;
+      artifactMeta = { ...rest, ...lineagePlace(priorVersion) };
+    }
+    if (ctx.turnId) artifactMeta = { ...artifactMeta, turnId: ctx.turnId };
+
     const artifact: Artifact = {
       id: `artifact-data-${ctx.messageId}-${ctx.execIndex}-${dataIndex}`,
       cellId: ctx.messageId,
@@ -1357,6 +1444,7 @@ export function handleStreamCompleted(
   deps: StreamCompletedDeps,
 ): void {
   const messageId = eventData.messageId as string;
+  const turnId = typeof eventData.turnId === 'string' && eventData.turnId ? eventData.turnId : undefined;
   const finalContent = eventData.finalContent as string;
   const toolCalls = eventData.toolCalls as StreamCompletedEventData['toolCalls'];
   const toolExecutionResults = eventData.toolExecutionResults as StreamCompletedEventData['toolExecutionResults'];
@@ -1607,6 +1695,7 @@ export function handleStreamCompleted(
       if (datasToProcess.length > 0) {
         const dataArtifacts = extractDataArtifacts(datasToProcess, {
           messageId,
+          turnId,
           sessionId,
           outputSelection,
           execIndex: i,
