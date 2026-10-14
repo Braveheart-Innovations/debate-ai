@@ -43,8 +43,95 @@ export function extensionForResponse(contentType: string | undefined, content: s
   return '.txt';
 }
 
-export function sha256Hex(content: string): string {
-  return crypto.createHash('sha256').update(content, 'utf8').digest('hex');
+export function sha256Hex(content: string | Buffer): string {
+  return crypto.createHash('sha256').update(content).digest('hex');
+}
+
+/**
+ * Content types whose bodies are text. Matched by subtype, not substring: the .xlsx
+ * type is application/vnd.openxmlformats-…, which contains "xml".
+ */
+export function isTextContentType(contentType: string | undefined): boolean {
+  const [type = '', subtype = ''] = (contentType || '').toLowerCase().split(';')[0].trim().split('/');
+  if (type === 'text') return true;
+  if (type !== 'application') return false;
+  return /^(json|xml|csv|javascript|x-javascript|ecmascript|yaml|x-yaml|ndjson|x-ndjson|x-www-form-urlencoded)$/.test(subtype)
+    || /\+(json|xml)$/.test(subtype);
+}
+
+/** Types that say nothing about the body: whether it's text is read from the bytes. */
+const UNTYPED_CONTENT_TYPES = new Set(['', 'application/octet-stream', 'binary/octet-stream', 'application/download', 'application/force-download']);
+
+/**
+ * Whether a response is a file to keep byte for byte (a spreadsheet, archive, PDF,
+ * image) rather than text: its content type says so, or it has none and isn't UTF-8.
+ * Decoding a file as text replaces every invalid byte, so an .xlsx saved that way is
+ * a corrupt ZIP.
+ */
+export function isBinaryResponse(contentType: string | undefined, body: Uint8Array): boolean {
+  if (isTextContentType(contentType)) return false;
+  const type = (contentType || '').toLowerCase().split(';')[0].trim();
+  if (!UNTYPED_CONTENT_TYPES.has(type)) return true;
+  try {
+    new TextDecoder('utf-8', { fatal: true }).decode(body);
+    return false;
+  } catch {
+    return true;
+  }
+}
+
+const BINARY_EXTENSIONS: Record<string, string> = {
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+  'application/vnd.ms-excel': '.xls',
+  'application/vnd.ms-excel.sheet.macroenabled.12': '.xlsm',
+  'application/vnd.ms-excel.sheet.binary.macroenabled.12': '.xlsb',
+  'application/vnd.oasis.opendocument.spreadsheet': '.ods',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': '.pptx',
+  'application/pdf': '.pdf',
+  'application/zip': '.zip',
+  'application/x-zip-compressed': '.zip',
+  'application/gzip': '.gz',
+  'application/x-gzip': '.gz',
+  'application/vnd.apache.parquet': '.parquet',
+  'application/x-parquet': '.parquet',
+  'image/png': '.png',
+  'image/jpeg': '.jpg',
+  'image/gif': '.gif',
+  'image/webp': '.webp',
+};
+
+/** URL endings that name a page or a script, not the file it serves. */
+const PAGE_EXTENSIONS = new Set(['.aspx', '.asp', '.php', '.jsp', '.cgi', '.htm', '.html', '.do']);
+
+const fileExtensionOf = (name: string | undefined): string | null => {
+  const match = /(\.[a-z0-9]{1,8})$/i.exec((name || '').trim());
+  return match && !PAGE_EXTENSIONS.has(match[1].toLowerCase()) ? match[1].toLowerCase() : null;
+};
+
+/**
+ * A binary file's extension: the filename the server gives (Content-Disposition), then
+ * the content type, then the URL's own, else .bin.
+ */
+export function binaryFileExtension(contentType: string | undefined, contentDisposition: string | null | undefined, url: string): string {
+  const filename = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(contentDisposition || '')?.[1];
+  let decoded = filename;
+  try {
+    decoded = filename ? decodeURIComponent(filename) : undefined;
+  } catch {
+    // A malformed %-escape: use the name as sent.
+  }
+  const fromName = fileExtensionOf(decoded);
+  if (fromName) return fromName;
+  const fromType = BINARY_EXTENSIONS[(contentType || '').toLowerCase().split(';')[0].trim()];
+  if (fromType) return fromType;
+  let path = '';
+  try {
+    path = new URL(url).pathname;
+  } catch {
+    // Not a URL: no extension from it.
+  }
+  return fileExtensionOf(path) ?? '.bin';
 }
 
 export interface SandboxFetchSummary {
@@ -58,23 +145,30 @@ export interface SandboxFetchSummary {
 
 export type SandboxFileWriter = (sessionKey: string, path: string, base64: string) => Promise<void>;
 
-/** Save the body into the sandbox and summarise it. Throws if the write fails. */
+/**
+ * Save the body into the sandbox and summarise it. Throws if the write fails. A binary
+ * file (`binaryExtension` set) arrives as base64 and is written byte for byte; the
+ * model gets a note instead of a text preview.
+ */
 export async function saveFetchToSandbox(
   target: SandboxFetchTarget,
   content: string,
   contentType: string | undefined,
   write: SandboxFileWriter,
+  binaryExtension?: string,
 ): Promise<SandboxFetchSummary> {
-  const path = `${target.pathBase}${extensionForResponse(contentType, content)}`;
-  const buffer = Buffer.from(content, 'utf8');
+  const path = `${target.pathBase}${binaryExtension ?? extensionForResponse(contentType, content)}`;
+  const buffer = Buffer.from(content, binaryExtension ? 'base64' : 'utf8');
   await write(target.sessionKey, path, buffer.toString('base64'));
   return {
     path,
     bytes: buffer.byteLength,
-    responseHash: sha256Hex(content),
+    responseHash: sha256Hex(buffer),
     contentType,
-    preview: content.slice(0, SANDBOX_FETCH_PREVIEW_CHARS),
-    previewTruncated: content.length > SANDBOX_FETCH_PREVIEW_CHARS,
+    preview: binaryExtension
+      ? `(a binary ${binaryExtension} file${contentType ? `, ${contentType}` : ''}: open it in Python, not as text)`
+      : content.slice(0, SANDBOX_FETCH_PREVIEW_CHARS),
+    previewTruncated: !binaryExtension && content.length > SANDBOX_FETCH_PREVIEW_CHARS,
   };
 }
 
@@ -105,7 +199,7 @@ export async function runSandboxFetch(
   try {
     const summary = await saveFetchToSandbox(target, result.content, result.metadata?.contentType, async (sessionKey, path, base64) => {
       await sandbox.writeFile(uid, sessionKey, { path, base64 });
-    });
+    }, result.metadata?.binaryExtension);
     return {
       ...result,
       content: summary.preview,
@@ -122,7 +216,7 @@ export async function runSandboxFetch(
     return {
       toolCallId: result.toolCallId,
       success: false,
-      error: `Fetched ${Buffer.byteLength(result.content, 'utf8')} bytes but could not save them to the sandbox: ${error instanceof Error ? error.message : String(error)}${error instanceof SandboxLimitError ? ` ${SANDBOX_LIMIT_MODEL_NOTE}` : ''}`,
+      error: `Fetched ${Buffer.byteLength(result.content, result.metadata?.binaryExtension ? 'base64' : 'utf8')} bytes but could not save them to the sandbox: ${error instanceof Error ? error.message : String(error)}${error instanceof SandboxLimitError ? ` ${SANDBOX_LIMIT_MODEL_NOTE}` : ''}`,
       metadata: result.metadata,
     };
   }
