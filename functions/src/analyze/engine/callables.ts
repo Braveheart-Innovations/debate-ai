@@ -8,6 +8,7 @@
  *   analyzeUploads       the session's uploads: write (chunked), download, remove, list
  *   analyzeRunCell       a manual cell re-run, refused while a turn is running
  *   analyzeRunRecipe     a Model re-run: a recipe with the user's values, outputs saved as versions
+ *   analyzeSaveDiagram   a hand edit from the Diagram view, saved as the diagram's next version
  */
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import type { MessageAttachment } from '../contract/types';
@@ -19,6 +20,7 @@ import { isTerminal, runRef, type AnalyzeRunDoc, type RosterAI, type RunConfig }
 import { SessionBusyError, TurnAlreadyStartedError, startOperatorTurn, type UserMessageContext } from './turns';
 import { NoSessionSandboxError, runCell } from './runCell';
 import { NoRecipeSandboxError, RecipeNotFoundError, RecipeValuesError, runRecipe } from '../recipes/runRecipe';
+import { DiagramNotFoundError, DiagramReviewError, DiagramStaleError, saveDiagram } from '../diagrams/saveDiagram';
 import { resolveSessionQuestions } from './notifications';
 import { SandboxLimitError } from '../../sandbox/service';
 import { normalizeAnalyzeOutputSelection } from '../contract/types/analyze';
@@ -435,6 +437,29 @@ export const analyzeRunRecipe = onCall(
       if (error instanceof SandboxLimitError) throw new HttpsError('resource-exhausted', error.message, { reason: 'sandbox-limit' });
       console.error('[analyzeRunRecipe] failed', error);
       throw new HttpsError('internal', 'The model could not run. Please try again.');
+    }
+  },
+);
+
+export const analyzeSaveDiagram = onCall(
+  { region: 'us-central1', timeoutSeconds: 60 },
+  async (request) => {
+    const uid = requireUid(request.auth?.uid);
+    const data = (request.data ?? {}) as Record<string, unknown>;
+    const sessionId = requireString(data.sessionId, 'sessionId');
+    const baseArtifactId = requireString(data.baseArtifactId, 'baseArtifactId');
+    if (typeof data.text !== 'string' || !data.text.trim()) throw new HttpsError('invalid-argument', 'text is required');
+    try {
+      return await saveDiagram(uid, sessionId, { baseArtifactId, text: data.text, overwrite: data.overwrite === true });
+    } catch (error) {
+      if (error instanceof SessionBusyError) throw new HttpsError('failed-precondition', 'Wait for the AI to finish before saving the diagram.', { reason: 'busy' });
+      if (error instanceof DiagramNotFoundError) throw new HttpsError('not-found', error.message);
+      if (error instanceof DiagramReviewError) throw new HttpsError('invalid-argument', error.message, { reason: 'review', problems: error.problems });
+      if (error instanceof DiagramStaleError) {
+        throw new HttpsError('aborted', error.message, { reason: 'stale', latestArtifactId: error.latestArtifactId, latestVersion: error.latestVersion });
+      }
+      console.error('[analyzeSaveDiagram] failed', error);
+      throw new HttpsError('internal', 'The diagram could not be saved. Please try again.');
     }
   },
 );

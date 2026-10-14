@@ -25,7 +25,8 @@ export type ArtifactType = 'code' | 'image' | 'table' | 'data' | 'html'
   | 'salesforce_component_index'
   | 'salesforce_dependency_map'
   | 'salesforce_vscode_handoff'
-  | 'recipe';
+  | 'recipe'
+  | 'diagram';
 
 /** A recipe parameter value: what PARAMS declares and the Model panel sends. */
 export type RecipeParamValue = number | boolean | string;
@@ -181,6 +182,20 @@ export interface Artifact {
       title?: string;
       /** The rest of the docstring: what the model answers. */
       summary?: string;
+    };
+    /**
+     * A diagram artifact (type 'diagram', `/output/<name>.diagram.json`): what the
+     * Outputs list shows without reading the file, and the review's warnings.
+     */
+    diagram?: {
+      kind: 'data_model';
+      title: string;
+      summary: string;
+      entityCount: number;
+      relationshipCount: number;
+      warnings?: string[];
+      /** Saved from the Diagram view (a hand edit), not written by the agent. */
+      savedByUser?: boolean;
     };
     /** The name the user gave a Model scenario (a version of its results file). */
     scenarioName?: string;

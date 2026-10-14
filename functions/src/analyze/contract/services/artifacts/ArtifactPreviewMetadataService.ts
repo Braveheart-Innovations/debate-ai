@@ -342,6 +342,21 @@ export function buildArtifactPreviewMetadata(input: PreviewInput): ArtifactPrevi
     };
   }
 
+  if (input.type === 'diagram') {
+    // A data model: its name, what it covers and its size, not its JSON.
+    const diagram = input.metadata?.diagram;
+    const size = diagram
+      ? `${diagram.entityCount} ${diagram.entityCount === 1 ? 'entity' : 'entities'}, ${diagram.relationshipCount} ${diagram.relationshipCount === 1 ? 'relationship' : 'relationships'}`
+      : null;
+    return {
+      version: 1,
+      kind: 'text',
+      title: diagram?.title || input.name.replace(/\.diagram\.json$/i, ''),
+      subtitle: 'data model',
+      excerpt: truncate([diagram?.summary, size].filter(Boolean).join('\n\n') || 'A data model you can edit.', MAX_EXCERPT_CHARS),
+    };
+  }
+
   if (input.type === 'code') {
     const lines = text.trim().split(/\r?\n/).slice(0, MAX_CODE_LINES).join('\n');
     return {

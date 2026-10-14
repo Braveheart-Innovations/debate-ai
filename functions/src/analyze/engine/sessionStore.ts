@@ -266,6 +266,28 @@ export async function loadArtifactsById(uid: string, sessionId: string, ids: str
   return records as unknown as Artifact[];
 }
 
+/** The session's artifacts with these names (every version), data hydrated: a few files' priors, not the whole session. */
+export async function loadArtifactsNamed(uid: string, sessionId: string, names: string[]): Promise<Artifact[]> {
+  const unique = [...new Set(names)];
+  const ids: string[] = [];
+  for (let i = 0; i < unique.length; i += 30) {
+    const snapshot = await getFirestore()
+      .collection(`users/${uid}/conversations/${sessionId}/artifacts`)
+      .where('name', 'in', unique.slice(i, i + 30))
+      .select()
+      .get();
+    ids.push(...snapshot.docs.map((doc) => doc.id));
+  }
+  return loadArtifactsById(uid, sessionId, ids);
+}
+
+/** The latest version of the artifact with this name (highest version, then newest). */
+export function latestByName(existing: Artifact[], name: string): Artifact | undefined {
+  return existing
+    .filter((artifact) => artifact.name === name)
+    .sort((a, b) => ((b.metadata?.versionNumber ?? 1) - (a.metadata?.versionNumber ?? 1)) || (b.createdAt - a.createdAt))[0];
+}
+
 /** Remove an artifact's offloaded payloads (after its doc is deleted). */
 export async function deleteArtifactPayloads(uid: string, refs: StoredPayloadRefs | undefined): Promise<void> {
   if (!refs) return;
