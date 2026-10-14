@@ -194,6 +194,25 @@ describe('ConnectionTestService', () => {
     });
   });
 
+  it('tests Claude keys with Haiku 5.5 at the smallest budget that returns text', async () => {
+    // Haiku 4.5 is retiring; at max_tokens 1 Haiku 5.5 answers 200 with no text block.
+    const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ model: 'claude-haiku-5-5', content: [{ type: 'text', text: 'H' }] }), { status: 200 })
+    );
+
+    const result = await service.testProvider('claude', 'sk-ant-' + 'c'.repeat(40), { retries: 0 });
+    const [url, requestInit] = fetchSpy.mock.calls[0] ?? [];
+
+    expect(result.success).toBe(true);
+    expect(result.model).toBe('claude-haiku-5-5');
+    expect(url).toBe('https://api.anthropic.com/v1/messages');
+    expect(JSON.parse(String(requestInit?.body))).toEqual({
+      model: 'claude-haiku-5-5',
+      max_tokens: 2,
+      messages: [{ role: 'user', content: 'Hi' }],
+    });
+  });
+
   it('stops retrying on auth errors', async () => {
     const realTestSpy = jest
       .spyOn(service as unknown as { realTest(providerId: string, apiKey: string, timeout: number): Promise<TestResult> }, 'realTest')
