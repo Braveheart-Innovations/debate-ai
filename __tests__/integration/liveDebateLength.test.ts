@@ -124,6 +124,8 @@ interface AuditEntry {
   label: string;
   lengthLine: string;
   systemNeutralised: boolean;
+  /** The output-token cap on the adapter when the request went out (absent in files before 2026-10-14). */
+  maxTokens?: number;
 }
 
 /** Wraps every adapter in this debate's service so each request carries the condition's length line. */
@@ -148,6 +150,7 @@ const installCondition = (service: AIService, condition: Condition, audit: Audit
         label,
         lengthLine: sent.match(LENGTH_LINE)?.[0] ?? '(missing)',
         systemNeutralised: Boolean(adapter.config.personality?.systemPrompt.includes(SYSTEM_NEUTRAL_LINE)),
+        maxTokens: adapter.config.parameters?.maxTokens,
       });
       return send(sent, ...rest);
     };
@@ -443,9 +446,10 @@ describeLive('Live debate length experiment', () => {
     fs.writeFileSync(path.join(outDir, 'length-transcripts.md'), renderTranscripts(runs));
     process.stdout.write(`Length experiment written to ${outDir}\n`);
 
-    // The experiment is only valid if every request carried its condition's length line.
+    // The experiment is only valid if every request carried its mode's token cap and its condition's length line.
     for (const { condition, audit } of runs) {
       for (const entry of audit) {
+        expect(entry.maxTokens).toBe(tokenCap(voiceMode));
         const phase = PHASE_BY_LABEL.get(entry.label);
         if (condition.mechanism === 'current' || !phase) continue;
         expect(entry.lengthLine).toBe(lengthDirective(condition.mechanism, phase, condition.level));
