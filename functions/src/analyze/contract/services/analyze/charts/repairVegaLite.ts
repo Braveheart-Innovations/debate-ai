@@ -20,9 +20,11 @@ const isRecord = (value: unknown): value is LooseRecord =>
  *
  * Map boundaries: public us-atlas / world-atlas / vega-datasets URLs are pointed at
  * our hosted copies (see boundaryData.ts), so maps never depend on a CDN.
+ *
+ * Date filters compared as text: see repairTemporalFilters.
  */
 export function repairVegaLiteSpec(spec: unknown): unknown {
-  return rehostBoundaryUrls(repairLayerEncodings(spec));
+  return rehostBoundaryUrls(repairTemporalFilters(repairLayerEncodings(spec)));
 }
 
 function repairLayerEncodings(spec: unknown): unknown {
@@ -51,4 +53,75 @@ function repairLayerEncodings(spec: unknown): unknown {
   }
   if (isRecord(out.spec)) out = { ...out, spec: repairLayerEncodings(out.spec) };
   return out;
+}
+
+const COMPARISON = '===|!==|==|!=|>=|<=|>|<';
+// An ISO date or date-time literal: 2025, 2025-10, 2025-10-15, 2025-10-15T09:30:00Z…
+const ISO_DATE = String.raw`\d{4}(?:-\d{2}(?:-\d{2}(?:[T ][\d:.]+(?:Z|[+-]\d{2}:?\d{2})?)?)?)?`;
+
+const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * A filter that compares a date field with a date written as text
+ * (`datum.date >= '2025-10-15'`) drops every row: Vega-Lite parses a field
+ * encoded as temporal into a Date before the filter runs, and a Date compared
+ * with a string is always false. The chart keeps its axes (explicit domains)
+ * but draws nothing (live failure 2026-10-14: 9 of 15 charts in one report).
+ * Both sides are compared as timestamps instead: time() takes a Date or the
+ * text, so it holds whether or not the field was parsed.
+ */
+function repairTemporalFilters(spec: unknown): unknown {
+  const fields = new Set<string>();
+  collectTemporalFields(spec, fields);
+  if (fields.size === 0) return spec;
+  const patterns = [...fields].map((field) => {
+    // datum.date or datum['date'] (no capture groups, so the groups below count from 1)
+    const ref = String.raw`datum(?:\.${escapeRegExp(field)}(?![\w$])|\[\s*['"]${escapeRegExp(field)}['"]\s*\])`;
+    return {
+      // groups: 1 field ref, 2 operator, 3 quote, 4 date
+      fieldFirst: new RegExp(String.raw`(${ref})\s*(${COMPARISON})\s*(['"])(${ISO_DATE})\3`, 'g'),
+      // groups: 1 quote, 2 date, 3 operator, 4 field ref
+      dateFirst: new RegExp(String.raw`(['"])(${ISO_DATE})\1\s*(${COMPARISON})\s*(${ref})`, 'g'),
+    };
+  });
+  const rewrite = (expression: string) => patterns.reduce(
+    (text, { fieldFirst, dateFirst }) => text
+      .replace(fieldFirst, (_match, ref: string, op: string, _quote: string, date: string) => `time(${ref}) ${op} time('${date}')`)
+      .replace(dateFirst, (_match, _quote: string, date: string, op: string, ref: string) => `time('${date}') ${op} time(${ref})`),
+    expression,
+  );
+  return rewriteFilters(spec, rewrite);
+}
+
+/** Fields an encoding reads as dates (type temporal, or a timeUnit), anywhere in the spec. */
+function collectTemporalFields(value: unknown, fields: Set<string>): void {
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectTemporalFields(item, fields));
+    return;
+  }
+  if (!isRecord(value)) return;
+  if (typeof value.field === 'string' && (value.type === 'temporal' || 'timeUnit' in value)) fields.add(value.field);
+  Object.values(value).forEach((child) => collectTemporalFields(child, fields));
+}
+
+function rewriteFilters(value: unknown, rewrite: (expression: string) => string): unknown {
+  if (Array.isArray(value)) return value.map((item) => rewriteFilters(item, rewrite));
+  if (!isRecord(value)) return value;
+  let changed = false;
+  const out: LooseRecord = {};
+  for (const [key, child] of Object.entries(value)) {
+    let next = child;
+    if (key === 'transform' && Array.isArray(child)) {
+      const steps = child.map((step) => {
+        if (!isRecord(step) || typeof step.filter !== 'string') return step;
+        const filter = rewrite(step.filter);
+        return filter === step.filter ? step : { ...step, filter };
+      });
+      if (steps.some((step, index) => step !== child[index])) next = steps;
+    }
+    next = rewriteFilters(next, rewrite);
+    out[key] = next;
+    if (next !== child) changed = true;
+  }
+  return changed ? out : value;
 }
