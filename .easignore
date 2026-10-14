@@ -11,3 +11,8 @@ scripts/*
 
 # Local marketing screenshots (not part of the app; kept out of the EAS upload)
 Symposium Mobile Screenshots/
+
+# Local env files hold developer secrets (provider API keys, GitHub token, service
+# account). Builds get EXPO_PUBLIC_* from eas.json and the EAS environment instead.
+.env.local
+.env.*.local
