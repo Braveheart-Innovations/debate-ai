@@ -4,38 +4,43 @@ import path from 'path';
 
 import { getProviderDefaultModel } from '@/config/modelConfigs';
 import { UNIVERSAL_PERSONALITIES, type PersonalityOption } from '@/config/personalities';
-import { AIService } from '@/services/aiAdapter';
-import { DebateOrchestrator } from '@/services/debate/DebateOrchestrator';
 import { getDebateSpeechLengthGuidance } from '@/services/debate/debateSpeechLength';
 import { isDemoModeEnabled } from '@/services/demo/demoMode';
 import { store } from '@/store';
 import { setGlobalStreaming } from '@/store/streamingSlice';
-import type { AI, AIProvider, Message } from '@/types';
-import { createMockAIConfig } from '@test-utils/fixtures';
+import type { AIProvider } from '@/types';
+import {
+  LIVE_DEBATERS,
+  findPersona,
+  isGeneratedSpeech,
+  isRecord,
+  loadEnvFile,
+  mapWithConcurrency,
+  nativeFetch,
+  requireKey,
+  runLiveDebate,
+  wordCount,
+  type GeneratedDebate,
+  type GeneratedSpeech,
+} from '@test-utils/liveDebateEval';
 
 /**
  * Live debate persona eval: the real DebateOrchestrator and adapters, driven the way the app
- * drives them. Each persona (Default is the control) argues Affirmative on one motion against a
- * Default Negative, on Claude and on Gemini; a debate runs the two openings and the persona's
- * first floor speech, then stops.
+ * drives them (see runLiveDebate). Each persona (Default is the control) argues Affirmative on one
+ * motion against a Default Negative, on Claude and on Gemini; a debate runs the two openings and the
+ * persona's first floor speech, then stops.
  *
  *   npm run test:debate-personas:live    generate: 16 debates, 48 debater calls
  *   npm run test:debate-personas:judge   judge what generate wrote: 64 calls to the OpenAI default model
  *
  * Both steps read keys from .env/.env.local and write to DEBATE_EVAL_OUT
  * (default: <tmpdir>/debate-persona-eval). The judge prompts below are the rubric; bump
- * RUBRIC_VERSION when they change so runs stay comparable.
+ * RUBRIC_VERSION when they change so runs stay comparable. Baseline: docs/evals/debate-personas/.
  */
 
 jest.mock('@/services/demo/demoMode', () => ({
   isDemoModeEnabled: jest.fn<boolean, []>(() => false),
 }));
-
-// See liveModelRouting.test.ts: jest-expo replaces fetch; use host-realm undici.
-const hostRequire = process
-  .getBuiltinModule('node:module')
-  .createRequire(process.cwd() + '/package.json');
-const nativeFetch: typeof fetch = hostRequire('undici').fetch;
 
 const generateEnabled = process.env.LIVE_DEBATE_PERSONAS_TEST === '1';
 const judgeEnabled = process.env.LIVE_DEBATE_PERSONAS_JUDGE === '1';
@@ -50,83 +55,8 @@ const DEBATE_CONCURRENCY = 4;
 const JUDGE_CONCURRENCY = 6;
 const DEBATE_TIMEOUT_MS = 6 * 60_000;
 
-const DEBATERS: Array<{ provider: AIProvider; name: string; keyEnv: string }> = [
-  { provider: 'claude', name: 'Claude', keyEnv: 'CLAUDE_API_KEY' },
-  { provider: 'google', name: 'Gemini', keyEnv: 'GEMINI_API_KEY' },
-];
+const DEBATERS = [LIVE_DEBATERS.claude, LIVE_DEBATERS.google];
 const JUDGE: { provider: AIProvider; keyEnv: string } = { provider: 'openai', keyEnv: 'OPENAI_API_KEY' };
-
-const loadEnvFile = (fileName: string): void => {
-  const envPath = path.resolve(process.cwd(), fileName);
-  if (!fs.existsSync(envPath)) return;
-  for (const line of fs.readFileSync(envPath, 'utf8').split(/\r?\n/)) {
-    const match = line.trim().match(/^(?:export\s+)?([A-Z0-9_]+)\s*=\s*(.*)$/);
-    if (match && !process.env[match[1]]) {
-      process.env[match[1]] = match[2].trim().replace(/^(['"])(.*)\1$/, '$2');
-    }
-  }
-};
-
-const requireKey = (keyEnv: string): string => {
-  const key = process.env[keyEnv]?.trim();
-  if (!key) throw new Error(`Missing ${keyEnv}`);
-  return key;
-};
-
-const mapWithConcurrency = async <T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> => {
-  const results: R[] = [];
-  let next = 0;
-  const worker = async (): Promise<void> => {
-    while (next < items.length) {
-      const index = next++;
-      results[index] = await fn(items[index]);
-    }
-  };
-  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
-  return results;
-};
-
-const isMessage = (value: unknown): value is Message =>
-  typeof value === 'object' && value !== null && 'senderType' in value && 'content' in value;
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-
-const wordCount = (text: string): number => text.split(/\s+/).filter(Boolean).length;
-
-const findPersona = (id: string): PersonalityOption => {
-  const persona = UNIVERSAL_PERSONALITIES.find(entry => entry.id === id);
-  if (!persona) throw new Error(`Unknown persona ${id}`);
-  return persona;
-};
-
-// ── Generate ────────────────────────────────────────────────────────────────
-
-interface GeneratedSpeech {
-  index: number;
-  label: string;
-  phase: string;
-  side: 'aff' | 'neg';
-  speaker: string;
-  personalityId: string;
-  provider: AIProvider;
-  modelUsed?: string;
-  content: string;
-  lifecycle?: string;
-  lifecycleReason?: string;
-}
-
-interface GeneratedDebate {
-  id: string;
-  personalityId: string;
-  provider: AIProvider;
-  model: string;
-  opponentProvider: AIProvider;
-  opponentModel: string;
-  webSearchEnabled: boolean;
-  speeches: GeneratedSpeech[];
-  error?: string;
-}
 
 interface GenerationFile {
   rubricVersion: number;
@@ -134,91 +64,6 @@ interface GenerationFile {
   motion: string;
   debates: GeneratedDebate[];
 }
-
-const runLiveDebate = async (
-  personalityId: string,
-  debater: (typeof DEBATERS)[number],
-  opponent: (typeof DEBATERS)[number],
-  keys: Record<string, string>,
-): Promise<GeneratedDebate> => {
-  // A fresh service per debate: the orchestrator sets each turn's persona on the adapter itself.
-  const service = new AIService(keys);
-  const participants: AI[] = [debater, opponent].map(entry => createMockAIConfig({
-    id: entry.provider,
-    provider: entry.provider,
-    name: entry.name,
-    model: getProviderDefaultModel(entry.provider)?.id ?? '',
-  }));
-  const orchestrator = new DebateOrchestrator(service);
-  const debate: GeneratedDebate = {
-    id: `${personalityId}-on-${debater.provider}`,
-    personalityId,
-    provider: debater.provider,
-    model: participants[0].model,
-    opponentProvider: opponent.provider,
-    opponentModel: participants[1].model,
-    webSearchEnabled: false,
-    speeches: [],
-  };
-
-  const session = await orchestrator.initializeDebate(
-    MOTION,
-    participants,
-    { [participants[0].id]: personalityId, [participants[1].id]: 'default' },
-    { formatId: 'oxford', presetId: 'short' },
-  );
-  debate.webSearchEnabled = Boolean(session.webSearchEnabled);
-
-  await new Promise<void>((resolve) => {
-    const finish = (error?: string): void => {
-      clearTimeout(timer);
-      if (error) debate.error = error;
-      orchestrator.reset();
-      resolve();
-    };
-    const timer = setTimeout(() => finish(`timed out after ${DEBATE_TIMEOUT_MS / 1000}s`), DEBATE_TIMEOUT_MS);
-
-    orchestrator.addEventListener(event => {
-      if (event.type === 'continuation_required' && event.data.continueAction === 'next_message') {
-        // The audience-review pause after the openings; the app shows a Continue button here.
-        orchestrator.continueDebate();
-        return;
-      }
-      const message = event.data.message;
-      if (event.type !== 'message_added' || !isMessage(message) || message.senderType !== 'ai') return;
-      const index = typeof event.data.messageIndex === 'number' ? event.data.messageIndex : debate.speeches.length;
-      const spec = session.preset.messages[index];
-      const side = spec?.speaker ?? 'aff';
-      const lifecycle = message.metadata?.lifecycle;
-      debate.speeches.push({
-        index,
-        label: spec?.label ?? `speech ${index}`,
-        phase: spec?.phase ?? 'unknown',
-        side,
-        speaker: message.sender,
-        personalityId: side === 'aff' ? personalityId : 'default',
-        provider: side === 'aff' ? debater.provider : opponent.provider,
-        modelUsed: message.metadata?.modelUsed,
-        content: message.content,
-        lifecycle: lifecycle?.status,
-        lifecycleReason: lifecycle?.reason,
-      });
-      // A failed turn is recorded, not retried: retries would change the call count we announced.
-      if (lifecycle) finish(`${spec?.label ?? index} ${lifecycle.status}: ${lifecycle.reason ?? ''}`);
-      else if (index >= SPEECHES_PER_DEBATE - 1) finish();
-    });
-
-    // The app records the opening audience vote first; the eval starts at the first speech.
-    orchestrator.executeDebateMessage(0, []).catch((error: unknown) => finish(String(error)));
-  });
-  return debate;
-};
-
-const isGeneratedSpeech = (value: unknown): value is GeneratedSpeech =>
-  isRecord(value) && typeof value.index === 'number' && typeof value.label === 'string'
-  && typeof value.phase === 'string' && (value.side === 'aff' || value.side === 'neg')
-  && typeof value.speaker === 'string' && typeof value.personalityId === 'string'
-  && typeof value.provider === 'string' && typeof value.content === 'string';
 
 const isGenerationFile = (value: unknown): value is GenerationFile =>
   isRecord(value) && typeof value.rubricVersion === 'number' && typeof value.generatedAt === 'string'
@@ -551,8 +396,16 @@ describeGenerate('Live debate persona eval: generate', () => {
     })));
     process.stdout.write(`\nGenerating ${plan.length} debates, ${plan.length * SPEECHES_PER_DEBATE} debater calls, ${DEBATE_CONCURRENCY} at a time.\n`);
 
-    const debates = await mapWithConcurrency(plan, DEBATE_CONCURRENCY, entry =>
-      runLiveDebate(entry.personalityId, entry.debater, entry.opponent, keys));
+    const debates = await mapWithConcurrency(plan, DEBATE_CONCURRENCY, entry => runLiveDebate({
+      id: `${entry.personalityId}-on-${entry.debater.provider}`,
+      motion: MOTION,
+      personalityId: entry.personalityId,
+      debater: entry.debater,
+      opponent: entry.opponent,
+      keys,
+      speeches: SPEECHES_PER_DEBATE,
+      timeoutMs: DEBATE_TIMEOUT_MS,
+    }));
     const generation: GenerationFile = {
       rubricVersion: RUBRIC_VERSION,
       generatedAt: new Date().toISOString(),

@@ -1,0 +1,382 @@
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+
+import { getPresetForFormat } from '@/config/debate/formats';
+import type { AIService } from '@/services/aiAdapter';
+import { isDemoModeEnabled } from '@/services/demo/demoMode';
+import { store } from '@/store';
+import { setGlobalStreaming } from '@/store/streamingSlice';
+import type { AIProvider } from '@/types';
+import {
+  LIVE_DEBATERS,
+  findPersona,
+  loadEnvFile,
+  mapWithConcurrency,
+  nativeFetch,
+  requireKey,
+  runLiveDebate,
+  wordCount,
+  type GeneratedDebate,
+  type LiveDebater,
+} from '@test-utils/liveDebateEval';
+
+/**
+ * Live debate length experiment: how closely does each way of stating speech length hold, at each
+ * brevity level, across providers and personas? Per debate it swaps the turn prompt's
+ * "Length guidance" line and neutralises the system prompt's "compact" line (except for the
+ * `current` control), then measures each speech against its level's word target. Prompt only: the
+ * token safety cap is untouched. Every debate runs both openings and the Affirmative floor speech.
+ *
+ *   npm run test:debate-length:live
+ *
+ * DEBATE_LENGTH_MECHANISMS (default current,words,time,structure), DEBATE_LENGTH_LEVELS
+ * (default concise,verbose) and DEBATE_LENGTH_PERSONAS (default default,brody,kai) set the matrix;
+ * the run prints its call count before the first call. Output: DEBATE_EVAL_OUT
+ * (default <tmpdir>/debate-length-eval).
+ */
+
+jest.mock('@/services/demo/demoMode', () => ({
+  isDemoModeEnabled: jest.fn<boolean, []>(() => false),
+}));
+
+const liveEnabled = process.env.LIVE_DEBATE_LENGTH_TEST === '1';
+const outDir = process.env.DEBATE_EVAL_OUT || path.join(os.tmpdir(), 'debate-length-eval');
+
+const MOTION = 'This house would ban private cars from city centres';
+const SPEECHES_PER_DEBATE = 3;
+const DEBATE_CONCURRENCY = 6;
+const HIT_TOLERANCE = 0.2;
+
+const MECHANISMS = ['current', 'words', 'time', 'structure'] as const;
+const LEVELS = ['concise', 'default', 'verbose'] as const;
+type Mechanism = (typeof MECHANISMS)[number];
+type Level = (typeof LEVELS)[number];
+type LengthPhase = 'opening' | 'rebuttal';
+
+/** Default matches the app's intended ranges (opening 154-220, floor 126-180 words). */
+const TARGET_WORDS: Record<LengthPhase, Record<Level, number>> = {
+  opening: { concise: 100, default: 190, verbose: 350 },
+  rebuttal: { concise: 80, default: 150, verbose: 260 },
+};
+
+// About 20 words a sentence, so each budget lands near the word target above.
+const STRUCTURE_BUDGET: Record<LengthPhase, Record<Level, string>> = {
+  opening: {
+    concise: 'one paragraph of 5 sentences',
+    default: 'two paragraphs of 4 to 5 sentences each',
+    verbose: 'four paragraphs of 4 to 5 sentences each',
+  },
+  rebuttal: {
+    concise: 'one paragraph of 4 sentences',
+    default: 'two paragraphs of 4 sentences each',
+    verbose: 'three paragraphs of 4 to 5 sentences each',
+  },
+};
+
+// Read aloud at about 150 words a minute, rounded to 5 seconds.
+const speakingSeconds = (target: number): number => Math.round((target / 150) * 12) * 5;
+
+const PROSE = 'in natural prose with no headings or lists, then stop.';
+const LENGTH_LINE = /^Length guidance: .*$/m;
+const SYSTEM_COMPACT_LINE = 'Keep each scheduled speech compact and follow the turn-specific length guidance.';
+const SYSTEM_NEUTRAL_LINE = 'Follow the turn-specific length guidance.';
+
+const lengthDirective = (mechanism: Exclude<Mechanism, 'current'>, phase: LengthPhase, level: Level): string => {
+  const target = TARGET_WORDS[phase][level];
+  switch (mechanism) {
+    case 'words':
+      return `Length guidance: about ${target} words (between ${Math.round(target * 0.85)} and ${Math.round(target * 1.15)}), ${PROSE}`;
+    case 'time':
+      return `Length guidance: you have ${speakingSeconds(target)} seconds of speaking time, so write only what fits when read aloud at a natural pace, ${PROSE}`;
+    case 'structure':
+      return `Length guidance: ${STRUCTURE_BUDGET[phase][level]}, ${PROSE}`;
+  }
+};
+
+const PHASE_BY_LABEL = new Map<string, LengthPhase>(
+  getPresetForFormat('oxford', 'short').messages
+    .filter(spec => spec.phase === 'opening' || spec.phase === 'rebuttal')
+    .map(spec => [spec.label, spec.phase === 'opening' ? 'opening' : 'rebuttal']),
+);
+
+interface Condition {
+  mechanism: Mechanism;
+  level: Level;
+}
+
+interface AuditEntry {
+  label: string;
+  lengthLine: string;
+  systemNeutralised: boolean;
+}
+
+/** Wraps every adapter in this debate's service so each request carries the condition's length line. */
+const installCondition = (service: AIService, condition: Condition, audit: AuditEntry[]): void => {
+  for (const adapter of service.getAllAdapters().values()) {
+    const send = adapter.sendMessage.bind(adapter);
+    adapter.sendMessage = async (message, ...rest) => {
+      const label = message.match(/^Turn: (.+)$/m)?.[1] ?? '';
+      const phase = PHASE_BY_LABEL.get(label);
+      let sent = message;
+      const personality = adapter.config.personality;
+      if (condition.mechanism !== 'current' && phase) {
+        sent = message.replace(LENGTH_LINE, lengthDirective(condition.mechanism, phase, condition.level));
+        if (personality) {
+          adapter.config.personality = {
+            ...personality,
+            systemPrompt: personality.systemPrompt.replace(SYSTEM_COMPACT_LINE, SYSTEM_NEUTRAL_LINE),
+          };
+        }
+      }
+      audit.push({
+        label,
+        lengthLine: sent.match(LENGTH_LINE)?.[0] ?? '(missing)',
+        systemNeutralised: Boolean(adapter.config.personality?.systemPrompt.includes(SYSTEM_NEUTRAL_LINE)),
+      });
+      return send(sent, ...rest);
+    };
+  }
+};
+
+const readList = <T extends string>(envName: string, allowed: readonly T[], fallback: T[]): T[] => {
+  const raw: string | undefined = process.env[envName];
+  if (!raw) return fallback;
+  return raw.split(',').map(value => value.trim()).map(value => {
+    const match = allowed.find(entry => entry === value);
+    if (!match) throw new Error(`${envName}: unknown value "${value}" (allowed: ${allowed.join(', ')})`);
+    return match;
+  });
+};
+
+interface LengthRun {
+  condition: Condition;
+  debate: GeneratedDebate;
+  audit: AuditEntry[];
+}
+
+interface MeasuredSpeech {
+  mechanism: Mechanism;
+  level: Level;
+  phase: LengthPhase;
+  provider: AIProvider;
+  personalityId: string;
+  side: 'aff' | 'neg';
+  words: number;
+  target: number;
+  ratio: number;
+  paragraphs: number;
+  sentences: number;
+}
+
+const measure = (runs: LengthRun[]): MeasuredSpeech[] => runs.flatMap(({ condition, debate }) =>
+  debate.speeches.filter(speech => !speech.lifecycle).flatMap(speech => {
+    const phase = PHASE_BY_LABEL.get(speech.label);
+    if (!phase) return [];
+    const words = wordCount(speech.content);
+    const target = TARGET_WORDS[phase][condition.level];
+    return [{
+      mechanism: condition.mechanism,
+      level: condition.level,
+      phase,
+      provider: speech.provider,
+      personalityId: speech.personalityId,
+      side: speech.side,
+      words,
+      target,
+      ratio: words / target,
+      paragraphs: speech.content.split(/\n\s*\n/).filter(part => part.trim()).length,
+      sentences: speech.content.match(/[.!?]+(?=\s|$)/g)?.length ?? 0,
+    }];
+  }));
+
+const median = (values: number[]): number => {
+  if (values.length === 0) return Number.NaN;
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+};
+
+const wordsCell = (speeches: MeasuredSpeech[]): string => {
+  if (speeches.length === 0) return 'n/a';
+  const words = speeches.map(speech => speech.words);
+  return `${median(words)} (${Math.min(...words)}-${Math.max(...words)})`;
+};
+
+const ratioCell = (speeches: MeasuredSpeech[]): string =>
+  speeches.length ? `${median(speeches.map(speech => speech.ratio)).toFixed(2)}` : 'n/a';
+
+const hitCell = (speeches: MeasuredSpeech[]): string => {
+  const hits = speeches.filter(speech => Math.abs(speech.ratio - 1) <= HIT_TOLERANCE).length;
+  return `${hits}/${speeches.length}`;
+};
+
+const conditionKey = ({ mechanism, level }: Condition): string => `${mechanism}/${level}`;
+
+const renderReport = (runs: LengthRun[], conditions: Condition[], debaters: LiveDebater[], personas: string[]): string => {
+  const measured = measure(runs);
+  const providers = debaters.map(debater => debater.provider);
+  const of = (condition: Condition): MeasuredSpeech[] =>
+    measured.filter(speech => speech.mechanism === condition.mechanism && speech.level === condition.level);
+
+  const summaryRows = conditions.map(condition => {
+    const speeches = of(condition);
+    const openings = speeches.filter(speech => speech.phase === 'opening');
+    const floors = speeches.filter(speech => speech.phase === 'rebuttal');
+    return `| ${condition.mechanism} | ${condition.level} | ${TARGET_WORDS.opening[condition.level]} | ${wordsCell(openings)} | ${TARGET_WORDS.rebuttal[condition.level]} | ${wordsCell(floors)} | ${ratioCell(speeches)} | ${hitCell(speeches)} |`;
+  });
+
+  const providerRows = conditions.map(condition => {
+    const cells = providers.map(provider => ratioCell(of(condition).filter(speech => speech.provider === provider)));
+    return `| ${conditionKey(condition)} | ${cells.join(' | ')} |`;
+  });
+
+  const personaRows = conditions.map(condition => {
+    const cells = personas.map(persona => ratioCell(of(condition).filter(speech => speech.side === 'aff' && speech.personalityId === persona)));
+    return `| ${conditionKey(condition)} | ${cells.join(' | ')} | ${ratioCell(of(condition).filter(speech => speech.side === 'neg'))} |`;
+  });
+
+  const mechanismsWithLevels = [...new Set(conditions.map(condition => condition.mechanism))]
+    .filter(mechanism => conditions.filter(condition => condition.mechanism === mechanism).length > 1);
+  const spreadRows = mechanismsWithLevels.map(mechanism => {
+    const levels = conditions.filter(condition => condition.mechanism === mechanism);
+    const lowest = levels[0];
+    const highest = levels[levels.length - 1];
+    const cells = (['opening', 'rebuttal'] as const).map(phase => {
+      const low = median(of(lowest).filter(speech => speech.phase === phase).map(speech => speech.words));
+      const high = median(of(highest).filter(speech => speech.phase === phase).map(speech => speech.words));
+      const intended = TARGET_WORDS[phase][highest.level] / TARGET_WORDS[phase][lowest.level];
+      return `${(high / low).toFixed(1)}x (target ${intended.toFixed(1)}x)`;
+    });
+    return `| ${mechanism} | ${lowest.level} to ${highest.level} | ${cells.join(' | ')} |`;
+  });
+
+  const failures = runs.filter(run => run.debate.error);
+  const callCount = runs.reduce((sum, run) => sum + run.audit.length, 0);
+
+  return [
+    '# Debate length experiment',
+    '',
+    `Run ${new Date().toISOString()}. Motion: "${MOTION}". Oxford 1v1, text mode, web search as in the app. Each debate ran both openings and the Affirmative floor speech; the Negative is always Default. ${runs.length} debates, ${callCount} calls, ${measured.length} speeches measured. "Ratio" is words divided by the level's target (1.00 = on target); "within" counts speeches within ${HIT_TOLERANCE * 100}% of target. \`current\` is today's prompt, measured against the default targets.`,
+    '',
+    '## By condition',
+    '',
+    '| Mechanism | Level | Opening target | Opening words: median (range) | Floor target | Floor words: median (range) | Median ratio | Within |',
+    '| --- | --- | --- | --- | --- | --- | --- | --- |',
+    ...summaryRows,
+    '',
+    '## Does the level move the length?',
+    '',
+    '| Mechanism | Levels | Opening | Floor speech |',
+    '| --- | --- | --- | --- |',
+    ...spreadRows,
+    '',
+    '## Median ratio by provider',
+    '',
+    `| Condition | ${debaters.map(debater => debater.name).join(' | ')} |`,
+    `| --- | ${providers.map(() => '---').join(' | ')} |`,
+    ...providerRows,
+    '',
+    '## Median ratio by persona (Affirmative speeches; Negative is Default)',
+    '',
+    `| Condition | ${personas.map(persona => findPersona(persona).name).join(' | ')} | Negative (Default) |`,
+    `| --- | ${personas.map(() => '---').join(' | ')} | --- |`,
+    ...personaRows,
+    '',
+    failures.length ? `Stopped debates: ${failures.map(run => `${run.debate.id} (${run.debate.error})`).join('; ')}.` : 'All debates completed.',
+    '',
+  ].join('\n');
+};
+
+const renderTranscripts = (runs: LengthRun[]): string => [
+  '# Debate length experiment: transcripts',
+  '',
+  ...runs.flatMap(({ condition, debate, audit }) => [
+    `## ${conditionKey(condition)}: ${findPersona(debate.personalityId).name} on ${debate.model} vs ${debate.opponentModel}`,
+    '',
+    ...(debate.error ? [`**Stopped:** ${debate.error}`, ''] : []),
+    ...debate.speeches.flatMap(speech => [
+      `### ${speech.label}: ${speech.speaker} (${wordCount(speech.content)} words)`,
+      '',
+      `> ${audit.filter(entry => entry.label === speech.label).pop()?.lengthLine ?? '(no request recorded)'}`,
+      '',
+      speech.content,
+      '',
+    ]),
+  ]),
+].join('\n');
+
+const describeLive = liveEnabled ? describe : describe.skip;
+
+describeLive('Live debate length experiment', () => {
+  jest.setTimeout(60 * 60_000);
+
+  beforeAll(() => {
+    loadEnvFile('.env.local');
+    loadEnvFile('.env');
+    jest.mocked(isDemoModeEnabled).mockReturnValue(false);
+    global.fetch = nativeFetch;
+    store.dispatch(setGlobalStreaming(false));
+  });
+
+  it('measures speech length for each condition, provider and persona', async () => {
+    const mechanisms = readList('DEBATE_LENGTH_MECHANISMS', MECHANISMS, [...MECHANISMS]);
+    const levels = readList('DEBATE_LENGTH_LEVELS', LEVELS, ['concise', 'verbose']);
+    const personas = readList('DEBATE_LENGTH_PERSONAS', ['default', 'bestie', 'brody', 'devlin', 'george', 'kai', 'prof_sage', 'scout'], ['default', 'brody', 'kai']);
+    // `current` has no levels; it is today's prompt, so it is measured against the default targets.
+    const conditions = mechanisms.flatMap((mechanism): Condition[] => (mechanism === 'current'
+      ? [{ mechanism, level: 'default' }]
+      : [...levels].sort((a, b) => LEVELS.indexOf(a) - LEVELS.indexOf(b)).map(level => ({ mechanism, level }))));
+
+    // Every provider debates once on each side.
+    const pairings: Array<[LiveDebater, LiveDebater]> = [
+      [LIVE_DEBATERS.claude, LIVE_DEBATERS.google],
+      [LIVE_DEBATERS.google, LIVE_DEBATERS.openai],
+      [LIVE_DEBATERS.openai, LIVE_DEBATERS.claude],
+    ];
+    const keys = Object.fromEntries(Object.values(LIVE_DEBATERS).map(({ provider, keyEnv }) => [provider, requireKey(keyEnv)]));
+    const plan = conditions.flatMap(condition => personas.flatMap(personalityId =>
+      pairings.map(([debater, opponent]) => ({ condition, personalityId, debater, opponent }))));
+    process.stdout.write(`\nLength experiment: ${conditions.length} conditions x ${personas.length} personas x ${pairings.length} pairings = ${plan.length} debates, ${plan.length * SPEECHES_PER_DEBATE} calls, ${DEBATE_CONCURRENCY} at a time.\n`);
+
+    const runs = await mapWithConcurrency(plan, DEBATE_CONCURRENCY, async ({ condition, personalityId, debater, opponent }): Promise<LengthRun> => {
+      const audit: AuditEntry[] = [];
+      const debate = await runLiveDebate({
+        id: `${conditionKey(condition)}/${personalityId}-on-${debater.provider}`,
+        motion: MOTION,
+        personalityId,
+        debater,
+        opponent,
+        keys,
+        speeches: SPEECHES_PER_DEBATE,
+        prepareService: service => installCondition(service, condition, audit),
+      });
+      return { condition, debate, audit };
+    });
+
+    fs.mkdirSync(outDir, { recursive: true });
+    fs.writeFileSync(path.join(outDir, 'length.json'), JSON.stringify({
+      runAt: new Date().toISOString(),
+      motion: MOTION,
+      targets: TARGET_WORDS,
+      directives: Object.fromEntries((['words', 'time', 'structure'] as const).map(mechanism => [mechanism,
+        Object.fromEntries((['opening', 'rebuttal'] as const).map(phase => [phase,
+          Object.fromEntries(LEVELS.map(level => [level, lengthDirective(mechanism, phase, level)]))]))])),
+      runs,
+    }, null, 2));
+    fs.writeFileSync(path.join(outDir, 'length-report.md'), renderReport(runs, conditions, pairings.map(([debater]) => debater), personas));
+    fs.writeFileSync(path.join(outDir, 'length-transcripts.md'), renderTranscripts(runs));
+    process.stdout.write(`Length experiment written to ${outDir}\n`);
+
+    // The experiment is only valid if every request carried its condition's length line.
+    for (const { condition, audit } of runs) {
+      for (const entry of audit) {
+        const phase = PHASE_BY_LABEL.get(entry.label);
+        if (condition.mechanism === 'current' || !phase) continue;
+        expect(entry.lengthLine).toBe(lengthDirective(condition.mechanism, phase, condition.level));
+        expect(entry.systemNeutralised).toBe(true);
+      }
+    }
+    expect(runs.filter(run => run.debate.error).map(run => `${run.debate.id}: ${run.debate.error}`)).toEqual([]);
+  });
+});
