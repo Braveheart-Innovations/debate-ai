@@ -45,6 +45,8 @@
     "test:model-routing:live": "LIVE_MODEL_TEST=1 jest --runInBand --runTestsByPath __tests__/integration/liveModelRouting.test.ts",
     "test:group-chat:live": "LIVE_GROUP_CHAT_TEST=1 jest --runInBand --runTestsByPath __tests__/integration/liveGroupChat.test.ts",
     "test:debate-prompts:capture": "DEBATE_PROMPT_CAPTURE=1 jest --runInBand --runTestsByPath __tests__/integration/debatePromptCapture.test.ts",
+    "test:debate-personas:live": "LIVE_DEBATE_PERSONAS_TEST=1 jest --runInBand --runTestsByPath __tests__/integration/liveDebatePersonas.test.ts",
+    "test:debate-personas:judge": "LIVE_DEBATE_PERSONAS_JUDGE=1 jest --runInBand --runTestsByPath __tests__/integration/liveDebatePersonas.test.ts",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage --maxWorkers=50%",
     "eas-build-post-install": "bash scripts/eas-prebuild.sh",
