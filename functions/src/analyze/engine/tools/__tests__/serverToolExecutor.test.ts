@@ -130,4 +130,30 @@ describe('fetches saved into the sandbox server-side', () => {
     expect(mountFile.mock.calls.map((call) => call[2])).toEqual(['/data/fetch_call_2.txt', '/data/fetch_call_2.provenance.json']);
     expect(result.content).toMatch(/saved to \/data\/fetch_call_2\.txt/);
   });
+
+  // Michael's v3 test (2026-10-13): a Census .xlsx was decoded as text and saved as a corrupt .txt.
+  it('a binary file the server saved gets a reader for its type, and its provenance sits beside it', async () => {
+    const { executor, mountFile } = setup({
+      success: true,
+      content: '(a binary .xlsx file: open it in Python, not as text)',
+      metadata: { sandboxPath: '/data/fetch_call_3.xlsx', bytes: 52_431, responseHash: 'def456' },
+    });
+
+    const result = await executor.executeServerTool('call-3', 'fetch_url', { url: 'https://www2.census.gov/x/state_to_state_migrations_table_2024.xlsx' });
+
+    expect(mountFile.mock.calls.map((call) => call[2])).toEqual(['/data/fetch_call_3.provenance.json']);
+    expect(result.content).toContain('pd.read_excel("/data/fetch_call_3.xlsx", sheet_name=None)');
+  });
+
+  it('never writes the provenance over a data file whose extension has a digit', async () => {
+    const { executor, mountFile } = setup({
+      success: true,
+      content: '(a binary .sas7bdat file: open it in Python, not as text)',
+      metadata: { sandboxPath: '/data/fetch_call_4.sas7bdat', bytes: 9_000, responseHash: 'aa11' },
+    });
+
+    await executor.executeServerTool('call-4', 'fetch_api', { url: 'https://example.org/files/survey.sas7bdat' });
+
+    expect(mountFile.mock.calls.map((call) => call[2])).toEqual(['/data/fetch_call_4.provenance.json']);
+  });
 });

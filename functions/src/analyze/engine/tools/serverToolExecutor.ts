@@ -50,11 +50,18 @@ function formatBytes(bytes: number): string {
 function readHint(path: string): string {
   if (path.endsWith('.json')) return `Use pd.read_json("${path}") or open("${path}") in Python to access the full data.`;
   if (path.endsWith('.csv')) return `Use pd.read_csv("${path}") in Python to access the full data.`;
+  // Binary files, saved byte for byte.
+  if (/\.(xlsx|xlsm|xlsb|xls|ods)$/.test(path)) return `Use pd.read_excel("${path}", sheet_name=None) in Python to see every sheet.`;
+  if (path.endsWith('.parquet')) return `Use pd.read_parquet("${path}") in Python to access the full data.`;
+  if (path.endsWith('.pdf')) return `Use pdfplumber.open("${path}") in Python (page.extract_text(), page.extract_table()).`;
+  if (path.endsWith('.zip')) return `Use zipfile.ZipFile("${path}").namelist() in Python to list its files.`;
+  if (/\.(gz|docx|pptx|png|jpg|gif|webp|bin|sav|dta|sas7bdat|feather)$/.test(path)) return `It's a binary file: open("${path}", "rb") or the matching Python reader, never as text.`;
   return `Use open("${path}") in Python to access the full data.`;
 }
 
 function provenancePathFor(path: string): string {
-  return path.replace(/\.[a-z]+$/, '.provenance.json');
+  // Digits too (.sas7bdat, .h5): an unmatched extension would write the provenance over the data.
+  return path.replace(/\.[a-z0-9]+$/i, '.provenance.json');
 }
 
 export interface ServerToolExecutorDeps {

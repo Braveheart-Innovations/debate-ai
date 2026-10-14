@@ -6,6 +6,9 @@ import { getDecryptedApiKey, encryptionKey } from './apiKeys';
 import { executeWebSearch } from './web_search';
 import { fetchApiArgsError, parseHeadersArg, parseQueryParamsArg } from './fetchArgs';
 import {
+  binaryFileExtension,
+  isBinaryResponse,
+  isTextContentType,
   parseSandboxFetchTarget,
   runSandboxFetch,
   type SandboxFetchTarget,
@@ -77,6 +80,10 @@ export interface ToolResult {
     cached?: boolean;
     /** Response content type (fetch_api). */
     contentType?: string;
+    /** fetch_api fetched a binary file: `content` is base64, saved byte for byte with this extension. */
+    binaryExtension?: string;
+    /** fetch_url reached a file, not a page: its content type, so the dispatch fetches it as a file. */
+    fileContentType?: string;
     /** fetch_api saved into the sandbox: where, how big, its SHA-256; `content` is then a preview. */
     sandboxPath?: string;
     bytes?: number;
@@ -521,28 +528,28 @@ function clampTimeoutMs(timeout: unknown): number {
   return Math.min(Math.max(timeout, 1000), 55000);
 }
 
-function decodeChunks(chunks: Uint8Array[], totalBytes: number): string {
+function mergeChunks(chunks: Uint8Array[], totalBytes: number): Uint8Array {
   const merged = new Uint8Array(totalBytes);
   let offset = 0;
   for (const chunk of chunks) {
     merged.set(chunk, offset);
     offset += chunk.byteLength;
   }
-  return new TextDecoder().decode(merged);
+  return merged;
 }
 
-async function readResponseTextWithLimit(
+/** The body as bytes: a text decode here would corrupt a binary file (an .xlsx, a PDF). */
+async function readResponseBytesWithLimit(
   response: Response,
   maxBytes: number,
-): Promise<{ text: string; bytesRead: number; exceeded: boolean }> {
+): Promise<{ bytes: Uint8Array; bytesRead: number; exceeded: boolean }> {
   const reader = response.body?.getReader();
   if (!reader) {
-    const fallbackText = await response.text();
-    const fallbackBytes = new TextEncoder().encode(fallbackText).length;
+    const fallbackBytes = new Uint8Array(await response.arrayBuffer());
     return {
-      text: fallbackText,
-      bytesRead: fallbackBytes,
-      exceeded: fallbackBytes > maxBytes,
+      bytes: fallbackBytes,
+      bytesRead: fallbackBytes.byteLength,
+      exceeded: fallbackBytes.byteLength > maxBytes,
     };
   }
 
@@ -558,7 +565,7 @@ async function readResponseTextWithLimit(
     if (remaining <= 0) {
       await reader.cancel('Response exceeded configured byte limit');
       return {
-        text: decodeChunks(chunks, totalBytes),
+        bytes: mergeChunks(chunks, totalBytes),
         bytesRead: totalBytes + value.byteLength,
         exceeded: true,
       };
@@ -569,7 +576,7 @@ async function readResponseTextWithLimit(
       totalBytes += remaining;
       await reader.cancel('Response exceeded configured byte limit');
       return {
-        text: decodeChunks(chunks, totalBytes),
+        bytes: mergeChunks(chunks, totalBytes),
         bytesRead: totalBytes + (value.byteLength - remaining),
         exceeded: true,
       };
@@ -580,7 +587,7 @@ async function readResponseTextWithLimit(
   }
 
   return {
-    text: decodeChunks(chunks, totalBytes),
+    bytes: mergeChunks(chunks, totalBytes),
     bytesRead: totalBytes,
     exceeded: false,
   };
@@ -606,9 +613,12 @@ function tryParseUrl(value: string): URL | null {
   }
 }
 
+/** URL paths that name a file to download, not a page: fetched into /data byte for byte. */
+const FILE_URL_PATH = /\.(xlsx|xlsm|xlsb|xls|ods|zip|gz|parquet|pdf|docx|pptx|sav|dta|sas7bdat|feather|png|jpe?g|gif|webp)$/i;
+
 function shouldRouteFetchUrlToApi(fetchUrl: string): boolean {
   const parsedUrl = tryParseUrl(fetchUrl);
-  return parsedUrl ? isLikelyApiUrl(parsedUrl) : false;
+  return parsedUrl ? isLikelyApiUrl(parsedUrl) || FILE_URL_PATH.test(parsedUrl.pathname) : false;
 }
 
 function convertFetchUrlArgsToFetchApiArgs(args: FetchUrlArgs): FetchApiArgs {
@@ -906,6 +916,18 @@ async function handleFetchUrl(args: FetchUrlArgs): Promise<ToolResult> {
     }
 
     const contentType = response.headers.get('content-type') || '';
+    // A link to a file (a spreadsheet, PDF, archive), not a page: page-text extraction
+    // would turn it into noise. The dispatch fetches it into /data as a file instead.
+    const fileContentType = contentType.toLowerCase().split(';')[0].trim();
+    if (fileContentType && !isTextContentType(fileContentType)) {
+      await response.body?.cancel().catch(() => undefined);
+      return {
+        toolCallId: '',
+        success: false,
+        error: `This URL is a file (${fileContentType}), not a page. Fetch it with fetch_api, which saves files into /data byte for byte.`,
+        metadata: { executionTime: Date.now() - startTime, fileContentType },
+      };
+    }
     const html = await response.text();
 
     // Simple content extraction (server-side, no JSDOM dependency)
@@ -2023,7 +2045,7 @@ async function handleFetchApi(
       };
     }
 
-    const { text: rawBody, bytesRead, exceeded } = await readResponseTextWithLimit(response, maxBytes);
+    const { bytes: rawBytes, bytesRead, exceeded } = await readResponseBytesWithLimit(response, maxBytes);
     if (exceeded) {
       return {
         toolCallId: '',
@@ -2037,9 +2059,26 @@ async function handleFetchApi(
       };
     }
 
-    // Parse response based on format
-    let content = rawBody;
     const contentType = (response.headers.get('content-type') || '').toLowerCase();
+    // A file (a spreadsheet, archive, PDF, image) is saved byte for byte, whatever
+    // response_format asked for: there's no text to parse.
+    if (isBinaryResponse(contentType, rawBytes)) {
+      return {
+        toolCallId: '',
+        success: true,
+        content: Buffer.from(rawBytes).toString('base64'),
+        metadata: {
+          executionTime: Date.now() - startTime,
+          originalLength: contentLengthHeader || bytesRead,
+          contentType: contentType || undefined,
+          binaryExtension: binaryFileExtension(contentType, response.headers.get('content-disposition'), url),
+        },
+      };
+    }
+
+    // Parse response based on format
+    const rawBody = new TextDecoder().decode(rawBytes);
+    let content = rawBody;
     const shouldTreatAsJson = response_format === 'json' || contentType.includes('application/json') || contentType.includes('+json');
 
     if (shouldTreatAsJson) {
@@ -2174,6 +2213,11 @@ export async function dispatchServerTool(
             : noSandboxTarget(toolCallId);
         } else {
           result = await handleFetchUrl(fetchUrlArgs);
+          // A page URL that served a file: fetch it again, as a file, into the sandbox.
+          if (!result.success && result.metadata?.fileContentType && sandboxTarget && keyValue) {
+            const fileArgs = convertFetchUrlArgsToFetchApiArgs(fetchUrlArgs);
+            result = await runSandboxFetch(uid, sandboxTarget, getSandboxService(), (maxBytes) => handleFetchApi(fileArgs, uid, keyValue, maxBytes));
+          }
         }
 
         break;
