@@ -104,9 +104,12 @@ export const ProviderOptionList: React.FC<ProviderOptionListProps> = ({
               </View>
             ) : showAddKey ? (
               <View style={[styles.addKeyChip, { borderColor: theme.colors.primary[400] }]}>
+                {/* One line: Android's sub-pixel text measurement can otherwise
+                    wrap "key" onto a second line the chip clips. */}
                 <Typography
                   variant="caption"
                   weight="medium"
+                  numberOfLines={1}
                   style={{ color: theme.colors.primary[500] }}
                 >
                   Add key
