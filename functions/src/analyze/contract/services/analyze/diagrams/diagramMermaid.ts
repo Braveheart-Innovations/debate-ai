@@ -128,8 +128,9 @@ export function diagramFileToMermaid(diagram: DiagramFileV1): string {
 /** A diagram block's source as text: what a fallback shows when the figure can't be drawn. */
 export function diagramSpecText(spec: DiagramBlockSpec): string {
   if (spec.type === 'mermaid') return spec.code;
-  const review = reviewDiagram(spec.model);
-  return review.diagram ? diagramFileToMermaid(review.diagram) : JSON.stringify(spec.model, null, 2);
+  const file = spec.type === 'data_model' ? spec.model : spec.flow;
+  const review = reviewDiagram(file);
+  return review.diagram ? diagramFileToMermaid(review.diagram) : JSON.stringify(file, null, 2);
 }
 
 function artifactText(data: string): string {
@@ -175,8 +176,8 @@ export function inlineDiagramRefs<T>(spec: T, read: DiagramFileReader): T {
       if (!diagram) return block;
       pageChanged = true;
       const rest = Object.fromEntries(Object.entries(block).filter(([key]) => key !== 'artifactId'));
-      // A data model draws like the Diagram view; a process flow reads well as a flowchart.
-      const spec = diagram.kind === 'data_model' ? { type: 'data_model', model: diagram } : { type: 'mermaid', code: processFlowToMermaid(diagram) };
+      // Either kind draws like the Diagram view (diagramRender).
+      const spec = diagram.kind === 'data_model' ? { type: 'data_model', model: diagram } : { type: 'process_flow', flow: diagram };
       return { ...rest, kind: 'diagram', spec, caption: typeof block.caption === 'string' && block.caption ? block.caption : diagram.title };
     });
     if (!pageChanged) return page;
