@@ -9,11 +9,7 @@
 import type { ToolResult } from '../../contract/lib/ai/tools/types';
 import { isModelResultsFilename, modelResultsProblem } from '../../contract/services/analyze/models/modelResults';
 import { isRecipeFilename, parseRecipeParams } from '../../recipes/recipeParams';
-import { withNotes } from './toolResultNotes';
-
-function outputPath(filename: string): string {
-  return `/output/${filename.trim().replace(/^\/?output\//, '').replace(/^\/+/, '')}`;
-}
+import { outputPath, withNotes } from './toolResultNotes';
 
 export function checkRecipes(result: ToolResult): ToolResult {
   const notes: string[] = [];

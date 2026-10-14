@@ -24,7 +24,7 @@ import { deriveArtifactLineage, withArtifactPreviewMetadata } from '../capture/a
 import { injectProvenanceSourcesSection, isTabularJsonArray } from '../capture/helpers';
 import { MIME_MAP } from '../capture/streamCompletedHandler';
 import { createSandboxBridge, type ExecutionResult } from '../engine/sandboxBridge';
-import { artifactRef, loadArtifactsById, prepareArtifactRecord, removeUndefined } from '../engine/sessionStore';
+import { artifactRef, latestByName, loadArtifactsNamed, prepareArtifactRecord, removeUndefined } from '../engine/sessionStore';
 import { OPERATOR_ACTIVE, type AnalyzeRunDoc } from '../engine/runStore';
 import { SessionBusyError, findLatestOperatorRun } from '../engine/turns';
 import { SessionFilesSync } from '../engine/uploads';
@@ -68,13 +68,6 @@ export function recipeRunCode(recipeName: string, values: Record<string, RecipeP
 
 function extensionOf(filename: string): string {
   return filename.split('.').pop()?.toLowerCase() || '';
-}
-
-/** The latest version of the artifact with this name (highest version, then newest). */
-function latestByName(existing: Artifact[], name: string): Artifact | undefined {
-  return existing
-    .filter((artifact) => artifact.name === name)
-    .sort((a, b) => ((b.metadata?.versionNumber ?? 1) - (a.metadata?.versionNumber ?? 1)) || (b.createdAt - a.createdAt))[0];
 }
 
 /** Row and column counts for a tabular file, as capture records them. */
@@ -171,21 +164,6 @@ export function buildRecipeRunArtifacts(input: {
     }) as Artifact));
   });
   return created;
-}
-
-/** The session's artifacts with these names (every version), data hydrated: a run's priors, not the whole session. */
-async function loadArtifactsNamed(uid: string, sessionId: string, names: string[]): Promise<Artifact[]> {
-  const unique = [...new Set(names)];
-  const ids: string[] = [];
-  for (let i = 0; i < unique.length; i += 30) {
-    const snapshot = await getFirestore()
-      .collection(`users/${uid}/conversations/${sessionId}/artifacts`)
-      .where('name', 'in', unique.slice(i, i + 30))
-      .select()
-      .get();
-    ids.push(...snapshot.docs.map((doc) => doc.id));
-  }
-  return loadArtifactsById(uid, sessionId, ids);
 }
 
 function outputFiles(result: ExecutionResult): RecipeOutputFile[] {

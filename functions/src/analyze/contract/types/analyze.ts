@@ -48,11 +48,12 @@ export interface AnalyzePortableOutputConfig {
 
 /**
  * What the user wants back from a turn: a report to read, a model to try
- * inputs on, or `auto` (the agent picks from the request: a model when the
- * answer rests on assumptions the user may want to change, a report otherwise,
- * both when both help). The report type (rich.documentPreset) applies to reports.
+ * inputs on, a diagram to edit (a data model), or `auto` (the agent picks from
+ * the request: a model when the answer rests on assumptions the user may want
+ * to change, a diagram for a data model, a report otherwise, more than one when
+ * that helps). The report type (rich.documentPreset) applies to reports.
  */
-export const ANALYZE_DELIVERABLES = ['auto', 'report', 'model'] as const;
+export const ANALYZE_DELIVERABLES = ['auto', 'report', 'model', 'diagram'] as const;
 export type AnalyzeDeliverable = typeof ANALYZE_DELIVERABLES[number];
 export const DEFAULT_ANALYZE_DELIVERABLE: AnalyzeDeliverable = 'auto';
 

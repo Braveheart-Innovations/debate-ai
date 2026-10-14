@@ -40,6 +40,7 @@ import { injectTeamPanelNote, type TeamPanelRecord } from './teamPanelNote';
 import { decodeBase64ToUtf8, parseJsonLenient } from '../contract/lib/encoding/utf8Base64';
 import { isRecipeOutputFilename, recipeMetadata, recipeOutputDirs, RECIPE_MIME_TYPE } from '../recipes/recipeArtifacts';
 import { isRecipeFilename } from '../recipes/recipeParams';
+import { diagramMetadata, isDiagramFilename, reviewDiagramText } from '../contract/services/analyze/diagrams/diagramFile';
 import { chartFileReaderFromArtifacts, inlineChartDataFiles, sessionDataPath } from '../contract/services/analyze/charts/inlineChartData';
 import { normalizeRequestSalesforceOrgEvidenceArgs } from '../engine/tools/executeRequestSalesforceOrgEvidenceTool';
 import type { AnalyzeAction } from './types';
@@ -424,6 +425,11 @@ function isSunkDeclaredSpecArtifact(artifact: Artifact): boolean {
   }
 }
 
+/** A diagram file the review refused when it was captured: kept as plain data, flagged. */
+function isRefusedDiagramArtifact(artifact: Artifact): boolean {
+  return artifact.type === 'data' && isDiagramFilename(artifact.name) && artifact.metadata?.validationReport?.valid === false;
+}
+
 /**
  * Latest spec artifact in the session whose report TITLE matches — the lineage
  * a renamed deliverable file should version into. Title read is a plain JSON
@@ -705,8 +711,8 @@ function extractDataArtifacts(
 ): Artifact[] {
   const created: Artifact[] = [];
   const seenFilenames = new Set<string>();
-  // A recipe and the files it writes version on every run, even in a report
-  // round (which otherwise replaces same-name intermediates).
+  // A recipe, the files it writes and a diagram version on every save, even in
+  // a report round (which otherwise replaces same-name intermediates).
   const recipeDirs = recipeOutputDirs(ctx.existingArtifacts, datasToProcess.map((data) => data.filename));
 
   datasToProcess.forEach((data, dataIndex) => {
@@ -716,7 +722,8 @@ function extractDataArtifacts(
     const ext = data.filename.split('.').pop()?.toLowerCase() || '';
     const mimeType = MIME_MAP[ext] || 'application/octet-stream';
     const isRecipe = isRecipeFilename(data.filename);
-    const versionsWithRecipe = isRecipe || isRecipeOutputFilename(data.filename, recipeDirs);
+    const isDiagram = isDiagramFilename(data.filename);
+    const alwaysVersions = isRecipe || isDiagram || isRecipeOutputFilename(data.filename, recipeDirs);
     const salesforceRole = getSalesforceArtifactRole(data.filename);
     const existingByName = ctx.existingArtifacts.find(a => a.name === data.filename);
     if (salesforceRole && ctx.suppressSalesforcePacketArtifacts) {
@@ -757,6 +764,8 @@ function extractDataArtifacts(
     const analysisSpec = mimeType === 'application/json'
       ? tryParseAnalysisArtifactSpecText(decodedTextData)
       : null;
+    // A diagram file is a diagram only when its review keeps it (the shared checker).
+    const diagramReview = isDiagram ? reviewDiagramText(decodedTextData) : null;
 
     // Regenerating a same-filename file becomes a new version (keep the prior and
     // tag the new one with lineage). In a Rich run a same-name prior is usually a
@@ -789,16 +798,21 @@ function extractDataArtifacts(
       if (existingByName && isSunkDeclaredSpecArtifact(existingByName)) {
         if (!lineage) lineage = deriveArtifactLineage(existingByName, ctx.existingArtifacts);
         deps.dispatch({ type: 'REMOVE_ARTIFACT', payload: existingByName.id });
-      } else if (existingByName && ctx.suppressNonDeliverableData && !versionsWithRecipe) {
+      } else if (existingByName && ctx.suppressNonDeliverableData && !alwaysVersions) {
         deps.dispatch({ type: 'REMOVE_ARTIFACT', payload: existingByName.id });
       } else if (existingByName && !lineage) {
         lineage = deriveArtifactLineage(existingByName, ctx.existingArtifacts);
       }
     } else if (existingByName) {
-      if (ctx.suppressNonDeliverableData && !versionsWithRecipe) {
+      if (ctx.suppressNonDeliverableData && !alwaysVersions) {
         deps.dispatch({ type: 'REMOVE_ARTIFACT', payload: existingByName.id });
       } else {
         lineage = deriveArtifactLineage(existingByName, ctx.existingArtifacts);
+        // A readable re-save supersedes a diagram file the review refused: it
+        // was never a version worth keeping (the sunk-spec rule above).
+        if (diagramReview?.diagram && isRefusedDiagramArtifact(existingByName)) {
+          deps.dispatch({ type: 'REMOVE_ARTIFACT', payload: existingByName.id });
+        }
       }
     }
 
@@ -826,10 +840,22 @@ function extractDataArtifacts(
       artifactType = 'recipe';
       artifactMeta = { ...artifactMeta, recipe: recipeMetadata(data.filename, decodedTextData) };
     }
+    if (diagramReview?.diagram) {
+      artifactType = 'diagram';
+      artifactMeta = { ...artifactMeta, diagram: diagramMetadata(diagramReview.diagram, diagramReview.warnings) };
+    } else if (diagramReview) {
+      artifactMeta = {
+        ...artifactMeta,
+        validationReport: {
+          valid: false,
+          errors: ['This diagram file failed its review, so it was kept as plain data and will NOT appear in Outputs. Problems:', ...diagramReview.problems],
+        },
+      };
+    }
 
     // JSON tabular detection (a report spec is never a table, and it may hold the
     // NaN that only the spec parser reads: R1)
-    if (artifactType === 'data' && mimeType === 'application/json' && ext === 'json' && !analysisSpec) {
+    if (artifactType === 'data' && mimeType === 'application/json' && ext === 'json' && !analysisSpec && !diagramReview) {
       try {
         const decoded = decodeBase64ToUtf8(data.base64);
         const parsed = JSON.parse(decoded);
@@ -918,9 +944,9 @@ function extractDataArtifacts(
     }
 
     // The structured report (analysis_artifact_spec) is the deliverable, so it stays
-    // visible (output) and is never demoted to report material. So is a recipe:
-    // it's the Model the user opens.
-    const isDeliverableSpec = artifactType === 'analysis_artifact_spec' || artifactType === 'recipe';
+    // visible (output) and is never demoted to report material. So are a recipe
+    // (the Model the user opens) and a diagram (the Diagram view).
+    const isDeliverableSpec = artifactType === 'analysis_artifact_spec' || artifactType === 'recipe' || artifactType === 'diagram';
     const reportMaterialRole = ctx.suppressNonDeliverableData && !isDeliverableSpec
       ? getReportMaterialRole(artifactType, mimeType, data.filename)
       : null;
@@ -946,6 +972,7 @@ function extractDataArtifacts(
     let artifactData = artifactType === 'html'
       || artifactType === 'analysis_artifact_spec'
       || artifactType === 'recipe'
+      || artifactType === 'diagram'
       || isSalesforceArtifactType(artifactType)
       ? decodedTextData
       : data.base64;

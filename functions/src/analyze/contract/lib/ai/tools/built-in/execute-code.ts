@@ -51,6 +51,13 @@ INSTALLED PACKAGES (fixed set - just import them; never pip install):
 - lightgbm, xgboost, lifelines (survival), statsforecast (forecasting), great_tables (table images: GT(df).gtsave('/output/t.png'))
 - spacy (spacy.load('en_core_web_sm')), nltk (punkt, stopwords, vader_lexicon bundled), textblob, opencv (import cv2)
 - geopandas (+ mapclassify for classed maps: gdf.plot(column=..., scheme='NaturalBreaks')), shapely, pyarrow, lxml, beautifulsoup4, wordcloud, xarray, astropy, biopython
+- Diagram pictures, for what a report's Mermaid \`diagram\` block can't do (a graph built from data, one too big or dense for Mermaid, icons, circuits); save a PNG to /output:
+  graphviz (g = graphviz.Digraph(); ...; g.render('/output/x', format='png') - the house font and print resolution are already set;
+    a line break in a label is \\n in the DOT text, which is 'North\\\\nCarolina' in a Python string; never graphviz.escape() a label, which prints a literal \\n),
+  diagrams (architecture with provider icons: with Diagram('Title', filename='/output/x', show=False, outformat='png'): ...),
+  schemdraw (circuits, small flowcharts: d.save('/output/x.png', dpi=150)),
+  the d2 command (d2 --layout=elk in.d2 /output/x.svg, then rsvg-convert --zoom 2 --background-color white -o /output/x.png /output/x.svg; d2 can't write PNG here)
+- simpy (discrete-event simulation: queues, staffing, process flows), pulp (linear/integer programs: prob.solve(pulp.PULP_CBC_CMD(msg=0))), ortools (CP-SAT scheduling, vehicle routing), pint (units)
 
 MAP BOUNDARIES (for geopandas static maps; geopandas.datasets is gone):
 - /opt/geo/world/ne_50m_admin_0_countries.shp - Natural Earth 1:50m countries; join on ISO_A3_EH (ISO_A3 is -99 for France and Norway), ISO_A2_EH, NAME

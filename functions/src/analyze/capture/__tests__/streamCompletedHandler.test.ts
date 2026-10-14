@@ -1269,6 +1269,87 @@ describe('handleStreamCompleted general intent-gated surfacing (non-Salesforce)'
     });
   });
 
+  describe('diagrams', () => {
+    const diagram = (title: string, extra: Record<string, unknown> = {}) => JSON.stringify({
+      version: 1, kind: 'data_model', platform: 'generic', title, summary: 'Families and children.',
+      entities: [
+        { id: 'family', name: 'Family', fields: [{ name: 'name', type: 'text', required: true }] },
+        { id: 'child', name: 'Child', fields: [{ name: 'family_id', type: 'uuid', required: true }] },
+      ],
+      relationships: [{
+        id: 'child.family_id', kind: 'foreign_key', from: 'child', field: 'family_id', to: 'family',
+        cardinality: { from: 'zero_or_more', to: 'exactly_one' },
+      }],
+      ...extra,
+    });
+    const diagramResult = (text: string) => ({
+      toolName: 'write_output_file',
+      success: true,
+      content: 'Wrote the diagram.',
+      dataOutputs: [{ filename: 'families.diagram.json', base64: btoa(text), size: text.length }],
+    });
+    const call = (id: string) => ({ id, type: 'function' as const, function: { name: 'write_output_file', arguments: '{}' } });
+
+    it('captures a readable diagram file as a visible diagram, even in a report round', () => {
+      const text = diagram('Families');
+      const { artifacts } = runHandler({
+        outputSelection: richHtml,
+        toolCalls: [call('c1'), call('c2')],
+        toolExecutionResults: [diagramResult(text), specResult()],
+      });
+      const captured = artifacts.find((artifact) => artifact.name === 'families.diagram.json');
+      expect(captured).toMatchObject({ type: 'diagram', mimeType: 'application/json', data: text });
+      expect(captured?.metadata?.diagram).toEqual({
+        kind: 'data_model', title: 'Families', summary: 'Families and children.', entityCount: 2, relationshipCount: 1,
+      });
+      expect(visibleArtifacts(artifacts).map((artifact) => artifact.type).sort()).toEqual(['analysis_artifact_spec', 'diagram']);
+    });
+
+    it('records the review\'s warnings on the diagram', () => {
+      const text = diagram('Families', { entities: [{ id: 'family', name: 'Family', source: 'notes', fields: [] }], relationships: [] });
+      const { artifacts } = runHandler({ outputSelection: richHtml, toolCalls: [call('c1')], toolExecutionResults: [diagramResult(text)] });
+      expect(artifacts[0].type).toBe('diagram');
+      expect(artifacts[0].metadata?.diagram?.warnings).toEqual([
+        'entity "family": source "notes" is neither an input path (/uploads/…) nor platform, user or assumed',
+      ]);
+    });
+
+    it('keeps a refused diagram file as flagged data, and a readable re-save replaces it', () => {
+      const broken = diagram('Families', { platform: 'oracle' });
+      const first = runHandler({ outputSelection: richHtml, toolCalls: [call('c1')], toolExecutionResults: [diagramResult(broken)], messageId: 'ai-1' });
+      const refused = first.artifacts.find((artifact) => artifact.name === 'families.diagram.json')!;
+      expect(refused.type).toBe('data');
+      expect(refused.metadata?.validationReport?.valid).toBe(false);
+      expect(refused.metadata?.validationReport?.errors[0]).toMatch(/failed its review/);
+      expect(refused.metadata?.validationReport?.errors[1]).toMatch(/^platform:/);
+
+      const { artifacts } = runHandler({
+        outputSelection: richHtml,
+        toolCalls: [call('c2')],
+        toolExecutionResults: [diagramResult(diagram('Families'))],
+        artifacts: first.artifacts,
+        messageId: 'ai-2',
+      });
+      const files = artifacts.filter((artifact) => artifact.name === 'families.diagram.json');
+      expect(files.map((artifact) => artifact.type)).toEqual(['diagram']);
+    });
+
+    it('versions a diagram the agent saves again, even in a report round', () => {
+      const first = runHandler({ outputSelection: richHtml, toolCalls: [call('c1')], toolExecutionResults: [diagramResult(diagram('Families'))], messageId: 'ai-1' });
+      const v1 = first.artifacts.find((artifact) => artifact.name === 'families.diagram.json')!;
+      const { artifacts } = runHandler({
+        outputSelection: richHtml,
+        toolCalls: [call('c2'), call('c3')],
+        toolExecutionResults: [diagramResult(diagram('Families and children')), specResult()],
+        artifacts: first.artifacts,
+        messageId: 'ai-2',
+      });
+      const versions = artifacts.filter((artifact) => artifact.name === 'families.diagram.json');
+      expect(versions.map((artifact) => artifact.type)).toEqual(['diagram', 'diagram']);
+      expect(versions[1].metadata).toMatchObject({ lineageRootId: v1.id, versionNumber: 2, previousArtifactId: v1.id });
+    });
+  });
+
   describe('independent panel note', () => {
     const panel: TeamPanelRecord = {
       operatorName: 'ChatGPT',
