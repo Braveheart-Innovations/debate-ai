@@ -129,7 +129,7 @@ describe('GlobalSheets', () => {
       settingsProps.onNavigateToAPIConfig();
     });
 
-    expect(mockNavigate).toHaveBeenCalledWith('APIConfig');
+    expect(mockNavigate).toHaveBeenCalledWith('APIConfig', { from: 'settings' });
 
     const state = store.getState();
     expect(state.navigation.activeSheet).toBeNull();

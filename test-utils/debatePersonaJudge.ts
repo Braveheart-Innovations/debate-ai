@@ -9,7 +9,10 @@ import { isRecord, nativeFetch, requireKey } from './liveDebateEval';
  * rubric: bump RUBRIC_VERSION when any of them changes.
  */
 
-export const RUBRIC_VERSION = 1;
+// v2 (2026-10-14): the adherence check lists the debate moves debaters now receive instead of the
+// chat signature moves. The blind attribution prompt is unchanged since v1, so attribution compares
+// across both versions.
+export const RUBRIC_VERSION = 2;
 
 const JUDGE: { provider: AIProvider; keyEnv: string } = { provider: 'openai', keyEnv: 'OPENAI_API_KEY' };
 

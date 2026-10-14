@@ -1,11 +1,13 @@
 import fs from 'fs';
 import path from 'path';
 
+import { getPresetForFormat, type DebateFormatId, type DebateSideId, type OxfordAudienceQuestions } from '@/config/debate/formats';
 import { getProviderDefaultModel } from '@/config/modelConfigs';
 import { UNIVERSAL_PERSONALITIES, type PersonalityOption } from '@/config/personalities';
+import type { BaseAdapter } from '@/services/ai/base/BaseAdapter';
 import { AIService } from '@/services/aiAdapter';
 import { DebateOrchestrator } from '@/services/debate/DebateOrchestrator';
-import type { AI, AIProvider, DebateVoiceConfig, Message } from '@/types';
+import type { AI, AIProvider, DebateSpeechLength, DebateVoiceConfig, Message } from '@/types';
 import { createMockAIConfig } from './fixtures';
 
 /**
@@ -64,6 +66,26 @@ export const mapWithConcurrency = async <T, R>(items: T[], limit: number, fn: (i
 
 export const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
+
+/**
+ * Applies `install` once to every adapter a debate on this service uses: those that exist now and
+ * those the orchestrator creates later for a participant whose id is not a provider.
+ */
+export const forEveryAdapter = (service: AIService, install: (adapter: BaseAdapter) => void): void => {
+  const installed = new WeakSet<BaseAdapter>();
+  const apply = (adapter: BaseAdapter | undefined): void => {
+    if (!adapter || installed.has(adapter)) return;
+    installed.add(adapter);
+    install(adapter);
+  };
+  service.getAllAdapters().forEach(adapter => apply(adapter));
+  const ensureAdapter = service.ensureAdapter.bind(service);
+  service.ensureAdapter = async (...args: Parameters<AIService['ensureAdapter']>) => {
+    const adapter = await ensureAdapter(...args);
+    apply(adapter);
+    return adapter;
+  };
+};
 
 // Voice mode changes only the orchestrator's token safety cap; audio is made later, by the app.
 const VOICE_CONFIG: DebateVoiceConfig = { enabled: true, providerId: 'elevenlabs', debaterVoices: {} };
@@ -164,6 +186,8 @@ export interface GeneratedSpeech {
   personalityId: string;
   provider: AIProvider;
   modelUsed?: string;
+  /** Cross-examination role (absent in files before 2026-10-14 and on other turns). */
+  cxRole?: string;
   content: string;
   lifecycle?: string;
   lifecycleReason?: string;
@@ -179,6 +203,10 @@ export interface GeneratedDebate {
   webSearchEnabled: boolean;
   /** Voice mode: the orchestrator lowers the token safety cap; no audio is generated here. */
   voiceMode?: boolean;
+  /** Absent in files before 2026-10-14: Oxford 1v1 at the app's default speech length. */
+  formatId?: DebateFormatId;
+  presetId?: string;
+  speechLength?: DebateSpeechLength;
   speeches: GeneratedSpeech[];
   error?: string;
 }
@@ -197,32 +225,54 @@ export interface LiveDebateOptions {
   debater: LiveDebater;
   opponent: LiveDebater;
   keys: Record<string, string>;
-  /** Oxford 1v1 speeches to run, from the first: 3 = both openings and the Affirmative floor speech. */
+  /** Speeches to run, from the first: in Oxford 1v1, 3 = both openings and the Affirmative floor speech. */
   speeches: number;
   timeoutMs?: number;
   /** Run in voice mode, as the app does with voice on. */
   voice?: boolean;
+  /** The app's Speech length setting (default: the app's default). */
+  speechLength?: DebateSpeechLength;
+  /** Default Oxford, preset short (1v1). Team presets field the debater and opponent twice each. */
+  formatId?: DebateFormatId;
+  presetId?: string;
+  /** Typed in when an Oxford Q&A preset asks the audience for a question per side. */
+  audienceQuestions?: OxfordAudienceQuestions;
   /** Runs once this debate's adapters exist, before the first speech: the hook for prompt experiments. */
   prepareService?: (service: AIService) => void;
 }
 
+const DEFAULT_AUDIENCE_QUESTIONS: OxfordAudienceQuestions = {
+  aff: 'How would deliveries, tradespeople and disabled drivers still reach the centre?',
+  neg: 'What would you do about city-centre air pollution instead?',
+};
+
 /**
- * Runs one Oxford 1v1 debate through the real orchestrator: speeches schedule themselves, the
- * audience-review pause after the openings is continued as the app's Continue button does, and the
- * debate stops after `speeches`. A failed turn is recorded, not retried, so call counts stay exact.
+ * Runs one debate through the real orchestrator: speeches schedule themselves, review pauses are
+ * continued as the app's Continue button does, checkpoint votes go to the Affirmative, Oxford Q&A
+ * gets one audience question per side, and the debate stops after `speeches`. A failed turn is
+ * recorded, not retried, so call counts stay exact.
  */
 export const runLiveDebate = async (options: LiveDebateOptions): Promise<GeneratedDebate> => {
   const { id, motion, personalityId, debater, opponent, keys, speeches } = options;
+  const formatId = options.formatId ?? 'oxford';
+  const presetId = options.presetId ?? 'short';
   const timeoutMs = options.timeoutMs ?? 6 * 60_000;
   // A fresh service per debate: the orchestrator sets each turn's persona on the adapter itself.
   const service = new AIService(keys);
   options.prepareService?.(service);
-  const participants: AI[] = [debater, opponent].map(entry => createMockAIConfig({
-    id: entry.provider,
-    provider: entry.provider,
-    name: entry.name,
-    model: getProviderDefaultModel(entry.provider)?.id ?? '',
-  }));
+  // The orchestrator seats participant i on the Affirmative when i is even (1v1: [aff, neg]).
+  const teamSize = getPresetForFormat(formatId, presetId).teamSize || 1;
+  const sides: DebateSideId[] = Array.from({ length: teamSize * 2 }, (_, index) => (index % 2 === 0 ? 'aff' : 'neg'));
+  const mirror = debater.provider === opponent.provider;
+  const participants: AI[] = sides.map((side, index) => {
+    const entry = side === 'aff' ? debater : opponent;
+    const seat = Math.floor(index / 2) + 1;
+    // 1v1 ids stay the provider, as in the stored runs. Otherwise every participant needs its own
+    // id, or a mirror debate's Negative takes the Affirmative's persona and history.
+    const id = teamSize === 1 && !mirror ? entry.provider : `${side}${seat}-${entry.provider}`;
+    const name = teamSize > 1 ? `${entry.name} ${seat}` : mirror ? `${entry.name} ${side === 'aff' ? 1 : 2}` : entry.name;
+    return createMockAIConfig({ id, provider: entry.provider, name, model: getProviderDefaultModel(entry.provider)?.id ?? '' });
+  });
   const orchestrator = new DebateOrchestrator(service);
   const debate: GeneratedDebate = {
     id,
@@ -233,14 +283,17 @@ export const runLiveDebate = async (options: LiveDebateOptions): Promise<Generat
     opponentModel: participants[1].model,
     webSearchEnabled: false,
     voiceMode: Boolean(options.voice),
+    formatId,
+    presetId,
+    speechLength: options.speechLength,
     speeches: [],
   };
 
   const session = await orchestrator.initializeDebate(
     motion,
     participants,
-    { [participants[0].id]: personalityId, [participants[1].id]: 'default' },
-    { formatId: 'oxford', presetId: 'short', voiceConfig: options.voice ? VOICE_CONFIG : undefined },
+    Object.fromEntries(participants.map((participant, index) => [participant.id, sides[index] === 'aff' ? personalityId : 'default'])),
+    { formatId, presetId, voiceConfig: options.voice ? VOICE_CONFIG : undefined, speechLength: options.speechLength },
   );
   debate.webSearchEnabled = Boolean(session.webSearchEnabled);
 
@@ -254,9 +307,19 @@ export const runLiveDebate = async (options: LiveDebateOptions): Promise<Generat
     const timer = setTimeout(() => finish(`timed out after ${timeoutMs / 1000}s`), timeoutMs);
 
     orchestrator.addEventListener(event => {
-      if (event.type === 'continuation_required' && event.data.continueAction === 'next_message') {
-        // The audience-review pause after the openings; the app shows a Continue button here.
+      const action = event.data.continueAction;
+      if (event.type === 'continuation_required' && (action === 'next_message' || action === 'vote' || action === 'audience_questions')) {
+        // A review pause before the next speech, a checkpoint vote or the Q&A; the app shows a
+        // Continue button here.
         orchestrator.continueDebate();
+        return;
+      }
+      if (event.type === 'voting_started' && event.data.voteKind !== 'audience_stance' && typeof event.data.round === 'number') {
+        orchestrator.recordVote(event.data.round, participants[0].id).catch((error: unknown) => finish(String(error)));
+        return;
+      }
+      if (event.type === 'audience_questions_requested') {
+        orchestrator.submitAudienceQuestions(options.audienceQuestions ?? DEFAULT_AUDIENCE_QUESTIONS);
         return;
       }
       const message = event.data.message;
@@ -274,6 +337,7 @@ export const runLiveDebate = async (options: LiveDebateOptions): Promise<Generat
         personalityId: side === 'aff' ? personalityId : 'default',
         provider: side === 'aff' ? debater.provider : opponent.provider,
         modelUsed: message.metadata?.modelUsed,
+        ...(spec?.cxRole ? { cxRole: spec.cxRole } : {}),
         content: message.content,
         lifecycle: lifecycle?.status,
         lifecycleReason: lifecycle?.reason,

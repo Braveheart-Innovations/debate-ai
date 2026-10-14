@@ -42,6 +42,7 @@ export const CreateSheetShell: React.FC<{
         <View style={[styles.sheet, { backgroundColor: theme.colors.background }]}>
           <SheetHeader title={title} onClose={onClose} showHandle />
           <ScrollView
+            keyboardShouldPersistTaps="handled"
             contentContainerStyle={styles.content}
             showsVerticalScrollIndicator={false}
           >

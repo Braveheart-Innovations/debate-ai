@@ -1,4 +1,5 @@
 import { act, fireEvent } from '@testing-library/react-native';
+import * as Haptics from 'expo-haptics';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { DebateSlotConfigSheet } from '@/components/organisms/debate/DebateSlotConfigSheet';
 import { getProviderModels } from '@/config/modelConfigs';
@@ -37,7 +38,13 @@ const baseProps = {
   onChangeModel: jest.fn(),
   personalityId: 'default',
   onChangePersonality: jest.fn(),
-  onChangeProvider: jest.fn(),
+  providerOptions: [
+    { id: 'claude', name: 'Claude', company: 'Anthropic', color: '#d97757' },
+    { id: 'openai', name: 'ChatGPT', company: 'OpenAI', color: '#10a37f' },
+    { id: 'gemini', name: 'Gemini', company: 'Google', color: '#4285f4' },
+  ],
+  configuredProviderIds: ['claude', 'openai'],
+  onChangeProvider: jest.fn<void, [string]>(),
   onRemove: jest.fn(),
   testID: 'slot-config',
 };
@@ -45,6 +52,7 @@ const baseProps = {
 describe('DebateSlotConfigSheet', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.mocked(Haptics.impactAsync).mockResolvedValue(undefined);
     mockVoicePicker.reset();
   });
 
@@ -103,12 +111,34 @@ describe('DebateSlotConfigSheet', () => {
     expect(baseProps.onRemove).toHaveBeenCalled();
   });
 
-  it('closes then delegates when change provider is pressed', () => {
-    const { getByTestId } = renderWithProviders(<DebateSlotConfigSheet {...baseProps} />);
+  it('pushes the provider page and commits a keyed provider, returning to the root page', () => {
+    const { getByTestId, getByText, queryByText } = renderWithProviders(
+      <DebateSlotConfigSheet {...baseProps} />
+    );
 
     fireEvent.press(getByTestId('debate-slot-change-provider-row'));
+    expect(baseProps.onClose).not.toHaveBeenCalled();
+    expect(getByTestId('debate-slot-provider-list')).toBeTruthy();
+
+    fireEvent.press(getByTestId('debate-slot-provider-list-row-openai'));
+    expect(baseProps.onChangeProvider).toHaveBeenCalledWith('openai');
+    expect(baseProps.onClose).not.toHaveBeenCalled();
+    expect(getByText('Remove debater')).toBeTruthy();
+    expect(queryByText('replacing Claude')).toBeNull();
+  });
+
+  it('closes the sheet then asks to add a key when an un-keyed provider is tapped', () => {
+    const onRequestAddKey = jest.fn<void, [string]>();
+    const { getByTestId } = renderWithProviders(
+      <DebateSlotConfigSheet {...baseProps} onRequestAddKey={onRequestAddKey} />
+    );
+
+    fireEvent.press(getByTestId('debate-slot-change-provider-row'));
+    fireEvent.press(getByTestId('debate-slot-provider-list-row-gemini'));
+
     expect(baseProps.onClose).toHaveBeenCalled();
-    expect(baseProps.onChangeProvider).toHaveBeenCalled();
+    expect(onRequestAddKey).toHaveBeenCalledWith('gemini');
+    expect(baseProps.onChangeProvider).not.toHaveBeenCalled();
   });
 
   it('shows the voice row only when voice props are wired, and opens the picker', () => {

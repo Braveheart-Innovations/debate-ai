@@ -103,7 +103,7 @@ export const GlobalSheets: React.FC = () => {
               onClose={handleSheetClose}
               onNavigateToAPIConfig={() => {
                 handleSheetClose();
-                navigation.navigate('APIConfig');
+                navigation.navigate('APIConfig', { from: 'settings' });
               }}
               onNavigateToExpertMode={() => {
                 handleSheetClose();

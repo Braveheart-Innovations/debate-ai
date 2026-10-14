@@ -21,6 +21,12 @@ export const MODEL_PRICING: { [provider: string]: ProviderPricing } = {
       inputPer1M: 4.0,
       outputPer1M: 20.0,
     },
+    // Prompts up to 100K tokens; a request whose prompt exceeds 100K tokens is
+    // billed $0.50/$2.50 for all of its tokens.
+    'claude-haiku-5-5': {
+      inputPer1M: 0.1,
+      outputPer1M: 0.5,
+    },
     // Sonnet 5's $2/$10 launch price became its standard price (the planned
     // 2026-09-01 increase to $3/$15 was cancelled).
     'claude-sonnet-5': {
@@ -199,6 +205,12 @@ export const MODEL_PRICING: { [provider: string]: ProviderPricing } = {
       inputPer1M: 1.5,
       outputPer1M: 7.5,
     },
+    // Introductory price through 2026-11-30. From 2026-12-01 it doubles to
+    // $4.00 input / $20.00 output (thinking tokens bill as output).
+    'gemini-4-argon': {
+      inputPer1M: 2.0,
+      outputPer1M: 10.0,
+    },
     'gemini-3.7-flash': {
       inputPer1M: 1.5,
       outputPer1M: 7.5,
@@ -267,6 +279,12 @@ export const MODEL_PRICING: { [provider: string]: ProviderPricing } = {
     },
   },
   mistral: {
+    // Launch sale price (the API bills it as mistral-large-4-0-launch-discount);
+    // list price is $1.36/$4.18 and Mistral has published no end date.
+    'mistral-large-4': {
+      inputPer1M: 0.68,
+      outputPer1M: 2.09,
+    },
     'mistral-large-2512': {
       inputPer1M: 0.5,
       outputPer1M: 1.5,
@@ -349,15 +367,16 @@ export const MODEL_PRICING: { [provider: string]: ProviderPricing } = {
       inputPer1M: 0.3,
       outputPer1M: 1.2,
     },
-    // Retired 2026-09-10 names and V4 Pro (from 2026-09-14) are served as
-    // V4.1 Flash at Flash rates.
+    // Retired 2026-09-10 names are served as V4.1 Flash at Flash rates.
     'deepseek-v4-flash': {
       inputPer1M: 0.3,
       outputPer1M: 1.2,
     },
+    // V4 Pro standard (peak, cache-miss) rates; off-peak is half ($0.66 /
+    // $1.98), and cache-hit input is $0.044 peak / $0.022 off-peak.
     'deepseek-v4-pro': {
-      inputPer1M: 0.3,
-      outputPer1M: 1.2,
+      inputPer1M: 1.32,
+      outputPer1M: 3.96,
     },
     'deepseek-chat': {
       inputPer1M: 0.3,

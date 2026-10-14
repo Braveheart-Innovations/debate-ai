@@ -24,6 +24,9 @@ describe('Model version registry', () => {
     expect(getLatestModelInFamily('grok', 'main')).toBe('grok-4.3');
     expect(getLatestModelInFamily('mistral', 'medium')).toBe('mistral-medium-2604');
     expect(getLatestModelInFamily('cohere', 'command')).toBe('command-a-plus-05-2026');
+    expect(getLatestModelInFamily('claude', 'economy')).toBe('claude-haiku-5-5');
+    expect(getLatestModelInFamily('google', 'flagship')).toBe('gemini-4-argon');
+    expect(getLatestModelInFamily('mistral', 'large')).toBe('mistral-large-4');
     expect(getLatestModelInFamily('unknown', 'family')).toBeNull();
     expect(getLatestModelInFamily('claude', 'nonexistent')).toBeNull();
   });
@@ -45,6 +48,14 @@ describe('Model version registry', () => {
 
     expect(isModelDeprecated('claude-3-opus-20240229')).toBe(true);
     expect(isModelDeprecated('claude-3-7-sonnet-20250219')).toBe(true);
+    expect(getModelInfo('claude-sonnet-4-5-20250929')).toMatchObject({
+      isDeprecated: true,
+      deprecationDate: '2026-11-30',
+      replacedBy: 'claude-sonnet-5-5',
+    });
+    expect(getModelInfo('claude-haiku-4-5-20251001')).toMatchObject({ isDeprecated: true, replacedBy: 'claude-haiku-5-5' });
+    expect(getModelInfo('gemini-3.5-flash')).toMatchObject({ isDeprecated: true, replacedBy: 'gemini-3.6-flash' });
+    expect(isModelDeprecated('deepseek-v4-pro')).toBe(false);
     expect(isModelDeprecated('gpt-5')).toBe(false);
     expect(isModelDeprecated('unknown-model')).toBe(false);
   });

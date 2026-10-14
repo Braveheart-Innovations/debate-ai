@@ -2,7 +2,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-import { getPresetForFormat } from '@/config/debate/formats';
+import { getFormat, getPresetForFormat, type DebateFormatId, type PhaseId } from '@/config/debate/formats';
 import type { AIService } from '@/services/aiAdapter';
 import { sanitizeDebateSpeechForTTS } from '@/services/debate/debateAudioSanitizer';
 import { getDebateSpeechLengthGuidance } from '@/services/debate/debateSpeechLength';
@@ -10,10 +10,11 @@ import { DEBATE_AUDIO_TTS_PROMPT_LIMIT } from '@/services/debate/DebateVoiceServ
 import { isDemoModeEnabled } from '@/services/demo/demoMode';
 import { store } from '@/store';
 import { setGlobalStreaming } from '@/store/streamingSlice';
-import type { AIProvider } from '@/types';
+import type { AIProvider, DebateSpeechLength } from '@/types';
 import {
   LIVE_DEBATERS,
   findPersona,
+  forEveryAdapter,
   isGeneratedSpeech,
   isRecord,
   loadEnvFile,
@@ -31,12 +32,13 @@ import { RUBRIC_VERSION, judgeBlindAttribution, loadJudge, type Attribution } fr
 
 /**
  * Live debate length experiment: how closely does each way of stating speech length hold, at each
- * brevity level, across providers and personas? Per debate it swaps the turn prompt's
- * "Length guidance" line and neutralises the system prompt's "compact" line (except for the
- * `current` control), then measures each speech against its level's word target. Prompt only: the
- * token safety cap is untouched. Every debate runs both openings and the Affirmative floor speech.
- * Each speech is also checked for being cut off (a token-limit or failed turn, or text that ends
- * mid-sentence) and for fitting one audio clip.
+ * brevity level, across providers and personas? `current` runs the app's own prompt with its Speech
+ * length setting at the level; the other mechanisms swap the turn prompt's "Length guidance" line
+ * (and, before the app adopted word targets on 2026-10-14, neutralised the system prompt's "compact"
+ * line). Each speech is measured against its level's word target. Prompt only: the token safety cap
+ * is untouched. Every debate runs both openings and the Affirmative floor speech. Each speech is
+ * also checked for being cut off (a token-limit or failed turn, or text that ends mid-sentence) and
+ * for fitting one audio clip.
  *
  *   npm run test:debate-length:live
  *   npm run test:debate-length:report   (re-renders length-report.md from a stored length.json; no calls)
@@ -50,6 +52,11 @@ import { RUBRIC_VERSION, judgeBlindAttribution, loadJudge, type Attribution } fr
  * no audio is made).
  * The run prints its call count before the first call. Output: DEBATE_EVAL_OUT
  * (default <tmpdir>/debate-length-eval), which is also where the report step reads length.json.
+ *
+ *   npm run test:debate-length:phases  (the turns these debates never reach: Oxford audience-question
+ *                                       answers and summaries, Lincoln-Douglas and Policy
+ *                                       cross-examination, and Socratic turns, at DEBATE_LENGTH_LEVELS,
+ *                                       default "default", on DEBATE_LENGTH_PAIRINGS; writes phases.*)
  */
 
 jest.mock('@/services/demo/demoMode', () => ({
@@ -116,7 +123,7 @@ const lengthDirective = (mechanism: Exclude<Mechanism, 'current'>, phase: Length
 
 // The output-token safety cap the orchestrator sets for these speeches in each mode.
 const tokenCap = (voice: boolean): number =>
-  getDebateSpeechLengthGuidance({ formatId: 'oxford', presetId: 'short', phase: 'opening', voiceMode: voice }).maxTokens;
+  getDebateSpeechLengthGuidance({ formatId: 'oxford', phase: 'opening', voiceMode: voice }).maxTokens;
 
 const PHASE_BY_LABEL = new Map<string, LengthPhase>(
   getPresetForFormat('oxford', 'short').messages
@@ -137,11 +144,13 @@ interface AuditEntry {
   maxTokens?: number;
   /** Token usage of each provider response for this request (absent before 2026-10-14). */
   usage?: ProviderUsage[];
+  /** The reasoning hint on the adapter when the request went out (absent before the app sent one). */
+  reasoningEffort?: string;
 }
 
 /** Wraps every adapter in this debate's service so each request carries the condition's length line. */
 const installCondition = (service: AIService, condition: Condition, audit: AuditEntry[]): void => {
-  for (const adapter of service.getAllAdapters().values()) {
+  forEveryAdapter(service, adapter => {
     const send = adapter.sendMessage.bind(adapter);
     adapter.sendMessage = async (message, ...rest) => {
       const label = message.match(/^Turn: (.+)$/m)?.[1] ?? '';
@@ -164,10 +173,11 @@ const installCondition = (service: AIService, condition: Condition, audit: Audit
         systemNeutralised: Boolean(adapter.config.personality?.systemPrompt.includes(SYSTEM_NEUTRAL_LINE)),
         maxTokens: adapter.config.parameters?.maxTokens,
         usage,
+        reasoningEffort: adapter.config.parameters?.reasoningEffort,
       });
       return recordUsage(usage, () => send(sent, ...rest));
     };
-  }
+  });
 };
 
 const PAIRING_IDS = ['claude-google', 'google-openai', 'openai-claude', 'google-google'] as const;
@@ -372,7 +382,7 @@ const renderReport = (runs: LengthRun[], conditions: Condition[], debaters: Live
   return [
     '# Debate length experiment',
     '',
-    `Run ${meta.runAt}. Motion: "${MOTION}". Oxford 1v1, ${meta.voiceMode ? 'voice' : 'text'} mode (output-token safety cap ${tokenCap(meta.voiceMode)}), web search as in the app. Each debate ran both openings and the Affirmative floor speech; the Negative is always Default. ${runs.length} debates, ${callCount} calls, ${measured.length} speeches measured. "Ratio" is words divided by the level's target (1.00 = on target); "within" counts speeches within ${HIT_TOLERANCE * 100}% of target. "Cut off" counts turns that stopped on the token limit or failed, plus speeches whose spoken text ends mid-sentence. "Over audio limit" counts speeches whose spoken text exceeds the ${DEBATE_AUDIO_TTS_PROMPT_LIMIT}-character text-to-speech budget, which the app trims to the last full sentence. \`current\` is today's prompt, measured against the default targets.`,
+    `Run ${meta.runAt}. Motion: "${MOTION}". Oxford 1v1, ${meta.voiceMode ? 'voice' : 'text'} mode (output-token safety cap ${tokenCap(meta.voiceMode)}), web search as in the app. Each debate ran both openings and the Affirmative floor speech; the Negative is always Default. ${runs.length} debates, ${callCount} calls, ${measured.length} speeches measured. "Ratio" is words divided by the level's target (1.00 = on target); "within" counts speeches within ${HIT_TOLERANCE * 100}% of target. "Cut off" counts turns that stopped on the token limit or failed, plus speeches whose spoken text ends mid-sentence. "Over audio limit" counts speeches whose spoken text exceeds the ${DEBATE_AUDIO_TTS_PROMPT_LIMIT}-character text-to-speech budget, which the app trims to the last full sentence. \`current\` is the app's own prompt at that level's Speech length setting (in runs before 2026-10-14: its qualitative length text, measured against the default targets).`,
     '',
     '## By condition',
     '',
@@ -450,10 +460,8 @@ describeLive('Live debate length experiment', () => {
     const mechanisms = readList('DEBATE_LENGTH_MECHANISMS', MECHANISMS, [...MECHANISMS]);
     const levels = readList('DEBATE_LENGTH_LEVELS', LEVELS, ['concise', 'verbose']);
     const personas = readList('DEBATE_LENGTH_PERSONAS', ['default', 'bestie', 'brody', 'devlin', 'george', 'kai', 'prof_sage', 'scout'], ['default', 'brody', 'kai']);
-    // `current` has no levels; it is today's prompt, so it is measured against the default targets.
-    const conditions = mechanisms.flatMap((mechanism): Condition[] => (mechanism === 'current'
-      ? [{ mechanism, level: 'default' }]
-      : [...levels].sort((a, b) => LEVELS.indexOf(a) - LEVELS.indexOf(b)).map(level => ({ mechanism, level }))));
+    const sortedLevels = [...levels].sort((a, b) => LEVELS.indexOf(a) - LEVELS.indexOf(b));
+    const conditions = mechanisms.flatMap((mechanism): Condition[] => sortedLevels.map(level => ({ mechanism, level })));
 
     // By default every provider debates once on each side.
     const pairingIds = readList('DEBATE_LENGTH_PAIRINGS', PAIRING_IDS, ['claude-google', 'google-openai', 'openai-claude']);
@@ -475,6 +483,8 @@ describeLive('Live debate length experiment', () => {
         keys,
         speeches: SPEECHES_PER_DEBATE,
         voice: voiceMode,
+        // The app's own setting; the other mechanisms then replace its length line.
+        speechLength: condition.level,
         prepareService: service => installCondition(service, condition, audit),
       });
       return { condition, debate, audit };
@@ -495,14 +505,18 @@ describeLive('Live debate length experiment', () => {
     fs.writeFileSync(path.join(outDir, 'length-transcripts.md'), renderTranscripts(runs));
     process.stdout.write(`Length experiment written to ${outDir}\n`);
 
-    // The experiment is only valid if every request carried its mode's token cap and its condition's length line.
+    // The experiment is only valid if every request carried its mode's token cap, the debate
+    // reasoning hint, and its condition's length line.
     for (const { condition, audit } of runs) {
       for (const entry of audit) {
         expect(entry.maxTokens).toBe(tokenCap(voiceMode));
-        const phase = PHASE_BY_LABEL.get(entry.label);
-        if (condition.mechanism === 'current' || !phase) continue;
-        expect(entry.lengthLine).toBe(lengthDirective(condition.mechanism, phase, condition.level));
+        expect(entry.reasoningEffort).toBe('low');
         expect(entry.systemNeutralised).toBe(true);
+        const phase = PHASE_BY_LABEL.get(entry.label);
+        if (!phase) continue;
+        expect(entry.lengthLine).toBe(condition.mechanism === 'current'
+          ? getDebateSpeechLengthGuidance({ formatId: 'oxford', phase, level: condition.level }).directive
+          : lengthDirective(condition.mechanism, phase, condition.level));
       }
     }
     expect(runs.filter(run => run.debate.error).map(run => `${run.debate.id}: ${run.debate.error}`)).toEqual([]);
@@ -648,5 +662,247 @@ describeJudge('Live debate length experiment: persona attribution', () => {
     process.stdout.write(`Persona attribution written to ${outDir}\n`);
 
     expect(judged).toHaveLength(work.length);
+  });
+});
+
+const phasesEnabled = process.env.LIVE_DEBATE_LENGTH_PHASES === '1';
+
+const PHASE_IDS: readonly PhaseId[] = ['opening', 'constructive', 'cross_examination', 'rebuttal', 'final_rebuttal', 'question', 'closing', 'synthesis'];
+const isPhaseId = (value: string): value is PhaseId => PHASE_IDS.some(phase => phase === value);
+const cxRoleOf = (value?: string): 'questioner' | 'answerer' | undefined =>
+  (value === 'questioner' || value === 'answerer' ? value : undefined);
+
+/** The turns the openings-and-floor debates never reach, each in the shortest debate that gets there. */
+interface PhaseDebate {
+  formatId: DebateFormatId;
+  presetId: string;
+  /** Speeches to run, from the first. */
+  speeches: number;
+}
+
+const PHASE_DEBATES: PhaseDebate[] = [
+  // 2v2 + Q&A: openings and first arguments, then the audience-question answers and summaries.
+  { formatId: 'oxford', presetId: 'long', speeches: 8 },
+  // The AC and its cross-examination (questions, then answers).
+  { formatId: 'lincoln_douglas', presetId: 'standard', speeches: 3 },
+  // The 1AC and its cross-examination.
+  { formatId: 'policy', presetId: 'standard', speeches: 3 },
+  // Every turn of the short Socratic dialogue.
+  { formatId: 'socratic', presetId: 'short', speeches: 6 },
+];
+
+interface PhaseAuditEntry {
+  label: string;
+  lengthLine: string;
+  maxTokens?: number;
+  reasoningEffort?: string;
+  usage: ProviderUsage[];
+}
+
+interface PhaseRun {
+  level: DebateSpeechLength;
+  formatId: DebateFormatId;
+  presetId: string;
+  debate: GeneratedDebate;
+  audit: PhaseAuditEntry[];
+}
+
+interface MeasuredTurn {
+  level: DebateSpeechLength;
+  kind: string;
+  provider: AIProvider;
+  target: number;
+  words: number;
+  ratio: number;
+  stopped?: string;
+  endsMidSentence: boolean;
+  debateId: string;
+  label: string;
+  ending: string;
+}
+
+/** Records every request this debate makes, unchanged: the app's own prompt at the run's level. */
+const installPhaseAudit = (service: AIService, audit: PhaseAuditEntry[]): void => {
+  forEveryAdapter(service, adapter => {
+    const send = adapter.sendMessage.bind(adapter);
+    adapter.sendMessage = async (message, ...rest) => {
+      const usage: ProviderUsage[] = [];
+      audit.push({
+        label: message.match(/^Turn: (.+)$/m)?.[1] ?? '',
+        lengthLine: message.match(LENGTH_LINE)?.[0] ?? '(missing)',
+        maxTokens: adapter.config.parameters?.maxTokens,
+        reasoningEffort: adapter.config.parameters?.reasoningEffort,
+        usage,
+      });
+      return recordUsage(usage, () => send(message, ...rest));
+    };
+  });
+};
+
+const turnKind = (formatId: DebateFormatId, phase: PhaseId, cxRole?: string): string => {
+  const format = getFormat(formatId).name;
+  if (phase === 'cross_examination') return `${format} cross-examination ${cxRole === 'answerer' ? 'answers' : 'questions'}`;
+  if (formatId === 'oxford' && phase === 'question') return `${format} audience-question answer`;
+  return `${format} ${phase.replace('_', ' ')}`;
+};
+
+const measurePhaseRuns = (runs: PhaseRun[]): MeasuredTurn[] => runs.flatMap(({ level, formatId, debate }) =>
+  debate.speeches.flatMap(speech => {
+    if (!isPhaseId(speech.phase)) return [];
+    const cxRole = cxRoleOf(speech.cxRole);
+    const target = getDebateSpeechLengthGuidance({ formatId, phase: speech.phase, cxRole, level }).targetWords;
+    const words = wordCount(speech.content);
+    const spoken = sanitizeDebateSpeechForTTS(speech.content);
+    return [{
+      level,
+      kind: turnKind(formatId, speech.phase, cxRole),
+      provider: speech.provider,
+      target,
+      words,
+      ratio: words / target,
+      stopped: speech.lifecycle ? `${speech.lifecycle}${speech.lifecycleReason ? ` (${speech.lifecycleReason})` : ''}` : undefined,
+      endsMidSentence: !endsAtSentence(spoken),
+      debateId: debate.id,
+      label: speech.label,
+      ending: spoken.slice(-80),
+    }];
+  }));
+
+const renderPhasesReport = (runs: PhaseRun[], debaters: LiveDebater[], runAt: string): string => {
+  const turns = measurePhaseRuns(runs);
+  const measured = turns.filter(turn => !turn.stopped);
+  const providers = debaters.map(debater => debater.provider);
+  const groups = [...new Set(turns.map(turn => `${turn.level}\u0000${turn.kind}`))].map(key => {
+    const [level, kind] = key.split('\u0000');
+    return { level, kind };
+  });
+  const ratioOf = (entries: MeasuredTurn[]): string => (entries.length ? median(entries.map(turn => turn.ratio)).toFixed(2) : 'n/a');
+  const rows = groups.map(({ level, kind }) => {
+    const all = turns.filter(turn => turn.level === level && turn.kind === kind);
+    const ok = measured.filter(turn => turn.level === level && turn.kind === kind);
+    const words = ok.map(turn => turn.words);
+    const within = ok.filter(turn => Math.abs(turn.ratio - 1) <= HIT_TOLERANCE).length;
+    const cut = all.filter(turn => turn.stopped || turn.endsMidSentence).length;
+    const wordsText = words.length ? `${median(words)} (${Math.min(...words)}-${Math.max(...words)})` : 'n/a';
+    return `| ${kind} | ${level} | ${all[0].target} | ${wordsText} | ${ratioOf(ok)} | ${within}/${ok.length} | ${cut}/${all.length} | ${providers.map(provider => ratioOf(ok.filter(turn => turn.provider === provider))).join(' | ')} |`;
+  });
+  const cutOffNotes = turns.filter(turn => turn.stopped || turn.endsMidSentence).map(turn =>
+    `- ${turn.debateId}, ${turn.label}: ${turn.stopped ?? `ends mid-sentence: "...${turn.ending}"`}`);
+  const usageRows = providers.map(provider => {
+    const usages = runs.flatMap(run => run.audit.flatMap(entry => entry.usage)).filter(usage => usage.provider === provider);
+    const reasoning = usages.map(usage => usage.reasoningTokens).filter((value): value is number => typeof value === 'number');
+    const peak = usages.length ? Math.max(...usages.map(usage => (usage.outputTokens ?? 0) + (usage.reasoningTokens ?? 0))) : 0;
+    const name = debaters.find(debater => debater.provider === provider)?.name ?? provider;
+    return `| ${name} | ${usages.length} | ${reasoning.length ? `${median(reasoning)} (max ${Math.max(...reasoning)})` : 'not reported'} | ${peak} |`;
+  });
+  const callCount = runs.reduce((sum, run) => sum + run.audit.length, 0);
+  const failures = runs.filter(run => run.debate.error);
+
+  return [
+    '# Debate length: phases beyond openings and floor speeches',
+    '',
+    `Run ${runAt}. Motion: "${MOTION}". Text mode (output-token safety cap ${tokenCap(false)}), web search as in the app, Default persona on both sides, the app's own prompt at each Speech length level. Debates: Oxford 2v2 + Q&A through the summaries (audience questions typed in as in the app), the first three speeches of Standard Lincoln-Douglas and Standard Policy (the constructive and its cross-examination), and the whole short Socratic dialogue; each on every pairing below, with the first provider on the Affirmative. ${runs.length} debates, ${callCount} calls, ${measured.length} speeches measured. "Ratio" is words divided by the turn's target; "within" counts speeches within ${HIT_TOLERANCE * 100}% of it. "Cut off" counts turns that stopped on the token limit or failed, plus speeches whose spoken text ends mid-sentence.`,
+    '',
+    '## By turn',
+    '',
+    `| Turn | Level | Target words | Words: median (range) | Median ratio | Within | Cut off | ${debaters.map(debater => debater.name).join(' | ')} |`,
+    `| --- | --- | --- | --- | --- | --- | --- | ${providers.map(() => '---').join(' | ')} |`,
+    ...rows,
+    '',
+    ...(cutOffNotes.length ? ['Cut-off speeches:', '', ...cutOffNotes, ''] : []),
+    `## Output tokens against the ${tokenCap(false)}-token cap`,
+    '',
+    'Per provider response: median hidden reasoning tokens (max), and the largest reasoning plus visible output. Claude runs without extended thinking, so it reports no reasoning.',
+    '',
+    '| Provider | Responses | Reasoning tokens: median (max) | Peak tokens |',
+    '| --- | --- | --- | --- |',
+    ...usageRows,
+    '',
+    failures.length ? `Stopped debates: ${failures.map(run => `${run.debate.id} (${run.debate.error})`).join('; ')}.` : 'All debates completed.',
+    '',
+  ].join('\n');
+};
+
+const renderPhasesTranscripts = (runs: PhaseRun[]): string => [
+  '# Debate length, phases beyond openings and floor speeches: transcripts',
+  '',
+  ...runs.flatMap(({ level, formatId, presetId, debate }) => [
+    `## ${getPresetForFormat(formatId, presetId).label} at ${level}: ${debate.model} (Affirmative) vs ${debate.opponentModel}`,
+    '',
+    ...(debate.error ? [`**Stopped:** ${debate.error}`, ''] : []),
+    ...debate.speeches.flatMap(speech => {
+      const cxRole = cxRoleOf(speech.cxRole);
+      const target = isPhaseId(speech.phase)
+        ? getDebateSpeechLengthGuidance({ formatId, phase: speech.phase, cxRole, level }).targetWords
+        : undefined;
+      return [
+        `### ${speech.label}${cxRole ? ` (${cxRole})` : ''}: ${speech.speaker} (${wordCount(speech.content)} words, target ${target ?? 'n/a'})`,
+        '',
+        speech.content,
+        '',
+      ];
+    }),
+  ]),
+].join('\n');
+
+const describePhases = phasesEnabled ? describe : describe.skip;
+
+describePhases('Live debate length: phases beyond openings and floor speeches', () => {
+  jest.setTimeout(60 * 60_000);
+
+  beforeAll(() => {
+    loadEnvFile('.env.local');
+    loadEnvFile('.env');
+    jest.mocked(isDemoModeEnabled).mockReturnValue(false);
+    global.fetch = usageFetch;
+    store.dispatch(setGlobalStreaming(false));
+  });
+
+  it('measures closings, audience-question answers, cross-examination and Socratic turns against their targets', async () => {
+    const levels = readList('DEBATE_LENGTH_LEVELS', LEVELS, ['default']);
+    const pairings = readList('DEBATE_LENGTH_PAIRINGS', PAIRING_IDS, ['claude-google', 'google-openai', 'openai-claude']).map(id => PAIRINGS[id]);
+    const keys = Object.fromEntries(Object.values(LIVE_DEBATERS).map(({ provider, keyEnv }) => [provider, requireKey(keyEnv)]));
+    const plan = levels.flatMap(level => PHASE_DEBATES.flatMap(spec => pairings.map(([debater, opponent]) => ({ level, spec, debater, opponent }))));
+    const calls = plan.reduce((sum, entry) => sum + entry.spec.speeches, 0);
+    process.stdout.write(`\nPhases check: ${levels.length} levels x ${PHASE_DEBATES.length} debate types x ${pairings.length} pairings = ${plan.length} debates, ${calls} calls, ${DEBATE_CONCURRENCY} at a time.\n`);
+
+    const runAt = new Date().toISOString();
+    const runs = await mapWithConcurrency(plan, DEBATE_CONCURRENCY, async ({ level, spec, debater, opponent }): Promise<PhaseRun> => {
+      const audit: PhaseAuditEntry[] = [];
+      const debate = await runLiveDebate({
+        id: `${level}/${spec.formatId}-${spec.presetId}/${debater.provider}-vs-${opponent.provider}`,
+        motion: MOTION,
+        personalityId: 'default',
+        debater,
+        opponent,
+        keys,
+        speeches: spec.speeches,
+        formatId: spec.formatId,
+        presetId: spec.presetId,
+        speechLength: level,
+        prepareService: service => installPhaseAudit(service, audit),
+      });
+      return { level, formatId: spec.formatId, presetId: spec.presetId, debate, audit };
+    });
+
+    fs.mkdirSync(outDir, { recursive: true });
+    fs.writeFileSync(path.join(outDir, 'phases.json'), JSON.stringify({ runAt, motion: MOTION, levels, runs }, null, 2));
+    fs.writeFileSync(path.join(outDir, 'phases-report.md'), renderPhasesReport(runs, pairings.map(([debater]) => debater), runAt));
+    fs.writeFileSync(path.join(outDir, 'phases-transcripts.md'), renderPhasesTranscripts(runs));
+    process.stdout.write(`Phases check written to ${outDir}\n`);
+
+    // Valid only if every request carried the text cap, the reasoning hint and a length line the app
+    // gives that turn at the run's level.
+    for (const { level, formatId, presetId, audit } of runs) {
+      const specs = getPresetForFormat(formatId, presetId).messages;
+      for (const entry of audit) {
+        expect(entry.maxTokens).toBe(tokenCap(false));
+        expect(entry.reasoningEffort).toBe('low');
+        const allowed = specs.filter(spec => spec.label === entry.label)
+          .map(spec => getDebateSpeechLengthGuidance({ formatId, phase: spec.phase, cxRole: spec.cxRole, level }).directive);
+        expect(allowed).toContain(entry.lengthLine);
+      }
+    }
+    expect(runs.filter(run => run.debate.error).map(run => `${run.debate.id}: ${run.debate.error}`)).toEqual([]);
   });
 });

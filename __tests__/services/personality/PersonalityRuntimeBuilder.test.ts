@@ -1,9 +1,10 @@
-import { getPersonality } from '@/config/personalities';
+import { getPersonality, UNIVERSAL_PERSONALITIES } from '@/config/personalities';
 import {
   buildPersonalityRuntime,
   mergeRuntimeModelParameters,
 } from '@/services/personality/PersonalityRuntimeBuilder';
 import type { AI } from '@/types';
+import { requireDefined } from '@test-utils/queries';
 
 const ai: AI = {
   id: 'claude',
@@ -13,6 +14,22 @@ const ai: AI = {
 };
 
 describe('PersonalityRuntimeBuilder', () => {
+  // Recorded before the debate persona block was rebuilt from debate-only data: chat and compare
+  // must reach every provider byte for byte as they did.
+  it.each(['chat', 'compare'] as const)('keeps every persona\'s %s runtime unchanged', (mode) => {
+    const runtimes = UNIVERSAL_PERSONALITIES.map(personality => {
+      const runtime = buildPersonalityRuntime({ mode, personality, ai });
+      return {
+        id: personality.id,
+        systemPrompt: runtime.systemPrompt,
+        personalityConfig: runtime.personalityConfig,
+        modelParameters: runtime.modelParameters,
+      };
+    });
+
+    expect(runtimes).toMatchSnapshot();
+  });
+
   it('builds a distinct PG-13 George chat runtime', () => {
     const runtime = buildPersonalityRuntime({
       mode: 'chat',
@@ -66,8 +83,90 @@ describe('PersonalityRuntimeBuilder', () => {
     // The persona sets the tone; no intensity directive overrides it.
     expect(runtime.personalityConfig?.systemPrompt).not.toContain('Debate intensity');
     expect(runtime.personalityConfig?.systemPrompt).not.toContain('theatrical aggression');
-    expect(runtime.personalityConfig?.systemPrompt).toContain('Keep each scheduled speech compact');
+    // Length comes from each turn's word target, not a competing "compact" instruction.
+    expect(runtime.personalityConfig?.systemPrompt).toContain('Follow the turn-specific length guidance.');
+    expect(runtime.personalityConfig?.systemPrompt).not.toContain('compact');
     expect(runtime.personalityConfig?.systemPrompt).not.toContain('PG humor');
+  });
+
+  describe('debate persona block', () => {
+    const debateOptions = {
+      topic: 'Cities should ban private cars.',
+      formatId: 'oxford' as const,
+      formatName: 'Oxford',
+      totalRounds: 2,
+      stance: 'pro' as const,
+      opponentName: 'Gemini',
+    };
+    const personas = UNIVERSAL_PERSONALITIES.filter(persona => persona.id !== 'default');
+    const debatePromptFor = (id: string, opponentId = 'default'): string => buildPersonalityRuntime({
+      mode: 'debate',
+      personality: getPersonality(id),
+      ai,
+      debate: { ...debateOptions, opponentPersonality: getPersonality(opponentId) },
+    }).systemPrompt ?? '';
+
+    it.each(personas.map(persona => [persona.id, persona] as const))('builds %s from debate text only', (id, persona) => {
+      const prompt = debatePromptFor(id);
+      const debateText = [persona.debatePrompt, persona.debateGuidance, ...(persona.debateMoves ?? []), persona.sampleOpeners?.debate];
+      const chatText = [
+        persona.systemPrompt,
+        persona.chatGuidance,
+        persona.compareGuidance,
+        ...persona.signatureMoves,
+        ...(persona.watchouts ?? []),
+        persona.sampleOpeners?.chat,
+        persona.sampleOpeners?.compare,
+      ];
+
+      expect(persona.debateGuidance).toBeTruthy();
+      expect(persona.debateMoves).toHaveLength(3);
+      for (const text of debateText) expect(prompt).toContain(text);
+      for (const text of chatText) if (text) expect(prompt).not.toContain(text);
+      expect(prompt).not.toContain('Needs reminders');
+    });
+
+    it('has openings anticipate the strongest objection rather than rebut a speech not yet given', () => {
+      expect(debatePromptFor('devlin')).toContain('anticipate the strongest objection');
+      expect(debatePromptFor('george')).toContain('anticipate the strongest objection');
+      expect(debatePromptFor('devlin')).not.toContain('Lead with the opponent');
+    });
+
+    it('writes Kai and Prof. Sage as spoken prose, not tables or numbered points', () => {
+      expect(debatePromptFor('kai')).not.toContain('decision tables');
+      expect(debatePromptFor('kai')).toContain('never a table');
+      expect(debatePromptFor('prof_sage')).not.toContain('Lists numbered points');
+      expect(debatePromptFor('prof_sage')).not.toContain('1-3 structured points');
+    });
+
+    it('describes the opponent by name and persona tagline only', () => {
+      const kai = requireDefined(getPersonality('kai'), 'kai');
+      const prompt = debatePromptFor('george', 'kai');
+
+      expect(prompt).toContain(`Opponent: Gemini, debating as Kai (${kai.tagline}). Do not imitate their style.`);
+      expect(prompt).not.toContain(kai.systemPrompt);
+      expect(prompt).not.toContain(requireDefined(kai.debatePrompt, 'kai debatePrompt'));
+      for (const move of kai.debateMoves ?? []) expect(prompt).not.toContain(move);
+      expect(debatePromptFor('george')).toContain('Opponent: Gemini.');
+    });
+
+    it('leaves persona temperatures to chat and compare', () => {
+      const debate = buildPersonalityRuntime({ mode: 'debate', personality: getPersonality('george'), ai, debate: debateOptions });
+      const chat = buildPersonalityRuntime({ mode: 'chat', personality: getPersonality('george'), ai });
+
+      expect(debate.modelParameters).toBeUndefined();
+      expect(chat.modelParameters).toEqual({ temperature: 0.9 });
+    });
+
+    it('gives a Default debater no style line beyond the format rules', () => {
+      const runtime = buildPersonalityRuntime({ mode: 'debate', personality: getPersonality('default'), ai, debate: debateOptions });
+
+      expect(runtime.systemPrompt).not.toContain('Style directive');
+      expect(runtime.systemPrompt).toContain('Follow the turn-specific length guidance.');
+      expect(runtime.personalityConfig?.tone).toEqual({ formality: 0.5, humor: 0.5, energy: 0.5, empathy: 0.5, technicality: 0.5 });
+      expect(runtime.personalityConfig?.debateProfile).toBeUndefined();
+      expect(runtime.modelParameters).toBeUndefined();
+    });
   });
 
   it('clears non-debate default runtime but still builds a default debate role', () => {

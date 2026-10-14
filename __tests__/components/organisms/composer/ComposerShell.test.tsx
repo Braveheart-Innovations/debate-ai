@@ -1,5 +1,6 @@
 import { Text } from 'react-native';
 import { act, fireEvent } from '@testing-library/react-native';
+import * as Haptics from 'expo-haptics';
 import type { ReactTestInstance } from 'react-test-renderer';
 import { renderWithProviders } from '../../../../test-utils/renderWithProviders';
 import { capturePropsOf, type PropsCapture } from '@test-utils/mockComponents';
@@ -25,7 +26,9 @@ const speechModule = speech.ExpoSpeechRecognitionModule;
 
 jest.mock('expo-haptics', () => ({
   impactAsync: jest.fn().mockResolvedValue(undefined),
+  notificationAsync: jest.fn<Promise<void>, []>().mockResolvedValue(undefined),
   ImpactFeedbackStyle: { Light: 'light', Medium: 'medium' },
+  NotificationFeedbackType: { Warning: 'warning' },
 }));
 
 const mockPickerSheet = capturePropsOf<typeof ProviderPickerSheet>();
@@ -119,6 +122,39 @@ describe('ComposerShell', () => {
     rerender(<ComposerShell {...shellProps} onSend={onSend} inputText="  hello  " canSend />);
     fireEvent.press(getByTestId('shell-send'));
     expect(onSend).toHaveBeenCalledWith('hello');
+  });
+
+  it('answers a blocked send tap with a warning haptic and onBlockedSend when provided', () => {
+    const onSend = jest.fn<void, [string]>();
+    const onBlockedSend = jest.fn<void, []>();
+    const { getByTestId } = renderWithProviders(
+      <ComposerShell {...shellProps} onSend={onSend} onBlockedSend={onBlockedSend} inputText="hi" />
+    );
+
+    fireEvent.press(getByTestId('shell-send'));
+
+    expect(onBlockedSend).toHaveBeenCalledTimes(1);
+    expect(Haptics.notificationAsync).toHaveBeenCalledWith('warning');
+    expect(onSend).not.toHaveBeenCalled();
+  });
+
+  it('keeps the send button disabled when blocked and no onBlockedSend is given', () => {
+    const { getByTestId } = renderWithProviders(<ComposerShell {...shellProps} inputText="hi" />);
+
+    expect(getByTestId('shell-send').props.accessibilityState).toMatchObject({ disabled: true });
+  });
+
+  it('does not call onBlockedSend when the send is allowed', () => {
+    const onSend = jest.fn<void, [string]>();
+    const onBlockedSend = jest.fn<void, []>();
+    const { getByTestId } = renderWithProviders(
+      <ComposerShell {...shellProps} canSend onSend={onSend} onBlockedSend={onBlockedSend} inputText="hi" />
+    );
+
+    fireEvent.press(getByTestId('shell-send'));
+
+    expect(onSend).toHaveBeenCalledWith('hi');
+    expect(onBlockedSend).not.toHaveBeenCalled();
   });
 
   it('renders validation hint, aboveInput, and leadingAccessory slots', () => {
@@ -290,6 +326,83 @@ describe('AIComposer (wrapper parity)', () => {
     expect(mockConfigSheet.latest()).toEqual(
       expect.objectContaining({ visible: true, config: configs[1] })
     );
+  });
+
+  describe('blocked send', () => {
+    const pickedClaude = [configs[0]];
+
+    const pressSend = (getByTestId: (id: string) => ReactTestInstance) => {
+      fireEvent.press(getByTestId('composer-send'));
+    };
+
+    it('opens the picker with a no-keys message in chat when no provider has a key', () => {
+      const { getByTestId } = renderWithProviders(
+        <AIComposer {...composerProps} configs={[]} configuredProviderIds={[]} inputText="hi" />
+      );
+      pressSend(getByTestId);
+      expect(mockPickerSheet.latest()).toEqual(
+        expect.objectContaining({
+          visible: true,
+          message: 'Add an API key for a chat AI to send your message.',
+        })
+      );
+    });
+
+    it('opens the picker asking for an AI in chat when keys exist but none is picked', () => {
+      const { getByTestId } = renderWithProviders(
+        <AIComposer {...composerProps} configs={[]} inputText="hi" />
+      );
+      pressSend(getByTestId);
+      expect(mockPickerSheet.latest()).toEqual(
+        expect.objectContaining({ visible: true, message: 'Pick an AI to answer your message.' })
+      );
+    });
+
+    it('asks for two AIs in compare when none is picked and for one more when one is', () => {
+      const compareProps = { ...composerProps, mode: 'compare' as const, minAIs: 2, maxAIs: 2, inputText: 'hi' };
+      const first = renderWithProviders(<AIComposer {...compareProps} configs={[]} />);
+      pressSend(first.getByTestId);
+      expect(mockPickerSheet.latest().message).toBe('Pick two AIs to compare side by side.');
+      first.unmount();
+
+      resetSheetCaptures();
+      const second = renderWithProviders(<AIComposer {...compareProps} configs={pickedClaude} />);
+      pressSend(second.getByTestId);
+      expect(mockPickerSheet.latest().message).toBe('Pick one more AI to compare against.');
+    });
+
+    it('explains compare needs two keys when no provider has one', () => {
+      const { getByTestId } = renderWithProviders(
+        <AIComposer
+          {...composerProps}
+          mode="compare"
+          minAIs={2}
+          maxAIs={2}
+          configs={[]}
+          configuredProviderIds={[]}
+          inputText="hi"
+        />
+      );
+      pressSend(getByTestId);
+      expect(mockPickerSheet.latest().message).toBe(
+        'Add API keys for two AIs to compare their answers.'
+      );
+    });
+
+    it('opens the picker without a message from the add pill', () => {
+      const { getByTestId } = renderWithProviders(
+        <AIComposer {...composerProps} configs={[]} inputText="hi" />
+      );
+      pressSend(getByTestId);
+      fireEvent.press(getByTestId('composer-add-ai'));
+      expect(mockPickerSheet.latest().message).toBeNull();
+    });
+
+    it('does not open the picker when enough AIs are picked but the text is empty', () => {
+      const { getByTestId } = renderWithProviders(<AIComposer {...composerProps} />);
+      pressSend(getByTestId);
+      expect(mockPickerSheet.latest().visible).toBe(false);
+    });
   });
 
   it('passes compare duplicate policy through to the picker sheet', () => {

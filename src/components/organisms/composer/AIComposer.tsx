@@ -35,7 +35,8 @@ export interface AIComposerProps {
   configuredProviderIds: string[];
   /** Demo mode: restrict the picker to these providers and hide Add-key rows. */
   allowedProviderIds?: string[];
-  onRequestAddKey?: () => void;
+  /** Opens API configuration on that provider's key card. */
+  onRequestAddKey?: (providerId: string) => void;
   /** Shows the per-pill "Advanced parameters" page (hidden in demo, where it is gated). */
   showAdvancedParams?: boolean;
   inputText: string;
@@ -83,6 +84,7 @@ export const AIComposer: React.FC<AIComposerProps> = ({
   const { theme } = useTheme();
   const { isTablet } = useResponsive();
   const [pickerVisible, setPickerVisible] = useState(false);
+  const [pickerMessage, setPickerMessage] = useState<string | null>(null);
   const [configIndex, setConfigIndex] = useState<number | null>(null);
   const [attachments, setAttachments] = useState<MessageAttachment[]>([]);
   const [showOptionsRow, setShowOptionsRow] = useState(false);
@@ -143,6 +145,27 @@ export const AIComposer: React.FC<AIComposerProps> = ({
 
   const closeConfigSheet = () => setConfigIndex(null);
 
+  const openPicker = (message: string | null) => {
+    setPickerMessage(message);
+    setPickerVisible(true);
+  };
+
+  // Send tapped before enough AIs are picked: open the picker and say why,
+  // instead of ignoring the tap.
+  const missingAIs = minAIs - configs.length;
+  const blockedSendMessage =
+    configuredProviderIds.length === 0
+      ? mode === 'compare'
+        ? 'Add API keys for two AIs to compare their answers.'
+        : 'Add an API key for a chat AI to send your message.'
+      : mode === 'compare'
+        ? missingAIs > 1
+          ? 'Pick two AIs to compare side by side.'
+          : 'Pick one more AI to compare against.'
+        : 'Pick an AI to answer your message.';
+  const handleBlockedSend =
+    !hasEnoughAIs && configs.length < maxAIs ? () => openPicker(blockedSendMessage) : undefined;
+
   const handleToggleAttach = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     setShowOptionsRow(current => !current);
@@ -177,10 +200,11 @@ export const AIComposer: React.FC<AIComposerProps> = ({
       onChangeText={onChangeText}
       onSend={handleSend}
       canSend={canSend}
+      onBlockedSend={handleBlockedSend}
       pills={pills}
       onPillPress={pillIndex => setConfigIndex(pillConfigIndices[pillIndex] ?? null)}
       showAddPill={configs.length < maxAIs}
-      onAddPill={() => setPickerVisible(true)}
+      onAddPill={() => openPicker(null)}
       addPillEmphasized={!hasEnoughAIs}
       aboveInput={
         showOptionsRow || attachments.length > 0 ? (
@@ -256,6 +280,7 @@ export const AIComposer: React.FC<AIComposerProps> = ({
         allowedProviderIds={allowedProviderIds}
         allowDuplicates={mode === 'compare'}
         onRequestAddKey={onRequestAddKey}
+        message={pickerMessage}
         testID={testID ? `${testID}-picker` : undefined}
       />
 

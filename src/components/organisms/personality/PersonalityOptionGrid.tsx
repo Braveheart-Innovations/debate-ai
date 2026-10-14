@@ -50,8 +50,14 @@ export const PersonalityOptionGrid: React.FC<PersonalityOptionGridProps> = ({
     const signaturePreview = item.signatureMoves[0];
     const samplePreview = item.sampleOpeners?.chat;
 
+    // The whole card selects (padding and the space a shorter card gets from
+    // its taller row neighbour included); "View details" is its own target.
     return (
-      <View
+      <TouchableOpacity
+        onPress={() => onSelectPersonality(item.id)}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityState={{ selected: isSelected }}
         style={[
           styles.card,
           {
@@ -59,13 +65,9 @@ export const PersonalityOptionGrid: React.FC<PersonalityOptionGridProps> = ({
             borderColor: isSelected ? theme.colors.primary[400] : theme.colors.border,
           },
         ]}
+        testID={testID ? `${testID}-option-${item.id}` : undefined}
       >
-        <TouchableOpacity
-          onPress={() => onSelectPersonality(item.id)}
-          activeOpacity={0.9}
-          style={{ marginBottom: 8 }}
-          testID={testID ? `${testID}-option-${item.id}` : undefined}
-        >
+        <View style={{ marginBottom: 8 }}>
           <Typography weight="bold" style={{ fontSize: 18, marginBottom: 4 }}>
             {item.emoji} {item.name}
           </Typography>
@@ -96,13 +98,14 @@ export const PersonalityOptionGrid: React.FC<PersonalityOptionGridProps> = ({
               Selected
             </Typography>
           )}
-        </TouchableOpacity>
+        </View>
 
         {!isDefault && (
           <TouchableOpacity
             accessibilityRole="button"
             onPress={() => setExpandedId(prev => (prev === item.id ? null : item.id))}
             style={{ paddingVertical: 4 }}
+            testID={testID ? `${testID}-details-${item.id}` : undefined}
           >
             <Typography variant="caption" color="primary" weight="semibold" style={{ textAlign: 'center' }}>
               {isExpanded ? 'Hide details ▲' : 'View details ▼'}
@@ -144,7 +147,7 @@ export const PersonalityOptionGrid: React.FC<PersonalityOptionGridProps> = ({
 
           </View>
         )}
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -157,6 +160,7 @@ export const PersonalityOptionGrid: React.FC<PersonalityOptionGridProps> = ({
       columnWrapperStyle={{ gap: 12 }}
       contentContainerStyle={{ paddingBottom: 24, gap: 12 }}
       showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
       testID={testID}
     />
   );

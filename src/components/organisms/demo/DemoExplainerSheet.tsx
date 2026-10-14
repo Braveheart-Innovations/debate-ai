@@ -30,7 +30,7 @@ export const DemoExplainerSheet: React.FC<DemoExplainerSheetProps> = ({ onClose,
         animated
       />
       <ContextBar title="Simulated content" subtitle="No live API calls." />
-      <ScrollView contentContainerStyle={{ padding: 20 }} showsVerticalScrollIndicator={false}>
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 20 }} showsVerticalScrollIndicator={false}>
         <Typography variant="body" color="secondary" style={{ marginBottom: 16 }}>
           {bodyCopy}
         </Typography>

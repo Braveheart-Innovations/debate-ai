@@ -19,7 +19,7 @@ export const DemoDebatePickerModal: React.FC<DemoDebatePickerModalProps> = ({ vi
       <View style={styles.backdrop}>
         <View style={[styles.sheet, { backgroundColor: theme.colors.background, borderColor: theme.colors.border }]}> 
           <SheetHeader title="Choose a Demo Debate" onClose={onClose} showHandle />
-          <ScrollView style={{ maxHeight: 520 }} contentContainerStyle={{ padding: 12 }}>
+          <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 520 }} contentContainerStyle={{ padding: 12 }}>
             {loading && (
               <View style={styles.loadingRow}>
                 <ActivityIndicator color={theme.colors.primary[500]} />

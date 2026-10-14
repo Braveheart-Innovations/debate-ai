@@ -29,6 +29,8 @@ export interface APIProviderListProps {
   clipboardKeyProviderId?: string | null;
   /** Callback to use the detected clipboard key for a provider. */
   onUseClipboardKey?: (providerId: string) => void;
+  /** Reports each provider card's y offset within the list (for scroll-to). */
+  onProviderLayout?: (providerId: string, y: number) => void;
 }
 
 export const APIProviderList: React.FC<APIProviderListProps> = ({
@@ -45,6 +47,7 @@ export const APIProviderList: React.FC<APIProviderListProps> = ({
   onGetApiKey,
   clipboardKeyProviderId,
   onUseClipboardKey,
+  onProviderLayout,
 }) => {
   const { theme } = useTheme();
 
@@ -73,10 +76,15 @@ export const APIProviderList: React.FC<APIProviderListProps> = ({
         const isExpanded = expandedProvider === provider.id;
         
         return (
-          <Box key={provider.id} style={[
-            styles.providerContainer,
-            { marginBottom: theme.spacing.lg }
-          ]}>
+          <Box
+            key={provider.id}
+            style={[styles.providerContainer, { marginBottom: theme.spacing.lg }]}
+            onLayout={
+              onProviderLayout
+                ? (event) => onProviderLayout(provider.id, event.nativeEvent.layout.y)
+                : undefined
+            }
+          >
             <ProviderCard
               provider={provider}
               apiKey={apiKeys[provider.id] || ''}

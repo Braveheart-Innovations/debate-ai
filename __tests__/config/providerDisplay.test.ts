@@ -50,6 +50,7 @@ describe('Provider capability matrix', () => {
       supportsImageInput: true,
       models: [
         'gemini-2.5-flash-image',
+        'gemini-nano-banana-2.1',
         'gemini-3.1-flash-image',
         'gemini-3.1-flash-lite-image',
         'gemini-3-pro-image',
@@ -82,7 +83,7 @@ describe('Provider capability matrix', () => {
     expect(capabilities.imageGeneration).toEqual(expect.objectContaining({
       supported: true,
       supportsImageInput: true,
-      models: ['grok-imagine-image-2.0', 'grok-imagine-image', 'grok-imagine-image-quality'],
+      models: ['grok-imagine-image-2.0', 'grok-imagine-image'],
       // Grok Imagine 2.0 (listed first) adds 21:9 and 5:2.
       sizes: ['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3', '2:1', '1:2', '21:9', '5:2', '19.5:9', '9:19.5', '20:9', '9:20'],
       maxPromptLength: 8000,

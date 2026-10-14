@@ -65,7 +65,7 @@ export const DebateRecordPickerModal: React.FC<DebateRecordPickerModalProps> = (
       <View style={styles.backdrop}>
         <View style={[styles.sheet, { backgroundColor: theme.colors.background, borderColor: theme.colors.border }]}> 
           <SheetHeader title="Record Debate" onClose={onClose} showHandle />
-          <ScrollView style={{ maxHeight: 520 }} contentContainerStyle={{ padding: 12 }}>
+          <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 520 }} contentContainerStyle={{ padding: 12 }}>
             {!creatingNew && (
               <TouchableOpacity
                 style={[styles.item, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}

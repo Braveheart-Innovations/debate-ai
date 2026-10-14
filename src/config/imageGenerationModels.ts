@@ -115,9 +115,29 @@ const IMAGE_MODEL_ALIASES: Partial<Record<AIProvider, Record<string, string>>> =
   grok: {
     'grok-2-image-1212': 'grok-imagine-image',
     'grok-image-latest': 'grok-imagine-image',
-    'grok-imagine-image-pro': 'grok-imagine-image-quality',
+    // xAI retires grok-imagine-image-quality on 2026-11-02 and serves it as
+    // grok-imagine-image-2.0 at quality "low" (see RETIRED_IMAGE_MODEL_QUALITY).
+    'grok-imagine-image-quality': 'grok-imagine-image-2.0',
+    'grok-imagine-image-pro': 'grok-imagine-image-2.0',
   },
 };
+
+// Retired image IDs that the provider serves as another model at a fixed
+// quality. A request that still names one is sent to the alias target with
+// this quality, matching what the provider does for the old slug.
+const RETIRED_IMAGE_MODEL_QUALITY: Partial<Record<AIProvider, Record<string, ImageOutputQuality>>> = {
+  grok: {
+    'grok-imagine-image-quality': 'low',
+    'grok-imagine-image-pro': 'low',
+  },
+};
+
+export function getRetiredImageModelQuality(
+  provider: AIProvider,
+  modelId?: string
+): ImageOutputQuality | undefined {
+  return modelId ? RETIRED_IMAGE_MODEL_QUALITY[provider]?.[modelId] : undefined;
+}
 
 function createImageModel(config: ImageModelConfig): ImageModelConfig {
   return {
@@ -271,6 +291,26 @@ export const IMAGE_MODELS: Partial<Record<AIProvider, ImageModelConfig[]>> = {
       qualityOptions: [...GOOGLE_IMAGE_QUALITIES],
       isDefault: true,
     }),
+    // Stable update to Nano Banana 2 (October 2026) and Google's recommended
+    // replacement for gemini-3.1-flash-image. Unlike 3.1 Flash Image it has
+    // no 512px output. Not on the Gemini API free tier.
+    createImageModel({
+      id: 'gemini-nano-banana-2.1',
+      displayName: 'Nano Banana 2.1',
+      providerDisplayName: 'Gemini (Nano Banana 2.1)',
+      shortProviderName: 'Gemini',
+      description: 'Newest fast Gemini image model, improving on Nano Banana 2 in quality, prompt adherence, character consistency, and text rendering.',
+      apiFamily: 'google-gemini-image',
+      supportsImageInput: true,
+      sizes: [...GOOGLE_FLASH_31_ASPECT_RATIOS],
+      aspectRatios: [...GOOGLE_FLASH_31_ASPECT_RATIOS],
+      resolutions: ['1K', '2K', '4K'],
+      maxImagesPerRequest: 1,
+      maxReferenceImages: 14,
+      supportsMultipleReferenceImages: true,
+      qualityOptions: [...GOOGLE_IMAGE_QUALITIES],
+      isDefault: false,
+    }),
     createImageModel({
       id: 'gemini-3.1-flash-image',
       displayName: 'Gemini 3.1 Flash Image',
@@ -407,24 +447,6 @@ export const IMAGE_MODELS: Partial<Record<AIProvider, ImageModelConfig[]>> = {
       qualityOptions: [...XAI_IMAGE_QUALITIES],
       outputFormats: [...XAI_IMAGE_FORMATS],
       isDefault: true,
-    }),
-    createImageModel({
-      id: 'grok-imagine-image-quality',
-      displayName: 'Grok Imagine Quality',
-      providerDisplayName: 'Grok (Imagine Quality)',
-      shortProviderName: 'Grok',
-      description: 'Higher-fidelity xAI image model with text-to-image generation, edits, and aspect-ratio controls.',
-      apiFamily: 'xai-images',
-      supportsImageInput: true,
-      sizes: [...XAI_ASPECT_RATIOS],
-      aspectRatios: [...XAI_ASPECT_RATIOS],
-      resolutions: ['1K', '2K'],
-      supportsMultipleReferenceImages: true,
-      maxImagesPerRequest: 10,
-      maxReferenceImages: 3,
-      qualityOptions: [...XAI_IMAGE_QUALITIES],
-      outputFormats: [...XAI_IMAGE_FORMATS],
-      isDefault: false,
     }),
   ],
 };

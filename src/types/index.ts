@@ -88,6 +88,12 @@ export interface DebateVoteResult {
   audienceStance?: AudienceStance;
 }
 
+/**
+ * How long each debate speech is: the setup's Speech length setting (Brief, Balanced, Detailed).
+ * The ids stay as the eval harness and stored runs name the levels.
+ */
+export type DebateSpeechLength = 'concise' | 'default' | 'verbose';
+
 export interface DebateSpeechMetadata {
   formatId: DebateFormatId;
   presetId: string;
@@ -258,6 +264,8 @@ export interface ChatSession {
     audienceResult?: AudienceDecisionResult;
     audienceQuestions?: OxfordAudienceQuestions;
     voiceConfig?: DebateVoiceConfig;
+    /** Absent on debates saved before the setting existed. */
+    speechLength?: DebateSpeechLength;
   };
 }
 
@@ -297,6 +305,12 @@ export interface ModelParameters {
   seed?: number;
   useExtendedContext?: boolean; // Enable 1M context for supported Claude models
   useExtendedOutput?: boolean; // Enable 128K output for supported Claude models
+  /**
+   * Asks a reasoning model to think briefly. Debate turns set it: word targets otherwise drive
+   * Gemini's hidden reasoning up and can exhaust the output cap. Adapters without a matching
+   * control ignore it.
+   */
+  reasoningEffort?: 'low';
 }
 
 export interface ExpertConfig {
@@ -332,7 +346,8 @@ export type RootStackParamList = {
     selectedModels?: { [aiId: string]: string };
   };
   Settings: undefined;
-  APIConfig: undefined;
+  /** providerId opens and scrolls to that provider's key card. */
+  APIConfig: { providerId?: string; from?: 'settings' } | undefined;
   Subscription: undefined;
   ExpertMode: { from?: 'settings' } | undefined;
   Debate: {
@@ -345,6 +360,7 @@ export type RootStackParamList = {
     demoDebateId?: string;
     demoSample?: import('@/types/demo').DemoDebate;
     voiceConfig?: DebateVoiceConfig;
+    speechLength?: DebateSpeechLength;
   };
   DebateTranscript: { session: ChatSession };
   Compare?: undefined;

@@ -151,7 +151,25 @@ describe('APIConfigScreen', () => {
 
     fireEvent.press(getByTestId('header'));
     expect(navigation.goBack).toHaveBeenCalledTimes(1);
+    expect(mockDispatch).not.toHaveBeenCalledWith(showSheet({ sheet: 'settings' }));
+  });
+
+  it('re-opens the settings sheet on back only when opened from settings', () => {
+    const { getByTestId } = renderWithProviders(
+      <APIConfigScreen navigation={navigation} route={{ params: { from: 'settings' } }} />
+    );
+
+    fireEvent.press(getByTestId('header'));
+    expect(navigation.goBack).toHaveBeenCalledTimes(1);
     expect(mockDispatch).toHaveBeenCalledWith(showSheet({ sheet: 'settings' }));
+  });
+
+  it('pre-expands the provider card named in the route params', () => {
+    renderWithProviders(
+      <APIConfigScreen navigation={navigation} route={{ params: { providerId: 'claude' } }} />
+    );
+
+    expect(mockAPIProviderList.latest().expandedProvider).toBe('claude');
   });
 
   it('forwards toggle expand calls with current expanded state', async () => {

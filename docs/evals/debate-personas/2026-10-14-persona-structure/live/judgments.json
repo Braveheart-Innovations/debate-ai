@@ -1,0 +1,1298 @@
+{
+  "rubricVersion": 2,
+  "judgeModel": "gpt-6.1-sol",
+  "judged": [
+    {
+      "debateId": "default-on-claude",
+      "personalityId": "default",
+      "provider": "claude",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "redactions": 0,
+      "format": {
+        "words": 103,
+        "minWords": 85,
+        "maxWords": 115,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "default",
+        "runner_up": "prof_sage",
+        "confidence": 4,
+        "evidence": "The speech uses a straightforward burden statement, brief city examples, and conventional policy benefits without distinctive humour, storytelling, or persona-specific mannerisms."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": null,
+        "signature_moves": [],
+        "in_character": null,
+        "note": "none"
+      }
+    },
+    {
+      "debateId": "default-on-claude",
+      "personalityId": "default",
+      "provider": "claude",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "redactions": 0,
+      "format": {
+        "words": 88,
+        "minWords": 68,
+        "maxWords": 92,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "default",
+        "runner_up": "devlin",
+        "confidence": 4,
+        "evidence": "The speech uses straightforward policy rebuttals and practical exceptions without distinctive humour, storytelling, scholarly framing, or other strong persona markers."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": null,
+        "signature_moves": [],
+        "in_character": null,
+        "note": "none"
+      }
+    },
+    {
+      "debateId": "bestie-on-claude",
+      "personalityId": "bestie",
+      "provider": "claude",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "redactions": 0,
+      "format": {
+        "words": 105,
+        "minWords": 85,
+        "maxWords": 115,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "scout",
+        "runner_up": "default",
+        "confidence": 3,
+        "evidence": "The speech makes its case through vivid human snapshots—a child breathing traffic fumes and a grandmother struggling to cross—then turns those stakes into the narrative of giving streets back to people."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": true,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": true
+          },
+          {
+            "move": 2,
+            "present": false
+          },
+          {
+            "move": 3,
+            "present": false
+          }
+        ],
+        "in_character": 3,
+        "note": "The speech lacks a warm, firm call for audience support and leaves several claims unconnected to their effects on specific kinds of people."
+      }
+    },
+    {
+      "debateId": "bestie-on-claude",
+      "personalityId": "bestie",
+      "provider": "claude",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "redactions": 0,
+      "format": {
+        "words": 74,
+        "minWords": 68,
+        "maxWords": 92,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "devlin",
+        "runner_up": "bestie",
+        "confidence": 3,
+        "evidence": "The speech acknowledges the opponent’s concern before saying “let’s test it,” then uses firm distinctions and practical exemptions to expose weaknesses without dismissing the concern."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": true,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": true
+          },
+          {
+            "move": 2,
+            "present": false
+          },
+          {
+            "move": 3,
+            "present": true
+          }
+        ],
+        "in_character": 3,
+        "note": "The speech grounds the traffic argument in a grandmother’s experience, but does not connect each claim to what changes for a specific kind of person."
+      }
+    },
+    {
+      "debateId": "brody-on-claude",
+      "personalityId": "brody",
+      "provider": "claude",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "redactions": 0,
+      "format": {
+        "words": 105,
+        "minWords": 85,
+        "maxWords": 115,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "brody",
+        "runner_up": "scout",
+        "confidence": 4,
+        "evidence": "The competitive framing ('planting the flag,' 'we win'), sports analogy ('clearing the field so the real players can run'), and punchy closing rally convey a high-energy coach voice."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": true,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": true
+          },
+          {
+            "move": 2,
+            "present": true
+          },
+          {
+            "move": 3,
+            "present": true
+          }
+        ],
+        "in_character": 5,
+        "note": "none"
+      }
+    },
+    {
+      "debateId": "brody-on-claude",
+      "personalityId": "brody",
+      "provider": "claude",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "redactions": 0,
+      "format": {
+        "words": 78,
+        "minWords": 68,
+        "maxWords": 92,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "brody",
+        "runner_up": "devlin",
+        "confidence": 4,
+        "evidence": "The game-plan opener “Here's the win condition,” rapid-fire rebuttals, and rallying closer “Take back the street!” give the speech a high-energy coach voice."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": true,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": true
+          },
+          {
+            "move": 2,
+            "present": false
+          },
+          {
+            "move": 3,
+            "present": true
+          }
+        ],
+        "in_character": 4,
+        "note": "The speech uses short, decisive sentences but lacks a clear, sharp sports analogy."
+      }
+    },
+    {
+      "debateId": "devlin-on-claude",
+      "personalityId": "devlin",
+      "provider": "claude",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "redactions": 0,
+      "format": {
+        "words": 101,
+        "minWords": 85,
+        "maxWords": 115,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "devlin",
+        "runner_up": "default",
+        "confidence": 4,
+        "evidence": "The speech opens with the strongest objection to its own position, then explicitly tests whether its case survives and identifies its underlying assumption—a characteristic fair-but-firm pressure-testing approach."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": true,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": true
+          },
+          {
+            "move": 2,
+            "present": false
+          },
+          {
+            "move": 3,
+            "present": false
+          }
+        ],
+        "in_character": 3,
+        "note": "The speech tests its core assumption but neither identifies where the opposing approach breaks first nor closes with a tougher, tested version of the ban."
+      }
+    },
+    {
+      "debateId": "devlin-on-claude",
+      "personalityId": "devlin",
+      "provider": "claude",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "redactions": 0,
+      "format": {
+        "words": 89,
+        "minWords": 68,
+        "maxWords": 92,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "devlin",
+        "runner_up": "default",
+        "confidence": 4,
+        "evidence": "The speech acknowledges the opponent’s strongest point, then pressure-tests its assumptions and identifies equity as the weakness where their approach breaks first."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": true,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": true
+          },
+          {
+            "move": 2,
+            "present": true
+          },
+          {
+            "move": 3,
+            "present": false
+          }
+        ],
+        "in_character": 4,
+        "note": "The closing identifies the opposition’s failure mode rather than presenting a tougher version of the affirmative position that survives the test."
+      }
+    },
+    {
+      "debateId": "george-on-claude",
+      "personalityId": "george",
+      "provider": "claude",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "redactions": 0,
+      "format": {
+        "words": 104,
+        "minWords": 85,
+        "maxWords": 115,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "george",
+        "runner_up": "scout",
+        "confidence": 5,
+        "evidence": "The speech uses sharp observational satire—calling parked cars an 'expensive storage unit with exhaust'—and skewers self-serving attitudes toward congestion before pivoting to practical benefits."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": true,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": true
+          },
+          {
+            "move": 2,
+            "present": true
+          },
+          {
+            "move": 3,
+            "present": true
+          }
+        ],
+        "in_character": 4,
+        "note": "The strongest access objection is anticipated only briefly through exemptions rather than developed into a full answer."
+      }
+    },
+    {
+      "debateId": "george-on-claude",
+      "personalityId": "george",
+      "provider": "claude",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "redactions": 0,
+      "format": {
+        "words": 84,
+        "minWords": 68,
+        "maxWords": 92,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "george",
+        "runner_up": "devlin",
+        "confidence": 5,
+        "evidence": "The speech hunts contradictions with sarcastic jabs like “a car ban with better PR” and “a decade of not deciding,” pairing pointed ridicule with practical rebuttals."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": true,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": true
+          },
+          {
+            "move": 2,
+            "present": false
+          },
+          {
+            "move": 3,
+            "present": false
+          }
+        ],
+        "in_character": 4,
+        "note": "The speech clearly uses contradiction and sarcasm, but does not explicitly expose an unspoken incentive or land its closing punchline on a practical point."
+      }
+    },
+    {
+      "debateId": "kai-on-claude",
+      "personalityId": "kai",
+      "provider": "claude",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "redactions": 0,
+      "format": {
+        "words": 117,
+        "minWords": 85,
+        "maxWords": 115,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "kai",
+        "runner_up": "default",
+        "confidence": 5,
+        "evidence": "The explicit design-review framing—constraints, tradeoffs, and measurable success criteria—strongly reflects Kai’s engineering-oriented, methodical voice."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": true,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": true
+          },
+          {
+            "move": 2,
+            "present": true
+          },
+          {
+            "move": 3,
+            "present": true
+          }
+        ],
+        "in_character": 5,
+        "note": "none"
+      }
+    },
+    {
+      "debateId": "kai-on-claude",
+      "personalityId": "kai",
+      "provider": "claude",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "redactions": 0,
+      "format": {
+        "words": 79,
+        "minWords": 68,
+        "maxWords": 92,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "kai",
+        "runner_up": "devlin",
+        "confidence": 4,
+        "evidence": "Engineering language such as “fails under load” and “binding constraint,” paired with explicit exemptions and measurable success criteria, signals Kai’s systems-oriented voice."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": false,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": true
+          },
+          {
+            "move": 2,
+            "present": true
+          },
+          {
+            "move": 3,
+            "present": true
+          }
+        ],
+        "in_character": 4,
+        "note": "The speech makes all three signature moves, but discusses congestion pricing's tradeoff before explicitly stating the binding constraint, contrary to the required order."
+      }
+    },
+    {
+      "debateId": "prof_sage-on-claude",
+      "personalityId": "prof_sage",
+      "provider": "claude",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "redactions": 0,
+      "format": {
+        "words": 102,
+        "minWords": 85,
+        "maxWords": 115,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "prof_sage",
+        "runner_up": "default",
+        "confidence": 4,
+        "evidence": "The speech opens with a careful definition and burden of proof, then distinguishes evidence from inference while qualifying studies and acknowledging what contrary evidence would change its conclusion."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": true,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": true
+          },
+          {
+            "move": 2,
+            "present": true
+          },
+          {
+            "move": 3,
+            "present": true
+          }
+        ],
+        "in_character": 5,
+        "note": "none"
+      }
+    },
+    {
+      "debateId": "prof_sage-on-claude",
+      "personalityId": "prof_sage",
+      "provider": "claude",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "redactions": 0,
+      "format": {
+        "words": 81,
+        "minWords": 68,
+        "maxWords": 92,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "devlin",
+        "runner_up": "prof_sage",
+        "confidence": 4,
+        "evidence": "The speech pressure-tests the opponent’s framing, identifies a straw man, and offers firm counterarguments while explicitly naming evidence that would change its conclusion."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": true,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": true
+          },
+          {
+            "move": 2,
+            "present": true
+          },
+          {
+            "move": 3,
+            "present": true
+          }
+        ],
+        "in_character": 5,
+        "note": "none"
+      }
+    },
+    {
+      "debateId": "scout-on-claude",
+      "personalityId": "scout",
+      "provider": "claude",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "redactions": 0,
+      "format": {
+        "words": 117,
+        "minWords": 85,
+        "maxWords": 115,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "scout",
+        "runner_up": "prof_sage",
+        "confidence": 5,
+        "evidence": "The speech opens with a vivid morning scene of children’s voices replacing engine noise, then turns that concrete image into a clear strategic lesson about shared streets."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": false,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": true
+          },
+          {
+            "move": 2,
+            "present": true
+          },
+          {
+            "move": 3,
+            "present": true
+          }
+        ],
+        "in_character": 4,
+        "note": "The Pontevedra scene fits Scout, but the argument about cars' inefficient use of shared space is not framed as a moment-in-time story or tied to a checkable fact."
+      }
+    },
+    {
+      "debateId": "scout-on-claude",
+      "personalityId": "scout",
+      "provider": "claude",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "redactions": 0,
+      "format": {
+        "words": 88,
+        "minWords": 68,
+        "maxWords": 92,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "scout",
+        "runner_up": "default",
+        "confidence": 5,
+        "evidence": "The opening shopkeeper scene makes the policy tangible, then turns it into a memorable lesson about protecting customers rather than cars."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": false,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": true
+          },
+          {
+            "move": 2,
+            "present": false
+          },
+          {
+            "move": 3,
+            "present": true
+          }
+        ],
+        "in_character": 4,
+        "note": "The retail argument links a concrete scene to a checkable survey, but the pricing and exemption claims lack their own fact-linked scenes, and no sensory detail is clearly tied to a factual point."
+      }
+    },
+    {
+      "debateId": "default-on-google",
+      "personalityId": "default",
+      "provider": "google",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "redactions": 0,
+      "format": {
+        "words": 101,
+        "minWords": 85,
+        "maxWords": 115,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "default",
+        "runner_up": "prof_sage",
+        "confidence": 5,
+        "evidence": "The speech uses conventional debate framing and broad policy claims, without distinctive humour, storytelling, coaching, or scholarly detail that would identify a persona."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": null,
+        "signature_moves": [],
+        "in_character": null,
+        "note": "none"
+      }
+    },
+    {
+      "debateId": "default-on-google",
+      "personalityId": "default",
+      "provider": "google",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "redactions": 0,
+      "format": {
+        "words": 86,
+        "minWords": 68,
+        "maxWords": 92,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "default",
+        "runner_up": "devlin",
+        "confidence": 4,
+        "evidence": "The speech uses conventional rebuttal, policy distinctions, and a supporting city example without a distinctive persona voice, though its firm correction of the Negative slightly suggests devlin."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": null,
+        "signature_moves": [],
+        "in_character": null,
+        "note": "none"
+      }
+    },
+    {
+      "debateId": "bestie-on-google",
+      "personalityId": "bestie",
+      "provider": "google",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "redactions": 0,
+      "format": {
+        "words": 102,
+        "minWords": 85,
+        "maxWords": 115,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "default",
+        "runner_up": "bestie",
+        "confidence": 4,
+        "evidence": "The speech uses conventional debate framing, shared civic values, and brief illustrative examples without a distinctive persona voice, though its inclusive concern for vulnerable residents faintly suggests bestie."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": true,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": true
+          },
+          {
+            "move": 2,
+            "present": false
+          },
+          {
+            "move": 3,
+            "present": true
+          }
+        ],
+        "in_character": 3,
+        "note": "The speech grounds safety and air-quality concerns in specific people, but leaves its commerce, transit, and community-momentum claims abstract."
+      }
+    },
+    {
+      "debateId": "bestie-on-google",
+      "personalityId": "bestie",
+      "provider": "google",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "redactions": 0,
+      "format": {
+        "words": 87,
+        "minWords": 68,
+        "maxWords": 92,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "default",
+        "runner_up": "scout",
+        "confidence": 4,
+        "evidence": "The speech uses conventional policy advocacy and a brief real-world example, with only light imagery such as “human life replaces parked steel” rather than a distinctive persona voice."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": true,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": true
+          },
+          {
+            "move": 2,
+            "present": false
+          },
+          {
+            "move": 3,
+            "present": true
+          }
+        ],
+        "in_character": 3,
+        "note": "The business-growth claim is not grounded in what changes for a specific kind of person, so the second signature move is incomplete."
+      }
+    },
+    {
+      "debateId": "brody-on-google",
+      "personalityId": "brody",
+      "provider": "google",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "redactions": 0,
+      "format": {
+        "words": 105,
+        "minWords": 85,
+        "maxWords": 115,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "brody",
+        "runner_up": "scout",
+        "confidence": 5,
+        "evidence": "The flag-planting opener, explicit “win condition,” basketball analogy, and punchy commands to “Clear the lanes” convey a high-energy game-plan coach."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": true,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": true
+          },
+          {
+            "move": 2,
+            "present": false
+          },
+          {
+            "move": 3,
+            "present": true
+          }
+        ],
+        "in_character": 4,
+        "note": "The speech has exactly one sports analogy, but most sentences are too long to satisfy the short, decisive sentence requirement."
+      }
+    },
+    {
+      "debateId": "brody-on-google",
+      "personalityId": "brody",
+      "provider": "google",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "redactions": 0,
+      "format": {
+        "words": 92,
+        "minWords": 68,
+        "maxWords": 92,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "brody",
+        "runner_up": "devlin",
+        "confidence": 4,
+        "evidence": "The punchy 'win condition' framing, running-track analogy, blunt rebuttal, and energetic closing rally sound like a straight-talk game-plan coach."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": true,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": true
+          },
+          {
+            "move": 2,
+            "present": true
+          },
+          {
+            "move": 3,
+            "present": true
+          }
+        ],
+        "in_character": 5,
+        "note": "none"
+      }
+    },
+    {
+      "debateId": "devlin-on-google",
+      "personalityId": "devlin",
+      "provider": "google",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "redactions": 0,
+      "format": {
+        "words": 130,
+        "minWords": 85,
+        "maxWords": 115,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "devlin",
+        "runner_up": "default",
+        "confidence": 3,
+        "evidence": "The speech foregrounds the strongest objection, challenges its 'unexamined assumption,' and declares that its position 'survives this scrutiny,' reflecting a firm, respectful pressure-testing voice."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": true,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": true
+          },
+          {
+            "move": 2,
+            "present": true
+          },
+          {
+            "move": 3,
+            "present": false
+          }
+        ],
+        "in_character": 4,
+        "note": "The closing reasserts the benefits of the ban rather than presenting a tougher version of the position that explicitly withstands the mobility and commerce objection."
+      }
+    },
+    {
+      "debateId": "devlin-on-google",
+      "personalityId": "devlin",
+      "provider": "google",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "redactions": 0,
+      "format": {
+        "words": 88,
+        "minWords": 68,
+        "maxWords": 92,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "devlin",
+        "runner_up": "default",
+        "confidence": 4,
+        "evidence": "The speech fairly acknowledges the opposition’s strongest point, then pressure-tests its underlying assumption and identifies a concrete failure mode—hallmarks of respectful but firm counter-argument."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": true,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": true
+          },
+          {
+            "move": 2,
+            "present": true
+          },
+          {
+            "move": 3,
+            "present": false
+          }
+        ],
+        "in_character": 4,
+        "note": "The closing reasserts the ban’s benefits but does not clearly formulate a tougher version of the position that survives the test."
+      }
+    },
+    {
+      "debateId": "george-on-google",
+      "personalityId": "george",
+      "provider": "google",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "redactions": 0,
+      "format": {
+        "words": 101,
+        "minWords": 85,
+        "maxWords": 115,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "george",
+        "runner_up": "scout",
+        "confidence": 5,
+        "evidence": "The sarcastic images of 'two-ton metal cages,' 'stationary chrome,' and a podcast-blasting driver 'losing his damn mind' expose urban absurdity through pointed observational satire."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": false,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": true
+          },
+          {
+            "move": 2,
+            "present": true
+          },
+          {
+            "move": 3,
+            "present": true
+          }
+        ],
+        "in_character": 4,
+        "note": "The speech follows the contradiction–sarcasm–practical argument sequence but does not anticipate a strong objection, such as access for people who cannot readily use public transit."
+      }
+    },
+    {
+      "debateId": "george-on-google",
+      "personalityId": "george",
+      "provider": "google",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "redactions": 0,
+      "format": {
+        "words": 89,
+        "minWords": 68,
+        "maxWords": 92,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "george",
+        "runner_up": "devlin",
+        "confidence": 4,
+        "evidence": "The speech’s irritated, contradiction-hunting voice—“hiding behind tradespeople,” “every damn street,” and rich drivers “monopoliz[ing] public asphalt”—most strongly signals George’s righteous skepticism and sharp observational bite."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": false,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": false
+          },
+          {
+            "move": 2,
+            "present": true
+          },
+          {
+            "move": 3,
+            "present": true
+          }
+        ],
+        "in_character": 3,
+        "note": "The speech answers accessibility and congestion-pricing objections and rebuilds the case, but leads with a sarcastic accusation rather than clearly setting up a contradiction before the sarcastic reframe."
+      }
+    },
+    {
+      "debateId": "kai-on-google",
+      "personalityId": "kai",
+      "provider": "google",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "redactions": 0,
+      "format": {
+        "words": 96,
+        "minWords": 85,
+        "maxWords": 115,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "kai",
+        "runner_up": "default",
+        "confidence": 5,
+        "evidence": "The speech frames the motion as a systems design problem using engineering language such as “binding constraint,” “peak load,” “spatial throughput,” and measurable commute “latencies.”"
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": false,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": false
+          },
+          {
+            "move": 2,
+            "present": true
+          },
+          {
+            "move": 3,
+            "present": true
+          }
+        ],
+        "in_character": 4,
+        "note": "The design-review structure is clear, but the binding constraint and success metrics use technical jargon rather than plain language for a general audience."
+      }
+    },
+    {
+      "debateId": "kai-on-google",
+      "personalityId": "kai",
+      "provider": "google",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "redactions": 0,
+      "format": {
+        "words": 83,
+        "minWords": 68,
+        "maxWords": 92,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "default",
+        "runner_up": "kai",
+        "confidence": 3,
+        "evidence": "The speech offers a compact, straightforward policy rebuttal with city examples and success metrics, but lacks a distinctive persona voice or sustained technical structure."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": false,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": true
+          },
+          {
+            "move": 2,
+            "present": false
+          },
+          {
+            "move": 3,
+            "present": true
+          }
+        ],
+        "in_character": 4,
+        "note": "The speech identifies scarce road space and closes with success metrics, but never walks through an actual tradeoff as a cause-and-effect chain."
+      }
+    },
+    {
+      "debateId": "prof_sage-on-google",
+      "personalityId": "prof_sage",
+      "provider": "google",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "redactions": 0,
+      "format": {
+        "words": 100,
+        "minWords": 85,
+        "maxWords": 115,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "prof_sage",
+        "runner_up": "default",
+        "confidence": 4,
+        "evidence": "The opening definition, formal distinction between empirical metrics and social inference, and explicit condition for revising the position signal a cautious, scholarly voice."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": false,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": true
+          },
+          {
+            "move": 2,
+            "present": true
+          },
+          {
+            "move": 3,
+            "present": false
+          }
+        ],
+        "in_character": 4,
+        "note": "The speech names evidence and inference without clearly distinguishing them, and gives a reconsideration condition without explicitly assessing evidence strength."
+      }
+    },
+    {
+      "debateId": "prof_sage-on-google",
+      "personalityId": "prof_sage",
+      "provider": "google",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "redactions": 0,
+      "format": {
+        "words": 85,
+        "minWords": 68,
+        "maxWords": 92,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "devlin",
+        "runner_up": "prof_sage",
+        "confidence": 3,
+        "evidence": "The speech centres on correcting the opposition’s framing, pressure-testing pricing mechanisms, and offering an explicit conditional concession before delivering firm pushback."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": false,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": true
+          },
+          {
+            "move": 2,
+            "present": true
+          },
+          {
+            "move": 3,
+            "present": false
+          }
+        ],
+        "in_character": 3,
+        "note": "The speech states a concession condition but does not explicitly distinguish evidence from inference or assess evidential strength, instead making categorical claims."
+      }
+    },
+    {
+      "debateId": "scout-on-google",
+      "personalityId": "scout",
+      "provider": "google",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "redactions": 0,
+      "format": {
+        "words": 114,
+        "minWords": 85,
+        "maxWords": 115,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "scout",
+        "runner_up": "default",
+        "confidence": 5,
+        "evidence": "The opening transports listeners to a vivid London crosswalk scene, using Elena and her son, sensory detail, and emotional stakes to build toward a clear strategic lesson."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": true,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": true
+          },
+          {
+            "move": 2,
+            "present": true
+          },
+          {
+            "move": 3,
+            "present": true
+          }
+        ],
+        "in_character": 5,
+        "note": "none"
+      }
+    },
+    {
+      "debateId": "scout-on-google",
+      "personalityId": "scout",
+      "provider": "google",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "redactions": 0,
+      "format": {
+        "words": 85,
+        "minWords": 68,
+        "maxWords": 92,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "scout",
+        "runner_up": "default",
+        "confidence": 5,
+        "evidence": "The opening scene of Maria wheeling past crowded terraces makes the policy tangible, then closes with an emotionally resonant lesson about returning streets to human life."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": false,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": true
+          },
+          {
+            "move": 2,
+            "present": true
+          },
+          {
+            "move": 3,
+            "present": true
+          }
+        ],
+        "in_character": 4,
+        "note": "The congestion-pricing argument is a bare assertion rather than a moment-in-time story tied to a checkable fact."
+      }
+    }
+  ]
+}

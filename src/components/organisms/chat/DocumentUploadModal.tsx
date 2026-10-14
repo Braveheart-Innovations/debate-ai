@@ -60,7 +60,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({ visibl
             <SafeAreaView style={{ flex: 1 }}>
               <SheetHeader title="Attach Document" onClose={onClose} showHandle />
               <KeyboardAvoider>
-                <ScrollView contentContainerStyle={styles.content}>
+                <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
                   <Box style={styles.section}>
                     <Typography variant="body" weight="semibold" color="secondary" style={styles.label}>Select File</Typography>
                     <TouchableOpacity onPress={pickDocument} style={[styles.actionBtn, { borderColor: theme.colors.border }]}>

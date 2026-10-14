@@ -1,5 +1,9 @@
 # Gemini reasoning under word targets: 2026-10-14
 
+Correction (later on 2026-10-14): both debaters here shared the participant id `google`, so every
+speech ran as Default, not as the eight personas listed below; see
+[2026-10-14-gemini-low](../2026-10-14-gemini-low/README.md). The length and token numbers stand.
+
 Why did a verbose Gemini turn in the [confirming run](../2026-10-14-confirm/) stop on the 6144-token
 limit after 201 words? Gemini 3.8 Flash against itself, text mode, all 8 personas, today's prompt
 (`current`) against word targets at default and verbose: 24 debates, 68 calls (two debates stopped

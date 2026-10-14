@@ -51,7 +51,7 @@ export const ChatTopicPickerModal: React.FC<ChatTopicPickerModalProps> = ({ visi
         <View style={[styles.sheet, { backgroundColor: theme.colors.background, borderColor: theme.colors.border }]}> 
           <SheetHeader title="Choose a Chat Topic" onClose={onClose} showHandle />
 
-          <ScrollView style={{ maxHeight: 520 }} contentContainerStyle={{ padding: 12 }}>
+          <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 520 }} contentContainerStyle={{ padding: 12 }}>
             {/* New sample option */}
             {allowNewSample && !creatingNew && (
               <TouchableOpacity

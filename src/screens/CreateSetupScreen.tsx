@@ -33,6 +33,7 @@ import {
   CreateOptionsSheet,
   VideoConfigSheet,
 } from '../components/organisms';
+import type { CreateTabSuggestion } from '../components/organisms';
 import {
   RootState,
   AppDispatch,
@@ -81,6 +82,20 @@ const COMPOSER_PLACEHOLDERS: Record<CreateTab, string> = {
   image: 'Describe the image to create…',
   video: 'A cinematic tracking shot of…',
   audio: 'Read this in a warm, clear voice…',
+};
+
+const TAB_LABELS: Record<CreateTab, string> = {
+  image: 'Image',
+  video: 'Video',
+  audio: 'Audio',
+};
+
+const TAB_SUGGESTION_ORDER: CreateTab[] = ['image', 'video', 'audio'];
+
+const TAB_SUGGESTION_NOTES: Record<CreateTab, string> = {
+  image: 'Your image AI keys work on the Image tab.',
+  video: 'Your Runway key makes videos.',
+  audio: 'Your ElevenLabs key makes voiceovers and sound effects.',
 };
 
 const PROMPT_MAX_LENGTHS = {
@@ -519,8 +534,12 @@ export default function CreateSetupScreen() {
       : { galleryTab: 'image' });
   }, [lastImageGenerationResult, navigation]);
 
-  const handleAddAI = useCallback(() => {
-    navigation.navigate('APIConfig');
+  const handleAddKey = useCallback((providerId?: string) => {
+    if (providerId) {
+      navigation.navigate('APIConfig', { providerId });
+    } else {
+      navigation.navigate('APIConfig');
+    }
   }, [navigation]);
 
   const handleMediaPillPress = useCallback((_index: number) => {
@@ -528,6 +547,19 @@ export default function CreateSetupScreen() {
     if (activeTab === 'video') setVideoSheetOpen(true);
     if (activeTab === 'audio') setAudioSheetOpen(true);
   }, [activeTab]);
+
+  // The active tab has no provider but another tab does (e.g. only a Runway
+  // key while on Image): say what the key is for and offer to switch.
+  const tabSuggestion = useMemo<CreateTabSuggestion | null>(() => {
+    if (composer.readyTabs[activeTab]) return null;
+    const target = TAB_SUGGESTION_ORDER.find((tab) => tab !== activeTab && composer.readyTabs[tab]);
+    if (!target) return null;
+    return {
+      note: TAB_SUGGESTION_NOTES[target],
+      label: `Switch to ${TAB_LABELS[target]}`,
+      onPress: () => handleTabChange(target),
+    };
+  }, [activeTab, composer.readyTabs, handleTabChange]);
 
   // Demo mode gate - only demo users should be blocked
   if (isDemo) {
@@ -597,11 +629,12 @@ export default function CreateSetupScreen() {
         <CreateEmptyState
           tab="image"
           hasConfiguredProviders={composer.configuredProviderIds.length > 0}
+          tabSuggestion={tabSuggestion}
           recentAssets={recentImageAssets}
           onPressRecent={(asset) =>
             navigation.navigate('CreateSession', { focusAssetId: asset.id, galleryTab: 'image' })
           }
-          onConfigureProviders={handleAddAI}
+          onConfigureProviders={() => handleAddKey()}
           testID="create-empty-state"
         />
       );
@@ -630,11 +663,12 @@ export default function CreateSetupScreen() {
         <CreateEmptyState
           tab="video"
           hasConfiguredProviders={hasRunwayKey}
+          tabSuggestion={tabSuggestion}
           recentAssets={recentVideoAssets}
           onPressRecent={(asset) =>
             navigation.navigate('CreateSession', { focusMediaId: asset.id, galleryTab: 'video' })
           }
-          onConfigureProviders={handleAddAI}
+          onConfigureProviders={() => handleAddKey('runway')}
           testID="create-empty-state"
         />
       );
@@ -662,11 +696,12 @@ export default function CreateSetupScreen() {
       <CreateEmptyState
         tab="audio"
         hasConfiguredProviders={hasElevenLabsKey}
+        tabSuggestion={tabSuggestion}
         recentAssets={recentAudioAssets}
         onPressRecent={(asset) =>
           navigation.navigate('CreateSession', { focusMediaId: asset.id, galleryTab: 'audio' })
         }
-        onConfigureProviders={handleAddAI}
+        onConfigureProviders={() => handleAddKey('elevenlabs')}
         testID="create-empty-state"
       />
     );
@@ -683,6 +718,7 @@ export default function CreateSetupScreen() {
     video: {
       onSend: handleSendVideo,
       canSend: canSendVideo,
+      onBlockedSend: hasRunwayKey ? undefined : () => handleAddKey('runway'),
       validationMessage: videoValidationMessage,
       maxLength: PROMPT_MAX_LENGTHS.video,
       placeholder: videoAttachment
@@ -692,6 +728,7 @@ export default function CreateSetupScreen() {
     audio: {
       onSend: handleSendAudio,
       canSend: canSendAudio,
+      onBlockedSend: hasElevenLabsKey ? undefined : () => handleAddKey('elevenlabs'),
       validationMessage: audioValidationMessage,
       maxLength:
         audioOptions.operation === 'text_to_speech'
@@ -736,7 +773,7 @@ export default function CreateSetupScreen() {
             onRemoveConfig={composer.removeConfig}
             pickerProviders={composer.pickerProviders}
             configuredProviderIds={composer.configuredProviderIds}
-            onRequestAddKey={handleAddAI}
+            onRequestAddKey={handleAddKey}
             attachments={composer.attachments}
             onRemoveAttachment={(uri) => dispatch(removeAttachment({ tab: activeTab, uri }))}
             onOpenOptions={activeTab === 'image' ? () => setImageOptionsSheetOpen(true) : undefined}

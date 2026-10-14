@@ -1,132 +1,102 @@
 import type { DebateFormatId, PhaseId } from '@/config/debate/formats';
-import type { ModelParameters } from '@/types';
+import type { DebateSpeechLength, ModelParameters } from '@/types';
 
 type CxRole = 'questioner' | 'answerer';
 
 interface DebateSpeechLengthInput {
   formatId?: DebateFormatId;
-  presetId?: string;
   phase: PhaseId;
   cxRole?: CxRole;
   voiceMode?: boolean;
+  /** The debate's speech length setting. Exchanges set how many speeches there are, not their length. */
+  level?: DebateSpeechLength;
 }
 
 export interface DebateSpeechLengthGuidance {
+  /** The word count the turn prompt asks for. */
+  targetWords: number;
+  /** Low end of the prompt's range (0.85 x target); the too-short guard fires at 20% of it. */
   minWords: number;
+  /** High end of the prompt's range (1.15 x target). */
   maxWords: number;
+  /** Output-token safety net: fixed per mode and never follows the level. */
   maxTokens: number;
   directive: string;
 }
 
+export const DEBATE_SPEECH_LENGTHS: readonly DebateSpeechLength[] = ['concise', 'default', 'verbose'];
+export const DEFAULT_DEBATE_SPEECH_LENGTH: DebateSpeechLength = 'default';
+
+export const isDebateSpeechLength = (value: unknown): value is DebateSpeechLength =>
+  DEBATE_SPEECH_LENGTHS.some((level) => level === value);
+
 const DEBATE_OUTPUT_SAFETY_TOKENS = 6144;
 // Generous voice ceiling: a runaway safety net, NOT a length control. Deliberately set well above
 // the 3000-char TTS budget (~750 tokens) so a token-limit finish is rare. Per-phase length is
-// controlled by the prompt word guidance, and audio length is bounded at the TTS boundary on
+// controlled by the prompt's word target, and audio length is bounded at the TTS boundary on
 // completed text (see DebateVoiceService).
 const DEBATE_VOICE_OUTPUT_SAFETY_TOKENS = 1536;
 
-const PRESET_MULTIPLIER: Record<string, number> = {
-  short: 1,
-  standard: 1.1,
-  long: 1.2,
-};
+// Measured on Claude, ChatGPT and Gemini in text and voice mode (docs/evals/debate-length/): every
+// level lands within 20% of these targets.
+const OPENING_WORDS: Record<DebateSpeechLength, number> = { concise: 100, default: 190, verbose: 350 };
+const FLOOR_SPEECH_WORDS: Record<DebateSpeechLength, number> = { concise: 80, default: 150, verbose: 260 };
 
-function applyPreset(maxWords: number, presetId?: string): number {
-  const multiplier = PRESET_MULTIPLIER[presetId || 'short'] || 1;
-  return Math.round(maxWords * multiplier);
-}
+// Every other phase scales its default target by these factors, rounded to 5 words.
+const LEVEL_SCALE: Record<DebateSpeechLength, number> = { concise: 0.55, default: 1, verbose: 1.8 };
 
-function getBaseMaxWords({ formatId, phase, cxRole }: DebateSpeechLengthInput): number {
+// The longest measured 350-word speech used 2,784 of the 3,000 characters one audio clip holds.
+const MAX_TARGET_WORDS = 350;
+
+function getDefaultTargetWords({ formatId, phase, cxRole }: DebateSpeechLengthInput): number {
   if (phase === 'cross_examination') {
-    return cxRole === 'answerer' ? 110 : 90;
+    return cxRole === 'answerer' ? 95 : 75;
   }
 
   if (formatId === 'socratic') {
-    if (phase === 'opening' || phase === 'question') return 90;
-    if (phase === 'synthesis' || phase === 'closing') return 110;
-    return 120;
+    if (phase === 'opening' || phase === 'question') return 75;
+    if (phase === 'synthesis' || phase === 'closing') return 95;
+    return 100;
   }
 
   switch (phase) {
     case 'opening':
     case 'constructive':
-      return 220;
+      return OPENING_WORDS.default;
     case 'rebuttal':
     case 'final_rebuttal':
-      return 180;
+      return FLOOR_SPEECH_WORDS.default;
     case 'closing':
-      return 150;
+      return 130;
     case 'question':
-      return 80;
+      // An Oxford audience-question answer.
+      return 70;
     case 'synthesis':
-      return 110;
-    default:
-      return 180;
+      return 95;
   }
 }
 
-function getMinWords(maxWords: number, phase: PhaseId): number {
-  if (phase === 'cross_examination' || phase === 'question') {
-    return Math.max(40, Math.round(maxWords * 0.55));
+function getTargetWords(input: DebateSpeechLengthInput): number {
+  const level = input.level ?? DEFAULT_DEBATE_SPEECH_LENGTH;
+  if (input.formatId !== 'socratic') {
+    if (input.phase === 'opening' || input.phase === 'constructive') return OPENING_WORDS[level];
+    if (input.phase === 'rebuttal' || input.phase === 'final_rebuttal') return FLOOR_SPEECH_WORDS[level];
   }
-
-  return Math.max(80, Math.round(maxWords * 0.7));
-}
-
-function getTokenCap(maxWords: number, voiceMode?: boolean): number {
-  if (voiceMode) {
-    // Constant safety net — intentionally independent of maxWords. Length is the prompt's job.
-    return DEBATE_VOICE_OUTPUT_SAFETY_TOKENS;
-  }
-  return Math.max(DEBATE_OUTPUT_SAFETY_TOKENS, Math.ceil(maxWords * 2.2));
-}
-
-function getQualitativeLengthDirective(input: DebateSpeechLengthInput): string {
-  if (input.phase === 'cross_examination') {
-    return input.cxRole === 'questioner'
-      ? 'Length guidance: Ask a few direct questions, not a speech. Keep the exchange moving and stop once the key commitment is tested.'
-      : 'Length guidance: Answer directly and briefly. Defend the point at issue without turning the exchange into a mini-essay.';
-  }
-
-  if (input.phase === 'question') {
-    return 'Length guidance: Give one focused answer to the audience question. Answer directly, tie it back to your side, and stop.';
-  }
-
-  if (input.formatId === 'socratic') {
-    if (input.phase === 'opening' || input.phase === 'synthesis' || input.phase === 'closing') {
-      return 'Length guidance: Keep it concise and inquiry-led. Surface the central assumption or takeaway in natural prose, then stop.';
-    }
-    return 'Length guidance: Keep the follow-up brief and precise. Probe one important tension rather than covering every possible angle.';
-  }
-
-  switch (input.phase) {
-    case 'opening':
-    case 'constructive':
-      return 'Length guidance: Keep this as a compact opening. Make the core case in 2-3 short paragraphs, with no headings or lists, then stop.';
-    case 'rebuttal':
-    case 'final_rebuttal':
-      return 'Length guidance: Keep this rebuttal brief and targeted. Answer one or two decisive claims, rebuild your side, and stop.';
-    case 'closing':
-      return 'Length guidance: Keep this closing concise. Crystallize the strongest reason to vote for your side, avoid new claims, and stop.';
-    case 'synthesis':
-      return 'Length guidance: Keep this synthesis concise. Name the clearest insight or unresolved tension, then stop.';
-    default:
-      return 'Length guidance: Keep the response brief, focused, and in natural prose. Stop once the point is made.';
-  }
+  const scaled = Math.round((getDefaultTargetWords(input) * LEVEL_SCALE[level]) / 5) * 5;
+  return Math.min(MAX_TARGET_WORDS, scaled);
 }
 
 export function getDebateSpeechLengthGuidance(input: DebateSpeechLengthInput): DebateSpeechLengthGuidance {
-  const baseMaxWords = getBaseMaxWords(input);
-  const shouldScale = input.phase !== 'cross_examination' && input.formatId !== 'socratic';
-  const maxWords = shouldScale ? applyPreset(baseMaxWords, input.presetId) : baseMaxWords;
-  const minWords = getMinWords(maxWords, input.phase);
-  const maxTokens = getTokenCap(maxWords, input.voiceMode);
+  const targetWords = getTargetWords(input);
+  const minWords = Math.round(targetWords * 0.85);
+  const maxWords = Math.round(targetWords * 1.15);
 
   return {
+    targetWords,
     minWords,
     maxWords,
-    maxTokens,
-    directive: getQualitativeLengthDirective(input),
+    maxTokens: input.voiceMode ? DEBATE_VOICE_OUTPUT_SAFETY_TOKENS : DEBATE_OUTPUT_SAFETY_TOKENS,
+    directive: `Length guidance: about ${targetWords} words (between ${minWords} and ${maxWords}), in natural prose with no headings or lists, then stop.`,
   };
 }
 

@@ -3,7 +3,7 @@ import { ScrollView, Alert, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useSelector, useDispatch } from 'react-redux';
-import { RootState, setAIModel, preserveTopic, clearPreservedTopic, isApiKeyConfigured } from '../store';
+import { RootState, setAIModel, preserveTopic, clearPreservedTopic, isApiKeyConfigured, setDebateSpeechLength } from '../store';
 
 import { Box, ResponsiveContainer } from '../components/atoms';
 import { Button, Typography, GradientButton, HeaderIcon, InfoButton, SegmentedControl } from '../components/molecules';
@@ -17,13 +17,15 @@ import { ProviderPickerSheet } from '../components/organisms/composer/ProviderPi
 import { AIAvatar } from '../components/organisms/common/AIAvatar';
 
 import { useTheme } from '../theme';
-import { AIConfig, type DebateVoiceConfig, type DebateVoiceSelection } from '../types';
+import { AIConfig, type DebateSpeechLength, type DebateVoiceConfig, type DebateVoiceSelection } from '../types';
 import type { ElevenLabsSharedVoiceQuery, ElevenLabsVoiceListQuery, MediaProviderOptionsResponse, MediaProviderVoiceOption } from '@/types/media';
 import type { DemoDebate } from '@/types/demo';
 import { AI_PROVIDERS } from '../config/aiProviders';
 import { FormatModal } from '../components/organisms/debate/FormatModal';
 import { TopicService } from '../services/debate/TopicService';
 import type { DebateRematchSetup } from '../services/debate/debateRematch';
+import { DEBATE_SPEECH_LENGTHS, DEFAULT_DEBATE_SPEECH_LENGTH, getDebateSpeechLengthGuidance } from '../services/debate/debateSpeechLength';
+import DebateSetupPreferencesService from '../services/debate/DebateSetupPreferencesService';
 import { getModelById, getProviderDefaultModel, resolveProviderModelId } from '@/config/modelConfigs';
 import { getAIProviderIcon } from '../utils/aiProviderAssets';
 import { isValidProviderId } from '../utils/typeGuards';
@@ -71,6 +73,12 @@ const PRESET_BUTTON_LABELS: Record<string, string> = {
   short: 'Short',
   standard: 'Standard',
   long: 'Extended',
+};
+
+const SPEECH_LENGTH_LABELS: Record<DebateSpeechLength, string> = {
+  concise: 'Brief',
+  default: 'Balanced',
+  verbose: 'Detailed',
 };
 
 const TTS_MODEL_OPTIONS = [
@@ -279,6 +287,11 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
   const [selectedModels, setSelectedModels] = useState<Record<string, string>>(selectedModelsFromStore || {});
   const [formatId, setFormatId] = useState<DebateFormatId>('oxford');
   const [exchanges, setExchanges] = useState<number>(3);
+  // Setup opens on the last Speech length the user picked (remembered across launches). A tap or a
+  // rematch sets this setup's own choice; null follows the remembered one.
+  const rememberedSpeechLength = useSelector((state: RootState) => state.settings.debateSpeechLength ?? DEFAULT_DEBATE_SPEECH_LENGTH);
+  const [speechLengthChoice, setSpeechLengthChoice] = useState<DebateSpeechLength | null>(null);
+  const speechLength = speechLengthChoice ?? rememberedSpeechLength;
   const [formatModalVisible, setFormatModalVisible] = useState(false);
   const [recordPickerVisible, setRecordPickerVisible] = useState(false);
   const [recordMeta, setRecordMeta] = useState<{
@@ -330,6 +343,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
     ? `${selectedPreset.label} Oxford`
     : selectedPreset.label;
   const presetSummary = `${selectedPreset.messages.length} ${presetUnitLabel} · ${requiredDebaterCount} debaters · ${presetVoteLabel}`;
+  const openingTargetWords = getDebateSpeechLengthGuidance({ formatId, phase: 'opening', level: speechLength }).targetWords;
 
   const maxAIs = requiredDebaterCount;
   const selectedAIs = useMemo(
@@ -666,6 +680,12 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
     dispatch(clearPreservedTopic());
   };
 
+  const handleSpeechLengthChange = (level: DebateSpeechLength) => {
+    setSpeechLengthChoice(level);
+    dispatch(setDebateSpeechLength(level));
+    void DebateSetupPreferencesService.save({ speechLength: level });
+  };
+
   const scrollSetupToTop = useCallback((animated = false) => {
     scrollViewRef.current?.scrollTo({ y: 0, animated });
   }, []);
@@ -688,6 +708,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
       setSelectedModels(selectedModelsFromStore || {});
       setFormatId('oxford');
       setExchanges(3);
+      setSpeechLengthChoice(null);
       setVoiceDebateEnabled(false);
       setPodcastModeEnabled(false);
       setPodcastMC(null);
@@ -724,6 +745,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
 
       setFormatId(rematch.formatId);
       setExchanges(rematch.exchanges);
+      setSpeechLengthChoice(rematch.speechLength ?? null);
       setDebaterSlots(buildDebaterSlotsFromAIs(debaters, slotCount, configuredAIs));
       setSelectedModels(prev => ({
         ...prev,
@@ -810,11 +832,9 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
     });
   }, []);
 
-  const handleProviderPicked = useCallback((providerId: string) => {
+  const applyProviderToSlot = useCallback((target: SlotTarget, providerId: string) => {
     const base = configuredAIs.find(ai => ai.provider === providerId);
-    const target = providerPickerTarget;
-    setProviderPickerTarget(null);
-    if (!base || !target) return;
+    if (!base) return;
 
     if (target.kind === 'mc') {
       const mcId = createDebateSlotId(base.provider, debaterSlotCounterRef.current++);
@@ -843,9 +863,14 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
     debaterSlots,
     maxAIs,
     podcastMC?.id,
-    providerPickerTarget,
     selectedModels,
   ]);
+
+  const handleProviderPicked = useCallback((providerId: string) => {
+    const target = providerPickerTarget;
+    setProviderPickerTarget(null);
+    if (target) applyProviderToSlot(target, providerId);
+  }, [applyProviderToSlot, providerPickerTarget]);
 
   const handleRemoveDebaterSlot = useCallback((index: number) => {
     const removedSlotId = debaterSlots[index]?.id;
@@ -987,6 +1012,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
       personalities: Object.fromEntries(aiConfigs.map(ai => [ai.id, ai.personality || 'default'])),
       formatId,
       rounds: exchanges,
+      speechLength,
       demoDebateId: options?.demoSampleId,
       demoSample: options?.demoSample,
       voiceConfig: options?.voiceConfig,
@@ -1015,24 +1041,66 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
 
   const finalTopic = topicMode === 'custom' ? customTopic : selectedTopic;
 
-  const startBlocker = useMemo<string | null>(() => {
+  // Why Start can't run yet, and what tapping it does instead: it routes to
+  // the missing piece rather than being a dead button.
+  const startBlocker = useMemo<{ message: string; resolve: () => void } | null>(() => {
+    const verifyElevenLabs = () => navigation.navigate('APIConfig', { providerId: 'elevenlabs' });
     if (!access.isDemo && !validation.isReady) {
-      return 'Add at least one AI provider key to start a debate.';
+      return {
+        message: 'Add at least one AI provider key to start a debate.',
+        resolve: () => navigation.navigate('APIConfig'),
+      };
     }
-    if (!finalTopic) return 'Choose a motion to debate.';
+    if (!finalTopic) {
+      return {
+        message: 'Choose a motion to debate.',
+        resolve: () => Alert.alert('Select a Motion', 'Please choose a debate motion first!'),
+      };
+    }
     if (!areRequiredDebaterSlotsFilled) {
       const remaining = maxAIs - filledDebaterCount;
-      return `Fill ${remaining} more debater ${remaining === 1 ? 'slot' : 'slots'}.`;
+      const firstEmptyIndex = Array.from({ length: maxAIs }, (_, index) => index).find(
+        (index) => !debaterSlots[index]
+      );
+      return {
+        message: `Fill ${remaining} more debater ${remaining === 1 ? 'slot' : 'slots'}.`,
+        resolve: () => {
+          if (firstEmptyIndex !== undefined) {
+            setProviderPickerTarget({ kind: 'debater', index: firstEmptyIndex });
+          }
+        },
+      };
     }
     if (!access.isDemo && podcastModeEnabled) {
-      if (!podcastMC) return 'Add a podcast MC.';
-      if (!hasVerifiedElevenLabs) return 'Verify an ElevenLabs API key for Podcast Mode.';
-      if (!podcastMCVoice) return 'Choose a voice for the podcast MC.';
+      if (!podcastMC) {
+        return { message: 'Add a podcast MC.', resolve: () => setProviderPickerTarget({ kind: 'mc' }) };
+      }
+      if (!hasVerifiedElevenLabs) {
+        return { message: 'Verify an ElevenLabs API key for Podcast Mode.', resolve: verifyElevenLabs };
+      }
+      if (!podcastMCVoice) {
+        return {
+          message: 'Choose a voice for the podcast MC.',
+          resolve: () => setConfigSheetTarget({ kind: 'mc' }),
+        };
+      }
     }
     if (!access.isDemo && voiceControlsActive) {
-      if (!hasVerifiedElevenLabs) return 'Verify an ElevenLabs API key for voiced debates.';
+      if (!hasVerifiedElevenLabs) {
+        return { message: 'Verify an ElevenLabs API key for voiced debates.', resolve: verifyElevenLabs };
+      }
       if (selectedAIs.some(ai => !debateVoiceSelections[ai.id])) {
-        return 'Choose a voice for every debater.';
+        const missingVoiceIndex = debaterSlots.findIndex(
+          (slot) => slot !== null && !debateVoiceSelections[slot.id]
+        );
+        return {
+          message: 'Choose a voice for every debater.',
+          resolve: () => {
+            if (missingVoiceIndex >= 0) {
+              setConfigSheetTarget({ kind: 'debater', index: missingVoiceIndex });
+            }
+          },
+        };
       }
     }
     return null;
@@ -1040,10 +1108,12 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
     access.isDemo,
     areRequiredDebaterSlotsFilled,
     debateVoiceSelections,
+    debaterSlots,
     filledDebaterCount,
     finalTopic,
     hasVerifiedElevenLabs,
     maxAIs,
+    navigation,
     podcastMC,
     podcastMCVoice,
     podcastModeEnabled,
@@ -1126,6 +1196,15 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
     : configSheetTarget
       ? debaterSlots[configSheetTarget.index] || null
       : null;
+  const slotProviderOptions = useMemo(
+    () =>
+      AI_PROVIDERS.filter(
+        (provider) =>
+          provider.enabled &&
+          (!access.isDemo || configuredAIs.some((ai) => ai.provider === provider.id))
+      ),
+    [access.isDemo, configuredAIs]
+  );
   const configSheetIsMC = configSheetTarget?.kind === 'mc';
   const configSheetSlotLabel = configSheetIsMC
     ? 'Podcast MC'
@@ -1263,6 +1342,25 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
 
             <Typography variant="caption" color="secondary" style={{ marginTop: theme.spacing.sm }}>
               {selectedPresetTitle} · {presetSummary}
+            </Typography>
+
+            <Typography variant="body" weight="semibold" style={{ marginTop: theme.spacing.md, marginBottom: theme.spacing.sm }}>
+              Speech length
+            </Typography>
+            <Box style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {DEBATE_SPEECH_LENGTHS.map((level) => (
+                <Button
+                  key={level}
+                  title={SPEECH_LENGTH_LABELS[level]}
+                  onPress={() => handleSpeechLengthChange(level)}
+                  variant={level === speechLength ? 'primary' : 'tonal'}
+                  size="small"
+                  style={{ minWidth: 96, flexGrow: 1 }}
+                />
+              ))}
+            </Box>
+            <Typography variant="caption" color="secondary" style={{ marginTop: theme.spacing.sm }}>
+              {`Openings about ${openingTargetWords} words`}
             </Typography>
           </Card>
 
@@ -1486,13 +1584,14 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
               align="center"
               style={{ marginBottom: theme.spacing.xs }}
             >
-              {startBlocker}
+              {startBlocker.message}
             </Typography>
           )}
           <GradientButton
             title={access.isDemo ? 'Watch a Demo Debate' : 'Start Debate ⚔️'}
-            onPress={handleStart}
-            disabled={Boolean(startBlocker)}
+            onPress={startBlocker ? startBlocker.resolve : handleStart}
+            dimmed={Boolean(startBlocker)}
+            accessibilityHint={startBlocker?.message}
             gradient={theme.colors.gradients.sunset}
             fullWidth
             hapticType="medium"
@@ -1513,7 +1612,7 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
         configuredProviderIds={configuredAIs.map((ai) => ai.provider)}
         allowedProviderIds={access.isDemo ? configuredAIs.map((ai) => ai.provider) : undefined}
         allowDuplicates
-        onRequestAddKey={() => navigation.navigate('APIConfig')}
+        onRequestAddKey={(providerId) => navigation.navigate('APIConfig', { providerId })}
         testID="debate-provider-picker"
       />
 
@@ -1547,9 +1646,14 @@ const DebateSetupScreen: React.FC<DebateSetupScreenProps> = ({ navigation, route
         onLoadSharedVoices={hasVerifiedElevenLabs ? loadDebateSharedVoices : undefined}
         onAddSharedVoice={hasVerifiedElevenLabs ? addDebateSharedVoice : undefined}
         elevenLabsTier={elevenLabsSubscription?.tier}
-        onChangeProvider={() => {
-          if (configSheetTarget) setProviderPickerTarget(configSheetTarget);
+        providerOptions={slotProviderOptions}
+        configuredProviderIds={configuredAIs.map((ai) => ai.provider)}
+        onChangeProvider={(providerId) => {
+          if (configSheetTarget) applyProviderToSlot(configSheetTarget, providerId);
         }}
+        onRequestAddKey={
+          access.isDemo ? undefined : (providerId) => navigation.navigate('APIConfig', { providerId })
+        }
         onRemove={() => {
           if (configSheetTarget?.kind === 'mc') {
             handleRemovePodcastMC();

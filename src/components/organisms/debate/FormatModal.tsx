@@ -59,7 +59,7 @@ export const FormatModal: React.FC<FormatModalProps> = ({ visible, selected, onS
           ...Platform.select({ ios: { shadowColor: '#000', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.25, shadowRadius: 10 }, android: { elevation: 10 } })
         }}>
           <SheetHeader title="Choose Debate Format" onClose={onClose} showHandle />
-          <ScrollView contentContainerStyle={{ padding: theme.spacing.lg }} showsVerticalScrollIndicator={false}>
+          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: theme.spacing.lg }} showsVerticalScrollIndicator={false}>
             {entries.map(([id, spec]) => (
               <TouchableOpacity
                 key={id}

@@ -3,7 +3,7 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/theme';
-import { Typography, GradientButton } from '@/components/molecules';
+import { Typography, GradientButton, Button } from '@/components/molecules';
 import { useGreeting } from '@/hooks/useGreeting';
 
 interface HomeEmptyStateProps {
@@ -11,6 +11,12 @@ interface HomeEmptyStateProps {
   /** Hidden when undefined (demo mode). */
   onQuickStart?: () => void;
   onConfigureAIs: () => void;
+  /**
+   * Names of connected Studio-only providers (e.g. Runway). With no chat AI
+   * keyed, the CTA says where those keys work instead of implying none exist.
+   */
+  studioOnlyProviderNames?: string[];
+  onOpenStudio?: () => void;
   testID?: string;
 }
 
@@ -25,10 +31,15 @@ const CAPABILITY_HINTS = [
  * capability hints, Quick Start entry, and a first-run CTA when no provider
  * has an API key yet.
  */
+const formatNames = (names: string[]): string =>
+  names.length <= 1 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+
 export const HomeEmptyState: React.FC<HomeEmptyStateProps> = ({
   hasConfiguredAIs,
   onQuickStart,
   onConfigureAIs,
+  studioOnlyProviderNames = [],
+  onOpenStudio,
   testID,
 }) => {
   const { theme } = useTheme();
@@ -91,14 +102,23 @@ export const HomeEmptyState: React.FC<HomeEmptyStateProps> = ({
       ) : (
         <View style={styles.configureCta}>
           <Typography variant="body" color="secondary" align="center" style={styles.configureCopy}>
-            Bring your own API keys — connect a provider to start chatting.
+            {studioOnlyProviderNames.length > 0
+              ? `Your ${formatNames(studioOnlyProviderNames)} ${
+                  studioOnlyProviderNames.length === 1 ? 'key works' : 'keys work'
+                } in The Studio. To chat, add a key for a chat AI such as ChatGPT, Claude, or Gemini.`
+              : 'Bring your own API keys — connect a provider to start chatting.'}
           </Typography>
           <GradientButton
-            title="Configure your first AI"
+            title={studioOnlyProviderNames.length > 0 ? 'Add a chat AI key' : 'Configure your first AI'}
             onPress={onConfigureAIs}
             gradient={theme.colors.gradients.primary}
             testID={testID ? `${testID}-configure` : undefined}
           />
+          {studioOnlyProviderNames.length > 0 && onOpenStudio && (
+            <View testID={testID ? `${testID}-open-studio` : undefined}>
+              <Button title="Open The Studio" onPress={onOpenStudio} variant="secondary" size="medium" />
+            </View>
+          )}
         </View>
       )}
     </View>

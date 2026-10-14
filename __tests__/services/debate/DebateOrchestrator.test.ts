@@ -206,7 +206,7 @@ describe('DebateOrchestrator', () => {
         id: 'google-pro',
         provider: 'google',
         name: 'Gemini Pro',
-        model: 'gemini-3.5-flash',
+        model: 'gemini-3.8-flash',
       }),
       participants[1],
     ];
@@ -260,7 +260,7 @@ describe('DebateOrchestrator', () => {
         id: 'gemini-2',
         provider: 'google',
         name: 'Gemini 2',
-        model: 'gemini-3.5-flash',
+        model: 'gemini-3.8-flash',
       }),
       participants[1],
     ];
@@ -395,7 +395,7 @@ describe('DebateOrchestrator', () => {
     jest.useRealTimers();
   });
 
-  it('passes selected debate personality and model parameters into the adapter', async () => {
+  it('passes the selected debate personality, without its temperature, into the adapter', async () => {
     jest.useFakeTimers();
     const adapter = {
       config: {} as Record<string, unknown>,
@@ -427,11 +427,9 @@ describe('DebateOrchestrator', () => {
     expect(adapter.setTemporaryPersonality).not.toHaveBeenCalledWith(expect.objectContaining({
       systemPrompt: expect.stringContaining('Debate intensity'),
     }));
-    expect(adapter.config.parameters).toEqual(expect.objectContaining({
-      temperature: 0.9,
-      maxTokens: expect.any(Number),
-    }));
-    expect(adapter.config).toHaveProperty('parameters.maxTokens', 6144);
+    // Persona temperatures stay in chat and compare; a debate turn carries the safety cap and the
+    // reasoning hint only, so every provider debates at its own default sampling.
+    expect(adapter.config.parameters).toEqual({ maxTokens: 6144, reasoningEffort: 'low' });
 
     jest.clearAllTimers();
     jest.useRealTimers();
@@ -479,13 +477,112 @@ describe('DebateOrchestrator', () => {
 
     expect(aiService.sendMessage.mock.calls[0][0]).toBe('claude');
     expect(aiService.sendMessage.mock.calls[0][1]).toContain('Turn: Affirmative Opening Statement');
-    expect(aiService.sendMessage.mock.calls[0][1]).toContain('Length guidance: Keep this as a compact opening');
+    expect(aiService.sendMessage.mock.calls[0][1]).toContain('Length guidance: about 190 words (between 162 and 218)');
     expect(aiService.sendMessage.mock.calls[0][1]).not.toContain('words maximum');
     expect(aiService.sendMessage.mock.calls[1][0]).toBe('openai');
     expect(aiService.sendMessage.mock.calls[1][1]).toContain('Turn: Negative Opening Statement');
 
     jest.clearAllTimers();
     jest.useRealTimers();
+  });
+
+  describe('speech length', () => {
+    const createLengthService = () => {
+      const sendMessage = jest.fn<Promise<{ response: string }>, Parameters<AIService['sendMessage']>>(
+        async () => ({ response: VALID_SPEECH }),
+      );
+      const adapter = createTurnAdapter();
+      return { sendMessage, service: asAIService({ getAdapter: jest.fn(() => adapter), sendMessage }) };
+    };
+    const lengthLineOf = (prompt: string): string | undefined => prompt.match(/^Length guidance: .*$/m)?.[0];
+
+    // Turns schedule the next speech on a timer; keep those timers fake and drop them after each test.
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.clearAllTimers();
+      jest.useRealTimers();
+    });
+
+    it('hands the speech length level to every turn', async () => {
+      const { sendMessage, service } = createLengthService();
+      const orchestrator = new DebateOrchestrator(service);
+
+      const session = await orchestrator.initializeDebate('AI ethics', participants, {}, {
+        formatId: 'oxford',
+        rounds: 3,
+        speechLength: 'verbose',
+      });
+      for (const index of session.preset.messages.keys()) {
+        await orchestrator.executeDebateMessage(index, []);
+      }
+
+      expect(session.speechLength).toBe('verbose');
+      expect(sendMessage.mock.calls.map(call => lengthLineOf(call[1]))).toEqual([
+        'Length guidance: about 350 words (between 298 and 402), in natural prose with no headings or lists, then stop.',
+        'Length guidance: about 350 words (between 298 and 402), in natural prose with no headings or lists, then stop.',
+        'Length guidance: about 260 words (between 221 and 299), in natural prose with no headings or lists, then stop.',
+        'Length guidance: about 260 words (between 221 and 299), in natural prose with no headings or lists, then stop.',
+        'Length guidance: about 235 words (between 200 and 270), in natural prose with no headings or lists, then stop.',
+        'Length guidance: about 235 words (between 200 and 270), in natural prose with no headings or lists, then stop.',
+      ]);
+    });
+
+    it('keeps the level with the debate saved to History', async () => {
+      const { service } = createLengthService();
+      const orchestrator = new DebateOrchestrator(service);
+      const session = await orchestrator.initializeDebate('AI ethics', participants, {}, { formatId: 'oxford', rounds: 3, speechLength: 'concise' });
+
+      await orchestrator.startDebate();
+      await orchestrator.recordVote(0, 'undecided');
+      await orchestrator.executeDebateMessage(session.preset.messages.length, []);
+      await orchestrator.recordVote(0, 'for');
+      await jest.advanceTimersByTimeAsync(0);
+
+      const saved = jest.mocked(StorageService.saveSession).mock.calls[0]?.[0];
+      expect(saved?.debateConfig?.speechLength).toBe('concise');
+    });
+
+    it('runs at the default level when no level is given', async () => {
+      const { sendMessage, service } = createLengthService();
+      const orchestrator = new DebateOrchestrator(service);
+
+      const session = await orchestrator.initializeDebate('AI ethics', participants, {}, { formatId: 'lincoln_douglas', rounds: 5 });
+      await orchestrator.executeDebateMessage(0, []);
+      await orchestrator.executeDebateMessage(1, []);
+
+      expect(session.speechLength).toBe('default');
+      expect(lengthLineOf(sendMessage.mock.calls[0][1])).toContain('about 190 words');
+      // Cross-examination questioner.
+      expect(lengthLineOf(sendMessage.mock.calls[1][1])).toContain('about 75 words');
+    });
+
+    it('lets exchanges set how many speeches there are, not how long each one is', async () => {
+      const lengthLines = async (rounds: number): Promise<Array<string | undefined>> => {
+        const { sendMessage, service } = createLengthService();
+        const orchestrator = new DebateOrchestrator(service);
+        await orchestrator.initializeDebate('AI ethics', participants, {}, { formatId: 'lincoln_douglas', rounds, speechLength: 'concise' });
+        await orchestrator.executeDebateMessage(0, []);
+        return sendMessage.mock.calls.map(call => lengthLineOf(call[1]));
+      };
+
+      const short = await lengthLines(3);
+      expect(short).toEqual(['Length guidance: about 100 words (between 85 and 115), in natural prose with no headings or lists, then stop.']);
+      expect(await lengthLines(7)).toEqual(short);
+    });
+
+    it('asks every debate turn for brief reasoning under the fixed safety cap, whatever the level', async () => {
+      for (const speechLength of ['concise', 'verbose'] as const) {
+        const { sendMessage, service } = createLengthService();
+        const orchestrator = new DebateOrchestrator(service);
+        await orchestrator.initializeDebate('AI ethics', participants, {}, { formatId: 'oxford', rounds: 3, speechLength });
+        await orchestrator.executeDebateMessage(0, []);
+
+        expect(sendMessage.mock.calls[0][5]).toEqual(expect.objectContaining({ maxTokens: 6144, reasoningEffort: 'low' }));
+      }
+    });
   });
 
   it('requires opening audience stance before an Oxford debate starts', async () => {
@@ -1326,7 +1423,7 @@ describe('DebateOrchestrator', () => {
     const teamParticipants: AI[] = [
       participants[0],
       participants[1],
-      createMockAIConfig({ id: 'gemini', provider: 'google', name: 'Gemini', model: 'gemini-3.5-flash' }),
+      createMockAIConfig({ id: 'gemini', provider: 'google', name: 'Gemini', model: 'gemini-3.8-flash' }),
       createMockAIConfig({ id: 'grok', provider: 'grok', name: 'Grok', model: 'grok-4' }),
     ];
     const orchestrator = new DebateOrchestrator(asAIService(aiService));
@@ -1382,7 +1479,7 @@ describe('DebateOrchestrator', () => {
     const teamParticipants: AI[] = [
       participants[0],
       participants[1],
-      createMockAIConfig({ id: 'gemini', provider: 'google', name: 'Gemini', model: 'gemini-3.5-flash' }),
+      createMockAIConfig({ id: 'gemini', provider: 'google', name: 'Gemini', model: 'gemini-3.8-flash' }),
       createMockAIConfig({ id: 'grok', provider: 'grok', name: 'Grok', model: 'grok-4' }),
     ];
     const questionEvents: Array<Record<string, unknown>> = [];
@@ -1429,7 +1526,7 @@ describe('DebateOrchestrator', () => {
     const teamParticipants: AI[] = [
       participants[0],
       participants[1],
-      createMockAIConfig({ id: 'gemini', provider: 'google', name: 'Gemini', model: 'gemini-3.5-flash' }),
+      createMockAIConfig({ id: 'gemini', provider: 'google', name: 'Gemini', model: 'gemini-3.8-flash' }),
       createMockAIConfig({ id: 'grok', provider: 'grok', name: 'Grok', model: 'grok-4' }),
     ];
     const orchestrator = new DebateOrchestrator(asAIService(aiService));
@@ -1542,7 +1639,7 @@ describe('DebateOrchestrator', () => {
     const teamParticipants: AI[] = [
       participants[0],
       participants[1],
-      createMockAIConfig({ id: 'gemini', provider: 'google', name: 'Gemini', model: 'gemini-3.5-flash' }),
+      createMockAIConfig({ id: 'gemini', provider: 'google', name: 'Gemini', model: 'gemini-3.8-flash' }),
       createMockAIConfig({ id: 'grok', provider: 'grok', name: 'Grok', model: 'grok-4' }),
     ];
     const earlierArgument: Message = {
@@ -1581,7 +1678,7 @@ describe('DebateOrchestrator', () => {
       expect.any(Object),
       undefined,
       expect.objectContaining({ maxTokens: 6144 }),
-      'gemini-3.5-flash'
+      'gemini-3.8-flash'
     );
     const summaryPrompt = aiService.sendMessage.mock.calls[0][1] as string;
     expect(summaryPrompt).toContain('Earlier speech by you to avoid repeating');
@@ -1607,7 +1704,7 @@ describe('DebateOrchestrator', () => {
     const teamParticipants: AI[] = [
       participants[0],
       participants[1],
-      createMockAIConfig({ id: 'gemini', provider: 'google', name: 'Gemini', model: 'gemini-3.5-flash' }),
+      createMockAIConfig({ id: 'gemini', provider: 'google', name: 'Gemini', model: 'gemini-3.8-flash' }),
       createMockAIConfig({ id: 'grok', provider: 'grok', name: 'Grok', model: 'grok-4' }),
     ];
     const voiceConfig: DebateVoiceConfig = {
@@ -1704,7 +1801,7 @@ describe('DebateOrchestrator', () => {
     const teamParticipants: AI[] = [
       participants[0],
       participants[1],
-      createMockAIConfig({ id: 'gemini', provider: 'google', name: 'Gemini', model: 'gemini-3.5-flash' }),
+      createMockAIConfig({ id: 'gemini', provider: 'google', name: 'Gemini', model: 'gemini-3.8-flash' }),
       createMockAIConfig({ id: 'grok', provider: 'grok', name: 'Grok', model: 'grok-4' }),
     ];
     const orchestrator = new DebateOrchestrator(asAIService(aiService));

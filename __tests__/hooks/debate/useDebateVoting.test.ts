@@ -35,6 +35,7 @@ const createDebateSession = (overrides: Partial<DebateSession> = {}): DebateSess
     format: getFormat('oxford'),
     preset,
     presetId: preset.id,
+    speechLength: 'default',
     stances: {},
     ...overrides,
   };

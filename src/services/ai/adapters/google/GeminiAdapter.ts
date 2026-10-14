@@ -119,6 +119,7 @@ export class GeminiAdapter extends BaseAdapter {
           topK: this.config.parameters?.topK ?? 40,
           maxTokens: this.config.parameters?.maxTokens,
           supportsThinking: getModelById('google', resolvedModel)?.supportsThinking,
+          reasoningEffort: this.config.parameters?.reasoningEffort,
         }),
       };
 
@@ -311,6 +312,7 @@ export class GeminiAdapter extends BaseAdapter {
         topK: this.config.parameters?.topK ?? 40,
         maxTokens: this.config.parameters?.maxTokens,
         supportsThinking: getModelById('google', resolvedModel)?.supportsThinking,
+        reasoningEffort: this.config.parameters?.reasoningEffort,
       }),
     });
 

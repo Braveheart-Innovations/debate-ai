@@ -18,6 +18,8 @@ interface GradientButtonProps extends Omit<TouchableOpacityProps, 'style'> {
   trailingIcon?: keyof typeof Ionicons.glyphMap;
   onTrailingIconPress?: () => void;
   trailingIconDisabled?: boolean;
+  /** Looks disabled but stays pressable, so a blocked action can explain or route. */
+  dimmed?: boolean;
 }
 
 export const GradientButton: React.FC<GradientButtonProps> = ({
@@ -34,6 +36,7 @@ export const GradientButton: React.FC<GradientButtonProps> = ({
   trailingIcon,
   onTrailingIconPress,
   trailingIconDisabled = false,
+  dimmed = false,
   ...props
 }) => {
   const { theme } = useTheme();
@@ -91,7 +94,7 @@ export const GradientButton: React.FC<GradientButtonProps> = ({
     <View
       style={[
         fullWidth && styles.fullWidth,
-        (disabled || loading) && styles.disabled,
+        (disabled || loading || dimmed) && styles.disabled,
         style,
       ]}
     >

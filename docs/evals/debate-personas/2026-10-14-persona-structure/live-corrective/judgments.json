@@ -1,0 +1,342 @@
+{
+  "rubricVersion": 2,
+  "judgeModel": "gpt-6.1-sol",
+  "judged": [
+    {
+      "debateId": "bestie-on-claude",
+      "personalityId": "bestie",
+      "provider": "claude",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "redactions": 0,
+      "format": {
+        "words": 94,
+        "minWords": 85,
+        "maxWords": 115,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "bestie",
+        "runner_up": "scout",
+        "confidence": 4,
+        "evidence": "The speech warmly validates people's attachment to cars, acknowledges caring for an aging parent, and builds agreement through inclusive language about shared needs to ‘breathe, move, and belong.’"
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": true,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": true
+          },
+          {
+            "move": 2,
+            "present": false
+          },
+          {
+            "move": 3,
+            "present": true
+          }
+        ],
+        "in_character": 4,
+        "note": "The speech uses inclusive language and concrete examples, but does not ground every claim—particularly improved air quality—in its effect on a specific kind of person."
+      }
+    },
+    {
+      "debateId": "bestie-on-claude",
+      "personalityId": "bestie",
+      "provider": "claude",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "redactions": 0,
+      "format": {
+        "words": 85,
+        "minWords": 68,
+        "maxWords": 92,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "bestie",
+        "runner_up": "default",
+        "confidence": 3,
+        "evidence": "The opening reassurance, “I hear the worry … and we share it,” and the inclusive closing, “Let's choose the fairer centre,” give the rebuttal a warm, collaborative voice."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": true,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": true
+          },
+          {
+            "move": 2,
+            "present": false
+          },
+          {
+            "move": 3,
+            "present": true
+          }
+        ],
+        "in_character": 4,
+        "note": "Inclusive language is present, but not every claim is clearly grounded in what it changes for a specific kind of person."
+      }
+    },
+    {
+      "debateId": "prof_sage-on-claude",
+      "personalityId": "prof_sage",
+      "provider": "claude",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "redactions": 0,
+      "format": {
+        "words": 110,
+        "minWords": 85,
+        "maxWords": 115,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "prof_sage",
+        "runner_up": "default",
+        "confidence": 5,
+        "evidence": "The speech opens with precise definitions, situates street space historically, cites city examples, and carefully qualifies causal evidence—hallmarks of the cautious scholarly voice."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": true,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": true
+          },
+          {
+            "move": 2,
+            "present": true
+          },
+          {
+            "move": 3,
+            "present": false
+          }
+        ],
+        "in_character": 4,
+        "note": "The speech acknowledges causal evidence and inference but does not identify which findings belong to each category or assess the strength of each."
+      }
+    },
+    {
+      "debateId": "prof_sage-on-claude",
+      "personalityId": "prof_sage",
+      "provider": "claude",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "redactions": 0,
+      "format": {
+        "words": 88,
+        "minWords": 68,
+        "maxWords": 92,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "prof_sage",
+        "runner_up": "default",
+        "confidence": 4,
+        "evidence": "The calm, evidence-focused phrasing, references to European policy examples, and explicit distinction between observed results and a weaker inference signal the cautious scholarly voice of prof_sage."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": false,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": false
+          },
+          {
+            "move": 2,
+            "present": false
+          },
+          {
+            "move": 3,
+            "present": true
+          }
+        ],
+        "in_character": 4,
+        "note": "The speech uses a calm, evidence-conscious register but neither defines the key term nor establishes historical or scholarly context before weighing the evidence."
+      }
+    },
+    {
+      "debateId": "bestie-on-google",
+      "personalityId": "bestie",
+      "provider": "google",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "redactions": 0,
+      "format": {
+        "words": 105,
+        "minWords": 85,
+        "maxWords": 115,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "bestie",
+        "runner_up": "default",
+        "confidence": 5,
+        "evidence": "The opening validates personal worries, repeatedly invokes shared goals with inclusive language, and closes with a warm, gentle appeal—hallmarks of bestie’s supportive voice."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": true,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": true
+          },
+          {
+            "move": 2,
+            "present": true
+          },
+          {
+            "move": 3,
+            "present": true
+          }
+        ],
+        "in_character": 5,
+        "note": "none"
+      }
+    },
+    {
+      "debateId": "bestie-on-google",
+      "personalityId": "bestie",
+      "provider": "google",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "redactions": 0,
+      "format": {
+        "words": 85,
+        "minWords": 68,
+        "maxWords": 92,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "bestie",
+        "runner_up": "default",
+        "confidence": 4,
+        "evidence": "The empathetic opening acknowledging vulnerable groups, inclusive phrasing like “We all want,” and collaborative close “Let’s back this change together” signal bestie’s supportive voice."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": true,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": true
+          },
+          {
+            "move": 2,
+            "present": false
+          },
+          {
+            "move": 3,
+            "present": true
+          }
+        ],
+        "in_character": 4,
+        "note": "Although the speech uses inclusive language, it does not ground each claim in a concrete change for a specific kind of person."
+      }
+    },
+    {
+      "debateId": "prof_sage-on-google",
+      "personalityId": "prof_sage",
+      "provider": "google",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "redactions": 0,
+      "format": {
+        "words": 104,
+        "minWords": 85,
+        "maxWords": 115,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "prof_sage",
+        "runner_up": "default",
+        "confidence": 5,
+        "evidence": "The speech opens with a precise definition, supplies historical context and municipal examples, and maintains a calm, scholarly tone through its measured conclusion."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": true,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": true
+          },
+          {
+            "move": 2,
+            "present": true
+          },
+          {
+            "move": 3,
+            "present": false
+          }
+        ],
+        "in_character": 5,
+        "note": "The speech does not explicitly distinguish empirical findings from inferred conclusions or assess the strength of each."
+      }
+    },
+    {
+      "debateId": "prof_sage-on-google",
+      "personalityId": "prof_sage",
+      "provider": "google",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "redactions": 0,
+      "format": {
+        "words": 85,
+        "minWords": 68,
+        "maxWords": 92,
+        "hasList": false,
+        "hasHeading": false
+      },
+      "attribution": {
+        "persona": "prof_sage",
+        "runner_up": "devlin",
+        "confidence": 4,
+        "evidence": "The speech uses scholarly framing, precise category distinctions, and an appeal to empirical evidence in a calm, academic register."
+      },
+      "adherence": {
+        "stance_held": true,
+        "phase_rule_followed": true,
+        "guidance_followed": false,
+        "signature_moves": [
+          {
+            "move": 1,
+            "present": true
+          },
+          {
+            "move": 2,
+            "present": false
+          },
+          {
+            "move": 3,
+            "present": false
+          }
+        ],
+        "in_character": 3,
+        "note": "The register is professorial, but the speech asserts empirical conclusions without sources, substantive scholarly context, or distinctions between evidence and inference."
+      }
+    }
+  ]
+}

@@ -17,6 +17,7 @@ import type {
 import type { DemoBanner } from '@/components/molecules/subscription/DemoBanner';
 import type { ChatTopicPickerModal } from '@/components/organisms/demo/ChatTopicPickerModal';
 import { requireDefined, collectTestIds } from '@test-utils/queries';
+import type { RootStateOverrides } from '../../test-utils/services/state';
 
 const mockUseGreeting = jest.fn();
 const mockUseComposerSelection = jest.fn();
@@ -196,6 +197,7 @@ describe('HomeScreen', () => {
     session?: Record<string, unknown>;
     navigation?: { navigate: jest.Mock };
     store?: ReturnType<typeof createAppStore>;
+    preloadedState?: RootStateOverrides;
   }) => {
     const selection = options?.selection ?? createSelection();
     mockUseComposerSelection.mockReturnValue(selection);
@@ -213,9 +215,11 @@ describe('HomeScreen', () => {
 
     const navigation = options?.navigation ?? { navigate: jest.fn() };
 
-    const store = options?.store ?? createAppStore();
-
-    const renderResult = renderWithProviders(<HomeScreen navigation={navigation} />, { store });
+    const renderResult = renderWithProviders(<HomeScreen navigation={navigation} />, {
+      store: options?.store,
+      preloadedState: options?.preloadedState,
+    });
+    const store = renderResult.store;
 
     return {
       renderResult,
@@ -595,9 +599,48 @@ describe('HomeScreen', () => {
     expect(navigation.navigate).toHaveBeenCalledWith('APIConfig');
 
     await act(async () => {
-      requireDefined(mockComposer.latest().onRequestAddKey, 'onRequestAddKey')();
+      requireDefined(mockComposer.latest().onRequestAddKey, 'onRequestAddKey')('claude');
     });
     expect(navigation.navigate).toHaveBeenCalledTimes(2);
-    expect(navigation.navigate).toHaveBeenLastCalledWith('APIConfig');
+    expect(navigation.navigate).toHaveBeenLastCalledWith('APIConfig', { providerId: 'claude' });
+  });
+
+  it('routes the picker Add key action to that provider\'s key card', async () => {
+    const navigation = { navigate: jest.fn<void, [string, object?]>() };
+
+    renderHome({ navigation });
+
+    await act(async () => {
+      requireDefined(mockComposer.latest().onRequestAddKey, 'onRequestAddKey')('gemini');
+    });
+    expect(navigation.navigate).toHaveBeenCalledWith('APIConfig', { providerId: 'gemini' });
+  });
+
+  it('tells the empty state which Studio-only keys exist and opens The Studio', async () => {
+    const navigation = { navigate: jest.fn<void, [string, object?]>() };
+
+    renderHome({
+      navigation,
+      preloadedState: { settings: { apiKeys: { runway: { configured: true, maskedLabel: 'key_••••', updatedAt: 1 } } } },
+    });
+
+    expect(mockEmptyState.latest().studioOnlyProviderNames).toEqual(['Runway']);
+
+    await act(async () => {
+      requireDefined(mockEmptyState.latest().onOpenStudio, 'onOpenStudio')();
+    });
+    expect(navigation.navigate).toHaveBeenCalledWith('CreateTab');
+  });
+
+  it('passes no Studio-only names without media keys or in demo mode', () => {
+    renderHome();
+    expect(mockEmptyState.latest().studioOnlyProviderNames).toEqual([]);
+
+    mockEmptyState.reset();
+    renderHome({
+      featureAccess: { isDemo: true },
+      preloadedState: { settings: { apiKeys: { runway: { configured: true, maskedLabel: 'key_••••', updatedAt: 1 } } } },
+    });
+    expect(mockEmptyState.latest().studioOnlyProviderNames).toEqual([]);
   });
 });

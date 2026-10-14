@@ -14,6 +14,12 @@ const RUNWAY_API_BASE = 'https://api.dev.runwayml.com/v1';
 const RUNWAY_API_VERSION = '2024-11-06';
 const RUNWAY_API_KEY_PATTERN = /^key_[0-9a-f]{128}$/;
 const PERPLEXITY_CONNECTION_TEST_MAX_TOKENS = 16;
+// Cheapest current Claude model. Haiku 4.5 is retiring (not sooner than
+// 2026-10-15), so the key test must not depend on it. At max_tokens 1 Haiku 5.5
+// returns HTTP 200 with no text block; 2 is the smallest budget that returns
+// text (live-verified 2026-10-14).
+const CLAUDE_CONNECTION_TEST_MODEL = 'claude-haiku-5-5';
+const CLAUDE_CONNECTION_TEST_MAX_TOKENS = 2;
 
 function normalizeProviderApiKey(providerId: string, apiKey: string): string {
   const normalized = apiKey.trim();
@@ -237,7 +243,7 @@ export class ConnectionTestService {
    */
   private async testClaude(apiKey: string, signal: AbortSignal): Promise<{ model: string }> {
     console.warn('[ConnectionTestService] Testing Claude API...');
-    const model = 'claude-haiku-4-5-20251001'; // Use cheapest model for test
+    const model = CLAUDE_CONNECTION_TEST_MODEL;
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -248,7 +254,7 @@ export class ConnectionTestService {
       },
       body: JSON.stringify({
         model,
-        max_tokens: 1,
+        max_tokens: CLAUDE_CONNECTION_TEST_MAX_TOKENS,
         messages: [{ role: 'user', content: 'Hi' }]
       }),
       signal,

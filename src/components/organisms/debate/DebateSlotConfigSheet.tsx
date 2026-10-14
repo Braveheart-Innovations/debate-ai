@@ -3,10 +3,11 @@
  *
  * Per-debater config sheet for debate setup, mirroring the composer's
  * AIConfigSheet design language: one PagedSheet whose root page links to
- * in-sheet model and personality pages, plus a voice row (full-screen
- * DebateVoicePicker presented above this sheet), a change-provider action,
- * and a destructive remove action. Also used for the Podcast MC slot, which
- * hides the personality row.
+ * in-sheet model, personality and provider pages, plus a voice row
+ * (full-screen DebateVoicePicker presented above this sheet) and a
+ * destructive remove action. Also used for the Podcast MC slot, which hides
+ * the personality row. Changing provider is a page, not a second sheet: on
+ * iOS a sheet opened while this one is still dismissing can fail to appear.
  */
 
 import React, { useEffect, useState } from 'react';
@@ -19,6 +20,7 @@ import { AIAvatar } from '../common/AIAvatar';
 import { PagedSheet, usePagedSheetNav } from '../common/PagedSheet';
 import { ModelOptionList, getModelTokenPricing } from '../home/ModelOptionList';
 import { PersonalityOptionGrid } from '../personality/PersonalityOptionGrid';
+import { ProviderOptionList, ProviderPickerItem } from '../composer/ProviderOptionList';
 import { DebateVoicePicker } from './DebateVoicePicker';
 import { UNIVERSAL_PERSONALITIES } from '@/config/personalities';
 import { getProviderModels } from '@/config/modelConfigs';
@@ -54,7 +56,12 @@ export interface DebateSlotConfigSheetProps {
   onLoadSharedVoices?: (query: ElevenLabsSharedVoiceQuery) => Promise<MediaProviderOptionsResponse>;
   onAddSharedVoice?: (voice: MediaProviderVoiceOption) => Promise<MediaProviderVoiceOption>;
   elevenLabsTier?: string;
-  onChangeProvider: () => void;
+  /** Rows for the in-sheet "Change provider" page. */
+  providerOptions: ProviderPickerItem[];
+  configuredProviderIds: string[];
+  onChangeProvider: (providerId: string) => void;
+  /** Un-keyed providers route to their API key card (hidden in demo mode). */
+  onRequestAddKey?: (providerId: string) => void;
   onRemove: () => void;
   removeLabel?: string;
   testID?: string;
@@ -70,7 +77,6 @@ interface RootPageProps {
   voice?: DebateVoiceSelection;
   canPickVoice: boolean;
   onOpenVoicePicker: () => void;
-  onChangeProvider: () => void;
   onRemove: () => void;
   removeLabel: string;
 }
@@ -85,7 +91,6 @@ const SlotRootPage: React.FC<RootPageProps> = ({
   voice,
   canPickVoice,
   onOpenVoicePicker,
-  onChangeProvider,
   onRemove,
   removeLabel,
 }) => {
@@ -168,7 +173,7 @@ const SlotRootPage: React.FC<RootPageProps> = ({
       )}
 
       <TouchableOpacity
-        onPress={onChangeProvider}
+        onPress={() => nav.push('provider')}
         activeOpacity={0.7}
         accessibilityRole="button"
         accessibilityLabel="Change provider"
@@ -220,7 +225,10 @@ export const DebateSlotConfigSheet: React.FC<DebateSlotConfigSheetProps> = ({
   onLoadSharedVoices,
   onAddSharedVoice,
   elevenLabsTier,
+  providerOptions,
+  configuredProviderIds,
   onChangeProvider,
+  onRequestAddKey,
   onRemove,
   removeLabel = 'Remove debater',
   testID,
@@ -240,10 +248,12 @@ export const DebateSlotConfigSheet: React.FC<DebateSlotConfigSheetProps> = ({
     onRemove();
   };
 
-  const handleChangeProvider = () => {
-    onClose();
-    onChangeProvider();
-  };
+  const handleRequestAddKey = onRequestAddKey
+    ? (providerId: string) => {
+        onClose();
+        onRequestAddKey(providerId);
+      }
+    : undefined;
 
   return (
     <PagedSheet visible={visible} onClose={onClose} testID={testID}>
@@ -258,7 +268,6 @@ export const DebateSlotConfigSheet: React.FC<DebateSlotConfigSheetProps> = ({
           voice={voice}
           canPickVoice={canPickVoice}
           onOpenVoicePicker={() => setVoicePickerVisible(true)}
-          onChangeProvider={handleChangeProvider}
           onRemove={handleRemove}
           removeLabel={removeLabel}
         />
@@ -293,7 +302,55 @@ export const DebateSlotConfigSheet: React.FC<DebateSlotConfigSheetProps> = ({
           />
         </PagedSheet.Page>
       )}
+      <PagedSheet.Page id="provider" title="Change Provider">
+        <ProviderPage
+          ai={ai}
+          providers={providerOptions}
+          configuredProviderIds={configuredProviderIds}
+          onChangeProvider={onChangeProvider}
+          onRequestAddKey={handleRequestAddKey}
+        />
+      </PagedSheet.Page>
     </PagedSheet>
+  );
+};
+
+const ProviderPage: React.FC<{
+  ai: AIConfig;
+  providers: ProviderPickerItem[];
+  configuredProviderIds: string[];
+  onChangeProvider: (providerId: string) => void;
+  onRequestAddKey?: (providerId: string) => void;
+}> = ({ ai, providers, configuredProviderIds, onChangeProvider, onRequestAddKey }) => {
+  const { theme } = useTheme();
+  const nav = usePagedSheetNav();
+
+  return (
+    <View style={styles.pickerPage}>
+      <View style={{ paddingHorizontal: theme.spacing.lg, paddingTop: 8 }}>
+        <Typography variant="caption" color="secondary">
+          replacing {ai.name}
+        </Typography>
+      </View>
+      <ScrollView
+        contentContainerStyle={{ padding: theme.spacing.lg }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <ProviderOptionList
+          providers={providers}
+          configuredProviderIds={configuredProviderIds}
+          selectedProviderIds={[]}
+          allowDuplicates
+          onSelectProvider={(providerId) => {
+            onChangeProvider(providerId);
+            nav.popToRoot();
+          }}
+          onRequestAddKey={onRequestAddKey}
+          testID="debate-slot-provider-list"
+        />
+      </ScrollView>
+    </View>
   );
 };
 

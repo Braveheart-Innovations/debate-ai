@@ -12,7 +12,7 @@ import { ErrorService } from '@/services/errors/ErrorService';
 import Animated, { FadeIn, FadeOut, Layout } from 'react-native-reanimated';
 import { ContextBar, Typography, KeyboardAvoider } from '../components/molecules';
 import { useTheme } from '../theme';
-import type { AI, DebateVoiceConfig, Message } from '../types';
+import type { AI, DebateSpeechLength, DebateVoiceConfig, Message } from '../types';
 import { usePersonality } from '@/hooks/usePersonality';
 import {
   useDebateSession,
@@ -91,6 +91,7 @@ interface DebateScreenProps {
       demoDebateId?: string;
       demoSample?: DemoDebate;
       voiceConfig?: DebateVoiceConfig;
+      speechLength?: DebateSpeechLength;
     };
   };
 }
@@ -122,7 +123,7 @@ function getPodcastGenerationLabel(stage: DebateAudioCompileStage | null): strin
 const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
   const { theme } = useTheme();
   const dispatch = useDispatch<AppDispatch>();
-  const { selectedAIs, topic: initialTopic, personalities: initialPersonalities, formatId, rounds, exchanges, demoDebateId, demoSample, voiceConfig } = route.params;
+  const { selectedAIs, topic: initialTopic, personalities: initialPersonalities, formatId, rounds, exchanges, demoDebateId, demoSample, voiceConfig, speechLength } = route.params;
   const [showTranscript, setShowTranscript] = useState(false);
   const [debateSamples, setDebateSamples] = useState<Array<{ id: string; title: string; topic: string }>>([]);
   const [isRecording, setIsRecording] = useState(false);
@@ -344,6 +345,7 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
           rounds: (exchanges || rounds || 3),
           mergedPersonalities,
           voiceConfig,
+          speechLength,
         }
       );
       
@@ -376,6 +378,7 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
     isDemo,
     getMergedPersonality,
     voiceConfig,
+    speechLength,
   ]);
   
   // Auto-start debate if topic is provided from DebateSetupScreen
@@ -506,6 +509,7 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
       formatId: formatId || 'oxford',
       exchanges: exchanges || rounds || 3,
       voiceConfig,
+      speechLength,
     }));
   }, [
     exchanges,
@@ -516,6 +520,7 @@ const DebateScreen: React.FC<DebateScreenProps> = ({ navigation, route }) => {
     rounds,
     selectedAIs,
     session.session?.topic,
+    speechLength,
     stopDebateNow,
     topicSelection.finalTopic,
     voiceConfig,

@@ -4,6 +4,7 @@ import {
   getModelContextLabel,
   getProviderDefaultModel,
   getProviderModels,
+  getSupportedParams,
   resolveProviderModelId,
 } from '@/config/modelConfigs';
 import { getDefaultModel } from '@/config/providers/modelRegistry';
@@ -55,16 +56,74 @@ describe('Model selection contract', () => {
     for (const retired of ['deepseek-v4-flash', 'deepseek-v4-flash-vision-exp', 'deepseek-chat', 'deepseek-reasoner']) {
       expect(resolveProviderModelId('deepseek', retired)).toBe('deepseek-flash');
     }
-    expect(resolveProviderModelId('deepseek', 'deepseek-v4-pro')).toBe('deepseek-flash');
     // Mistral serves Medium 3.5 for the retired Devstral 2 / Medium 3.1 IDs.
     expect(resolveProviderModelId('mistral', 'devstral-2512')).toBe('mistral-medium-2604');
     expect(resolveProviderModelId('mistral', 'mistral-medium-2508')).toBe('mistral-medium-2604');
+    // Google routes Gemini 3.5 Flash requests to Gemini 3.6 Flash.
+    expect(resolveProviderModelId('google', 'gemini-3.5-flash')).toBe('gemini-3.6-flash');
+    expect(resolveProviderModelId('google', 'gemini-3.5-latest')).toBe('gemini-3.6-flash');
+  });
+
+  it('keeps DeepSeek V4 Pro as its own selectable model', () => {
+    // DeepSeek kept serving V4 Pro after 2026-09-14 instead of routing it to V4.1 Flash.
+    expect(resolveProviderModelId('deepseek', 'deepseek-v4-pro')).toBe('deepseek-v4-pro');
+    expect(getProviderModels('deepseek').map((model) => model.id)).toEqual(['deepseek-flash', 'deepseek-v4-pro']);
+    expect(getDefaultModel('deepseek')).toBe('deepseek-flash');
+  });
+
+  it('offers Gemini 3.6 Flash in the picker instead of the routed 3.5 Flash ID', () => {
+    const googlePicker = getProviderModels('google').map((model) => model.id);
+    expect(googlePicker).toContain('gemini-3.6-flash');
+    expect(googlePicker).not.toContain('gemini-3.5-flash');
   });
 
   it('keeps paid-tier Mistral Large 3 selectable while Medium 3.5 is the default', () => {
     expect(resolveProviderModelId('mistral', 'mistral-large-2512')).toBe('mistral-large-2512');
     expect(getProviderModels('mistral').map((model) => model.id)).toContain('mistral-large-2512');
     expect(getDefaultModel('mistral')).toBe('mistral-medium-2604');
+  });
+
+  it('puts Claude Haiku 5.5 in the picker and moves retiring Haiku 4.5 selections to it', () => {
+    const claudePicker = getProviderModels('claude').map((model) => model.id);
+    expect(claudePicker).toContain('claude-haiku-5-5');
+    expect(claudePicker).not.toContain('claude-haiku-4-5-20251001');
+    expect(resolveProviderModelId('claude', 'claude-haiku-latest')).toBe('claude-haiku-5-5');
+    // Like-for-like successor, not the Sonnet default.
+    expect(resolveProviderModelId('claude', 'claude-haiku-4-5-20251001')).toBe('claude-haiku-5-5');
+    expect(resolveProviderModelId('claude', 'claude-haiku-4-5')).toBe('claude-haiku-5-5');
+    // Non-default temperature/top_p return a 400 on Claude 4.7+ models.
+    expect(getSupportedParams('claude', 'claude-haiku-5-5')).toEqual(['maxTokens', 'stopSequences']);
+  });
+
+  it('routes deprecated Claude Sonnet 4.5 to the default with its 200K window', () => {
+    expect(getModelById('claude', 'claude-sonnet-4-5-20250929')).toMatchObject({
+      contextLength: 200000,
+      isDeprecated: true,
+    });
+    expect(resolveProviderModelId('claude', 'claude-sonnet-4-5')).toBe('claude-sonnet-5-5');
+  });
+
+  it('puts Gemini 4 Argon in the picker in place of 3.7 Flash, which Google serves as 3.8 Flash', () => {
+    const googlePicker = getProviderModels('google').map((model) => model.id);
+    expect(googlePicker).toContain('gemini-4-argon');
+    expect(googlePicker).not.toContain('gemini-3.7-flash');
+    expect(resolveProviderModelId('google', 'gemini-3.7-flash')).toBe('gemini-3.7-flash');
+    expect(resolveProviderModelId('google', 'gemini-4-latest')).toBe('gemini-4-argon');
+    expect(getModelById('google', 'gemini-4-argon')).toMatchObject({
+      contextLength: 1048576,
+      maxOutputTokens: 65536,
+      supportsThinking: true,
+      supportsWebSearch: true,
+    });
+    // Google ignores sampling parameters on Gemini 4 Argon.
+    expect(getSupportedParams('google', 'gemini-4-argon')).toEqual(['maxTokens', 'stopSequences']);
+  });
+
+  it('catalogs Mistral Large 4 without offering it in the picker', () => {
+    expect(getProviderModels('mistral').map((model) => model.id)).not.toContain('mistral-large-4');
+    expect(resolveProviderModelId('mistral', 'mistral-large-4')).toBe('mistral-large-4');
+    expect(resolveProviderModelId('mistral', 'mistral-large-4-0')).toBe('mistral-large-4');
+    expect(resolveProviderModelId('mistral', 'mistral-large-latest')).toBe('mistral-large-2512');
   });
 
   it('looks up persisted alias IDs with the resolved model capabilities', () => {

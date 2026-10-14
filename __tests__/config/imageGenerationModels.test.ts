@@ -7,6 +7,7 @@ import {
   getImageModelDisplayName,
   getImageModels,
   getImageProviderDisplayName,
+  getRetiredImageModelQuality,
   resolveImageModelId,
   supportsImageInput,
 } from '@/config/imageGenerationModels';
@@ -60,7 +61,18 @@ describe('Image generation model config', () => {
     expect(getImageModelApiFamily('google', 'gemini-3-pro-image')).toBe('google-gemini-image');
     expect(getImageModelApiFamily('google', 'imagen-4.0-fast-generate-001')).toBe('google-imagen');
     expect(getImageModelApiFamily('grok', 'grok-imagine-image')).toBe('xai-images');
-    expect(resolveImageModelId('grok', 'grok-imagine-image-pro')).toBe('grok-imagine-image-quality');
+  });
+
+  it('moves retired Grok Imagine Quality selections to Imagine 2.0 at low quality', () => {
+    // xAI retires grok-imagine-image-quality on 2026-11-02 and serves the slug
+    // as grok-imagine-image-2.0 with quality "low".
+    expect(getImageModels('grok').map((model) => model.id)).not.toContain('grok-imagine-image-quality');
+    expect(resolveImageModelId('grok', 'grok-imagine-image-quality')).toBe('grok-imagine-image-2.0');
+    expect(resolveImageModelId('grok', 'grok-imagine-image-pro')).toBe('grok-imagine-image-2.0');
+    expect(getRetiredImageModelQuality('grok', 'grok-imagine-image-quality')).toBe('low');
+    expect(getRetiredImageModelQuality('grok', 'grok-imagine-image-pro')).toBe('low');
+    expect(getRetiredImageModelQuality('grok', 'grok-imagine-image-2.0')).toBeUndefined();
+    expect(getRetiredImageModelQuality('grok', undefined)).toBeUndefined();
   });
 
   it('expands provider offerings beyond the original minimal registry', () => {
@@ -103,6 +115,19 @@ describe('Image generation model config', () => {
     expect(googleFlash31?.resolutions).toEqual(expect.arrayContaining(['1K', '2K', '4K', '512']));
     expect(googleFlash31?.resolutions).not.toContain('0.5K');
     expect(googleFlash31?.aspectRatios).toEqual(expect.arrayContaining(['1:4', '4:1', '1:8', '8:1']));
+
+    // Nano Banana 2.1 drops 3.1 Flash Image's 512px output.
+    const nanoBanana21 = getImageModels('google').find((model) => model.id === 'gemini-nano-banana-2.1');
+    expect(nanoBanana21).toMatchObject({
+      apiFamily: 'google-gemini-image',
+      supportsImageInput: true,
+      supportsMultipleReferenceImages: true,
+      maxReferenceImages: 14,
+      resolutions: ['1K', '2K', '4K'],
+      isDefault: false,
+    });
+    expect(nanoBanana21?.aspectRatios).toEqual(expect.arrayContaining(['1:4', '4:1', '1:8', '8:1']));
+    expect(getDefaultImageInputModel('google')?.id).toBe('gemini-2.5-flash-image');
 
     const grokCapabilities = getImageGenerationCapabilities('grok');
     expect(grokCapabilities.maxImagesPerRequest).toBeGreaterThanOrEqual(10);

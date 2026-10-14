@@ -24,7 +24,8 @@ export interface CreateComposerProps {
   onRemoveConfig: (index: number) => void;
   pickerProviders: ProviderPickerItem[];
   configuredProviderIds: string[];
-  onRequestAddKey: () => void;
+  /** Opens API configuration on that provider's key card. */
+  onRequestAddKey: (providerId: string) => void;
   attachments: SourceAttachment[];
   onRemoveAttachment: (uri: string) => void;
   /** Image tab: opens the composer-level output-options sheet. */
@@ -37,6 +38,8 @@ export interface CreateComposerProps {
   onChangeText: (text: string) => void;
   onSend: (text: string) => void;
   canSend: boolean;
+  /** Video/audio: what a send tap does while blocked. The image tab opens its picker itself. */
+  onBlockedSend?: () => void;
   validationMessage: string | null;
   placeholder?: string;
   disabled?: boolean;
@@ -68,6 +71,7 @@ export const CreateComposer: React.FC<CreateComposerProps> = ({
   onChangeText,
   onSend,
   canSend,
+  onBlockedSend,
   validationMessage,
   placeholder = 'Describe what you want to create…',
   disabled = false,
@@ -76,7 +80,24 @@ export const CreateComposer: React.FC<CreateComposerProps> = ({
   const { theme } = useTheme();
   const { isTablet } = useResponsive();
   const [pickerVisible, setPickerVisible] = useState(false);
+  const [pickerMessage, setPickerMessage] = useState<string | null>(null);
   const [configIndex, setConfigIndex] = useState<number | null>(null);
+
+  const openPicker = (message: string | null) => {
+    setPickerMessage(message);
+    setPickerVisible(true);
+  };
+
+  // Image send tapped with no AI picked: open the picker and say why.
+  const handleBlockedSend =
+    tab === 'image' && configs.length === 0
+      ? () =>
+          openPicker(
+            configuredProviderIds.length > 0
+              ? 'Pick an AI to create your image.'
+              : 'Add an API key for an image AI (OpenAI, Google, or Grok) to create images.'
+          )
+      : onBlockedSend;
 
   const pills: ComposerPillDescriptor[] = [];
   configs.forEach((config, index) => {
@@ -124,10 +145,11 @@ export const CreateComposer: React.FC<CreateComposerProps> = ({
       onChangeText={onChangeText}
       onSend={onSend}
       canSend={canSend}
+      onBlockedSend={handleBlockedSend}
       pills={pills}
       onPillPress={handlePillPress}
       showAddPill={tab === 'image' && configs.length < maxAIs}
-      onAddPill={() => setPickerVisible(true)}
+      onAddPill={() => openPicker(null)}
       addPillEmphasized={configs.length === 0}
       aboveInput={
         attachments.length > 0 ? (
@@ -187,6 +209,7 @@ export const CreateComposer: React.FC<CreateComposerProps> = ({
         configuredProviderIds={configuredProviderIds}
         providers={pickerProviders}
         onRequestAddKey={onRequestAddKey}
+        message={pickerMessage}
         testID={testID ? `${testID}-picker` : undefined}
       />
 

@@ -23,7 +23,7 @@ import {
 } from '../../config/imageGenerationModels';
 import { AI_PROVIDERS } from '../../config/aiProviders';
 import { MEDIA_PROVIDERS } from '../../config/mediaProviders';
-import type { ProviderPickerItem } from '../../components/organisms/composer/ProviderPickerSheet';
+import type { ProviderPickerItem } from '../../components/organisms/composer/ProviderOptionList';
 import CreateSelectionPersistenceService from '../../services/create/CreateSelectionPersistenceService';
 import useFeatureAccess from '@/hooks/useFeatureAccess';
 
@@ -134,6 +134,16 @@ export const useCreateComposerSelection = (tab: CreateTab) => {
       provider.mediaTypes.includes(tab)
     ).map(({ id, name, company, color }) => ({ id, name, company, color }));
   }, [tab]);
+
+  /** Which Studio tabs have a usable provider, so an empty tab can point to one that works. */
+  const readyTabs = useMemo<Record<CreateTab, boolean>>(
+    () => ({
+      image: IMAGE_GEN_PROVIDER_IDS.some(id => isImageProviderConfigured(id)),
+      video: hasRunwayKey,
+      audio: hasElevenLabsKey,
+    }),
+    [isImageProviderConfigured, hasRunwayKey, hasElevenLabsKey]
+  );
 
   const configuredProviderIds = useMemo<string[]>(() => {
     if (tab === 'image') {
@@ -264,6 +274,7 @@ export const useCreateComposerSelection = (tab: CreateTab) => {
     configs,
     pickerProviders,
     configuredProviderIds,
+    readyTabs,
     addProvider,
     updateConfig,
     removeConfig,

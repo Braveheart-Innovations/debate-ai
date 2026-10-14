@@ -1,5 +1,5 @@
 import { getRoundsForPresetId, type DebateFormatId } from '@/config/debate/formats';
-import type { AIConfig, ChatSession, DebateVoiceConfig } from '@/types';
+import type { AIConfig, ChatSession, DebateSpeechLength, DebateVoiceConfig } from '@/types';
 
 /**
  * Everything Debate setup needs to stage a debate again: the user lands on setup
@@ -13,6 +13,8 @@ export interface DebateRematchSetup {
   /** The setup length choice (3, 5 or 7). */
   exchanges: number;
   voiceConfig?: DebateVoiceConfig;
+  /** Absent for debates saved before the setting existed: setup keeps its remembered choice. */
+  speechLength?: DebateSpeechLength;
 }
 
 /** Params for `navigate('MainTabs', ...)` that open Debate setup pre-filled for a rematch. */
@@ -32,5 +34,6 @@ export const buildRematchSetupFromSavedDebate = (session: ChatSession): DebateRe
     formatId: config?.formatId || 'oxford',
     exchanges: getRoundsForPresetId(config?.presetId),
     voiceConfig: config?.voiceConfig,
+    speechLength: config?.speechLength,
   };
 };

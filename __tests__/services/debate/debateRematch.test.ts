@@ -25,7 +25,7 @@ const voiceConfig: DebateVoiceConfig = {
 };
 
 describe('buildRematchSetupFromSavedDebate', () => {
-  it('restores the debaters, motion, format, length and voices of a saved debate', () => {
+  it('restores the debaters, motion, format, length, speech length and voices of a saved debate', () => {
     const saved = createMockChatSession({
       id: 'debate_1',
       sessionType: 'debate',
@@ -36,6 +36,7 @@ describe('buildRematchSetupFromSavedDebate', () => {
         presetId: 'standard',
         rounds: 2,
         voiceConfig,
+        speechLength: 'verbose',
       },
     });
 
@@ -46,6 +47,7 @@ describe('buildRematchSetupFromSavedDebate', () => {
       // The saved `rounds` is the vote count; the setup length comes from the preset.
       exchanges: 5,
       voiceConfig,
+      speechLength: 'verbose',
     });
   });
 
@@ -56,6 +58,8 @@ describe('buildRematchSetupFromSavedDebate', () => {
       formatId: 'oxford',
       exchanges: 3,
       voiceConfig: undefined,
+      // Debates saved before the setting existed leave setup's remembered choice in place.
+      speechLength: undefined,
     }));
   });
 

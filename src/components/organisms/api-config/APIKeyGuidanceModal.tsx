@@ -90,6 +90,7 @@ export const APIKeyGuidanceModal: React.FC<APIKeyGuidanceModalProps> = ({
           />
 
           <ScrollView
+            keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ padding: theme.spacing.lg }}
             showsVerticalScrollIndicator={false}
           >

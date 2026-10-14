@@ -1,6 +1,6 @@
 // Redux store configuration
 import { configureStore, createSlice, PayloadAction, combineReducers } from '@reduxjs/toolkit';
-import { User, ChatSession, Message, UIMode, SubscriptionTier, AIConfig, MessageAttachment, MessageMetadata } from '../types';
+import { User, ChatSession, Message, UIMode, SubscriptionTier, AIConfig, MessageAttachment, MessageMetadata, type DebateSpeechLength } from '../types';
 import debateStatsReducer from './debateStatsSlice';
 import streamingReducer from './streamingSlice';
 import authReducer from './authSlice';
@@ -254,6 +254,8 @@ interface SettingsState {
   hasCompletedOnboarding: boolean;
   // Dev-only: enable recording controls in headers
   recordModeEnabled?: boolean;
+  /** Debate setup's last Speech length choice; persisted by DebateSetupPreferencesService. */
+  debateSpeechLength?: DebateSpeechLength;
 }
 
 const initialSettingsState: SettingsState = {
@@ -266,6 +268,7 @@ const initialSettingsState: SettingsState = {
   expertMode: {},
   hasCompletedOnboarding: false,
   recordModeEnabled: false,
+  debateSpeechLength: 'default',
 };
 
 const settingsSlice = createSlice({
@@ -358,6 +361,9 @@ const settingsSlice = createSlice({
     setRecordModeEnabled: (state, action: PayloadAction<boolean>) => {
       state.recordModeEnabled = !!action.payload;
     },
+    setDebateSpeechLength: (state, action: PayloadAction<DebateSpeechLength>) => {
+      state.debateSpeechLength = action.payload;
+    },
   },
 });
 
@@ -418,6 +424,7 @@ export const {
   restoreOnboarding,
   updateExpertMode,
   setRecordModeEnabled,
+  setDebateSpeechLength,
 } = settingsSlice.actions;
 
 // Export auth actions

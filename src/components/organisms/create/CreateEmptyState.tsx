@@ -3,7 +3,7 @@ import { Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-nat
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/theme';
-import { Typography, GradientButton } from '@/components/molecules';
+import { Typography, GradientButton, Button } from '@/components/molecules';
 import { useGreeting } from '@/hooks/useGreeting';
 import type { CreateMediaOperation, CreateTab } from '@/types/media';
 
@@ -18,9 +18,19 @@ export interface CreateRecentAsset {
   operation?: CreateMediaOperation;
 }
 
+/** Another Studio tab already has a connected provider; offer to go there. */
+export interface CreateTabSuggestion {
+  /** e.g. "Your Runway key makes videos." */
+  note: string;
+  /** e.g. "Switch to Video" */
+  label: string;
+  onPress: () => void;
+}
+
 interface CreateEmptyStateProps {
   tab: CreateTab;
   hasConfiguredProviders: boolean;
+  tabSuggestion?: CreateTabSuggestion | null;
   recentAssets: CreateRecentAsset[];
   onPressRecent: (asset: CreateRecentAsset) => void;
   onConfigureProviders: () => void;
@@ -86,6 +96,7 @@ const CONNECT_COPY: Record<CreateTab, string> = {
 export const CreateEmptyState: React.FC<CreateEmptyStateProps> = ({
   tab,
   hasConfiguredProviders,
+  tabSuggestion,
   recentAssets,
   onPressRecent,
   onConfigureProviders,
@@ -230,6 +241,22 @@ export const CreateEmptyState: React.FC<CreateEmptyStateProps> = ({
             gradient={theme.colors.gradients.primary}
             testID={testID ? `${testID}-configure` : undefined}
           />
+          {tabSuggestion && (
+            <View
+              style={styles.tabSuggestion}
+              testID={testID ? `${testID}-switch-tab` : undefined}
+            >
+              <Typography variant="caption" color="secondary" align="center">
+                {tabSuggestion.note}
+              </Typography>
+              <Button
+                title={tabSuggestion.label}
+                onPress={tabSuggestion.onPress}
+                variant="secondary"
+                size="medium"
+              />
+            </View>
+          )}
         </View>
       )}
     </View>
@@ -348,6 +375,9 @@ const styles = StyleSheet.create({
   },
   configureCopy: {
     paddingHorizontal: 8,
+  },
+  tabSuggestion: {
+    gap: 8,
   },
 });
 

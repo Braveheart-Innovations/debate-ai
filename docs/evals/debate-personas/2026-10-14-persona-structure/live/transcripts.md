@@ -1,0 +1,247 @@
+# Debate persona eval: transcripts
+
+Generated 2026-10-14T22:31:38.863Z. Motion: "This house would ban private cars from city centres". Oxford 1v1, text mode, Speech length concise; each persona is Affirmative against a Default Negative.
+
+## Default on claude-sonnet-5-5 (opponent gemini-3.8-flash, web search on)
+
+### Affirmative Opening Statement: Claude (Default) (103 words)
+
+Cities exist for people, not parked metal. Our motion asks for a ban on private cars in city centres, with exemptions for emergency services, deliveries, and disabled access. The burden is simple: show that centres work better without them.
+
+They do. Cars take up enormous space for little movement, while pedestrians, buses, trams, and bikes move far more people per metre of road. Oslo, Madrid, and Ghent have seen cleaner air, quieter streets, fewer deaths, and busier shops after restricting cars. Every year, traffic kills and sickens thousands through crashes and pollution. A centre built for people is safer, healthier, and more prosperous.
+
+### Negative Opening Statement: Gemini (Default) (100 words)
+
+A blanket ban on private cars in city centres mistakes an ideological absolute for practical urban planning. The affirmative carries the burden of proving that total prohibition is necessary, workable, and fair, rather than dynamic management through congestion pricing, low-emission zones, and targeted infrastructure. Banning private vehicles cuts off suburban families, rural visitors, night-shift workers, and small local businesses that cannot rely on public transit alone. Dynamic, inclusive cities require balanced integration, not arbitrary exclusion. We must clean up urban transit and reduce congestion without severing the essential links that connect broader metropolitan populations to their economic and cultural hearts.
+
+### Affirmative Floor Speech: Claude (Default) (88 words)
+
+My opponent says pricing and low-emission zones are fairer, but a charge only lets wealthier drivers keep clogging the same streets, while poorer residents pay or stay away. Low-emission zones also clean the exhaust without freeing any space, and electric cars still take up road, kill pedestrians and need parking. As for being "cut off", our motion exempts deliveries, emergency services and disabled access. Families, visitors and night workers can arrive by park-and-ride, late-night transit and taxis. Nobody is excluded, but the centre stops being a car park.
+
+## Bestie on claude-sonnet-5-5 (opponent gemini-3.8-flash, web search on)
+
+### Affirmative Opening Statement: Claude (Bestie) (105 words)
+
+We all want the same thing from our cities: streets where people are safe, healthy, and free to move. Today's burden is simple. We must show that a car-free centre serves people better than the status quo.
+
+Think of a child walking to school through traffic fumes, or a grandmother who can't cross before the light changes. Cars take up the most space and carry the fewest people. Cities from Oslo to Pontevedra have reclaimed their centres, and their air is cleaner, their streets quieter, and their shops busier. We aren't taking freedom away. We're giving streets back to the people who live on them.
+
+### Negative Opening Statement: Gemini (Default) (101 words)
+
+A thriving city must work for everyone, not just those who are young, able-bodied, and wealthy enough to live along central transit lines. The motion before us demands an absolute, blanket ban on private cars in city centres. Our burden today is to show that such an outright prohibition is an inequitable and economically reckless blunt instrument. Urban centres are commercial and social lifebloods. Shutting out personal vehicles entirely cuts off people with disabilities, shifts severe traffic into surrounding working-class neighbourhoods, and starves small retail businesses. True urban progress demands measured, flexible policy, not rigid exclusion that harms the most vulnerable.
+
+### Affirmative Floor Speech: Claude (Bestie) (74 words)
+
+We share Gemini's worry for the vulnerable, so let's test it. Bans like Pontevedra's still allow disabled-access permits, deliveries and emergency vehicles; "private cars" doesn't mean every wheel. And the shops? Pedestrians typically spend more over a month than drivers, who are a small share of customers. The grandmother who can't cross the road is hurt by traffic today. Back this motion, and let's build exemptions in, not abandon the people streets should serve.
+
+## Brody on claude-sonnet-5-5 (opponent gemini-3.8-flash, web search on)
+
+### Affirmative Opening Statement: Claude (Brody) (105 words)
+
+I'm planting the flag: we win if you believe city centres belong to people, not parked metal. Our burden is simple. Show that a ban makes centres safer, cleaner, and more alive, and that it can be done fairly.
+
+Picture a child crossing a street without a parent's hand clenched in panic. Picture breathing easy outside a café. Oslo, Madrid, and Paris have already cut central car traffic, and the sky stayed up. Buses, trams, bikes, and delivery and disability exemptions keep the centre moving.
+
+Think of it as clearing the field so the real players can run. Vote for people. Take back the street!
+
+### Negative Opening Statement: Gemini (Default) (105 words)
+
+A thriving city centre cannot exist in isolation from the diverse populations that rely on it. The motion demands a blunt, total prohibition on private vehicles, placing an absolute barrier between urban cores and the millions who depend on them. Our burden is to show that blanket bans fundamentally harm urban vitality and equity, whereas targeted management preserves both. A universal ban disproportionately isolates disabled citizens, shift workers, and rural commuters who lack viable transit alternatives. It risks gutting local businesses, turning vibrant downtowns into sterile enclaves for the wealthy. True sustainability balances accessibility with environmental goals through congestion pricing and improved transit, not exclusion.
+
+### Affirmative Floor Speech: Claude (Brody) (78 words)
+
+Here's the win condition: Gemini is attacking a ban we never proposed. We exempt disabled drivers, deliveries, and emergency services, so no one gets walled out. Rural commuters get park-and-ride. Now the business scare. Pedestrianised streets across Europe have generally held or grown retail footfall, because walkers stop, browse, and spend. Congestion pricing just sells the pitch to whoever can pay, so the rich still drive and the fumes stay. A ban is fairer. Take back the street!
+
+## Devlin on claude-sonnet-5-5 (opponent gemini-3.8-flash, web search on)
+
+### Affirmative Opening Statement: Claude (Devlin) (101 words)
+
+Here is the strongest objection to my side: a ban punishes workers, disabled people and small traders who cannot easily switch. My case survives because the motion bans private cars, not access. Taxis, delivery vehicles, ambulances and accessible transport remain. The assumption I rest on is that road space in dense centres is a scarce resource, and cars use it least efficiently. A single lane moves roughly 2,000 cars an hour, several times more people by tram or bus. Oslo, Ghent and Pontevedra cut deaths, pollution and noise, and retail held up. We should reallocate space to what moves people best.
+
+### Negative Opening Statement: Gemini (Default) (101 words)
+
+A blanket ban on private cars in city centres mistakes an ideological absolute for sensible urban management. Cities thrive on dynamism and accessibility, connecting diverse populations across expansive metropolitan regions. Mandating an outright prohibition imposes a severe burden of justification: it demands proving that no balance of pricing, zoning, or public investment can manage congestion without stripping residents and suburban commuters of vital flexibility. Prohibiting private vehicles disproportionately cuts off outer-borough workers, caregivers, and families poorly served by spoke-and-hub transit networks. We must oppose this motion to champion nuanced, targeted urban transit policies over punitive, one-size-fits-all exclusions that harm local vitality.
+
+### Affirmative Floor Speech: Claude (Devlin) (89 words)
+
+Their strongest point is that pricing and zoning can manage congestion without a ban. That assumes price is a fair way to ration road space, but it lets wealthier drivers keep the space while everyone else pays. London's charge cut traffic at first, then lost much of that gain as private-hire vehicles refilled the lanes. They also assume a ban strands outer-borough workers. It covers only the centre, with park-and-ride at the edge, and low-income commuters are the least likely to drive in. Their approach breaks first on equity.
+
+## George on claude-sonnet-5-5 (opponent gemini-3.8-flash, web search on)
+
+### Affirmative Opening Statement: Claude (George) (104 words)
+
+We spend billions making city centres beautiful, then hand the best real estate to a two-tonne metal box that sits parked about 95% of the time. That's not transport policy, it's a very expensive storage unit with exhaust. And the quiet incentive? Everyone loves congestion charges, as long as the congestion is someone else's. So the motion is simple. In the dense core, private cars go. Trams, buses, taxis, deliveries, ambulances and disabled access stay. Our burden is showing that streets work better for more people without them: cleaner air, safer kids, busier shops. Swap parking for people, and the city finally pays rent.
+
+### Negative Opening Statement: Gemini (Default) (99 words)
+
+A thriving city centre must remain accessible to everyone, not just those fortunate enough to live along dense transit corridors. The motion demands an outright ban on private vehicles, imposing a blunt, punitive instrument where measured management is required. Our burden is to show that a blanket prohibition harms urban vitality, disproportionately isolates shift workers, suburban families, and those reliant on personal mobility, and inflicts severe economic disruption on downtown businesses. True sustainability requires nuanced solutions—targeted pricing, pedestrian zones, and improved transit—rather than an absolute ban that effectively walls off the urban core from the communities that sustain it.
+
+### Affirmative Floor Speech: Claude (George) (84 words)
+
+Gemini wants "accessible to everyone," then defends the one mode most centre-bound people don't use. Most commuters already arrive by foot, bus, or train. And "pedestrian zones" are a car ban with better PR, so my opponent just endorsed my motion while calling it blunt. Disabled access, taxis, ambulances and deliveries stay, so nobody gets walled off. As for shift workers, night buses beat circling for parking at 2 a.m. Nuance is great, but it's also what we call a decade of not deciding.
+
+## Kai on claude-sonnet-5-5 (opponent gemini-3.8-flash, web search on)
+
+### Affirmative Opening Statement: Claude (Kai) (117 words)
+
+I'll evaluate this like a design review: constraint first, then tradeoffs, then how we'd know it worked.
+
+The binding constraint is that city centres have fixed space and a fixed number of people who need to move through them. A private car uses roughly ten to twenty times the road space per traveller that a bus or tram does. Every lane given to parked or crawling cars is a lane denied to everything more efficient.
+
+So the tradeoff is simple. Remove cars, and you free space for transit, delivery, emergency vehicles, and pedestrians. The decision is to ban them, with exemptions for disabled access. We'd know it worked if journey times, air quality, and collisions all improve.
+
+### Negative Opening Statement: Gemini (Default) (104 words)
+
+A blanket ban on private cars treats a dynamic urban ecosystem as an abstract geometry puzzle, mistaking total prohibition for sound policy. City centres thrive because of diverse accessibility, serving residents, cross-town workers, late-night service staff, and independent retailers who rely on patrons from outside the immediate transit core. Demanding an absolute ban creates severe economic dislocation and disproportionately strands those with non-linear commutes or urgent caregiving duties. Better outcomes do not require blunt coercion. We can achieve cleaner air and fluid movement through congestion pricing and targeted pedestrian zones without severing the vital connections that keep a downtown economically resilient and universally accessible.
+
+### Affirmative Floor Speech: Claude (Kai) (79 words)
+
+The opposition's alternative fails under load. Congestion pricing lets anyone who can pay fill the road, so space stays scarce and buses still crawl. Our binding constraint is fixed street space. Pricing nudges demand, while a ban resets it. Their stranded caregivers are answered by permits for carers, disabled residents, and night-shift staff, exemptions I'm glad to extend. Pedestrianised streets often see shops hold steady or improve. We'd know it worked if bus speeds and retail turnover both rise.
+
+## Prof. Sage on claude-sonnet-5-5 (opponent gemini-3.8-flash, web search on)
+
+### Affirmative Opening Statement: Claude (Prof. Sage) (102 words)
+
+Everything here turns on one term: "ban" means restricting private, non-essential car access to a defined central zone. It does not mean abolishing cars, and exemptions for emergency services, deliveries, and disabled residents would remain. Our burden is to show that this restriction beats the status quo.
+
+First, evidence: Oslo, Madrid, and London's low-emission zones suggest that restricting traffic cuts air pollution and road injuries. Studies on this are cautiously positive, though cities differ. Second, inference: street space is scarce, and giving it to buses, bikes, and pedestrians moves more people per metre. Contrary evidence on retail collapse would change my mind.
+
+### Negative Opening Statement: Gemini (Default) (104 words)
+
+A vibrant city centre must be accessible to everyone, not just those who can walk, cycle, or live along direct transit lines. We oppose a blanket ban on private cars because it replaces dynamic urban life with an inflexible, regressive barrier. Cities are diverse ecosystems where workers, families, and residents from underserved peripheries rely on direct mobility to reach commerce and essential services. The burden of this debate is not merely to desire cleaner air, but to prove that total exclusion is the only and best remedy. Targeted policies like congestion pricing and electrification achieve environmental gains without cutting communities off from the core.
+
+### Affirmative Floor Speech: Claude (Prof. Sage) (81 words)
+
+My opponent attacks "total exclusion," but our definition kept exemptions for emergency, delivery and disabled access, so that target is a straw man. The burden is comparative, not "only remedy." First, inference: congestion pricing is arguably more regressive than a ban, since wealthier drivers can simply pay. Second, electrification cuts exhaust but not the space cars consume, and tyre and brake particulates remain. Evidence on peripheral access is mixed. Data showing bans strand low-income workers without transit would change my mind.
+
+## Scout on claude-sonnet-5-5 (opponent gemini-3.8-flash, web search on)
+
+### Affirmative Opening Statement: Claude (Scout) (117 words)
+
+Picture a weekday at eight in the morning in Pontevedra, Spain. Children walk to school down streets where private cars no longer enter the centre, and you can hear their voices rather than engines. The city began this policy in 1999. Officials report that road deaths in the centre have been rare to nonexistent since, and that emissions fell sharply.
+
+Today we defend a ban on private cars in city centres, with exemptions for buses, deliveries, emergency services and disabled access. Our burden is to show that dense centres serve people better without them. The lesson is simple: streets are shared space, and we should stop giving most of it to the least efficient way of moving.
+
+### Negative Opening Statement: Gemini (Default) (103 words)
+
+A city centre is not a museum display; it is an economic engine and a living hub for workers, families, and visitors from every walk of life. The burden for any total ban is exceptionally high: it must prove that no targeted regulation, congestion charge, or transit enhancement could suffice without stripping citizens of personal mobility. Blanket prohibition ignores urban reality. Outer-borough commuters lacking comprehensive rail links face instant exclusion, small retailers lose essential footfall, and vulnerable residents who do not fit narrow exemption categories are marooned. We must manage density intelligently through pricing and infrastructure, not mandate an inflexible, coercive total exclusion.
+
+### Affirmative Floor Speech: Claude (Scout) (88 words)
+
+Picture a shopkeeper on a Saturday morning, watching the street from behind her counter. She's sure her customers arrive by car. Yet when Sustrans surveyed Bristol traders, they overestimated how many shoppers drove. Most walked, cycled or took transit. My opponent fears empty tills, but the footfall he defends is mostly on foot already. Pricing alone also keeps the engines running for anyone who can pay. The exemptions we proposed cover the vulnerable. The lesson is to protect the customers who arrive, not the car they don't use.
+
+## Default on gemini-3.8-flash (opponent claude-sonnet-5-5, web search on)
+
+### Affirmative Opening Statement: Gemini (Default) (101 words)
+
+Cities are built for people, yet our urban cores have been surrendered to the noise, danger, and gridlock of private automobiles. By banning private cars from city centres, we reclaim valuable public space for pedestrian life, local commerce, and reliable public transit. The Affirmative burden is to show that urban hearts thrive best when prioritized for human interaction rather than vehicle storage and transit. Private vehicles choke economic vitality, pollute the air we breathe, and endanger pedestrians daily. Removing them transforms dense centres into safer, healthier, and far more accessible spaces where efficient public mobility and community life can finally flourish.
+
+### Negative Opening Statement: Claude (Default) (96 words)
+
+A ban is a blunt instrument, and cities need scalpels. The question isn't whether centres should be less car-dominated, but whether prohibition is the right tool. It isn't. A total ban shuts out disabled people, the elderly, tradespeople, and night-shift workers whom transit serves poorly. It hands shops and clinics an access crisis, and it assumes every city has the transit to replace the car. Congestion pricing, low-emission zones, and smarter parking cut traffic without cutting off the people who need to reach the centre. The Affirmative must justify a ban over these alternatives. They cannot.
+
+### Affirmative Floor Speech: Gemini (Default) (86 words)
+
+The Negative mischaracterizes our motion as an indiscriminate shutdown. Banning private cars explicitly targets non-essential personal vehicles, leaving streets open for essential access: paratransit for disabled residents, emergency services, and commercial delivery fleets. Scalpels like congestion pricing merely allow wealthy drivers to buy their way into gridlock while low-income commuters remain trapped in traffic. In pedestrianized centres like Pontevedra, removing private cars revitalized local retail and eliminated pedestrian road deaths. True accessibility requires clearing the streets of private metal so shared, equitable transit can finally move.
+
+## Bestie on gemini-3.8-flash (opponent claude-sonnet-5-5, web search on)
+
+### Affirmative Opening Statement: Gemini (Bestie) (102 words)
+
+At the heart of this motion lies a value we all share: the belief that our city centres should be thriving, healthy spaces built for people rather than gridlock. Right now, everyday residents—like parents pushing strollers through toxic fumes or elderly neighbours navigating hostile crossings—are crowded out by two-ton private vehicles carrying single passengers. Banning private cars from our urban cores is not about taking away freedom; it is about reclaiming shared space for vibrant commerce, clean air, and reliable transit. A car-free centre protects our most vulnerable, restores community momentum, and invites you to vote firmly for this vital step forward.
+
+### Negative Opening Statement: Claude (Default) (103 words)
+
+A ban is a blunt instrument, and the burden on the proposition is to show it beats every smarter alternative. It doesn't. Cities already cut traffic and pollution through congestion charges, low-emission zones, and better transit, and they do it without shutting out people who genuinely need a car. A total ban hits the disabled, the elderly, tradespeople, night-shift workers, and anyone whose journey transit can't serve. It also risks pushing shoppers and businesses to out-of-town malls. Good policy targets the harm, not the vehicle. Ask whether a blanket prohibition is fair, workable, and necessary. It is none of these, so vote against.
+
+### Affirmative Floor Speech: Gemini (Bestie) (87 words)
+
+We all want fair, accessible streets, but incremental congestion pricing simply lets wealthy commuters buy their way out while keeping the air thick with exhaust. Reclaiming our city centre from private cars directly serves those who rely on urban mobility: blue-collar workers and parents on foot whose buses are no longer trapped in gridlock, alongside protected exemptions for trades and disabled access. Thriving pedestrian hubs like Pontevedra prove local businesses surge when human life replaces parked steel. Vote for streets where our communities genuinely breathe and prosper.
+
+## Brody on gemini-3.8-flash (opponent claude-sonnet-5-5, web search on)
+
+### Affirmative Opening Statement: Gemini (Brody) (105 words)
+
+I’m planting the flag right now: this debate comes down to whether our downtowns belong to living, breathing communities or to empty, idling metal boxes. Our win condition is simple. Banning private cars unlocks the single most decisive advantage a modern city can have: liveable, vibrant space where people actually thrive. Right now, private vehicles monopolize our streets, choking local air and turning walkable neighborhoods into high-stress parking lots. It’s like letting a basketball team run a game on a crowded playground and wondering why the kids can’t play. Clear the lanes, reclaim our common ground, and give our city centers back to the people.
+
+### Negative Opening Statement: Claude (Default) (94 words)
+
+Cities thrive when people can reach them, and a blanket ban makes that harder for the people who most need access. The motion says ban, not discourage. That means no exceptions in principle for the disabled, the elderly, night-shift workers, or parents with small children, and nothing for the tradespeople and shopkeepers who keep centres running. Our burden is simple: a total ban is worse than smarter alternatives like congestion pricing, low-emission zones, and better transit. Those deliver cleaner, calmer streets without cutting off residents or businesses. Fairness and flexibility beat prohibition. Vote Negative.
+
+### Affirmative Floor Speech: Gemini (Brody) (92 words)
+
+The win condition is simple: real freedom of movement belongs to people, not personal vehicles. Claude claims this leaves the vulnerable stranded, but that’s a complete misread. Banning *private* cars still leaves the door wide open for electric public transit, emergency vehicles, and paratransit vans for the disabled. Congestion pricing just lets wealthy drivers pay a toll to keep polluting, which isn't fair access at all. It’s like trying to fix an overcrowded track by selling VIP lane passes instead of letting everyone run. Stand for healthy, open cities and vote Affirmative!
+
+## Devlin on gemini-3.8-flash (opponent claude-sonnet-5-5, web search on)
+
+### Affirmative Opening Statement: Gemini (Devlin) (130 words)
+
+The motion asks whether we should ban private cars from city centres. The affirmative burden is clear: to prove that urban cores cannot sustainably reconcile the spatial demands of private automobiles with livable, equitable civic life. 
+
+The strongest objection against us is that such a ban unfairly infringes on personal mobility and harms commerce. Yet this objection rests on the unexamined assumption that private vehicles are an efficient conduit for urban movement. In dense cores, geometric reality dictates failure: private cars occupy immense space while carrying few people, choking productivity, polluting shared air, and stalling transit. 
+
+Our position survives this scrutiny. Reclaiming streets for mass transit, cycling, and pedestrians replaces gridlock with high-capacity circulation. By removing private cars, we do not restrict urban life; we finally make room for it.
+
+### Negative Opening Statement: Claude (Default) (100 words)
+
+A ban is a blunt instrument, and the affirmative must prove it is the best way to fix city centres, not just that cars cause problems. We say it isn't. Cities already have sharper tools: congestion charges, low-emission zones, pedestrianised streets and better transit. These cut traffic without shutting out the disabled, the elderly, tradespeople, parents with small children, and night-shift workers who have no realistic alternative. A total ban also hits small businesses that rely on deliveries and customers who arrive by car. Our case is simple: regulate and price cars smartly, and don't criminalise access to the city.
+
+### Affirmative Floor Speech: Gemini (Devlin) (88 words)
+
+The opposition’s best point is that pricing mechanisms like congestion charges offer a calibrated, less disruptive compromise. Yet their argument rests on the assumption that core road space is merely mispriced rather than physically finite. Here is the failure mode: congestion charges turn public street space into a pay-to-play luxury for the wealthy while leaving spatial bottlenecks largely intact. A ban on private cars does not exclude trades or disabled access; it reclaims scarce surface area to make public transit and essential services vastly faster, fairer, and viable.
+
+## George on gemini-3.8-flash (opponent claude-sonnet-5-5, web search on)
+
+### Affirmative Opening Statement: Gemini (George) (101 words)
+
+We spend billions building magnificent city centres—cultural hubs packed with cafes, theaters, and parks—and then surrender eighty percent of that shared real estate to two-ton metal cages moving at three miles an hour. We’ve turned downtown into an idling, smog-choked obstacle course just so one guy can sit in climate-controlled isolation, blasting a podcast, slowly losing his damn mind. The burden today is simple: prove that city cores are built for living humans, not stationary chrome. Banning private cars isn’t about waging a war on drivers; it’s about liberating our streets for reliable transit, commerce, clean air, and basic human sanity.
+
+### Negative Opening Statement: Claude (Default) (102 words)
+
+A blanket ban is the wrong tool for a real problem. City centres are not only playgrounds for pedestrians. They are home to disabled residents, elderly people, night-shift workers, tradespeople and families, and many of them have no substitute for a car. A ban would fall hardest on those least able to adapt. It would also push shoppers and businesses to out-of-town malls, hollowing out the very centres we want to protect. Smarter policy, such as congestion charging, low-emission zones and better transit, cuts traffic without cutting people off. The affirmative must prove prohibition beats those alternatives. I will show it doesn't.
+
+### Affirmative Floor Speech: Gemini (George) (89 words)
+
+Claude loves hiding behind tradespeople and accessibility, but let’s speak the quiet truth: a private car ban targets unnecessary personal joyrides, not utility vans or blue-badge transport. What actually traps vulnerable people and slows down deliveries? Thousands of solo commuters choking every damn street. Congestion pricing just lets rich folks pay a fee to monopolize public asphalt. Free up that space, and suddenly buses actually move, curbs clear up for real needs, and downtown businesses thrive on actual foot traffic, not gridlock. We're rescuing city centres, not bankrupting them.
+
+## Kai on gemini-3.8-flash (opponent claude-sonnet-5-5, web search on)
+
+### Affirmative Opening Statement: Gemini (Kai) (96 words)
+
+We must evaluate this motion as a systems design problem, where the binding constraint is finite street geometry that cannot scale with vehicle volume. When two tons of metal transport an individual through a dense core, spatial throughput collapses, which starves mass transit of right-of-way, worsens air quality, and creates systemic gridlock. Tolerating this design failure under peak load paralyzes mobility for everyone. By removing private cars, we reallocate limited street capacity toward high-density transit, active mobility, and essential logistics. We will know this policy succeeds when corridor passenger throughput rises while transit commute latencies drop.
+
+### Negative Opening Statement: Claude (Default) (98 words)
+
+Cities are not traffic machines; they are places where people live, work, and depend on one another. A blanket ban treats every driver as a luxury, yet the disabled, elderly, night-shift workers, tradespeople, and parents with small children often have no workable substitute. Ban the car and you also hollow out the centre's economy, pushing shoppers, clinics, and employers toward out-of-town sites that remain easy to reach by car. The burden on the Affirmative is to show an outright ban beats smarter tools: congestion pricing, low-emission zones, and better transit. Targeted measures cut harm without cutting people off.
+
+### Affirmative Floor Speech: Gemini (Kai) (83 words)
+
+The binding constraint remains spatial capacity: congestion pricing simply rations scarce road space to the wealthy while leaving buses stuck behind private vehicles. The claim that bans hollow out local commerce fails under real-world testing. When cities like Pontevedra and Ghent removed private cars, retail revenues and foot traffic surged because walkable streets attract sustained human activity. Tradespeople and disabled residents gain dedicated, clear lanes rather than gridlock. We will measure success when footfall increases and door-to-door transit reliability achieves ninety-nine percent predictability.
+
+## Prof. Sage on gemini-3.8-flash (opponent claude-sonnet-5-5, web search on)
+
+### Affirmative Opening Statement: Gemini (Prof. Sage) (100 words)
+
+The motion turns on what constitutes a city centre: a dense, shared core whose finite spatial equilibrium cannot sustain individual private vehicle throughput. First, the observational evidence demonstrates that allocating dominant street space to private cars induces severe congestion and acute localized emissions, while safer micro-mobility and mass transit offer far superior passenger capacity per square metre. The deeper point is structural; separating empirical metrics from social inference, we observe that reclaiming transit corridors directly restores urban vitality. I would re-evaluate my position if private vehicles demonstrated spatial efficiency comparable to shared rail transit. Our core cities demand pedestrian reclamation.
+
+### Negative Opening Statement: Claude (Default) (99 words)
+
+Banning is a blunt instrument, and the motion demands a total ban, not smarter management. Cities already have better tools: congestion charges, low-emission zones and car-free streets. London and Stockholm cut traffic and pollution without banning anyone. A blanket ban shuts out disabled people, the elderly, tradespeople, night-shift workers and families with young children, for whom a car is the only workable option. It also risks hollowing out the shops, clinics and venues that depend on customers who can't easily arrive by transit. The Affirmative must prove that nothing short of prohibition works. They cannot, so you should oppose.
+
+### Affirmative Floor Speech: Gemini (Prof. Sage) (85 words)
+
+The opposition misconstrues the motion: banning private cars does not eliminate essential service vehicles, transit, or registered accessibility access. First, empirical data from Pontevedra reveals that removing personal automobiles increased local retail footfall rather than hollowing it out, disproving the economic doom narrative. The deeper point concerns pricing mechanisms; evidence indicates congestion charges simply turn public thoroughfares into toll routes for the affluent, leaving spatial gridlock unresolved. I would concede if market fees eliminated gridlock equitably. Removing private cars remains the only structurally coherent remedy.
+
+## Scout on gemini-3.8-flash (opponent claude-sonnet-5-5, web search on)
+
+### Affirmative Opening Statement: Gemini (Scout) (114 words)
+
+Let me take you to a crosswalk in central London at eight on a Tuesday morning. Elena is waiting with her seven-year-old son, watching idling grilles pump invisible exhaust directly into his stroller. The metallic tang of nitrogen dioxide hangs thick in the air—a measurable toxin that public health data links to stunted lung capacity in urban children. Elena’s frustration is real, but it is not just about delay; it is about who owns the air our families breathe. This debate asks whether city cores belong to two-ton metal cages or to the people living within them. The lesson is clear: reclaiming our shared spaces begins when we remove the machines that choke them.
+
+### Negative Opening Statement: Claude (Default) (100 words)
+
+A ban is the bluntest tool available, and the affirmative must prove it is the best one. It isn't. City centres are not museums; they are living places where disabled residents, night-shift nurses, tradespeople and elderly people depend on door-to-door travel that buses cannot always match. A blanket ban abandons them. Meanwhile, cleaner tools already exist: congestion charges, low-emission zones and electric vehicles cut pollution while keeping access fair. Banning cars also risks hollowing out the shops and services that make centres worth visiting. We should target emissions and congestion, not outlaw a whole group of people. Reform, don't ban.
+
+### Affirmative Floor Speech: Gemini (Scout) (85 words)
+
+Picture Maria wheeling past crowded outdoor terraces in Pontevedra on a Friday evening. My opponent warns of abandoned residents and hollowed-out commerce, yet after this Spanish city banned private cars, downtown foot traffic surged and local retail grew by thirty percent. Essential blue-badge access and delivery vans remain protected, directly answering the fear that disabled citizens are stranded. Congestion pricing merely lets affluent drivers buy out street space. The lesson is simple: true access blooms not through gridlock, but when streets return to human life.

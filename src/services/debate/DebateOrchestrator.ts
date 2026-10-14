@@ -4,7 +4,7 @@
  * Coordinates between all other debate services and manages state transitions
  */
 
-import { AI, Message, ChatSession, Citation, type DebateInterstitialKind, type DebateSpeechMetadata, type DebateVoiceConfig } from '../../types';
+import { AI, Message, ChatSession, Citation, type DebateInterstitialKind, type DebateSpeechLength, type DebateSpeechMetadata, type DebateVoiceConfig } from '../../types';
 import { AIService } from '../aiAdapter';
 import { DebateRulesEngine } from './DebateRulesEngine';
 import { VotingService } from './VotingService';
@@ -35,7 +35,7 @@ import { ErrorCode } from '@/errors/codes/ErrorCodes';
 import { mergeAvailabilitiesStrict } from '@/hooks/multimodal/useModalityAvailability';
 import { resolveProviderModelId } from '@/config/modelConfigs';
 import { buildPersonalityRuntime, mergeRuntimeModelParameters } from '@/services/personality';
-import { applyDebateOutputTokenCap, getDebateSpeechLengthGuidance } from './debateSpeechLength';
+import { applyDebateOutputTokenCap, DEFAULT_DEBATE_SPEECH_LENGTH, getDebateSpeechLengthGuidance } from './debateSpeechLength';
 import { DebateTurnRunner, type DebateTurnFailed } from './DebateTurnRunner';
 import { createDebateInterstitialMessage } from './DebateInterstitialService';
 
@@ -57,6 +57,8 @@ export interface DebateSession {
   format: FormatSpec;
   preset: PresetConfig;
   presetId: string;
+  /** How long each speech is; every turn's word target follows it. */
+  speechLength: DebateSpeechLength;
   stances: { [aiId: string]: 'pro' | 'con' };
   audienceResult?: AudienceDecisionResult;
   audienceQuestions?: OxfordAudienceQuestions;
@@ -93,6 +95,18 @@ export interface DebateContinuationPrompt {
   retryMessageId?: string;
   voteRound?: number;
   isFinalRoundVote?: boolean;
+}
+
+export interface DebateInitializeOptions {
+  formatId?: DebateFormatId;
+  presetId?: string;
+  rounds?: number; // 1–5
+  stances?: { [aiId: string]: 'pro' | 'con' };
+  /** Optional pre-merged personalities from context (includes user customizations) */
+  mergedPersonalities?: Record<string, PersonalityOption>;
+  voiceConfig?: DebateVoiceConfig;
+  /** Speech length setting; 'default' when absent. */
+  speechLength?: DebateSpeechLength;
 }
 
 interface PendingDebateContinuation extends DebateContinuationPrompt {
@@ -648,15 +662,7 @@ export class DebateOrchestrator {
     topic: string,
     participants: AI[],
     personalities: { [aiId: string]: string } = {},
-    options?: {
-      formatId?: DebateFormatId;
-      presetId?: string;
-      rounds?: number; // 1–5
-      stances?: { [aiId: string]: 'pro' | 'con' };
-      /** Optional pre-merged personalities from context (includes user customizations) */
-      mergedPersonalities?: Record<string, PersonalityOption>;
-      voiceConfig?: DebateVoiceConfig;
-    }
+    options?: DebateInitializeOptions
   ): Promise<DebateSession> {
     // Resolve configuration
     const formatId = options?.formatId || 'oxford';
@@ -716,6 +722,7 @@ export class DebateOrchestrator {
       format,
       preset,
       presetId: preset.id,
+      speechLength: options?.speechLength ?? DEFAULT_DEBATE_SPEECH_LENGTH,
       stances,
       webSearchEnabled,
       voiceConfig: options?.voiceConfig,
@@ -883,12 +890,12 @@ export class DebateOrchestrator {
         ? this.promptBuilder.extractPreviousMessageFromSameSpeaker(turnMessages, currentAI)
         : undefined;
       const roleContext = this.buildRoleContext(aiIndex, messageSpec);
-      const speechLength = getDebateSpeechLengthGuidance({
+      const lengthGuidance = getDebateSpeechLengthGuidance({
         formatId: format.id,
-        presetId: preset.id,
         phase,
         cxRole: messageSpec.cxRole,
         voiceMode: Boolean(this.session.voiceConfig?.enabled),
+        level: this.session.speechLength,
       });
       const minimal = this.promptBuilder.buildTurnPrompt({
         topic,
@@ -897,7 +904,7 @@ export class DebateOrchestrator {
         isFinalRound: phase === 'closing' || messageIndex >= maxMessages - 2,
         guidance: format.guidance[phase] ?? '',
         format,
-        presetId: preset.id,
+        speechLength: this.session.speechLength,
         messageLabel: messageSpec.label,
         roleBrief: roleContext.roleBrief,
         sameSpeakerPreviousMessage,
@@ -965,14 +972,19 @@ export class DebateOrchestrator {
           opponentPersonality: opponentPersona,
         },
       });
-      const runtimeParameters = applyDebateOutputTokenCap(
-        mergeRuntimeModelParameters(
-          expert.enabled,
-          expert.parameters,
-          runtime.modelParameters
+      const runtimeParameters = {
+        ...applyDebateOutputTokenCap(
+          mergeRuntimeModelParameters(
+            expert.enabled,
+            expert.parameters,
+            runtime.modelParameters
+          ),
+          lengthGuidance.maxTokens
         ),
-        speechLength.maxTokens
-      );
+        // Word targets make Gemini reason 2.5-3.8x longer, and that reasoning shares the output
+        // cap; a debate turn asks for brief reasoning. Adapters without such a control ignore it.
+        reasoningEffort: 'low' as const,
+      };
 
       // Compose a stance-aware, persona- and format-inflected system prompt for this AI
       try {
@@ -1049,7 +1061,7 @@ export class DebateOrchestrator {
         history: debateMessages,
         personalityConfig: runtime.personalityConfig,
         parameters: runtimeParameters,
-        minWords: speechLength.minWords,
+        minWords: lengthGuidance.minWords,
         useStreaming,
         messageId,
         isSyntheticError: (content: string) => this.isSyntheticDebateErrorContent(content, currentAI.name),
@@ -1968,6 +1980,7 @@ export class DebateOrchestrator {
           audienceResult: this.session.audienceResult,
           audienceQuestions: this.session.audienceQuestions,
           voiceConfig: this.session.voiceConfig,
+          speechLength: this.session.speechLength,
         }
       };
       

@@ -60,6 +60,7 @@ export const CreateOptionsSheet: React.FC<CreateOptionsSheetProps> = ({
     <CreateSheetShell visible={visible} title="Output options" onClose={onClose} testID={testID}>
       <OutputControlGroup label="Style" helpTopicId="create-styles">
         <ScrollView
+          keyboardShouldPersistTaps="handled"
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.styleScroll}

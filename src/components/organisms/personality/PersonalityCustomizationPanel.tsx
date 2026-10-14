@@ -365,7 +365,8 @@ export const PersonalityCustomizationPanel: React.FC<PersonalityCustomizationPan
           />
 
           <Typography variant="caption" color="secondary" style={styles.paramNote}>
-            Higher temperature = more creative but less predictable responses
+            Higher temperature = more creative but less predictable responses. Applies to Chat and
+            Compare; debates use a fixed temperature for every persona.
           </Typography>
         </View>
 

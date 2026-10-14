@@ -61,7 +61,7 @@ export const SubscriptionSheet: React.FC<SubscriptionSheetProps> = ({
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <SheetHeader title="Unlock Premium" onClose={onClose} />
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20 }}>
+      <ScrollView keyboardShouldPersistTaps="handled" style={{ flex: 1 }} contentContainerStyle={{ padding: 20 }}>
         <Typography
           variant="body"
           color="secondary"

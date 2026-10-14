@@ -29,7 +29,10 @@ export {
 } from './DebateInterstitialService';
 export {
   applyDebateOutputTokenCap,
+  DEBATE_SPEECH_LENGTHS,
+  DEFAULT_DEBATE_SPEECH_LENGTH,
   getDebateSpeechLengthGuidance,
+  isDebateSpeechLength,
 } from './debateSpeechLength';
 export {
   buildRematchNavigationParams,
@@ -39,6 +42,7 @@ export {
 
 export type { 
   DebateSession,
+  DebateInitializeOptions,
   DebateError,
   DebateAudienceQuestionsPrompt,
   DebateContinuationPrompt,

@@ -208,6 +208,7 @@ export const HelpSheet: React.FC<HelpSheetProps> = ({ onClose }) => {
 
   const renderCategoryFilter = () => (
     <ScrollView
+      keyboardShouldPersistTaps="handled"
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.categoryFilterContent}
@@ -483,6 +484,7 @@ export const HelpSheet: React.FC<HelpSheetProps> = ({ onClose }) => {
       {renderTabBar()}
 
       <ScrollView
+        keyboardShouldPersistTaps="handled"
         style={{ flex: 1 }}
         contentContainerStyle={{
           paddingHorizontal: 20,
