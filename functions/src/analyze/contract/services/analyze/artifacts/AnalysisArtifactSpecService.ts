@@ -109,10 +109,14 @@ const diagramBlockSchema = baseBlockSchema.extend({
       type: z.literal('mermaid'),
       code: z.string().min(1),
     }),
-    // A data model baked from a diagram file; checked when drawn, so it can't sink the spec.
+    // A data model or process flow baked from a diagram file; checked when drawn, so it can't sink the spec.
     z.object({
       type: z.literal('data_model'),
       model: z.record(z.string(), z.unknown()),
+    }),
+    z.object({
+      type: z.literal('process_flow'),
+      flow: z.record(z.string(), z.unknown()),
     }),
   ]),
   caption: z.string().optional(),
@@ -369,8 +373,8 @@ function normalizeSpecBlock(block: unknown): unknown {
     const alreadyWrapped =
       b.kind === 'diagram' && !!s && s.type === 'mermaid' && typeof s.code === 'string';
     if (alreadyWrapped) return block;
-    // A data model baked from a diagram file (inlineDiagramRefs) is already canonical.
-    if (b.kind === 'diagram' && !!s && s.type === 'data_model') return block;
+    // A data model or process flow baked from a diagram file (inlineDiagramRefs) is already canonical.
+    if (b.kind === 'diagram' && !!s && (s.type === 'data_model' || s.type === 'process_flow')) return block;
 
     const aliasKeys = ['code', 'mermaid', 'mermaidCode', 'source'];
     const raw = [

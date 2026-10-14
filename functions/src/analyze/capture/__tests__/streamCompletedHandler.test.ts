@@ -1371,6 +1371,36 @@ describe('handleStreamCompleted general intent-gated surfacing (non-Salesforce)'
       expect(JSON.parse(latestReport.data).pages[0].blocks[0].kind).toBe('diagram');
     });
 
+    it('bakes a report\'s reference to a process flow as the flow itself', () => {
+      const flow = JSON.stringify({
+        version: 1, kind: 'process_flow', title: 'Clinic', summary: 'Patients check in and see a doctor.', timeUnit: 'minutes',
+        nodes: [
+          { id: 'arrive', type: 'start', label: 'Patient arrives', arrivals: { type: 'exponential', mean: 6 } },
+          { id: 'doctor', type: 'step', label: 'Doctor', duration: { type: 'uniform', min: 10, max: 15 }, capacity: 3 },
+          { id: 'done', type: 'end', label: 'Visit complete' },
+        ],
+        flows: [{ id: 'f1', from: 'arrive', to: 'doctor' }, { id: 'f2', from: 'doctor', to: 'done' }],
+        resources: [],
+      });
+      const report = JSON.stringify({
+        version: 1, kind: 'analysis_artifact_spec', title: 'Clinic', summary: 'The process.',
+        pages: [{ slug: 'p', title: 'P', blocks: [{ kind: 'artifact_ref', artifactId: 'clinic.diagram.json' }] }],
+      });
+      const { artifacts } = runHandler({
+        outputSelection: richHtml,
+        toolCalls: [call('c1'), call('c2')],
+        toolExecutionResults: [
+          { toolName: 'write_output_file', success: true, content: 'Wrote the flow.', dataOutputs: [{ filename: 'clinic.diagram.json', base64: btoa(flow), size: flow.length }] },
+          { toolName: 'write_output_file', success: true, content: 'Wrote report.', dataOutputs: [{ filename: 'report.json', base64: btoa(report), size: report.length }] },
+        ],
+        messageId: 'ai-1',
+      });
+      const block = JSON.parse(artifacts.find((artifact) => artifact.type === 'analysis_artifact_spec')!.data).pages[0].blocks[0];
+      // Drawn by the app like the Diagram view, not as Mermaid text.
+      expect(block).toMatchObject({ kind: 'diagram', caption: 'Clinic', spec: { type: 'process_flow', flow: { kind: 'process_flow', title: 'Clinic' } } });
+      expect(block.spec.flow.nodes.map((node: { id: string }) => node.id)).toEqual(['arrive', 'doctor', 'done']);
+    });
+
     it('versions a diagram the agent saves again, even in a report round', () => {
       const first = runHandler({ outputSelection: richHtml, toolCalls: [call('c1')], toolExecutionResults: [diagramResult(diagram('Families'))], messageId: 'ai-1' });
       const v1 = first.artifacts.find((artifact) => artifact.name === 'families.diagram.json')!;

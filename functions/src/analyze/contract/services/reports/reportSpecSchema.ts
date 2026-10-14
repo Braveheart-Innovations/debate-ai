@@ -129,10 +129,14 @@ const diagramBlockSchema = z.object({
       type: z.literal('mermaid'),
       code: z.string().min(1),
     }),
-    // A data model baked from a diagram file; checked when drawn, so it can't sink the spec.
+    // A data model or process flow baked from a diagram file; checked when drawn, so it can't sink the spec.
     z.object({
       type: z.literal('data_model'),
       model: z.record(z.string(), z.unknown()),
+    }),
+    z.object({
+      type: z.literal('process_flow'),
+      flow: z.record(z.string(), z.unknown()),
     }),
   ]),
   caption: z.string().optional(),
