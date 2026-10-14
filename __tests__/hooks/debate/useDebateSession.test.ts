@@ -59,6 +59,7 @@ describe('useDebateSession', () => {
     format: getFormat('oxford'),
     preset: getPresetForFormat('oxford', 'short'),
     presetId: 'short',
+    speechLength: 'default',
     stances: {},
   };
 

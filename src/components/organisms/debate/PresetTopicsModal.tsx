@@ -33,7 +33,7 @@ export const PresetTopicsModal: React.FC<PresetTopicsModalProps> = ({ visible, o
           <SheetHeader title="Choose a Preset Motion" onClose={onClose} showHandle />
 
           {/* Category chips */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ padding: theme.spacing.lg, paddingBottom: 0 }}>
+          <ScrollView keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ padding: theme.spacing.lg, paddingBottom: 0 }}>
             {categories.map(cat => (
               <Button
                 key={cat.id}
@@ -47,7 +47,7 @@ export const PresetTopicsModal: React.FC<PresetTopicsModalProps> = ({ visible, o
           </ScrollView>
 
           {/* Topics list */}
-          <ScrollView style={{ paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.lg }}>
+          <ScrollView keyboardShouldPersistTaps="handled" style={{ paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.lg }}>
             {topics.map(topic => (
               <TouchableOpacity
                 key={topic}

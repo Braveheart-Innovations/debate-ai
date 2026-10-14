@@ -88,6 +88,7 @@ exports[`DemoDebatePickerModal Snapshot Tests matches snapshot when empty 1`] = 
             "padding": 12,
           }
         }
+        keyboardShouldPersistTaps="handled"
         style={
           {
             "maxHeight": 520,
@@ -207,6 +208,7 @@ exports[`DemoDebatePickerModal Snapshot Tests matches snapshot when loading 1`] 
             "padding": 12,
           }
         }
+        keyboardShouldPersistTaps="handled"
         style={
           {
             "maxHeight": 520,
@@ -325,6 +327,7 @@ exports[`DemoDebatePickerModal Snapshot Tests matches snapshot with samples 1`] 
             "padding": 12,
           }
         }
+        keyboardShouldPersistTaps="handled"
         style={
           {
             "maxHeight": 520,

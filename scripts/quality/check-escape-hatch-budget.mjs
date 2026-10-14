@@ -20,7 +20,7 @@ const BUDGETS = {
   'tests: untyped require() of packages': 0,
   'src: single `as` casts': 516,
   'tests: single `as` casts': 411,
-  'tests: untyped bare jest.fn()': 1568,
+  'tests: untyped bare jest.fn()': 1566,
   'tests: malformed() inputs': 7,
 };
 const CODE = /\.(ts|tsx)$/;

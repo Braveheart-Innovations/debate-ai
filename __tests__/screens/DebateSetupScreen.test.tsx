@@ -10,7 +10,9 @@ import {
   setAIModel,
   preserveTopic,
   clearPreservedTopic,
+  setDebateSpeechLength,
 } from '@/store';
+import DebateSetupPreferencesService from '@/services/debate/DebateSetupPreferencesService';
 import { resolveProviderModelId } from '@/config/modelConfigs';
 import { getPersonality } from '@/config/personalities';
 import type { AIConfig, DebateVoiceConfig } from '@/types';
@@ -104,9 +106,10 @@ jest.mock('react-native-view-shot', () => ({
   default: () => null,
 }));
 
+let mockValidationReady = true;
 jest.mock('@/hooks/debate', () => ({
   usePreDebateValidation: () => ({
-    isReady: true,
+    isReady: mockValidationReady,
     checkReadiness: jest.fn(),
   }),
 }));
@@ -354,6 +357,7 @@ const flush = async () => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockValidationReady = true;
   mockListDebateSamples.mockReset();
   mockFindDebateById.mockReset();
   mockGetAPIKey.mockReset();
@@ -477,6 +481,69 @@ describe('DebateSetupScreen', () => {
     expect(renderResult.getByText(/16 turns/)).toBeTruthy();
   });
 
+  describe('speech length', () => {
+    const startReadyDebate = async (renderResult: ReturnType<typeof renderScreen>['renderResult']) => {
+      await setTopic('Climate Action');
+      await fillSlot(0, 'claude');
+      await fillSlot(1, 'openai');
+      fireEvent.press(renderResult.getByTestId('start-debate-button'));
+    };
+
+    it('offers Brief, Balanced and Detailed and opens on the remembered choice', async () => {
+      const { renderResult, navigation } = renderScreen({
+        featureAccess: { isDemo: false },
+        state: { settings: { ...defaultState().settings, debateSpeechLength: 'concise' } },
+      });
+
+      expect(renderResult.getByText('Speech length')).toBeTruthy();
+      expect(renderResult.getByText('Brief')).toBeTruthy();
+      expect(renderResult.getByText('Balanced')).toBeTruthy();
+      expect(renderResult.getByText('Detailed')).toBeTruthy();
+      expect(renderResult.getByText('Openings about 100 words')).toBeTruthy();
+
+      await startReadyDebate(renderResult);
+
+      expect(navigation.navigate).toHaveBeenCalledWith('Debate', expect.objectContaining({ speechLength: 'concise' }));
+    });
+
+    it('passes a new choice to the debate and remembers it, without a subscription', async () => {
+      const save = jest.spyOn(DebateSetupPreferencesService, 'save').mockResolvedValue(undefined);
+      const { renderResult, navigation } = renderScreen({ featureAccess: { isDemo: false, isPremium: false } });
+
+      expect(renderResult.getByText('Openings about 190 words')).toBeTruthy();
+      fireEvent.press(renderResult.getByText('Detailed'));
+      await flush();
+
+      expect(renderResult.getByText('Openings about 350 words')).toBeTruthy();
+      expect(mockDispatch).toHaveBeenCalledWith(setDebateSpeechLength('verbose'));
+      expect(save).toHaveBeenCalledWith({ speechLength: 'verbose' });
+
+      await startReadyDebate(renderResult);
+
+      expect(navigation.navigate).toHaveBeenCalledWith('Debate', expect.objectContaining({ speechLength: 'verbose' }));
+      save.mockRestore();
+    });
+
+    it('goes back to the remembered choice when setup resets after a debate', async () => {
+      const { renderResult, navigation } = renderScreen({
+        featureAccess: { isDemo: false },
+        route: {
+          rematch: { selectedAIs: [], topic: 'Cities should ban cars', formatId: 'oxford', exchanges: 3, speechLength: 'concise' },
+          rematchKey: 'rematch-2',
+        },
+      });
+      await flush();
+      expect(renderResult.getByText('Openings about 100 words')).toBeTruthy();
+
+      renderResult.rerender(
+        <DebateSetupScreen navigation={navigation} route={{ params: { resetDebateSetup: true, resetKey: 'reset-2' } }} />
+      );
+      await flush();
+
+      expect(renderResult.getByText('Openings about 190 words')).toBeTruthy();
+    });
+  });
+
   it('fills empty slots through the provider picker', async () => {
     renderScreen({ featureAccess: { isDemo: false } });
     await setTopic('Climate Action');
@@ -577,7 +644,7 @@ describe('DebateSetupScreen', () => {
     expect(mockDispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: setAIPersonality.type }));
   });
 
-  it('removes a debater and reopens the provider picker on change provider', async () => {
+  it('swaps the provider in place from the slot sheet, then removes the debater', async () => {
     renderScreen({ featureAccess: { isDemo: false } });
     await setTopic('Climate Action');
     await fillSlot(0, 'claude');
@@ -587,16 +654,14 @@ describe('DebateSetupScreen', () => {
     });
     await flush();
 
-    act(() => {
-      mockSlotConfigSheet.latest().onChangeProvider();
-    });
-    await flush();
-    expect(mockProviderPicker.latest().visible).toBe(true);
+    expect(mockSlotConfigSheet.latest().providerOptions.length).toBeGreaterThan(0);
+    expect(mockSlotConfigSheet.latest().configuredProviderIds).toContain('openai');
 
     act(() => {
-      mockProviderPicker.latest().onSelectProvider('openai');
+      mockSlotConfigSheet.latest().onChangeProvider('openai');
     });
     await flush();
+    expect(mockProviderPicker.latest().visible).toBe(false);
     expect(mockTeamsCard.latest().slots[0].ai?.provider).toBe('openai');
 
     act(() => {
@@ -647,6 +712,85 @@ describe('DebateSetupScreen', () => {
       rounds: 3,
     }));
     expect(mockDispatch).toHaveBeenCalledWith(clearPreservedTopic());
+  });
+
+  describe('pressing Start while blocked takes the user to the missing piece', () => {
+    it('opens API configuration when no provider key exists', () => {
+      mockValidationReady = false;
+      const { renderResult, navigation } = renderScreen({ featureAccess: { isDemo: false } });
+
+      expect(renderResult.getByText('Add at least one AI provider key to start a debate.')).toBeTruthy();
+      fireEvent.press(renderResult.getByTestId('start-debate-button'));
+
+      expect(navigation.navigate).toHaveBeenCalledWith('APIConfig');
+    });
+
+    it('asks for a motion when none is chosen', () => {
+      const { renderResult, navigation } = renderScreen({ featureAccess: { isDemo: false } });
+
+      fireEvent.press(renderResult.getByTestId('start-debate-button'));
+
+      expect(Alert.alert).toHaveBeenCalledWith('Select a Motion', expect.any(String));
+      expect(navigation.navigate).not.toHaveBeenCalled();
+    });
+
+    it('opens the provider picker for the first empty debater slot', async () => {
+      const { renderResult, navigation } = renderScreen({ featureAccess: { isDemo: false } });
+      await setTopic('Climate Action');
+      await fillSlot(0, 'claude');
+      expect(mockProviderPicker.latest().visible).toBe(false);
+
+      fireEvent.press(renderResult.getByTestId('start-debate-button'));
+      await flush();
+
+      expect(mockProviderPicker.latest().visible).toBe(true);
+      act(() => {
+        mockProviderPicker.latest().onSelectProvider('openai');
+      });
+      await flush();
+      expect(mockTeamsCard.latest().slots[1].ai?.provider).toBe('openai');
+      expect(navigation.navigate).not.toHaveBeenCalledWith('Debate', expect.anything());
+    });
+  });
+
+  describe('adding a missing key from a picker', () => {
+    it('opens that provider\'s key card from the provider picker', () => {
+      const { navigation } = renderScreen({ featureAccess: { isDemo: false } });
+
+      act(() => {
+        requireDefined(mockProviderPicker.latest().onRequestAddKey, 'onRequestAddKey')('mistral');
+      });
+
+      expect(navigation.navigate).toHaveBeenCalledWith('APIConfig', { providerId: 'mistral' });
+    });
+
+    it('opens that provider\'s key card from the slot sheet\'s provider page', async () => {
+      const { navigation } = renderScreen({ featureAccess: { isDemo: false } });
+      await setTopic('Climate Action');
+      await fillSlot(0, 'claude');
+      act(() => {
+        mockTeamsCard.latest().onSlotPress(mockTeamsCard.latest().slots[0]);
+      });
+      await flush();
+
+      act(() => {
+        requireDefined(mockSlotConfigSheet.latest().onRequestAddKey, 'onRequestAddKey')('mistral');
+      });
+
+      expect(navigation.navigate).toHaveBeenCalledWith('APIConfig', { providerId: 'mistral' });
+    });
+
+    it('offers no add-key route from the slot sheet in demo mode', async () => {
+      renderScreen({ featureAccess: { isDemo: true } });
+      await setTopic('AI Ethics');
+      await fillSlot(0, 'claude');
+      act(() => {
+        mockTeamsCard.latest().onSlotPress(mockTeamsCard.latest().slots[0]);
+      });
+      await flush();
+
+      expect(mockSlotConfigSheet.latest().onRequestAddKey).toBeUndefined();
+    });
   });
 
   it('leaves tone to the personalities: there is no intensity setting', async () => {
@@ -807,11 +951,16 @@ describe('DebateSetupScreen', () => {
           formatId: 'oxford',
           exchanges: 3,
           voiceConfig,
+          speechLength: 'verbose',
         },
         rematchKey: 'rematch-1',
       },
     });
     await flush();
+
+    expect(renderResult.getByText('Openings about 350 words')).toBeTruthy();
+    // Pre-filling a rematch is not a new choice to remember.
+    expect(mockDispatch).not.toHaveBeenCalledWith(setDebateSpeechLength('verbose'));
 
     expect(mockTopicSelector.latest()).toEqual(expect.objectContaining({ topicMode: 'custom', customTopic: 'Cities should ban cars' }));
     expect(mockTeamsCard.latest().slots.map(slot => [slot.ai?.id, slot.personalityLabel, slot.voiceLabel])).toEqual([
@@ -826,6 +975,7 @@ describe('DebateSetupScreen', () => {
       topic: 'Cities should ban cars',
       formatId: 'oxford',
       rounds: 3,
+      speechLength: 'verbose',
       personalities: { [affirmative.id]: 'george', [negative.id]: 'prof_sage' },
       selectedAIs: [
         expect.objectContaining({ id: affirmative.id, model: claudeModel, personality: 'george' }),
@@ -936,8 +1086,18 @@ describe('DebateSetupScreen', () => {
     await flush();
 
     expect(renderResult.getByText('Choose a voice for every debater.')).toBeTruthy();
+    act(() => {
+      mockSlotConfigSheet.latest().onClose();
+    });
+    await flush();
+    expect(mockSlotConfigSheet.latest().visible).toBe(false);
+
     fireEvent.press(renderResult.getByTestId('start-debate-button'));
+    await flush();
     expect(navigation.navigate).not.toHaveBeenCalledWith('Debate', expect.anything());
+    // Start opens the first debater still missing a voice.
+    expect(mockSlotConfigSheet.latest().visible).toBe(true);
+    expect(mockSlotConfigSheet.latest().ai?.provider).toBe('claude');
   });
 
   it('resets setup state when returning from a completed debate', async () => {

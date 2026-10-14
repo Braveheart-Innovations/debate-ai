@@ -27,6 +27,11 @@ export interface ComposerShellProps {
   /** Receives the trimmed input. */
   onSend: (text: string) => void;
   canSend: boolean;
+  /**
+   * What a send tap does while blocked (e.g. no AI picked yet). When set the
+   * button stays tappable so the tap is answered, never silently dropped.
+   */
+  onBlockedSend?: () => void;
   pills: ComposerPillDescriptor[];
   onPillPress: (index: number) => void;
   showAddPill: boolean;
@@ -57,6 +62,7 @@ export const ComposerShell: React.FC<ComposerShellProps> = ({
   onChangeText,
   onSend,
   canSend,
+  onBlockedSend,
   pills,
   onPillPress,
   showAddPill,
@@ -86,8 +92,16 @@ export const ComposerShell: React.FC<ComposerShellProps> = ({
     onChangeText(text);
   };
 
+  const sendTappable = canSend || Boolean(onBlockedSend);
+
   const handleSend = () => {
-    if (!canSend) return;
+    if (!canSend) {
+      if (onBlockedSend) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+        onBlockedSend();
+      }
+      return;
+    }
     // Late recognizer results must not refill the input the wrapper just cleared.
     dictation.cancel();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
@@ -163,11 +177,12 @@ export const ComposerShell: React.FC<ComposerShellProps> = ({
         )}
         <TouchableOpacity
           onPress={handleSend}
-          disabled={!canSend}
+          disabled={!sendTappable}
           activeOpacity={0.7}
           accessibilityRole="button"
           accessibilityLabel="Send message"
-          accessibilityState={{ disabled: !canSend }}
+          accessibilityHint={!canSend && validationMessage ? validationMessage : undefined}
+          accessibilityState={{ disabled: !sendTappable }}
           style={[
             styles.sendButton,
             {

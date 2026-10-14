@@ -201,14 +201,18 @@ interface PromptSections {
   toneTags: string;
 }
 
-/** Splits a composed debate system prompt at the markers BaseAdapter and PersonalityRuntimeBuilder emit. */
+/**
+ * Splits a composed debate system prompt at the markers BaseAdapter and PersonalityRuntimeBuilder emit.
+ * A Default debater has no style directive, so its own persona section is empty.
+ */
 const splitSystemPrompt = (prompt: string): PromptSections => {
-  const ownStart = prompt.indexOf('Style directive:');
   const opponentStart = prompt.search(/\n(?:Opponent|Primary opposing speaker): /);
-  const rulesStart = prompt.indexOf('\nKeep each scheduled speech compact');
+  const styleStart = prompt.indexOf('Style directive:');
+  const ownStart = styleStart === -1 ? opponentStart + 1 : styleStart;
+  const rulesStart = prompt.indexOf('\nFollow the turn-specific length guidance.');
   const toneMatch = prompt.search(/\n\[(?:Style|Debate style): /);
   const toneStart = toneMatch === -1 ? prompt.length : toneMatch;
-  if (ownStart === -1 || opponentStart === -1 || rulesStart === -1) {
+  if (opponentStart === -1 || rulesStart === -1) {
     throw new Error(`Unexpected system prompt shape:\n${prompt}`);
   }
   return {
@@ -301,6 +305,18 @@ const renderSummary = (runs: Map<string, { run: CaptureRun; speeches: CapturedSp
   });
 
   const allSpeeches = [...runs.values()].flatMap(entry => entry.speeches);
+  // Text written for chat and compare (persona system prompts, chat guidance, signature moves, card
+  // notes, chat samples) has no place in a debater's prompt.
+  const chatOnlyText = UNIVERSAL_PERSONALITIES.flatMap(persona => [
+    persona.id === 'default' ? undefined : persona.systemPrompt,
+    persona.chatGuidance,
+    persona.compareGuidance,
+    ...persona.signatureMoves,
+    ...(persona.watchouts ?? []),
+    persona.sampleOpeners?.chat,
+    persona.sampleOpeners?.compare,
+  ]).filter((text): text is string => Boolean(text));
+  const chatTextInDebate = allSpeeches.filter(speech => chatOnlyText.some(text => speech.systemPrompt.includes(text))).length;
   const personaNamedInTurn = allSpeeches.filter(speech => {
     const name = UNIVERSAL_PERSONALITIES.find(persona => persona.id === speech.personalityId)?.name;
     return speech.personalityId !== 'default' && name !== undefined && speech.turnPrompt.includes(name);
@@ -326,6 +342,10 @@ const renderSummary = (runs: Map<string, { run: CaptureRun; speeches: CapturedSp
     `| Persona | Persona temperature | ${PROVIDERS.map(({ provider, name }) => `${name} (${defaultModel(provider)})`).join(' | ')} |`,
     '| --- | --- | --- | --- | --- |',
     ...samplingRows,
+    '',
+    '## Chat text in debate prompts',
+    '',
+    `${chatTextInDebate} of ${allSpeeches.length} speeches carry chat or compare persona text (system prompts, chat guidance, signature moves, card notes, chat samples) in their system prompt.`,
     '',
     '## Turn prompts',
     '',

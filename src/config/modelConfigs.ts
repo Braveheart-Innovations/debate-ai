@@ -71,6 +71,22 @@ export const AI_MODELS: ProviderModels = {
       unsupportedParams: ["temperature", "topP"],
     },
     {
+      // Released 2026-10-07. Adaptive thinking is on by default (effort
+      // medium); non-default temperature/top_p/top_k return a 400.
+      id: "claude-haiku-5-5",
+      name: "Claude Haiku 5.5",
+      description: "Fastest, lowest-cost current Claude model with adaptive thinking, vision, and a 1M-token context",
+      contextLength: 1000000,
+      maxOutputTokens: 128000,
+      supportsVision: true,
+      supportsImageInput: true,
+      supportsDocuments: true,
+      supportsFunctions: true,
+      supportsWebSearch: true,
+      supportsThinking: true,
+      unsupportedParams: ["temperature", "topP"],
+    },
+    {
       id: "claude-sonnet-5",
       name: "Claude Sonnet 5",
       description: "Previous balanced Claude model with adaptive thinking and effort control for chat, coding, and agentic work",
@@ -207,22 +223,12 @@ export const AI_MODELS: ProviderModels = {
       supportsThinking: true,
     },
     {
+      // Deprecated by Anthropic on 2026-09-30, retiring 2026-11-30 (recommended
+      // replacement: Claude Sonnet 5.5). Its 1M-context beta is gone: the
+      // Models API reports a 200K input window (verified 2026-10-14).
       id: "claude-sonnet-4-5-20250929",
       name: "Claude 4.5 Sonnet",
-      description: "Previous balanced Claude release for agents and coding",
-      contextLength: 1000000,
-      maxOutputTokens: 64000,
-      supportsVision: true,
-      supportsImageInput: true,
-      supportsDocuments: true,
-      supportsFunctions: true,
-      supportsWebSearch: true,
-      supportsThinking: true,
-    },
-    {
-      id: "claude-haiku-4-5-20251001",
-      name: "Claude 4.5 Haiku",
-      description: "Fast Claude option for lightweight chat workloads",
+      description: "Deprecated Claude Sonnet release retiring 2026-11-30; replaced by Claude Sonnet 5.5",
       contextLength: 200000,
       maxOutputTokens: 64000,
       supportsVision: true,
@@ -231,6 +237,24 @@ export const AI_MODELS: ProviderModels = {
       supportsFunctions: true,
       supportsWebSearch: true,
       supportsThinking: true,
+      isDeprecated: true,
+    },
+    {
+      // Anthropic may retire Haiku 4.5 from 2026-10-15 ("not sooner than").
+      // Deprecated here so persisted selections resolve, via MODEL_ALIASES, to
+      // its like-for-like successor Claude Haiku 5.5 rather than the default.
+      id: "claude-haiku-4-5-20251001",
+      name: "Claude 4.5 Haiku",
+      description: "Retiring Claude Haiku release; selections now use Claude Haiku 5.5",
+      contextLength: 200000,
+      maxOutputTokens: 64000,
+      supportsVision: true,
+      supportsImageInput: true,
+      supportsDocuments: true,
+      supportsFunctions: true,
+      supportsWebSearch: true,
+      supportsThinking: true,
+      isDeprecated: true,
     },
     {
       id: "claude-opus-4-1-20250805",
@@ -683,6 +707,23 @@ export const AI_MODELS: ProviderModels = {
       supportsThinking: true,
     },
     {
+      // GA 2026-10-13. Not on the Gemini API free tier. Thinking levels are
+      // low/medium/high (default medium; no "minimal"). Google ignores
+      // temperature/topP/topK for this model, so Expert Mode hides them.
+      id: "gemini-4-argon",
+      name: "Gemini 4 Argon",
+      description: "Google's flagship Gemini 4 reasoning model for complex coding, math, science, and agentic work (paid Gemini API tiers)",
+      contextLength: 1048576,
+      maxOutputTokens: 65536,
+      supportsVision: true,
+      supportsImageInput: true,
+      supportsDocuments: true,
+      supportsFunctions: true,
+      supportsWebSearch: true,
+      supportsThinking: true,
+      unsupportedParams: ["temperature", "topP", "topK"],
+    },
+    {
       id: "gemini-3.7-flash",
       name: "Gemini 3.7 Flash",
       description: "Previous stable fast Gemini default retained while available from Google",
@@ -698,7 +739,7 @@ export const AI_MODELS: ProviderModels = {
     {
       id: "gemini-3.6-flash",
       name: "Gemini 3.6 Flash",
-      description: "Older stable Gemini Flash release still served by Google; out of the picker but resolvable for existing sessions",
+      description: "Previous stable Gemini Flash release, also serving requests for Gemini 3.5 Flash",
       contextLength: 1048576,
       maxOutputTokens: 65536,
       supportsVision: true,
@@ -709,9 +750,11 @@ export const AI_MODELS: ProviderModels = {
       supportsThinking: true,
     },
     {
+      // Google's endpoint now routes gemini-3.5-flash requests to
+      // gemini-3.6-flash; MODEL_ALIASES resolves persisted sessions the same way.
       id: "gemini-3.5-flash",
       name: "Gemini 3.5 Flash",
-      description: "Previous stable fast Gemini model, superseded by Gemini 3.6 Flash",
+      description: "Retired Gemini Flash ID that Google serves as Gemini 3.6 Flash",
       contextLength: 1048576,
       maxOutputTokens: 65536,
       supportsVision: true,
@@ -720,6 +763,7 @@ export const AI_MODELS: ProviderModels = {
       supportsFunctions: true,
       supportsWebSearch: true,
       supportsThinking: true,
+      isDeprecated: true,
     },
     {
       id: "gemini-3.5-flash-lite",
@@ -914,6 +958,24 @@ export const AI_MODELS: ProviderModels = {
     },
   ],
   mistral: [
+    {
+      // Public preview (v26.10, 2026-10-06); the API lists it under both
+      // mistral-large-4 and mistral-large-4-0. Cataloged but NOT curated: it
+      // reasons by default, and streamed delta.content then arrives as arrays
+      // of thinking chunks that OpenAICompatibleAdapter does not parse (the
+      // stream renders "[object Object]"). It also rejects temperature 0
+      // unless top_p is 1. Live-verified 2026-10-14; curate it once the
+      // adapter handles both.
+      id: "mistral-large-4",
+      name: "Mistral Large 4",
+      description: "Mistral's open-weight hybrid instruct-and-reasoning multimodal flagship with a 1M-token context (public preview)",
+      contextLength: 1048576,
+      isPreview: true,
+      supportsVision: true,
+      supportsImageInput: true,
+      supportsFunctions: true,
+      supportsThinking: true,
+    },
     {
       // Tier-gated: free (Experiment) keys get 403 tier_not_allowed and it
       // drops out of their /v1/models, but paid keys list it and chat works
@@ -1134,16 +1196,16 @@ export const AI_MODELS: ProviderModels = {
       supportsThinking: true,
     },
     {
-      // From 2026-09-14 DeepSeek routes every deepseek-v4-pro request to V4.1
-      // Flash at Flash pricing until a V4.1 Pro ships.
+      // DeepSeek-V4-Pro-0813. DeepSeek kept serving it after 2026-09-14 at its
+      // own pricing (changelog 2026-09-10) rather than routing it to V4.1
+      // Flash. Text-only; thinking and non-thinking modes.
       id: "deepseek-v4-pro",
       name: "DeepSeek V4 Pro",
-      description: "Retiring DeepSeek V4 model; served as DeepSeek V4.1 Flash from 2026-09-14",
+      description: "DeepSeek's larger V4 model for harder reasoning and coding, with thinking and non-thinking modes and a 1M-token context",
       contextLength: 1000000,
       maxOutputTokens: 384000,
       supportsFunctions: true,
       supportsThinking: true,
-      isDeprecated: true,
     },
     {
       id: "deepseek-v4-flash",
@@ -1453,14 +1515,16 @@ export const AI_MODELS: ProviderModels = {
 
 // Model IDs shown in selectors. Keep this aligned with the verified runtime catalog.
 export const CURATED_MODEL_IDS: { [providerId: string]: string[] } = {
+  // Haiku 5.5 replaces Haiku 4.5 in the picker (cheaper and newer); Haiku 4.5
+  // stays in AI_MODELS so persisted sessions keep resolving.
   claude: [
     "claude-sonnet-5-5",
     "claude-opus-5-5",
+    "claude-haiku-5-5",
     "claude-fable-5-1",
     "claude-sonnet-5",
     "claude-opus-5",
     "claude-sonnet-4-6",
-    "claude-haiku-4-5-20251001",
   ],
   // Mobile caps pickers at 7. gpt-6-sol (same price as its 6.1 successor) is
   // left out so gpt-4.1 stays: it is the only curated OpenAI model that takes
@@ -1474,10 +1538,14 @@ export const CURATED_MODEL_IDS: { [providerId: string]: string[] } = {
     "gpt-5.6-luna",
     "gpt-4.1",
   ],
+  // gemini-3.7-flash leaves the picker for Gemini 4 Argon: Google now routes
+  // 3.7 Flash requests to 3.8 Flash (the default), so it was a duplicate. It
+  // stays in AI_MODELS so persisted sessions keep resolving. gemini-3.6-flash
+  // replaces gemini-3.5-flash, whose requests Google serves as 3.6 Flash.
   google: [
     "gemini-3.8-flash",
-    "gemini-3.7-flash",
-    "gemini-3.5-flash",
+    "gemini-4-argon",
+    "gemini-3.6-flash",
     "gemini-3.1-pro-preview",
     "gemini-3.5-flash-lite",
     "gemini-2.5-pro",
@@ -1489,6 +1557,8 @@ export const CURATED_MODEL_IDS: { [providerId: string]: string[] } = {
     "sonar-reasoning-pro",
     "sonar-deep-research",
   ],
+  // mistral-large-4 is cataloged but held out of the picker until the
+  // OpenAI-compatible adapter handles its default reasoning (see its entry).
   mistral: [
     "mistral-medium-2604",
     "mistral-large-2512",
@@ -1505,7 +1575,9 @@ export const CURATED_MODEL_IDS: { [providerId: string]: string[] } = {
     "command-a-vision-07-2025",
     "command-r-08-2024",
   ],
-  deepseek: ["deepseek-flash"],
+  // V4 Pro streams through DeepSeekAdapter (reasoning arrives separately in
+  // reasoning_content; live-verified 2026-10-14).
+  deepseek: ["deepseek-flash", "deepseek-v4-pro"],
   grok: [
     "grok-4.3",
     "grok-4.7",

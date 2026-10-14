@@ -188,6 +188,35 @@ describe('GeminiAdapter sendMessage', () => {
     expect(url).toContain('gemini-3.1-flash-lite:generateContent');
     expect(url).not.toContain('gemini-3.1-flash-lite-preview');
   });
+
+  it('asks for brief thinking only when the turn carries a reasoning hint', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ candidates: [{ content: { parts: [{ text: 'Debate reply' }] } }] }),
+    });
+    const debateTurn = new GeminiAdapter({
+      ...baseConfig,
+      model: 'gemini-3.8-flash',
+      parameters: { temperature: 0.7, maxTokens: 6144, reasoningEffort: 'low' },
+    });
+    const chatTurn = new GeminiAdapter({
+      ...baseConfig,
+      model: 'gemini-3.8-flash',
+      parameters: { temperature: 0.7, maxTokens: 6144 },
+    });
+
+    await debateTurn.sendMessage('Opening speech');
+    await chatTurn.sendMessage('Chat message');
+
+    const debateBody: unknown = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
+    const chatBody: unknown = JSON.parse(String(fetchMock.mock.calls[1][1]?.body));
+    expect(debateBody).toEqual(expect.objectContaining({
+      generationConfig: expect.objectContaining({ maxOutputTokens: 6144, thinkingConfig: { thinkingLevel: 'low' } }),
+    }));
+    expect(chatBody).toEqual(expect.objectContaining({
+      generationConfig: expect.not.objectContaining({ thinkingConfig: expect.anything() }),
+    }));
+  });
 });
 
 describe('GeminiAdapter streamMessage', () => {
@@ -285,6 +314,27 @@ describe('GeminiAdapter streamMessage', () => {
     expect(eventSource.url).toContain('gemini-3.1-flash-lite:streamGenerateContent');
     expect(eventSource.url).not.toContain('gemini-3.1-flash-lite-preview');
 
+    eventSource.emit('message', {
+      data: JSON.stringify({ candidates: [{ finishReason: 'STOP' }] }),
+    });
+    await expect(completionPromise).resolves.toMatchObject({ done: true });
+  });
+
+  it('sends the reasoning hint on the streaming path too', async () => {
+    const adapter = new GeminiAdapter({
+      ...baseConfig,
+      model: 'gemini-3.8-flash',
+      parameters: { temperature: 0.7, maxTokens: 6144, reasoningEffort: 'low' },
+    });
+    const iterator = adapter.streamMessage('Floor speech');
+
+    const completionPromise = iterator.next();
+    const eventSource = getLastEventSource();
+    const body: unknown = JSON.parse(String(eventSource.options.body));
+
+    expect(body).toEqual(expect.objectContaining({
+      generationConfig: expect.objectContaining({ maxOutputTokens: 6144, thinkingConfig: { thinkingLevel: 'low' } }),
+    }));
     eventSource.emit('message', {
       data: JSON.stringify({ candidates: [{ finishReason: 'STOP' }] }),
     });

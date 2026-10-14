@@ -1,0 +1,919 @@
+{
+  "rubricVersion": 1,
+  "judgeModel": "gpt-6.1-sol",
+  "lengthRunAt": "2026-10-14T22:01:45.727Z",
+  "judged": [
+    {
+      "debateId": "current/concise/default-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "concise"
+      },
+      "personalityId": "default",
+      "provider": "google",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "words": 101,
+      "redactions": 0,
+      "attribution": {
+        "persona": "default",
+        "runner_up": "prof_sage",
+        "confidence": 4,
+        "evidence": "The speech uses conventional formal debate framing and broad policy claims without distinctive humour, storytelling, coaching, or other recognisable persona markers."
+      }
+    },
+    {
+      "debateId": "current/concise/default-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "concise"
+      },
+      "personalityId": "default",
+      "provider": "google",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "words": 89,
+      "redactions": 0,
+      "attribution": {
+        "persona": "default",
+        "runner_up": "devlin",
+        "confidence": 4,
+        "evidence": "The speech uses conventional rebuttal, a concrete city example, and a firm policy conclusion without distinctive humour, storytelling, scholarly framing, or other recognisable persona markers."
+      }
+    },
+    {
+      "debateId": "current/concise/bestie-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "concise"
+      },
+      "personalityId": "bestie",
+      "provider": "google",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "words": 99,
+      "redactions": 0,
+      "attribution": {
+        "persona": "bestie",
+        "runner_up": "default",
+        "confidence": 5,
+        "evidence": "The speech foregrounds empathetic validation of disruption and personal concerns, then uses inclusive language and gentle, pragmatic encouragement toward shared goals."
+      }
+    },
+    {
+      "debateId": "current/concise/bestie-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "concise"
+      },
+      "personalityId": "bestie",
+      "provider": "google",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "words": 85,
+      "redactions": 0,
+      "attribution": {
+        "persona": "bestie",
+        "runner_up": "default",
+        "confidence": 4,
+        "evidence": "The speech opens with empathetic acknowledgment ('I hear your concern'), affirms people's needs, and pivots to collaborative, practical solutions with 'we can' and community-focused encouragement."
+      }
+    },
+    {
+      "debateId": "current/concise/brody-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "concise"
+      },
+      "personalityId": "brody",
+      "provider": "google",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "words": 99,
+      "redactions": 0,
+      "attribution": {
+        "persona": "brody",
+        "runner_up": "scout",
+        "confidence": 5,
+        "evidence": "“Planting the flag,” “we win,” and “Here is the play” establish a high-energy coach voice, capped by the rallying call to take the streets back together."
+      }
+    },
+    {
+      "debateId": "current/concise/brody-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "concise"
+      },
+      "personalityId": "brody",
+      "provider": "google",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "words": 88,
+      "redactions": 0,
+      "attribution": {
+        "persona": "brody",
+        "runner_up": "george",
+        "confidence": 5,
+        "evidence": "“I’m calling the win right here” and “Here is the play” establish a high-energy coaching voice, reinforced by punchy directives and a rallying finish."
+      }
+    },
+    {
+      "debateId": "current/concise/devlin-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "concise"
+      },
+      "personalityId": "devlin",
+      "provider": "google",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "words": 105,
+      "redactions": 0,
+      "attribution": {
+        "persona": "default",
+        "runner_up": "devlin",
+        "confidence": 4,
+        "evidence": "The speech uses conventional debate framing and impersonal policy language without a distinctive persona voice, though its opening concession followed by a challenged assumption mildly suggests Devlin."
+      }
+    },
+    {
+      "debateId": "current/concise/devlin-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "concise"
+      },
+      "personalityId": "devlin",
+      "provider": "google",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "words": 87,
+      "redactions": 0,
+      "attribution": {
+        "persona": "devlin",
+        "runner_up": "default",
+        "confidence": 3,
+        "evidence": "The speech fairly acknowledges the opposition’s strongest point before exposing a 'hidden assumption' and firmly pressure-testing its proposed solution."
+      }
+    },
+    {
+      "debateId": "current/concise/george-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "concise"
+      },
+      "personalityId": "george",
+      "provider": "google",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "words": 104,
+      "redactions": 0,
+      "attribution": {
+        "persona": "george",
+        "runner_up": "brody",
+        "confidence": 5,
+        "evidence": "The speech’s sarcastic descriptions of cars as “two-ton metal cages” and polluted air that “pickles your lungs,” alongside its attack on the euphemism of “convenience,” signal George’s sharp observational satire and righteous skepticism."
+      }
+    },
+    {
+      "debateId": "current/concise/george-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "concise"
+      },
+      "personalityId": "george",
+      "provider": "google",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "words": 85,
+      "redactions": 0,
+      "attribution": {
+        "persona": "george",
+        "runner_up": "devlin",
+        "confidence": 5,
+        "evidence": "The speech uses sarcastic ridicule—people buying shoes at forty miles an hour, cars as ‘honking steel boxes’ and ‘rolling scrap metal’—to expose a contradiction before delivering a practical takeaway."
+      }
+    },
+    {
+      "debateId": "current/concise/kai-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "concise"
+      },
+      "personalityId": "kai",
+      "provider": "google",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "words": 103,
+      "redactions": 0,
+      "attribution": {
+        "persona": "kai",
+        "runner_up": "default",
+        "confidence": 5,
+        "evidence": "The speech frames transit as a systems overhaul using engineering language such as “throughput bottlenecks,” “idle memory footprints,” “physical bandwidth,” and “phased transit architecture.”"
+      }
+    },
+    {
+      "debateId": "current/concise/kai-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "concise"
+      },
+      "personalityId": "kai",
+      "provider": "google",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "words": 86,
+      "redactions": 0,
+      "attribution": {
+        "persona": "kai",
+        "runner_up": "devlin",
+        "confidence": 5,
+        "evidence": "The speech frames transport policy as systems architecture, using engineering language such as “failure mode,” “transit bandwidth,” “decommission low-throughput bottlenecks,” and “reliably scale.”"
+      }
+    },
+    {
+      "debateId": "current/concise/prof_sage-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "concise"
+      },
+      "personalityId": "prof_sage",
+      "provider": "google",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "words": 111,
+      "redactions": 0,
+      "attribution": {
+        "persona": "prof_sage",
+        "runner_up": "default",
+        "confidence": 4,
+        "evidence": "The speech foregrounds precise definitions, formal burden-setting, empirical evidence from Pontevedra, and cautious qualification about economic outcomes, giving it a distinctly scholarly voice."
+      }
+    },
+    {
+      "debateId": "current/concise/prof_sage-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "concise"
+      },
+      "personalityId": "prof_sage",
+      "provider": "google",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "words": 85,
+      "redactions": 0,
+      "attribution": {
+        "persona": "prof_sage",
+        "runner_up": "default",
+        "confidence": 3,
+        "evidence": "The formal conceptual distinctions, references to Oslo and Pontevedra as empirical evidence, and cautious allowance for targeted exceptions suggest a precise, scholarly voice."
+      }
+    },
+    {
+      "debateId": "current/concise/scout-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "concise"
+      },
+      "personalityId": "scout",
+      "provider": "google",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "words": 99,
+      "redactions": 0,
+      "attribution": {
+        "persona": "scout",
+        "runner_up": "default",
+        "confidence": 5,
+        "evidence": "The opening scene of a child confronting exhaust and gridlock, followed by vivid contrasts between dangerous corridors and breathable sanctuaries, makes the argument through sensory storytelling."
+      }
+    },
+    {
+      "debateId": "current/concise/scout-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "concise"
+      },
+      "personalityId": "scout",
+      "provider": "google",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "words": 89,
+      "redactions": 0,
+      "attribution": {
+        "persona": "scout",
+        "runner_up": "bestie",
+        "confidence": 4,
+        "evidence": "The sunny-afternoon shop-door scene, vivid contrast between cars and coffee-buying people, and vision of a humming downtown make the argument through imagery and human stakes."
+      }
+    },
+    {
+      "debateId": "current/default/default-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "default"
+      },
+      "personalityId": "default",
+      "provider": "google",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "words": 191,
+      "redactions": 0,
+      "attribution": {
+        "persona": "default",
+        "runner_up": "prof_sage",
+        "confidence": 5,
+        "evidence": "The speech uses a conventional burden statement and orderly policy arguments in plain, formal language, without distinctive humour, storytelling, or a recognisable persona voice."
+      }
+    },
+    {
+      "debateId": "current/default/default-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "default"
+      },
+      "personalityId": "default",
+      "provider": "google",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "words": 147,
+      "redactions": 0,
+      "attribution": {
+        "persona": "default",
+        "runner_up": "devlin",
+        "confidence": 4,
+        "evidence": "The speech uses conventional formal rebuttal, broad real-world examples, and policy claims without distinctive humour, storytelling, scholarly framing, or a sustained persona-specific voice."
+      }
+    },
+    {
+      "debateId": "current/default/bestie-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "default"
+      },
+      "personalityId": "bestie",
+      "provider": "google",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "words": 192,
+      "redactions": 0,
+      "attribution": {
+        "persona": "bestie",
+        "runner_up": "default",
+        "confidence": 5,
+        "evidence": "The opening validates worries about time, safety, and peace of mind, then uses inclusive language and reassuring, practical steps to promise change 'without leaving anyone stranded.'"
+      }
+    },
+    {
+      "debateId": "current/default/bestie-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "default"
+      },
+      "personalityId": "bestie",
+      "provider": "google",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "words": 158,
+      "redactions": 0,
+      "attribution": {
+        "persona": "bestie",
+        "runner_up": "devlin",
+        "confidence": 4,
+        "evidence": "The speech opens with reflective listening and explicit validation of the opponent’s protective goals, then uses inclusive language to propose pragmatic next steps."
+      }
+    },
+    {
+      "debateId": "current/default/brody-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "default"
+      },
+      "personalityId": "brody",
+      "provider": "google",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "words": 189,
+      "redactions": 0,
+      "attribution": {
+        "persona": "brody",
+        "runner_up": "scout",
+        "confidence": 5,
+        "evidence": "The flag-planting opener, explicit “Here is the play,” punchy action verbs, and rallying “Let’s take our streets back” give the speech a high-energy coach’s voice."
+      }
+    },
+    {
+      "debateId": "current/default/brody-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "default"
+      },
+      "personalityId": "brody",
+      "provider": "google",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "words": 150,
+      "redactions": 0,
+      "attribution": {
+        "persona": "brody",
+        "runner_up": "devlin",
+        "confidence": 5,
+        "evidence": "The opening calls a “win condition” and announces “Here is the play,” setting a high-energy coaching voice reinforced by punchy rebuttals and a rallying closing."
+      }
+    },
+    {
+      "debateId": "current/default/devlin-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "default"
+      },
+      "personalityId": "devlin",
+      "provider": "google",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "words": 188,
+      "redactions": 0,
+      "attribution": {
+        "persona": "devlin",
+        "runner_up": "default",
+        "confidence": 4,
+        "evidence": "The speech opens by steelmanning the strongest objection, exposes its 'flawed, hidden assumption,' and advances a 'tougher, better version' of the policy—hallmarks of respectful but firm pressure-testing."
+      }
+    },
+    {
+      "debateId": "current/default/devlin-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "default"
+      },
+      "personalityId": "devlin",
+      "provider": "google",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "words": 152,
+      "redactions": 0,
+      "attribution": {
+        "persona": "default",
+        "runner_up": "devlin",
+        "confidence": 3,
+        "evidence": "The speech uses conventional formal rebuttal and empirical examples without a distinctive persona voice, though its focus on a hidden assumption and a failure mode faintly suggests Devlin."
+      }
+    },
+    {
+      "debateId": "current/default/george-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "default"
+      },
+      "personalityId": "george",
+      "provider": "google",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "words": 194,
+      "redactions": 0,
+      "attribution": {
+        "persona": "george",
+        "runner_up": "scout",
+        "confidence": 5,
+        "evidence": "The speech runs on sarcastic contradiction-hunting, mocking car-centered 'personal freedom' with barbs like 'four leather armchairs' and 'a glorified idling queue for commuter neurosis.'"
+      }
+    },
+    {
+      "debateId": "current/default/george-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "default"
+      },
+      "personalityId": "george",
+      "provider": "google",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "words": 151,
+      "redactions": 0,
+      "attribution": {
+        "persona": "george",
+        "runner_up": "devlin",
+        "confidence": 5,
+        "evidence": "The sarcastic 'adorable contradiction,' mockery of 'two-ton metal cages,' and punchline about a 'toll booth on a burning bridge' exemplify George’s skeptical, contradiction-hunting satire."
+      }
+    },
+    {
+      "debateId": "current/default/kai-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "default"
+      },
+      "personalityId": "kai",
+      "provider": "google",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "words": 189,
+      "redactions": 0,
+      "attribution": {
+        "persona": "kai",
+        "runner_up": "default",
+        "confidence": 5,
+        "evidence": "The speech consistently frames urban transport as an engineering architecture, using terms like “constrained throughput system,” “failure mode,” “fixed physical bandwidth,” and “system stability during migration,” alongside explicit trade-offs and a staged rollout."
+      }
+    },
+    {
+      "debateId": "current/default/kai-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "default"
+      },
+      "personalityId": "kai",
+      "provider": "google",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "words": 145,
+      "redactions": 0,
+      "attribution": {
+        "persona": "default",
+        "runner_up": "kai",
+        "confidence": 3,
+        "evidence": "The speech uses conventional formal rebuttal and empirical examples without a distinctive persona voice, though its emphasis on throughput, capacity, and network constraints faintly suggests kai."
+      }
+    },
+    {
+      "debateId": "current/default/prof_sage-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "default"
+      },
+      "personalityId": "prof_sage",
+      "provider": "google",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "words": 191,
+      "redactions": 0,
+      "attribution": {
+        "persona": "prof_sage",
+        "runner_up": "default",
+        "confidence": 5,
+        "evidence": "The speech foregrounds precise definitions, formal burdens of proof, empirical evidence, and cautious qualifications about longitudinal monitoring, strongly matching the scholarly voice of prof_sage."
+      }
+    },
+    {
+      "debateId": "current/default/prof_sage-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "default"
+      },
+      "personalityId": "prof_sage",
+      "provider": "google",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "words": 143,
+      "redactions": 0,
+      "attribution": {
+        "persona": "prof_sage",
+        "runner_up": "default",
+        "confidence": 4,
+        "evidence": "The speech’s academic diction, appeal to empirical studies, and measured acknowledgment of operational uncertainty create a calm, precise scholarly voice."
+      }
+    },
+    {
+      "debateId": "current/default/scout-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "default"
+      },
+      "personalityId": "scout",
+      "provider": "google",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "words": 188,
+      "redactions": 0,
+      "attribution": {
+        "persona": "scout",
+        "runner_up": "default",
+        "confidence": 5,
+        "evidence": "The opening scene of a child clutching an inhaler, followed by vivid contrasts between private metal and public life, uses narrative imagery to make the policy’s stakes emotionally tangible."
+      }
+    },
+    {
+      "debateId": "current/default/scout-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "default"
+      },
+      "personalityId": "scout",
+      "provider": "google",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "words": 152,
+      "redactions": 0,
+      "attribution": {
+        "persona": "scout",
+        "runner_up": "george",
+        "confidence": 5,
+        "evidence": "The speech builds its case through vivid scenes of a baker trapped in an ambulance and a grandmother arriving at a clinic, then crystallizes the story with 'We do not lock the gates; we clear the path.'"
+      }
+    },
+    {
+      "debateId": "current/verbose/default-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "verbose"
+      },
+      "personalityId": "default",
+      "provider": "google",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "words": 337,
+      "redactions": 0,
+      "attribution": {
+        "persona": "default",
+        "runner_up": "prof_sage",
+        "confidence": 4,
+        "evidence": "The speech uses conventional debate framing, formal policy language, and a two-pillar structure without distinctive humour, storytelling, scholarly citations, or another recognisable persona voice."
+      }
+    },
+    {
+      "debateId": "current/verbose/default-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "verbose"
+      },
+      "personalityId": "default",
+      "provider": "google",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "words": 256,
+      "redactions": 0,
+      "attribution": {
+        "persona": "default",
+        "runner_up": "devlin",
+        "confidence": 4,
+        "evidence": "The speech uses conventional formal rebuttal and policy reasoning without a distinctive persona voice, though its systematic challenges to the opposition faintly resemble Devlin’s counter-argument style."
+      }
+    },
+    {
+      "debateId": "current/verbose/bestie-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "verbose"
+      },
+      "personalityId": "bestie",
+      "provider": "google",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "words": 337,
+      "redactions": 0,
+      "attribution": {
+        "persona": "bestie",
+        "runner_up": "default",
+        "confidence": 5,
+        "evidence": "The opening validates anxiety and everyday needs with reflective phrases like “That instinct comes from a place of genuine care,” then shifts into inclusive, practical steps that promise not to leave communities stranded."
+      }
+    },
+    {
+      "debateId": "current/verbose/bestie-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "verbose"
+      },
+      "personalityId": "bestie",
+      "provider": "google",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "words": 254,
+      "redactions": 0,
+      "attribution": {
+        "persona": "bestie",
+        "runner_up": "default",
+        "confidence": 4,
+        "evidence": "The speech opens with empathetic reflection, validates the opponent’s concern as coming from “a good place,” and turns toward inclusive, practical steps “without leaving people behind.”"
+      }
+    },
+    {
+      "debateId": "current/verbose/brody-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "verbose"
+      },
+      "personalityId": "brody",
+      "provider": "google",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "words": 324,
+      "redactions": 0,
+      "attribution": {
+        "persona": "brody",
+        "runner_up": "scout",
+        "confidence": 4,
+        "evidence": "The flag-planting opening, explicit “Here is the play,” forceful action verbs, and rallying call to take back the streets create a high-energy coach voice."
+      }
+    },
+    {
+      "debateId": "current/verbose/brody-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "verbose"
+      },
+      "personalityId": "brody",
+      "provider": "google",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "words": 261,
+      "redactions": 0,
+      "attribution": {
+        "persona": "brody",
+        "runner_up": "george",
+        "confidence": 5,
+        "evidence": "The opening calls a “win condition” and lays out “the play,” then invokes an “actual scoreboard,” giving the speech a forceful, game-plan-coach voice."
+      }
+    },
+    {
+      "debateId": "current/verbose/devlin-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "verbose"
+      },
+      "personalityId": "devlin",
+      "provider": "google",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "words": 351,
+      "redactions": 0,
+      "attribution": {
+        "persona": "devlin",
+        "runner_up": "kai",
+        "confidence": 4,
+        "evidence": "The speech first steelmans the opposing case, then exposes its 'fragile hidden assumption' and offers a 'tougher, stronger iteration' of the policy—a fair but firm pressure-testing approach."
+      }
+    },
+    {
+      "debateId": "current/verbose/devlin-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "verbose"
+      },
+      "personalityId": "devlin",
+      "provider": "google",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "words": 251,
+      "redactions": 0,
+      "attribution": {
+        "persona": "devlin",
+        "runner_up": "default",
+        "confidence": 4,
+        "evidence": "The speech fairly acknowledges the opponent’s strongest concern, then pressure-tests its 'fatal hidden assumption' and offers a 'tougher, more resilient version' of the policy—hallmarks of respectful but firm counter-argument."
+      }
+    },
+    {
+      "debateId": "current/verbose/george-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "verbose"
+      },
+      "personalityId": "george",
+      "provider": "google",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "words": 349,
+      "redactions": 0,
+      "attribution": {
+        "persona": "george",
+        "runner_up": "scout",
+        "confidence": 5,
+        "evidence": "The speech’s annoyed opening, sarcastic images of cars as 'two-ton metal living rooms' and 'private couches,' and skewering of traffic as 'personal freedom' strongly identify George’s contradiction-hunting satire."
+      }
+    },
+    {
+      "debateId": "current/verbose/george-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "verbose"
+      },
+      "personalityId": "george",
+      "provider": "google",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "words": 261,
+      "redactions": 0,
+      "attribution": {
+        "persona": "george",
+        "runner_up": "devlin",
+        "confidence": 5,
+        "evidence": "The speech uses sarcastic caricatures like parking a Buick inside a bakery, mocks a 'euphemism parade' of consultant-speak, and turns contradiction-hunting into pointed practical criticism."
+      }
+    },
+    {
+      "debateId": "current/verbose/kai-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "verbose"
+      },
+      "personalityId": "kai",
+      "provider": "google",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "words": 337,
+      "redactions": 0,
+      "attribution": {
+        "persona": "kai",
+        "runner_up": "default",
+        "confidence": 5,
+        "evidence": "The speech explicitly frames the motion as a system architecture proposal and consistently uses engineering language—operational constraints, failure modes, trunk-and-feeder topology, phased rollouts, and subsystem deprecation."
+      }
+    },
+    {
+      "debateId": "current/verbose/kai-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "verbose"
+      },
+      "personalityId": "kai",
+      "provider": "google",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "words": 262,
+      "redactions": 0,
+      "attribution": {
+        "persona": "kai",
+        "runner_up": "devlin",
+        "confidence": 5,
+        "evidence": "The speech treats urban transport as an engineering system, using spatial constraints, throughput, transit variance, structural bottlenecks, and a migration plan validated by network stability."
+      }
+    },
+    {
+      "debateId": "current/verbose/prof_sage-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "verbose"
+      },
+      "personalityId": "prof_sage",
+      "provider": "google",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "words": 343,
+      "redactions": 0,
+      "attribution": {
+        "persona": "prof_sage",
+        "runner_up": "default",
+        "confidence": 5,
+        "evidence": "The speech opens with precise definitions, develops a formal analytical framework, and qualifies empirical claims with measurement uncertainties and calls for ongoing validation, all characteristic of the cautious scholarly voice."
+      }
+    },
+    {
+      "debateId": "current/verbose/prof_sage-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "verbose"
+      },
+      "personalityId": "prof_sage",
+      "provider": "google",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "words": 252,
+      "redactions": 0,
+      "attribution": {
+        "persona": "prof_sage",
+        "runner_up": "default",
+        "confidence": 4,
+        "evidence": "The speech uses precise conceptual distinctions, empirical examples from Pontevedra and Ghent, and cautious qualifications about longitudinal monitoring in a calm, scholarly register."
+      }
+    },
+    {
+      "debateId": "current/verbose/scout-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "verbose"
+      },
+      "personalityId": "scout",
+      "provider": "google",
+      "label": "Affirmative Opening Statement",
+      "phase": "opening",
+      "words": 336,
+      "redactions": 0,
+      "attribution": {
+        "persona": "scout",
+        "runner_up": "george",
+        "confidence": 5,
+        "evidence": "The speech leads with a sensory-rich crosswalk scene, then follows a shopkeeper into a transformed streetscape, using vivid human stories and concrete imagery to make the policy stakes tangible."
+      }
+    },
+    {
+      "debateId": "current/verbose/scout-on-google",
+      "condition": {
+        "mechanism": "current",
+        "level": "verbose"
+      },
+      "personalityId": "scout",
+      "provider": "google",
+      "label": "Affirmative Floor Speech",
+      "phase": "rebuttal",
+      "words": 256,
+      "redactions": 0,
+      "attribution": {
+        "persona": "scout",
+        "runner_up": "devlin",
+        "confidence": 4,
+        "evidence": "The vivid scene of a caregiver watching the dashboard clock ‘bleed precious minutes,’ followed by an explicit lesson, reflects Scout’s narrative-first strategy."
+      }
+    }
+  ]
+}

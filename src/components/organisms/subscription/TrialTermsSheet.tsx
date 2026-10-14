@@ -87,6 +87,7 @@ export const TrialTermsSheet: React.FC<TrialTermsSheetProps> = ({
         </View>
 
         <ScrollView
+          keyboardShouldPersistTaps="handled"
           style={styles.content}
           contentContainerStyle={styles.contentContainer}
           showsVerticalScrollIndicator={false}

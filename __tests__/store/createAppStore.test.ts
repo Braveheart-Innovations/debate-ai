@@ -1,9 +1,18 @@
-import { addMessage, createAppStore, loadSession, updateMessage } from '@/store';
+import { addMessage, createAppStore, loadSession, setDebateSpeechLength, updateMessage } from '@/store';
 
 describe('createAppStore', () => {
   it('hydrates store with preloaded state', () => {
     const store = createAppStore({ user: { currentUser: null, isAuthenticated: false, uiMode: 'expert' } as never });
     expect(store.getState().user.uiMode).toBe('expert');
+  });
+
+  it('starts Debate setup at the default speech length and keeps the last choice', () => {
+    const store = createAppStore();
+    expect(store.getState().settings.debateSpeechLength).toBe('default');
+
+    store.dispatch(setDebateSpeechLength('concise'));
+
+    expect(store.getState().settings.debateSpeechLength).toBe('concise');
   });
 
   it('drops unsupported providers when loading stale sessions', () => {

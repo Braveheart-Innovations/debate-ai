@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import { ActualPricing } from '@/components/organisms/subscription/ActualPricing
 import { getAIProviderIcon } from '@/utils/aiProviderAssets';
 import * as Haptics from 'expo-haptics';
 import { ErrorService } from '@/services/errors/ErrorService';
+import APIKeyService from '@/services/APIKeyService';
 
 /**
  * Convert a raw model ID to a friendly display name
@@ -117,6 +118,30 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
       setLocalKey('');
     }
   }, [displayApiKey, isEditing]);
+
+  // A key pasted into an empty card is kept when the card closes or the
+  // screen is left without tapping Test Connection: it is saved unverified,
+  // as a failed test would save it. Replacing an existing key still needs an
+  // explicit test, so a half-typed edit can never overwrite a working key.
+  const pendingKeyRef = useRef('');
+  pendingKeyRef.current = isEditing && !displayApiKey ? localKey.trim() : '';
+  const onSaveRef = useRef(onSave);
+  onSaveRef.current = onSave;
+
+  const savePendingKey = useCallback(() => {
+    const pendingKey = pendingKeyRef.current;
+    pendingKeyRef.current = '';
+    if (!pendingKey || !APIKeyService.validateKeyFormat(provider.id, pendingKey).isValid) return;
+    onSaveRef.current(pendingKey).catch((error: unknown) => {
+      ErrorService.handleWithToast(error, { feature: 'settings' });
+    });
+  }, [provider.id]);
+
+  useEffect(() => {
+    if (!isExpanded) savePendingKey();
+  }, [isExpanded, savePendingKey]);
+
+  useEffect(() => () => savePendingKey(), [savePendingKey]);
 
   const handleTest = async () => {
     setIsTesting(true);

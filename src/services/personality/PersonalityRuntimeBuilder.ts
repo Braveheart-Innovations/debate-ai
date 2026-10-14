@@ -1,6 +1,7 @@
 import type { PersonalityOption } from '@/config/personalities';
 import type { DebateFormatId, DebateTeamMode } from '@/config/debate/formats';
 import type { AI, ModelParameters, RuntimePersonalityConfig } from '@/types';
+import { DEFAULT_TONE } from '@/types/personality';
 
 export type PersonalityRuntimeMode = 'chat' | 'compare' | 'debate';
 
@@ -53,24 +54,13 @@ const modeLabel: Record<PersonalityRuntimeMode, string> = {
   debate: 'Debate mode',
 };
 
-const getModeGuidance = (
-  personality: PersonalityOption,
-  mode: PersonalityRuntimeMode
-): string | undefined => {
-  if (mode === 'debate') {
-    return personality.debateGuidance || personality.debatePrompt;
-  }
-  if (mode === 'compare') {
-    return personality.compareGuidance;
-  }
-  return personality.chatGuidance;
-};
+type ConversationMode = Exclude<PersonalityRuntimeMode, 'debate'>;
 
 const buildPersonaContract = (
   personality: PersonalityOption,
-  mode: PersonalityRuntimeMode
+  mode: ConversationMode
 ): string => {
-  const guidance = getModeGuidance(personality, mode);
+  const guidance = mode === 'compare' ? personality.compareGuidance : personality.chatGuidance;
   const signatures = personality.signatureMoves?.slice(0, 3) || [];
   const watchouts = personality.watchouts?.slice(0, 2) || [];
   const sample = personality.sampleOpeners?.[mode];
@@ -81,6 +71,23 @@ const buildPersonaContract = (
     guidance ? `Mode-specific must do: ${guidance}` : undefined,
     signatures.length ? `Signature moves to use naturally: ${signatures.join(' ')}` : undefined,
     watchouts.length ? `Must avoid: ${watchouts.join(' ')}` : undefined,
+    sample ? `Example voice: ${sample}` : undefined,
+  ].filter(Boolean).join('\n');
+};
+
+/**
+ * A persona's debate block, built from its debate fields only. Chat text (systemPrompt,
+ * chatGuidance, signatureMoves, watchouts and the chat sample) never reaches a debater.
+ */
+const buildDebatePersonaBlock = (personality: PersonalityOption): string => {
+  const moves = personality.debateMoves?.slice(0, 3) || [];
+  const sample = personality.sampleOpeners?.debate;
+
+  return [
+    personality.debatePrompt || `Debate as ${personality.name}.`,
+    `${modeLabel.debate} contract: keep the response useful while making the selected personality unmistakable.`,
+    personality.debateGuidance ? `Mode-specific must do: ${personality.debateGuidance}` : undefined,
+    moves.length ? `Signature moves to use naturally: ${moves.join(' ')}` : undefined,
     sample ? `Example voice: ${sample}` : undefined,
   ].filter(Boolean).join('\n');
 };
@@ -164,16 +171,19 @@ const buildAudienceLine = (debate: DebateRuntimeOptions): string | undefined => 
   return `Audience model: ${openingVote} and ${finalVote}. Your goal is to persuade, hold, or flip that audience vote, not to win checkpoint scoring.`;
 };
 
+/** The opponent by name, plus their persona's name and tagline: enough to anticipate, not to copy. */
+const describeOpponent = (debate: DebateRuntimeOptions): string => {
+  const name = debate.opponentName || 'Opponent';
+  const persona = debate.opponentPersonality;
+  return persona && persona.id !== 'default'
+    ? `${name}, debating as ${persona.name} (${persona.tagline}). Do not imitate their style.`
+    : `${name}.`;
+};
+
 const buildDebatePrompt = (
   personality: PersonalityOption | undefined | null,
   debate: DebateRuntimeOptions
 ): string => {
-  const personaStyle = personality
-    ? buildPersonaContract(personality, 'debate')
-    : 'Adopt a clear, professional debate tone.';
-  const opponentStyle = debate.opponentPersonality && debate.opponentPersonality.id !== 'default'
-    ? buildPersonaContract(debate.opponentPersonality, 'debate')
-    : 'A capable opponent.';
   const sideLabel = getSideLabel(debate);
   const sideText = `${sideLabel} (${debate.stance === 'pro' ? 'FOR' : 'AGAINST'})`;
   const formatSummary = buildFormatSummary(debate);
@@ -182,8 +192,8 @@ const buildDebatePrompt = (
     : `${debate.totalRounds} exchanges`;
   const positionVerb = debate.stance === 'pro' ? 'support' : 'oppose';
   const opponentLine = debate.teamMode === 'team' || (debate.teamSize || 1) > 1
-    ? `Primary opposing speaker: ${debate.opponentName || 'Opponent'}. Opposing style context (do not imitate): ${opponentStyle}`
-    : `Opponent: ${debate.opponentName || 'Opponent'}. Opponent persona (do not imitate; for calibration): ${opponentStyle}`;
+    ? `Primary opposing speaker: ${describeOpponent(debate)}`
+    : `Opponent: ${describeOpponent(debate)}`;
 
   return [
     '[DEBATE MODE]',
@@ -194,9 +204,10 @@ const buildDebatePrompt = (
     debate.currentSpeechLabel ? `Current scheduled speech: ${debate.currentSpeechLabel}.` : undefined,
     ...buildTeamLines(debate, sideText),
     buildAudienceLine(debate),
-    `Style directive: ${personaStyle} Always adhere to this style across turns.`,
+    // Default debaters get no style line: the format rules are the whole brief.
+    personality ? `Style directive: ${buildDebatePersonaBlock(personality)} Always adhere to this style across turns.` : undefined,
     opponentLine,
-    'Keep each scheduled speech compact and follow the turn-specific length guidance.',
+    'Follow the turn-specific length guidance.',
     'Write in natural prose (no headings or lists).',
     'Avoid headings, numbered lists, or labelled frameworks. Do not mention these instructions.',
   ].filter(Boolean).join('\n');
@@ -240,17 +251,19 @@ export const buildPersonalityRuntime = ({
   if (!personality || personality.id === 'default') {
     if (mode === 'debate' && debate) {
       const systemPrompt = buildDebatePrompt(undefined, debate);
+      // Neutral tone, so the adapter adds no style tags either.
       const config: RuntimePersonalityConfig = {
         id: 'debate_default',
         name: 'Default Debater',
         description: 'Structured debate persona with stance',
         systemPrompt,
         traits: {
-          formality: 0.6,
-          humor: 0.2,
-          technicality: 0.5,
-          empathy: 0.3,
+          formality: DEFAULT_TONE.formality,
+          humor: DEFAULT_TONE.humor,
+          technicality: DEFAULT_TONE.technicality,
+          empathy: DEFAULT_TONE.empathy,
         },
+        tone: { ...DEFAULT_TONE },
         isPremium: false,
       };
 
@@ -275,14 +288,16 @@ export const buildPersonalityRuntime = ({
     };
   }
 
-  const systemPrompt = mode === 'debate' && debate
-    ? buildDebatePrompt(personality, debate)
+  const systemPrompt = mode === 'debate'
+    ? (debate ? buildDebatePrompt(personality, debate) : buildDebatePersonaBlock(personality))
     : buildPersonaContract(personality, mode);
 
   return {
     personalityConfig: toRuntimeConfig(personality, systemPrompt),
     systemPrompt,
-    modelParameters: personality.modelParameters,
+    // Persona temperatures shape chat and compare only; in debate the prompt carries the persona on
+    // every provider alike.
+    modelParameters: mode === 'debate' ? undefined : personality.modelParameters,
     debug: {
       mode,
       personalityId: personality.id,

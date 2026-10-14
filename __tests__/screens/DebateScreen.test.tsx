@@ -464,7 +464,7 @@ describe('DebateScreen', () => {
       session: { orchestrator: {}, initializeSession, isInitialized: false },
       flow: { startDebate },
       messages: { addHostMessage },
-      routeParams: { topic: 'AI Safety' },
+      routeParams: { topic: 'AI Safety', speechLength: 'verbose' },
     });
 
     await flushMicrotasks();
@@ -480,7 +480,7 @@ describe('DebateScreen', () => {
       'AI Safety',
       baseAIs,
       expect.any(Object),
-      expect.objectContaining({ formatId: 'oxford' })
+      expect.objectContaining({ formatId: 'oxford', speechLength: 'verbose' })
     );
     expect(addHostMessage).toHaveBeenCalledWith(expect.stringContaining('opening audience stance'));
     expect(startDebate).toHaveBeenCalled();
@@ -1028,6 +1028,7 @@ describe('DebateScreen', () => {
         rounds: 5,
         exchanges: 5,
         voiceConfig,
+        speechLength: 'concise',
       },
     });
 
@@ -1051,6 +1052,7 @@ describe('DebateScreen', () => {
           formatId: 'policy',
           exchanges: 5,
           voiceConfig,
+          speechLength: 'concise',
         },
         rematchKey: expect.any(String),
       },

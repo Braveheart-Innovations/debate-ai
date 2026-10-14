@@ -10,9 +10,10 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { store, RootState } from './src/store';
-import { updateApiKeys, restoreVerificationData, restoreStats, restoreOnboarding, setPrices, hydrateAISelection, hydrateCreateSelection } from './src/store';
+import { updateApiKeys, restoreVerificationData, restoreStats, restoreOnboarding, setPrices, hydrateAISelection, hydrateCreateSelection, setDebateSpeechLength } from './src/store';
 import AISelectionPersistenceService from './src/services/home/AISelectionPersistenceService';
 import CreateSelectionPersistenceService from './src/services/create/CreateSelectionPersistenceService';
+import DebateSetupPreferencesService from './src/services/debate/DebateSetupPreferencesService';
 import { loadPersistedPrices, fetchAndPersistPrices, FALLBACK_PRICES } from './src/services/prices/PricesPersistenceService';
 import { settingsService } from './src/services/settings/SettingsService';
 import AppNavigator from './src/navigation/AppNavigator';
@@ -259,6 +260,12 @@ function AppContent() {
         // Load persisted Studio composer selection (Create pills + options).
         const persistedCreateSelection = await CreateSelectionPersistenceService.load();
         dispatch(hydrateCreateSelection(persistedCreateSelection));
+
+        // Load the remembered Debate setup choices (Speech length).
+        const debateSetupPreferences = await DebateSetupPreferencesService.load();
+        if (debateSetupPreferences?.speechLength) {
+          dispatch(setDebateSpeechLength(debateSetupPreferences.speechLength));
+        }
 
         // Load debate stats from storage
         const statsData = await StatsPersistenceService.loadStats();

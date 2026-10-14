@@ -37,6 +37,7 @@ const createSession = (): DebateSession => {
     format,
     preset,
     presetId: preset.id,
+    speechLength: 'default',
     stances: {
       'openai-slot-1': 'pro',
       'claude-slot-1': 'con',

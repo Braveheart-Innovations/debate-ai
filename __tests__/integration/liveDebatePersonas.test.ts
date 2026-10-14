@@ -3,11 +3,11 @@ import os from 'os';
 import path from 'path';
 
 import { UNIVERSAL_PERSONALITIES } from '@/config/personalities';
-import { getDebateSpeechLengthGuidance } from '@/services/debate/debateSpeechLength';
+import { DEFAULT_DEBATE_SPEECH_LENGTH, getDebateSpeechLengthGuidance, isDebateSpeechLength } from '@/services/debate/debateSpeechLength';
 import { isDemoModeEnabled } from '@/services/demo/demoMode';
 import { store } from '@/store';
 import { setGlobalStreaming } from '@/store/streamingSlice';
-import type { AIProvider } from '@/types';
+import type { AIProvider, DebateSpeechLength } from '@/types';
 import {
   LIVE_DEBATERS,
   findPersona,
@@ -41,8 +41,11 @@ import {
  *   npm run test:debate-personas:judge   judge what generate wrote: 64 calls to the OpenAI default model
  *
  * Both steps read keys from .env/.env.local and write to DEBATE_EVAL_OUT
- * (default: <tmpdir>/debate-persona-eval). The judge prompts below are the rubric; bump
- * RUBRIC_VERSION when they change so runs stay comparable. Baseline: docs/evals/debate-personas/.
+ * (default: <tmpdir>/debate-persona-eval). DEBATE_PERSONAS_LEVEL (concise, default or verbose;
+ * default "default") sets the app's Speech length for generation, and DEBATE_PERSONAS_ONLY (comma-separated
+ * persona ids) limits generation to those personas. The judge prompts below are the
+ * rubric; bump RUBRIC_VERSION when they change so runs stay comparable. Baseline:
+ * docs/evals/debate-personas/.
  */
 
 jest.mock('@/services/demo/demoMode', () => ({
@@ -53,6 +56,21 @@ const generateEnabled = process.env.LIVE_DEBATE_PERSONAS_TEST === '1';
 const judgeEnabled = process.env.LIVE_DEBATE_PERSONAS_JUDGE === '1';
 const outDir = process.env.DEBATE_EVAL_OUT || path.join(os.tmpdir(), 'debate-persona-eval');
 const generationFile = path.join(outDir, 'generation.json');
+
+const readPersonas = (): typeof UNIVERSAL_PERSONALITIES => {
+  const raw: string | undefined = process.env.DEBATE_PERSONAS_ONLY;
+  if (!raw) return UNIVERSAL_PERSONALITIES;
+  const ids = raw.split(',').map((id: string) => id.trim());
+  ids.forEach(findPersona);
+  return UNIVERSAL_PERSONALITIES.filter(persona => ids.includes(persona.id));
+};
+
+const readLevel = (): DebateSpeechLength => {
+  const raw = process.env.DEBATE_PERSONAS_LEVEL;
+  if (raw === undefined) return DEFAULT_DEBATE_SPEECH_LENGTH;
+  if (!isDebateSpeechLength(raw)) throw new Error(`DEBATE_PERSONAS_LEVEL: unknown level "${raw}"`);
+  return raw;
+};
 
 const MOTION = 'This house would ban private cars from city centres';
 // Speeches 0-2 of Oxford 1v1: Affirmative opening, Negative opening, Affirmative floor speech.
@@ -67,6 +85,8 @@ interface GenerationFile {
   rubricVersion: number;
   generatedAt: string;
   motion: string;
+  /** The app's Speech length setting (absent before 2026-10-14: the app's prompt of the day). */
+  speechLength?: DebateSpeechLength;
   debates: GeneratedDebate[];
 }
 
@@ -81,7 +101,7 @@ const isGenerationFile = (value: unknown): value is GenerationFile =>
 const renderTranscripts = (generation: GenerationFile): string => [
   '# Debate persona eval: transcripts',
   '',
-  `Generated ${generation.generatedAt}. Motion: "${generation.motion}". Oxford 1v1, text mode; each persona is Affirmative against a Default Negative.`,
+  `Generated ${generation.generatedAt}. Motion: "${generation.motion}". Oxford 1v1, text mode${generation.speechLength ? `, Speech length ${generation.speechLength}` : ''}; each persona is Affirmative against a Default Negative.`,
   '',
   ...generation.debates.flatMap(debate => [
     `## ${findPersona(debate.personalityId).name} on ${debate.model} (opponent ${debate.opponentModel}, web search ${debate.webSearchEnabled ? 'on' : 'off'})`,
@@ -163,9 +183,9 @@ interface FormatCheck {
   hasHeading: boolean;
 }
 
-const checkFormat = (speech: GeneratedSpeech): FormatCheck => {
+const checkFormat = (speech: GeneratedSpeech, level?: DebateSpeechLength): FormatCheck => {
   const phase = speech.phase === 'rebuttal' ? 'rebuttal' : 'opening';
-  const { minWords, maxWords } = getDebateSpeechLengthGuidance({ formatId: 'oxford', presetId: 'short', phase });
+  const { minWords, maxWords } = getDebateSpeechLengthGuidance({ formatId: 'oxford', phase, level });
   return {
     words: wordCount(speech.content),
     minWords,
@@ -191,18 +211,20 @@ const judgeSpeech = async (
   debate: GeneratedDebate,
   speech: GeneratedSpeech,
   judge: JudgeConfig,
+  level?: DebateSpeechLength,
 ): Promise<JudgedSpeech> => {
   const { redactions, attribution } = await judgeBlindAttribution(judge, speech);
 
   const persona = findPersona(speech.personalityId);
   const previous = debate.speeches.filter(entry => entry.index < speech.index).pop();
+  // Checked against what the debater is given: its debate guidance and debate moves (rubric v2).
   const personaLines = persona.id === 'default'
     ? ['Persona: Default (no persona).']
     : [
         `Persona: ${persona.name}.`,
         `Debate guidance: ${persona.debateGuidance || persona.debatePrompt || 'none'}`,
         'Signature moves:',
-        ...persona.signatureMoves.slice(0, 3).map((move, index) => `${index + 1}. ${move}`),
+        ...(persona.debateMoves ?? persona.signatureMoves).slice(0, 3).map((move, index) => `${index + 1}. ${move}`),
       ];
   const adherenceInput = [
     `Motion: "${MOTION}". The speaker is the Affirmative and must support the motion.`,
@@ -222,7 +244,7 @@ const judgeSpeech = async (
     label: speech.label,
     phase: speech.phase,
     redactions,
-    format: checkFormat(speech),
+    format: checkFormat(speech, level),
     attribution,
     adherence,
   };
@@ -269,7 +291,7 @@ const renderReport = (generation: GenerationFile, judged: JudgedSpeech[], judgeM
   return [
     '# Debate persona eval: report',
     '',
-    `Rubric v${generation.rubricVersion}; generated ${generation.generatedAt}; judged by ${judgeModel}. Motion: "${generation.motion}". Each persona has ${DEBATERS.length * 2} judged speeches (opening and floor speech on each provider), so treat single-persona numbers as small samples.`,
+    `Rubric v${generation.rubricVersion}; generated ${generation.generatedAt}; judged by ${judgeModel}. Motion: "${generation.motion}".${generation.speechLength ? ` Speech length: ${generation.speechLength}.` : ''} Each persona has ${DEBATERS.length * 2} judged speeches (opening and floor speech on each provider), so treat single-persona numbers as small samples.`,
     '',
     `Blind attribution: ${correct(judged)} of ${judged.length} speeches attributed to the right persona (${percent(correct(judged), judged.length)}; chance is ${percent(1, names.length)}).`,
     ...providerLines,
@@ -316,13 +338,14 @@ describeGenerate('Live debate persona eval: generate', () => {
   });
 
   it('runs every persona against a Default opponent on each provider', async () => {
+    const speechLength = readLevel();
     const keys = Object.fromEntries(DEBATERS.map(({ provider, keyEnv }) => [provider, requireKey(keyEnv)]));
-    const plan = DEBATERS.flatMap((debater, index) => UNIVERSAL_PERSONALITIES.map(persona => ({
+    const plan = DEBATERS.flatMap((debater, index) => readPersonas().map(persona => ({
       personalityId: persona.id,
       debater,
       opponent: DEBATERS[(index + 1) % DEBATERS.length],
     })));
-    process.stdout.write(`\nGenerating ${plan.length} debates, ${plan.length * SPEECHES_PER_DEBATE} debater calls, ${DEBATE_CONCURRENCY} at a time.\n`);
+    process.stdout.write(`\nGenerating ${plan.length} debates at Speech length ${speechLength}, ${plan.length * SPEECHES_PER_DEBATE} debater calls, ${DEBATE_CONCURRENCY} at a time.\n`);
 
     const debates = await mapWithConcurrency(plan, DEBATE_CONCURRENCY, entry => runLiveDebate({
       id: `${entry.personalityId}-on-${entry.debater.provider}`,
@@ -333,11 +356,13 @@ describeGenerate('Live debate persona eval: generate', () => {
       keys,
       speeches: SPEECHES_PER_DEBATE,
       timeoutMs: DEBATE_TIMEOUT_MS,
+      speechLength,
     }));
     const generation: GenerationFile = {
       rubricVersion: RUBRIC_VERSION,
       generatedAt: new Date().toISOString(),
       motion: MOTION,
+      speechLength,
       debates,
     };
     fs.mkdirSync(outDir, { recursive: true });
@@ -371,7 +396,7 @@ describeJudge('Live debate persona eval: judge', () => {
     process.stdout.write(`\nJudging ${work.length} speeches with ${model}: ${work.length * 2} calls, ${JUDGE_CONCURRENCY} at a time.\n`);
 
     const judged = await mapWithConcurrency(work, JUDGE_CONCURRENCY, ({ debate, speech }) =>
-      judgeSpeech(debate, speech, judge));
+      judgeSpeech(debate, speech, judge, generation.speechLength));
     fs.writeFileSync(path.join(outDir, 'judgments.json'), JSON.stringify({ rubricVersion: RUBRIC_VERSION, judgeModel: model, judged }, null, 2));
     fs.writeFileSync(path.join(outDir, 'report.md'), renderReport(generation, judged, model));
     process.stdout.write(`Debate persona report written to ${outDir}\n`);

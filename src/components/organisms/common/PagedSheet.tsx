@@ -29,6 +29,7 @@ import React, {
   useState,
 } from 'react';
 import {
+  Keyboard,
   Modal,
   StyleSheet,
   TouchableOpacity,
@@ -109,6 +110,14 @@ const PagedSheetComponent: React.FC<PagedSheetProps> = ({
   const rootId = pages[0]?.id;
   const [stack, setStack] = useState<string[]>(rootId ? [rootId] : []);
 
+  // Pushed pages get an explicit height (the sheet's max height below the
+  // header) rather than filling the page stack. A page that filled it was
+  // laid out at the root's height when it mounted; its slide-in animation
+  // dropped the resize when the sheet then grew, so rows drawn below the
+  // old bottom edge ignored taps, which fell through to the root page.
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const pushedPageHeight = headerHeight > 0 ? maxHeightPx - headerHeight : null;
+
   // The sheet's measured content height while at root (auto-sized); the
   // start/end point for the grow/shrink animation around pushed pages.
   const rootSheetHeightRef = useRef(0);
@@ -124,6 +133,12 @@ const PagedSheetComponent: React.FC<PagedSheetProps> = ({
       sheetHeight.value = 0;
     }
   }, [visible, rootId, sheetHeight]);
+
+  // A composer input left focused keeps the keyboard up behind the sheet,
+  // and a page list's first tap would only dismiss it.
+  useEffect(() => {
+    if (visible) Keyboard.dismiss();
+  }, [visible]);
 
   const releaseToAutoHeight = useCallback(() => {
     sheetHeight.value = 0;
@@ -234,13 +249,15 @@ const PagedSheetComponent: React.FC<PagedSheetProps> = ({
             }
           }}
         >
-          <SheetHeader
-            title={activePage.title}
-            onBack={depth > 0 ? pop : undefined}
-            onClose={onClose}
-            showHandle
-            testID={testID}
-          />
+          <View onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}>
+            <SheetHeader
+              title={activePage.title}
+              onBack={depth > 0 ? pop : undefined}
+              onClose={onClose}
+              showHandle
+              testID={testID}
+            />
+          </View>
           <PagedSheetNavContext.Provider value={nav}>
             <View style={[styles.pageStack, { paddingBottom: insets.bottom + 16 }]}>
               {stack.map((pageId, index) => {
@@ -255,11 +272,16 @@ const PagedSheetComponent: React.FC<PagedSheetProps> = ({
                     exiting={isRoot ? undefined : SlideOutRight.duration(PAGE_ANIMATION_MS)}
                     accessibilityElementsHidden={!isTop}
                     importantForAccessibility={isTop ? 'auto' : 'no-hide-descendants'}
+                    // Pages under the top one stay mounted (and keep their
+                    // state) but must never take a tap meant for the top page.
+                    pointerEvents={isTop ? 'auto' : 'none'}
                     style={
                       isRoot
                         ? styles.rootPage
                         : [
-                            styles.pushedPage,
+                            pushedPageHeight !== null
+                              ? [styles.pushedPagePinned, { height: pushedPageHeight }]
+                              : styles.pushedPage,
                             {
                               backgroundColor: theme.colors.background,
                               paddingBottom: insets.bottom + 16,
@@ -305,6 +327,12 @@ const styles = StyleSheet.create({
   },
   pushedPage: {
     ...StyleSheet.absoluteFill,
+  },
+  pushedPagePinned: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
   },
 });
 

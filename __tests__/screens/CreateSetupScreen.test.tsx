@@ -152,6 +152,12 @@ jest.mock('@/components/molecules', () => {
         { testID: 'gradient-button', onPress: props.onPress, disabled: props.disabled },
         React.createElement(Text, null, props.title)
       ),
+    Button: (props: { title: string; onPress?: () => void }) =>
+      React.createElement(
+        TouchableOpacity,
+        { testID: `button-${props.title}`, onPress: props.onPress },
+        React.createElement(Text, null, props.title)
+      ),
     HeaderIcon: (props: { testID?: string; onPress?: () => void }) =>
       React.createElement(TouchableOpacity, { testID: props.testID, onPress: props.onPress }),
     SectionHeader: (props: { title: string }) =>
@@ -986,6 +992,13 @@ describe('CreateSetupScreen', () => {
       expect(getByText('Connect a provider')).toBeTruthy();
     });
 
+    it('routes a send tapped without a Runway key to the Runway key card', () => {
+      mockStateWith({ create: { activeTab: 'video' } });
+      const { getByTestId } = renderWithProviders(<CreateSetupScreen />);
+      fireEvent.press(getByTestId('create-composer-send'));
+      expect(mockNavigate).toHaveBeenCalledWith('APIConfig', { providerId: 'runway' });
+    });
+
     it('opens the Runway config sheet from the pill and updates duration', () => {
       withRunway();
 
@@ -1193,6 +1206,13 @@ describe('CreateSetupScreen', () => {
       expect(getByText('Connect ElevenLabs to generate audio')).toBeTruthy();
     });
 
+    it('routes a send tapped without an ElevenLabs key to the ElevenLabs key card', () => {
+      mockStateWith({ create: { activeTab: 'audio' } });
+      const { getByTestId } = renderWithProviders(<CreateSetupScreen />);
+      fireEvent.press(getByTestId('create-composer-send'));
+      expect(mockNavigate).toHaveBeenCalledWith('APIConfig', { providerId: 'elevenlabs' });
+    });
+
     it('uses the same status card pattern for audio completion', async () => {
       withElevenLabs({
         mediaGeneration: { video: null, audio: null },
@@ -1213,6 +1233,68 @@ describe('CreateSetupScreen', () => {
       fireEvent.press(getByTestId('create-audio-gallery-cta'));
 
       expect(mockNavigate).toHaveBeenCalledWith('CreateSession', { focusMediaId: 'media_audio_done' });
+    });
+  });
+
+  describe('connect and tab-suggestion routing', () => {
+    it('sends Connect a provider on the video tab to the Runway key card', () => {
+      mockStateWith({ create: { activeTab: 'video' } });
+      const { getByText } = renderWithProviders(<CreateSetupScreen />);
+
+      fireEvent.press(getByText('Connect a provider'));
+
+      expect(mockNavigate).toHaveBeenCalledWith('APIConfig', { providerId: 'runway' });
+    });
+
+    it('sends Connect a provider on the audio tab to the ElevenLabs key card', () => {
+      mockStateWith({ create: { activeTab: 'audio' } });
+      const { getByText } = renderWithProviders(<CreateSetupScreen />);
+
+      fireEvent.press(getByText('Connect a provider'));
+
+      expect(mockNavigate).toHaveBeenCalledWith('APIConfig', { providerId: 'elevenlabs' });
+    });
+
+    it('sends an Add key tap on an un-keyed image provider to that provider\'s key card', () => {
+      mockStateWith({
+        settings: { apiKeys: { openai: 'key-1' } },
+      });
+      const { getByTestId } = renderWithProviders(<CreateSetupScreen />);
+
+      fireEvent.press(getByTestId('create-composer-add-ai'));
+      fireEvent.press(getByTestId('create-composer-picker-list-row-google'));
+
+      expect(mockNavigate).toHaveBeenCalledWith('APIConfig', { providerId: 'google' });
+    });
+
+    it('offers Switch to Video on the Image tab when only a Runway key exists', () => {
+      mockStateWith({
+        settings: { apiKeys: { runway: 'runway-key' } },
+        create: { activeTab: 'image' },
+      });
+      const { getByText, getByTestId } = renderWithProviders(<CreateSetupScreen />);
+
+      expect(getByText('Your Runway key makes videos.')).toBeTruthy();
+      fireEvent.press(getByTestId('button-Switch to Video'));
+
+      expect(mockDispatch).toHaveBeenCalledWith({ type: 'create/setActiveCreateTab', payload: 'video' });
+    });
+
+    it('offers no tab suggestion when the current tab already has a provider', () => {
+      mockStateWith({
+        settings: { apiKeys: { ...baseState.settings.apiKeys, runway: 'runway-key' } },
+        create: { activeTab: 'image' },
+      });
+      const { queryByText } = renderWithProviders(<CreateSetupScreen />);
+
+      expect(queryByText('Switch to Video')).toBeNull();
+    });
+
+    it('offers no tab suggestion when no tab has a provider', () => {
+      mockStateWith({ settings: { apiKeys: {} }, create: { activeTab: 'video' } });
+      const { queryByText } = renderWithProviders(<CreateSetupScreen />);
+
+      expect(queryByText(/Switch to/)).toBeNull();
     });
   });
 

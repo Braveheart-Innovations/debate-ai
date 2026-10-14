@@ -6,6 +6,7 @@ import {
   ImageOutputFormat,
   ImageOutputQuality,
   getResolvedImageModel,
+  getRetiredImageModelQuality,
   ImageModelConfig,
 } from '../../config/imageGenerationModels';
 import { persistImageUri, saveBase64Image } from './fileCache';
@@ -339,6 +340,10 @@ export class ImageService {
     if (preferredResolution) {
       body.resolution = preferredResolution;
     }
+    const retiredQuality = getRetiredImageModelQuality(opts.provider, opts.model);
+    if (retiredQuality) {
+      body.quality = retiredQuality;
+    }
 
     const res = await fetch('https://api.x.ai/v1/images/generations', {
       method: 'POST',
@@ -391,6 +396,10 @@ export class ImageService {
     const preferredResolution = normalizeXaiResolution(getPreferredResolution(model, opts.resolution));
     if (preferredResolution) {
       body.resolution = preferredResolution;
+    }
+    const retiredQuality = getRetiredImageModelQuality(opts.provider, opts.model);
+    if (retiredQuality) {
+      body.quality = retiredQuality;
     }
     const count = clampImageCount(model, opts.n);
     if (count > 1) {

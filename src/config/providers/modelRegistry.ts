@@ -34,20 +34,23 @@ export interface ProviderDefinition {
   };
 }
 
-// Model aliases for version management and persisted-session compatibility - Updated September 2026
+// Model aliases for version management and persisted-session compatibility - Updated October 2026
 export const MODEL_ALIASES: Record<string, string> = {
   // Claude aliases
   'claude-latest': 'claude-sonnet-5-5',
   'claude-fable-latest': 'claude-fable-5-1',
   'claude-opus-latest': 'claude-opus-5-5',
   'claude-sonnet-latest': 'claude-sonnet-5-5',
-  'claude-haiku-latest': 'claude-haiku-4-5-20251001',
+  'claude-haiku-latest': 'claude-haiku-5-5',
   'claude-opus-4-8-20260520': 'claude-opus-4-8',
   'claude-opus-4-8-20260528': 'claude-opus-4-8',
   'claude-opus-4-7-20260301': 'claude-opus-4-7',
   'claude-sonnet-4-5': 'claude-sonnet-4-5-20250929',
   'claude-opus-4-5': 'claude-opus-4-5-20251101',
-  'claude-haiku-4-5': 'claude-haiku-4-5-20251001',
+  // Haiku 4.5 is retiring (not sooner than 2026-10-15): persisted selections
+  // move to its like-for-like successor, not the Sonnet default.
+  'claude-haiku-4-5': 'claude-haiku-5-5',
+  'claude-haiku-4-5-20251001': 'claude-haiku-5-5',
 
   // OpenAI aliases
   'gpt-latest': 'gpt-6.1-sol',
@@ -80,11 +83,15 @@ export const MODEL_ALIASES: Record<string, string> = {
   'gemini-pro-latest': 'gemini-3.1-pro-preview',
   'gemini-flash-latest': 'gemini-3.6-flash',
   'gemini-flash-lite-latest': 'gemini-3.5-flash-lite',
+  'gemini-4-latest': 'gemini-4-argon',
   'gemini-3-latest': 'gemini-3.8-flash',
   'gemini-3.8-latest': 'gemini-3.8-flash',
   'gemini-3.7-latest': 'gemini-3.7-flash',
   'gemini-3.6-latest': 'gemini-3.6-flash',
-  'gemini-3.5-latest': 'gemini-3.5-flash',
+  // Google routes gemini-3.5-flash requests to gemini-3.6-flash; resolve the
+  // same way so persisted sessions match what Google serves.
+  'gemini-3.5-latest': 'gemini-3.6-flash',
+  'gemini-3.5-flash': 'gemini-3.6-flash',
   'gemini-3.1-latest': 'gemini-3.1-pro-preview',
   'gemini-3.1-flash-lite-latest': 'gemini-3.1-flash-lite',
   'gemini-3.1-flash-lite-preview': 'gemini-3.1-flash-lite',
@@ -125,7 +132,10 @@ export const MODEL_ALIASES: Record<string, string> = {
   // itself now serves Medium 3.5 for the retired Devstral 2 and Medium 3.1
   // ids, so route them the same way.
   'mistral-latest': 'mistral-medium-2604',
+  // The Mistral API still resolves mistral-large-latest to Large 3, and lists
+  // Large 4 under two IDs that alias each other.
   'mistral-large-latest': 'mistral-large-2512',
+  'mistral-large-4-0': 'mistral-large-4',
   'mistral-medium-latest': 'mistral-medium-2604',
   // mistral-medium-3-5 was a mobile-only ID; the live API ID is mistral-medium-2604
   'mistral-medium-3-5': 'mistral-medium-2604',

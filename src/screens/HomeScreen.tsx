@@ -13,8 +13,9 @@ import { TrialBanner } from '@/components/molecules/subscription/TrialBanner';
 import { DemoBanner } from '@/components/molecules/subscription/DemoBanner';
 import { KeyboardAvoider } from '@/components/molecules';
 import useFeatureAccess from '@/hooks/useFeatureAccess';
-import { useDispatch } from 'react-redux';
-import { showSheet, stageComposerAttachments } from '@/store';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState, isApiKeyConfigured, showSheet, stageComposerAttachments } from '@/store';
+import { MEDIA_PROVIDERS } from '@/config/mediaProviders';
 import type { MessageAttachment } from '../types';
 
 // Custom hooks
@@ -48,6 +49,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [topicPickerVisible, setTopicPickerVisible] = useState(false);
 
   const configuredProviderIds = selection.configuredAIs.map(ai => ai.id);
+  const apiKeys = useSelector((state: RootState) => state.settings.apiKeys || {});
+  const studioOnlyProviderNames = isDemo
+    ? []
+    : MEDIA_PROVIDERS.filter(provider => isApiKeyConfigured(apiKeys[provider.id])).map(
+        provider => provider.name
+      );
 
   const startChatSession = (params: Record<string, unknown>) => {
     const sessionId = session.createSession(selection.selectedAIConfigs, selection.sessionMaps);
@@ -83,8 +90,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     quickStart.closeSheet();
   };
 
-  const handleAddKey = () => {
-    navigation.navigate(HOME_CONSTANTS.SCREENS.API_CONFIG);
+  const handleAddKey = (providerId?: string) => {
+    if (providerId) {
+      navigation.navigate(HOME_CONSTANTS.SCREENS.API_CONFIG, { providerId });
+    } else {
+      navigation.navigate(HOME_CONSTANTS.SCREENS.API_CONFIG);
+    }
   };
 
   return (
@@ -114,7 +125,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           <HomeEmptyState
             hasConfiguredAIs={selection.configuredAIs.length > 0}
             onQuickStart={!isDemo && selection.hasEnoughAIs ? quickStart.openSheet : undefined}
-            onConfigureAIs={handleAddKey}
+            onConfigureAIs={() => handleAddKey()}
+            studioOnlyProviderNames={studioOnlyProviderNames}
+            onOpenStudio={() => navigation.navigate('CreateTab')}
           />
 
           <View style={{ paddingHorizontal: rs('md'), paddingBottom: rs('md') }}>

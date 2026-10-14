@@ -77,6 +77,15 @@ const CATALOG_METADATA_UNRELIABLE = new Set([
   'mistral-medium-2604',
 ]);
 
+// Single catalog fields known to be wrong, skipped in the drift check while
+// the model's other fields are still compared:
+// - gemini-4-argon maxOutputTokens: /v1beta/models reports outputTokenLimit
+//   32768, but Google's model page documents a 65,536-token default output
+//   and a 65536 maxOutputTokens request succeeded on 2026-10-14.
+const CATALOG_FIELD_UNRELIABLE = new Map([
+  ['gemini-4-argon', new Set(['maxOutputTokens'])],
+]);
+
 const PROVIDERS = [
   {
     id: 'claude',
@@ -520,7 +529,8 @@ function registryAndImageCandidates(provider, discoveredId, registry) {
 }
 
 function isImageModelId(id) {
-  return /^(gpt-image|chatgpt-image|dall-e|gemini-.*image|imagen-|grok-imagine-image)/.test(id);
+  // Google names some image models only by codename (gemini-nano-banana-2.1).
+  return /^(gpt-image|chatgpt-image|dall-e|gemini-.*image|(gemini-)?nano-banana|imagen-|grok-imagine-image)/.test(id);
 }
 
 function isUnsupportedMediaModelId(id) {
@@ -550,13 +560,16 @@ function collectCapabilityDrift(configuredModels, discoveredById) {
     if (CATALOG_METADATA_UNRELIABLE.has(model.id)) continue;
     const discovered = discoveredById.get(model.id);
     if (!discovered) continue;
+    const unreliableFields = CATALOG_FIELD_UNRELIABLE.get(model.id) || new Set();
 
     const issues = [];
     if (discovered.contextLength && model.contextLength
+      && !unreliableFields.has('contextLength')
       && discovered.contextLength !== model.contextLength) {
       issues.push(`contextLength ${model.contextLength} -> ${discovered.contextLength}`);
     }
     if (discovered.maxOutputTokens
+      && !unreliableFields.has('maxOutputTokens')
       && discovered.maxOutputTokens !== (model.maxOutputTokens ?? null)) {
       issues.push(`maxOutputTokens ${model.maxOutputTokens ?? 'unset'} -> ${discovered.maxOutputTokens}`);
     }

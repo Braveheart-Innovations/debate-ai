@@ -183,7 +183,9 @@ const CompareSetupScreen: React.FC<CompareSetupScreenProps> = ({ navigation, rou
               onRemoveConfig={selection.removeConfig}
               configuredProviderIds={configuredProviderIds}
               allowedProviderIds={access.isDemo ? configuredProviderIds : undefined}
-              onRequestAddKey={access.isDemo ? undefined : () => navigation.navigate('APIConfig')}
+              onRequestAddKey={
+                access.isDemo ? undefined : (providerId) => navigation.navigate('APIConfig', { providerId })
+              }
               showAdvancedParams={!access.isDemo}
               inputText={inputText}
               onChangeText={setInputText}

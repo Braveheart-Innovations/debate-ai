@@ -21,7 +21,6 @@ describe('DebatePromptBuilder', () => {
       isFinalRound: false,
       guidance: 'Stay factual and cite evidence.',
       format: OXFORD_FORMAT,
-      presetId: 'short',
     });
 
     expect(prompt).toContain('Turn: Rebuttal');
@@ -31,9 +30,19 @@ describe('DebatePromptBuilder', () => {
     // carries no persona text and no intensity line that could compete with it.
     expect(prompt).not.toContain('satire');
     expect(prompt).not.toContain('Debate intensity');
-    expect(prompt).toContain('Length guidance: Keep this rebuttal brief and targeted');
+    expect(prompt).toContain('Length guidance: about 150 words (between 128 and 173), in natural prose with no headings or lists, then stop.');
     expect(prompt).not.toContain('words maximum');
     expect(prompt).toContain(DEBATE_CONSTANTS.PROMPT_MARKERS.PREVIOUS_SPEAKER);
+  });
+
+  it('sets the word target from the debate speech length', () => {
+    const lengthLine = (speechLength: 'concise' | 'default' | 'verbose'): string | undefined =>
+      builder.buildTurnPrompt({ topic: 'AI should assist in education.', phase: 'opening', format: OXFORD_FORMAT, speechLength })
+        .match(/^Length guidance: .*$/m)?.[0];
+
+    expect(lengthLine('concise')).toBe('Length guidance: about 100 words (between 85 and 115), in natural prose with no headings or lists, then stop.');
+    expect(lengthLine('default')).toBe('Length guidance: about 190 words (between 162 and 218), in natural prose with no headings or lists, then stop.');
+    expect(lengthLine('verbose')).toBe('Length guidance: about 350 words (between 298 and 402), in natural prose with no headings or lists, then stop.');
   });
 
   it('includes orchestrator-provided role briefs in turn prompts', () => {

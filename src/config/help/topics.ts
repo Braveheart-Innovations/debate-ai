@@ -104,7 +104,10 @@ Policy Debate:
 Data-driven debate with emphasis on evidence and practical solutions. Uses 1AC, 1NC, 2AC, 2NC, 1NR, 1AR, 2NR, and 2AR speech order. Best for: Current events and real-world issues.
 
 Choosing a Preset:
-The preset buttons below the format control debate length: 1v1, 2v2, and 2v2 + Q&A for Oxford; Short, Standard, and Extended for Lincoln-Douglas and Policy.`,
+The preset buttons below the format control debate length: 1v1, 2v2, and 2v2 + Q&A for Oxford; Short, Standard, and Extended for Lincoln-Douglas and Policy.
+
+Speech Length:
+Brief, Balanced, and Detailed set how long each speech is, from openings of about 100 words to about 350, while the preset sets how many speeches there are. Setup remembers your last choice.`,
     relatedTopics: ["debate-arena", "debate-voting"],
   },
 

@@ -51,6 +51,7 @@ export const ModelOptionList: React.FC<ModelOptionListProps> = ({
     <ScrollView
       contentContainerStyle={{ padding: theme.spacing.lg }}
       showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
       testID={testID}
     >
       {models.map((model) => {

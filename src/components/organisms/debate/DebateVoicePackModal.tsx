@@ -187,7 +187,7 @@ export const DebateVoicePackModal: React.FC<DebateVoicePackModalProps> = ({
           </View>
         )}
 
-        <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
           {candidates.map((candidate, index) => {
             const isReady = candidate.status === 'ready';
             const selected = selectedSet.has(candidate.id);

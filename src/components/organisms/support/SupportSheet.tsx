@@ -97,6 +97,7 @@ export const SupportSheet: React.FC<SupportSheetProps> = ({ onClose }) => {
       <SheetHeader title="Help & Support" onClose={onClose} showHandle={false} testID="support-sheet-header" />
 
       <ScrollView
+        keyboardShouldPersistTaps="handled"
         style={{ flex: 1 }}
         contentContainerStyle={{
           paddingHorizontal: 20,

@@ -3,7 +3,7 @@
  * Handles construction of prompts for different phases of debate
  */
 
-import { AI, Message } from '../../types';
+import type { AI, DebateSpeechLength, Message } from '../../types';
 import { DEBATE_CONSTANTS } from '../../config/debateConstants';
 import type { FormatSpec, PhaseId } from '../../config/debate/formats';
 import { getDebateSpeechLengthGuidance } from './debateSpeechLength';
@@ -134,14 +134,15 @@ export class DebatePromptBuilder {
     isFinalRound?: boolean;
     guidance?: string; // from FormatSpec
     format?: FormatSpec;
-    presetId?: string;
+    /** The debate's speech length setting; sets the turn's word target. */
+    speechLength?: DebateSpeechLength;
     messageLabel?: string;
     roleBrief?: string;
     sameSpeakerPreviousMessage?: string;
     cxRole?: 'questioner' | 'answerer';
     audienceQuestion?: string;
   }): string {
-    const { topic, phase, previousMessage, isFinalRound, guidance, format, presetId, messageLabel, roleBrief, sameSpeakerPreviousMessage, cxRole, audienceQuestion } = params;
+    const { topic, phase, previousMessage, isFinalRound, guidance, format, speechLength, messageLabel, roleBrief, sameSpeakerPreviousMessage, cxRole, audienceQuestion } = params;
     const base = guidance || '';
     const prev = previousMessage ? `${DEBATE_CONSTANTS.PROMPT_MARKERS.PREVIOUS_SPEAKER}"${previousMessage}"` : '';
     const isSocratic = format?.id === 'socratic';
@@ -190,9 +191,9 @@ export class DebatePromptBuilder {
       : '';
     const lengthGuidance = getDebateSpeechLengthGuidance({
       formatId: format?.id,
-      presetId,
       phase,
       cxRole,
+      level: speechLength,
     }).directive;
 
     // Final-round cue (duplicated here for emphasis)

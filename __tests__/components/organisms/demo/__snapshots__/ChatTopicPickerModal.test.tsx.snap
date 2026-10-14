@@ -95,6 +95,7 @@ exports[`ChatTopicPickerModal Snapshot Tests matches snapshot with new sample op
             "padding": 12,
           }
         }
+        keyboardShouldPersistTaps="handled"
         style={
           {
             "maxHeight": 520,
@@ -387,6 +388,7 @@ exports[`ChatTopicPickerModal Snapshot Tests matches snapshot with topics 1`] = 
             "padding": 12,
           }
         }
+        keyboardShouldPersistTaps="handled"
         style={
           {
             "maxHeight": 520,

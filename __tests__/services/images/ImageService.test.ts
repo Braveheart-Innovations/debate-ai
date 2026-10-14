@@ -406,6 +406,37 @@ describe('ImageService', () => {
       ]);
     });
 
+    it.each([
+      ['generations', undefined, 'https://api.x.ai/v1/images/generations'],
+      ['edits', 'c291cmNlX2ltYWdl', 'https://api.x.ai/v1/images/edits'],
+    ])('sends retired Grok Imagine Quality %s to Imagine 2.0 at low quality', async (_label, sourceImage, endpoint) => {
+      mockedFetch.mockResolvedValue(jsonResponse({ data: [{ b64_json: 'cmV0aXJlZA==' }] }));
+      mockedSaveBase64Image.mockResolvedValue('/cache/images/grok_retired.png');
+
+      await ImageService.generateImage({
+        provider: 'grok',
+        model: 'grok-imagine-image-quality',
+        apiKey: 'grok-key',
+        prompt: 'a lighthouse',
+        sourceImage,
+      });
+
+      expect(mockedFetch.mock.calls[0]?.[0]).toBe(endpoint);
+      expect(JSON.parse(String(mockedFetch.mock.calls[0]?.[1]?.body))).toMatchObject({
+        model: 'grok-imagine-image-2.0',
+        quality: 'low',
+      });
+    });
+
+    it('leaves quality unset when Grok Imagine 2.0 is chosen directly', async () => {
+      mockedFetch.mockResolvedValue(jsonResponse({ data: [{ b64_json: 'ZGlyZWN0' }] }));
+      mockedSaveBase64Image.mockResolvedValue('/cache/images/grok_direct.png');
+
+      await ImageService.generateImage({ provider: 'grok', model: 'grok-imagine-image-2.0', apiKey: 'grok-key', prompt: 'a lighthouse' });
+
+      expect(JSON.parse(String(mockedFetch.mock.calls[0]?.[1]?.body))).not.toHaveProperty('quality');
+    });
+
     it('propagates Grok API errors', async () => {
       mockedFetch.mockResolvedValue(textResponse('rate limited', { ok: false, status: 429 }));
 

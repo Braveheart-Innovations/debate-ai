@@ -11,6 +11,8 @@ interface GeminiGenerationConfigOptions {
   topK?: number;
   maxTokens?: number;
   supportsThinking?: boolean;
+  /** 'low' asks for brief reasoning whatever the output cap (debate turns). */
+  reasoningEffort?: 'low';
 }
 
 function normalizeMaxTokens(maxTokens: number | undefined): number | undefined {
@@ -22,13 +24,17 @@ function normalizeMaxTokens(maxTokens: number | undefined): number | undefined {
 function getGeminiThinkingConfig(
   model: string,
   maxOutputTokens?: number,
-  supportsThinking?: boolean
+  supportsThinking?: boolean,
+  reasoningEffort?: 'low'
 ): GeminiThinkingConfig | undefined {
   // Catalog says this model has no thinking mode; nothing to configure.
   if (supportsThinking === false) {
     return undefined;
   }
-  if (!maxOutputTokens || maxOutputTokens > TIGHT_OUTPUT_TOKEN_CAP) {
+  // Without a brief-reasoning request, only a tight output cap lowers thinking, so that reasoning
+  // cannot crowd out the answer; the model's default applies otherwise.
+  const briefReasoning = reasoningEffort === 'low';
+  if (!briefReasoning && (!maxOutputTokens || maxOutputTokens > TIGHT_OUTPUT_TOKEN_CAP)) {
     return undefined;
   }
 
@@ -37,7 +43,7 @@ function getGeminiThinkingConfig(
     return undefined;
   }
 
-  if (normalizedModel.includes('gemini-2.5-pro') && maxOutputTokens > 128) {
+  if (normalizedModel.includes('gemini-2.5-pro') && (!maxOutputTokens || maxOutputTokens > 128)) {
     return { thinkingBudget: 128 };
   }
 
@@ -45,7 +51,8 @@ function getGeminiThinkingConfig(
     return { thinkingBudget: 0 };
   }
 
-  if (normalizedModel.includes('gemini-3')) {
+  // The tight-cap rule predates Gemini 4; a brief-reasoning request covers it too.
+  if (normalizedModel.includes('gemini-3') || (briefReasoning && isGeminiFourOrLater(normalizedModel))) {
     if (normalizedModel.includes('flash') || normalizedModel.includes('lite')) {
       // gemini-3.7+ rejects thinkingLevel "minimal" ("Thinking level MINIMAL
       // is not supported for this model"; live-verified 2026-08-17 — 3.6
@@ -58,6 +65,12 @@ function getGeminiThinkingConfig(
   }
 
   return undefined;
+}
+
+// Gemini 4 takes thinking levels low, medium and high, with no "minimal".
+function isGeminiFourOrLater(normalizedModel: string): boolean {
+  const version = /gemini-(\d+)/.exec(normalizedModel);
+  return Boolean(version && Number(version[1]) >= 4);
 }
 
 function supportsMinimalThinkingLevel(normalizedModel: string): boolean {
@@ -77,6 +90,7 @@ export function buildGeminiGenerationConfig({
   topK,
   maxTokens,
   supportsThinking,
+  reasoningEffort,
 }: GeminiGenerationConfigOptions): Record<string, unknown> {
   const resolvedMaxTokens = normalizeMaxTokens(maxTokens);
   const config: Record<string, unknown> = {
@@ -95,7 +109,7 @@ export function buildGeminiGenerationConfig({
     config.maxOutputTokens = resolvedMaxTokens;
   }
 
-  const thinkingConfig = getGeminiThinkingConfig(model, resolvedMaxTokens, supportsThinking);
+  const thinkingConfig = getGeminiThinkingConfig(model, resolvedMaxTokens, supportsThinking, reasoningEffort);
   if (thinkingConfig) {
     config.thinkingConfig = thinkingConfig;
   }

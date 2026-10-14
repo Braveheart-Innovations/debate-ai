@@ -64,7 +64,7 @@ export const ImageUploadModal: React.FC<ImageUploadModalProps> = ({ visible, onC
             <SafeAreaView style={{ flex: 1 }}>
               <SheetHeader title="Attach Image" onClose={onClose} showHandle />
               <KeyboardAvoider>
-                <ScrollView contentContainerStyle={styles.content}>
+                <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
                   <Box style={styles.section}>
                     <Typography variant="body" weight="semibold" color="secondary" style={styles.label}>Choose Source</Typography>
                     <Box style={styles.row}>

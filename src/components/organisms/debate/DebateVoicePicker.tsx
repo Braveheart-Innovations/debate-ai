@@ -937,7 +937,7 @@ export const DebateVoicePicker: React.FC<DebateVoicePickerProps> = ({
           {recentVoiceOptions.length > 0 && activeSourceId !== 'favorites' && (
             <View style={{ gap: theme.spacing.xs }}>
               <Typography variant="caption" weight="semibold" color="secondary">Recent</Typography>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <ScrollView keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false}>
                 {recentVoiceOptions.slice(0, 6).map((voice) => renderCompactVoiceButton(voice, 'debate-recent-voice'))}
               </ScrollView>
             </View>

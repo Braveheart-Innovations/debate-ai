@@ -111,7 +111,7 @@ describe('ProviderCard', () => {
   it('reveals API key, updates value, and tests connection when expanded', async () => {
     const onKeyChange = jest.fn();
     const onTest = jest.fn().mockResolvedValue({ success: true });
-    const onSave = jest.fn().mockResolvedValue(undefined);
+    const onSave = jest.fn<Promise<void>, [string?]>().mockResolvedValue(undefined);
 
     const { getByText, getByDisplayValue } = renderWithProviders(
       <ProviderCard
@@ -173,5 +173,62 @@ describe('ProviderCard', () => {
 
     expect(onSave).not.toHaveBeenCalled();
     expect(Haptics.notificationAsync).toHaveBeenCalledWith('error');
+  });
+
+  describe('saving a key typed into an empty card', () => {
+    const validKey = 'sk-ant-api03-abcdefghijklmnopqrstuvwxyz0123456789';
+
+    it('saves a valid key when the card collapses', async () => {
+      const onSave = jest.fn<Promise<void>, [string?]>().mockResolvedValue(undefined);
+      const { getByPlaceholderText, rerender } = renderWithProviders(
+        <ProviderCard {...defaultProps} onSave={onSave} isExpanded />
+      );
+
+      fireEvent.changeText(getByPlaceholderText('sk-ant-api03-...'), validKey);
+      expect(onSave).not.toHaveBeenCalled();
+
+      rerender(<ProviderCard {...defaultProps} onSave={onSave} isExpanded={false} />);
+
+      await waitFor(() => expect(onSave).toHaveBeenCalledWith(validKey));
+      expect(onSave).toHaveBeenCalledTimes(1);
+    });
+
+    it('saves a valid key when the screen is left while the card is open', async () => {
+      const onSave = jest.fn<Promise<void>, [string?]>().mockResolvedValue(undefined);
+      const { getByPlaceholderText, unmount } = renderWithProviders(
+        <ProviderCard {...defaultProps} onSave={onSave} isExpanded />
+      );
+
+      fireEvent.changeText(getByPlaceholderText('sk-ant-api03-...'), validKey);
+      unmount();
+
+      await waitFor(() => expect(onSave).toHaveBeenCalledWith(validKey));
+    });
+
+    it('does not save a key that fails the format check', () => {
+      const onSave = jest.fn<Promise<void>, [string?]>().mockResolvedValue(undefined);
+      const { getByPlaceholderText, rerender } = renderWithProviders(
+        <ProviderCard {...defaultProps} onSave={onSave} isExpanded />
+      );
+
+      fireEvent.changeText(getByPlaceholderText('sk-ant-api03-...'), 'nope');
+      rerender(<ProviderCard {...defaultProps} onSave={onSave} isExpanded={false} />);
+
+      expect(onSave).not.toHaveBeenCalled();
+    });
+
+    it('never auto-saves over an existing key when the card collapses', () => {
+      const onSave = jest.fn<Promise<void>, [string?]>().mockResolvedValue(undefined);
+      const { getByDisplayValue, rerender } = renderWithProviders(
+        <ProviderCard {...defaultProps} apiKey="abcdef123456" onSave={onSave} isExpanded />
+      );
+
+      fireEvent.changeText(getByDisplayValue('abc••••••456'), validKey);
+      rerender(
+        <ProviderCard {...defaultProps} apiKey="abcdef123456" onSave={onSave} isExpanded={false} />
+      );
+
+      expect(onSave).not.toHaveBeenCalled();
+    });
   });
 });

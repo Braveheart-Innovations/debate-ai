@@ -1,21 +1,12 @@
-import React, { useMemo } from 'react';
-import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
+import React, { useEffect, useMemo } from 'react';
+import { Keyboard, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/theme';
 import { Typography, SheetHeader } from '@/components/molecules';
-import { AIAvatar } from '../common/AIAvatar';
 import { AI_PROVIDERS } from '@/config/aiProviders';
-import { getAIProviderIcon } from '@/utils/aiProviderAssets';
+import { ProviderOptionList, ProviderPickerItem } from './ProviderOptionList';
 
-/** Minimal provider row data; AI_PROVIDERS entries satisfy it structurally. */
-export interface ProviderPickerItem {
-  id: string;
-  name: string;
-  company: string;
-  color: string;
-}
+export type { ProviderPickerItem } from './ProviderOptionList';
 
 interface ProviderPickerSheetProps {
   visible: boolean;
@@ -27,16 +18,19 @@ interface ProviderPickerSheetProps {
   allowedProviderIds?: string[];
   /** Compare allows the same provider on both sides (different models). */
   allowDuplicates?: boolean;
-  onRequestAddKey?: () => void;
+  /** Routes to API configuration for that provider; the sheet closes first. */
+  onRequestAddKey?: (providerId: string) => void;
   /** Catalog override (e.g. Create's media providers). Defaults to enabled AI_PROVIDERS. */
   providers?: ProviderPickerItem[];
+  /** One line under the title saying why the sheet opened (e.g. a blocked send). */
+  message?: string | null;
   testID?: string;
 }
 
 /**
  * Bottom sheet listing providers for the composer's [+] Add AI chip.
- * Keyed providers are selectable; un-keyed ones are dimmed with an
- * "Add key" action that routes to API configuration.
+ * Keyed providers are selectable; un-keyed ones are dimmed and route to
+ * that provider's API key card.
  */
 export const ProviderPickerSheet: React.FC<ProviderPickerSheetProps> = ({
   visible,
@@ -48,10 +42,17 @@ export const ProviderPickerSheet: React.FC<ProviderPickerSheetProps> = ({
   allowDuplicates = false,
   onRequestAddKey,
   providers: providersProp,
+  message,
   testID,
 }) => {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
+
+  // A composer input left focused keeps the keyboard up behind the sheet,
+  // and the list's first tap would only dismiss it.
+  useEffect(() => {
+    if (visible) Keyboard.dismiss();
+  }, [visible]);
 
   const providers = useMemo<ProviderPickerItem[]>(
     () =>
@@ -62,15 +63,16 @@ export const ProviderPickerSheet: React.FC<ProviderPickerSheetProps> = ({
   );
 
   const handleSelect = (providerId: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     onSelectProvider(providerId);
     onClose();
   };
 
-  const handleAddKey = () => {
-    onClose();
-    onRequestAddKey?.();
-  };
+  const handleAddKey = onRequestAddKey
+    ? (providerId: string) => {
+        onClose();
+        onRequestAddKey(providerId);
+      }
+    : undefined;
 
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
@@ -92,82 +94,27 @@ export const ProviderPickerSheet: React.FC<ProviderPickerSheetProps> = ({
           ]}
         >
           <SheetHeader title="Add an AI" onClose={onClose} showHandle testID={testID} />
-          <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
-            {providers.map(provider => {
-              const iconData = getAIProviderIcon(provider.id);
-              const isConfigured = configuredProviderIds.includes(provider.id);
-              const isSelected = selectedProviderIds.includes(provider.id);
-              const isBlocked = isSelected && !allowDuplicates;
-              const canSelect = isConfigured && !isBlocked;
-
-              return (
-                <TouchableOpacity
-                  key={provider.id}
-                  onPress={() => canSelect && handleSelect(provider.id)}
-                  disabled={!canSelect}
-                  activeOpacity={0.7}
-                  accessibilityRole="button"
-                  accessibilityLabel={provider.name}
-                  accessibilityState={{ disabled: !canSelect, selected: isSelected }}
-                  style={[
-                    styles.row,
-                    {
-                      borderColor: theme.colors.border,
-                      backgroundColor: theme.colors.card,
-                      opacity: isConfigured ? 1 : 0.55,
-                    },
-                  ]}
-                >
-                  <AIAvatar
-                    icon={iconData.icon}
-                    iconType={iconData.iconType}
-                    size="small"
-                    color={provider.color}
-                  />
-                  <View style={styles.rowText}>
-                    <Typography variant="body" weight="medium">
-                      {provider.name}
-                    </Typography>
-                    <Typography variant="caption" color="secondary">
-                      {provider.company}
-                    </Typography>
-                  </View>
-                  {isBlocked ? (
-                    <View style={styles.rowTrailing}>
-                      <Ionicons
-                        name="checkmark-circle"
-                        size={20}
-                        color={theme.colors.success[500]}
-                      />
-                      <Typography variant="caption" color="secondary">
-                        Added
-                      </Typography>
-                    </View>
-                  ) : !isConfigured && onRequestAddKey ? (
-                    <TouchableOpacity
-                      onPress={handleAddKey}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Add API key for ${provider.name}`}
-                      style={[styles.addKeyChip, { borderColor: theme.colors.primary[400] }]}
-                    >
-                      <Typography
-                        variant="caption"
-                        weight="medium"
-                        style={{ color: theme.colors.primary[500] }}
-                      >
-                        Add key
-                      </Typography>
-                    </TouchableOpacity>
-                  ) : canSelect ? (
-                    <Ionicons
-                      name="add-circle-outline"
-                      size={22}
-                      color={theme.colors.text.secondary}
-                    />
-                  ) : null}
-                </TouchableOpacity>
-              );
-            })}
+          {message ? (
+            <View style={styles.message} testID={testID ? `${testID}-message` : undefined}>
+              <Typography variant="caption" color="secondary">
+                {message}
+              </Typography>
+            </View>
+          ) : null}
+          <ScrollView
+            style={styles.list}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            <ProviderOptionList
+              providers={providers}
+              configuredProviderIds={configuredProviderIds}
+              selectedProviderIds={selectedProviderIds}
+              allowDuplicates={allowDuplicates}
+              onSelectProvider={handleSelect}
+              onRequestAddKey={handleAddKey}
+              testID={testID ? `${testID}-list` : undefined}
+            />
           </ScrollView>
         </View>
       </View>
@@ -187,32 +134,13 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     maxHeight: '75%',
   },
+  message: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+  },
   list: {
     paddingHorizontal: 16,
     paddingTop: 12,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginBottom: 8,
-  },
-  rowText: {
-    flex: 1,
-  },
-  rowTrailing: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  addKeyChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 14,
-    borderWidth: 1,
   },
 });
 

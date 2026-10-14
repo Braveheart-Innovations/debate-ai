@@ -6,11 +6,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import { startSession, startDebate } from '../../store';
-import { DebateOrchestrator, DebateSession, DebateStatus } from '../../services/debate';
+import { DebateOrchestrator, DebateSession, DebateStatus, type DebateInitializeOptions } from '../../services/debate';
 import { useAIService } from '../../providers/AIServiceProvider';
-import { AI, type DebateVoiceConfig } from '../../types';
-import { PersonalityOption } from '@/config/personalities';
-import type { DebateFormatId } from '@/config/debate/formats';
+import { AI } from '../../types';
 import type { DebateParticipantMetadata } from '@/store/debateStatsSlice';
 
 export interface UseDebateSessionReturn {
@@ -22,15 +20,7 @@ export interface UseDebateSessionReturn {
     topic: string,
     participants: AI[],
     personalities?: { [aiId: string]: string },
-    options?: {
-      formatId?: DebateFormatId;
-      presetId?: string;
-      rounds?: number;
-      stances?: { [aiId: string]: 'pro' | 'con' };
-      /** Optional pre-merged personalities from context (includes user customizations) */
-      mergedPersonalities?: Record<string, PersonalityOption>;
-      voiceConfig?: DebateVoiceConfig;
-    }
+    options?: DebateInitializeOptions
   ) => Promise<void>;
   resetSession: () => void;
   error: string | null;
@@ -68,14 +58,7 @@ export const useDebateSession = (_selectedAIs: AI[]): UseDebateSessionReturn => 
     topic: string,
     participants: AI[],
     personalities: { [aiId: string]: string } = {},
-    options?: {
-      formatId?: DebateFormatId;
-      presetId?: string;
-      rounds?: number;
-      stances?: { [aiId: string]: 'pro' | 'con' };
-      mergedPersonalities?: Record<string, PersonalityOption>;
-      voiceConfig?: DebateVoiceConfig;
-    }
+    options?: DebateInitializeOptions
   ): Promise<void> => {
     if (!orchestrator) {
       setError('Orchestrator not initialized. Please wait a moment and try again.');

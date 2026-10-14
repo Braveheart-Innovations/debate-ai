@@ -4,7 +4,7 @@
  * This file contains mappings for model versioning and easy updates.
  * Update this file when new model versions are released.
  * 
- * Last updated: September 2026
+ * Last updated: October 2026
  */
 
 export interface ModelVersionInfo {
@@ -120,6 +120,9 @@ export const MODEL_VERSIONS: ProviderVersions = {
         version: '4.5-sonnet',
         releaseDate: '2025-09-29',
         isLatest: false,
+        isDeprecated: true,
+        deprecationDate: '2026-11-30',
+        replacedBy: 'claude-sonnet-5-5',
       },
       {
         id: 'claude-sonnet-4-20250514',
@@ -140,10 +143,19 @@ export const MODEL_VERSIONS: ProviderVersions = {
     ],
     economy: [
       {
+        id: 'claude-haiku-5-5',
+        version: '5.5-haiku',
+        releaseDate: '2026-10-07',
+        isLatest: true,
+      },
+      {
         id: 'claude-haiku-4-5-20251001',
         version: '4.5-haiku',
         releaseDate: '2025-10-01',
-        isLatest: true,
+        isLatest: false,
+        // Retirement "not sooner than 2026-10-15"; no firm date yet.
+        isDeprecated: true,
+        replacedBy: 'claude-haiku-5-5',
       },
       {
         id: 'claude-3-5-haiku-20241022',
@@ -288,10 +300,16 @@ export const MODEL_VERSIONS: ProviderVersions = {
   google: {
     flagship: [
       {
+        id: 'gemini-4-argon',
+        version: '4-argon',
+        releaseDate: '2026-10-13',
+        isLatest: true,
+      },
+      {
         id: 'gemini-3.1-pro-preview',
         version: '3.1-pro-preview',
         releaseDate: '2026-03-01',
-        isLatest: true,
+        isLatest: false,
       },
       {
         id: 'gemini-2.5-pro',
@@ -330,6 +348,9 @@ export const MODEL_VERSIONS: ProviderVersions = {
         version: '3.5-flash',
         releaseDate: '2026-05-19',
         isLatest: false,
+        // Google routes this endpoint's requests to gemini-3.6-flash.
+        isDeprecated: true,
+        replacedBy: 'gemini-3.6-flash',
       },
       {
         id: 'gemini-3.5-flash-lite',
@@ -519,10 +540,16 @@ export const MODEL_VERSIONS: ProviderVersions = {
   mistral: {
     large: [
       {
+        id: 'mistral-large-4',
+        version: '26.10',
+        releaseDate: '2026-10-06',
+        isLatest: true,
+      },
+      {
         id: 'mistral-large-2512',
         version: '2512',
         releaseDate: '2025-12-01',
-        isLatest: true,
+        isLatest: false,
       },
     ],
     medium: [
@@ -679,12 +706,12 @@ export const MODEL_VERSIONS: ProviderVersions = {
     ],
     pro: [
       {
+        // GA as DeepSeek-V4-Pro-0813 on 2026-08-13; DeepSeek kept serving it
+        // after 2026-09-14 instead of routing it to V4.1 Flash.
         id: 'deepseek-v4-pro',
-        version: 'v4-pro',
-        releaseDate: '2026-04-24',
+        version: 'v4-pro-0813',
+        releaseDate: '2026-08-13',
         isLatest: true,
-        isDeprecated: true,
-        replacedBy: 'deepseek-flash',
       },
     ],
     reasoning: [

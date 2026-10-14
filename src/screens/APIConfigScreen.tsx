@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { ScrollView, Linking } from 'react-native';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { ScrollView, Linking, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch } from 'react-redux';
 import { showSheet } from '../store';
@@ -30,9 +30,11 @@ interface APIConfigScreenProps {
   navigation: {
     goBack: () => void;
   };
+  route?: { params?: { providerId?: string; from?: 'settings' } };
 }
 
-const APIConfigScreen: React.FC<APIConfigScreenProps> = ({ navigation }) => {
+const APIConfigScreen: React.FC<APIConfigScreenProps> = ({ navigation, route }) => {
+  const focusProviderId = route?.params?.providerId;
   const dispatch = useDispatch();
   const { theme } = useTheme();
   const { isDemo, canStartTrial } = useFeatureAccess();
@@ -54,7 +56,30 @@ const APIConfigScreen: React.FC<APIConfigScreenProps> = ({ navigation }) => {
   } = useAPIConfigHandlers();
 
   // UI state
-  const [expandedProvider, setExpandedProvider] = useState<string | null>(null);
+  const [expandedProvider, setExpandedProvider] = useState<string | null>(focusProviderId ?? null);
+
+  // Opened for one provider ("Add key" in a picker, a Studio tab): expand its
+  // card and scroll it into view once the list has laid out.
+  const scrollRef = useRef<ScrollView>(null);
+  const listOffsetRef = useRef<number | null>(null);
+  const providerOffsetsRef = useRef<Record<string, number>>({});
+  const pendingScrollRef = useRef<string | null>(focusProviderId ?? null);
+
+  const scrollToPendingProvider = useCallback(() => {
+    const providerId = pendingScrollRef.current;
+    const listOffset = listOffsetRef.current;
+    const providerOffset = providerId ? providerOffsetsRef.current[providerId] : undefined;
+    if (!providerId || listOffset === null || providerOffset === undefined) return;
+    pendingScrollRef.current = null;
+    scrollRef.current?.scrollTo({ y: Math.max(0, listOffset + providerOffset - 12), animated: true });
+  }, []);
+
+  useEffect(() => {
+    if (!focusProviderId) return;
+    setExpandedProvider(focusProviderId);
+    pendingScrollRef.current = focusProviderId;
+    scrollToPendingProvider();
+  }, [focusProviderId, scrollToPendingProvider]);
 
   // Modal state
   const [guidanceModalProvider, setGuidanceModalProvider] = useState<AIProvider | null>(null);
@@ -145,7 +170,9 @@ const APIConfigScreen: React.FC<APIConfigScreenProps> = ({ navigation }) => {
           title="Configure AIs"
           onBack={() => {
             navigation.goBack();
-            dispatch(showSheet({ sheet: 'settings' }));
+            if (route?.params?.from === 'settings') {
+              dispatch(showSheet({ sheet: 'settings' }));
+            }
           }}
           showBackButton={true}
           animated={true}
@@ -154,6 +181,8 @@ const APIConfigScreen: React.FC<APIConfigScreenProps> = ({ navigation }) => {
         
         <KeyboardAvoider>
           <ScrollView
+            ref={scrollRef}
+            keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
             showsVerticalScrollIndicator={false}
           >
@@ -189,19 +218,30 @@ const APIConfigScreen: React.FC<APIConfigScreenProps> = ({ navigation }) => {
                   }}
                 />
 
-                <APIProviderList
-                  providers={enabledProviders}
-                  apiKeys={apiKeys}
-                  verificationStatus={verificationStatus}
-                  onTest={handleTestConnection}
-                  onSave={handleSaveKey}
-                  onToggleExpand={onToggleExpand}
-                  expandedProvider={expandedProvider}
-                  expertModeConfigs={expertModeConfigs}
-                  onGetApiKey={handleGetApiKey}
-                  clipboardKeyProviderId={clipboardKeyProviderId}
-                  onUseClipboardKey={handleUseClipboardKey}
-                />
+                <View
+                  onLayout={(event) => {
+                    listOffsetRef.current = event.nativeEvent.layout.y;
+                    scrollToPendingProvider();
+                  }}
+                >
+                  <APIProviderList
+                    providers={enabledProviders}
+                    apiKeys={apiKeys}
+                    verificationStatus={verificationStatus}
+                    onTest={handleTestConnection}
+                    onSave={handleSaveKey}
+                    onToggleExpand={onToggleExpand}
+                    expandedProvider={expandedProvider}
+                    expertModeConfigs={expertModeConfigs}
+                    onGetApiKey={handleGetApiKey}
+                    clipboardKeyProviderId={clipboardKeyProviderId}
+                    onUseClipboardKey={handleUseClipboardKey}
+                    onProviderLayout={(providerId, y) => {
+                      providerOffsetsRef.current[providerId] = y;
+                      if (providerId === pendingScrollRef.current) scrollToPendingProvider();
+                    }}
+                  />
+                </View>
 
                 <APIComingSoon providers={disabledProviders} />
 
