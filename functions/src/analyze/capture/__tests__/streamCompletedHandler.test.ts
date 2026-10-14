@@ -1931,6 +1931,36 @@ describe('handleStreamCompleted general intent-gated surfacing (non-Salesforce)'
     expect(JSON.parse(stored.data).pages[0].blocks[0].spec.spec.data.values).toHaveLength(2);
   });
 
+  it('stores a chart whose layers filter a date field by text with the dates compared as dates (the blank overlay charts)', () => {
+    // Vega-Lite parses a temporal field into a Date before layer filters run, so
+    // `datum.date >= '2025-10-15'` dropped every row (live report 2026-10-14).
+    const chartSpec = JSON.stringify({
+      version: 1, kind: 'analysis_artifact_spec', title: 'AAPL', summary: 'AAPL against CPI.',
+      pages: [{ slug: 'p', title: 'P', blocks: [{ kind: 'chart', spec: { type: 'vega-lite', spec: {
+        data: { values: [{ date: '2025-10-15', value: 0, group: 'stock' }] },
+        encoding: { x: { field: 'date', type: 'temporal' } },
+        layer: [{
+          transform: [{ filter: "datum.group === 'stock'" }, { filter: "datum.date >= '2025-10-15' && datum.date <= '2026-10-14'" }],
+          mark: 'line',
+          encoding: { y: { field: 'value', type: 'quantitative' } },
+        }],
+      } } }] }],
+    });
+    const { artifacts } = runHandler({
+      outputSelection: richHtml,
+      toolCalls: [{ id: 'write', type: 'function', function: { name: 'write_output_file', arguments: '{"path":"/output/report.json"}' } }],
+      toolExecutionResults: [{
+        toolName: 'write_output_file', success: true, content: 'Wrote report.',
+        dataOutputs: [{ filename: 'report.json', base64: btoa(chartSpec), size: chartSpec.length }],
+      }],
+    });
+
+    const report = artifacts.find((artifact) => artifact.type === 'analysis_artifact_spec');
+    const filters = JSON.parse(report!.data).pages[0].blocks[0].spec.spec.layer[0].transform;
+    expect(filters[0].filter).toBe("datum.group === 'stock'");
+    expect(filters[1].filter).toBe("time(datum.date) >= time('2025-10-15') && time(datum.date) <= time('2026-10-14')");
+  });
+
   it('keeps an embedded_html HTML output as hidden backing alongside the report spec + suppressed CSV', () => {
     const { artifacts } = runHandler({
       outputSelection: richHtml,
