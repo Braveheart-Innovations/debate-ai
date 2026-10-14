@@ -113,10 +113,12 @@ const diagramBlockSchema = baseBlockSchema.extend({
     z.object({
       type: z.literal('data_model'),
       model: z.record(z.string(), z.unknown()),
+      file: z.string().optional(),
     }),
     z.object({
       type: z.literal('process_flow'),
       flow: z.record(z.string(), z.unknown()),
+      file: z.string().optional(),
     }),
   ]),
   caption: z.string().optional(),

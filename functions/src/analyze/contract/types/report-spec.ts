@@ -149,8 +149,9 @@ export interface ChartBlock extends CitableReportBlock {
  */
 export type DiagramBlockSpec =
   | { type: 'mermaid'; code: string }
-  | { type: 'data_model'; model: Record<string, unknown> }
-  | { type: 'process_flow'; flow: Record<string, unknown> };
+  /** `file`: the diagram file it was baked from, which capture draws a saved-again report from. */
+  | { type: 'data_model'; model: Record<string, unknown>; file?: string }
+  | { type: 'process_flow'; flow: Record<string, unknown>; file?: string };
 
 /** A structural diagram (flow/architecture/sequence/ER/state), or a data model from a diagram file. */
 export interface DiagramBlock extends CitableReportBlock {

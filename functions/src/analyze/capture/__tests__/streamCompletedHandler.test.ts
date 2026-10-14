@@ -1357,6 +1357,7 @@ describe('handleStreamCompleted general intent-gated surfacing (non-Salesforce)'
       // The file's data model itself, drawn by the app like the Diagram view.
       expect(block).toMatchObject({ kind: 'diagram', caption: 'The data model', spec: { type: 'data_model', model: { title: 'Families', kind: 'data_model' } } });
       expect(block.spec.model.entities.map((entity: { id: string }) => entity.id)).toEqual(['family', 'child']);
+      expect(block.spec.file).toBe('families.diagram.json');
       expect(block).not.toHaveProperty('artifactId');
 
       // Saved in an earlier round: the session's newest version.
@@ -1369,6 +1370,37 @@ describe('handleStreamCompleted general intent-gated surfacing (non-Salesforce)'
       });
       const latestReport = later.artifacts.filter((artifact) => artifact.type === 'analysis_artifact_spec').at(-1)!;
       expect(JSON.parse(latestReport.data).pages[0].blocks[0].kind).toBe('diagram');
+    });
+
+    it('draws a report saved again (as the sandbox got it back, baked) from the diagram as it is now', () => {
+      const reportText = (blocks: unknown[]) => JSON.stringify({ version: 1, kind: 'analysis_artifact_spec', title: 'Families', summary: 'The model.', pages: [{ slug: 'p', title: 'P', blocks }] });
+      const reportResult = (text: string) => ({
+        toolName: 'write_output_file', success: true, content: 'Wrote report.',
+        dataOutputs: [{ filename: 'report.json', base64: btoa(text), size: text.length }],
+      });
+      const first = runHandler({
+        outputSelection: richHtml,
+        toolCalls: [call('c1'), call('c2')],
+        toolExecutionResults: [diagramResult(diagram('Families')), reportResult(reportText([{ kind: 'artifact_ref', artifactId: 'families.diagram.json' }]))],
+        messageId: 'ai-1',
+      });
+      // The stored report, as SessionFilesSync puts it back in /output.
+      const stored = first.artifacts.find((artifact) => artifact.type === 'analysis_artifact_spec')!;
+      const bakedBlocks = JSON.parse(stored.data).pages[0].blocks;
+      expect(bakedBlocks[0].spec.model.title).toBe('Families');
+      // The diagram is edited, then the report saved again from the baked copy.
+      const edited = runHandler({ outputSelection: richHtml, toolCalls: [call('c3')], toolExecutionResults: [diagramResult(diagram('Families and invoices'))], artifacts: first.artifacts, messageId: 'ai-2' });
+      const resaved = runHandler({
+        outputSelection: richHtml,
+        toolCalls: [call('c4')],
+        toolExecutionResults: [reportResult(reportText(bakedBlocks))],
+        artifacts: edited.artifacts,
+        messageId: 'ai-3',
+      });
+      const latest = resaved.artifacts.filter((artifact) => artifact.type === 'analysis_artifact_spec').at(-1)!;
+      expect(JSON.parse(latest.data).pages[0].blocks[0].spec).toMatchObject({ type: 'data_model', file: 'families.diagram.json', model: { title: 'Families and invoices' } });
+      // The first version keeps the diagram it was saved with.
+      expect(JSON.parse(stored.data).pages[0].blocks[0].spec.model.title).toBe('Families');
     });
 
     it('bakes a report\'s reference to a process flow as the flow itself', () => {
@@ -1397,7 +1429,7 @@ describe('handleStreamCompleted general intent-gated surfacing (non-Salesforce)'
       });
       const block = JSON.parse(artifacts.find((artifact) => artifact.type === 'analysis_artifact_spec')!.data).pages[0].blocks[0];
       // Drawn by the app like the Diagram view, not as Mermaid text.
-      expect(block).toMatchObject({ kind: 'diagram', caption: 'Clinic', spec: { type: 'process_flow', flow: { kind: 'process_flow', title: 'Clinic' } } });
+      expect(block).toMatchObject({ kind: 'diagram', caption: 'Clinic', spec: { type: 'process_flow', file: 'clinic.diagram.json', flow: { kind: 'process_flow', title: 'Clinic' } } });
       expect(block.spec.flow.nodes.map((node: { id: string }) => node.id)).toEqual(['arrive', 'doctor', 'done']);
     });
 

@@ -2,13 +2,19 @@
 /**
  * A diagram in a report. A report places a diagram with an `artifact_ref`
  * naming its file (`enrollment.diagram.json`); inlineDiagramRefs turns that
- * block into a `diagram` block carrying the file's data model, layout included
- * (`{ type: 'data_model', model }`), which diagramRender draws like the Diagram
- * view, as the user arranged it. Capture applies it with the round's files, so
- * the report keeps the diagram as it stood when the report was written (a
+ * block into a `diagram` block carrying the file itself, layout included
+ * (`{ type: 'data_model', model, file }` or `{ type: 'process_flow', flow,
+ * file }`), which diagramRender draws like the Diagram view, as the user
+ * arranged it. Capture applies it with the round's files, so each version of
+ * the report keeps the diagram as it stood when that version was saved (a
  * later edit is a new version of the diagram, not a change under the report).
  * The app applies it again when it renders or publishes a report, for a
  * reference capture didn't resolve.
+ *
+ * The sandbox gets the stored report back (with its diagram blocks baked), so
+ * a block remembers its `file`, and capture (`refresh`) draws a report saved
+ * again from that file's newest version: an edited diagram reaches the report
+ * at its next save, whoever wrote the blocks.
  *
  * diagramToMermaid is the same model as Mermaid `erDiagram` text: the
  * fallback a viewer or exporter shows when the figure can't be drawn.
@@ -157,28 +163,48 @@ export function diagramReaderFromArtifacts(artifacts: Artifact[] = []): DiagramF
   };
 }
 
+/** A diagram file as a report's diagram block spec, naming the file it came from. */
+function bakedSpec(diagram: DiagramFileV1, file: string): DiagramBlockSpec {
+  return diagram.kind === 'data_model' ? { type: 'data_model', model: diagram, file } : { type: 'process_flow', flow: diagram, file };
+}
+
+/** A baked diagram block drawn from its file's newest version; the block itself when that can't be read or nothing changed. */
+function refreshedBlock(block: LooseRecord, read: DiagramFileReader): LooseRecord {
+  const spec = block.spec;
+  if (!isRecord(spec) || typeof spec.file !== 'string' || (spec.type !== 'data_model' && spec.type !== 'process_flow')) return block;
+  const text = read(spec.file);
+  const diagram = text ? reviewDiagramText(text).diagram : null;
+  if (!diagram) return block;
+  const next = bakedSpec(diagram, spec.file);
+  return JSON.stringify(next) === JSON.stringify(spec) ? block : { ...block, spec: next };
+}
+
 /**
  * Every `artifact_ref` block of a report spec that names a readable diagram
- * file, as a `diagram` block carrying its data model (the block's id, title and
- * caption kept; the diagram's title as the caption when it has none). Returns
- * the input itself when nothing changed.
+ * file, as a `diagram` block carrying the file (the block's id, title and
+ * caption kept; the diagram's title as the caption when it has none). With
+ * `refresh` (capture), a baked block that names its file is drawn from that
+ * file's newest version too. Returns the input itself when nothing changed.
  */
-export function inlineDiagramRefs<T>(spec: T, read: DiagramFileReader): T {
+export function inlineDiagramRefs<T>(spec: T, read: DiagramFileReader, options: { refresh?: boolean } = {}): T {
   if (!isRecord(spec) || !Array.isArray(spec.pages)) return spec;
   let changed = false;
   const pages = spec.pages.map((page) => {
     if (!isRecord(page) || !Array.isArray(page.blocks)) return page;
     let pageChanged = false;
     const blocks = page.blocks.map((block) => {
+      if (options.refresh && isRecord(block) && block.kind === 'diagram') {
+        const refreshed = refreshedBlock(block, read);
+        if (refreshed !== block) pageChanged = true;
+        return refreshed;
+      }
       if (!isRecord(block) || block.kind !== 'artifact_ref' || typeof block.artifactId !== 'string' || !isDiagramFilename(block.artifactId)) return block;
       const text = read(block.artifactId);
       const diagram = text ? reviewDiagramText(text).diagram : null;
       if (!diagram) return block;
       pageChanged = true;
       const rest = Object.fromEntries(Object.entries(block).filter(([key]) => key !== 'artifactId'));
-      // Either kind draws like the Diagram view (diagramRender).
-      const spec = diagram.kind === 'data_model' ? { type: 'data_model', model: diagram } : { type: 'process_flow', flow: diagram };
-      return { ...rest, kind: 'diagram', spec, caption: typeof block.caption === 'string' && block.caption ? block.caption : diagram.title };
+      return { ...rest, kind: 'diagram', spec: bakedSpec(diagram, baseName(block.artifactId)), caption: typeof block.caption === 'string' && block.caption ? block.caption : diagram.title };
     });
     if (!pageChanged) return page;
     changed = true;
