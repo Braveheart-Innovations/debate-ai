@@ -2,8 +2,11 @@
 /**
  * An editable diagram: what `/output/<name>.diagram.json` holds. The agent
  * writes it, the Diagram view draws and edits it, and every save is a new
- * version of the file. Kind 1 is a data model: entities, their fields, and the
- * relationships between them. Process flows come later on the same file.
+ * version of the file. Two kinds share the file:
+ *  - a data model: entities, their fields, and the relationships between them;
+ *  - a process flow: start, step, decision and end nodes joined by flows, with
+ *    the numbers a simulation needs (arrivals, durations, capacities, branch
+ *    shares). The app-owned simulator (models/processSimulator.ts) runs it.
  *
  * Shared with the server (scripts/sync-analyze-contract.mjs): the same review
  * runs when the agent saves the file and when the app reads it. Problems
@@ -94,12 +97,91 @@ const dataModelSchema = z.object({
   layout: layoutSchema.optional(),
 });
 
-export const diagramFileSchema = z.discriminatedUnion('kind', [dataModelSchema], {
+// ── Process flows ────────────────────────────────────────────────────────────
+
+export const FLOW_NODE_TYPES = ['start', 'step', 'decision', 'end'] as const;
+export const TIME_UNITS = ['seconds', 'minutes', 'hours', 'days'] as const;
+export type FlowNodeType = (typeof FLOW_NODE_TYPES)[number];
+export type TimeUnit = (typeof TIME_UNITS)[number];
+
+/** A random time, in the flow's time unit: between arrivals at a start, or the work at a step. */
+const distributionSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('fixed'), value: z.number().min(0) }),
+  z.object({ type: z.literal('exponential'), mean: z.number().positive() }),
+  z.object({ type: z.literal('uniform'), min: z.number().min(0), max: z.number().min(0) }),
+  z.object({ type: z.literal('triangular'), min: z.number().min(0), mode: z.number().min(0), max: z.number().min(0) }),
+  z.object({ type: z.literal('normal'), mean: z.number().min(0), sd: z.number().min(0) }),
+  z.object({ type: z.literal('lognormal'), mean: z.number().positive(), sd: z.number().min(0) }),
+], { error: (issue) => (issue.code === 'invalid_union' ? 'expected a distribution type: fixed, exponential, uniform, triangular, normal or lognormal' : undefined) });
+
+const flowNodeSchema = z.object({
+  id: nameSchema,
+  type: z.enum(FLOW_NODE_TYPES),
+  label: nameSchema,
+  description: z.string().optional(),
+  /** Where its numbers came from (as a data model's `source`). */
+  source: z.string().optional(),
+  /** start: the time between arrivals. */
+  arrivals: distributionSchema.optional(),
+  /** step: how long the work takes. */
+  duration: distributionSchema.optional(),
+  /** step: how many it serves at once (staff, rooms, machines); 1 when left out. */
+  capacity: z.number().int().min(1).optional(),
+  /** step: a shared resource (resources[].id), used instead of its own capacity. */
+  resource: nameSchema.optional(),
+});
+
+const flowSchema = z.object({
+  id: nameSchema,
+  from: nameSchema,
+  to: nameSchema,
+  /** A decision's branch: the share of arrivals that take it (the branches add up to 1). */
+  share: z.number().min(0).max(1).optional(),
+  label: z.string().optional(),
+});
+
+const resourceSchema = z.object({
+  id: nameSchema,
+  label: nameSchema,
+  capacity: z.number().int().min(1),
+  source: z.string().optional(),
+});
+
+const runSchema = z.object({
+  /** How long one run lasts, in the time unit. */
+  duration: z.number().positive(),
+  /** Time at the start left out of the results, while the process fills up. */
+  warmup: z.number().min(0).optional(),
+  /** Runs to average (each with its own random draws). */
+  replications: z.number().int().min(1).optional(),
+  seed: z.number().int().optional(),
+});
+
+const processFlowSchema = z.object({
+  version: z.literal(1),
+  kind: z.literal('process_flow'),
+  title: nameSchema,
+  summary: nameSchema,
+  timeUnit: z.enum(TIME_UNITS),
+  nodes: z.array(flowNodeSchema).default(() => []),
+  flows: z.array(flowSchema).default(() => []),
+  resources: z.array(resourceSchema).default(() => []),
+  run: runSchema.optional(),
+  layout: layoutSchema.optional(),
+});
+
+export const diagramFileSchema = z.discriminatedUnion('kind', [dataModelSchema, processFlowSchema], {
   // Zod's own words for an unknown kind are "Invalid input".
-  error: (issue) => (issue.code === 'invalid_union' ? 'expected "data_model"' : undefined),
+  error: (issue) => (issue.code === 'invalid_union' ? 'expected "data_model" or "process_flow"' : undefined),
 });
 
 export type DiagramFileV1 = z.infer<typeof diagramFileSchema>;
+export type ProcessFlowDiagram = z.infer<typeof processFlowSchema>;
+export type FlowNode = z.infer<typeof flowNodeSchema>;
+export type Flow = z.infer<typeof flowSchema>;
+export type FlowResource = z.infer<typeof resourceSchema>;
+export type FlowRun = z.infer<typeof runSchema>;
+export type Distribution = z.infer<typeof distributionSchema>;
 export type DataModelDiagram = z.infer<typeof dataModelSchema>;
 export type DataModelEntity = z.infer<typeof entitySchema>;
 export type DataModelField = z.infer<typeof fieldSchema>;
@@ -127,8 +209,9 @@ export function diagramMetadata(diagram: DiagramFileV1, warnings: string[], save
     kind: diagram.kind,
     title: diagram.title,
     summary: diagram.summary,
-    entityCount: diagram.entities.length,
-    relationshipCount: diagram.relationships.length,
+    // A process flow counts its nodes and flows here.
+    entityCount: diagram.kind === 'data_model' ? diagram.entities.length : diagram.nodes.length,
+    relationshipCount: diagram.kind === 'data_model' ? diagram.relationships.length : diagram.flows.length,
     ...(warnings.length > 0 ? { warnings } : {}),
     ...(savedByUser ? { savedByUser: true } : {}),
   };
@@ -137,6 +220,17 @@ export function diagramMetadata(diagram: DiagramFileV1, warnings: string[], save
 /** The file's text for a diagram the app writes (a hand save): indented, so it reads as a file. */
 export function diagramFileText(diagram: DiagramFileV1): string {
   return `${JSON.stringify(diagram, null, 2)}\n`;
+}
+
+/** `base`, or the first `base_2`, `base_3`… not taken. A Salesforce `__c` name keeps its suffix. */
+export function uniqueName(taken: Iterable<string>, base: string): string {
+  const used = new Set(taken);
+  if (!used.has(base)) return base;
+  const custom = base.match(/^(.*?)(__c)$/i);
+  for (let n = 2; ; n += 1) {
+    const candidate = custom ? `${custom[1]}_${n}${custom[2]}` : `${base}_${n}`;
+    if (!used.has(candidate)) return candidate;
+  }
 }
 
 /** Whether this /output path is a diagram file (`<name>.diagram.json`). */
@@ -184,8 +278,110 @@ export function reviewDiagram(candidate: unknown): DiagramReview {
     const problems = parsed.error.issues.map((issue) => `${issue.path.length > 0 ? issue.path.join('.') : '(top level)'}: ${issue.message}`);
     return { diagram: null, problems, warnings: [] };
   }
-  const { problems, warnings } = reviewDataModel(parsed.data);
+  const { problems, warnings } = parsed.data.kind === 'data_model' ? reviewDataModel(parsed.data) : reviewProcessFlow(parsed.data);
   return { diagram: problems.length > 0 ? null : parsed.data, problems, warnings };
+}
+
+/** Why a distribution's numbers can't be drawn from, or null. */
+function distributionProblem(distribution: Distribution): string | null {
+  if (distribution.type === 'uniform' && distribution.min > distribution.max) return 'its min is above its max';
+  if (distribution.type === 'triangular' && !(distribution.min <= distribution.mode && distribution.mode <= distribution.max)) {
+    return 'it needs min ≤ mode ≤ max';
+  }
+  return null;
+}
+
+function reviewProcessFlow(diagram: ProcessFlowDiagram): { problems: string[]; warnings: string[] } {
+  const problems: string[] = [];
+  const warnings: string[] = [];
+  const checkSource = (source: string | undefined, where: string) => {
+    if (source !== undefined && parseDiagramSource(source) === null) {
+      warnings.push(`${where}: source "${source}" is neither an input path (/uploads/…) nor platform, user or assumed`);
+    }
+  };
+
+  const nodes = new Map<string, FlowNode>();
+  for (const node of diagram.nodes) {
+    if (nodes.has(node.id)) problems.push(`two nodes have the id "${node.id}"`);
+    else nodes.set(node.id, node);
+    checkSource(node.source, `node "${node.id}"`);
+  }
+  const resources = new Set<string>();
+  for (const resource of diagram.resources) {
+    if (resources.has(resource.id)) problems.push(`two resources have the id "${resource.id}"`);
+    resources.add(resource.id);
+    checkSource(resource.source, `resource "${resource.id}"`);
+  }
+  const flowIds = new Set<string>();
+  const outgoing = new Map<string, Flow[]>();
+  const incoming = new Map<string, Flow[]>();
+  for (const flow of diagram.flows) {
+    if (flowIds.has(flow.id)) problems.push(`two flows have the id "${flow.id}"`);
+    flowIds.add(flow.id);
+    if (!nodes.has(flow.from)) problems.push(`flow "${flow.id}": from "${flow.from}" isn't a node id`);
+    if (!nodes.has(flow.to)) problems.push(`flow "${flow.id}": to "${flow.to}" isn't a node id`);
+    outgoing.set(flow.from, [...(outgoing.get(flow.from) ?? []), flow]);
+    incoming.set(flow.to, [...(incoming.get(flow.to) ?? []), flow]);
+  }
+
+  const starts = diagram.nodes.filter((node) => node.type === 'start');
+  if (starts.length === 0) problems.push('a process flow needs a start node (where work arrives)');
+  if (!diagram.nodes.some((node) => node.type === 'end')) problems.push('a process flow needs an end node (where work leaves)');
+
+  for (const node of diagram.nodes) {
+    const where = `node "${node.id}"`;
+    const out = outgoing.get(node.id) ?? [];
+    if (node.type === 'start') {
+      if (!node.arrivals) problems.push(`${where}: a start needs arrivals, the time between arrivals`);
+      if ((incoming.get(node.id) ?? []).length > 0) problems.push(`${where}: nothing flows into a start`);
+      if (out.length !== 1) problems.push(`${where}: a start has one flow out (it has ${out.length})`);
+    } else if (node.type === 'step') {
+      if (!node.duration) problems.push(`${where}: a step needs a duration`);
+      if (out.length !== 1) problems.push(`${where}: a step has one flow out; branch with a decision node (it has ${out.length})`);
+      if (node.resource !== undefined && !resources.has(node.resource)) problems.push(`${where}: resource "${node.resource}" isn't in resources`);
+      if (node.resource !== undefined && node.capacity !== undefined) warnings.push(`${where}: it has a resource and a capacity; the resource's capacity is used`);
+    } else if (node.type === 'decision') {
+      if (out.length < 2) problems.push(`${where}: a decision has two or more flows out (it has ${out.length})`);
+      const shares = out.map((flow) => flow.share);
+      if (shares.some((share) => share === undefined)) {
+        problems.push(`${where}: every branch of a decision needs a share (the shares add up to 1)`);
+      } else {
+        const total = (shares as number[]).reduce((sum, share) => sum + share, 0);
+        if (out.length > 0 && Math.abs(total - 1) > 0.01) problems.push(`${where}: its branch shares add up to ${Number(total.toFixed(3))}, not 1`);
+      }
+    } else if (out.length > 0) {
+      problems.push(`${where}: nothing flows out of an end`);
+    }
+    for (const [key, distribution] of [['arrivals', node.arrivals], ['duration', node.duration]] as const) {
+      const problem = distribution ? distributionProblem(distribution) : null;
+      if (problem) problems.push(`${where}: ${key}: ${problem}`);
+    }
+    if (node.type !== 'decision') {
+      for (const flow of out) if (flow.share !== undefined) warnings.push(`flow "${flow.id}": only a decision's branches have shares`);
+    }
+  }
+
+  if (diagram.run?.warmup !== undefined && diagram.run.warmup >= diagram.run.duration) {
+    problems.push('run: the warmup has to be shorter than the run');
+  }
+
+  // Every node is reached from a start, and every node can reach an end (or work circles forever).
+  if (problems.length === 0) {
+    const reach = (from: string[], next: (id: string) => string[]) => {
+      const seen = new Set(from);
+      for (const queue = [...from]; queue.length > 0;) {
+        for (const id of next(queue.shift()!)) if (!seen.has(id)) { seen.add(id); queue.push(id); }
+      }
+      return seen;
+    };
+    const reached = reach(starts.map((node) => node.id), (id) => (outgoing.get(id) ?? []).map((flow) => flow.to));
+    const finishing = reach(diagram.nodes.filter((node) => node.type === 'end').map((node) => node.id), (id) => (incoming.get(id) ?? []).map((flow) => flow.from));
+    for (const node of diagram.nodes) {
+      if (!reached.has(node.id)) warnings.push(`node "${node.id}": nothing reaches it from a start`);
+      else if (!finishing.has(node.id)) problems.push(`node "${node.id}": no path from it reaches an end, so work that gets there never finishes`);
+    }
+  }
+  return { problems, warnings };
 }
 
 /** The diagram, or null when the text isn't a usable diagram file. */

@@ -24,10 +24,16 @@
  *  - With _SYM_ROOT set, the recipe's /output and /uploads paths point into it.
  *    In the sandbox it is empty and nothing is rewritten.
  *
+ *  - A recipe can simulate a process flow diagram with simulate_process and
+ *    draw the results with show_simulation (processSimulator.ts, the app's
+ *    SimPy engine, comes first in this source).
+ *
  * It expects `_sym_os`, `_sym_json` and matplotlib's `plt` to be defined
  * before it (the kernel bootstrap does; so does run_model.py).
  */
-export const RECIPE_RUNNER_SOURCE = `
+import { PROCESS_SIMULATOR_SOURCE } from './processSimulator';
+
+export const RECIPE_RUNNER_SOURCE = `${PROCESS_SIMULATOR_SOURCE}
 import ast as _sym_ast
 
 # Where /output and /uploads are: '' in the sandbox, where they are real
@@ -164,6 +170,8 @@ def _sym_run_recipe(path, params=None, **values):
     _globals = {
         '__name__': '__main__', '__file__': path, 'OUTPUT_DIR': _out_dir,
         'show_metric': show_metric, 'show_chart': show_chart, 'show_table': show_table, 'show_note': show_note,
+        'simulate_process': _sym_simulate_process,
+        'show_simulation': lambda results, title=None: _sym_show_simulation(results, show_metric, show_chart, show_table, show_note, title),
     }
     exec(compile(_tree, path, 'exec'), _globals)
     for _index, _num in enumerate(plt.get_fignums(), start=1):

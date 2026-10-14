@@ -188,10 +188,12 @@ export interface Artifact {
      * Outputs list shows without reading the file, and the review's warnings.
      */
     diagram?: {
-      kind: 'data_model';
+      kind: 'data_model' | 'process_flow';
       title: string;
       summary: string;
+      /** Entities, or a process flow's nodes. */
       entityCount: number;
+      /** Relationships, or a process flow's flows. */
       relationshipCount: number;
       warnings?: string[];
       /** Saved from the Diagram view (a hand edit), not written by the agent. */
