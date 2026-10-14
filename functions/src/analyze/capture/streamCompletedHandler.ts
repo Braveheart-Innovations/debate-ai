@@ -41,6 +41,7 @@ import { decodeBase64ToUtf8, parseJsonLenient } from '../contract/lib/encoding/u
 import { isRecipeOutputFilename, recipeMetadata, recipeOutputDirs, RECIPE_MIME_TYPE } from '../recipes/recipeArtifacts';
 import { isRecipeFilename } from '../recipes/recipeParams';
 import { diagramMetadata, isDiagramFilename, reviewDiagramText } from '../contract/services/analyze/diagrams/diagramFile';
+import { diagramReaderFromArtifacts, inlineDiagramRefs } from '../contract/services/analyze/diagrams/diagramMermaid';
 import { chartFileReaderFromArtifacts, inlineChartDataFiles, sessionDataPath } from '../contract/services/analyze/charts/inlineChartData';
 import { normalizeRequestSalesforceOrgEvidenceArgs } from '../engine/tools/executeRequestSalesforceOrgEvidenceTool';
 import type { AnalyzeAction } from './types';
@@ -994,6 +995,17 @@ function extractDataArtifacts(
           try { return decodeBase64ToUtf8(output.base64); } catch { return null; }
         }
         return readChartFile(url);
+      });
+      // A reference to a diagram file becomes its Mermaid figure, as the diagram
+      // stands now (this round's save first): the report keeps that picture.
+      const readSessionDiagram = diagramReaderFromArtifacts(ctx.existingArtifacts);
+      spec = inlineDiagramRefs(spec, (name) => {
+        const wanted = name.split('/').pop();
+        const output = datasToProcess.find((candidate) => candidate.filename.split('/').pop() === wanted);
+        if (output) {
+          try { return decodeBase64ToUtf8(output.base64); } catch { return null; }
+        }
+        return readSessionDiagram(name);
       });
       spec = injectSourceProvenance(spec, deps.getFetchProvenanceMap());
       // A panel this turn, or one an earlier version of this report recorded (e.g. a

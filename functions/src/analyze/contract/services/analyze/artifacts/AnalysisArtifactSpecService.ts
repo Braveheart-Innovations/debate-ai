@@ -13,6 +13,7 @@ import type { ReportBlock, ReportSource, ReportSpecV1 } from '../../../types/rep
 import { decodePossiblyBase64Json, parseJsonLenient, repairUtf8Mojibake } from '../../../lib/encoding/utf8Base64';
 import { repairVegaLiteSpec } from '../charts/repairVegaLite';
 import { chartFileReaderFromArtifacts, inlineChartDataFiles } from '../charts/inlineChartData';
+import { diagramReaderFromArtifacts, inlineDiagramRefs } from '../diagrams/diagramMermaid';
 import type { PresentationOverlayV1 } from '../../../types/presentation-overlay';
 import { resolveOverlayTheme } from './PresentationOverlayService';
 import {
@@ -1493,6 +1494,8 @@ export function analysisArtifactSpecToReportSpec(
 ): ReportSpecV1 {
   // Charts that name a session file get its rows inline (exports can't load sandbox paths).
   spec = inlineChartDataFiles(spec, chartFileReaderFromArtifacts(artifactPool));
+  // A reference to a diagram file capture didn't resolve: drawn from the diagram's newest version.
+  spec = inlineDiagramRefs(spec, diagramReaderFromArtifacts(artifactPool));
   const now = Date.now();
   const sources = spec.sources || [];
   const sourceById = buildSourceMap(sources);

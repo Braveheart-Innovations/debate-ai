@@ -1334,6 +1334,42 @@ describe('handleStreamCompleted general intent-gated surfacing (non-Salesforce)'
       expect(files.map((artifact) => artifact.type)).toEqual(['diagram']);
     });
 
+    it('draws a report\'s reference to a diagram as its Mermaid figure, as the diagram stood', () => {
+      const reportWithDiagram = (artifactId: string) => {
+        const text = JSON.stringify({
+          version: 1, kind: 'analysis_artifact_spec', title: 'Families', summary: 'The model.',
+          pages: [{ slug: 'p', title: 'P', blocks: [{ kind: 'artifact_ref', artifactId, caption: 'The data model' }] }],
+        });
+        return {
+          toolName: 'write_output_file', success: true, content: 'Wrote report.',
+          dataOutputs: [{ filename: 'report.json', base64: btoa(text), size: text.length }],
+        };
+      };
+      // Saved in the same round as the report.
+      const { artifacts } = runHandler({
+        outputSelection: richHtml,
+        toolCalls: [call('c1'), call('c2')],
+        toolExecutionResults: [diagramResult(diagram('Families')), reportWithDiagram('families.diagram.json')],
+        messageId: 'ai-1',
+      });
+      const report = artifacts.find((artifact) => artifact.type === 'analysis_artifact_spec')!;
+      const block = JSON.parse(report.data).pages[0].blocks[0];
+      expect(block).toMatchObject({ kind: 'diagram', caption: 'The data model', spec: { type: 'mermaid' } });
+      expect(block.spec.code).toContain('child }o--|| family : ""');
+      expect(block).not.toHaveProperty('artifactId');
+
+      // Saved in an earlier round: the session's newest version.
+      const later = runHandler({
+        outputSelection: richHtml,
+        toolCalls: [call('c3')],
+        toolExecutionResults: [reportWithDiagram('/output/families.diagram.json')],
+        artifacts,
+        messageId: 'ai-2',
+      });
+      const latestReport = later.artifacts.filter((artifact) => artifact.type === 'analysis_artifact_spec').at(-1)!;
+      expect(JSON.parse(latestReport.data).pages[0].blocks[0].kind).toBe('diagram');
+    });
+
     it('versions a diagram the agent saves again, even in a report round', () => {
       const first = runHandler({ outputSelection: richHtml, toolCalls: [call('c1')], toolExecutionResults: [diagramResult(diagram('Families'))], messageId: 'ai-1' });
       const v1 = first.artifacts.find((artifact) => artifact.name === 'families.diagram.json')!;
