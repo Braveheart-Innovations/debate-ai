@@ -20,11 +20,8 @@ import type { TeamPanelRecord } from '../teamPanelNote';
 jest.mock('../artifacts', () => ({
   isReportMaterialArtifact: (artifact: Artifact) => artifact.metadata?.artifactDisposition === 'report_material',
   withArtifactPreviewMetadata: (artifact: Artifact) => artifact,
-  deriveArtifactLineage: (prior: Artifact) => ({
-    lineageRootId: prior.metadata?.lineageRootId ?? prior.id,
-    versionNumber: (prior.metadata?.versionNumber ?? 1) + 1,
-    previousArtifactId: prior.id,
-  }),
+  // The real lineage: the next version follows the HIGHEST in the lineage, not the first found by name.
+  deriveArtifactLineage: jest.requireActual('../../contract/services/artifacts/artifactLineage').deriveArtifactLineage,
 }));
 
 function makeManifest(): BundleManifest {
@@ -1168,6 +1165,7 @@ describe('handleStreamCompleted general intent-gated surfacing (non-Salesforce)'
     artifacts?: Artifact[];
     messages?: Message[];
     messageId?: string;
+    turnId?: string;
     addDataTab?: jest.Mock;
     teamPanel?: TeamPanelRecord | null;
   }): { artifacts: Artifact[]; addDataTab: jest.Mock } {
@@ -1181,6 +1179,7 @@ describe('handleStreamCompleted general intent-gated surfacing (non-Salesforce)'
     handleStreamCompleted(
       {
         messageId,
+        ...(options.turnId ? { turnId: options.turnId } : {}),
         finalContent: 'Done',
         toolCalls: options.toolCalls,
         toolExecutionResults: options.toolExecutionResults,
@@ -1224,6 +1223,97 @@ describe('handleStreamCompleted general intent-gated surfacing (non-Salesforce)'
 
     return { artifacts, addDataTab };
   }
+
+  describe('one version per output per turn', () => {
+    const save = (filename: string, text: string) => ({
+      toolName: 'execute_python', success: true, content: 'Saved.',
+      dataOutputs: [{ filename, base64: btoa(text), size: text.length }],
+    });
+    const saveAll = (outputs: Array<[string, string]>) => ({
+      toolName: 'execute_python', success: true, content: 'Saved.',
+      dataOutputs: outputs.map(([filename, text]) => ({ filename, base64: btoa(text), size: text.length })),
+    });
+    const call = (id: string) => ({ id, type: 'function' as const, function: { name: 'execute_python', arguments: '{}' } });
+    const flow = (title: string, mean = 2) => JSON.stringify({
+      version: 1, kind: 'process_flow', title, summary: 's', timeUnit: 'minutes',
+      nodes: [
+        { id: 'a', type: 'start', label: 'Arrive', arrivals: { type: 'exponential', mean } },
+        { id: 'e', type: 'end', label: 'Done' },
+      ],
+      flows: [{ id: 'f', from: 'a', to: 'e' }],
+      resources: [],
+    });
+    const named = (artifacts: Artifact[], name: string) => artifacts.filter((artifact) => artifact.name === name);
+
+    it('keeps one version for a file the agent saves several times in a turn, and versions it in the next turn', () => {
+      const artifacts: Artifact[] = [];
+      const turn = (turnId: string, messageId: string, text: string) => runHandler({ outputSelection: richHtml, toolCalls: [call(messageId)], toolExecutionResults: [save('clinic.diagram.json', text)], artifacts, messageId, turnId });
+      turn('t1', 'ai-1', flow('Draft'));
+      turn('t1', 'ai-2', flow('Fixed'));
+      turn('t1', 'ai-3', flow('Renamed'));
+      const afterFirstTurn = named(artifacts, 'clinic.diagram.json');
+      expect(afterFirstTurn).toHaveLength(1);
+      expect(JSON.parse(afterFirstTurn[0].data).title).toBe('Renamed');
+      expect(afterFirstTurn[0].metadata?.versionNumber).toBeUndefined();
+      expect(afterFirstTurn[0].metadata?.turnId).toBe('t1');
+
+      // The next turn's saves are its own version, again one however often it saves.
+      turn('t2', 'ai-4', flow('Second turn'));
+      turn('t2', 'ai-5', flow('Second turn, fixed'));
+      const versions = named(artifacts, 'clinic.diagram.json');
+      expect(versions).toHaveLength(2);
+      expect(versions[1].metadata).toMatchObject({ versionNumber: 2, lineageRootId: afterFirstTurn[0].id, previousArtifactId: afterFirstTurn[0].id, turnId: 't2' });
+      expect(JSON.parse(versions[1].data).title).toBe('Second turn, fixed');
+    });
+
+    it('adds no version for a save identical to the latest, in any turn', () => {
+      const artifacts: Artifact[] = [];
+      runHandler({ outputSelection: richHtml, toolCalls: [call('c1')], toolExecutionResults: [save('clinic.diagram.json', flow('Same'))], artifacts, messageId: 'ai-1', turnId: 't1' });
+      runHandler({ outputSelection: richHtml, toolCalls: [call('c2')], toolExecutionResults: [save('clinic.diagram.json', flow('Same'))], artifacts, messageId: 'ai-2', turnId: 't2' });
+      expect(named(artifacts, 'clinic.diagram.json')).toHaveLength(1);
+      // A report saved again unchanged, the same way.
+      runHandler({ outputSelection: richHtml, toolCalls: [call('c3')], toolExecutionResults: [specResult()], artifacts, messageId: 'ai-3', turnId: 't2' });
+      runHandler({ outputSelection: richHtml, toolCalls: [call('c4')], toolExecutionResults: [specResult()], artifacts, messageId: 'ai-4', turnId: 't3' });
+      expect(artifacts.filter((artifact) => artifact.type === 'analysis_artifact_spec')).toHaveLength(1);
+    });
+
+    it('never replaces a version the user made in between', () => {
+      const artifacts: Artifact[] = [];
+      runHandler({ outputSelection: richHtml, toolCalls: [call('c1')], toolExecutionResults: [save('clinic.diagram.json', flow('Agent'))], artifacts, messageId: 'ai-1', turnId: 't1' });
+      const agentVersion = named(artifacts, 'clinic.diagram.json')[0];
+      artifacts.push({
+        ...agentVersion, id: 'hand-save', data: flow('By hand'), createdAt: agentVersion.createdAt + 1,
+        metadata: { ...agentVersion.metadata, turnId: undefined, lineageRootId: agentVersion.id, versionNumber: 2, previousArtifactId: agentVersion.id, diagram: { kind: 'process_flow', title: 'By hand', summary: 's', entityCount: 2, relationshipCount: 1, savedByUser: true } },
+      });
+      runHandler({ outputSelection: richHtml, toolCalls: [call('c2')], toolExecutionResults: [save('clinic.diagram.json', flow('Agent again'))], artifacts, messageId: 'ai-2', turnId: 't1' });
+      const versions = named(artifacts, 'clinic.diagram.json');
+      expect(versions.map((version) => version.metadata?.versionNumber ?? 1)).toEqual([1, 2, 3]);
+      expect(versions.some((version) => version.id === 'hand-save')).toBe(true);
+    });
+
+    it('keeps a model scenario with other inputs as its own version, and replaces one with the same inputs', () => {
+      const recipe = 'PARAMS = {"staff": 2}\n';
+      const results = (staff: number, wait: number) => JSON.stringify({ values: { staff }, items: [{ kind: 'metric', label: 'Wait', value: wait }] });
+      const artifacts: Artifact[] = [];
+      const run = (messageId: string, outputs: Array<[string, string]>) => runHandler({ outputSelection: richHtml, toolCalls: [call(messageId)], toolExecutionResults: [saveAll(outputs)], artifacts, messageId, turnId: 't1' });
+      run('ai-1', [['staffing.recipe.py', recipe], ['staffing/model.json', results(2, 9)]]);
+      run('ai-2', [['staffing/model.json', results(3, 4)]]);
+      expect(named(artifacts, 'staffing/model.json')).toHaveLength(2);
+      // The same inputs again (a fixed recipe): it replaces that scenario, which keeps its number.
+      run('ai-3', [['staffing/model.json', results(3, 5)]]);
+      const scenarios = named(artifacts, 'staffing/model.json');
+      expect(scenarios).toHaveLength(2);
+      expect(scenarios.map((scenario) => scenario.metadata?.versionNumber ?? 1)).toEqual([1, 2]);
+      expect(atob(scenarios[1].data)).toContain('"value":5');
+    });
+
+    it('versions every save when the round names no turn', () => {
+      const artifacts: Artifact[] = [];
+      runHandler({ outputSelection: richHtml, toolCalls: [call('c1')], toolExecutionResults: [save('clinic.diagram.json', flow('One'))], artifacts, messageId: 'ai-1' });
+      runHandler({ outputSelection: richHtml, toolCalls: [call('c2')], toolExecutionResults: [save('clinic.diagram.json', flow('Two'))], artifacts, messageId: 'ai-2' });
+      expect(named(artifacts, 'clinic.diagram.json')).toHaveLength(2);
+    });
+  });
 
   describe('recipes (Models)', () => {
     const recipeSource = 'PARAMS = {"staff": 3}\nPARAM_SPECS = {"staff": {"min": 1, "max": 10}}\n';

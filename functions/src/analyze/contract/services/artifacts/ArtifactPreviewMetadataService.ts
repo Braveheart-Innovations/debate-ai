@@ -261,6 +261,25 @@ function documentPreview(input: PreviewInput): ArtifactPreviewMetadata | undefin
   return undefined;
 }
 
+/** A diagram's preview from its metadata alone: its name, what it covers and its size, not its JSON. */
+export function diagramPreview(input: Pick<PreviewInput, 'name' | 'metadata'>): ArtifactPreviewMetadata {
+  const diagram = input.metadata?.diagram;
+  const flow = diagram?.kind === 'process_flow';
+  const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
+  const size = diagram
+    ? flow
+      ? `${plural(diagram.entityCount, 'step', 'steps')}, ${plural(diagram.relationshipCount, 'flow', 'flows')}`
+      : `${plural(diagram.entityCount, 'entity', 'entities')}, ${plural(diagram.relationshipCount, 'relationship', 'relationships')}`
+    : null;
+  return {
+    version: 1,
+    kind: 'text',
+    title: diagram?.title || input.name.replace(/\.diagram\.json$/i, ''),
+    subtitle: flow ? 'process' : 'data model',
+    excerpt: truncate([diagram?.summary, size].filter(Boolean).join('\n\n') || (flow ? 'A process you can edit and simulate.' : 'A data model you can edit.'), MAX_EXCERPT_CHARS),
+  };
+}
+
 export function buildArtifactPreviewMetadata(input: PreviewInput): ArtifactPreviewMetadata | undefined {
   if (!input.data) {
     return documentPreview(input);
@@ -342,20 +361,7 @@ export function buildArtifactPreviewMetadata(input: PreviewInput): ArtifactPrevi
     };
   }
 
-  if (input.type === 'diagram') {
-    // A data model: its name, what it covers and its size, not its JSON.
-    const diagram = input.metadata?.diagram;
-    const size = diagram
-      ? `${diagram.entityCount} ${diagram.entityCount === 1 ? 'entity' : 'entities'}, ${diagram.relationshipCount} ${diagram.relationshipCount === 1 ? 'relationship' : 'relationships'}`
-      : null;
-    return {
-      version: 1,
-      kind: 'text',
-      title: diagram?.title || input.name.replace(/\.diagram\.json$/i, ''),
-      subtitle: 'data model',
-      excerpt: truncate([diagram?.summary, size].filter(Boolean).join('\n\n') || 'A data model you can edit.', MAX_EXCERPT_CHARS),
-    };
-  }
+  if (input.type === 'diagram') return diagramPreview(input);
 
   if (input.type === 'code') {
     const lines = text.trim().split(/\r?\n/).slice(0, MAX_CODE_LINES).join('\n');

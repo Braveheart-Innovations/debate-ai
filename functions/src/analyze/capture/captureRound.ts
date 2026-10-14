@@ -158,6 +158,7 @@ export class CaptureSession {
     const outputSelection = normalizeAnalyzeOutputSelection(run.config.outputSelection);
     const event: StreamCompletedEventData = {
       messageId,
+      turnId: run.runId,
       finalContent: input.message.content,
       toolCalls: input.toolCalls,
       toolExecutionResults: input.results.map((result, index) => toToolExecutionResult(input.toolCalls[index], result)),
