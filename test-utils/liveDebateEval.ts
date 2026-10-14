@@ -85,9 +85,18 @@ const usageSink = new AsyncLocalStorage<ProviderUsage[]>();
 const numberOrUndefined = (value: unknown): number | undefined => (typeof value === 'number' ? value : undefined);
 const stringOrUndefined = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
 
+const hostnameOf = (url: string): string => {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return '';
+  }
+};
+
 const readUsage = (url: string, body: unknown): ProviderUsage | undefined => {
   if (!isRecord(body)) return undefined;
-  if (url.includes('generativelanguage.googleapis.com')) {
+  const host = hostnameOf(url);
+  if (host === 'generativelanguage.googleapis.com') {
     const usage = isRecord(body.usageMetadata) ? body.usageMetadata : {};
     const candidate = Array.isArray(body.candidates) && isRecord(body.candidates[0]) ? body.candidates[0] : {};
     return {
@@ -97,7 +106,7 @@ const readUsage = (url: string, body: unknown): ProviderUsage | undefined => {
       rawFinish: stringOrUndefined(candidate.finishReason),
     };
   }
-  if (url.includes('api.openai.com')) {
+  if (host === 'api.openai.com') {
     // Responses API: output_tokens includes reasoning_tokens.
     const usage = isRecord(body.usage) ? body.usage : {};
     const details = isRecord(usage.output_tokens_details) ? usage.output_tokens_details : {};
@@ -110,7 +119,7 @@ const readUsage = (url: string, body: unknown): ProviderUsage | undefined => {
       rawFinish: stringOrUndefined(body.status),
     };
   }
-  if (url.includes('api.anthropic.com')) {
+  if (host === 'api.anthropic.com') {
     const usage = isRecord(body.usage) ? body.usage : {};
     return { provider: 'claude', outputTokens: numberOrUndefined(usage.output_tokens), rawFinish: stringOrUndefined(body.stop_reason) };
   }
