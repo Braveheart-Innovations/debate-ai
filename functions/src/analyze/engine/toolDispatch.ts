@@ -102,7 +102,7 @@ export function createToolDispatcher(context: ToolDispatchContext): (call: ToolC
         case 'write_output_file':
           return checkDiagrams(checkRecipes(checkReportSpecs(await guardWebMapTiles(await executeWriteOutputFileTool(files, call.id, args), files.readFile))));
         case 'salesforce_metadata_audit':
-          return await executeSalesforceMetadataAuditTool(files, call.id, args);
+          return checkDiagrams(await executeSalesforceMetadataAuditTool(files, call.id, args));
         case 'salesforce_read_source':
           return await executeSalesforceReadSourceTool(files, call.id, args);
         case 'request_salesforce_org_evidence':

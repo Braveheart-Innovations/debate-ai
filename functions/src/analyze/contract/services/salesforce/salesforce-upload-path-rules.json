@@ -66,6 +66,7 @@
     }
   ],
   "objectMetadataSuffixes": [
+    ".object",
     ".object-meta.xml",
     ".field-meta.xml",
     ".validationrule-meta.xml"
