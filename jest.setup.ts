@@ -369,7 +369,7 @@ jest.mock('expo-crypto', () => ({
   getRandomBytes: jest.fn((byteCount: number) => Uint8Array.from({ length: byteCount }, (_, index) => index % 256)),
 }));
 
-jest.mock('expo-media-library', () => ({
+jest.mock('expo-media-library/legacy', () => ({
   requestPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),
   getPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),
   saveToLibraryAsync: jest.fn().mockResolvedValue(undefined),

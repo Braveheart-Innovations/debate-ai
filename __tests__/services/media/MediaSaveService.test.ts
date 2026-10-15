@@ -1,4 +1,4 @@
-jest.mock('expo-media-library', () => ({
+jest.mock('expo-media-library/legacy', () => ({
   __esModule: true,
   getPermissionsAsync: jest.fn(),
   requestPermissionsAsync: jest.fn(),
@@ -27,7 +27,7 @@ const MediaLibrary = jest.requireMock<{
   getAlbumAsync: jest.Mock;
   addAssetsToAlbumAsync: jest.Mock;
   createAlbumAsync: jest.Mock;
-}>('expo-media-library');
+}>('expo-media-library/legacy');
 
 const FileSystem = jest.requireMock<{
   cacheDirectory: string;

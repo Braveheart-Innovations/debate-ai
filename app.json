@@ -2,7 +2,7 @@
   "expo": {
     "name": "Symposium AI",
     "slug": "symposium-ai",
-    "version": "2.4.0",
+    "version": "2.4.1",
     "description": "Where Ideas Converge. Where Understanding Emerges.",
     "primaryColor": "#0E9594",
     "orientation": "default",
@@ -68,7 +68,13 @@
       },
       "package": "com.braveheartinnovations.debateai",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 39
+      "versionCode": 39,
+      "blockedPermissions": [
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_AUDIO",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -130,7 +136,7 @@
         "projectId": "f607938e-5c51-4cac-9901-a0419c7a79fd"
       }
     },
-    "runtimeVersion": "2.4.0",
+    "runtimeVersion": "2.4.1",
     "updates": {
       "url": "https://u.expo.dev/f607938e-5c51-4cac-9901-a0419c7a79fd"
     }
