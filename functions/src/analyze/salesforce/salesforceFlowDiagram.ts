@@ -208,8 +208,8 @@ export function flowTriggerLabel(flow: ParsedSalesforceFlow): string {
   return flow.processType ? `${flow.processType} starts` : 'Flow starts';
 }
 
-/** The start's entry conditions and how it runs, in a line or two. */
-function startDescription(flow: ParsedSalesforceFlow): string {
+/** The start's entry conditions and schedule, in a sentence or two ('' when it has none). */
+export function flowEntryConditions(flow: ParsedSalesforceFlow): string {
   const start = flow.start;
   const lines: string[] = [];
   if (start) {
@@ -221,6 +221,12 @@ function startDescription(flow: ParsedSalesforceFlow): string {
     const schedule = node(start.schedule);
     if (schedule) lines.push(`Runs ${text(schedule.frequency) ?? 'on a schedule'}${text(schedule.startDate) ? ` from ${text(schedule.startDate)}` : ''}${text(schedule.startTime) ? ` at ${text(schedule.startTime)}` : ''}.`);
   }
+  return lines.join(' ');
+}
+
+/** The start's entry conditions and how it runs, in a line or two. */
+function startDescription(flow: ParsedSalesforceFlow): string {
+  const lines = [flowEntryConditions(flow)].filter(Boolean);
   if (flow.triggerOrder !== undefined) lines.push(`Trigger order ${flow.triggerOrder}.`);
   if (flow.status && flow.status !== 'Active') lines.push(`This version is ${flow.status}.`);
   return lines.join(' ');
@@ -322,10 +328,12 @@ function firstElement(flow: ParsedSalesforceFlow): string | undefined {
 }
 
 /** The scheduled paths that branch from the start, with where each goes. */
-function scheduledPaths(flow: ParsedSalesforceFlow): Array<{ to?: string; label: string }> {
+export function scheduledPaths(flow: ParsedSalesforceFlow): Array<{ to?: string; label: string }> {
   return list(flow.start?.scheduledPaths).flatMap((entry) => {
     const path = node(entry);
     if (!path) return [];
+    // An asynchronous path runs right after the commit; a scheduled one at an offset.
+    if (text(path.pathType) === 'AsyncAfterCommit') return [{ to: target(path.connector), label: text(path.label) ?? 'Run asynchronously' }];
     const offset = [text(path.offsetNumber), text(path.offsetUnit)?.toLowerCase(), text(path.timeSource) ? `from ${text(path.timeSource)}` : ''].filter(Boolean).join(' ');
     return [{ to: target(path.connector), label: text(path.label) ?? (offset || text(path.name) || 'Scheduled path') }];
   });
@@ -453,7 +461,7 @@ function drawFlow(flow: ParsedSalesforceFlow, prefix: string, startLabel: string
   const beforeSave = flow.triggerType === 'RecordBeforeSave';
 
   const description = startDescription(flow);
-  nodes.push({ id: startId, type: 'start', label: startLabel, elementType: 'start', ...(description ? { description } : {}), source });
+  nodes.push({ id: startId, type: 'start', label: startLabel, ...(description ? { description } : {}), source });
 
   // Where the flow begins: the start's connector (or the old startElementReference), and its scheduled paths.
   const first = firstElement(flow);

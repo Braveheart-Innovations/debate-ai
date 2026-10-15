@@ -10,6 +10,7 @@ import type { SandboxFiles } from './sandboxFiles';
 import { diagramFileText } from '../../contract/services/analyze/diagrams/diagramFile';
 import { buildSalesforceDataModel } from '../../salesforce/salesforceDataModel';
 import { buildSalesforceFlowDiagrams } from '../../salesforce/salesforceFlowDiagram';
+import { buildSalesforceSaveOrders } from '../../salesforce/salesforceSaveOrder';
 import {
   buildSalesforceAuditReport,
   buildSalesforceApexDrilldowns,
@@ -82,6 +83,9 @@ export async function executeSalesforceMetadataAuditTool(
     }
     if (parsedArgs.operation === 'flow_diagram') {
       return await writeSalesforceFlowDiagrams(files, toolCallId, sourceFiles, parsedArgs);
+    }
+    if (parsedArgs.operation === 'save_order') {
+      return await writeSalesforceSaveOrders(files, toolCallId, sourceFiles, parsedArgs);
     }
 
     const index = buildSalesforceMetadataIndex(sourceFiles, parsedArgs.paths || [], insightPackets, parsedArgs.query, retrieveRun);
@@ -174,7 +178,7 @@ function normalizeArgs(args: Record<string, unknown>): SalesforceMetadataAuditAr
 }
 
 function isOperation(value: string): value is SalesforceMetadataAuditOperation {
-  return ['audit', 'inventory', 'search', 'component', 'dependencies', 'risks', 'packet_findings', 'handoff', 'feature_readiness', 'troubleshooting', 'data_model', 'flow_diagram'].includes(value);
+  return ['audit', 'inventory', 'search', 'component', 'dependencies', 'risks', 'packet_findings', 'handoff', 'feature_readiness', 'troubleshooting', 'data_model', 'flow_diagram', 'save_order'].includes(value);
 }
 
 /**
@@ -780,5 +784,40 @@ async function writeSalesforceFlowDiagrams(
   if (args.chain) lines.push('A chain follows subflows, platform events a flow or its invocable Apex publishes, and flows Apex starts. A record change that triggers another flow is not followed: that needs the org.');
   if (notFound.length > 0) lines.push(`No Flow file for: ${notFound.join(', ')}.`);
   lines.push('Each node names the Flow file it came from and its element type; the start says what triggers the flow and its entry conditions. It is the user\'s diagram, drawn from metadata (platform "salesforce": no simulation). To change it, read the file, change only what the question needs (nodes you design are marked "assumed"), and save it to the same name.');
+  return { toolCallId, success: true, content: lines.join('\n'), dataOutputs };
+}
+
+/**
+ * operation=save_order: what runs when a record of each object saves, in
+ * Salesforce's order of execution, as /output/save_order_<object>.diagram.json.
+ */
+async function writeSalesforceSaveOrders(
+  files: SandboxFiles,
+  toolCallId: string,
+  sourceFiles: SalesforceSourceFile[],
+  args: SalesforceMetadataAuditArgs,
+): Promise<ToolResult> {
+  const objects = args.objects ?? [];
+  if (objects.length === 0) {
+    return { toolCallId, success: false, error: 'operation=save_order needs objects: the object API names whose save order to draw (e.g. ["Lead"]).' };
+  }
+  const { results, notFound } = buildSalesforceSaveOrders(sourceFiles, objects);
+  if (results.length === 0) {
+    return { toolCallId, success: false, error: `The upload has no metadata for ${notFound.join(', ')}: a save order needs the object's folder (objects/<Object>/) or flows that trigger on it.` };
+  }
+  const lines: string[] = [];
+  const dataOutputs: NonNullable<ToolResult['dataOutputs']> = [];
+  for (const result of results) {
+    const filename = `${dataModelFileName(results.length === 1 ? args.name : undefined, dataModelFileName(`save_order_${result.object}`))}.diagram.json`;
+    const text = diagramFileText(result.diagram);
+    await files.writeFile(`/output/${filename}`, Buffer.from(text, 'utf8'));
+    dataOutputs.push({ filename, base64: Buffer.from(text, 'utf8').toString('base64'), size: Buffer.byteLength(text, 'utf8') });
+    lines.push(`Save order for ${result.object} written to /output/${filename}: ${result.automationCount} ${result.automationCount === 1 ? 'piece' : 'pieces'} of automation between the platform's own steps.`);
+    if (result.hiddenTriggers.length > 0) lines.push(`Package triggers with hidden source can't be placed on an object; these names mention ${result.object}: ${result.hiddenTriggers.join(', ')}. Say they may also run; org evidence (ApexTrigger.TableEnumOrId) settles it.`);
+    if (result.inactiveFlows.length > 0) lines.push(`Left out, not active: ${result.inactiveFlows.join(', ')}.`);
+    if (result.deleteFlows.length > 0) lines.push(`Left out, they run on delete: ${result.deleteFlows.join(', ')}.`);
+  }
+  if (notFound.length > 0) lines.push(`No metadata for: ${notFound.join(', ')}.`);
+  lines.push('The order is the Apex Developer Guide\'s "Triggers and Order of Execution"; record-triggered flows run by trigger order (1–1000, then flows without one by activation date, then 1001–2000). Each step names its file and the saves it runs on. It is the user\'s diagram, drawn from metadata (platform "salesforce": no simulation); save changes to the same name.');
   return { toolCallId, success: true, content: lines.join('\n'), dataOutputs };
 }

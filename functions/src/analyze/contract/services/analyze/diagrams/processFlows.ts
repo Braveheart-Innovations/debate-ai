@@ -98,7 +98,9 @@ const ELEMENT_TYPE_WORDS: Record<string, string> = {
   transforms: 'Transform',
   customErrors: 'Custom error',
   orchestratedStages: 'Stage',
+  scheduledPaths: 'Scheduled paths',
   flow: 'Flow',
+  process: 'Process Builder process',
   apexTrigger: 'Apex trigger',
   validationRule: 'Validation rule',
   duplicateRule: 'Duplicate rule',
@@ -108,6 +110,7 @@ const ELEMENT_TYPE_WORDS: Record<string, string> = {
   escalationRule: 'Escalation rule',
   entitlementProcess: 'Entitlement process',
   sharingRule: 'Sharing rule',
+  rollUpSummary: 'Roll-up summary',
 };
 
 /** "Update records" for `recordUpdates`; a type it doesn't know reads as written. */

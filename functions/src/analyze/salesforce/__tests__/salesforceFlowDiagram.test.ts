@@ -62,7 +62,7 @@ describe('a Flow as a process diagram', () => {
     const [{ diagram, unreachable, issueCount }] = results;
     expect(diagram).toMatchObject({ kind: 'process_flow', platform: 'salesforce', title: 'Flow: Route to CRC Queue' });
     expect(diagram.nodes.map((node) => [node.id, node.type, node.elementType])).toEqual([
-      ['start', 'start', 'start'],
+      ['start', 'start', undefined],
       ['Get_Queue', 'step', 'recordLookups'],
       ['Found', 'decision', 'decisions'],
       ['Log_Error', 'step', 'recordCreates'],

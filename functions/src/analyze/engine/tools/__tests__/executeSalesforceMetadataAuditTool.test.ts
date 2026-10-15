@@ -134,6 +134,31 @@ describe('executeSalesforceMetadataAuditTool', () => {
     });
   });
 
+  describe('operation=save_order', () => {
+    it('writes each object\'s save order as a diagram file and says what it left out', async () => {
+      const zip = new JSZip();
+      zip.file('force-app/main/default/objects/Lead/Lead.object-meta.xml', '<CustomObject/>');
+      zip.file('force-app/main/default/flows/Set_Source.flow-meta.xml', '<Flow><label>Set source</label><status>Active</status><start><object>Lead</object><recordTriggerType>Create</recordTriggerType><triggerType>RecordBeforeSave</triggerType></start></Flow>');
+      zip.file('force-app/main/default/triggers/hed__TDTM_Lead.trigger', '(hidden)');
+      mockSandboxService.readFile.mockResolvedValue(await zip.generateAsync({ type: 'arraybuffer' }));
+
+      const result = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-save', { operation: 'save_order', paths: ['/uploads/qa.zip'], objects: ['Lead', 'Nope__c'] });
+
+      expect(result.success).toBe(true);
+      expect(result.dataOutputs?.map((output) => output.filename)).toEqual(['save_order_lead.diagram.json']);
+      expect(JSON.parse(writtenFile('/output/save_order_lead.diagram.json')!)).toMatchObject({ kind: 'process_flow', platform: 'salesforce', title: 'What runs when a Lead saves' });
+      expect(result.content).toContain('Save order for Lead written to /output/save_order_lead.diagram.json: 1 piece of automation');
+      expect(result.content).toContain('these names mention Lead: hed__TDTM_Lead');
+      expect(result.content).toContain('No metadata for: Nope__c.');
+    });
+
+    it('asks for objects', async () => {
+      mockSandboxService.readFile.mockResolvedValue(new TextEncoder().encode('public class A {}').buffer);
+      const result = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-save-none', { operation: 'save_order', paths: ['/uploads/force-app/main/default/classes/A.cls'] });
+      expect(result).toMatchObject({ success: false, error: expect.stringContaining('operation=save_order needs objects') });
+    });
+  });
+
   describe('operation=data_model', () => {
     const fieldXml = (name: string, body: string) => `<?xml version="1.0" encoding="UTF-8"?><CustomField><fullName>${name}</fullName>${body}</CustomField>`;
 
