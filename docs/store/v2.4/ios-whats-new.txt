@@ -14,7 +14,7 @@ NO MORE DEAD ENDS
 • A key you paste is kept even if you leave before testing it.
 
 NEW MODELS
-Claude Haiku 5.5, Gemini 4 Argon, Gemini 3.6 Flash, DeepSeek V4 Pro, and Nano Banana 2.1 for images. Models their providers are retiring move to their successors automatically.
+Claude Haiku 5.5, Gemini 4 Argon, DeepSeek V4 Pro, and Nano Banana 2.1 for images. Models their providers are retiring move to their successors automatically.
 
 FIXES
 • Failed replies now offer Continue or Try again.
