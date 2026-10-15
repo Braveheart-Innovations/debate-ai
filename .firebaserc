@@ -1,14 +1,5 @@
 {
   "projects": {
     "default": "symposium-ai"
-  },
-  "targets": {
-    "symposium-ai": {
-      "hosting": {
-        "marketing": [
-          "symposium-ai"
-        ]
-      }
-    }
   }
 }
