@@ -21,7 +21,6 @@ export interface ToolProviderInfo {
     name: string;
     company: string;
     color: string;
-    gradient: [string, string];
     apiKeyPrefix: string;
     apiKeyPlaceholder: string;
     docsUrl: string;
