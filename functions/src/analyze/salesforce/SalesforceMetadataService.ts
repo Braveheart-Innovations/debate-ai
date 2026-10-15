@@ -44,6 +44,20 @@ export interface SalesforceMetadataComponent {
   lineCount: number;
   references: SalesforceMetadataReference[];
   tags: string[];
+  /** The installed package's namespace (`hed` in `hed__Course__c`), when the name carries one. */
+  namespace?: string;
+  /** From an installed package: the org can't change it, so it is inventory and no risk rule runs on it. */
+  managed?: boolean;
+  /** Apex the package hides: a retrieve returns the body as `(hidden)`. */
+  sourceHidden?: boolean;
+}
+
+export interface SalesforceInstalledPackage {
+  namespace: string;
+  /** From installedPackages/<ns>.installedPackage when the upload has it. */
+  versionNumber?: string;
+  componentCount: number;
+  recognizedTypes: Partial<Record<SalesforceComponentType, number>>;
 }
 
 export interface SalesforceMetadataDependency {
@@ -206,6 +220,9 @@ export interface SalesforceFeatureReferenceMap {
       type: SalesforceComponentType;
       path: string;
       references: SalesforceMetadataReference[];
+      /** Set when the component comes from an installed package. */
+      namespace?: string;
+      managed?: boolean;
     }>;
     importedFindingIds: string[];
     docTopicIds: string[];
@@ -293,8 +310,17 @@ export interface SalesforceMetadataIndex {
   sourceSummary: {
     fileCount: number;
     componentCount: number;
+    /** Components the org owns; risk rules run on these only. */
+    ownedComponentCount: number;
+    /** Components from installed packages (inventory). */
+    managedComponentCount: number;
+    /** Apex from installed packages whose source is hidden. */
+    sourceHiddenCount: number;
     totalBytes: number;
     recognizedTypes: Partial<Record<SalesforceComponentType, number>>;
+    /** Owned components by type, alongside recognizedTypes (all components). */
+    ownedTypes: Partial<Record<SalesforceComponentType, number>>;
+    installedPackages: SalesforceInstalledPackage[];
     inputPaths: string[];
     insightPacketCount: number;
     importedFindingCount: number;
@@ -1452,6 +1478,115 @@ function createComponentBase(
   };
 }
 
+/**
+ * Suffixes Salesforce gives a custom name of the org's own (`Course__c`, `Config__mdt`,
+ * `Course__Share`), so `Course__c` carries no namespace while `hed__Course__c` does.
+ */
+const CUSTOM_NAME_SUFFIXES = new Set([
+  'c', 'mdt', 'e', 'x', 'b', 'r', 'kav', 'ka', 'share', 'history', 'feed', 'changeevent',
+  'chn', 'hd', 'hqr', 'dlm', 'dll', 'xo', 'pc', 'pr', 'tag', 'viewstat', 'votestat', 'datacategoryselection',
+]);
+const NAMESPACE_PATTERN = /^[A-Za-z][A-Za-z0-9_]*$/;
+
+/**
+ * The namespace an API name carries: `hed` in `hed__Course__c`, `hed__Primary__c` or the
+ * class `hed__TDTM_Runnable`; none in `Course__c` or `Account`. The org's own Apex names
+ * can't contain `__` and its own custom names have exactly one, so no package list is needed.
+ */
+export function salesforceNamespaceOf(apiName: string): string | undefined {
+  const parts = apiName.split('__');
+  if (parts.length < 2 || !NAMESPACE_PATTERN.test(parts[0])) return undefined;
+  if (parts.length === 2 && CUSTOM_NAME_SUFFIXES.has(parts[1].toLowerCase())) return undefined;
+  return parts[0];
+}
+
+/** The part of a component's name that carries its namespace. */
+function namespaceBearingName(component: Pick<SalesforceMetadataComponent, 'type' | 'name'>): string {
+  const { type, name } = component;
+  // A field or rule the org added to a package's object is the org's own: judge the field.
+  if (type === 'custom_field' || type === 'validation_rule') return name.slice(name.lastIndexOf('.') + 1);
+  // `hed__Course__c-hed__Course Layout` is the package's; `hed__Course__c-Course Layout` is the org's.
+  if (type === 'layout') return name.slice(name.indexOf('-') + 1);
+  // Custom metadata records are `Type.Record`.
+  if (type === 'custom_metadata') return name.split('.')[0];
+  if (type === 'profile' || type === 'package_manifest' || type === 'unknown') return '';
+  return name;
+}
+
+/** The workspace's own namespace (sfdx-project.json): its components are the org's. */
+function workspaceNamespace(files: SalesforceSourceFile[]): string | undefined {
+  const project = files.find((file) => /(^|\/)sfdx-project\.json$/i.test(file.path));
+  if (!project) return undefined;
+  try {
+    const namespace = (JSON.parse(project.content) as { namespace?: unknown }).namespace;
+    return typeof namespace === 'string' && namespace.trim() ? namespace.trim() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Installed package versions by namespace, from installedPackages/<ns>.installedPackage files. */
+function installedPackageVersions(files: SalesforceSourceFile[]): Map<string, string | undefined> {
+  const versions = new Map<string, string | undefined>();
+  for (const file of files) {
+    const match = normalizePath(file.path).match(/installedPackages\/([^/]+?)\.installedPackage(?:-meta\.xml)?$/i);
+    if (match) versions.set(match[1], extractXmlTag(file.content, 'versionNumber'));
+  }
+  return versions;
+}
+
+const HIDDEN_APEX_BODY = '(hidden)';
+const NO_NAMESPACE_PACKAGE = '(no namespace)';
+
+/**
+ * Marks what installed packages own, by namespace or by hidden Apex source, and builds the
+ * package inventory. Managed components stay in the index so the org's references to them
+ * resolve; risk rules skip them.
+ */
+function annotatePackageOwnership(
+  components: SalesforceMetadataComponent[],
+  fileByPath: Map<string, SalesforceSourceFile>,
+  files: SalesforceSourceFile[],
+): { components: SalesforceMetadataComponent[]; installedPackages: SalesforceInstalledPackage[] } {
+  const ownNamespace = workspaceNamespace(files)?.toLowerCase();
+  const versions = installedPackageVersions(files);
+  const packages = new Map<string, SalesforceInstalledPackage>();
+  const packageFor = (namespace: string): SalesforceInstalledPackage => {
+    const key = namespace.toLowerCase();
+    let entry = packages.get(key);
+    if (!entry) {
+      entry = { namespace, componentCount: 0, recognizedTypes: {} };
+      packages.set(key, entry);
+    }
+    return entry;
+  };
+  for (const [namespace, versionNumber] of versions) {
+    packageFor(namespace).versionNumber = versionNumber;
+  }
+
+  const annotated = components.map((component) => {
+    const namespace = salesforceNamespaceOf(namespaceBearingName(component));
+    const sourceHidden = (component.type === 'apex_class' || component.type === 'apex_trigger')
+      && component.paths.some((path) => fileByPath.get(path)?.content.trim() === HIDDEN_APEX_BODY);
+    const managed = sourceHidden || (namespace !== undefined && namespace.toLowerCase() !== ownNamespace);
+    if (!managed) return namespace ? { ...component, namespace } : component;
+
+    const entry = packageFor(namespace ?? NO_NAMESPACE_PACKAGE);
+    entry.componentCount += 1;
+    entry.recognizedTypes[component.type] = (entry.recognizedTypes[component.type] || 0) + 1;
+    return {
+      ...component,
+      ...(namespace ? { namespace } : {}),
+      managed: true,
+      ...(sourceHidden ? { sourceHidden: true } : {}),
+    };
+  });
+
+  const installedPackages = Array.from(packages.values())
+    .sort((a, b) => b.componentCount - a.componentCount || a.namespace.localeCompare(b.namespace));
+  return { components: annotated, installedPackages };
+}
+
 function mergeComponent(
   existing: SalesforceMetadataComponent | undefined,
   base: Omit<SalesforceMetadataComponent, 'references' | 'tags'>,
@@ -1781,7 +1916,7 @@ function buildSalesforceFlowDrilldownRecords(
   fileByPath: Map<string, SalesforceSourceFile>,
 ): SalesforceFlowDrilldown[] {
   return components
-    .filter((component) => component.type === 'flow')
+    .filter((component) => component.type === 'flow' && !component.managed)
     .map((component) => {
       const content = component.paths.map((path) => fileByPath.get(path)?.content || '').join('\n');
       const elements = flowElementEvidenceDetails(component, content, FLOW_MUTATION_TAGS);
@@ -1883,7 +2018,7 @@ function buildSalesforceApexDrilldownRecords(
   fileByPath: Map<string, SalesforceSourceFile>,
 ): SalesforceApexDrilldown[] {
   return components
-    .filter((component) => component.type === 'apex_class' || component.type === 'apex_trigger')
+    .filter((component) => (component.type === 'apex_class' || component.type === 'apex_trigger') && !component.managed)
     .map((component) => {
       const content = component.paths.map((path) => fileByPath.get(path)?.content || '').join('\n');
       const componentRisks = risks.filter((riskItem) => riskItem.componentId === component.id);
@@ -2207,6 +2342,8 @@ function buildSalesforceFeatureReferenceMapObject(
     .map((rule) => {
       const matchedComponents = components
         .filter((component) => componentMatchesFeatureRule(component, rule))
+        // The org's own components first, so package components don't crowd them out.
+        .sort((a, b) => Number(Boolean(a.managed)) - Number(Boolean(b.managed)))
         .slice(0, 50)
         .map((component) => ({
           id: component.id,
@@ -2219,6 +2356,7 @@ function buildSalesforceFeatureReferenceMapObject(
               || name.toLowerCase().includes(reference.name.toLowerCase())
             )
           ),
+          ...(component.managed ? { namespace: component.namespace, managed: true } : {}),
         }));
       const importedFindingIds = importedFindings
         .filter((finding) => featureRuleMatchesText(rule, importedFindingText(finding)))
@@ -2268,7 +2406,11 @@ export function buildSalesforceMetadataIndex(
     componentsById.set(base.id, mergeComponent(existing, base, references, tags));
   }
 
-  const components = Array.from(componentsById.values()).sort((a, b) => a.type.localeCompare(b.type) || a.name.localeCompare(b.name));
+  const { components, installedPackages } = annotatePackageOwnership(
+    Array.from(componentsById.values()).sort((a, b) => a.type.localeCompare(b.type) || a.name.localeCompare(b.name)),
+    fileByPath,
+    files,
+  );
   const dependencies = buildDependencies(components);
   const risks = buildRisks(components, fileByPath).sort((a, b) => {
     const severityDelta = RISK_ORDER[a.severity] - RISK_ORDER[b.severity];
@@ -2296,18 +2438,24 @@ export function buildSalesforceMetadataIndex(
     query,
   );
 
-  const recognizedTypes = components.reduce((acc, component) => {
+  const countTypes = (list: SalesforceMetadataComponent[]) => list.reduce((acc, component) => {
     acc[component.type] = (acc[component.type] || 0) + 1;
     return acc;
   }, {} as Partial<Record<SalesforceComponentType, number>>);
+  const ownedComponents = components.filter((component) => !component.managed);
 
   return {
     generatedAt,
     sourceSummary: {
       fileCount: files.length,
       componentCount: components.length,
+      ownedComponentCount: ownedComponents.length,
+      managedComponentCount: components.length - ownedComponents.length,
+      sourceHiddenCount: components.filter((component) => component.sourceHidden).length,
       totalBytes: files.reduce((sum, file) => sum + file.sizeBytes, 0),
-      recognizedTypes,
+      recognizedTypes: countTypes(components),
+      ownedTypes: countTypes(ownedComponents),
+      installedPackages,
       inputPaths,
       insightPacketCount: insightPackets.length,
       importedFindingCount: importedFindings.length,
@@ -2572,6 +2720,8 @@ function buildRisks(
   const apexTests = components.filter((component) => component.type === 'apex_class' && component.tags.includes('test'));
 
   for (const component of components) {
+    // Installed-package code is the vendor's to change, and hidden Apex has no source to judge.
+    if (component.managed) continue;
     const content = component.paths.map((path) => fileByPath.get(path)?.content || '').join('\n');
 
     if (component.type === 'apex_class' || component.type === 'apex_trigger') {
@@ -2918,11 +3068,30 @@ function detectLightningRisks(component: SalesforceMetadataComponent, content: s
   return risks;
 }
 
-export function summarizeSalesforceIndex(index: SalesforceMetadataIndex): string {
-  const typeLines = Object.entries(index.sourceSummary.recognizedTypes)
+/** `- Apex Class: 2182 (92 project-owned)`, one line per recognized type. */
+function componentTypeLines(index: SalesforceMetadataIndex, prefix: (label: string) => string): string[] {
+  const { recognizedTypes, ownedTypes } = index.sourceSummary;
+  return Object.entries(recognizedTypes)
     .filter(([, count]) => count > 0)
-    .map(([type, count]) => `- ${COMPONENT_TYPE_LABELS[type as SalesforceComponentType]}: ${count}`)
-    .join('\n');
+    .map(([type, count]) => {
+      const owned = ownedTypes[type as SalesforceComponentType] || 0;
+      const split = owned === count ? '' : ` (${owned} project-owned)`;
+      return `${prefix(COMPONENT_TYPE_LABELS[type as SalesforceComponentType])}: ${count}${split}`;
+    });
+}
+
+function formatInstalledPackage(item: SalesforceInstalledPackage): string {
+  const types = Object.entries(item.recognizedTypes)
+    .sort(([, a], [, b]) => b - a)
+    .map(([type, count]) => `${COMPONENT_TYPE_LABELS[type as SalesforceComponentType]} ${count}`)
+    .join(', ');
+  const version = item.versionNumber ? ` v${item.versionNumber}` : '';
+  return `${item.namespace}${version}: ${item.componentCount} component${item.componentCount === 1 ? '' : 's'}${types ? ` (${types})` : ''}`;
+}
+
+export function summarizeSalesforceIndex(index: SalesforceMetadataIndex): string {
+  const summary = index.sourceSummary;
+  const typeLines = componentTypeLines(index, (label) => `- ${label}`).join('\n');
 
   const riskCounts = index.risks.reduce((acc, item) => {
     acc[item.severity] = (acc[item.severity] || 0) + 1;
@@ -2931,11 +3100,16 @@ export function summarizeSalesforceIndex(index: SalesforceMetadataIndex): string
 
   return [
     'Salesforce metadata audit index built.',
-    `Files scanned: ${index.sourceSummary.fileCount}`,
-    `Components indexed: ${index.sourceSummary.componentCount}`,
+    `Files scanned: ${summary.fileCount}`,
+    summary.managedComponentCount > 0
+      ? `Components indexed: ${summary.componentCount} (${summary.ownedComponentCount} project-owned, ${summary.managedComponentCount} from installed packages${summary.sourceHiddenCount > 0 ? `, of which ${summary.sourceHiddenCount} Apex with hidden source` : ''})`
+      : `Components indexed: ${summary.componentCount}`,
+    ...(summary.installedPackages.length > 0
+      ? [`Installed packages (inventory: the org can't change them, so no risk rules run on them): ${summary.installedPackages.map((item) => `${item.namespace} (${item.componentCount})`).join(', ')}`]
+      : []),
     `Dependencies inferred: ${index.dependencies.length}`,
-    `Static metadata signals requiring docs/AI review: ${index.risks.length} (${riskCounts.critical || 0} critical, ${riskCounts.high || 0} high, ${riskCounts.medium || 0} medium, ${riskCounts.low || 0} low)`,
-    index.sourceSummary.insightPacketCount > 0
+    `Static metadata signals requiring docs/AI review${summary.managedComponentCount > 0 ? ', project-owned components only' : ''}: ${index.risks.length} (${riskCounts.critical || 0} critical, ${riskCounts.high || 0} high, ${riskCounts.medium || 0} medium, ${riskCounts.low || 0} low)`,
+    summary.insightPacketCount > 0
       ? `Imported agent evidence: ${index.sourceSummary.importedFindingCount} finding${index.sourceSummary.importedFindingCount === 1 ? '' : 's'} across ${index.sourceSummary.insightPacketCount} packet${index.sourceSummary.insightPacketCount === 1 ? '' : 's'}`
       : '',
     '',
@@ -3018,6 +3192,7 @@ export function buildSalesforceDependencyMap(index: SalesforceMetadataIndex): st
       type: component.type,
       path: component.path,
       tags: component.tags,
+      ...(component.managed ? { namespace: component.namespace, managed: true } : {}),
       importedFindingCount: index.importedFindings.filter((finding) => finding.matchedComponentIds.includes(component.id)).length,
     })),
     edges: index.dependencies,
@@ -3048,13 +3223,25 @@ export function buildSalesforceAuditReport(index: SalesforceMetadataIndex): stri
     '',
     '## Component Inventory',
     '',
-    ...Object.entries(index.sourceSummary.recognizedTypes)
-      .filter(([, count]) => count > 0)
-      .map(([type, count]) => `- **${COMPONENT_TYPE_LABELS[type as SalesforceComponentType]}**: ${count}`),
-    '',
-    '## Highest Priority Static Signals',
+    ...componentTypeLines(index, (label) => `- **${label}**`),
     '',
   ];
+
+  if (index.sourceSummary.installedPackages.length > 0) {
+    sections.push(
+      '## Installed Packages',
+      '',
+      'Components from installed packages are inventory. The org can\'t change them, so no risk rules run on them; they stay in the index so the org\'s references to them resolve.',
+      ...(index.sourceSummary.sourceHiddenCount > 0
+        ? [`Apex with hidden source (the package hides its body): ${index.sourceSummary.sourceHiddenCount}.`]
+        : []),
+      '',
+      ...index.sourceSummary.installedPackages.map((item) => `- ${formatInstalledPackage(item)}`),
+      '',
+    );
+  }
+
+  sections.push('## Highest Priority Static Signals', '');
 
   for (const severity of ['critical', 'high', 'medium', 'low'] as const) {
     const items = risksBySeverity.get(severity) || [];
@@ -3967,9 +4154,11 @@ export function buildSalesforceExecutiveBrief(index: SalesforceMetadataIndex, go
     '',
     '## Portfolio Snapshot',
     '',
-    `- Components indexed: ${index.components.length}`,
+    index.sourceSummary.managedComponentCount > 0
+      ? `- Components indexed: ${index.components.length} (${index.sourceSummary.ownedComponentCount} project-owned, ${index.sourceSummary.managedComponentCount} from ${index.sourceSummary.installedPackages.length} installed package${index.sourceSummary.installedPackages.length === 1 ? '' : 's'})`
+      : `- Components indexed: ${index.components.length}`,
     `- Dependency links inferred: ${index.dependencies.length}`,
-    `- Deterministic metadata risks: ${index.risks.length}`,
+    `- Deterministic metadata risks${index.sourceSummary.managedComponentCount > 0 ? ' (project-owned components)' : ''}: ${index.risks.length}`,
     `- Imported agent evidence: ${index.importedFindings.length}`,
     `- Critical/high-priority items: ${criticalCount} critical, ${highCount} high`,
     '',
@@ -4010,9 +4199,12 @@ function buildTestGuidance(item: SalesforceMetadataRisk): string[] {
 
 export function formatComponentList(components: SalesforceMetadataComponent[]): string {
   if (components.length === 0) return 'No matching Salesforce metadata components found.';
-  return components.map((component) => (
-    `- ${component.name} (${component.type}) - ${component.path}; refs: ${component.references.map((reference) => reference.name).slice(0, 6).join(', ') || 'none'}`
-  )).join('\n');
+  return components.map((component) => {
+    const owner = component.managed
+      ? ` [installed package${component.namespace ? ` ${component.namespace}` : ''}${component.sourceHidden ? ', source hidden' : ''}]`
+      : '';
+    return `- ${component.name} (${component.type})${owner} - ${component.path}; refs: ${component.references.map((reference) => reference.name).slice(0, 6).join(', ') || 'none'}`;
+  }).join('\n');
 }
 
 export function formatRiskList(risks: SalesforceMetadataRisk[]): string {
