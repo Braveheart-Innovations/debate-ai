@@ -9,7 +9,8 @@
  *    shares). The app-owned simulator (models/processSimulator.ts) runs it.
  *    A flow drawn from Salesforce metadata (`platform: "salesforce"`: a Flow,
  *    or what runs when a record saves) is automation, not a staffed process:
- *    it has no simulation numbers, and its steps may have fault flows.
+ *    it has no simulation numbers, and its steps may have fault flows and
+ *    launch flows (other automation the step starts).
  *
  * Shared with the server (scripts/sync-analyze-contract.mjs): the same review
  * runs when the agent saves the file and when the app reads it. Problems
@@ -177,6 +178,12 @@ const flowSchema = z.object({
   label: z.string().optional(),
   /** A Salesforce flow only: where a step goes when it fails (a fault connector). Drawn dashed. */
   fault: z.boolean().optional(),
+  /**
+   * A Salesforce flow only: other automation the step starts as well as going
+   * on (a subflow it runs, a flow a platform event it publishes starts). It may
+   * end at a start. Drawn dotted.
+   */
+  launch: z.boolean().optional(),
 });
 
 const resourceSchema = z.object({
@@ -375,17 +382,24 @@ function reviewProcessFlow(diagram: ProcessFlowDiagram): { problems: string[]; w
   const simulated = diagram.platform !== 'salesforce';
   if (simulated && !diagram.timeUnit) problems.push('a process flow needs a timeUnit (seconds, minutes, hours or days): the unit of its times');
   if (simulated) {
-    for (const flow of diagram.flows) if (flow.fault) problems.push(`flow "${flow.id}": fault flows are for Salesforce flows (platform "salesforce"); a simulated process branches with a decision`);
+    for (const flow of diagram.flows) {
+      if (flow.fault) problems.push(`flow "${flow.id}": fault flows are for Salesforce flows (platform "salesforce"); a simulated process branches with a decision`);
+      if (flow.launch) problems.push(`flow "${flow.id}": launch flows are for Salesforce flows (platform "salesforce"); a simulated process branches with a decision`);
+    }
   }
 
   for (const node of diagram.nodes) {
     const where = `node "${node.id}"`;
     const all = outgoing.get(node.id) ?? [];
-    // A fault flow is where a step goes when it fails, beside its one way on.
-    const out = all.filter((flow) => !flow.fault);
+    // A fault flow is where a step goes when it fails, and a launch flow what else it starts, beside its one way on.
+    const out = all.filter((flow) => !flow.fault && !flow.launch);
+    if (node.type !== 'step') {
+      for (const flow of all) if (flow.launch) problems.push(`flow "${flow.id}": only a step starts other automation (a launch flow)`);
+    }
     if (node.type === 'start') {
       if (simulated && !node.arrivals) problems.push(`${where}: a start needs arrivals, the time between arrivals`);
-      if ((incoming.get(node.id) ?? []).length > 0) problems.push(`${where}: nothing flows into a start`);
+      // Another flow's step may start this one (a subflow, a platform event).
+      if ((incoming.get(node.id) ?? []).some((flow) => !flow.launch)) problems.push(`${where}: nothing flows into a start`);
       if (all.length !== 1) problems.push(`${where}: a start has one flow out (it has ${all.length})`);
     } else if (node.type === 'step') {
       if (simulated && !node.duration) problems.push(`${where}: a step needs a duration`);

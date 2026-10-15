@@ -121,8 +121,8 @@ export function processFlowToMermaid(diagram: ProcessFlowDiagram): string {
     const to = names.get(flow.to);
     if (!from || !to) continue;
     const text = flowLabel(flow);
-    // A fault path is a dotted arrow.
-    const arrow = flow.fault ? '-.->' : '-->';
+    // A fault path, or other automation a step starts, is a dotted arrow.
+    const arrow = flow.fault || flow.launch ? '-.->' : '-->';
     lines.push(text ? `  ${from} ${arrow}|${quoted(text)}| ${to}` : `  ${from} ${arrow} ${to}`);
   }
   return lines.join('\n');

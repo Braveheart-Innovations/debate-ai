@@ -9,6 +9,7 @@ import { SALESFORCE_ANALYSIS_LENSES } from '../../contract/config/analysis-lense
 import type { SandboxFiles } from './sandboxFiles';
 import { diagramFileText } from '../../contract/services/analyze/diagrams/diagramFile';
 import { buildSalesforceDataModel } from '../../salesforce/salesforceDataModel';
+import { buildSalesforceFlowDiagrams } from '../../salesforce/salesforceFlowDiagram';
 import {
   buildSalesforceAuditReport,
   buildSalesforceApexDrilldowns,
@@ -78,6 +79,9 @@ export async function executeSalesforceMetadataAuditTool(
 
     if (parsedArgs.operation === 'data_model') {
       return await writeSalesforceDataModel(files, toolCallId, sourceFiles, parsedArgs);
+    }
+    if (parsedArgs.operation === 'flow_diagram') {
+      return await writeSalesforceFlowDiagrams(files, toolCallId, sourceFiles, parsedArgs);
     }
 
     const index = buildSalesforceMetadataIndex(sourceFiles, parsedArgs.paths || [], insightPackets, parsedArgs.query, retrieveRun);
@@ -162,11 +166,15 @@ function normalizeArgs(args: Record<string, unknown>): SalesforceMetadataAuditAr
       ? args.objects.filter((object): object is string => typeof object === 'string' && object.trim().length > 0)
       : undefined,
     name: typeof args.name === 'string' ? args.name : undefined,
+    flows: Array.isArray(args.flows)
+      ? args.flows.filter((flow): flow is string => typeof flow === 'string' && flow.trim().length > 0)
+      : undefined,
+    chain: typeof args.chain === 'boolean' ? args.chain : undefined,
   };
 }
 
 function isOperation(value: string): value is SalesforceMetadataAuditOperation {
-  return ['audit', 'inventory', 'search', 'component', 'dependencies', 'risks', 'packet_findings', 'handoff', 'feature_readiness', 'troubleshooting', 'data_model'].includes(value);
+  return ['audit', 'inventory', 'search', 'component', 'dependencies', 'risks', 'packet_findings', 'handoff', 'feature_readiness', 'troubleshooting', 'data_model', 'flow_diagram'].includes(value);
 }
 
 /**
@@ -672,15 +680,15 @@ function encodeArtifactOutputs(outputs: SalesforceArtifactFile[]): NonNullable<T
   }));
 }
 
-/** The data model file's name: a short snake_case name, without `.diagram.json`. */
-export function dataModelFileName(name: string | undefined): string {
+/** A diagram file's name: a short snake_case name, without `.diagram.json`. */
+export function dataModelFileName(name: string | undefined, fallback = 'salesforce_data_model'): string {
   const cleaned = (name ?? '')
     .replace(/^\/?output\//, '')
     .replace(/\.diagram\.json$/i, '')
     .toLowerCase()
     .replace(/[^a-z0-9_]+/g, '_')
     .replace(/^_+|_+$/g, '');
-  return cleaned || 'salesforce_data_model';
+  return cleaned || fallback;
 }
 
 /**
@@ -730,4 +738,47 @@ async function writeSalesforceDataModel(
     ].filter(Boolean).join('\n'),
     dataOutputs: [{ filename, base64: Buffer.from(text, 'utf8').toString('base64'), size: Buffer.byteLength(text, 'utf8') }],
   };
+}
+
+/**
+ * operation=flow_diagram: each named Flow (or, chained, one picture of them and
+ * every flow they start) as a process diagram, /output/flow_<name>.diagram.json,
+ * written into the sandbox and returned for capture, which makes each a diagram.
+ */
+async function writeSalesforceFlowDiagrams(
+  files: SandboxFiles,
+  toolCallId: string,
+  sourceFiles: SalesforceSourceFile[],
+  args: SalesforceMetadataAuditArgs,
+): Promise<ToolResult> {
+  const wanted = args.flows ?? [];
+  if (wanted.length === 0) {
+    return { toolCallId, success: false, error: 'operation=flow_diagram needs flows: the Flow API names to draw (search the inventory for flows first).' };
+  }
+  const { results, notFound } = buildSalesforceFlowDiagrams(sourceFiles, { flows: wanted, chain: args.chain === true });
+  if (results.length === 0) {
+    return { toolCallId, success: false, error: `No Flow file was found for ${notFound.join(', ')}: a Flow needs flows/<Name>.flow-meta.xml (source format) or flows/<Name>.flow in the upload.` };
+  }
+  const named = results.length === 1 && args.name;
+  const lines: string[] = [];
+  const dataOutputs: NonNullable<ToolResult['dataOutputs']> = [];
+  for (const result of results) {
+    const fallback = args.chain ? `flow_chain_${result.flows[0]}` : `flow_${result.flows[0]}`;
+    const filename = `${dataModelFileName(named ? args.name : undefined, dataModelFileName(fallback))}.diagram.json`;
+    const text = diagramFileText(result.diagram);
+    await files.writeFile(`/output/${filename}`, Buffer.from(text, 'utf8'));
+    dataOutputs.push({ filename, base64: Buffer.from(text, 'utf8').toString('base64'), size: Buffer.byteLength(text, 'utf8') });
+    const { nodes, flows } = result.diagram;
+    lines.push(`${args.chain ? 'Flow chain' : 'Flow'} written to /output/${filename}: ${result.flows.length > 1 ? `${result.flows.length} flows (${result.flows.join(', ')}), ` : `${result.flows[0]}, `}${nodes.length} nodes and ${flows.length} flows.${result.issueCount > 0 ? ` ${result.issueCount} ${result.issueCount === 1 ? 'element has' : 'elements have'} no fault path (each carries an issue).` : ''}`);
+    if (result.links.length > 0) {
+      lines.push(`Links followed: ${result.links.map((link) => `${link.from}.${link.fromElement} → ${link.flow} (${link.label})`).join('; ')}.`);
+    }
+    for (const [flow, elements] of Object.entries(result.unreachable)) {
+      lines.push(`In ${flow}, nothing connects to ${elements.join(', ')}: they never run, so they aren't drawn.`);
+    }
+  }
+  if (args.chain) lines.push('A chain follows subflows, platform events a flow or its invocable Apex publishes, and flows Apex starts. A record change that triggers another flow is not followed: that needs the org.');
+  if (notFound.length > 0) lines.push(`No Flow file for: ${notFound.join(', ')}.`);
+  lines.push('Each node names the Flow file it came from and its element type; the start says what triggers the flow and its entry conditions. It is the user\'s diagram, drawn from metadata (platform "salesforce": no simulation). To change it, read the file, change only what the question needs (nodes you design are marked "assumed"), and save it to the same name.');
+  return { toolCallId, success: true, content: lines.join('\n'), dataOutputs };
 }

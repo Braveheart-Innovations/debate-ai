@@ -39,7 +39,7 @@ import type {
 } from '../contract/services/analyze/diagrams/diagramFile';
 import { salesforceNamespaceOf, workspaceNamespace, type SalesforceSourceFile } from './SalesforceMetadataService';
 
-type XmlNode = Record<string, unknown>;
+export type XmlNode = Record<string, unknown>;
 
 const parser = new XMLParser({
   ignoreAttributes: true,
@@ -50,21 +50,22 @@ const parser = new XMLParser({
 
 const RELATIONSHIP_TYPES = new Set(['Lookup', 'MasterDetail', 'Hierarchy', 'ExternalLookup', 'IndirectLookup']);
 
-function text(value: unknown): string | undefined {
+/** An XML value as trimmed text, or undefined when it's empty or not text. */
+export function text(value: unknown): string | undefined {
   if (typeof value === 'string') return value.trim() || undefined;
   if (typeof value === 'number' || typeof value === 'boolean') return String(value);
   return undefined;
 }
 
-function flag(value: unknown): boolean {
+export function flag(value: unknown): boolean {
   return text(value)?.toLowerCase() === 'true';
 }
 
-function node(value: unknown): XmlNode | undefined {
+export function node(value: unknown): XmlNode | undefined {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as XmlNode : undefined;
 }
 
-function list(value: unknown): unknown[] {
+export function list(value: unknown): unknown[] {
   return Array.isArray(value) ? value : value === undefined ? [] : [value];
 }
 

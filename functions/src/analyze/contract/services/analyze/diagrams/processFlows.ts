@@ -137,6 +137,7 @@ export function shareLabel(share: number | undefined): string {
 /** A flow's label as drawn: its own words and its share, without the share twice ("Yes 15%" stays as it is); a fault path says so. */
 export function flowLabel(flow: Flow): string {
   if (flow.fault) return flow.label && !/fault/i.test(flow.label) ? `Fault: ${flow.label}` : flow.label || 'Fault';
+  if (flow.launch) return flow.label || 'Starts';
   const share = shareLabel(flow.share);
   if (flow.label && (!share || flow.label.includes(share) || /\d\s*%/.test(flow.label))) return flow.label;
   return [flow.label, share].filter(Boolean).join(' · ');
@@ -204,7 +205,7 @@ export function addFlow(diagram: ProcessFlowDiagram, input: { from: string; to: 
     const others = diagram.flows.filter((flow) => flow.from !== from.id);
     return { diagram: { ...diagram, flows: [...others, ...branches.map((flow) => ({ ...flow, share: shared.get(flow.id) }))] }, id };
   }
-  const others = diagram.flows.filter((flow) => flow.from !== from.id || flow.fault);
+  const others = diagram.flows.filter((flow) => flow.from !== from.id || flow.fault || flow.launch);
   return { diagram: { ...diagram, flows: [...others, { id, from: input.from, to: input.to }] }, id };
 }
 

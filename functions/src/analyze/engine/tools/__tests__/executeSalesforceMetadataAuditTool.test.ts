@@ -103,6 +103,37 @@ describe('executeSalesforceMetadataAuditTool', () => {
     });
   });
 
+  describe('operation=flow_diagram', () => {
+    const flowXml = (body: string) => `<?xml version="1.0" encoding="UTF-8"?><Flow>${body}</Flow>`;
+
+    it('writes each Flow as a diagram file in /output and returns it for capture', async () => {
+      const zip = new JSZip();
+      zip.file('force-app/main/default/flows/Set_Source.flow-meta.xml', flowXml('<label>Set source</label><processType>AutoLaunchedFlow</processType><start><connector><targetReference>Set</targetReference></connector><object>Lead</object><recordTriggerType>Create</recordTriggerType><triggerType>RecordAfterSave</triggerType></start><recordUpdates><name>Set</name><label>Set the source</label><inputReference>$Record</inputReference></recordUpdates>'));
+      mockSandboxService.readFile.mockResolvedValue(await zip.generateAsync({ type: 'arraybuffer' }));
+
+      const result = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-flow', {
+        operation: 'flow_diagram',
+        paths: ['/uploads/qa.zip'],
+        flows: ['Set_Source', 'Missing_Flow'],
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.dataOutputs?.map((output) => output.filename)).toEqual(['flow_set_source.diagram.json']);
+      const written = JSON.parse(writtenFile('/output/flow_set_source.diagram.json')!);
+      expect(written).toMatchObject({ kind: 'process_flow', platform: 'salesforce', title: 'Flow: Set source' });
+      expect(result.content).toContain('Flow written to /output/flow_set_source.diagram.json: Set_Source, 3 nodes and 2 flows. 1 element has no fault path (each carries an issue).');
+      expect(result.content).toContain('No Flow file for: Missing_Flow.');
+    });
+
+    it('asks for flows, and says what a Flow needs when none is found', async () => {
+      mockSandboxService.readFile.mockResolvedValue(new TextEncoder().encode('public class A {}').buffer);
+      const none = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-flow-none', { operation: 'flow_diagram', paths: ['/uploads/force-app/main/default/classes/A.cls'] });
+      expect(none).toMatchObject({ success: false, error: expect.stringContaining('operation=flow_diagram needs flows') });
+      const missing = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-flow-missing', { operation: 'flow_diagram', paths: ['/uploads/force-app/main/default/classes/A.cls'], flows: ['Nope'] });
+      expect(missing).toMatchObject({ success: false, error: expect.stringContaining('No Flow file was found for Nope') });
+    });
+  });
+
   describe('operation=data_model', () => {
     const fieldXml = (name: string, body: string) => `<?xml version="1.0" encoding="UTF-8"?><CustomField><fullName>${name}</fullName>${body}</CustomField>`;
 
