@@ -22,10 +22,10 @@ const GEMINI_25_MAX_THINKING_BUDGET: Array<[string, number]> = [
   ['gemini-2.5-flash', 24576],
 ];
 
-/** The most thinking each Gemini family takes: thinkingLevel "high" on 3.x, the budget ceiling on 2.5. */
+/** The most thinking each Gemini family takes: thinkingLevel "high" on 3.x and later, the budget ceiling on 2.5. */
 export function getGeminiDeepThinkingConfig(model: string, maxOutputTokens: number): GeminiThinkingConfig | undefined {
   const normalizedModel = model.toLowerCase();
-  if (normalizedModel.includes('gemini-3')) return { thinkingLevel: 'high' };
+  if (usesThinkingLevels(normalizedModel)) return { thinkingLevel: 'high' };
   const ceiling = GEMINI_25_MAX_THINKING_BUDGET.find(([prefix]) => normalizedModel.includes(prefix))?.[1];
   return ceiling ? { thinkingBudget: Math.min(ceiling, maxOutputTokens - 1) } : undefined;
 }
@@ -57,7 +57,7 @@ export function getGeminiThinkingConfig(
     return { thinkingBudget: 0 };
   }
 
-  if (normalizedModel.includes('gemini-3')) {
+  if (usesThinkingLevels(normalizedModel)) {
     if (normalizedModel.includes('flash') || normalizedModel.includes('lite')) {
       // gemini-3.7+ rejects thinkingLevel "minimal" ("Thinking level MINIMAL
       // is not supported for this model"; live-verified 2026-08-17 — 3.6
@@ -70,6 +70,16 @@ export function getGeminiThinkingConfig(
   }
 
   return undefined;
+}
+
+/**
+ * Gemini 3 and later take thinkingLevel instead of thinkingBudget, including
+ * codename models such as gemini-4-argon (low/medium/high; live-verified
+ * 2026-10-15, "minimal" rejected).
+ */
+function usesThinkingLevels(normalizedModel: string): boolean {
+  const version = /gemini-(\d+)/.exec(normalizedModel);
+  return Boolean(version) && Number(version![1]) >= 3;
 }
 
 function supportsMinimalThinkingLevel(normalizedModel: string): boolean {
