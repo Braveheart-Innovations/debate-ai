@@ -20,8 +20,10 @@ import {
   buildSalesforceWorkbenchSummary,
   buildSalesforceVsCodeHandoff,
   findSalesforceComponent,
+  formatComponentList,
   loadSalesforceSourceFiles,
   loadSalesforceWorkspaceInputs,
+  salesforceNamespaceOf,
   searchSalesforceMetadata,
   type SalesforceInsightPacket,
   type SalesforceSourceFile,
@@ -510,6 +512,125 @@ public with sharing class EmailRoutingService {
         expect.objectContaining({ sourceName: 'caseEscalation', targetName: 'Case.Escalation_Status__c', reference: 'Case.Escalation_Status__c' }),
       ])
     );
+  });
+
+  it('reads a namespace from an API name without a package list', () => {
+    expect(salesforceNamespaceOf('hed__Course__c')).toBe('hed');
+    expect(salesforceNamespaceOf('hed__Primary_Contact__c')).toBe('hed');
+    expect(salesforceNamespaceOf('hed__TDTM_Runnable')).toBe('hed');
+    expect(salesforceNamespaceOf('bt_stripe__Transaction__c')).toBe('bt_stripe');
+    expect(salesforceNamespaceOf('Course__c')).toBeUndefined();
+    expect(salesforceNamespaceOf('My_Config__mdt')).toBeUndefined();
+    expect(salesforceNamespaceOf('Course__Share')).toBeUndefined();
+    expect(salesforceNamespaceOf('Account')).toBeUndefined();
+    expect(salesforceNamespaceOf('Tour_Date__c,HasOptedOutOfEmail')).toBeUndefined();
+  });
+
+  it('treats installed-package metadata as inventory: no risk rules, counted apart from the org\'s own', () => {
+    const files = [
+      ...FIXTURE_FILES,
+      sourceFile('force-app/main/default/classes/hed__TDTM_Runnable.cls', '(hidden)\n'),
+      sourceFile('force-app/main/default/classes/dlrs__RollupService.cls', `
+public class RollupService {
+  public static void run(List<Account> accounts) {
+    for (Account a : accounts) {
+      update a;
+    }
+  }
+}
+`),
+      sourceFile('force-app/main/default/objects/hed__Course__c/hed__Course__c.object-meta.xml', '<CustomObject><label>Course</label></CustomObject>'),
+      sourceFile('force-app/main/default/objects/hed__Course__c/fields/hed__Credits__c.field-meta.xml', '<CustomField><fullName>hed__Credits__c</fullName></CustomField>'),
+      sourceFile('force-app/main/default/objects/hed__Course__c/fields/KC_Region__c.field-meta.xml', '<CustomField><fullName>KC_Region__c</fullName></CustomField>'),
+      sourceFile('force-app/main/default/layouts/hed__Course__c-hed__Course Layout.layout-meta.xml', '<Layout></Layout>'),
+      sourceFile('force-app/main/default/layouts/hed__Course__c-Course Layout KC.layout-meta.xml', '<Layout></Layout>'),
+      sourceFile('force-app/main/default/installedPackages/hed.installedPackage-meta.xml', '<InstalledPackage><versionNumber>3.21</versionNumber></InstalledPackage>'),
+    ];
+    const index = buildSalesforceMetadataIndex(files, ['fixture']);
+    const byName = new Map(index.components.map((component) => [component.name, component]));
+
+    expect(byName.get('hed__TDTM_Runnable')).toMatchObject({ namespace: 'hed', managed: true, sourceHidden: true });
+    expect(byName.get('dlrs__RollupService')).toMatchObject({ namespace: 'dlrs', managed: true });
+    expect(byName.get('dlrs__RollupService')?.sourceHidden).toBeUndefined();
+    expect(byName.get('hed__Course__c')).toMatchObject({ namespace: 'hed', managed: true });
+    expect(byName.get('hed__Course__c.hed__Credits__c')).toMatchObject({ namespace: 'hed', managed: true });
+    expect(byName.get('hed__Course__c-hed__Course Layout')).toMatchObject({ managed: true });
+    // What the org added to a package's object is the org's own.
+    expect(byName.get('hed__Course__c.KC_Region__c')?.managed).toBeUndefined();
+    expect(byName.get('hed__Course__c-Course Layout KC')?.managed).toBeUndefined();
+    expect(byName.get('CaseService')?.managed).toBeUndefined();
+
+    // Package code raises nothing (the visible dlrs class has DML in a loop); the org's own risks are unchanged.
+    const baseline = buildSalesforceMetadataIndex(FIXTURE_FILES, ['fixture']);
+    expect(index.risks.map((item) => item.id).sort()).toEqual(baseline.risks.map((item) => item.id).sort());
+    expect(JSON.parse(buildSalesforceApexDrilldowns(index)).drilldowns.map((item: { componentName: string }) => item.componentName))
+      .not.toEqual(expect.arrayContaining(['dlrs__RollupService']));
+
+    expect(index.sourceSummary).toMatchObject({
+      componentCount: baseline.sourceSummary.componentCount + 8,
+      managedComponentCount: 5,
+      ownedComponentCount: baseline.sourceSummary.componentCount + 3,
+      sourceHiddenCount: 1,
+      installedPackages: [
+        { namespace: 'hed', versionNumber: '3.21', componentCount: 4, recognizedTypes: { apex_class: 1, custom_field: 1, custom_object: 1, layout: 1 } },
+        { namespace: 'dlrs', componentCount: 1, recognizedTypes: { apex_class: 1 } },
+      ],
+    });
+    expect(index.sourceSummary.recognizedTypes.apex_class).toBe(4);
+    expect(index.sourceSummary.ownedTypes.apex_class).toBe(2);
+
+    const report = buildSalesforceAuditReport(index);
+    expect(report).toContain(`Components indexed: ${index.sourceSummary.componentCount} (${index.sourceSummary.ownedComponentCount} project-owned, 5 from installed packages, of which 1 Apex with hidden source)`);
+    expect(report).toContain('- **Apex classes**: 4 (2 project-owned)');
+    expect(report).toContain('## Installed Packages');
+    expect(report).toContain('- hed v3.21: 4 components (');
+    expect(report).toContain('project-owned components only');
+    expect(formatComponentList([byName.get('hed__TDTM_Runnable')!])).toContain('[installed package hed, source hidden]');
+  });
+
+  it('joins Apex -meta.xml to its class, reads metadata-format names, and names other metadata by folder', () => {
+    const inPackage = (path: string, content: string) => ({
+      ...sourceFile(`force-app/main/default/${path}`, content),
+      metadataPath: path,
+    });
+    const index = buildSalesforceMetadataIndex([
+      inPackage('classes/TourService.cls-meta.xml', '<ApexClass><apiVersion>64.0</apiVersion><status>Active</status></ApexClass>'),
+      inPackage('classes/TourService.cls', 'public with sharing class TourService {\n  List<Lead> leads = [SELECT Id FROM Lead];\n}'),
+      inPackage('objects/Lead/Lead.object-meta.xml', '<CustomObject><label>Lead</label></CustomObject>'),
+      inPackage('sharingRules/Lead.sharingRules-meta.xml', '<SharingRules />'),
+      inPackage('reports/Sales/Pipeline.report-meta.xml', '<Report />'),
+      sourceFile('src/flows/Lead_Route.flow', '<Flow><status>Active</status></Flow>'),
+    ], ['fixture']);
+    const byId = new Map(index.components.map((component) => [component.id, component]));
+
+    expect(byId.get('apex_class:TourService')).toMatchObject({
+      path: 'force-app/main/default/classes/TourService.cls',
+      apiVersion: '64.0',
+      paths: expect.arrayContaining(['force-app/main/default/classes/TourService.cls-meta.xml']),
+    });
+    expect(byId.get('flow:Lead_Route')).toBeDefined();
+    expect(byId.get('unknown:sharingRules/Lead')).toMatchObject({ name: 'Lead', metadataType: 'sharingRules' });
+    expect(byId.get('unknown:reports/Sales/Pipeline')).toMatchObject({ metadataType: 'reports' });
+    // `Lead` in Apex is the object, not the Lead sharing rules.
+    expect(index.dependencies).toEqual(expect.arrayContaining([
+      expect.objectContaining({ sourceName: 'TourService', targetId: 'custom_object:Lead' }),
+    ]));
+    expect(index.dependencies.some((dependency) => dependency.targetId === 'unknown:sharingRules/Lead')).toBe(false);
+    expect(index.sourceSummary.metadataTypes).toEqual({ reports: 1, sharingRules: 1 });
+  });
+
+  it('keeps the workspace\'s own namespace as the org\'s metadata', () => {
+    const index = buildSalesforceMetadataIndex([
+      sourceFile('sfdx-project.json', '{"packageDirectories":[{"path":"force-app","default":true}],"namespace":"kc"}'),
+      sourceFile('force-app/main/default/objects/kc__Tour__c/kc__Tour__c.object-meta.xml', '<CustomObject><label>Tour</label></CustomObject>'),
+      sourceFile('force-app/main/default/objects/hed__Course__c/hed__Course__c.object-meta.xml', '<CustomObject><label>Course</label></CustomObject>'),
+    ], ['fixture']);
+    const byName = new Map(index.components.map((component) => [component.name, component]));
+
+    expect(byName.get('kc__Tour__c')).toMatchObject({ namespace: 'kc' });
+    expect(byName.get('kc__Tour__c')?.managed).toBeUndefined();
+    expect(byName.get('hed__Course__c')).toMatchObject({ namespace: 'hed', managed: true });
+    expect(index.sourceSummary.installedPackages.map((item) => item.namespace)).toEqual(['hed']);
   });
 
   it('flags MVP audit risks for Apex, permissions, tests, and flows', () => {

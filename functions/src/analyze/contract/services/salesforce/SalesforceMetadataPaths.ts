@@ -11,6 +11,10 @@ interface SalesforceUploadPathRules {
     suffixes: string[];
   }>;
   objectMetadataSuffixes: string[];
+  excludedWorkspaceSegments: string[];
+  excludedWorkspaceFiles: string[];
+  binaryContentFolders: string[];
+  runRecordPath: string;
 }
 
 const PATH_RULES = uploadPathRules as SalesforceUploadPathRules;
@@ -18,6 +22,10 @@ const SUPPORTED_TOP_LEVEL_FILES = new Set(PATH_RULES.supportedTopLevelFiles);
 const INSIGHT_PACKET_FILES = new Set(PATH_RULES.insightPacketFiles);
 const IGNORED_METADATA_PATH_SEGMENTS = new Set(PATH_RULES.ignoredMetadataPathSegments);
 const IGNORED_WORKSPACE_BUNDLE_PATH_SEGMENTS = new Set(PATH_RULES.ignoredWorkspaceBundlePathSegments);
+const EXCLUDED_WORKSPACE_SEGMENTS = new Set(PATH_RULES.excludedWorkspaceSegments);
+const EXCLUDED_WORKSPACE_FILES = new Set(PATH_RULES.excludedWorkspaceFiles);
+const BINARY_CONTENT_FOLDERS = new Set(PATH_RULES.binaryContentFolders);
+const RUN_RECORD_PATH = PATH_RULES.runRecordPath.toLowerCase();
 
 export function normalizeSalesforcePath(path: string): string {
   return path.replace(/\\/g, '/').replace(/^\/+/, '');
@@ -82,7 +90,11 @@ export function isSalesforceMetadataSourcePath(path: string): boolean {
   return false;
 }
 
-export function isSalesforceWorkspaceBundlePath(path: string): boolean {
+/**
+ * What a workspace bundle carries: metadata files (by the path rules, or anywhere under a
+ * package directory when `packageRoots` are known), insight packets, and the run record.
+ */
+export function isSalesforceWorkspaceBundlePath(path: string, packageRoots: string[] = []): boolean {
   const normalized = normalizeSalesforcePath(path);
   const lower = normalized.toLowerCase();
   const segments = lower.split('/').filter(Boolean);
@@ -91,5 +103,101 @@ export function isSalesforceWorkspaceBundlePath(path: string): boolean {
   if (!filename || filename === '.ds_store') return false;
   if (segments.some((segment) => IGNORED_WORKSPACE_BUNDLE_PATH_SEGMENTS.has(segment))) return false;
 
-  return isSalesforceMetadataSourcePath(normalized) || isSalesforceInsightPacketPath(normalized);
+  return isSalesforceMetadataSourcePath(normalized)
+    || getSalesforcePackagePath(normalized, packageRoots) !== null
+    || isSalesforceInsightPacketPath(normalized)
+    || isSalesforceRunRecordPath(normalized);
+}
+
+/** `.symposium/salesforce-runs/latest.json`: which org and pull the snapshot describes. */
+export function isSalesforceRunRecordPath(path: string): boolean {
+  const lower = normalizeSalesforcePath(path).toLowerCase();
+  return lower === RUN_RECORD_PATH || lower.endsWith(`/${RUN_RECORD_PATH}`);
+}
+
+function parentFolder(path: string): string {
+  const index = path.lastIndexOf('/');
+  return index < 0 ? '' : path.slice(0, index);
+}
+
+function joinPath(base: string, child: string): string {
+  const cleanChild = normalizeSalesforcePath(child).replace(/^\.\/+/, '').replace(/\/+$/, '');
+  return [base, cleanChild].filter(Boolean).join('/');
+}
+
+/**
+ * The folders that hold a workspace's metadata: the package directories each
+ * sfdx-project.json names. With no project file: each source-format `main/default` folder
+ * (a workspace picked below its project file), else each folder holding a package.xml
+ * (metadata format), except `manifest/`, where source-format projects keep manifests.
+ */
+export function findSalesforcePackageRoots(
+  paths: string[],
+  projectFiles: Array<{ path: string; content: string }> = [],
+): string[] {
+  const roots = new Set<string>();
+  for (const project of projectFiles) {
+    const base = parentFolder(normalizeSalesforcePath(project.path));
+    try {
+      const parsed = JSON.parse(project.content) as { packageDirectories?: Array<{ path?: unknown }> };
+      for (const directory of parsed.packageDirectories ?? []) {
+        if (typeof directory?.path === 'string' && directory.path.trim()) roots.add(joinPath(base, directory.path));
+      }
+    } catch {
+      // An unreadable project file names no roots; the fallbacks below still apply.
+    }
+  }
+  if (roots.size > 0) return Array.from(roots);
+
+  for (const path of paths) {
+    const match = normalizeSalesforcePath(path).match(/^((?:.*\/)?main\/default)\//i);
+    if (match) roots.add(match[1]);
+  }
+  if (roots.size > 0) return Array.from(roots);
+
+  for (const path of paths) {
+    const normalized = normalizeSalesforcePath(path);
+    const segments = normalized.toLowerCase().split('/');
+    if (segments.some((segment) => IGNORED_WORKSPACE_BUNDLE_PATH_SEGMENTS.has(segment))) continue;
+    if (segments[segments.length - 1] !== 'package.xml' || segments[segments.length - 2] === 'manifest') continue;
+    roots.add(parentFolder(normalized));
+  }
+  return Array.from(roots);
+}
+
+/**
+ * A file's path inside its package directory (`classes/Foo.cls`, without the source
+ * format's `main/default/`), or null when it isn't workspace metadata: outside every root,
+ * a tooling file, an excluded folder (object translations), or the binary content of a
+ * static resource, document or content asset (their -meta.xml stays).
+ */
+export function getSalesforcePackagePath(path: string, packageRoots: string[]): string | null {
+  const normalized = normalizeSalesforcePath(path);
+  const lower = normalized.toLowerCase();
+  const root = packageRoots
+    .map((candidate) => normalizeSalesforcePath(candidate).replace(/\/+$/, ''))
+    .filter((candidate) => candidate === '' || lower.startsWith(`${candidate.toLowerCase()}/`))
+    .sort((a, b) => b.length - a.length)[0];
+  if (root === undefined) return null;
+
+  let relative = root ? normalized.slice(root.length + 1) : normalized;
+  if (/^main\/default\//i.test(relative)) relative = relative.slice('main/default/'.length);
+  const segments = relative.toLowerCase().split('/').filter(Boolean);
+  const filename = segments[segments.length - 1] || '';
+  if (!filename || EXCLUDED_WORKSPACE_FILES.has(filename)) return null;
+  if (segments.some((segment) => EXCLUDED_WORKSPACE_SEGMENTS.has(segment) || IGNORED_WORKSPACE_BUNDLE_PATH_SEGMENTS.has(segment))) return null;
+  if (BINARY_CONTENT_FOLDERS.has(segments[0]) && !filename.endsWith('-meta.xml')) return null;
+  return relative;
+}
+
+const EMAIL_ATTACHMENT_CONTENT = /(<attachments>\s*(?:<[^>]+>[^<]*<\/[^>]+>\s*)*?<content>)[A-Za-z0-9+/=\s]+(<\/content>)/g;
+
+/**
+ * An email template's attachments are base64 files inside its metadata (QA: 77 of 82 MB
+ * of email templates). Their names stay; the binary content is replaced by a marker, the
+ * same rule as static resources: binary content out, its metadata in.
+ */
+export function omitEmailAttachmentContent(path: string, content: string): string {
+  if (!/\.email-meta\.xml$/i.test(path) || !content.includes('<attachments>')) return content;
+  return content.replace(EMAIL_ATTACHMENT_CONTENT, '$1[binary attachment omitted]$2');
 }

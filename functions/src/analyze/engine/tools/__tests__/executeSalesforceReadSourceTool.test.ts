@@ -1,8 +1,12 @@
+import JSZip from 'jszip';
+
 import {
   SOURCE_PAGE_LINES,
   SOURCE_SEARCH_MATCHES,
+  executeSalesforceReadSourceTool,
   readSalesforceSource,
 } from '../executeSalesforceReadSourceTool';
+import type { SandboxFiles } from '../sandboxFiles';
 import type { SalesforceSourceFile } from '../../../salesforce/SalesforceMetadataService';
 
 function file(path: string, content: string): SalesforceSourceFile {
@@ -90,3 +94,42 @@ describe('readSalesforceSource', () => {
     expect(readSalesforceSource(twins, { path: 'Dup.cls' })).toMatchObject({ ok: false, error: expect.stringContaining('2 files match') });
   });
 });
+
+describe('executeSalesforceReadSourceTool', () => {
+  async function bundle(): Promise<SandboxFiles> {
+    const zip = new JSZip();
+    zip.file('qa/sfdx-project.json', JSON.stringify({ packageDirectories: [{ path: 'force-app' }] }));
+    zip.file('qa/force-app/main/default/classes/TourService.cls', 'public with sharing class TourService {\n  // Enrolled Family\n}');
+    zip.file('qa/force-app/main/default/objects/Lead/recordTypes/Center.recordType-meta.xml', '<RecordType>\n  <label>Enrolled Family Center</label>\n</RecordType>');
+    zip.file('qa/force-app/main/default/email/Tours/Welcome.email-meta.xml', '<EmailTemplate><attachments><content>JVBERi0xLjQNJeLjz9MNCjMx</content><name>a.pdf</name></attachments></EmailTemplate>');
+    zip.file('qa/force-app/main/default/objectTranslations/Lead-es/Lead-es.objectTranslation-meta.xml', '<label>Enrolled Family</label>');
+    const bytes = await zip.generateAsync({ type: 'arraybuffer' });
+    return {
+      listFiles: jest.fn().mockResolvedValue([{ name: 'qa-salesforce-metadata.zip', path: '/uploads/qa-salesforce-metadata.zip' }]),
+      readFile: jest.fn().mockResolvedValue(bytes),
+    } as unknown as SandboxFiles;
+  }
+
+  it('reads any metadata in the package directory by path, with email attachments omitted', async () => {
+    const files = await bundle();
+    const recordType = await executeSalesforceReadSourceTool(files, 'call-rt', { path: 'objects/Lead/recordTypes/Center.recordType-meta.xml' });
+    expect(recordType.success).toBe(true);
+    expect(recordType.content).toContain('2 |   <label>Enrolled Family Center</label>');
+
+    const email = await executeSalesforceReadSourceTool(files, 'call-email', { component: 'Welcome' });
+    expect(email).toMatchObject({ success: true });
+    expect(email.content).toContain('<content>[binary attachment omitted]</content>');
+  });
+
+  it('searches every package file except object translations', async () => {
+    const result = await executeSalesforceReadSourceTool(await bundle(), 'call-search', { pattern: 'Enrolled Family' });
+    expect(result.content).toContain('2 matching lines for /Enrolled Family/i in the workspace');
+    expect(result.content).not.toContain('objectTranslation');
+  });
+
+  it('says when nothing matches a path, without reading the workspace', async () => {
+    const result = await executeSalesforceReadSourceTool(await bundle(), 'call-miss', { path: 'classes/Missing.cls' });
+    expect(result).toMatchObject({ success: false, error: 'No source file matches path "classes/Missing.cls". Search with `pattern` to find it.' });
+  });
+});
+

@@ -2,7 +2,7 @@
 import type { ToolResult } from '../../contract/lib/ai/tools/types';
 import type { SalesforceReadSourceArgs } from '../../contract/lib/ai/tools/built-in/salesforce-read-source';
 import {
-  loadSalesforceWorkspaceInputs,
+  listSalesforceWorkspace,
   type SalesforceSourceFile,
 } from '../../salesforce/SalesforceMetadataService';
 import type { SandboxFiles } from './sandboxFiles';
@@ -19,8 +19,20 @@ export async function executeSalesforceReadSourceTool(
   args: Record<string, unknown>,
 ): Promise<ToolResult> {
   try {
-    const { sourceFiles } = await loadSalesforceWorkspaceInputs(files);
-    const result = readSalesforceSource(sourceFiles, normalizeArgs(args));
+    const request = normalizeArgs(args);
+    const { sources } = await listSalesforceWorkspace(files);
+    const targeted = Boolean(request.component || request.path);
+    if (sources.length > 0 && !targeted && !request.pattern) {
+      return { toolCallId, success: false, error: NO_TARGET_ERROR };
+    }
+    // A read names its files: load only those. A search over the workspace reads every file.
+    const needed = targeted ? findFiles(sources, request) : sources;
+    if (sources.length > 0 && needed.length === 0) {
+      return { toolCallId, success: false, error: noMatchError(request) };
+    }
+    const loaded: SalesforceSourceFile[] = [];
+    for (const source of needed) loaded.push(await source.load());
+    const result = readSalesforceSource(loaded, request);
     return result.ok
       ? { toolCallId, success: true, content: result.content }
       : { toolCallId, success: false, error: result.error };
@@ -50,6 +62,12 @@ function normalizeArgs(args: Record<string, unknown>): SalesforceReadSourceArgs 
 
 type ReadResult = { ok: true; content: string } | { ok: false; error: string };
 
+const NO_TARGET_ERROR = 'Give `component` or `path` to read a file, or `pattern` to search the source.';
+
+function noMatchError(args: SalesforceReadSourceArgs): string {
+  return `No source file matches ${describeTarget(args)}. Search with \`pattern\` to find it.`;
+}
+
 /** Pure: read or search the workspace's source files. */
 export function readSalesforceSource(files: SalesforceSourceFile[], args: SalesforceReadSourceArgs): ReadResult {
   if (files.length === 0) {
@@ -59,14 +77,15 @@ export function readSalesforceSource(files: SalesforceSourceFile[], args: Salesf
     };
   }
   if (!args.component && !args.path && !args.pattern) {
-    return { ok: false, error: 'Give `component` or `path` to read a file, or `pattern` to search the source.' };
+    return { ok: false, error: NO_TARGET_ERROR };
   }
 
-  const scoped = args.component || args.path ? findFiles(files, args) : files;
+  const targeted = Boolean(args.component || args.path);
+  const scoped = targeted ? findFiles(files, args) : files;
   if (scoped.length === 0) {
-    return { ok: false, error: `No source file matches ${describeTarget(args)}. Search with \`pattern\` to find it.` };
+    return { ok: false, error: noMatchError(args) };
   }
-  if (args.pattern) return searchFiles(scoped, args.pattern, files.length === scoped.length ? 'the workspace' : describeTarget(args));
+  if (args.pattern) return searchFiles(scoped, args.pattern, targeted ? describeTarget(args) : 'the workspace');
 
   const code = scoped.filter((file) => !isMetaXml(file.path));
   const primary = code.length > 0 ? code : scoped;
@@ -114,7 +133,7 @@ function searchFiles(files: SalesforceSourceFile[], pattern: string, scope: stri
   return { ok: true, content: `${total} matching lines for /${pattern}/i in ${scope}:\n${matches.join('\n')}${more}` };
 }
 
-function findFiles(files: SalesforceSourceFile[], args: SalesforceReadSourceArgs): SalesforceSourceFile[] {
+function findFiles<T extends { path: string }>(files: T[], args: SalesforceReadSourceArgs): T[] {
   if (args.path) {
     const wanted = normalizePath(args.path).toLowerCase();
     const exact = files.filter((file) => file.path.toLowerCase() === wanted);

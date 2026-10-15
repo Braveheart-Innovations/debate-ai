@@ -46,23 +46,23 @@
     },
     {
       "segment": "flows",
-      "suffixes": [".flow-meta.xml"]
+      "suffixes": [".flow-meta.xml", ".flow"]
     },
     {
       "segment": "permissionsets",
-      "suffixes": [".permissionset-meta.xml"]
+      "suffixes": [".permissionset-meta.xml", ".permissionset"]
     },
     {
       "segment": "profiles",
-      "suffixes": [".profile-meta.xml"]
+      "suffixes": [".profile-meta.xml", ".profile"]
     },
     {
       "segment": "layouts",
-      "suffixes": [".layout-meta.xml"]
+      "suffixes": [".layout-meta.xml", ".layout"]
     },
     {
       "segment": "custommetadata",
-      "suffixes": [".md-meta.xml"]
+      "suffixes": [".md-meta.xml", ".md"]
     }
   ],
   "objectMetadataSuffixes": [
@@ -70,5 +70,9 @@
     ".object-meta.xml",
     ".field-meta.xml",
     ".validationrule-meta.xml"
-  ]
+  ],
+  "excludedWorkspaceSegments": ["objecttranslations", "__tests__"],
+  "excludedWorkspaceFiles": [".ds_store", "jsconfig.json", ".eslintrc.json"],
+  "binaryContentFolders": ["staticresources", "documents", "contentassets", "sitedotcomsites"],
+  "runRecordPath": ".symposium/salesforce-runs/latest.json"
 }

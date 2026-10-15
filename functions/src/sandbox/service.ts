@@ -324,6 +324,27 @@ export class SandboxSessionService {
     });
   }
 
+  /**
+   * Unpack zips into one folder, replacing what was there, in one command. A checksum of
+   * the zips is kept in the folder, so unpacking the same zips again does nothing.
+   */
+  async extractZips(uid: string, sessionKey: string, zipPaths: string[], destination: string): Promise<void> {
+    if (zipPaths.length === 0) return;
+    const zips = zipPaths.map(shellQuote).join(' ');
+    const dir = shellQuote(destination);
+    const marker = shellQuote(`${destination}/.zip-sha256`);
+    const unzip = shellQuote('import sys, zipfile\nfor path in sys.argv[2:]: zipfile.ZipFile(path).extractall(sys.argv[1])');
+    const command = [
+      `expected="$(sha256sum ${zips})"`,
+      `if [ "$(cat ${marker} 2>/dev/null)" != "$expected" ]; then rm -rf ${dir} && mkdir -p ${dir} && python3 -c ${unzip} ${dir} ${zips} && printf '%s' "$expected" > ${marker}; fi`,
+    ].join(' && ');
+    return this.metered(uid, async (usage) => {
+      const { sandboxId } = await this.ensure(uid, sessionKey, usage);
+      const result = await this.deps.provider.runCommand(sandboxId, command, COMMAND_TIMEOUT_MS);
+      if (result.exitCode !== 0) throw new Error(`Failed to unpack ${zipPaths.join(', ')} into ${destination}`);
+    });
+  }
+
   async readFile(
     uid: string,
     sessionKey: string,

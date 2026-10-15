@@ -9,6 +9,7 @@ const mockSandboxService = {
   mountFile: jest.fn(),
   writeFile: jest.fn(),
   linkFiles: jest.fn(),
+  extractZips: jest.fn(),
 };
 
 // What the tool left in the sandbox: written files plus the paths linked to them.
@@ -29,11 +30,76 @@ describe('executeSalesforceMetadataAuditTool', () => {
     mockSandboxService.writeFile.mockImplementation(async (path: string, bytes: Uint8Array) => {
       sandboxFiles.set(path, Buffer.from(bytes).toString('utf8'));
     });
+    mockSandboxService.extractZips.mockReset();
+    mockSandboxService.extractZips.mockResolvedValue(undefined);
     mockSandboxService.linkFiles.mockReset();
     mockSandboxService.linkFiles.mockImplementation(async (groups: Array<{ target: string; links: string[] }>) => {
       for (const { target, links } of groups) {
         for (const link of links) sandboxFiles.set(link, sandboxFiles.get(target) ?? '');
       }
+    });
+  });
+
+  describe('the whole workspace', () => {
+    async function qaBundle(): Promise<ArrayBuffer> {
+      const zip = new JSZip();
+      zip.file('qa/sfdx-project.json', JSON.stringify({ packageDirectories: [{ path: 'force-app', default: true }], namespace: '' }));
+      zip.file('qa/force-app/main/default/classes/TourService.cls', 'public with sharing class TourService {}');
+      zip.file('qa/force-app/main/default/classes/TourService.cls-meta.xml', '<ApexClass><apiVersion>64.0</apiVersion><status>Active</status></ApexClass>');
+      zip.file('qa/force-app/main/default/roles/Center_Director.role-meta.xml', '<Role><name>Center Director</name></Role>');
+      zip.file('qa/force-app/main/default/objects/Lead/recordTypes/Center.recordType-meta.xml', '<RecordType><fullName>Center</fullName></RecordType>');
+      zip.file('qa/force-app/main/default/objects/Lead/listViews/hed__All.listView-meta.xml', '<ListView />');
+      zip.file('qa/force-app/main/default/objectTranslations/Lead-es/Lead-es.objectTranslation-meta.xml', '<CustomObjectTranslation />');
+      zip.file('qa/force-app/main/default/email/Tours/Welcome.email-meta.xml', '<EmailTemplate><attachments><content>JVBERi0xLjQNJeLjz9MNCjMx</content><name>a.pdf</name></attachments></EmailTemplate>');
+      zip.file('qa/.symposium/salesforce-runs/latest.json', JSON.stringify({
+        version: 1,
+        kind: 'salesforce_retrieve_run',
+        runId: '2026-10-15T18-16-43Z',
+        createdAt: '2026-10-15T18:27:40Z',
+        finishedAt: '2026-10-15T18:27:40Z',
+        status: 'success',
+        org: { alias: 'QA', orgId: '00D5g000000AbCdEAA', apiVersion: '68.0' },
+        sourceApiVersion: '64.0',
+        components: { retrieved: 72783, failed: 60, failedProject: 60, failedManaged: 0 },
+        writer: { name: 'pull-metadata' },
+        runRoot: '/Users/someone/Developer/qa/.symposium/salesforce-runs/run',
+      }));
+      return zip.generateAsync({ type: 'arraybuffer' });
+    }
+
+    it('indexes every package file, says which pull it is, and unpacks it for Python', async () => {
+      mockSandboxService.readFile.mockResolvedValue(await qaBundle());
+      const result = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-ws', {
+        operation: 'inventory',
+        paths: ['/uploads/qa-salesforce-metadata.zip'],
+      });
+
+      expect(result.success).toBe(true);
+      expect(mockSandboxService.extractZips).toHaveBeenCalledWith(['/uploads/qa-salesforce-metadata.zip'], '/data/salesforce/workspace');
+      expect(result.content).toContain('Snapshot: QA (00D5g000000AbCdEAA), pulled 2026-10-15T18:27:40Z, pull success; 72783 components retrieved, 60 failed (60 project-owned); org API 68.0, source API 64.0.');
+      expect(result.content).toContain('unpacked at /data/salesforce/workspace/');
+      expect(result.content).toContain('Other metadata: 4 (3 project-owned); by folder: email 1, listViews 1, recordTypes 1, roles 1');
+      expect(result.content).toContain('- Lead.Center (recordTypes) - qa/force-app/main/default/objects/Lead/recordTypes/Center.recordType-meta.xml');
+      expect(result.content).not.toContain('/Users/someone');
+      expect(result.content).not.toContain('objectTranslation');
+
+      const summary = JSON.parse(result.metadata!.fullStdout as string).sourceSummary;
+      expect(summary.retrieveRun).toMatchObject({ runId: '2026-10-15T18-16-43Z', org: { alias: 'QA' } });
+      expect(summary.retrieveRun.runRoot).toBeUndefined();
+      expect(summary.metadataTypes).toEqual({ email: 1, listViews: 1, recordTypes: 1, roles: 1 });
+      // A package's list view on the org's object is inventory; the org's record type is its own.
+      expect(summary.managedComponentCount).toBe(1);
+    });
+
+    it('still audits when the workspace cannot be unpacked, and says so', async () => {
+      mockSandboxService.readFile.mockResolvedValue(await qaBundle());
+      mockSandboxService.extractZips.mockRejectedValue(new Error('sandbox busy'));
+      const result = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-ws-fail', {
+        operation: 'inventory',
+        paths: ['/uploads/qa-salesforce-metadata.zip'],
+      });
+      expect(result.success).toBe(true);
+      expect(result.content).toContain('could not be unpacked at /data/salesforce/workspace/ (sandbox busy)');
     });
   });
 
