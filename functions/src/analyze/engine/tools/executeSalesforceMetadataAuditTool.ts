@@ -695,7 +695,7 @@ async function writeSalesforceDataModel(
   args: SalesforceMetadataAuditArgs,
 ): Promise<ToolResult> {
   const uploads = [...new Set(sourceFiles.map((file) => (file.sourcePath ?? '').split('/').pop()).filter(Boolean))];
-  const { diagram, notFound, referenced } = buildSalesforceDataModel(sourceFiles, {
+  const { diagram, notFound, referenced, packageObjects, packageFieldCount } = buildSalesforceDataModel(sourceFiles, {
     objects: args.objects,
     uploadName: uploads.length === 1 ? uploads[0] : undefined,
   });
@@ -713,12 +713,18 @@ async function writeSalesforceDataModel(
   const text = diagramFileText(diagram);
   await files.writeFile(`/output/${filename}`, Buffer.from(text, 'utf8'));
   const withFields = diagram.entities.filter((entity) => !referenced.includes(entity.id)).map((entity) => entity.id);
+  const ownReferenced = referenced.filter((id) => !packageObjects.includes(id));
+  const recordTypes = diagram.entities.reduce((sum, entity) => sum + (entity.recordTypes?.length ?? 0), 0);
   return {
     toolCallId,
     success: true,
     content: [
       `Data model written to /output/${filename} from the uploaded metadata: ${withFields.length} ${withFields.length === 1 ? 'object' : 'objects'} with their fields (${withFields.join(', ')}) and ${diagram.relationships.length} ${diagram.relationships.length === 1 ? 'relationship' : 'relationships'}.`,
-      referenced.length > 0 ? `Added without fields, because a field points at them: ${referenced.join(', ')}. Name them in objects to include their fields.` : '',
+      args.objects ? '' : 'Without a list of objects it draws the org\'s own: its custom objects, and the standard objects it added fields to.',
+      ownReferenced.length > 0 ? `Added without fields, because a field points at them: ${ownReferenced.join(', ')}. Name them in objects to include their fields.` : '',
+      packageObjects.length > 0 ? `From installed packages, drawn collapsed where the org's objects point at them: ${packageObjects.join(', ')}. The org can't change them; name one in objects to see its fields.` : '',
+      packageFieldCount > 0 ? `${packageFieldCount} ${packageFieldCount === 1 ? 'field' : 'fields'} from installed packages are left out of the org's objects and counted on each (packageFieldCount).` : '',
+      `Each object carries its sharing model (sharingModel, externalSharingModel)${recordTypes > 0 ? ` and record types (${recordTypes} in all)` : ''}; picklists that take their values from a value set name it (valueSet).`,
       notFound.length > 0 ? `Not in the upload: ${notFound.join(', ')}.` : '',
       'Each object and field names its source file. It is the user\'s diagram: to change it, read the file, change only what the question needs (objects or fields you design are marked "assumed"), and save it to the same name. Set a title and summary that say what it covers.',
     ].filter(Boolean).join('\n'),

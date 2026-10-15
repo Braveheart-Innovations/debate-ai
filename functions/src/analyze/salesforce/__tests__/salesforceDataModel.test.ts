@@ -157,6 +157,89 @@ describe('buildSalesforceDataModel', () => {
   });
 });
 
+/** An org with installed packages (hed, Mogli_SMS), record types, sharing and value sets. */
+function packagedWorkspace(): SalesforceSourceFile[] {
+  return [
+    zipped('sfdx-project.json', '{"packageDirectories":[{"path":"force-app","default":true}]}'),
+    object('Lead', '<sharingModel>ReadWrite</sharingModel><externalSharingModel>Private</externalSharingModel>'),
+    field('Lead', 'Status', '<type>Picklist</type>'),
+    field('Lead', 'LeadSource', '<type>Picklist</type>'),
+    field('Lead', 'Brand__c', '<label>Brand</label><type>Picklist</type><valueSet><valueSetName>Brand</valueSetName></valueSet>'),
+    field('Lead', 'Course__c', '<label>Course</label><type>Lookup</type><referenceTo>hed__Course__c</referenceTo>'),
+    field('Lead', 'Mogli_SMS__Mogli_Number__c', '<type>Text</type><length>20</length>'),
+    field('Lead', 'Mogli_SMS__Opt_Out__c', '<type>Checkbox</type>'),
+    zipped('force-app/main/default/objects/Lead/recordTypes/KLC_Leads.recordType-meta.xml', '<RecordType xmlns="http://soap.sforce.com/2006/04/metadata"><fullName>KLC_Leads</fullName><active>false</active><label>KLC Leads</label></RecordType>'),
+    zipped('force-app/main/default/objects/Lead/recordTypes/Creme_Family.recordType-meta.xml', '<RecordType xmlns="http://soap.sforce.com/2006/04/metadata"><fullName>Creme_Family</fullName><active>true</active><label>Creme Family</label><description>Creme brand families.</description></RecordType>'),
+    object('hed__Course__c', '<label>Course</label><sharingModel>ReadWrite</sharingModel>'),
+    field('hed__Course__c', 'hed__Account__c', '<type>Lookup</type><referenceTo>Account</referenceTo>'),
+    object('hed__Program__c', '<label>Program</label>'),
+    // A standard object with only package fields isn't drawn.
+    field('Contact', 'hed__Gender__c', '<type>Picklist</type>'),
+    object('Tour__c', '<label>Tour</label><sharingModel>ControlledByParent</sharingModel><nameField><label>Tour Name</label><type>Text</type></nameField>'),
+    field('Tour__c', 'Lead__c', '<type>MasterDetail</type><referenceTo>Lead</referenceTo>'),
+    zipped('force-app/main/default/standardValueSets/LeadStatus.standardValueSet-meta.xml', '<StandardValueSet xmlns="http://soap.sforce.com/2006/04/metadata"><sorted>false</sorted><standardValue><fullName>Open</fullName><default>true</default><label>Open</label></standardValue><standardValue><fullName>Toured</fullName><default>false</default><label>Toured</label></standardValue></StandardValueSet>'),
+    zipped('force-app/main/default/standardValueSets/LeadSource.standardValueSet-meta.xml', '<StandardValueSet xmlns="http://soap.sforce.com/2006/04/metadata"><standardValue><fullName>Web</fullName></standardValue></StandardValueSet>'),
+    zipped('force-app/main/default/globalValueSets/Brand.globalValueSet-meta.xml', '<GlobalValueSet xmlns="http://soap.sforce.com/2006/04/metadata"><customValue><fullName>KinderCare</fullName><default>false</default></customValue><customValue><fullName>Creme</fullName><default>false</default></customValue><masterLabel>Brand</masterLabel></GlobalValueSet>'),
+  ];
+}
+
+describe('buildSalesforceDataModel: the org\'s own objects first', () => {
+  it('draws the org\'s objects, package objects only where pointed at (collapsed), and counts package fields', () => {
+    const { diagram, referenced, packageObjects, packageFieldCount } = buildSalesforceDataModel(packagedWorkspace(), { uploadName: 'qa.zip' });
+    expect(diagram.entities.map((entity) => [entity.id, entity.fields.length])).toEqual([
+      ['Lead', 4],
+      ['Tour__c', 2],
+      ['hed__Course__c', 0],
+    ]);
+    expect(referenced).toEqual(['hed__Course__c']);
+    expect(packageObjects).toEqual(['hed__Course__c']);
+    expect(packageFieldCount).toBe(2);
+    expect(diagram.summary).toBe('2 objects with their fields and relationships, read from qa.zip. Objects from installed packages appear only where these point at them, collapsed (1). 2 fields from installed packages are counted on their objects, not drawn.');
+    expect(diagram.entities.find((entity) => entity.id === 'hed__Course__c')).toEqual({
+      id: 'hed__Course__c', name: 'hed__Course__c', label: 'Course', namespace: 'hed', managed: true, sharingModel: 'ReadWrite',
+      source: `${ZIP}#force-app/main/default/objects/hed__Course__c/hed__Course__c.object-meta.xml`, fields: [],
+    });
+    expect(reviewDiagram(diagram)).toMatchObject({ problems: [], warnings: [] });
+  });
+
+  it('gives each object its sharing models, its record types, and its package fields count', () => {
+    const lead = buildSalesforceDataModel(packagedWorkspace()).diagram.entities[0];
+    expect(lead).toMatchObject({
+      id: 'Lead', sharingModel: 'ReadWrite', externalSharingModel: 'Private', packageFieldCount: 2,
+      recordTypes: [
+        { name: 'Creme_Family', label: 'Creme Family', active: true, description: 'Creme brand families.', source: `${ZIP}#force-app/main/default/objects/Lead/recordTypes/Creme_Family.recordType-meta.xml` },
+        { name: 'KLC_Leads', label: 'KLC Leads', active: false, source: `${ZIP}#force-app/main/default/objects/Lead/recordTypes/KLC_Leads.recordType-meta.xml` },
+      ],
+    });
+    expect(lead.fields.map((entry) => entry.name)).toEqual(['Status', 'LeadSource', 'Brand__c', 'Course__c']);
+  });
+
+  it('fills picklists from the global value set they name and the standard value set a standard picklist reads', () => {
+    const lead = buildSalesforceDataModel(packagedWorkspace()).diagram.entities[0];
+    const byName = new Map(lead.fields.map((entry) => [entry.name, entry]));
+    expect(byName.get('Status')).toMatchObject({ valueSet: 'LeadStatus', values: ['Open', 'Toured'] });
+    expect(byName.get('LeadSource')).toMatchObject({ valueSet: 'LeadSource', values: ['Web'] });
+    expect(byName.get('Brand__c')).toMatchObject({ valueSet: 'Brand', values: ['KinderCare', 'Creme'] });
+  });
+
+  it('shows a package object asked for by name with all its fields', () => {
+    const { diagram } = buildSalesforceDataModel(packagedWorkspace(), { objects: ['hed__Course__c'] });
+    expect(diagram.entities[0]).toMatchObject({ id: 'hed__Course__c', namespace: 'hed', managed: true, fields: [{ name: 'hed__Account__c' }] });
+    expect(diagram.entities[0].packageFieldCount).toBeUndefined();
+  });
+
+  it('treats the workspace\'s own namespace (sfdx-project.json) as the org\'s', () => {
+    const files = [
+      zipped('sfdx-project.json', '{"namespace":"kc","packageDirectories":[{"path":"force-app"}]}'),
+      object('kc__Center__c', '<label>Center</label>'),
+      field('kc__Center__c', 'kc__Code__c', '<type>Text</type><length>10</length>'),
+    ];
+    const { diagram, packageFieldCount } = buildSalesforceDataModel(files);
+    expect(diagram.entities.map((entity) => [entity.id, entity.fields.length, entity.managed ?? false])).toEqual([['kc__Center__c', 1, false]]);
+    expect(packageFieldCount).toBe(0);
+  });
+});
+
 describe('helpers', () => {
   it('names a source by its upload path, or its zip and entry', () => {
     expect(sourceFileRef({ path: 'objects/A__c/A__c.object-meta.xml', sourcePath: '/uploads/objects/A__c/A__c.object-meta.xml', content: '', sizeBytes: 0 }))

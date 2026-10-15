@@ -2,7 +2,8 @@
 /**
  * Process flows (a diagram file of kind `process_flow`): how their numbers
  * read, and the edits the Diagram view makes. Pure functions over the file's
- * data, like diagrams.ts for data models.
+ * data, like diagrams.ts for data models. A Salesforce flow (automation drawn
+ * from metadata) has no numbers, so its edits add none.
  */
 import {
   uniqueName,
@@ -18,6 +19,16 @@ import {
 
 const UNIT_SHORT: Record<TimeUnit, string> = { seconds: 's', minutes: 'min', hours: 'h', days: 'd' };
 const UNIT_ONE: Record<TimeUnit, string> = { seconds: 'second', minutes: 'minute', hours: 'hour', days: 'day' };
+
+/** Whether the flow is Salesforce automation (a Flow, a save order): nothing to simulate. */
+export function isAutomationFlow(diagram: ProcessFlowDiagram): boolean {
+  return diagram.platform === 'salesforce';
+}
+
+/** The flow's time unit; minutes when it has none, as the simulator reads it. */
+export function flowTimeUnit(diagram: ProcessFlowDiagram): TimeUnit {
+  return diagram.timeUnit ?? 'minutes';
+}
 
 /** "min" for minutes: the unit after a number. */
 export function unitShort(unit: TimeUnit): string {
@@ -68,15 +79,52 @@ export function distributionMean(distribution: Distribution): number {
   }
 }
 
-/** A node's numbers in a line: "every ~4 min", "2–5 min · 2 at once", "shared: Front desk". */
+/** A Salesforce element type in words: Flow elements by their XML names, save-order steps by their metadata types. */
+const ELEMENT_TYPE_WORDS: Record<string, string> = {
+  recordCreates: 'Create records',
+  recordUpdates: 'Update records',
+  recordDeletes: 'Delete records',
+  recordLookups: 'Get records',
+  recordRollbacks: 'Roll back records',
+  assignments: 'Assignment',
+  actionCalls: 'Action',
+  apexPluginCalls: 'Apex plug-in',
+  screens: 'Screen',
+  subflows: 'Subflow',
+  loops: 'Loop',
+  decisions: 'Decision',
+  waits: 'Wait',
+  collectionProcessors: 'Collection filter or sort',
+  transforms: 'Transform',
+  customErrors: 'Custom error',
+  orchestratedStages: 'Stage',
+  flow: 'Flow',
+  apexTrigger: 'Apex trigger',
+  validationRule: 'Validation rule',
+  duplicateRule: 'Duplicate rule',
+  assignmentRule: 'Assignment rule',
+  autoResponseRule: 'Auto-response rule',
+  workflowRule: 'Workflow rule',
+  escalationRule: 'Escalation rule',
+  entitlementProcess: 'Entitlement process',
+  sharingRule: 'Sharing rule',
+};
+
+/** "Update records" for `recordUpdates`; a type it doesn't know reads as written. */
+export function elementTypeLabel(elementType: string): string {
+  return ELEMENT_TYPE_WORDS[elementType] ?? elementType;
+}
+
+/** A node's numbers in a line: "every ~4 min", "2–5 min · 2 at once", "shared: Front desk"; in a Salesforce flow, what the element is. */
 export function describeNode(node: FlowNode, diagram: ProcessFlowDiagram): string {
+  if (isAutomationFlow(diagram)) return node.elementType ? elementTypeLabel(node.elementType) : '';
   if (node.type === 'start' && node.arrivals) {
-    return `one every ${describeDistribution(node.arrivals, diagram.timeUnit).replace(/^about /, '~')}`;
+    return `one every ${describeDistribution(node.arrivals, flowTimeUnit(diagram)).replace(/^about /, '~')}`;
   }
   if (node.type === 'step' && node.duration) {
     const resource = node.resource ? diagram.resources.find((candidate) => candidate.id === node.resource) : undefined;
     const capacity = resource ? `${resource.label} (${resource.capacity})` : node.capacity === 'unlimited' ? 'no waiting' : `${node.capacity ?? 1} at once`;
-    return `${describeDistribution(node.duration, diagram.timeUnit)} · ${capacity}`;
+    return `${describeDistribution(node.duration, flowTimeUnit(diagram))} · ${capacity}`;
   }
   return '';
 }
@@ -86,8 +134,9 @@ export function shareLabel(share: number | undefined): string {
   return share === undefined ? '' : `${Number((share * 100).toFixed(1))}%`;
 }
 
-/** A flow's label as drawn: its own words and its share, without the share twice ("Yes 15%" stays as it is). */
+/** A flow's label as drawn: its own words and its share, without the share twice ("Yes 15%" stays as it is); a fault path says so. */
 export function flowLabel(flow: Flow): string {
+  if (flow.fault) return flow.label && !/fault/i.test(flow.label) ? `Fault: ${flow.label}` : flow.label || 'Fault';
   const share = shareLabel(flow.share);
   if (flow.label && (!share || flow.label.includes(share) || /\d\s*%/.test(flow.label))) return flow.label;
   return [flow.label, share].filter(Boolean).join(' · ');
@@ -102,10 +151,19 @@ const NEW_NODE: Record<FlowNodeType, Omit<FlowNode, 'id'>> = {
   end: { type: 'end', label: 'Done', source: 'user' },
 };
 
-/** A new node the user adds: a start, step, decision or end with workable numbers, marked as the user's. */
+/** A Salesforce flow's new node: the label alone, no numbers. */
+const NEW_AUTOMATION_NODE: Record<FlowNodeType, Omit<FlowNode, 'id'>> = {
+  start: { type: 'start', label: 'Start', source: 'user' },
+  step: { type: 'step', label: 'New step', source: 'user' },
+  decision: { type: 'decision', label: 'Decision?', source: 'user' },
+  end: { type: 'end', label: 'End', source: 'user' },
+};
+
+/** A new node the user adds: a start, step, decision or end with workable numbers (none in a Salesforce flow), marked as the user's. */
 export function addFlowNode(diagram: ProcessFlowDiagram, type: FlowNodeType): { diagram: ProcessFlowDiagram; id: string } {
   const id = uniqueName(diagram.nodes.map((node) => node.id), type);
-  return { diagram: { ...diagram, nodes: [...diagram.nodes, { id, ...NEW_NODE[type] }] }, id };
+  const node = (isAutomationFlow(diagram) ? NEW_AUTOMATION_NODE : NEW_NODE)[type];
+  return { diagram: { ...diagram, nodes: [...diagram.nodes, { id, ...node }] }, id };
 }
 
 type NodePatch = Partial<Omit<FlowNode, 'id'>>;
@@ -129,13 +187,16 @@ export function deleteFlowNode(diagram: ProcessFlowDiagram, id: string): Process
 
 /**
  * A flow the user draws. Out of a decision, the branches share evenly (the
- * user then sets the shares); a start or step keeps one flow out, so a new one
- * replaces its old one.
+ * user then sets the shares; a Salesforce decision has none); a start or step
+ * keeps one flow out, so a new one replaces its old one (a fault flow stays).
  */
 export function addFlow(diagram: ProcessFlowDiagram, input: { from: string; to: string }): { diagram: ProcessFlowDiagram; id: string } {
   const from = diagram.nodes.find((node) => node.id === input.from);
   if (!from || from.type === 'end' || input.from === input.to) return { diagram, id: '' };
   const id = uniqueName(diagram.flows.map((flow) => flow.id), `${input.from}-${input.to}`);
+  if (from.type === 'decision' && isAutomationFlow(diagram)) {
+    return { diagram: { ...diagram, flows: [...diagram.flows, { id, from: input.from, to: input.to }] }, id };
+  }
   if (from.type === 'decision') {
     const branches = [...diagram.flows.filter((flow) => flow.from === from.id), { id, from: input.from, to: input.to }];
     const share = Number((1 / branches.length).toFixed(4));
@@ -143,7 +204,7 @@ export function addFlow(diagram: ProcessFlowDiagram, input: { from: string; to: 
     const others = diagram.flows.filter((flow) => flow.from !== from.id);
     return { diagram: { ...diagram, flows: [...others, ...branches.map((flow) => ({ ...flow, share: shared.get(flow.id) }))] }, id };
   }
-  const others = diagram.flows.filter((flow) => flow.from !== from.id);
+  const others = diagram.flows.filter((flow) => flow.from !== from.id || flow.fault);
   return { diagram: { ...diagram, flows: [...others, { id, from: input.from, to: input.to }] }, id };
 }
 
@@ -178,7 +239,7 @@ export function deleteResource(diagram: ProcessFlowDiagram, id: string): Process
 
 /** The run settings changed (a run is added with defaults when there was none). */
 export function updateRun(diagram: ProcessFlowDiagram, patch: Partial<FlowRun>): ProcessFlowDiagram {
-  const run = { duration: diagram.run?.duration ?? defaultRunDuration(diagram.timeUnit), ...diagram.run, ...patch };
+  const run = { duration: diagram.run?.duration ?? defaultRunDuration(flowTimeUnit(diagram)), ...diagram.run, ...patch };
   return { ...diagram, run: withoutEmpty(run) };
 }
 

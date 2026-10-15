@@ -121,7 +121,9 @@ export function processFlowToMermaid(diagram: ProcessFlowDiagram): string {
     const to = names.get(flow.to);
     if (!from || !to) continue;
     const text = flowLabel(flow);
-    lines.push(text ? `  ${from} -->|${quoted(text)}| ${to}` : `  ${from} --> ${to}`);
+    // A fault path is a dotted arrow.
+    const arrow = flow.fault ? '-.->' : '-->';
+    lines.push(text ? `  ${from} ${arrow}|${quoted(text)}| ${to}` : `  ${from} ${arrow} ${to}`);
   }
   return lines.join('\n');
 }

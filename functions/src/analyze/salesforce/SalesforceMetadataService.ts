@@ -1663,7 +1663,7 @@ function namespaceBearingName(component: Pick<SalesforceMetadataComponent, 'type
 }
 
 /** The workspace's own namespace (sfdx-project.json): its components are the org's. */
-function workspaceNamespace(files: SalesforceSourceFile[]): string | undefined {
+export function workspaceNamespace(files: SalesforceSourceFile[]): string | undefined {
   const project = files.find((file) => /(^|\/)sfdx-project\.json$/i.test(file.path));
   if (!project) return undefined;
   try {

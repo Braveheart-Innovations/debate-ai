@@ -265,6 +265,8 @@ function documentPreview(input: PreviewInput): ArtifactPreviewMetadata | undefin
 export function diagramPreview(input: Pick<PreviewInput, 'name' | 'metadata'>): ArtifactPreviewMetadata {
   const diagram = input.metadata?.diagram;
   const flow = diagram?.kind === 'process_flow';
+  // A Salesforce flow (automation drawn from metadata) isn't simulated.
+  const salesforceFlow = flow && diagram?.platform === 'salesforce';
   const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
   const size = diagram
     ? flow
@@ -275,8 +277,8 @@ export function diagramPreview(input: Pick<PreviewInput, 'name' | 'metadata'>): 
     version: 1,
     kind: 'text',
     title: diagram?.title || input.name.replace(/\.diagram\.json$/i, ''),
-    subtitle: flow ? 'process' : 'data model',
-    excerpt: truncate([diagram?.summary, size].filter(Boolean).join('\n\n') || (flow ? 'A process you can edit and simulate.' : 'A data model you can edit.'), MAX_EXCERPT_CHARS),
+    subtitle: salesforceFlow ? 'salesforce flow' : flow ? 'process' : 'data model',
+    excerpt: truncate([diagram?.summary, size].filter(Boolean).join('\n\n') || (salesforceFlow ? 'A Salesforce flow, drawn from its metadata.' : flow ? 'A process you can edit and simulate.' : 'A data model you can edit.'), MAX_EXCERPT_CHARS),
   };
 }
 
