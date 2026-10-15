@@ -58,7 +58,7 @@ describe('executeSalesforceMetadataAuditTool', () => {
         createdAt: '2026-10-15T18:27:40Z',
         finishedAt: '2026-10-15T18:27:40Z',
         status: 'success',
-        org: { alias: 'QA', orgId: '00Dca000005CnrhEAC', apiVersion: '68.0' },
+        org: { alias: 'QA', orgId: '00D5g000000AbCdEAA', apiVersion: '68.0' },
         sourceApiVersion: '64.0',
         components: { retrieved: 72783, failed: 60, failedProject: 60, failedManaged: 0 },
         writer: { name: 'pull-metadata' },
@@ -76,7 +76,7 @@ describe('executeSalesforceMetadataAuditTool', () => {
 
       expect(result.success).toBe(true);
       expect(mockSandboxService.extractZips).toHaveBeenCalledWith(['/uploads/qa-salesforce-metadata.zip'], '/data/salesforce/workspace');
-      expect(result.content).toContain('Snapshot: QA (00Dca000005CnrhEAC), pulled 2026-10-15T18:27:40Z, pull success; 72783 components retrieved, 60 failed (60 project-owned); org API 68.0, source API 64.0.');
+      expect(result.content).toContain('Snapshot: QA (00D5g000000AbCdEAA), pulled 2026-10-15T18:27:40Z, pull success; 72783 components retrieved, 60 failed (60 project-owned); org API 68.0, source API 64.0.');
       expect(result.content).toContain('unpacked at /data/salesforce/workspace/');
       expect(result.content).toContain('Other metadata: 4 (3 project-owned); by folder: email 1, listViews 1, recordTypes 1, roles 1');
       expect(result.content).toContain('- Lead.Center (recordTypes) - qa/force-app/main/default/objects/Lead/recordTypes/Center.recordType-meta.xml');
