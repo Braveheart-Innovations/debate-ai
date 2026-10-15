@@ -132,7 +132,7 @@ describe('a Flow as a process diagram', () => {
     expect(label('<start><object>Account</object><triggerType>RecordBeforeDelete</triggerType></start>')).toBe('Account deleted (before delete)');
     expect(label('<start><triggerType>Scheduled</triggerType></start>')).toBe('Scheduled run');
     expect(label('', 'Flow')).toBe('Screen flow starts');
-    expect(label('')).toBe('Launched (by Apex, a button or another flow)');
+    expect(label('')).toBe('Launched by Apex or another flow');
   });
 
   it('says which flows it could not find', () => {
@@ -168,8 +168,8 @@ describe('a chain of Flows', () => {
     ]);
     expect(diagram.title).toBe('Flow chain: Core');
     expect(diagram.nodes.filter((node) => node.type === 'start').map((node) => [node.id, node.label])).toEqual([
-      ['Core.start', 'Core: Launched (by Apex, a button or another flow)'],
-      ['Child_Flow.start', 'Child flow: Launched (by Apex, a button or another flow)'],
+      ['Core.start', 'Core: Launched by Apex or another flow'],
+      ['Child_Flow.start', 'Child flow: Launched by Apex or another flow'],
       ['Convert.start', 'Convert: Convert__e received'],
       ['Reparent_Tasks.start', 'Reparent tasks: Reparent_Tasks__e received'],
     ]);

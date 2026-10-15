@@ -204,7 +204,7 @@ export function flowTriggerLabel(flow: ParsedSalesforceFlow): string {
       break;
   }
   if (flow.processType === 'Flow') return 'Screen flow starts';
-  if (flow.processType === 'AutoLaunchedFlow') return 'Launched (by Apex, a button or another flow)';
+  if (flow.processType === 'AutoLaunchedFlow') return 'Launched by Apex or another flow';
   return flow.processType ? `${flow.processType} starts` : 'Flow starts';
 }
 
