@@ -84,6 +84,18 @@ describe('modelRegistry', () => {
     assert.equal(resolveProviderModelId('openai', 'gpt-6-astra'), 'gpt-6-astra');
   });
 
+  it('covers the October 2026 refresh', () => {
+    assert.equal(normalizeProviderTemperature('claude', 'claude-haiku-5-5', 0.7), undefined);
+    assert.equal(resolveProviderModelId('claude', 'claude-haiku-4-5-20251001'), 'claude-haiku-5-5');
+    assert.equal(resolveProviderModelId('claude', 'claude-haiku-latest'), 'claude-haiku-5-5');
+    assert.equal(normalizeProviderTemperature('claude', 'claude-haiku-4-5-20251001', 0.7), undefined);
+    assert.equal(resolveProviderModelId('google', 'gemini-4-latest'), 'gemini-4-argon');
+    assert.equal(resolveProviderModelId('google', 'gemini-3.5-flash'), 'gemini-3.6-flash');
+    assert.equal(resolveProviderModelId('google', 'gemini-3.7-flash'), 'gemini-3.8-flash');
+    assert.equal(resolveProviderModelId('mistral', 'mistral-large-4-0'), 'mistral-large-4');
+    assert.equal(resolveProviderModelId('deepseek', 'deepseek-v4-pro'), 'deepseek-v4-pro');
+  });
+
   it('covers the late-September 2026 Claude 5.5 and GPT-6 models', () => {
     assert.equal(normalizeProviderTemperature('claude', 'claude-opus-5-5', 0.7), undefined);
     assert.equal(normalizeProviderTemperature('claude', 'claude-sonnet-5-5', 0.7), undefined);
@@ -150,10 +162,22 @@ describe('ClaudeRuntime', () => {
 });
 
 describe('imageModelRegistry', () => {
-  it('resolves refreshed Grok image quality model and legacy pro alias', () => {
-    assert.equal(resolveImageModelId('grok', 'grok-imagine-image-quality'), 'grok-imagine-image-quality');
-    assert.equal(resolveImageModelId('grok', 'grok-imagine-image-pro'), 'grok-imagine-image-quality');
-    assert.equal(getResolvedImageModel('grok', 'grok-imagine-image-quality')?.displayName, 'Grok Imagine Quality');
+  it('routes the retiring Grok Imagine Quality and legacy pro alias to Imagine 2.0', () => {
+    assert.equal(resolveImageModelId('grok', 'grok-imagine-image-quality'), 'grok-imagine-image-2.0');
+    assert.equal(resolveImageModelId('grok', 'grok-imagine-image-pro'), 'grok-imagine-image-2.0');
+    assert.equal(getResolvedImageModel('grok', 'grok-imagine-image-quality')?.displayName, 'Grok Imagine 2.0');
+  });
+
+  it('serves every Gemini image model the web client offers instead of falling back', () => {
+    for (const model of ['gemini-nano-banana-2.1', 'gemini-3.1-flash-lite-image']) {
+      assert.equal(resolveImageModelId('google', model), model);
+    }
+    assert.equal(resolveImageModelId('google', 'nano-banana-2-lite'), 'gemini-3.1-flash-lite-image');
+    // Imagen 4 was shut down on the Gemini API; its replacement serves old selections.
+    for (const model of ['imagen-4.0-fast-generate-001', 'imagen-4.0-generate-001', 'imagen-4.0-ultra-generate-001']) {
+      assert.equal(resolveImageModelId('google', model), 'gemini-3.1-flash-image');
+    }
+    assert.equal(resolveImageModelId('google', undefined), 'gemini-2.5-flash-image');
   });
 
   it('serves Grok Imagine 2.0 without changing the default image model', () => {

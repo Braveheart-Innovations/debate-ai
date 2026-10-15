@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
 const { describe, it } = require('node:test');
 const { GoogleRuntime } = require('../lib/providers/google/runtime');
-const { getGeminiThinkingConfig } = require('../lib/providers/google/thinking');
+const { getGeminiThinkingConfig, getGeminiDeepThinkingConfig } = require('../lib/providers/google/thinking');
 
 describe('GoogleRuntime thinking controls', () => {
   it('uses minimal thinking for tight Gemini 3 Flash output caps', () => {
@@ -40,6 +40,13 @@ describe('GoogleRuntime thinking controls', () => {
       getGeminiThinkingConfig('gemini-3.6-flash', 256),
       { thinkingLevel: 'minimal' }
     );
+  });
+
+  it('gives Gemini 4 Argon thinking levels, never minimal', () => {
+    // Live-verified 2026-10-15: minimal 400s; low and high are accepted.
+    assert.deepEqual(getGeminiThinkingConfig('gemini-4-argon', 512), { thinkingLevel: 'low' });
+    assert.deepEqual(getGeminiDeepThinkingConfig('gemini-4-argon', 8192), { thinkingLevel: 'high' });
+    assert.equal(getGeminiThinkingConfig('gemini-4-argon', 8192), undefined);
   });
 
   it('disables Gemini 2.5 Flash thinking for tight output caps', () => {

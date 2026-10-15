@@ -19,12 +19,13 @@ const build = (runtime, model, deepThinking) => runtime.buildRequest(base(model,
 describe('deep thinking (the Team plan round)', () => {
   it('Claude: effort xhigh on models that take it; nothing otherwise, and nothing without the flag', () => {
     const claude = new ClaudeRuntime();
-    for (const model of ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-opus-4-7', 'claude-fable-5-1']) {
+    for (const model of ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5', 'claude-opus-4-7', 'claude-fable-5-1']) {
       assert.deepEqual(build(claude, model, true).output_config, { effort: 'xhigh' }, model);
       assert.equal(build(claude, model, false).output_config, undefined, model);
     }
-    // Sonnet 4.5 / Haiku 4.5 reject effort; Opus 4.6 / Sonnet 4.6 have no xhigh.
-    for (const model of ['claude-sonnet-4-5-20250929', 'claude-haiku-4-5-20251001', 'claude-opus-4-6', 'claude-sonnet-4-6']) {
+    // Sonnet 4.5 rejects effort; Opus 4.6 / Sonnet 4.6 have no xhigh. (Haiku 4.5
+    // now resolves to Haiku 5.5, which takes xhigh.)
+    for (const model of ['claude-sonnet-4-5-20250929', 'claude-opus-4-6', 'claude-sonnet-4-6']) {
       assert.equal(build(claude, model, true).output_config, undefined, model);
     }
     // Never a fixed thinking budget: the current models reject budget_tokens.

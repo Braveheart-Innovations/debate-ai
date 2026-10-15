@@ -52,11 +52,20 @@
         },
         "claude-haiku-4-5-20251001": {
           "contextLength": 200000,
-          "maxOutputTokens": 64000,
+          "maxOutputTokens": 128000,
           "supportedParams": [
-            "temperature",
             "maxTokens",
-            "topP",
+            "stopSequences"
+          ],
+          "supportsFunctions": true,
+          "supportsVision": true,
+          "isDeprecated": true
+        },
+        "claude-haiku-5-5": {
+          "contextLength": 1000000,
+          "maxOutputTokens": 128000,
+          "supportedParams": [
+            "maxTokens",
             "stopSequences"
           ],
           "supportsFunctions": true,
@@ -166,7 +175,7 @@
           "isDeprecated": true
         },
         "claude-sonnet-4-5-20250929": {
-          "contextLength": 1000000,
+          "contextLength": 200000,
           "maxOutputTokens": 64000,
           "supportedParams": [
             "temperature",
@@ -175,7 +184,8 @@
             "stopSequences"
           ],
           "supportsFunctions": true,
-          "supportsVision": true
+          "supportsVision": true,
+          "isDeprecated": true
         },
         "claude-sonnet-4-6": {
           "contextLength": 1000000,
@@ -409,8 +419,7 @@
             "stopSequences"
           ],
           "supportsFunctions": true,
-          "supportsVision": false,
-          "isDeprecated": true
+          "supportsVision": false
         }
       }
     },
@@ -548,7 +557,8 @@
             "stopSequences"
           ],
           "supportsFunctions": true,
-          "supportsVision": true
+          "supportsVision": true,
+          "isDeprecated": true
         },
         "gemini-3.5-flash-lite": {
           "contextLength": 1048576,
@@ -587,7 +597,8 @@
             "stopSequences"
           ],
           "supportsFunctions": true,
-          "supportsVision": true
+          "supportsVision": true,
+          "isDeprecated": true
         },
         "gemini-3.8-flash": {
           "contextLength": 1048576,
@@ -597,6 +608,16 @@
             "maxTokens",
             "topP",
             "topK",
+            "stopSequences"
+          ],
+          "supportsFunctions": true,
+          "supportsVision": true
+        },
+        "gemini-4-argon": {
+          "contextLength": 1048576,
+          "maxOutputTokens": 65536,
+          "supportedParams": [
+            "maxTokens",
             "stopSequences"
           ],
           "supportsFunctions": true,
@@ -834,6 +855,19 @@
         },
         "mistral-large-2512": {
           "contextLength": 262144,
+          "maxOutputTokens": 16384,
+          "supportedParams": [
+            "temperature",
+            "maxTokens",
+            "topP",
+            "stopSequences",
+            "seed"
+          ],
+          "supportsFunctions": true,
+          "supportsVision": true
+        },
+        "mistral-large-4": {
+          "contextLength": 1048576,
           "maxOutputTokens": 16384,
           "supportedParams": [
             "temperature",

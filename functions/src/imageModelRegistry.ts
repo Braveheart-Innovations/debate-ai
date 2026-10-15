@@ -3,7 +3,6 @@ export type ImageProviderId = 'openai' | 'google' | 'grok';
 export type ImageModelApiFamily =
   | 'openai-images'
   | 'google-gemini-image'
-  | 'google-imagen'
   | 'xai-images';
 
 export interface ImageModelConfig {
@@ -30,11 +29,20 @@ const IMAGE_MODEL_ALIASES: Partial<Record<ImageProviderId, Record<string, string
     'gemini-3.1-flash-image-preview': 'gemini-3.1-flash-image',
     'gemini-3-pro-image-preview': 'gemini-3-pro-image',
     'nano-banana-pro-preview': 'gemini-3-pro-image',
+    'nano-banana-2-lite': 'gemini-3.1-flash-lite-image',
+    // Google shut down the Imagen 4 endpoints on the Gemini API (2026-08-17;
+    // 404 since) and names Gemini 3.1 Flash Image as the replacement.
+    'imagen-4.0-fast-generate-001': 'gemini-3.1-flash-image',
+    'imagen-4.0-generate-001': 'gemini-3.1-flash-image',
+    'imagen-4.0-ultra-generate-001': 'gemini-3.1-flash-image',
   },
   grok: {
     'grok-2-image-1212': 'grok-imagine-image',
     'grok-image-latest': 'grok-imagine-image',
-    'grok-imagine-image-pro': 'grok-imagine-image-quality',
+    // xAI retires grok-imagine-image-quality on 2026-11-02 and serves it as
+    // grok-imagine-image-2.0; route persisted selections there now.
+    'grok-imagine-image-quality': 'grok-imagine-image-2.0',
+    'grok-imagine-image-pro': 'grok-imagine-image-2.0',
   },
 };
 
@@ -98,9 +106,27 @@ export const IMAGE_MODELS: Record<ImageProviderId, ImageModelConfig[]> = {
       supportsImageInput: true,
       isDefault: true,
     }),
+    // Nano Banana 2.1 (October 2026). Live-verified 2026-10-15 with the
+    // generateGemini request shape, including imageSize 2K.
+    createImageModel({
+      id: 'gemini-nano-banana-2.1',
+      displayName: 'Nano Banana 2.1',
+      apiFamily: 'google-gemini-image',
+      supportsImageInput: true,
+      isDefault: false,
+    }),
     createImageModel({
       id: 'gemini-3.1-flash-image',
       displayName: 'Gemini 3.1 Flash Image',
+      apiFamily: 'google-gemini-image',
+      supportsImageInput: true,
+      isDefault: false,
+    }),
+    // Offered by the web client since July 2026 but missing here, so requests
+    // for it silently fell back to the Google default model.
+    createImageModel({
+      id: 'gemini-3.1-flash-lite-image',
+      displayName: 'Gemini 3.1 Flash-Lite Image',
       apiFamily: 'google-gemini-image',
       supportsImageInput: true,
       isDefault: false,
@@ -110,27 +136,6 @@ export const IMAGE_MODELS: Record<ImageProviderId, ImageModelConfig[]> = {
       displayName: 'Gemini 3 Pro Image',
       apiFamily: 'google-gemini-image',
       supportsImageInput: true,
-      isDefault: false,
-    }),
-    createImageModel({
-      id: 'imagen-4.0-fast-generate-001',
-      displayName: 'Imagen 4 Fast',
-      apiFamily: 'google-imagen',
-      supportsImageInput: false,
-      isDefault: false,
-    }),
-    createImageModel({
-      id: 'imagen-4.0-generate-001',
-      displayName: 'Imagen 4',
-      apiFamily: 'google-imagen',
-      supportsImageInput: false,
-      isDefault: false,
-    }),
-    createImageModel({
-      id: 'imagen-4.0-ultra-generate-001',
-      displayName: 'Imagen 4 Ultra',
-      apiFamily: 'google-imagen',
-      supportsImageInput: false,
       isDefault: false,
     }),
   ],
@@ -149,13 +154,6 @@ export const IMAGE_MODELS: Record<ImageProviderId, ImageModelConfig[]> = {
       apiFamily: 'xai-images',
       supportsImageInput: true,
       isDefault: true,
-    }),
-    createImageModel({
-      id: 'grok-imagine-image-quality',
-      displayName: 'Grok Imagine Quality',
-      apiFamily: 'xai-images',
-      supportsImageInput: true,
-      isDefault: false,
     }),
   ],
 };
