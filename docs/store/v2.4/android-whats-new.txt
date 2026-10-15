@@ -2,7 +2,7 @@
 • Debate personalities speak in their own voice; Rematch keeps your setup
 • No dead ends: Send and Start show what's missing; Add key opens that provider
 • Model and personality picks register on the first tap
-• New: Claude Haiku 5.5, Gemini 4 Argon, Gemini 3.6 Flash, DeepSeek V4 Pro, Nano Banana 2.1
+• New: Claude Haiku 5.5, Gemini 4 Argon, DeepSeek V4 Pro, Nano Banana 2.1
 • Failed replies offer Continue or Try again
 
 Keys stay private on your device.

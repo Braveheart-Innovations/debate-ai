@@ -6,8 +6,8 @@ Scope is every mobile change merged after the 2.3.0 build (`ba1bdc1`). The `[ana
 
 | File | Where it goes | Limit | Count |
 |------|---------------|-------|-------|
-| `ios-whats-new.txt` | App Store **What's New in This Version** | 4000 | 1319 |
-| `android-whats-new.txt` | Google Play **What's new** (release notes) | 500 | 469 |
+| `ios-whats-new.txt` | App Store **What's New in This Version** | 4000 | 1301 |
+| `android-whats-new.txt` | Google Play **What's new** (release notes) | 500 | 451 |
 | `app-review-notes.txt` | App Store Connect **App Review Information → Notes** | 4000 | 1088 |
 
 Description, short description, subtitle, and promotional text are unchanged from v2.0 (`docs/store/v2.0/`).
@@ -25,9 +25,10 @@ Play reviewer access is in Play Console → App content → Sign in details ("Us
   Add key opens that provider's card; Studio/Chat point Runway or ElevenLabs keys to the tab where they work; a key
   pasted into an empty card is saved on leave. These answer the Play "Unresponsive app" warning of 2026-10-14.
 - **First-tap picks** (#272): PagedSheet pushed-page dead zone fixed; keyboardShouldPersistTaps on sheet lists.
-- **Models** (#272): Claude Haiku 5.5, Gemini 4 Argon, Gemini 3.6 Flash (replaces 3.5 Flash in the picker), DeepSeek
-  V4 Pro (restored), Nano Banana 2.1 (images). Retiring Sonnet 4.5, Haiku 4.5, Gemini 3.5 Flash and Grok Imagine
-  Quality map to successors. Mistral Large 4 is cataloged but not in the picker, so it is not named.
+- **Models** (#272): Claude Haiku 5.5, Gemini 4 Argon, DeepSeek V4 Pro (restored), Nano Banana 2.1 (images). Gemini 3.6
+  Flash is not named: it has been cataloged since July 2026 and only replaced 3.5 Flash in the picker (Google routes 3.5
+  Flash to it); Gemini 3.8 Flash, the default, was announced in 2.3. Retiring Sonnet 4.5, Haiku 4.5, Gemini 3.5
+  Flash and Grok Imagine Quality map to successors. Mistral Large 4 is cataloged but not in the picker, so it is not named.
 - **Continue / Try again for failed replies** (#206, `65499762`); **Claude key check** (#271).
 - Already delivered to 2.3.0 users by OTA before this build: #206, #252, #256. The 2.4 JavaScript also ships as an
   OTA to runtime 2.3.0, so most users see these changes before the store update.
