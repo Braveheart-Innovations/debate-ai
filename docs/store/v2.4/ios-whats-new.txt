@@ -1,0 +1,23 @@
+Symposium AI 2.4 gives debates the right length and makes every tap count.
+
+SPEECH LENGTH FOR DEBATES
+Choose Brief, Balanced, or Detailed when you set up a debate. Every AI now aims for the same length, so no debater runs on while another stops short. Setup remembers your choice, and Rematch keeps it.
+
+SHARPER DEBATE PERSONALITIES
+Each personality now debates in its own voice, written for the debate stage instead of borrowed from chat. Every debate starts fresh, and Rematch brings back your motion, format, and lineup.
+
+NO MORE DEAD ENDS
+• Tap Send or Start before everything is set and the app shows you what's missing, instead of doing nothing.
+• "Add key" takes you straight to that provider.
+• If your key works somewhere else, like a Runway key for video, the app points you there.
+• Picking a model or personality now registers on the first tap.
+• A key you paste is kept even if you leave before testing it.
+
+NEW MODELS
+Claude Haiku 5.5, Gemini 4 Argon, Gemini 3.6 Flash, DeepSeek V4 Pro, and Nano Banana 2.1 for images. Models their providers are retiring move to their successors automatically.
+
+FIXES
+• Failed replies now offer Continue or Try again.
+• Claude key checks keep working as Anthropic retires older models.
+
+And as always, bring your own API keys. They stay private and secure on your device.

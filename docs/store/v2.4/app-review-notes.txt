@@ -1,0 +1,11 @@
+What's new in 2.4.0: a speech-length setting for debates (Brief, Balanced, Detailed), clearer guidance when an AI or API key is missing instead of an unresponsive Send button, more reliable taps in the model and personality pickers, and model catalog updates. There are no new permissions, no new data collection, and no in-app purchase changes.
+
+HOW TO SEE THE SPEECH LENGTH SETTING (no account or API key needed)
+1. Launch the app. Without a subscription it runs in Demo Mode.
+2. Open the Debate tab. The Format card has a new Speech length row: Brief, Balanced, Detailed.
+Demo Mode plays pre-recorded debates, so the setting changes the length of live debates only.
+
+ABOUT THE APP
+Symposium AI uses a bring-your-own-keys model: users add their own API keys for AI providers, and the keys are stored only on the device. Without a subscription, Demo Mode plays clearly labeled, pre-recorded AI responses, so every screen can be reviewed. The in-app subscription unlocks first-party features; it does not sell access to third-party AI services.
+
+Contact: support@braveheartinnovations.com
