@@ -177,7 +177,13 @@ describe('executeSalesforceMetadataAuditTool', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(result.dataOutputs?.map((output) => output.filename)).toEqual(['enrollment_model.diagram.json']);
+      expect(result.dataOutputs?.map((output) => output.filename)).toEqual(['enrollment_model.diagram.json', 'enrollment_model.references.json']);
+      const references = JSON.parse(writtenFile('/output/enrollment_model.references.json')!);
+      expect(references).toMatchObject({ version: 1, kind: 'salesforce_references', diagram: 'enrollment_model.diagram.json' });
+      expect(Object.keys(references.objects)).toEqual(['Center__c', 'Enrollment__c', 'Contact']);
+      // Enrollment__c.Center__c looks up to Center__c: a reference to the object.
+      expect(references.objects.Center__c.references).toEqual([expect.objectContaining({ kind: 'relationship', component: 'Enrollment__c.Center__c', how: 'looks up to it' })]);
+      expect(result.content).toContain('What refers to each object and field');
       const written = JSON.parse(writtenFile('/output/enrollment_model.diagram.json')!);
       expect(written).toMatchObject({ kind: 'data_model', platform: 'salesforce', summary: '2 objects with their fields and relationships, read from salesforce-metadata-kc.zip.' });
       expect(written.entities.map((entity: { id: string }) => entity.id)).toEqual(['Center__c', 'Enrollment__c', 'Contact']);

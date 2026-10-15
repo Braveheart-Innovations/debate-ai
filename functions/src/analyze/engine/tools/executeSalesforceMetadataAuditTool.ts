@@ -11,6 +11,8 @@ import { diagramFileText } from '../../contract/services/analyze/diagrams/diagra
 import { buildSalesforceDataModel } from '../../salesforce/salesforceDataModel';
 import { buildSalesforceFlowDiagrams } from '../../salesforce/salesforceFlowDiagram';
 import { buildSalesforceSaveOrders } from '../../salesforce/salesforceSaveOrder';
+import { buildSalesforceReferenceIndex } from '../../salesforce/salesforceReferenceIndex';
+import { referencesFileFor } from '../../contract/services/analyze/diagrams/salesforceReferences';
 import {
   buildSalesforceAuditReport,
   buildSalesforceApexDrilldowns,
@@ -724,6 +726,10 @@ async function writeSalesforceDataModel(
   const filename = `${dataModelFileName(args.name)}.diagram.json`;
   const text = diagramFileText(diagram);
   await files.writeFile(`/output/${filename}`, Buffer.from(text, 'utf8'));
+  // What refers to each object and field: the Diagram view shows an edit's impact from it.
+  const referencesFile = referencesFileFor(filename);
+  const referencesText = JSON.stringify(buildSalesforceReferenceIndex(sourceFiles, diagram, filename));
+  await files.writeFile(`/output/${referencesFile}`, Buffer.from(referencesText, 'utf8'));
   const withFields = diagram.entities.filter((entity) => !referenced.includes(entity.id)).map((entity) => entity.id);
   const ownReferenced = referenced.filter((id) => !packageObjects.includes(id));
   const recordTypes = diagram.entities.reduce((sum, entity) => sum + (entity.recordTypes?.length ?? 0), 0);
@@ -739,8 +745,12 @@ async function writeSalesforceDataModel(
       `Each object carries its sharing model (sharingModel, externalSharingModel)${recordTypes > 0 ? ` and record types (${recordTypes} in all)` : ''}; picklists that take their values from a value set name it (valueSet).`,
       notFound.length > 0 ? `Not in the upload: ${notFound.join(', ')}.` : '',
       'Each object and field names its source file. It is the user\'s diagram: to change it, read the file, change only what the question needs (objects or fields you design are marked "assumed"), and save it to the same name. Set a title and summary that say what it covers.',
+      `What refers to each object and field (Apex, Flows, layouts, reports, rules, email templates, field-level security…, with file and line) is in /output/${referencesFile}; the Diagram view shows the user what an edit touches from it. Read it with Python for impact questions; it is data, not something to save or change.`,
     ].filter(Boolean).join('\n'),
-    dataOutputs: [{ filename, base64: Buffer.from(text, 'utf8').toString('base64'), size: Buffer.byteLength(text, 'utf8') }],
+    dataOutputs: [
+      { filename, base64: Buffer.from(text, 'utf8').toString('base64'), size: Buffer.byteLength(text, 'utf8') },
+      { filename: referencesFile, base64: Buffer.from(referencesText, 'utf8').toString('base64'), size: Buffer.byteLength(referencesText, 'utf8') },
+    ],
   };
 }
 
