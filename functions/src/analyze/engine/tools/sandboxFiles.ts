@@ -22,6 +22,8 @@ export interface SandboxFiles {
   writeFile: (path: string, bytes: Uint8Array) => Promise<void>;
   /** Make each link path the same file as its target. */
   linkFiles: (groups: Array<{ target: string; links: string[] }>) => Promise<void>;
+  /** Unpack zips into a folder, replacing it (unchanged zips are not unpacked again). */
+  extractZips: (zipPaths: string[], destination: string) => Promise<void>;
 }
 
 function toArrayBuffer(bytes: Buffer): ArrayBuffer {
@@ -36,6 +38,7 @@ export function createSandboxFiles(uid: string, sessionKey: string, onTime?: San
     listFiles: (dir = '/uploads') => timedSandboxCall(onTime, () => getSandboxService().listFiles(uid, sessionKey, dir)),
     writeFile: (path, bytes) => timedSandboxCall(onTime, () => getSandboxService().writeBytes(uid, sessionKey, path, bytes)),
     linkFiles: (groups) => timedSandboxCall(onTime, () => getSandboxService().linkFiles(uid, sessionKey, groups)),
+    extractZips: (zipPaths, destination) => timedSandboxCall(onTime, () => getSandboxService().extractZips(uid, sessionKey, zipPaths, destination)),
     mountFile: (filename, data, path) => timedSandboxCall(onTime, async () => {
       const target = path || `/uploads/${filename}`;
       await getSandboxService().writeFile(uid, sessionKey, {

@@ -523,6 +523,7 @@ public with sharing class EmailRoutingService {
     expect(salesforceNamespaceOf('My_Config__mdt')).toBeUndefined();
     expect(salesforceNamespaceOf('Course__Share')).toBeUndefined();
     expect(salesforceNamespaceOf('Account')).toBeUndefined();
+    expect(salesforceNamespaceOf('Tour_Date__c,HasOptedOutOfEmail')).toBeUndefined();
   });
 
   it('treats installed-package metadata as inventory: no risk rules, counted apart from the org\'s own', () => {
@@ -585,6 +586,37 @@ public class RollupService {
     expect(report).toContain('- hed v3.21: 4 components (');
     expect(report).toContain('project-owned components only');
     expect(formatComponentList([byName.get('hed__TDTM_Runnable')!])).toContain('[installed package hed, source hidden]');
+  });
+
+  it('joins Apex -meta.xml to its class, reads metadata-format names, and names other metadata by folder', () => {
+    const inPackage = (path: string, content: string) => ({
+      ...sourceFile(`force-app/main/default/${path}`, content),
+      metadataPath: path,
+    });
+    const index = buildSalesforceMetadataIndex([
+      inPackage('classes/TourService.cls-meta.xml', '<ApexClass><apiVersion>64.0</apiVersion><status>Active</status></ApexClass>'),
+      inPackage('classes/TourService.cls', 'public with sharing class TourService {\n  List<Lead> leads = [SELECT Id FROM Lead];\n}'),
+      inPackage('objects/Lead/Lead.object-meta.xml', '<CustomObject><label>Lead</label></CustomObject>'),
+      inPackage('sharingRules/Lead.sharingRules-meta.xml', '<SharingRules />'),
+      inPackage('reports/Sales/Pipeline.report-meta.xml', '<Report />'),
+      sourceFile('src/flows/Lead_Route.flow', '<Flow><status>Active</status></Flow>'),
+    ], ['fixture']);
+    const byId = new Map(index.components.map((component) => [component.id, component]));
+
+    expect(byId.get('apex_class:TourService')).toMatchObject({
+      path: 'force-app/main/default/classes/TourService.cls',
+      apiVersion: '64.0',
+      paths: expect.arrayContaining(['force-app/main/default/classes/TourService.cls-meta.xml']),
+    });
+    expect(byId.get('flow:Lead_Route')).toBeDefined();
+    expect(byId.get('unknown:sharingRules/Lead')).toMatchObject({ name: 'Lead', metadataType: 'sharingRules' });
+    expect(byId.get('unknown:reports/Sales/Pipeline')).toMatchObject({ metadataType: 'reports' });
+    // `Lead` in Apex is the object, not the Lead sharing rules.
+    expect(index.dependencies).toEqual(expect.arrayContaining([
+      expect.objectContaining({ sourceName: 'TourService', targetId: 'custom_object:Lead' }),
+    ]));
+    expect(index.dependencies.some((dependency) => dependency.targetId === 'unknown:sharingRules/Lead')).toBe(false);
+    expect(index.sourceSummary.metadataTypes).toEqual({ reports: 1, sharingRules: 1 });
   });
 
   it('keeps the workspace\'s own namespace as the org\'s metadata', () => {

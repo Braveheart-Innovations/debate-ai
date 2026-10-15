@@ -42,6 +42,8 @@ import {
 const DEFAULT_OPERATION: SalesforceMetadataAuditOperation = 'audit';
 const SALESFORCE_OUTPUT_ROOT = '/output/salesforce';
 const SALESFORCE_DATA_ROOT = '/data/salesforce';
+/** The uploaded workspace, unpacked for Python (same paths as in the upload). */
+export const SALESFORCE_WORKSPACE_ROOT = `${SALESFORCE_DATA_ROOT}/workspace`;
 
 interface SalesforceArtifactFile {
   filename: string;
@@ -62,7 +64,7 @@ export async function executeSalesforceMetadataAuditTool(
 ): Promise<ToolResult> {
   try {
     const parsedArgs = normalizeArgs(args);
-    const { sourceFiles, insightPackets, invalidInsightPackets } = await loadSalesforceWorkspaceInputs(files, parsedArgs.paths);
+    const { sourceFiles, insightPackets, invalidInsightPackets, retrieveRun } = await loadSalesforceWorkspaceInputs(files, parsedArgs.paths);
 
     if (sourceFiles.length === 0) {
       return {
@@ -72,18 +74,20 @@ export async function executeSalesforceMetadataAuditTool(
       };
     }
 
+    const workspaceNote = await unpackWorkspace(files, sourceFiles);
+
     if (parsedArgs.operation === 'data_model') {
       return await writeSalesforceDataModel(files, toolCallId, sourceFiles, parsedArgs);
     }
 
-    const index = buildSalesforceMetadataIndex(sourceFiles, parsedArgs.paths || [], insightPackets, parsedArgs.query);
+    const index = buildSalesforceMetadataIndex(sourceFiles, parsedArgs.paths || [], insightPackets, parsedArgs.query, retrieveRun);
     const artifactFiles = parsedArgs.include_artifacts === false
       ? []
       : buildArtifactFiles(index, parsedArgs, invalidInsightPackets);
     const filesystemArtifacts = artifactFiles.length > 0
       ? await persistArtifactFilesToFilesystem(files, artifactFiles)
       : [];
-    const content = buildOperationContent(index, parsedArgs, filesystemArtifacts, invalidInsightPackets);
+    const content = `${buildOperationContent(index, parsedArgs, filesystemArtifacts, invalidInsightPackets)}\n\n${workspaceNote}`;
     const dataOutputs = artifactFiles.length > 0
       ? encodeArtifactOutputs(artifactFiles)
       : undefined;
@@ -117,6 +121,26 @@ export async function executeSalesforceMetadataAuditTool(
       success: false,
       error: error instanceof Error ? error.message : 'Salesforce metadata audit failed',
     };
+  }
+}
+
+/**
+ * Unpack the workspace bundles into SALESFORCE_WORKSPACE_ROOT so the operator and
+ * teammates can work over every file in Python. Returns the line that tells the model.
+ */
+async function unpackWorkspace(files: SandboxFiles, sourceFiles: SalesforceSourceFile[]): Promise<string> {
+  const bundles = Array.from(new Set(sourceFiles
+    .map((file) => file.sourcePath)
+    .filter((path): path is string => typeof path === 'string' && /\.zip$/i.test(path))));
+  if (bundles.length === 0) {
+    return 'Read the uploaded Salesforce files with salesforce_read_source.';
+  }
+  try {
+    await files.extractZips(bundles, SALESFORCE_WORKSPACE_ROOT);
+    return `The workspace's files are unpacked at ${SALESFORCE_WORKSPACE_ROOT}/ (the upload's paths). Use Python over them for questions the audit's files don't answer, such as every automation that writes a field or every place a label appears; quote code with salesforce_read_source and cite path:line.`;
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : 'unknown error';
+    return `The workspace could not be unpacked at ${SALESFORCE_WORKSPACE_ROOT}/ (${reason}); read files with salesforce_read_source.`;
   }
 }
 
@@ -222,7 +246,10 @@ function buildOperationContent(
       );
       const risks = index.risks.filter((risk) => risk.componentId === component.id);
       return [
-        `Component: ${component.name} (${component.type})`,
+        `Component: ${component.name} (${component.metadataType ?? component.type})`,
+        ...(component.managed
+          ? [`Owner: installed package${component.namespace ? ` ${component.namespace}` : ''}${component.sourceHidden ? ' (source hidden)' : ''}; no risk rules run on it`]
+          : []),
         `Path: ${component.path}`,
         `Files: ${component.paths.join(', ')}`,
         `Tags: ${component.tags.join(', ') || 'none'}`,
