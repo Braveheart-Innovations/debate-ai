@@ -229,7 +229,34 @@ function startDescription(flow: ParsedSalesforceFlow): string {
   const lines = [flowEntryConditions(flow)].filter(Boolean);
   if (flow.triggerOrder !== undefined) lines.push(`Trigger order ${flow.triggerOrder}.`);
   if (flow.status && flow.status !== 'Active') lines.push(`This version is ${flow.status}.`);
+  // The Flow's own description, as its authors wrote it (often version notes): kept here, never as the summary.
+  if (flow.description) lines.push(`Its description: ${flow.description}`);
   return lines.join(' ');
+}
+
+const RECORD_TAGS = new Set(['recordCreates', 'recordUpdates', 'recordDeletes', 'recordLookups', 'recordRollbacks']);
+const DECISION_TAGS = new Set(['decisions', 'loops', 'waits']);
+
+function plural(count: number, one: string, many = `${one}s`): string {
+  return `${count} ${count === 1 ? one : many}`;
+}
+
+/** A Flow's summary from what it is: its trigger, then what it holds (never the Flow's own description). */
+export function flowSummary(flow: ParsedSalesforceFlow, nodes: FlowNode[]): string {
+  const elements = nodes.filter((node) => node.type === 'step' || (node.type === 'decision' && node.elementType !== 'scheduledPaths'));
+  const count = (tags: Set<string>) => elements.filter((node) => tags.has(node.elementType ?? '')).length;
+  const parts = [
+    plural(count(DECISION_TAGS), 'decision or loop', 'decisions and loops'),
+    plural(count(RECORD_TAGS), 'record operation'),
+    plural(elements.filter((node) => node.elementType === 'actionCalls' || node.elementType === 'apexPluginCalls').length, 'action'),
+    plural(elements.filter((node) => node.elementType === 'subflows').length, 'subflow'),
+  ].filter((part) => !part.startsWith('0 '));
+  const issues = nodes.filter((node) => node.issues && node.issues.length > 0).length;
+  return [
+    `${flowTriggerLabel(flow)}.`,
+    `${plural(elements.length, 'element')}${parts.length > 0 ? `: ${parts.join(', ')}` : ''}${issues > 0 ? `; ${issues} without a fault path` : ''}.`,
+    `Drawn from ${flow.apiName}${flow.status && flow.status !== 'Active' ? ` (${flow.status})` : ''}.`,
+  ].join(' ');
 }
 
 /** What a record operation works on: "Lead records", "the triggering Lead record". */
@@ -560,7 +587,7 @@ export function buildSalesforceFlowDiagrams(
       const flow = parse(name)!;
       const drawn = drawFlow(flow, '', flowTriggerLabel(flow));
       return {
-        diagram: flowDiagram(`Flow: ${flow.label}`, `${flowTriggerLabel(flow)}: ${flow.description ?? `the ${flow.label} flow`}, drawn from ${flow.apiName}.`, drawn.nodes, drawn.flows),
+        diagram: flowDiagram(`Flow: ${flow.label}`, flowSummary(flow, drawn.nodes), drawn.nodes, drawn.flows),
         flows: [name],
         links: [],
         unreachable: drawn.unreachable.length > 0 ? { [name]: drawn.unreachable } : {},
