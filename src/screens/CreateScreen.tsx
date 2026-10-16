@@ -26,7 +26,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useSelector, useDispatch } from 'react-redux';
 import * as Haptics from 'expo-haptics';
-import * as MediaLibrary from 'expo-media-library';
+import * as MediaLibrary from 'expo-media-library/legacy';
 import * as Sharing from 'expo-sharing';
 import { VideoView, useVideoPlayer, type PlayingChangeEventPayload } from 'expo-video';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';

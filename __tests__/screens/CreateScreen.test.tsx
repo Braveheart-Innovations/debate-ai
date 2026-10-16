@@ -90,7 +90,7 @@ jest.mock('@/hooks/useGreeting', () => ({
   }),
 }));
 
-jest.mock('expo-media-library', () => ({
+jest.mock('expo-media-library/legacy', () => ({
   getPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted', granted: true }),
   requestPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),
   saveToLibraryAsync: jest.fn().mockResolvedValue(undefined),

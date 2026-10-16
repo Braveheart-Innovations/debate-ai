@@ -70,6 +70,27 @@ export default tseslint.config(
           message: 'No `as unknown as` in app code: use a type guard, a typed boundary validator, or fix the type.',
         },
       ],
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              // Since SDK 57 the package root re-exports these legacy functions as
+              // stubs that throw at runtime; tsc and the jest mocks can't tell.
+              name: 'expo-media-library',
+              importNames: [
+                'isAvailableAsync', 'presentPermissionsPickerAsync', 'createAssetAsync',
+                'saveToLibraryAsync', 'addAssetsToAlbumAsync', 'removeAssetsFromAlbumAsync',
+                'deleteAssetsAsync', 'getAssetInfoAsync', 'getAlbumsAsync', 'getAlbumAsync',
+                'createAlbumAsync', 'deleteAlbumsAsync', 'getAssetsAsync', 'removeSubscription',
+                'getMomentsAsync', 'migrateAlbumIfNeededAsync', 'albumNeedsMigrationAsync',
+                'setAssetFavoriteAsync', 'getAssetContentUriAsync',
+              ],
+              message: "This throws at runtime when imported from the package root: import it from 'expo-media-library/legacy', or use the class API (Asset, Album).",
+            },
+          ],
+        },
+      ],
     },
   },
   {
