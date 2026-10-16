@@ -122,8 +122,8 @@ describe('packageSalesforceDocsLookupEvidence', () => {
       parameters: { pagesRead: '2', provenanceFile: `/data/salesforce/docs/${base}.provenance.json` },
     });
     expect(result.dataOutputs?.map((output) => output.filename)).toEqual([
-      'salesforce-doc-evidence-call_docs_1.json',
-      'salesforce-doc-evidence-call_docs_1.md',
+      expect.stringMatching(/^salesforce-doc-evidence-[0-9a-f]{8}\.json$/),
+      expect.stringMatching(/^salesforce-doc-evidence-[0-9a-f]{8}\.md$/),
     ]);
     expect(mountFile.mock.calls.map((call) => call[2])).not.toContain('/data/salesforce/salesforce-doc-evidence.json');
   });

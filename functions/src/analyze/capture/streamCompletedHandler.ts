@@ -799,7 +799,10 @@ function extractDataArtifacts(
     const alwaysVersions = isRecipe || isDiagram || isRecipeOutputFilename(data.filename, recipeDirs);
     const salesforceRole = getSalesforceArtifactRole(data.filename);
     const existingByName = ctx.existingArtifacts.find(a => a.name === data.filename);
-    if (salesforceRole && ctx.suppressSalesforcePacketArtifacts) {
+    // A docs lookup's readable evidence (the passages read) is always an artifact;
+    // its JSON and the audit's packet files stay hidden outside portable mode.
+    const isReadableDocsEvidence = salesforceRole === 'documentation_evidence' && ext === 'md';
+    if (salesforceRole && ctx.suppressSalesforcePacketArtifacts && !isReadableDocsEvidence) {
       if (existingByName) {
         deps.dispatch({ type: 'REMOVE_ARTIFACT', payload: existingByName.id });
       }

@@ -153,7 +153,8 @@ export async function packageSalesforceDocsLookupEvidence(
   const json = JSON.stringify(evidence, null, 2);
   const markdown = renderSalesforceDocEvidenceMarkdown(evidence);
   const provenanceJson = JSON.stringify(provenance, null, 2);
-  const outputName = `salesforce-doc-evidence-${base.slice('lookup_'.length)}`;
+  // Short and per lookup: the Artifacts tab lists the readable evidence by this name.
+  const outputName = `salesforce-doc-evidence-${sha256Hex(toolCallId).slice(0, 8)}`;
   await persist(sandbox, `${base}.json`, json, `${SALESFORCE_DOCS_DIR}/${base}.json`);
   await persist(sandbox, `${base}.md`, markdown, `${SALESFORCE_DOCS_DIR}/${base}.md`);
   await persist(sandbox, `${base}.provenance.json`, provenanceJson, `${SALESFORCE_DOCS_DIR}/${base}.provenance.json`);
