@@ -84,6 +84,17 @@ describe('SessionFilesSync and the Salesforce workspace', () => {
     warn.mockRestore();
   });
 
+  it('unpacks packets imported on their own beside the bundle, so their limits.csv is in the workspace', async () => {
+    await new SessionFilesSync('uid', 's1', 'key').sync();
+    const packets = new JSZip();
+    packets.file('qa/.symposium/salesforce-insights/20261016T182500Z-limits/limits.csv', 'limit,max,remaining,at\nDataStorageMB,486640,293200,2026-10-16T18:25:00Z');
+    await upload('u3', '/uploads/qa-salesforce-insights.zip', new Uint8Array(await packets.generateAsync({ type: 'arraybuffer' })));
+    await new SessionFilesSync('uid', 's1', 'key').sync();
+    // Sorted, as the audit lists them, so both unpack under one checksum.
+    expect(mockSandbox.extractZips).toHaveBeenLastCalledWith('uid', 'key', ['/uploads/qa-salesforce-insights.zip', '/uploads/qa-salesforce-metadata.zip'], '/data/salesforce/workspace');
+    expect(JSON.parse(storedMarker!).salesforceBundles).toEqual(['u1', 'u3']);
+  });
+
   it('leaves the workspace alone in a session with no Salesforce bundle', async () => {
     records.splice(0, 1);
     await new SessionFilesSync('uid', 's1', 'key').sync();

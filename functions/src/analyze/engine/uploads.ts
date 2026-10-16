@@ -27,7 +27,7 @@ import {
 import type { SandboxFiles } from './tools/sandboxFiles';
 import { listSessionArtifactIds, loadArtifactsById, removeUndefined } from './sessionStore';
 import { mountArtifactsToSandbox } from './artifactFilesystemHydration';
-import { isSalesforceBundle, SALESFORCE_WORKSPACE_ROOT } from '../salesforce/SalesforceMetadataService';
+import { isSalesforceWorkspaceZip, SALESFORCE_WORKSPACE_ROOT } from '../salesforce/SalesforceMetadataService';
 
 /** Written after a restore; a sandbox without it is new (or was reset) and gets the session's files. */
 export const SESSION_FILES_MARKER = '/home/user/.symposium/session-files.json';
@@ -327,7 +327,7 @@ export class SessionFilesSync {
       });
       marker.uploads[upload.id] = upload.sha256;
       changed = true;
-      const bundle = /\.zip$/i.test(upload.pythonPath) && await isSalesforceBundle(bytes);
+      const bundle = /\.zip$/i.test(upload.pythonPath) && await isSalesforceWorkspaceZip(bytes);
       if (bundle || marker.salesforceBundles.has(upload.id)) bundlesChanged = true;
       if (bundle) marker.salesforceBundles.add(upload.id);
       else marker.salesforceBundles.delete(upload.id);
