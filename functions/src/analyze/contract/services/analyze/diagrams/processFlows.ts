@@ -79,43 +79,172 @@ export function distributionMean(distribution: Distribution): number {
   }
 }
 
-/** A Salesforce element type in words: Flow elements by their XML names, save-order steps by their metadata types. */
-const ELEMENT_TYPE_WORDS: Record<string, string> = {
-  recordCreates: 'Create records',
-  recordUpdates: 'Update records',
-  recordDeletes: 'Delete records',
-  recordLookups: 'Get records',
-  recordRollbacks: 'Roll back records',
-  assignments: 'Assignment',
-  actionCalls: 'Action',
-  apexPluginCalls: 'Apex plug-in',
-  screens: 'Screen',
-  subflows: 'Subflow',
-  loops: 'Loop',
-  decisions: 'Decision',
-  waits: 'Wait',
-  collectionProcessors: 'Collection filter or sort',
-  transforms: 'Transform',
-  customErrors: 'Custom error',
-  orchestratedStages: 'Stage',
-  scheduledPaths: 'Scheduled paths',
-  flow: 'Flow',
-  process: 'Process Builder process',
-  apexTrigger: 'Apex trigger',
-  validationRule: 'Validation rule',
-  duplicateRule: 'Duplicate rule',
-  assignmentRule: 'Assignment rule',
-  autoResponseRule: 'Auto-response rule',
-  workflowRule: 'Workflow rule',
-  escalationRule: 'Escalation rule',
-  entitlementProcess: 'Entitlement process',
-  sharingRule: 'Sharing rule',
-  rollUpSummary: 'Roll-up summary',
+/** Flow Builder's color families: data (records), logic, interaction; and the start, the end, the platform's own steps. */
+export type FlowFamily = 'data' | 'logic' | 'interaction' | 'start' | 'end' | 'neutral';
+
+/** The shape of an element's icon tile, as Flow Builder draws it: decisions are diamonds. */
+export type FlowTileShape = 'square' | 'diamond' | 'circle';
+
+interface FlowElementKind {
+  /** Flow Builder's name for it. */
+  name: string;
+  family: FlowFamily;
+  shape: FlowTileShape;
+}
+
+/**
+ * Salesforce element types: Flow elements by their XML names (as Flow Builder
+ * names and colors them), and save-order steps by their metadata types.
+ */
+const ELEMENT_KINDS: Record<string, FlowElementKind> = {
+  recordLookups: { name: 'Get Records', family: 'data', shape: 'square' },
+  recordCreates: { name: 'Create Records', family: 'data', shape: 'square' },
+  recordUpdates: { name: 'Update Records', family: 'data', shape: 'square' },
+  recordDeletes: { name: 'Delete Records', family: 'data', shape: 'square' },
+  recordRollbacks: { name: 'Roll Back Records', family: 'data', shape: 'square' },
+  assignments: { name: 'Assignment', family: 'logic', shape: 'square' },
+  decisions: { name: 'Decision', family: 'logic', shape: 'diamond' },
+  scheduledPaths: { name: 'Scheduled Paths', family: 'logic', shape: 'diamond' },
+  loops: { name: 'Loop', family: 'logic', shape: 'circle' },
+  collectionProcessors: { name: 'Collection Filter or Sort', family: 'logic', shape: 'square' },
+  transforms: { name: 'Transform', family: 'logic', shape: 'square' },
+  waits: { name: 'Wait', family: 'logic', shape: 'square' },
+  customErrors: { name: 'Custom Error', family: 'logic', shape: 'square' },
+  screens: { name: 'Screen', family: 'interaction', shape: 'square' },
+  actionCalls: { name: 'Action', family: 'interaction', shape: 'square' },
+  apexPluginCalls: { name: 'Apex Action', family: 'interaction', shape: 'square' },
+  subflows: { name: 'Subflow', family: 'interaction', shape: 'square' },
+  orchestratedStages: { name: 'Stage', family: 'interaction', shape: 'square' },
+  flow: { name: 'Flow', family: 'interaction', shape: 'square' },
+  process: { name: 'Process Builder process', family: 'interaction', shape: 'square' },
+  apexTrigger: { name: 'Apex Trigger', family: 'interaction', shape: 'square' },
+  validationRule: { name: 'Validation Rule', family: 'logic', shape: 'square' },
+  duplicateRule: { name: 'Duplicate Rule', family: 'logic', shape: 'square' },
+  assignmentRule: { name: 'Assignment Rule', family: 'logic', shape: 'square' },
+  autoResponseRule: { name: 'Auto-Response Rule', family: 'logic', shape: 'square' },
+  workflowRule: { name: 'Workflow Rule', family: 'logic', shape: 'square' },
+  escalationRule: { name: 'Escalation Rule', family: 'logic', shape: 'square' },
+  entitlementProcess: { name: 'Entitlement Process', family: 'logic', shape: 'square' },
+  sharingRule: { name: 'Sharing Rule', family: 'logic', shape: 'square' },
+  rollUpSummary: { name: 'Roll-Up Summary', family: 'data', shape: 'square' },
 };
 
-/** "Update records" for `recordUpdates`; a type it doesn't know reads as written. */
+/** "Update Records" for `recordUpdates`; a type it doesn't know reads as written. */
 export function elementTypeLabel(elementType: string): string {
-  return ELEMENT_TYPE_WORDS[elementType] ?? elementType;
+  return ELEMENT_KINDS[elementType]?.name ?? elementType;
+}
+
+/** A Salesforce node's family and tile shape: by its element type, else by what the node is. */
+export function flowElementKind(node: Pick<FlowNode, 'type' | 'elementType'>): { family: FlowFamily; shape: FlowTileShape } {
+  const kind = node.elementType ? ELEMENT_KINDS[node.elementType] : undefined;
+  if (kind) return kind;
+  if (node.type === 'start') return { family: 'start', shape: 'circle' };
+  if (node.type === 'end') return { family: 'end', shape: 'circle' };
+  if (node.type === 'decision') return { family: 'logic', shape: 'diamond' };
+  return { family: 'neutral', shape: 'square' };
+}
+
+/** The DML a Salesforce element performs (create, update, delete), or null: a query (Get Records) isn't DML. */
+export function dmlOf(elementType: string | undefined): 'create' | 'update' | 'delete' | null {
+  if (elementType === 'recordCreates') return 'create';
+  if (elementType === 'recordUpdates') return 'update';
+  if (elementType === 'recordDeletes') return 'delete';
+  return null;
+}
+
+/**
+ * Whether a Salesforce element may write records without saying so: Apex (an
+ * invocable action or plugin), a quick action, a subflow. The diagram can't see
+ * inside them; an action of unknown type counts too. An email alert or a
+ * platform action that only sends doesn't.
+ */
+export function mayDoDml(node: Pick<FlowNode, 'elementType' | 'element'>): boolean {
+  if (node.elementType === 'subflows' || node.elementType === 'apexPluginCalls') return true;
+  if (node.elementType !== 'actionCalls') return false;
+  const type = node.element?.action?.type;
+  return !type || type === 'apex' || type === 'quickAction' || type === 'flow';
+}
+
+/** A Salesforce flow's DML: the elements that write records (by kind, how many inside a loop), and those that may. */
+export function flowDml(diagram: ProcessFlowDiagram): {
+  writes: FlowNode[];
+  creates: number;
+  updates: number;
+  deletes: number;
+  inLoops: number;
+  maybe: FlowNode[];
+} {
+  const writes = diagram.nodes.filter((node) => dmlOf(node.elementType));
+  return {
+    writes,
+    creates: writes.filter((node) => node.elementType === 'recordCreates').length,
+    updates: writes.filter((node) => node.elementType === 'recordUpdates').length,
+    deletes: writes.filter((node) => node.elementType === 'recordDeletes').length,
+    inLoops: writes.filter((node) => node.issues?.some((issue) => issue.startsWith('In a loop'))).length,
+    maybe: diagram.nodes.filter((node) => mayDoDml(node)),
+  };
+}
+
+/** Elements the Add menu offers for a Salesforce flow, grouped as Flow Builder groups them. */
+export const FLOW_ELEMENT_MENU: Array<{ group: string; elementTypes: string[] }> = [
+  { group: 'Interaction', elementTypes: ['screens', 'actionCalls', 'subflows'] },
+  { group: 'Logic', elementTypes: ['assignments', 'decisions', 'loops', 'collectionProcessors'] },
+  { group: 'Data', elementTypes: ['recordLookups', 'recordCreates', 'recordUpdates', 'recordDeletes'] },
+];
+
+/** Flow Builder's operator words: `EqualTo` reads "Equals", an assignment's `Assign` too. */
+const OPERATOR_WORDS: Record<string, string> = {
+  EqualTo: 'Equals',
+  NotEqualTo: 'Does Not Equal',
+  GreaterThan: 'Greater Than',
+  GreaterThanOrEqualTo: 'Greater Than or Equal',
+  LessThan: 'Less Than',
+  LessThanOrEqualTo: 'Less Than or Equal',
+  Contains: 'Contains',
+  StartsWith: 'Starts With',
+  EndsWith: 'Ends With',
+  IsNull: 'Is Null',
+  IsChanged: 'Is Changed',
+  WasSet: 'Was Set',
+  WasSelected: 'Was Selected',
+  WasVisited: 'Was Visited',
+  In: 'In',
+  NotIn: 'Not In',
+  Assign: 'Equals',
+  Add: 'Add',
+  Subtract: 'Subtract',
+  AddItem: 'Add',
+  AddAtStart: 'Add at Start',
+  RemoveAll: 'Remove All',
+  RemoveFirst: 'Remove First',
+  RemoveAfterFirst: 'Remove After First',
+  RemoveBeforeFirst: 'Remove Before First',
+  RemoveUncommon: 'Remove Uncommon',
+  AssignCount: 'Equals Count',
+};
+
+export function operatorWords(operator: string | undefined): string {
+  return operator ? OPERATOR_WORDS[operator] ?? operator : 'Equals';
+}
+
+/**
+ * A Flow value as Flow Builder writes it: text without its quotes, a number or
+ * true/false as is, a resource in merge syntax (`{!Get_Queue.Id}`).
+ */
+export function flowValueWords(value: string | undefined): string {
+  if (value === undefined || value === '') return '';
+  const quoted = value.match(/^"([\s\S]*)"$/);
+  if (quoted) return quoted[1];
+  if (/^(true|false|-?\d+(\.\d+)?)$/i.test(value) || value.startsWith('{!')) return value;
+  return `{!${value}}`;
+}
+
+/** A filter's logic in Flow Builder's words: "All Conditions Are Met (AND)", or the custom formula. */
+export function filterLogicWords(logic: string | undefined): string {
+  const mode = (logic ?? 'and').trim();
+  if (/^and$/i.test(mode)) return 'All Conditions Are Met (AND)';
+  if (/^or$/i.test(mode)) return 'Any Condition Is Met (OR)';
+  return `Custom Condition Logic Is Met: ${mode}`;
 }
 
 /** A node's numbers in a line: "every ~4 min", "2–5 min · 2 at once", "shared: Front desk"; in a Salesforce flow, what the element is. */
@@ -146,6 +275,25 @@ export function flowLabel(flow: Flow): string {
   return [flow.label, share].filter(Boolean).join(' · ');
 }
 
+/**
+ * The label each flow shows. Flows that join the same two nodes the same way
+ * (a decision whose outcomes all lead to one element) are drawn as one line,
+ * so they share one label, "Yes · No", on the first of them.
+ */
+export function sharedFlowLabels(flows: Flow[]): Map<string, string> {
+  const together = new Map<string, Flow[]>();
+  for (const flow of flows) {
+    const key = JSON.stringify([flow.from, flow.to, flow.fault ? 'fault' : flow.launch ? 'launch' : '']);
+    together.set(key, [...(together.get(key) ?? []), flow]);
+  }
+  const labels = new Map<string, string>();
+  for (const group of together.values()) {
+    const text = [...new Set(group.map(flowLabel).filter(Boolean))].join(' · ');
+    group.forEach((flow, index) => labels.set(flow.id, index === 0 ? text : ''));
+  }
+  return labels;
+}
+
 // ── Edits ────────────────────────────────────────────────────────────────────
 
 const NEW_NODE: Record<FlowNodeType, Omit<FlowNode, 'id'>> = {
@@ -168,6 +316,14 @@ export function addFlowNode(diagram: ProcessFlowDiagram, type: FlowNodeType): { 
   const id = uniqueName(diagram.nodes.map((node) => node.id), type);
   const node = (isAutomationFlow(diagram) ? NEW_AUTOMATION_NODE : NEW_NODE)[type];
   return { diagram: { ...diagram, nodes: [...diagram.nodes, { id, ...node }] }, id };
+}
+
+/** A new Flow element the user adds to a Salesforce flow: "New Get Records", typed, marked as the user's (a decision or loop branches). */
+export function addFlowElement(diagram: ProcessFlowDiagram, elementType: string): { diagram: ProcessFlowDiagram; id: string } {
+  const name = elementTypeLabel(elementType);
+  const id = uniqueName(diagram.nodes.map((node) => node.id), `New_${name.replace(/[^A-Za-z0-9]+/g, '_')}`);
+  const type: FlowNodeType = elementType === 'decisions' || elementType === 'loops' ? 'decision' : 'step';
+  return { diagram: { ...diagram, nodes: [...diagram.nodes, { id, type, label: `New ${name}`, elementType, source: 'user' }] }, id };
 }
 
 type NodePatch = Partial<Omit<FlowNode, 'id'>>;

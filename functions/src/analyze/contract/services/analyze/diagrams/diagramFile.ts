@@ -183,6 +183,12 @@ const flowElementSchema = z.object({
   flowName: z.string().optional(),
   /** The collection a loop goes through. */
   collection: z.string().optional(),
+  /** The record or collection a Create, Update or Delete Records uses (`$Record`, the record that triggered the flow, or a variable). */
+  inputRecord: z.string().optional(),
+  /** Get Records: only the first record (else all of them). */
+  firstRecordOnly: z.boolean().optional(),
+  /** Get Records: how the records are sorted. */
+  sort: z.object({ field: z.string(), order: z.string() }).optional(),
 });
 
 const flowNodeSchema = z.object({

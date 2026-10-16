@@ -31,7 +31,7 @@ const ROUTE = flowFile('Route_to_CRC_Queue', `
     <triggerType>RecordAfterSave</triggerType>
   </start>
   <recordLookups>
-    <name>Get_Queue</name><label>Get queue</label>${connector('Found')}
+    <name>Get_Queue</name><label>Get queue</label>${connector('Found')}<getFirstRecordOnly>true</getFirstRecordOnly><sortField>CreatedDate</sortField><sortOrder>Desc</sortOrder>
     <faultConnector><targetReference>Log_Error</targetReference></faultConnector>
     <object>Group</object>
     <filters><field>DeveloperName</field><operator>EqualTo</operator><value><stringValue>CRC</stringValue></value></filters>
@@ -83,8 +83,8 @@ describe('a Flow as a process diagram', () => {
       ['Found', 'Each_Member', 'Yes', false],
       ['Found', 'end', 'Not found', false],
       ['Log_Error', 'end', '', false],
-      ['Each_Member', 'Notify', 'For each item', false],
-      ['Each_Member', 'Assign', 'After last item', false],
+      ['Each_Member', 'Notify', 'For Each Item', false],
+      ['Each_Member', 'Assign', 'After Last Item', false],
       ['Notify', 'Each_Member', '', false],
       ['Assign', 'end', '', false],
     ]);
@@ -152,7 +152,8 @@ describe('a Flow as a process diagram', () => {
     expect(facts('Found')!.outcomes).toEqual([{ label: 'Yes', conditions: [] }, { label: 'Not found', conditions: [], isDefault: true }]);
     expect(facts('Each_Member')).toMatchObject({ collection: 'Get_Members' });
     expect(facts('Notify')).toMatchObject({ action: { name: 'Lead.Notify', type: 'emailAlert' } });
-    expect(facts('Assign')).toMatchObject({ object: 'Lead', assignments: [{ field: 'OwnerId', value: 'Get_Queue.Id' }] });
+    expect(facts('Assign')).toMatchObject({ object: 'Lead', inputRecord: '$Record', assignments: [{ field: 'OwnerId', value: 'Get_Queue.Id' }] });
+    expect(facts('Get_Queue')).toMatchObject({ firstRecordOnly: true, sort: { field: 'CreatedDate', order: 'Desc' } });
   });
 
   it('flags a record operation inside a loop against the transaction\'s limits', () => {

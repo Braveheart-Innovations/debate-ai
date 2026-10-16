@@ -7,7 +7,7 @@
  *    or update, a platform event, a schedule) labels it, and its entry
  *    conditions describe it. Scheduled paths branch from it.
  *  - Decisions are decisions, one branch per outcome plus the default; a loop
- *    is a decision with "For each item" and "After last item"; a wait branches
+ *    is a decision with "For Each Item" and "After Last Item"; a wait branches
  *    per event. Every other element (record operations, actions, assignments,
  *    screens, subflows…) is a step with its element type.
  *  - Fault connectors are fault flows. An out a connector leaves empty goes to
@@ -364,7 +364,11 @@ export function elementFacts(element: FlowElement, flow: ParsedSalesforceFlow): 
   const facts: SalesforceFlowElement = { apiName: element.name, ...(line ? { line } : {}) };
   const object = text(xml.object) ?? (text(xml.inputReference) === '$Record' ? flow.triggerObject : undefined);
   if (object) facts.object = object;
-  if (text(xml.inputReference) && text(xml.inputReference) !== '$Record') facts.collection = text(xml.inputReference);
+  if (text(xml.inputReference)) facts.inputRecord = text(xml.inputReference);
+  if (tag === 'recordLookups') {
+    facts.firstRecordOnly = text(xml.getFirstRecordOnly) === 'true';
+    if (text(xml.sortField)) facts.sort = { field: text(xml.sortField)!, order: text(xml.sortOrder) ?? 'Asc' };
+  }
   const filters = conditionsOf(xml.filters);
   if (filters.length > 0) {
     facts.filters = filters;
@@ -429,10 +433,10 @@ function elementOuts(element: FlowElement): { outs: Array<{ to?: string; label?:
       const rule = node(entry);
       return rule ? [{ to: target(rule.connector), label: text(rule.label) ?? text(rule.name) }] : [];
     });
-    return { outs: [...rules, { to: target(xml.defaultConnector), label: text(xml.defaultConnectorLabel) ?? 'Default outcome' }] };
+    return { outs: [...rules, { to: target(xml.defaultConnector), label: text(xml.defaultConnectorLabel) ?? 'Default Outcome' }] };
   }
   if (tag === 'loops') {
-    return { outs: [{ to: target(xml.nextValueConnector), label: 'For each item' }, { to: target(xml.noMoreValuesConnector), label: 'After last item' }] };
+    return { outs: [{ to: target(xml.nextValueConnector), label: 'For Each Item' }, { to: target(xml.noMoreValuesConnector), label: 'After Last Item' }] };
   }
   if (tag === 'waits') {
     const events = list(xml.waitEvents).flatMap((entry) => {
