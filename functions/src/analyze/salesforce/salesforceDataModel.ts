@@ -321,7 +321,9 @@ export function buildSalesforceDataModel(
   const ownField = (parsed: ParsedField) => /__c$/i.test(parsed.field.name) && !packageOf(parsed.field.name);
 
   const byLowerName = new Map([...all.keys()].map((name) => [name.toLowerCase(), name]));
-  const wanted = options.objects?.map((name) => name.trim()).filter(Boolean);
+  // An empty list is no list: the org's own objects.
+  const listed = options.objects?.map((name) => name.trim()).filter(Boolean);
+  const wanted = listed && listed.length > 0 ? listed : undefined;
   const notFound = (wanted ?? []).filter((name) => !byLowerName.has(name.toLowerCase()));
   const chosen = wanted
     ? [...new Set(wanted.flatMap((name) => byLowerName.get(name.toLowerCase()) ?? []))]

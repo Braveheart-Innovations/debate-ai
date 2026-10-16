@@ -154,13 +154,22 @@ async function unpackWorkspace(files: SandboxFiles, sourceFiles: SalesforceSourc
   }
 }
 
+/**
+ * The non-blank strings of a list argument, or undefined when there are none.
+ * Models that fill every parameter send `[]` for one they don't mean to use:
+ * an empty list is no list (`objects: []` is "the org's own objects", not "no objects").
+ */
+function stringList(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const items = value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
+  return items.length > 0 ? items : undefined;
+}
+
 function normalizeArgs(args: Record<string, unknown>): SalesforceMetadataAuditArgs & { operation: SalesforceMetadataAuditOperation } {
   const operation = typeof args.operation === 'string' && isOperation(args.operation)
     ? args.operation
     : DEFAULT_OPERATION;
-  const paths = Array.isArray(args.paths)
-    ? args.paths.filter((path): path is string => typeof path === 'string' && path.trim().length > 0)
-    : undefined;
+  const paths = stringList(args.paths);
 
   return {
     operation,
@@ -168,13 +177,9 @@ function normalizeArgs(args: Record<string, unknown>): SalesforceMetadataAuditAr
     query: typeof args.query === 'string' ? args.query : undefined,
     component: typeof args.component === 'string' ? args.component : undefined,
     include_artifacts: typeof args.include_artifacts === 'boolean' ? args.include_artifacts : true,
-    objects: Array.isArray(args.objects)
-      ? args.objects.filter((object): object is string => typeof object === 'string' && object.trim().length > 0)
-      : undefined,
+    objects: stringList(args.objects),
     name: typeof args.name === 'string' ? args.name : undefined,
-    flows: Array.isArray(args.flows)
-      ? args.flows.filter((flow): flow is string => typeof flow === 'string' && flow.trim().length > 0)
-      : undefined,
+    flows: stringList(args.flows),
     chain: typeof args.chain === 'boolean' ? args.chain : undefined,
   };
 }

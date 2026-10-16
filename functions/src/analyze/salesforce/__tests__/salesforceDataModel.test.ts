@@ -228,6 +228,11 @@ describe('buildSalesforceDataModel: the org\'s own objects first', () => {
     expect(diagram.entities[0].packageFieldCount).toBeUndefined();
   });
 
+  it('reads an empty objects list as no list', () => {
+    expect(buildSalesforceDataModel(packagedWorkspace(), { objects: [] }).diagram).toEqual(buildSalesforceDataModel(packagedWorkspace()).diagram);
+    expect(buildSalesforceDataModel(packagedWorkspace(), { objects: ['  '] }).diagram.entities.length).toBeGreaterThan(0);
+  });
+
   it('treats the workspace\'s own namespace (sfdx-project.json) as the org\'s', () => {
     const files = [
       zipped('sfdx-project.json', '{"namespace":"kc","packageDirectories":[{"path":"force-app"}]}'),
