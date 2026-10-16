@@ -162,6 +162,14 @@ const sourceFetchSchema = z.object({
   connectorId: z.string().optional(),
 });
 
+// App-injected Salesforce docs passages (see injectDocsRead on the server).
+const sourceDocsReadSchema = z.object({
+  citationId: z.string(),
+  title: z.string(),
+  releaseLabel: z.string().optional(),
+  passages: z.array(z.string()),
+});
+
 const sourceSchema = z.object({
   id: z.string().regex(citationIdRegex),
   label: z.string().min(1),
@@ -171,6 +179,7 @@ const sourceSchema = z.object({
   sourceArtifactId: z.string().optional(),
   note: z.string().optional(),
   provenance: z.array(sourceFetchSchema).optional(),
+  docsRead: sourceDocsReadSchema.optional(),
 });
 
 export const analysisArtifactSpecV1Schema = z.object({

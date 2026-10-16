@@ -115,6 +115,19 @@ export interface AnalysisArtifactSourceFetch {
     parameterHash?: string;
     connectorId?: string;
 }
+/**
+ * Salesforce documentation the AI read for this source, baked app-side at
+ * capture from the session's docs lookups (NOT model-authored; anything the
+ * model writes here is replaced). The Sources view shows the passage.
+ */
+export interface AnalysisArtifactSourceDocsRead {
+    /** The page's id in the docs lookup results (`SF-D…`). */
+    citationId: string;
+    title: string;
+    releaseLabel?: string;
+    /** The passages the AI received from this page. */
+    passages: string[];
+}
 export interface AnalysisArtifactSource {
     id: string;
     label: string;
@@ -125,6 +138,8 @@ export interface AnalysisArtifactSource {
     note?: string;
     /** App-injected verifiable provenance (see AnalysisArtifactSourceFetch). */
     provenance?: AnalysisArtifactSourceFetch[];
+    /** App-injected: the Salesforce documentation passages this source's text came from. */
+    docsRead?: AnalysisArtifactSourceDocsRead;
 }
 export interface AnalysisArtifactSpecV1 {
     version: 1;

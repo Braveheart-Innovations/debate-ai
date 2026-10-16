@@ -174,7 +174,7 @@ describe('packageSalesforceDocsLookupEvidence', () => {
   it('reads its own result back: each quoted page with its passages, overflow pages without', async () => {
     const longText = 'Storage allocations per edition. '.repeat(400);
     const sources = [
-      source({ matchedChunks: [{ id: 'a', ordinal: 1, text: 'Line one.\nLine two.', score: 9, contentLength: 19 }] }),
+      source({ releaseLabel: "Winter '27", matchedChunks: [{ id: 'a', ordinal: 1, text: 'Line one.\nLine two.', score: 9, contentLength: 19 }] }),
       ...Array.from({ length: 4 }, (_, index) => source({
         id: `sf-doc-${index}`,
         url: `https://help.salesforce.com/s/articleView?id=xcloud.page_${index}.htm&language=en_US&type=5`,
@@ -190,9 +190,11 @@ describe('packageSalesforceDocsLookupEvidence', () => {
       citationId: salesforceDocCitationId(STORAGE_URL),
       title: 'Data and File Storage Allocations',
       url: STORAGE_URL,
+      description: "Salesforce Help · release Winter '27 · topics: Org storage limits",
+      releaseLabel: "Winter '27",
       passages: ['Line one.\nLine two.'],
     });
-    expect(pages[pages.length - 1].passages).toEqual([]);
+    expect(pages[pages.length - 1]).toMatchObject({ passages: [], description: 'Salesforce Help · topics: Org storage limits' });
   });
 
   it('leaves confidence as the server judged it', async () => {

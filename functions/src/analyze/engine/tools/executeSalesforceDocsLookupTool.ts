@@ -279,7 +279,14 @@ export interface SalesforceDocQuotedPage {
   citationId: string;
   title: string;
   url: string;
+  /** "Salesforce Help · release Winter '27 · topics: …" as the result described the page. */
+  description?: string;
+  releaseLabel?: string;
   passages: string[];
+}
+
+function releaseFromDescription(description: string): string | undefined {
+  return description.match(/(?:^|· )release ([^·]+?)(?: ·|$)/)?.[1]?.trim();
 }
 
 /**
@@ -297,14 +304,23 @@ export function parseDocsLookupResult(content: string): SalesforceDocQuotedPage[
     passage = null;
   };
   for (const line of content.split('\n')) {
-    const header = line.match(/^(?:- )?\[(SF-D[2-9A-HJKMNP-Z]{5})\] (.+) - (https:\/\/\S+)/);
+    const header = line.match(/^(?:- )?\[(SF-D[2-9A-HJKMNP-Z]{5})\] (.+) - (https:\/\/\S+)(?: \((.+)\))?$/);
     if (header) {
       closePassage();
       current = { citationId: header[1], title: header[2], url: header[3], passages: [] };
+      if (header[4]) {
+        current.description = header[4];
+        current.releaseLabel = releaseFromDescription(header[4]);
+      }
       pages.push(current);
       continue;
     }
     if (!current) continue;
+    if (!current.description && !passage && /^  \S/.test(line) && !/^  Passage \d+:$/.test(line) && !/^  \(/.test(line)) {
+      current.description = line.trim();
+      current.releaseLabel = releaseFromDescription(current.description);
+      continue;
+    }
     if (/^  Passage \d+:$/.test(line)) {
       closePassage();
       passage = [];

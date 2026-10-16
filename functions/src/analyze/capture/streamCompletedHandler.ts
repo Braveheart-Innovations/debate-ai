@@ -55,6 +55,8 @@ import {
   injectProvenanceSourcesSection,
   isTabularJsonArray,
 } from './helpers';
+import { injectDocsRead } from './docsReadInjection';
+import { docsPagesRead } from '../engine/tools/salesforceDocsRead';
 
 // ============================================================================
 // Types
@@ -1085,6 +1087,7 @@ function extractDataArtifacts(
         return readSessionDiagram(name);
       }, { refresh: true });
       spec = injectSourceProvenance(spec, deps.getFetchProvenanceMap());
+      spec = injectDocsRead(spec, docsPagesRead(deps.getState().messages));
       // A panel this turn, or one an earlier version of this report recorded (e.g. a
       // post-review revision): the method note stays with the report.
       const teamPanel = deps.getTeamPanel?.() ?? priorSpecVersion?.metadata?.teamPanel ?? null;

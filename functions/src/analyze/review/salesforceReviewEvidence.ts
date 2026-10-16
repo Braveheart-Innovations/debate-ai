@@ -9,33 +9,13 @@ import type { Message } from '../contract/types';
 import type { Artifact } from '../contract/types/notebook';
 import type { AnalysisArtifactSpecV1 } from '../contract/types/analysis-artifact-spec';
 import { tryParseAnalysisArtifactSpecText } from '../contract/services/analyze/artifacts/AnalysisArtifactSpecService';
-import { parseDocsLookupResult, type SalesforceDocQuotedPage } from '../engine/tools/executeSalesforceDocsLookupTool';
+import type { SalesforceDocQuotedPage } from '../engine/tools/executeSalesforceDocsLookupTool';
 import { attributesToSalesforce, salesforcePageKey, splitSentences } from '../engine/tools/salesforceGroundingCheck';
+import { docsPagesRead } from '../engine/tools/salesforceDocsRead';
 
 /** The Reviewer's prompt is bounded; this is the share for Salesforce claims and their passages. */
 const CLAIM_EVIDENCE_BUDGET_CHARS = 16_000;
 const PASSAGE_CHARS_PER_CLAIM = 1_500;
-
-/** Docs pages read by the lookups in these messages, by page key; a page's passages accumulate across lookups. */
-export function docsPagesRead(messages: Message[]): Map<string, SalesforceDocQuotedPage> {
-  const pages = new Map<string, SalesforceDocQuotedPage>();
-  for (const message of messages) {
-    if (message.senderType !== 'tool' || message.metadata?.toolName !== 'salesforce_docs_lookup' || message.metadata?.success === false) continue;
-    for (const page of parseDocsLookupResult(message.content || '')) {
-      const key = salesforcePageKey(page.url);
-      if (!key) continue;
-      const existing = pages.get(key);
-      if (!existing) {
-        pages.set(key, { ...page, passages: [...page.passages] });
-        continue;
-      }
-      for (const passage of page.passages) {
-        if (!existing.passages.includes(passage)) existing.passages.push(passage);
-      }
-    }
-  }
-  return pages;
-}
 
 function isSalesforceUrl(urlValue: string | undefined): boolean {
   return Boolean(urlValue && salesforcePageKey(urlValue) && !/\.my\.salesforce\.com/i.test(urlValue));
