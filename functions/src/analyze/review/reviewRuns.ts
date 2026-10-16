@@ -46,6 +46,7 @@ import {
   parseVerificationVerdict,
   sortAnalyzeReviewItems,
 } from './reviewService';
+import { buildSalesforceReviewEvidence, docsPagesReadInTurn } from './salesforceReviewEvidence';
 
 const REVIEWER_TEMPERATURE = 0.2;
 const REVIEWER_MAX_TOKENS = 4096;
@@ -260,6 +261,7 @@ export async function runReviewerPass(ref: DocumentReference, run: AnalyzeRunDoc
       operatorResponse: context.operatorMessage.content,
       artifacts,
       manualRequest: review.requestText,
+      salesforceEvidence: buildSalesforceReviewEvidence(messages, artifacts, context.index),
     });
     let responseText: string;
     try {
@@ -380,8 +382,8 @@ async function settleHandedOffItems(uid: string, sessionId: string, run: Analyze
 // ============================================================================
 
 /** The operator's code and sources in the reviewed turn (the browser's completedToolExecutions). */
-export function turnEvidence(messages: Message[], context: OperatorMessageContext | null): { code: string[]; sources: string[] } {
-  if (!context) return { code: [], sources: [] };
+export function turnEvidence(messages: Message[], context: OperatorMessageContext | null): { code: string[]; sources: string[]; docsRead: string[] } {
+  if (!context) return { code: [], sources: [], docsRead: [] };
   let start = context.index;
   while (start > 0 && messages[start - 1].senderType !== 'user') start -= 1;
   const calls = messages.slice(start, context.index + 1)
@@ -399,7 +401,7 @@ export function turnEvidence(messages: Message[], context: OperatorMessageContex
     if (call.function.name === 'execute_python' && typeof args.code === 'string' && args.code) code.push(args.code);
     if ((call.function.name === 'fetch_url' || call.function.name === 'fetch_api') && typeof args.url === 'string' && args.url) sources.push(args.url);
   }
-  return { code, sources: Array.from(new Set(sources)) };
+  return { code, sources: Array.from(new Set(sources)), docsRead: docsPagesReadInTurn(messages, context.index) };
 }
 
 /**

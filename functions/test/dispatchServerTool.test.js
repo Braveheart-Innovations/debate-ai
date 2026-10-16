@@ -31,6 +31,16 @@ test('fetch_api with malformed query_params fails with the reason, before any sa
   assert.match(result.error, /^query_params must be an object of key-value pairs/);
 });
 
+test('a Salesforce Help article is never read raw: fetch_url and fetch_api say so and point to salesforce_docs_lookup', async () => {
+  const url = 'https://help.salesforce.com/s/articleView?id=xcloud.overview_storage.htm&type=5';
+  for (const toolName of ['fetch_url', 'fetch_api']) {
+    const result = await dispatchServerTool('u1', { toolName, toolCallId: `call-${toolName}`, args: { url } }, 'k');
+    assert.equal(result.success, false, toolName);
+    assert.equal(result.toolCallId, `call-${toolName}`);
+    assert.match(result.error, /^Not read: .*Use salesforce_docs_lookup/, toolName);
+  }
+});
+
 test('fetch_api with no sandbox target is refused (nothing returns a body inline)', async () => {
   const result = await dispatchServerTool('u1', { toolName: 'fetch_api', toolCallId: 'call-f', args: { url: 'https://api.worldbank.org/v2/country' } }, 'k');
   assert.equal(result.success, false);

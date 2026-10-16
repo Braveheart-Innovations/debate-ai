@@ -11,7 +11,11 @@ const require = createRequire(import.meta.url);
 const {
   SALESFORCE_DOC_INDEX_BUCKET,
   buildSalesforceDocsIndexNow,
+  compareSalesforceDocsIndexes,
+  readSalesforceDocsIndex,
+  readSalesforceDocsMissesSince,
   refreshCoverageError,
+  topicsWithoutFullTextRecords,
   writeSalesforceDocsIndex,
 } = require('../lib/salesforceDocsIndex');
 
@@ -26,6 +30,9 @@ function parseArgs(argv) {
     minPdfRecords: 0,
     maxMetadataOnlyRatio: null,
     pdfOnly: false,
+    previous: null,
+    usePrevious: true,
+    misses: null,
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -68,6 +75,16 @@ function parseArgs(argv) {
       i += 1;
     } else if (arg === '--pdf-only') {
       options.pdfOnly = true;
+    } else if (arg === '--previous') {
+      if (!next) throw new Error('--previous requires a file path');
+      options.previous = next;
+      i += 1;
+    } else if (arg === '--no-previous') {
+      options.usePrevious = false;
+    } else if (arg === '--misses') {
+      if (!next) throw new Error('--misses requires a file path');
+      options.misses = next;
+      i += 1;
     } else if (arg === '--help' || arg === '-h') {
       options.help = true;
     } else {
@@ -116,6 +133,12 @@ Options:
   --min-pdf-records <num>         Fail if fewer official Salesforce PDF records are indexed.
   --max-metadata-only-ratio <n>   Fail if metadata-only records exceed this ratio (0-1).
   --pdf-only                      Build only the curated official PDF corpus for smoke testing.
+  --previous <path>               The index this build replaces. Default: the stored index, when
+                                  credentials allow. Its learned pages are re-read, its unresolved
+                                  lookup misses retried, and the build is compared against it.
+  --no-previous                   Build without the previous index or the lookup miss log.
+  --misses <path>                 Read lookup misses from this JSON file (an array) instead of
+                                  the stored miss log.
   -h, --help                      Show this help.
 
 Authentication for --upload:
@@ -174,9 +197,18 @@ function summarizeIndex(index) {
     topicsWithoutRecords: index.topics
       .filter((topic) => !index.records.some((record) => record.topicIds.includes(topic.id)))
       .map((topic) => topic.id),
-    topicsWithoutFullTextRecords: index.topics
-      .filter((topic) => !fullTextRecords.some((record) => record.topicIds.includes(topic.id)))
-      .map((topic) => topic.id),
+    topicsWithoutFullTextRecords: topicsWithoutFullTextRecords(index),
+    helpCatalogCount: index.helpCatalog?.length || 0,
+    learnedSourceCount: index.learnedSources?.length || 0,
+    learnedThisBuild: (index.learnedSources || [])
+      .filter((source) => source.learnedAt === index.generatedAt)
+      .map((source) => ({ query: source.query, url: source.url })),
+    unresolvedMisses: (index.unresolvedMisses || []).map((miss) => ({
+      query: miss.query,
+      reason: miss.reason,
+      count: miss.count,
+      lastSeenAt: miss.lastSeenAt,
+    })),
     sourceTypeCounts: countBy(index.records, (record) => record.sourceType),
     contentQualityCounts: countBy(index.records, (record) => record.contentQuality),
     statusCounts: countBy(index.records, (record) => record.status),
@@ -210,12 +242,38 @@ async function main() {
     return;
   }
 
+  let previousIndex = null;
+  let misses = [];
+  if (options.usePrevious) {
+    previousIndex = options.previous
+      ? JSON.parse(await fs.readFile(options.previous, 'utf-8'))
+      : await readSalesforceDocsIndex();
+    console.log(previousIndex
+      ? `[salesforce-docs-index] Previous index: ${previousIndex.generatedAt} (${previousIndex.records.length} records)`
+      : '[salesforce-docs-index] Previous index unavailable; building without learned pages or a comparison.');
+  }
+  if (options.misses) {
+    misses = JSON.parse(await fs.readFile(options.misses, 'utf-8'));
+    console.log(`[salesforce-docs-index] Lookup misses from ${options.misses}: ${misses.length}`);
+  } else if (options.usePrevious) {
+    try {
+      misses = await readSalesforceDocsMissesSince(previousIndex?.generatedAt);
+      console.log(`[salesforce-docs-index] Lookup misses since the previous build: ${misses.length}`);
+    } catch (error) {
+      console.warn(`[salesforce-docs-index] Lookup miss log unavailable: ${error?.message || error}`);
+    }
+  }
+
   console.log('[salesforce-docs-index] Building official Salesforce docs index...');
-  const index = await buildSalesforceDocsIndexNow(options.pdfOnly ? {
-    includeWebDocs: false,
-    includeSitemapDocs: false,
-  } : undefined);
+  const index = await buildSalesforceDocsIndexNow({
+    ...(options.pdfOnly ? { includeWebDocs: false, includeSitemapDocs: false } : {}),
+    previousIndex,
+    misses,
+  });
   const summary = summarizeIndex(index);
+  if (previousIndex) {
+    summary.comparedToPrevious = compareSalesforceDocsIndexes(previousIndex, index);
+  }
 
   await fs.mkdir(path.dirname(path.resolve(options.out)), { recursive: true });
   await fs.writeFile(options.out, `${JSON.stringify(index, null, 2)}\n`, 'utf-8');

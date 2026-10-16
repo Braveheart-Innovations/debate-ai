@@ -52,6 +52,8 @@ export interface ReviewerPromptInput {
   operatorResponse: string;
   artifacts: Artifact[];
   manualRequest?: string;
+  /** The report's Salesforce claims, each with the docs passage its citation points to (salesforceReviewEvidence). */
+  salesforceEvidence?: string;
 }
 
 export interface ConversationTurn {
@@ -297,6 +299,7 @@ export function buildAnalyzeReviewerPrompt(input: ReviewerPromptInput): string {
     'Available artifact references (use IDs exactly as listed when relevant):',
     buildArtifactContext(input.artifacts),
     '',
+    input.salesforceEvidence ? `${input.salesforceEvidence}\n` : '',
     'Provide prioritized, actionable follow-up suggestions only.',
     'Do not repeat obvious operator steps unless there is clear risk or missing evidence.',
   ].filter(Boolean).join('\n');
@@ -358,6 +361,8 @@ export interface VerificationEvidence {
   code: string[];
   /** URLs and endpoints the operator fetched. */
   sources: string[];
+  /** Salesforce docs pages the operator's lookups read in the turn ("[SF-D…] title - url"). */
+  docsRead?: string[];
 }
 
 export function buildVerificationTask(input: {
@@ -379,6 +384,9 @@ export function buildVerificationTask(input: {
   ];
   if (evidence.sources.length > 0) {
     sections.push(`## Sources ${input.operatorName} used\n${evidence.sources.map((source) => `- ${source}`).join('\n')}`);
+  }
+  if (evidence.docsRead && evidence.docsRead.length > 0) {
+    sections.push(`## Salesforce documentation ${input.operatorName} read\n${evidence.docsRead.map((page) => `- ${page}`).join('\n')}\n\nThese are the only Salesforce pages whose text ${input.operatorName} received. To check a Salesforce claim, run salesforce_docs_lookup yourself and compare its passages with the claim; a claim resting on any other Salesforce page was not read.`);
   }
   if (evidence.code.length > 0) {
     sections.push(`## Code ${input.operatorName} ran (for diagnosing discrepancies only — do not just re-run it)\n${evidence.code.map((code) => `\`\`\`python\n${code}\n\`\`\``).join('\n\n')}`);

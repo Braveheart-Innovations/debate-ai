@@ -55,6 +55,8 @@ import {
   injectProvenanceSourcesSection,
   isTabularJsonArray,
 } from './helpers';
+import { injectDocsRead } from './docsReadInjection';
+import { docsPagesRead } from '../engine/tools/salesforceDocsRead';
 
 // ============================================================================
 // Types
@@ -797,7 +799,10 @@ function extractDataArtifacts(
     const alwaysVersions = isRecipe || isDiagram || isRecipeOutputFilename(data.filename, recipeDirs);
     const salesforceRole = getSalesforceArtifactRole(data.filename);
     const existingByName = ctx.existingArtifacts.find(a => a.name === data.filename);
-    if (salesforceRole && ctx.suppressSalesforcePacketArtifacts) {
+    // A docs lookup's readable evidence (the passages read) is always an artifact;
+    // its JSON and the audit's packet files stay hidden outside portable mode.
+    const isReadableDocsEvidence = salesforceRole === 'documentation_evidence' && ext === 'md';
+    if (salesforceRole && ctx.suppressSalesforcePacketArtifacts && !isReadableDocsEvidence) {
       if (existingByName) {
         deps.dispatch({ type: 'REMOVE_ARTIFACT', payload: existingByName.id });
       }
@@ -1085,6 +1090,7 @@ function extractDataArtifacts(
         return readSessionDiagram(name);
       }, { refresh: true });
       spec = injectSourceProvenance(spec, deps.getFetchProvenanceMap());
+      spec = injectDocsRead(spec, docsPagesRead(deps.getState().messages));
       // A panel this turn, or one an earlier version of this report recorded (e.g. a
       // post-review revision): the method note stays with the report.
       const teamPanel = deps.getTeamPanel?.() ?? priorSpecVersion?.metadata?.teamPanel ?? null;

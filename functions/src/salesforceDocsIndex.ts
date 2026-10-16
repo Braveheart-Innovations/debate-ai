@@ -35,6 +35,7 @@ const MAX_METADATA_ONLY_SITEMAP_RECORDS_PER_TOPIC = 0;
 const FULL_TEXT_CONTENT_LENGTH_FLOOR = 300;
 const SALESFORCE_HELP_RENDER_TIMEOUT_MS = Number(process.env.SALESFORCE_DOCS_HELP_RENDER_TIMEOUT_MS || 60000);
 const SALESFORCE_HELP_RENDER_MAX_CHARS = Number(process.env.SALESFORCE_DOCS_HELP_RENDER_MAX_CHARS || 0);
+const SALESFORCE_HELP_RENDER_SPACING_MS = Number(process.env.SALESFORCE_DOCS_HELP_RENDER_SPACING_MS || 2000);
 const MIN_SITEMAP_TOPIC_SCORE = 8;
 const OFFICIAL_HOST_PATTERN = /(^|\.)salesforce\.com$/i;
 const ALLOW_CURL_TEXT_FETCH = process.env.SALESFORCE_DOCS_ALLOW_CURL_FETCH === '1';
@@ -73,6 +74,13 @@ export interface OfficialDocContent {
   releaseLabel?: string;
   documentationVersion?: string;
   warnings?: string[];
+  /** Help article links (table of contents, "See also") found on a rendered Help page. */
+  discoveredLinks?: SalesforceDocsHelpCatalogEntry[];
+}
+
+export interface SalesforceDocsHelpCatalogEntry {
+  url: string;
+  title: string;
 }
 
 interface SalesforceDocsPdfSource {
@@ -148,7 +156,7 @@ export interface SalesforceDocsIndexRecord {
   refreshCadenceDays?: number;
   nextRefreshDueAt?: string;
   freshnessSignal?: SalesforceDocsFreshnessSignal;
-  discoverySource: 'seed' | 'sitemap';
+  discoverySource: 'seed' | 'sitemap' | 'miss';
   sitemapUrl?: string;
   sitemapScore?: number;
   confidenceImpact: SalesforceDocsConfidenceImpact;
@@ -202,7 +210,46 @@ export interface SalesforceDocsIndex {
     sitemapRecordLimitPerTopic: number;
   };
   pdfCorpus?: SalesforceDocsPdfCorpusSummary;
+  /**
+   * Help articles linked from the pages this build rendered, by title. Help
+   * publishes no article sitemap, so this is how a lookup miss finds the
+   * article that answers it.
+   */
+  helpCatalog?: SalesforceDocsHelpCatalogEntry[];
+  /** Pages read because a lookup missed; each build re-reads them as seeds. */
+  learnedSources?: SalesforceDocsLearnedSource[];
+  /** Lookup misses no official page has answered yet; the next build tries again. */
+  unresolvedMisses?: SalesforceDocsUnresolvedMiss[];
   warnings: string[];
+}
+
+/** A lookup topic the index could not answer with read text. Logged by lookups, read by the next build. */
+export interface SalesforceDocsMiss {
+  topicId: string;
+  label: string;
+  query: string;
+  category?: string;
+  reason: string;
+  at: string;
+  /** Official pages the lookup found for this topic but could not read. */
+  candidateUrls?: string[];
+}
+
+export interface SalesforceDocsLearnedSource {
+  url: string;
+  title: string;
+  query: string;
+  learnedAt: string;
+}
+
+export interface SalesforceDocsUnresolvedMiss {
+  label: string;
+  query: string;
+  reason: string;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  count: number;
+  candidateUrls?: string[];
 }
 
 export interface SalesforceDocsIndexBuildOptions {
@@ -210,6 +257,10 @@ export interface SalesforceDocsIndexBuildOptions {
   includeWebDocs?: boolean;
   includeSitemapDocs?: boolean;
   topicIds?: string[];
+  /** The index this build replaces: its learned pages are re-read and its unresolved misses retried. */
+  previousIndex?: SalesforceDocsIndex | null;
+  /** Lookup misses logged since the previous build. */
+  misses?: SalesforceDocsMiss[];
 }
 
 export interface SalesforceDocsLookupTopicLike {
@@ -283,7 +334,7 @@ export interface SalesforceDocsIndexLookupResult {
     missedTopics?: Array<{
       topicId: string;
       label?: string;
-      reason: 'blocked' | 'not_indexed' | 'empty_shell' | 'no_official_source' | 'stale' | 'unavailable';
+      reason: 'blocked' | 'not_indexed' | 'empty_shell' | 'no_official_source' | 'no_matching_passage' | 'stale' | 'unavailable';
     }>;
     stalenessWarnings?: string[];
   };
@@ -306,8 +357,6 @@ export const SALESFORCE_DOC_TOPICS: SalesforceDocsIndexTopic[] = [
       'https://help.salesforce.com/s/articleView?id=release-notes.rn_sales.htm&language=en_US&type=5',
       'https://help.salesforce.com/s/articleView?id=release-notes.rn_service.htm&language=en_US&type=5',
       'https://help.salesforce.com/s/articleView?id=release-notes.rn_automate.htm&language=en_US&type=5',
-      'https://help.salesforce.com/s/articleView?id=release-notes.rn_automate_flow_release_update.htm&language=en_US&type=5',
-      'https://help.salesforce.com/s/articleView?id=release-notes.rn_development.htm&language=en_US&type=5',
       'https://help.salesforce.com/s/articleView?id=release-notes.rn_apex.htm&language=en_US&type=5',
       'https://help.salesforce.com/s/articleView?id=release-notes.rn_api_objects.htm&language=en_US&type=5',
       'https://help.salesforce.com/s/articleView?id=release-notes.rn_api_meta.htm&language=en_US&type=5',
@@ -409,6 +458,11 @@ export const SALESFORCE_DOC_TOPICS: SalesforceDocsIndexTopic[] = [
       'https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_visual_workflow.htm',
       'https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_flowsettings.htm',
       'https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_triggers_order_of_execution.htm',
+      'https://help.salesforce.com/s/articleView?id=platform.flow_task_trigger_run_order.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=platform.flow_concepts_trigger_record.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=platform.flow_considerations_trigger_record.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=platform.flow_concepts_trigger.htm&language=en_US&type=5',
+      'https://architect.salesforce.com/docs/architect/decision-guides/guide/record-triggered.html',
     ],
   },
   {
@@ -434,6 +488,11 @@ export const SALESFORCE_DOC_TOPICS: SalesforceDocsIndexTopic[] = [
       'https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_permissionset.htm',
       'https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_custompermission.htm',
       'https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_permissionsetgroup.htm',
+      // Knowledge article: the Spring '26 retirement of permissions on profiles was cancelled (2026-06-06).
+      'https://help.salesforce.com/s/articleView?id=003834041&language=en_US&type=1',
+      'https://help.salesforce.com/s/articleView?id=platform.perm_set_groups_muting.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=platform.perm_set_groups_muting_dependencies.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=platform.perm_sets_best_practices.htm&language=en_US&type=5',
     ],
   },
   {
@@ -752,6 +811,7 @@ export const SALESFORCE_DOC_TOPICS: SalesforceDocsIndexTopic[] = [
     category: 'object_reference',
     keywords: ['standard object', 'object reference', 'account', 'contact', 'lead', 'opportunity', 'case', 'task', 'event', 'user', 'product', 'quote', 'order'],
     seedUrls: [
+      'https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/system_fields.htm',
       'https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/sforce_api_objects_account.htm',
       'https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/sforce_api_objects_contact.htm',
       'https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/sforce_api_objects_lead.htm',
@@ -916,6 +976,7 @@ export const SALESFORCE_DOC_TOPICS: SalesforceDocsIndexTopic[] = [
     keywords: ['decision guide', 'architecture', 'record-triggered automation', 'data architecture', 'integration architecture', 'diagrams'],
     seedUrls: [
       'https://architect.salesforce.com/design/decision-guides',
+      'https://architect.salesforce.com/docs/architect/decision-guides/guide/record-triggered.html',
     ],
   },
   {
@@ -1019,9 +1080,12 @@ export const SALESFORCE_DOC_TOPICS: SalesforceDocsIndexTopic[] = [
     category: 'security',
     keywords: ['shield', 'platform encryption', 'tenant secret', 'key management', 'encrypted field', 'deterministic encryption'],
     seedUrls: [
-      'https://developer.salesforce.com/docs/atlas.en-us.securityImplGuide.meta/securityImplGuide/security_pe_encryption_process.htm',
-      'https://developer.salesforce.com/docs/atlas.en-us.securityImplGuide.meta/securityImplGuide/security_pe_considerations_general.htm',
-      'https://developer.salesforce.com/docs/atlas.en-us.securityImplGuide.meta/securityImplGuide/security_pe_deployment.htm',
+      // The securityImplGuide atlas pages are retired (62-character shells); Help is the source now.
+      'https://help.salesforce.com/s/articleView?id=xcloud.security_pe_overview.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=xcloud.security_pe_concepts.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=xcloud.security_pe_encryptable_data.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=xcloud.security_pe_considerations_general.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=xcloud.security_pe_setup.htm&language=en_US&type=5',
     ],
   },
   {
@@ -1209,6 +1273,83 @@ export const SALESFORCE_DOC_TOPICS: SalesforceDocsIndexTopic[] = [
       'https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/sforce_api_objects_agentwork.htm',
     ],
   },
+  // --- Docs grounding gap seeds (2.9.5): admin Help the index never had ---
+  {
+    id: 'org-limits-allocations',
+    label: 'Org limits, storage, and edition allocations',
+    query: 'Salesforce org limits data storage file storage custom fields per object edition allocations',
+    category: 'limits',
+    keywords: ['org limits', 'storage', 'data storage', 'file storage', 'custom fields allowed', 'allocations', 'limits resource', 'org list limits'],
+    seedUrls: [
+      'https://help.salesforce.com/s/articleView?id=xcloud.overview_storage.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=platform.custom_field_allocations.htm&language=en_US&type=5',
+      'https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/resources_limits.htm',
+      'https://developer.salesforce.com/docs/platform/salesforce-cli-reference/guide/cli_reference_org_list_limits.html',
+    ],
+  },
+  {
+    id: 'org-security-health-check',
+    label: 'Security Health Check and org security settings',
+    query: 'Salesforce Security Health Check baseline score security settings',
+    category: 'security',
+    keywords: ['health check', 'security health check', 'baseline', 'security settings', 'session settings', 'password policies'],
+    seedUrls: [
+      'https://help.salesforce.com/s/articleView?id=xcloud.security_health_check.htm&language=en_US&type=5',
+    ],
+  },
+  {
+    id: 'lead-conversion',
+    label: 'Lead conversion and lead field mapping',
+    query: 'Salesforce lead conversion custom lead field mapping LeadConvert convertLead',
+    category: 'sales_cloud',
+    keywords: ['lead conversion', 'convert lead', 'leadconvert', 'convertlead', 'lead field mapping', 'map lead fields'],
+    seedUrls: [
+      'https://help.salesforce.com/s/articleView?id=sales.customize_mapleads.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=sales.customize_mapleads_guidelines.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=sales.lead_conversion_mapping.htm&language=en_US&type=5',
+      'https://developer.salesforce.com/docs/atlas.en-us.apexref.meta/apexref/apex_dml_convertLead.htm',
+      'https://developer.salesforce.com/docs/atlas.en-us.apexref.meta/apexref/apex_class_database_leadconvertresult.htm',
+    ],
+  },
+  {
+    id: 'email-limits',
+    label: 'Email limits and allocations',
+    query: 'Salesforce email limits single email mass email list email workflow email alert daily allocations',
+    category: 'email',
+    keywords: ['email limits', 'single email', 'mass email', 'list email', 'email alerts', 'daily allocation', 'email allocations'],
+    seedUrls: [
+      'https://help.salesforce.com/s/articleView?id=000386730&language=en_US&type=1',
+      'https://help.salesforce.com/s/articleView?id=sales.allocations_email_general.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=sales.limitations_email_mass.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=platform.workflow_limits_email.htm&language=en_US&type=5',
+    ],
+  },
+  {
+    id: 'education-data-architecture',
+    label: 'Education Data Architecture (EDA, hed__)',
+    query: 'Education Data Architecture EDA hed objects affiliations program enrollment TDTM',
+    category: 'education',
+    keywords: ['education data architecture', 'eda', 'hed', 'affiliation', 'program enrollment', 'course connection', 'tdtm', 'higher education'],
+    seedUrls: [
+      'https://help.salesforce.com/s/articleView?id=sfdo.Education_Data_Architecture.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=sfdo.eda_objects.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=sfdo.EDA_Apex_Class_Descriptions.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=sfdo.eda_whats_installed.htm&language=en_US&type=5',
+    ],
+  },
+  {
+    id: 'salesforce-cli-reference',
+    label: 'Salesforce CLI (sf) command reference',
+    query: 'Salesforce CLI sf command reference org list limits project retrieve start data query',
+    category: 'devops',
+    keywords: ['salesforce cli', 'sf cli', 'sf org', 'project retrieve', 'data query', 'command reference', 'target-org'],
+    seedUrls: [
+      'https://developer.salesforce.com/docs/platform/salesforce-cli-reference/guide/cli_reference_org_list_limits.html',
+      'https://developer.salesforce.com/docs/platform/salesforce-cli-reference/guide/cli_reference_project_retrieve_start.html',
+      'https://developer.salesforce.com/docs/platform/salesforce-cli-reference/guide/cli_reference_project_retrieve_preview.html',
+      'https://developer.salesforce.com/docs/platform/salesforce-cli-reference/guide/cli_reference_data_query.html',
+    ],
+  },
 ];
 
 const SALESFORCE_DOC_SITEMAP_SOURCES: SalesforceDocsSitemapSource[] = [
@@ -1311,6 +1452,32 @@ export const SALESFORCE_DOC_TOPIC_ALIASES: Record<string, string[]> = {
   'einstein-analytics': ['crm-analytics-rest-data'],
   'omni-channel': ['omni-channel-routing'],
   'skills-based-routing': ['omni-channel-routing'],
+  // --- Docs grounding gap seeds (2.9.5) ---
+  'org-limits': ['org-limits-allocations', 'api-limits-allocations'],
+  'limits-forecast': ['org-limits-allocations'],
+  'storage-limits': ['org-limits-allocations'],
+  'data-storage': ['org-limits-allocations'],
+  'file-storage': ['org-limits-allocations'],
+  'custom-field-limits': ['org-limits-allocations'],
+  'health-check': ['org-security-health-check'],
+  'security-health-check': ['org-security-health-check'],
+  'lead-conversion': ['lead-conversion'],
+  'lead-convert': ['lead-conversion'],
+  'email-limits': ['email-limits'],
+  'eda': ['education-data-architecture'],
+  'hed': ['education-data-architecture'],
+  'education-data-architecture': ['education-data-architecture'],
+  'education-cloud': ['education-data-architecture'],
+  'sf-cli': ['salesforce-cli-reference'],
+  'salesforce-cli': ['salesforce-cli-reference', 'sfdx-source-driven-dev'],
+  'flow-trigger-order': ['flow-order-recursion'],
+  'trigger-order': ['flow-order-recursion', 'apex-order-of-execution'],
+  'before-save-flow': ['flow-order-recursion'],
+  'record-triggered-flow': ['flow-order-recursion', 'flow-metadata-edge-cases'],
+  'event-triggered-flow': ['flow-order-recursion', 'platform-events-pubsub'],
+  'muting-permission-sets': ['permissions-least-privilege'],
+  'permission-set-groups': ['permissions-least-privilege'],
+  'profile-permissions': ['permissions-least-privilege'],
 };
 
 const SALESFORCE_DOC_PDF_BASE_URL = 'https://resources.docs.salesforce.com/latest/latest/en-us/sfdc/pdf';
@@ -1444,6 +1611,7 @@ export const SALESFORCE_DOC_PDF_SOURCES: SalesforceDocsPdfSource[] = [
       'apex-async-processing',
       'soql-query-selectivity',
       'platform-events-pubsub',
+      'org-limits-allocations',
     ],
     keywords: ['limits', 'governor limits', 'api limits', 'async', 'platform events'],
   },
@@ -1611,6 +1779,63 @@ export async function writeSalesforceDocsIndex(index: SalesforceDocsIndex): Prom
     throw new Error(`Failed to write Salesforce docs index to Cloud Storage (${response.status}): ${errorText}`);
   }
   cachedIndexState = null;
+}
+
+const SALESFORCE_DOC_MISS_PREFIX = 'salesforce-docs/misses/';
+
+/**
+ * Logs the topics one lookup could not answer with read text, as one object
+ * under salesforce-docs/misses/<date>/ (server-only: storage rules deny the
+ * path). The next index build reads them and goes looking for those pages.
+ */
+export async function recordSalesforceDocsMisses(misses: SalesforceDocsMiss[]): Promise<void> {
+  if (misses.length === 0) return;
+  const at = new Date().toISOString();
+  const name = `${SALESFORCE_DOC_MISS_PREFIX}${at.slice(0, 10)}/${at}-${crypto.randomBytes(4).toString('hex')}.json`;
+  const uploadUrl = `https://storage.googleapis.com/upload/storage/v1/b/${storageBucketPath()}/o?uploadType=media&name=${encodeURIComponent(name)}`;
+  const response = await authorizedStorageFetch(uploadUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+    body: JSON.stringify({ version: 1, at, misses }),
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to record Salesforce docs misses (${response.status}): ${await response.text()}`);
+  }
+}
+
+/** Misses logged after `sinceIso` (all of them when it is absent). */
+export async function readSalesforceDocsMissesSince(sinceIso?: string): Promise<SalesforceDocsMiss[]> {
+  const sinceDate = sinceIso ? sinceIso.slice(0, 10) : '';
+  const names: string[] = [];
+  let pageToken: string | undefined;
+  do {
+    const listUrl = `https://storage.googleapis.com/storage/v1/b/${storageBucketPath()}/o?prefix=${encodeURIComponent(SALESFORCE_DOC_MISS_PREFIX)}&fields=items(name),nextPageToken${pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ''}`;
+    const response = await authorizedStorageFetch(listUrl, { method: 'GET' });
+    if (!response.ok) {
+      throw new Error(`Failed to list Salesforce docs misses (${response.status}): ${await response.text()}`);
+    }
+    const page = await response.json() as { items?: Array<{ name: string }>; nextPageToken?: string };
+    for (const item of page.items || []) {
+      // Object names start with the logging date, so older days are skipped unread.
+      const day = item.name.slice(SALESFORCE_DOC_MISS_PREFIX.length, SALESFORCE_DOC_MISS_PREFIX.length + 10);
+      if (!sinceDate || day >= sinceDate) names.push(item.name);
+    }
+    pageToken = page.nextPageToken;
+  } while (pageToken);
+
+  const misses: SalesforceDocsMiss[] = [];
+  for (const name of names) {
+    const response = await authorizedStorageFetch(
+      `https://storage.googleapis.com/storage/v1/b/${storageBucketPath()}/o/${encodeURIComponent(name)}?alt=media`,
+      { method: 'GET' },
+    );
+    if (!response.ok) continue;
+    const logged = await response.json() as { misses?: SalesforceDocsMiss[] };
+    for (const miss of logged.misses || []) {
+      if (!sinceIso || miss.at > sinceIso) misses.push(miss);
+    }
+  }
+  return misses;
 }
 
 const SALESFORCE_DOC_INDEX_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -1836,25 +2061,12 @@ function humanizeSalesforceDocId(id: string): string {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-// Help articles whose bodies are worth headless-Chrome rendering at index-build
-// time. These are domains with no developer-guide equivalent — their Help
-// articles ARE the primary documentation.
-const RENDERABLE_HELP_ARTICLE_ID_PATTERNS: RegExp[] = [
-  /^(?:sf\.)?os_/, // OmniStudio
-  /^(?:sf\.)?devops_center/, // DevOps Center
-];
-
+// Every Help article is rendered with headless Chrome at index-build time: the
+// article body only exists after the Lightning page runs, and admin Help
+// (storage, limits, security settings, Flow behaviour) has no developer-guide
+// equivalent. Lookups never render (allowRendering: false).
 function isRenderableSalesforceHelpArticleUrl(urlValue: string): boolean {
-  try {
-    const url = new URL(urlValue);
-    if (url.hostname !== 'help.salesforce.com' || !url.pathname.includes('/articleView')) return false;
-    const articleId = (url.searchParams.get('id') || '').toLowerCase();
-    if (articleId.startsWith('release-notes.')) return true;
-    if (articleId === 'data.c360_a_dc_releases.htm') return true;
-    return RENDERABLE_HELP_ARTICLE_ID_PATTERNS.some((pattern) => pattern.test(articleId));
-  } catch {
-    return false;
-  }
+  return isHelpArticleUrl(urlValue);
 }
 
 function isSalesforceHelpReleaseNotesUrl(urlValue: string): boolean {
@@ -1921,11 +2133,65 @@ function isSalesforceHelpErrorText(text: string): boolean {
   return /we looked high and low|couldn['\u2019]t find that page/i.test(text);
 }
 
+function sameRenderedHelpLine(line: string, title: string): boolean {
+  const normalize = (value: string) => value.replace(/[\u2018\u2019]/g, "'").replace(/\s+/g, ' ').trim().toLowerCase();
+  return normalize(line) === normalize(title);
+}
+
+/**
+ * Splits the article viewer's text into the page header (breadcrumb, guide
+ * name) and the article itself, dropping site banners before the breadcrumb
+ * and the feedback widget after the body. Knowledge articles (type=1) have no
+ * breadcrumb and start at their title.
+ */
+export function extractRenderedHelpArticle(rawText: string, title?: string): { header: string; text: string } {
+  let lines = rawText
+    .replace(/\u0000/g, ' ')
+    .replace(/\u00a0/g, ' ')
+    .replace(/\r/g, '\n')
+    .split('\n')
+    .map((line) => line.replace(/[ \t]{2,}/g, ' ').trim());
+  const feedbackIndex = lines.findIndex((line) => /^did this article solve your issue\??$/i.test(line));
+  if (feedbackIndex >= 0) lines = lines.slice(0, feedbackIndex);
+
+  let header: string[] = [];
+  const crumbIndex = lines.findIndex((line) => /^you are here:?$/i.test(line));
+  const titleIndex = title
+    ? lines.findIndex((line, index) => index > crumbIndex && sameRenderedHelpLine(line, title))
+    : -1;
+  if (titleIndex >= 0) {
+    header = lines.slice(0, titleIndex);
+    lines = lines.slice(titleIndex);
+  } else if (crumbIndex >= 0) {
+    header = lines.slice(0, crumbIndex + 1);
+    lines = lines.slice(crumbIndex + 1);
+  }
+
+  return {
+    header: header.filter(Boolean).join('\n'),
+    text: normalizeRenderedHelpText(lines.join('\n')),
+  };
+}
+
 function extractSalesforceReleaseLabel(text: string): string | undefined {
   const match = text.match(/\b(Spring|Summer|Winter)\s+[\u2019']?([0-9]{2})\b/i);
   if (!match) return undefined;
   const season = match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase();
   return `${season} '${match[2]}`;
+}
+
+/**
+ * Salesforce release numbers step by 2 per release, three releases a year:
+ * 264 = Winter '27, 266 = Spring '27, 268 = Summer '27 (208 = Summer '17).
+ */
+export function salesforceReleaseLabelForVersion(version: string | undefined): string | undefined {
+  const releaseNumber = Number(version);
+  if (!Number.isInteger(releaseNumber) || releaseNumber < 100 || releaseNumber % 2 !== 0) return undefined;
+  const step = (releaseNumber - 264) / 2;
+  const season = ['Winter', 'Spring', 'Summer'][((step % 3) + 3) % 3];
+  const year = 27 + Math.floor(step / 3);
+  if (year < 0 || year > 99) return undefined;
+  return `${season} '${String(year).padStart(2, '0')}`;
 }
 
 function extractHelpReleaseVersion(urlValue: string): string | undefined {
@@ -2003,9 +2269,35 @@ export async function closeSalesforceHelpBrowser(): Promise<void> {
   }
 }
 
-async function fetchRenderedHelpArticleContent(urlValue: string): Promise<OfficialDocContent | null> {
-  if (!isRenderableSalesforceHelpArticleUrl(urlValue)) return null;
+let lastHelpRenderAtMs = 0;
 
+// Renders run one at a time with a pause between them: bursts trip Salesforce's
+// IP cool-down, after which every Help and developer-docs request 403s for a while.
+async function waitForHelpRenderSlot(): Promise<void> {
+  const spacingMs = SALESFORCE_HELP_RENDER_SPACING_MS + Math.floor(Math.random() * 1000);
+  const waitMs = lastHelpRenderAtMs + spacingMs - Date.now();
+  if (waitMs > 0) await sleep(waitMs);
+  lastHelpRenderAtMs = Date.now();
+}
+
+/** A Help article link as `https://help.salesforce.com/s/articleView?id=…&language=en_US&type=…`, or null. */
+export function canonicalHelpArticleUrl(href: string): string | null {
+  try {
+    const url = new URL(href, 'https://help.salesforce.com/s/');
+    if (url.hostname !== 'help.salesforce.com' || !url.pathname.endsWith('/articleView')) return null;
+    const articleId = url.searchParams.get('id');
+    if (!articleId || !/^[A-Za-z0-9._-]+$/.test(articleId)) return null;
+    const language = url.searchParams.get('language');
+    if (language && language !== 'en_US') return null;
+    const type = url.searchParams.get('type') || '5';
+    return `https://help.salesforce.com/s/articleView?id=${articleId}&language=en_US&type=${type}`;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchRenderedHelpArticleContent(urlValue: string): Promise<OfficialDocContent> {
+  await waitForHelpRenderSlot();
   const browser = await getSalesforceHelpBrowser();
   const page = await browser.newPage();
   try {
@@ -2016,40 +2308,87 @@ async function fetchRenderedHelpArticleContent(urlValue: string): Promise<Offici
       waitUntil: 'domcontentloaded',
       timeout: SALESFORCE_HELP_RENDER_TIMEOUT_MS,
     });
-    // Substantial rendered body is the real readiness signal; the release-notes
-    // marker only lets known-slow release pages settle a little longer.
+    // The article viewer renders its feedback widget after the body, so that
+    // marker means the article is in; a long body is the fallback signal.
     await page.waitForFunction(
       () => {
+        const viewerText = (document.querySelector('c-hc-article-viewer') as HTMLElement | null)?.innerText || '';
+        if (/did this article solve your issue/i.test(viewerText)) return true;
         const text = document.body?.innerText || '';
         if (text.length > 4000) return true;
         return text.length > 1200 && /Release Notes|Release Updates|Features Become Available|About Data 360 Releases/i.test(text);
       },
       { timeout: Math.min(30000, SALESFORCE_HELP_RENDER_TIMEOUT_MS) },
     ).catch(() => undefined);
+    // The guide's table of contents loads after the article; Knowledge articles (type=1) have none.
+    if (new URL(urlValue).searchParams.get('type') !== '1') {
+      await page.waitForFunction(
+        () => {
+          let count = 0;
+          const walk = (root: Document | ShadowRoot) => {
+            for (const element of Array.from(root.querySelectorAll('*'))) {
+              if (element.tagName === 'A' && (element.getAttribute('href') || '').includes('articleView?id=')) count += 1;
+              if (element.shadowRoot) walk(element.shadowRoot);
+            }
+          };
+          walk(document);
+          return count > 20;
+        },
+        { timeout: 8000 },
+      ).catch(() => undefined);
+    }
 
-    const rendered = await page.evaluate(() => ({
-      title: document.title || '',
-      text: document.body?.innerText || '',
-      url: window.location.href,
-    }));
-    const normalizedText = normalizeRenderedHelpText(rendered.text);
-    if (isSalesforceHelpErrorText(normalizedText)) {
+    const rendered = await page.evaluate(() => {
+      // Table-of-contents and "See also" links live in nested shadow roots.
+      const links: Array<{ href: string; title: string }> = [];
+      const walk = (root: Document | ShadowRoot) => {
+        for (const element of Array.from(root.querySelectorAll('*'))) {
+          if (element.tagName === 'A') {
+            const href = element.getAttribute('href') || '';
+            const title = ((element as HTMLElement).innerText || element.textContent || '').replace(/\s+/g, ' ').trim();
+            if (href.includes('articleView?') && title) links.push({ href, title });
+          }
+          if (element.shadowRoot) walk(element.shadowRoot);
+        }
+      };
+      walk(document);
+      const viewer = document.querySelector('c-hc-article-viewer') as HTMLElement | null;
+      return {
+        title: document.title || '',
+        text: viewer?.innerText || document.body?.innerText || '',
+        url: window.location.href,
+        links,
+      };
+    });
+    const title = normalizeRenderedHelpTitle(rendered.title);
+    const article = extractRenderedHelpArticle(rendered.text, title);
+    if (isSalesforceHelpErrorText(article.text)) {
       throw new Error('Rendered Salesforce Help article was an error page.');
     }
-    if (normalizedText.length < FULL_TEXT_CONTENT_LENGTH_FLOOR) {
-      throw new Error(`Rendered Salesforce Help article was too short (${normalizedText.length} chars)`);
+    if (article.text.length < FULL_TEXT_CONTENT_LENGTH_FLOOR) {
+      throw new Error(`Rendered Salesforce Help article was too short (${article.text.length} chars)`);
     }
 
     const maxChars = positiveLimit(SALESFORCE_HELP_RENDER_MAX_CHARS);
-    const text = maxChars ? normalizedText.slice(0, maxChars) : normalizedText;
+    const text = maxChars ? article.text.slice(0, maxChars) : article.text;
+    const documentationVersion = extractHelpReleaseVersion(rendered.url) || extractHelpReleaseVersion(urlValue);
+    const discoveredLinks = new Map<string, string>();
+    for (const link of rendered.links) {
+      const canonical = canonicalHelpArticleUrl(link.href);
+      if (canonical && !discoveredLinks.has(canonical)) discoveredLinks.set(canonical, link.title.slice(0, 180));
+    }
     return {
       text,
       contentQuality: 'full_text',
-      title: normalizeRenderedHelpTitle(rendered.title) || extractTitle(text, humanizeSalesforceDocId(new URL(urlValue).searchParams.get('id') || 'Salesforce Help Article')),
-      releaseLabel: extractSalesforceReleaseLabel(`${rendered.title}\n${text}`),
-      documentationVersion: extractHelpReleaseVersion(rendered.url) || extractHelpReleaseVersion(urlValue),
+      title: title || extractTitle(text, humanizeSalesforceDocId(new URL(urlValue).searchParams.get('id') || 'Salesforce Help Article')),
+      // The page's own version only: its title, breadcrumb, or release number.
+      // A season mentioned in the body ("available since Summer '17") is not it.
+      releaseLabel: extractSalesforceReleaseLabel(`${rendered.title}\n${article.header}`)
+        || salesforceReleaseLabelForVersion(documentationVersion),
+      documentationVersion,
+      discoveredLinks: Array.from(discoveredLinks, ([url, linkTitle]) => ({ url, title: linkTitle })),
       warnings: [
-        maxChars && normalizedText.length > maxChars
+        maxChars && article.text.length > maxChars
           ? `Rendered Salesforce Help article text was truncated at ${maxChars} characters by SALESFORCE_DOCS_HELP_RENDER_MAX_CHARS.`
           : '',
       ].filter(Boolean),
@@ -2057,30 +2396,6 @@ async function fetchRenderedHelpArticleContent(urlValue: string): Promise<Offici
   } finally {
     await page.close().catch(() => undefined);
   }
-}
-
-function buildHelpArticleMetadata(urlValue: string): OfficialDocContent | null {
-  const url = new URL(urlValue);
-  if (url.hostname !== 'help.salesforce.com' || !url.pathname.includes('/articleView')) return null;
-  const articleId = url.searchParams.get('id');
-  if (!articleId) return null;
-  const release = url.searchParams.get('release') || undefined;
-  const title = humanizeSalesforceDocId(articleId);
-  return {
-    text: [
-      `Official Salesforce Help article: ${title}.`,
-      `Article id: ${articleId}.`,
-      release ? `Release parameter: ${release}.` : '',
-      `Canonical URL: ${url.toString()}.`,
-    ].filter(Boolean).join(' '),
-    contentQuality: 'metadata_only',
-    title,
-    documentationVersion: release,
-    releaseLabel: release ? `Salesforce release ${release}` : undefined,
-    warnings: [
-      'Salesforce Help article was indexed from official URL and sitemap metadata; rendered article body was not extracted server-side.',
-    ],
-  };
 }
 
 function addDaysIso(isoValue: string, days: number): string {
@@ -2526,12 +2841,13 @@ async function fetchDeveloperDocsContent(
   }
 
   const text = stripHtmlTags(html || '');
-  if (text.length < 80) {
+  if (text.length < FULL_TEXT_CONTENT_LENGTH_FLOOR) {
     throw new Error(`Developer docs API content was too short (${text.length} chars)`);
   }
 
   return {
-    text: text.slice(0, 120000),
+    // Whole page: long reference pages (Flow metadata) are chunked, not cut.
+    text,
     contentQuality: 'full_text',
     title,
     apiVersion,
@@ -2543,7 +2859,7 @@ async function fetchDeveloperDocsContent(
   };
 }
 
-function isHelpArticleViewMetadataUrl(urlValue: string): boolean {
+function isHelpArticleUrl(urlValue: string): boolean {
   try {
     const url = new URL(urlValue);
     return url.hostname === 'help.salesforce.com'
@@ -2554,7 +2870,19 @@ function isHelpArticleViewMetadataUrl(urlValue: string): boolean {
   }
 }
 
-export type OfficialDocRetrievalPlan = 'developer_api' | 'rendered_help' | 'help_metadata' | 'raw_html';
+export type OfficialDocRetrievalPlan = 'developer_api' | 'rendered_help' | 'help_unrendered' | 'raw_html';
+
+/**
+ * An official page that was found but whose text was not read: a Help article
+ * outside the index (its body only exists after rendering, which lookups never
+ * do), or a page Salesforce blocked. It is never evidence.
+ */
+export class SalesforceDocNotReadError extends Error {
+  constructor(readonly url: string, readonly reason: 'not_rendered' | 'blocked', message: string) {
+    super(message);
+    this.name = 'SalesforceDocNotReadError';
+  }
+}
 
 export interface FetchOfficialDocOptions {
   /** Headless-Chrome rendering of help.salesforce.com release-notes articles. Index build only — never enable inside executeTool. */
@@ -2570,7 +2898,7 @@ export function officialDocRetrievalPlan(
   const allowRendering = options.allowRendering !== false;
   if (parseDeveloperDocsReference(urlValue)) return 'developer_api';
   if (allowRendering && isRenderableSalesforceHelpArticleUrl(urlValue)) return 'rendered_help';
-  if (isHelpArticleViewMetadataUrl(urlValue)) return 'help_metadata';
+  if (isHelpArticleUrl(urlValue)) return 'help_unrendered';
   return 'raw_html';
 }
 
@@ -2593,22 +2921,34 @@ export async function fetchOfficialDocContent(
   }
 
   if (plan === 'rendered_help') {
-    const renderedHelpArticle = await fetchRenderedHelpArticleContent(url);
-    if (renderedHelpArticle) return renderedHelpArticle;
+    // A render that fails is a failure: the article was not read.
+    return fetchRenderedHelpArticleContent(url);
   }
 
-  if (plan === 'rendered_help' || plan === 'help_metadata') {
-    const helpArticleMetadata = buildHelpArticleMetadata(url);
-    if (helpArticleMetadata) return helpArticleMetadata;
+  if (plan === 'help_unrendered') {
+    throw new SalesforceDocNotReadError(
+      url,
+      'not_rendered',
+      'Salesforce Help article bodies are read when the docs index is built, and this article is not in the index yet.',
+    );
   }
 
-  const html = await fetchText(url, timeoutMs, maxAttempts);
+  let html: string;
+  try {
+    html = await fetchText(url, timeoutMs, maxAttempts);
+  } catch (error: any) {
+    if (/HTTP 403/.test(error?.message || '')) {
+      throw new SalesforceDocNotReadError(url, 'blocked', `Salesforce blocked this page (HTTP 403): ${error.message}`);
+    }
+    throw error;
+  }
   const normalized = stripHtmlTags(html);
-  if (normalized.length < 80) {
+  // Below the full-text floor is a site shell ("Salesforce Developers"), not a page.
+  if (normalized.length < FULL_TEXT_CONTENT_LENGTH_FLOOR) {
     throw new Error(`Fetched content was too short (${normalized.length} chars)`);
   }
   return {
-    text: normalized.slice(0, 120000),
+    text: normalized,
     contentQuality: 'full_text',
     title: extractHtmlTitle(html),
     warnings: developerDocsApiError
@@ -2778,23 +3118,158 @@ function shouldFetchSitemapEntryForTopic(
   return fullTextRecordsForTopic === 0 || recordsForTopic.length < 2;
 }
 
+// --- Lookup misses → pages to read -------------------------------------------
+
+const MISS_STOPWORDS = new Set([
+  'salesforce', 'official', 'documentation', 'document', 'documents', 'documented', 'docs', 'doc', 'help', 'article', 'guide', 'says', 'the', 'and', 'for',
+  'with', 'how', 'what', 'when', 'which', 'does', 'are', 'from', 'into', 'about', 'behavior', 'behaviour',
+  'using', 'use', 'this', 'that', 'per', 'its', 'can', 'not', 'all', 'any',
+]);
+/** Pages read per miss: the best two candidates are enough to answer it, and renders are throttled. */
+const MISS_CANDIDATES_PER_MISS = 2;
+
+export function missTokens(text: string): string[] {
+  return Array.from(new Set(
+    normalizeForMatch(text).split(' ').filter((token) => token.length >= 3 && !MISS_STOPWORDS.has(token)),
+  ));
+}
+
+/** Folds repeated misses (same query) into one, keeping the earliest and latest sighting. */
+export function aggregateMisses(
+  misses: SalesforceDocsMiss[],
+  carried: SalesforceDocsUnresolvedMiss[] = [],
+): SalesforceDocsUnresolvedMiss[] {
+  const byKey = new Map<string, SalesforceDocsUnresolvedMiss>();
+  const add = (miss: SalesforceDocsUnresolvedMiss) => {
+    const key = normalizeForMatch(miss.query || miss.label);
+    if (!key) return;
+    const existing = byKey.get(key);
+    if (!existing) {
+      byKey.set(key, { ...miss, candidateUrls: miss.candidateUrls ? [...miss.candidateUrls] : undefined });
+      return;
+    }
+    existing.count += miss.count;
+    if (miss.firstSeenAt < existing.firstSeenAt) existing.firstSeenAt = miss.firstSeenAt;
+    if (miss.lastSeenAt > existing.lastSeenAt) {
+      existing.lastSeenAt = miss.lastSeenAt;
+      existing.reason = miss.reason;
+    }
+    const candidateUrls = new Set([...(existing.candidateUrls || []), ...(miss.candidateUrls || [])]);
+    existing.candidateUrls = candidateUrls.size > 0 ? Array.from(candidateUrls) : undefined;
+  };
+  carried.forEach(add);
+  misses.forEach((miss) => add({
+    label: miss.label,
+    query: miss.query,
+    reason: miss.reason,
+    firstSeenAt: miss.at,
+    lastSeenAt: miss.at,
+    count: 1,
+    candidateUrls: miss.candidateUrls,
+  }));
+  return Array.from(byKey.values());
+}
+
+/**
+ * Official pages most likely to answer a miss: the pages the lookup itself
+ * found but could not read come first, then Help catalog titles and sitemap
+ * paths that carry at least half of the miss's words (two at minimum).
+ */
+export function rankMissCandidates(
+  miss: Pick<SalesforceDocsUnresolvedMiss, 'label' | 'query' | 'candidateUrls'>,
+  catalog: SalesforceDocsHelpCatalogEntry[],
+): string[] {
+  const ranked: string[] = [];
+  for (const candidateUrl of miss.candidateUrls || []) {
+    const url = canonicalHelpArticleUrl(candidateUrl) || canonicalizeUrl(candidateUrl);
+    if (url && !/\.pdf$/i.test(new URL(url).pathname) && !ranked.includes(url)) ranked.push(url);
+  }
+  const tokens = missTokens(`${miss.label} ${miss.query}`);
+  if (tokens.length === 0) return ranked;
+  const needed = Math.max(Math.min(2, tokens.length), Math.ceil(tokens.length / 2));
+  const scored = catalog
+    .map((entry) => {
+      const titleTokens = new Set(normalizeForMatch(entry.title).split(' '));
+      const matched = tokens.filter((token) => titleTokens.has(token)).length;
+      return { url: entry.url, matched };
+    })
+    .filter((entry) => entry.matched >= needed)
+    .sort((a, b) => b.matched - a.matched || a.url.localeCompare(b.url));
+  for (const entry of scored) {
+    if (!ranked.includes(entry.url)) ranked.push(entry.url);
+  }
+  return ranked;
+}
+
+/** A topic's own words: its label and query, without generic words like "salesforce" or "docs". */
+export function topicOwnTerms(topic: { label: string; query: string }): string[] {
+  return missTokens(`${topic.label} ${topic.query}`);
+}
+
+/**
+ * Whether a passage is about the topic on the topic's own terms: it carries at
+ * least two of them (one when the topic has one), or three when the topic is
+ * long. Alias expansion and generic words help rank passages, but they can't
+ * make a passage count as an answer.
+ */
+export function passageAnswersTopic(text: string, ownTerms: string[]): boolean {
+  return loweredPassageAnswersTopic(text.toLowerCase(), ownTerms);
+}
+
+function loweredPassageAnswersTopic(lowered: string, ownTerms: string[]): boolean {
+  if (ownTerms.length === 0) return false;
+  const needed = Math.max(Math.min(2, ownTerms.length), Math.min(3, Math.ceil(ownTerms.length / 2)));
+  let matched = 0;
+  for (const term of ownTerms) {
+    const found = term.length >= 5
+      ? lowered.includes(term)
+      : new RegExp(`(^|[^a-z0-9])${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^a-z0-9]|$)`).test(lowered);
+    if (found) matched += 1;
+    if (matched >= needed) return true;
+  }
+  return false;
+}
+
+function sitemapCatalogEntries(entries: SalesforceDocsSitemapEntry[]): SalesforceDocsHelpCatalogEntry[] {
+  return entries.map((entry) => {
+    const url = new URL(entry.url);
+    return { url: entry.url, title: `${url.pathname} ${url.searchParams.get('id') || ''}` };
+  });
+}
+
+function learnedTopicForMiss(miss: Pick<SalesforceDocsUnresolvedMiss, 'label' | 'query'>): SalesforceDocsIndexTopic {
+  const slug = normalizeForMatch(miss.query || miss.label).replace(/\s+/g, '-').slice(0, 60);
+  return {
+    id: `learned-${slug}`,
+    label: miss.label,
+    query: miss.query,
+    category: 'learned',
+    keywords: missTokens(`${miss.label} ${miss.query}`),
+    seedUrls: [],
+  };
+}
+
 async function buildRecord(
   topic: SalesforceDocsIndexTopic,
   rawUrl: string,
   retrievedAt: string,
   index: number,
   discovery: {
-    source: 'seed' | 'sitemap';
+    source: 'seed' | 'sitemap' | 'miss';
     lastModified?: string;
     sitemapUrl?: string;
     sitemapScore?: number;
   } = { source: 'seed' },
+  helpCatalog?: Map<string, string>,
 ): Promise<SalesforceDocsIndexRecord> {
   const url = canonicalizeUrl(rawUrl);
   if (!url) {
     throw new Error(`URL is not an allowed official Salesforce URL: ${rawUrl}`);
   }
   const content = await fetchOfficialDocContent(url);
+  for (const link of content.discoveredLinks || []) {
+    if (helpCatalog && !helpCatalog.has(link.url)) helpCatalog.set(link.url, link.title);
+  }
   const text = content.text;
   const recordId = `sf-doc-index-${index}`;
   const textChunks = content.contentQuality === 'full_text'
@@ -2848,6 +3323,8 @@ async function buildPdfRecord(
   }
 
   const pdf = await fetchPdfDocument(url);
+  // Hash first: pdf.js takes ownership of the buffer and leaves it empty.
+  const responseHash = crypto.createHash('sha256').update(Buffer.from(pdf.bytes)).digest('hex');
   const extracted = await extractPdfText(pdf.bytes, source.id);
   if (extracted.text.length < FULL_TEXT_CONTENT_LENGTH_FLOOR) {
     throw new Error(`PDF text extraction was too short (${extracted.text.length} chars)`);
@@ -2885,7 +3362,7 @@ async function buildPdfRecord(
     pdfSourceId: source.id,
     status,
     retrievedAt,
-    responseHash: crypto.createHash('sha256').update(Buffer.from(pdf.bytes)).digest('hex'),
+    responseHash,
     contentQuality: 'full_text',
     contentLength: extracted.text.length,
     contentType: pdf.contentType,
@@ -2985,6 +3462,7 @@ async function buildSalesforceDocsIndexNowInternal(options: SalesforceDocsIndexB
   const records: SalesforceDocsIndexRecord[] = [];
   const failures: SalesforceDocsIndex['failures'] = [];
   const seenUrls = new Set<string>();
+  const helpCatalog = new Map<string, string>();
   const includePdfDocs = options.includePdfDocs !== false;
   const includeWebDocs = options.includeWebDocs !== false;
   const includeSitemapDocs = includeWebDocs && options.includeSitemapDocs !== false;
@@ -3039,7 +3517,7 @@ async function buildSalesforceDocsIndexNowInternal(options: SalesforceDocsIndexB
       seenUrls.add(canonicalUrl);
 
       try {
-        records.push(await buildRecord(topic, canonicalUrl, generatedAt, records.length + 1));
+        records.push(await buildRecord(topic, canonicalUrl, generatedAt, records.length + 1, { source: 'seed' }, helpCatalog));
       } catch (error: any) {
         failures.push({
           topicId: topic.id,
@@ -3076,7 +3554,7 @@ async function buildSalesforceDocsIndexNowInternal(options: SalesforceDocsIndexB
           lastModified: entry.lastModified,
           sitemapUrl: entry.sitemapUrl,
           sitemapScore: score,
-        }));
+        }, helpCatalog));
         topicSitemapRecordCount += 1;
       } catch (error: any) {
         failures.push({
@@ -3085,6 +3563,63 @@ async function buildSalesforceDocsIndexNowInternal(options: SalesforceDocsIndexB
           error: error?.message || 'Unknown sitemap-discovered fetch failure',
         });
       }
+    }
+  }
+
+  // Pages learned from earlier lookup misses are seeds now. One that fails
+  // today stays learned, so the next build tries it again.
+  const learnedSources: SalesforceDocsLearnedSource[] = [];
+  for (const learned of includeWebDocs ? options.previousIndex?.learnedSources || [] : []) {
+    learnedSources.push(learned);
+    if (records.some((record) => record.url === learned.url) || seenUrls.has(learned.url)) continue;
+    seenUrls.add(learned.url);
+    try {
+      records.push(await buildRecord(learnedTopicForMiss({ label: learned.title, query: learned.query }), learned.url, generatedAt, records.length + 1, { source: 'miss' }, helpCatalog));
+    } catch (error: any) {
+      failures.push({ topicId: 'learned', url: learned.url, error: error?.message || 'Unknown learned-page fetch failure' });
+    }
+  }
+
+  // New misses, plus the ones no page has answered yet, against every official
+  // page this build knows of: the pages it read (a seed may already answer a
+  // miss), the Help catalog (this build's and earlier ones), and the developer
+  // and architect sitemaps.
+  for (const entry of options.previousIndex?.helpCatalog || []) {
+    if (!helpCatalog.has(entry.url)) helpCatalog.set(entry.url, entry.title);
+  }
+  const missCatalog = [
+    ...records.filter(isFullTextRecord).map((record) => ({ url: record.url, title: record.title })),
+    ...Array.from(helpCatalog, ([url, title]) => ({ url, title })),
+    ...sitemapCatalogEntries(sitemapEntries),
+  ];
+  const unresolvedMisses: SalesforceDocsUnresolvedMiss[] = [];
+  const pendingMisses = includeWebDocs
+    ? aggregateMisses(options.misses || [], options.previousIndex?.unresolvedMisses || [])
+    : [];
+  for (const miss of pendingMisses) {
+    const candidates = rankMissCandidates(miss, missCatalog).slice(0, MISS_CANDIDATES_PER_MISS);
+    let answered = false;
+    for (const url of candidates) {
+      if (records.some((record) => record.url === url && isFullTextRecord(record))) {
+        answered = true;
+        continue;
+      }
+      if (seenUrls.has(url)) continue;
+      seenUrls.add(url);
+      try {
+        const record = await buildRecord(learnedTopicForMiss(miss), url, generatedAt, records.length + 1, { source: 'miss' }, helpCatalog);
+        records.push(record);
+        learnedSources.push({ url, title: record.title, query: miss.query, learnedAt: generatedAt });
+        answered = true;
+      } catch (error: any) {
+        failures.push({ topicId: 'learned', url, error: error?.message || 'Unknown miss-candidate fetch failure' });
+      }
+    }
+    if (!answered) {
+      unresolvedMisses.push({
+        ...miss,
+        reason: candidates.length > 0 ? 'candidates_unreadable' : 'no_candidate_page',
+      });
     }
   }
 
@@ -3108,6 +3643,10 @@ async function buildSalesforceDocsIndexNowInternal(options: SalesforceDocsIndexB
       sitemapRecordLimitPerTopic: MAX_SITEMAP_RECORDS_PER_TOPIC,
     },
     pdfCorpus,
+    helpCatalog: Array.from(helpCatalog, ([url, title]) => ({ url, title }))
+      .sort((a, b) => a.title.localeCompare(b.title) || a.url.localeCompare(b.url)),
+    learnedSources,
+    unresolvedMisses,
     warnings: [
       records.length === 0 ? 'No official Salesforce documentation records were fetched.' : '',
       failures.length > 0 ? `${failures.length} official Salesforce documentation seed URL(s) failed to fetch.` : '',
@@ -3167,6 +3706,43 @@ function countFailuresByDomain(index: SalesforceDocsIndex): Record<string, numbe
   }, {} as Record<string, number>);
 }
 
+/** Curated topics this build covered that ended up with no full-text record to answer from. */
+export function topicsWithoutFullTextRecords(index: SalesforceDocsIndex): string[] {
+  return index.topics
+    .filter((topic) => !index.records.some((record) => isFullTextRecord(record) && record.topicIds.includes(topic.id)))
+    .map((topic) => topic.id);
+}
+
+export interface SalesforceDocsIndexComparison {
+  previousGeneratedAt: string;
+  /** Topics whose full-text record count went down since the previous build. */
+  topicsLosingRecords: Array<{ topicId: string; before: number; after: number }>;
+  droppedUrls: string[];
+  addedUrls: string[];
+}
+
+export function compareSalesforceDocsIndexes(previous: SalesforceDocsIndex, next: SalesforceDocsIndex): SalesforceDocsIndexComparison {
+  const fullTextCountsByTopic = (index: SalesforceDocsIndex) => {
+    const counts = new Map<string, number>();
+    for (const record of index.records.filter(isFullTextRecord)) {
+      for (const topicId of record.topicIds) counts.set(topicId, (counts.get(topicId) || 0) + 1);
+    }
+    return counts;
+  };
+  const before = fullTextCountsByTopic(previous);
+  const after = fullTextCountsByTopic(next);
+  const previousUrls = new Set(previous.records.filter(isFullTextRecord).map((record) => record.url));
+  const nextUrls = new Set(next.records.filter(isFullTextRecord).map((record) => record.url));
+  return {
+    previousGeneratedAt: previous.generatedAt,
+    topicsLosingRecords: next.topics
+      .map((topic) => ({ topicId: topic.id, before: before.get(topic.id) || 0, after: after.get(topic.id) || 0 }))
+      .filter((topic) => topic.after < topic.before),
+    droppedUrls: Array.from(previousUrls).filter((url) => !nextUrls.has(url)).sort(),
+    addedUrls: Array.from(nextUrls).filter((url) => !previousUrls.has(url)).sort(),
+  };
+}
+
 export function refreshCoverageError(index: SalesforceDocsIndex): string | null {
   const developerRecords = developerDocRecordCount(index);
   if (developerRecords < MIN_REFRESH_DEVELOPER_DOC_RECORDS) {
@@ -3197,6 +3773,16 @@ export function refreshCoverageError(index: SalesforceDocsIndex): string | null 
     return [
       `Salesforce docs index refresh produced a metadata-only ratio of ${ratio.toFixed(2)},`,
       `above allowed maximum ${MAX_REFRESH_METADATA_ONLY_RATIO}; keeping the previous index.`,
+    ].join(' ');
+  }
+
+  // A topic with nothing readable would answer lookups with no evidence (Shield
+  // sat at zero records for weeks behind dead seeds before this gate).
+  const emptyTopics = topicsWithoutFullTextRecords(index);
+  if (emptyTopics.length > 0) {
+    return [
+      `Salesforce docs index refresh left ${emptyTopics.length} topic(s) with no full-text record`,
+      `(${emptyTopics.join(', ')}); keeping the previous index.`,
     ].join(' ');
   }
 
@@ -3386,10 +3972,12 @@ function matchedChunksForRecord(
   record: SalesforceDocsIndexRecord,
   tokens: string[],
   scoreChunk: ChunkScorer,
+  ownTerms: string[],
   maxChunks = MAX_MATCHED_CHUNKS_PER_SOURCE,
 ): NonNullable<SalesforceDocsIndexEvidenceSource['matchedChunks']> {
   if (!record.textChunks || record.textChunks.length === 0) return [];
   return record.textChunks
+    .filter((chunk) => loweredPassageAnswersTopic(loweredChunkText(chunk), ownTerms))
     .map((chunk) => ({ chunk, rawScore: scoreChunk(chunk, tokens) }))
     .filter(({ rawScore }) => rawScore > 0)
     .sort((a, b) => b.rawScore - a.rawScore || a.chunk.ordinal - b.chunk.ordinal)
@@ -3542,16 +4130,31 @@ export async function lookupSalesforceDocsIndex(
   const seenSourceKeys = new Set<string>();
 
   const scoreChunk = createChunkScorer(index);
+  const topicsWithUnansweringMatches = new Set<string>();
   for (const topic of topics) {
     const tokens = tokensForTopic(topic);
     const aliasTopicIds = aliasTopicIdsFor(topic);
+    const ownTerms = topicOwnTerms(topic);
     const scored = index.records
+      .filter(isFullTextRecord)
       .map((record) => ({ record, score: scoreRecordForTopic(record, topic, tokens, aliasTopicIds, scoreChunk) }))
       .filter((item) => item.score > 0)
       .sort((a, b) => b.score - a.score || a.record.title.localeCompare(b.record.title));
-    const selected = selectScoredRecordsForTopic(scored, aliasTopicIds, options.maxResultsPerTopic);
+    // A page is evidence for a topic only when one of its passages is about the
+    // topic in the topic's own words; ranking alone (aliases, "salesforce") isn't.
+    const answering: typeof scored = [];
+    for (const item of scored) {
+      if ((item.record.textChunks || []).some((chunk) => loweredPassageAnswersTopic(loweredChunkText(chunk), ownTerms))) {
+        answering.push(item);
+        if (answering.length >= options.maxResultsPerTopic * 3) break;
+      }
+    }
+    const selected = selectScoredRecordsForTopic(answering, aliasTopicIds, options.maxResultsPerTopic);
 
-    if (selected.length === 0) continue;
+    if (selected.length === 0) {
+      if (scored.length > 0) topicsWithUnansweringMatches.add(topic.id);
+      continue;
+    }
     topicHits.add(topic.id);
     if (selectionIsAliasRouted(selected.map((item) => item.record), aliasTopicIds)) {
       aliasRoutedTopicIds.add(topic.id);
@@ -3567,7 +4170,7 @@ export async function lookupSalesforceDocsIndex(
       const recordPdfRefreshStatus = item.record.sourceFormat === 'pdf'
         ? pdfRefreshStatus(item.record)
         : null;
-      const matchedChunks = matchedChunksForRecord(item.record, tokens, scoreChunk);
+      const matchedChunks = matchedChunksForRecord(item.record, tokens, scoreChunk, ownTerms);
       const sourceWarnings = [
         ...item.record.warnings,
         `Source came from cached official Salesforce docs index generated ${index.generatedAt}.`,
@@ -3632,7 +4235,9 @@ export async function lookupSalesforceDocsIndex(
           sourceCount,
           reason: sourceCount > 0
             ? undefined
-            : 'No cached official Salesforce documentation source matched this topic.',
+            : topicsWithUnansweringMatches.has(topic.id)
+              ? 'Indexed pages ranked for this topic, but none has a passage about it in its own terms.'
+              : 'No cached official Salesforce documentation source matched this topic.',
         };
       }),
       missedTopics: topics
@@ -3640,9 +4245,11 @@ export async function lookupSalesforceDocsIndex(
         .map((topic) => ({
           topicId: topic.id,
           label: topic.label,
-          reason: index.topics.some((indexedTopic) => aliasTopicIdsFor(topic).includes(indexedTopic.id))
-            ? 'no_official_source' as const
-            : 'not_indexed' as const,
+          reason: topicsWithUnansweringMatches.has(topic.id)
+            ? 'no_matching_passage' as const
+            : index.topics.some((indexedTopic) => aliasTopicIdsFor(topic).includes(indexedTopic.id))
+              ? 'no_official_source' as const
+              : 'not_indexed' as const,
         })),
       stalenessWarnings: warnings.filter((warning) => /older than|stale|previous|due|overdue/i.test(warning)),
     },

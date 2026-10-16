@@ -7,7 +7,19 @@ const {
   buildBm25CorpusStats,
   bm25ChunkScore,
   refreshCoverageError,
+  topicsWithoutFullTextRecords,
+  compareSalesforceDocsIndexes,
+  missTokens,
+  aggregateMisses,
+  rankMissCandidates,
+  topicOwnTerms,
+  passageAnswersTopic,
+  fetchOfficialDocContent,
+  SalesforceDocNotReadError,
   selectionIsAliasRouted,
+  extractRenderedHelpArticle,
+  salesforceReleaseLabelForVersion,
+  canonicalHelpArticleUrl,
   SALESFORCE_DOC_TOPICS,
   SALESFORCE_DOC_PDF_SOURCES,
   SALESFORCE_DOC_TOPIC_ALIASES,
@@ -60,6 +72,24 @@ describe('topic catalog hygiene', () => {
     }
     assert.ok(SALESFORCE_DOC_TOPICS.length >= 70, `expected >=70 topics, got ${SALESFORCE_DOC_TOPICS.length}`);
     assert.ok(SALESFORCE_DOC_PDF_SOURCES.length >= 20, `expected >=20 PDF sources, got ${SALESFORCE_DOC_PDF_SOURCES.length}`);
+  });
+});
+
+describe('docs grounding gap coverage (2.9.5)', () => {
+  const seedsFor = (topicId) => SALESFORCE_DOC_TOPICS.find((topic) => topic.id === topicId)?.seedUrls || [];
+
+  it('seeds the admin Help topics the index never had', () => {
+    for (const topicId of ['org-limits-allocations', 'org-security-health-check', 'lead-conversion', 'email-limits', 'education-data-architecture', 'salesforce-cli-reference']) {
+      assert.ok(seedsFor(topicId).length > 0, `${topicId} has no seeds`);
+    }
+    assert.ok(seedsFor('flow-order-recursion').some((url) => url.includes('flow_task_trigger_run_order')), 'flow trigger order Help page');
+    assert.ok(seedsFor('permissions-least-privilege').some((url) => url.includes('id=003834041')), 'profile permissions retirement cancellation');
+  });
+
+  it('seeds Shield from Help, not the retired securityImplGuide pages', () => {
+    const shieldSeeds = seedsFor('shield-platform-encryption');
+    assert.ok(shieldSeeds.length > 0);
+    assert.ok(shieldSeeds.every((url) => url.startsWith('https://help.salesforce.com/')), shieldSeeds.join(', '));
   });
 });
 
@@ -150,20 +180,18 @@ describe('officialDocRetrievalPlan', () => {
 
   it('renders release-notes help articles only when rendering is allowed', () => {
     assert.equal(officialDocRetrievalPlan(releaseNotesUrl), 'rendered_help');
-    assert.equal(officialDocRetrievalPlan(releaseNotesUrl, { allowRendering: false }), 'help_metadata');
+    assert.equal(officialDocRetrievalPlan(releaseNotesUrl, { allowRendering: false }), 'help_unrendered');
   });
 
-  it('renders allowlisted OmniStudio and DevOps Center help articles at build time only', () => {
-    const omnistudioUrl = 'https://help.salesforce.com/s/articleView?id=sf.os_dataraptors.htm&type=5';
-    const devopsUrl = 'https://help.salesforce.com/s/articleView?id=sf.devops_center_overview.htm&type=5';
-    assert.equal(officialDocRetrievalPlan(omnistudioUrl), 'rendered_help');
-    assert.equal(officialDocRetrievalPlan(devopsUrl), 'rendered_help');
-    assert.equal(officialDocRetrievalPlan(omnistudioUrl, { allowRendering: false }), 'help_metadata');
-    assert.equal(officialDocRetrievalPlan(devopsUrl, { allowRendering: false }), 'help_metadata');
+  it('renders every help article, including Knowledge articles, at build time only', () => {
+    const knowledgeUrl = 'https://help.salesforce.com/s/articleView?id=003834041&language=en_US&type=1';
+    for (const url of [helpArticleUrl, knowledgeUrl]) {
+      assert.equal(officialDocRetrievalPlan(url), 'rendered_help');
+      assert.equal(officialDocRetrievalPlan(url, { allowRendering: false }), 'help_unrendered');
+    }
   });
 
-  it('serves other help articles as metadata and everything else as raw HTML', () => {
-    assert.equal(officialDocRetrievalPlan(helpArticleUrl), 'help_metadata');
+  it('serves non-help pages as raw HTML', () => {
     assert.equal(
       officialDocRetrievalPlan('https://developer.salesforce.com/docs/platform/lwc/guide/apex-security.html'),
       'raw_html'
@@ -171,6 +199,163 @@ describe('officialDocRetrievalPlan', () => {
     assert.equal(
       officialDocRetrievalPlan('https://architect.salesforce.com/decision-guides/trigger-automation'),
       'raw_html'
+    );
+  });
+});
+
+describe('extractRenderedHelpArticle', () => {
+  it('drops site banners and the breadcrumb before the title, and the feedback widget after the body', () => {
+    const raw = [
+      'Agentforce is temporarily unavailable. Please try again later.',
+      'Read More',
+      'Important Advisory: iOS Update Impacting CG Mobile Application',
+      'Close',
+      'Get Started with Salesforce',
+      'Show Table of Contents',
+      'You are here:',
+      'SALESFORCE HELP',
+      'DOCS',
+      'GET STARTED WITH SALESFORCE',
+      'Data and File Storage Allocations',
+      'Storage is divided into two categories.',
+      'SEE ALSO',
+      'Salesforce Editions',
+      'Loading',
+      'DID THIS ARTICLE SOLVE YOUR ISSUE?',
+      'Let us know so we can improve!',
+      'Yes',
+    ].join('\n');
+    const article = extractRenderedHelpArticle(raw, 'Data and File Storage Allocations');
+    assert.match(article.text, /^Data and File Storage Allocations\nStorage is divided into two categories\./);
+    assert.doesNotMatch(article.text, /Advisory|Agentforce|You are here|DID THIS ARTICLE|Let us know/i);
+    assert.match(article.header, /GET STARTED WITH SALESFORCE/);
+  });
+
+  it('keeps a Knowledge article from its title, with no breadcrumb', () => {
+    const raw = 'Permissions in Profiles Retirement Cancelled\nPublish Date: Jun 6, 2026\nDescription\nThis enforcement has now been cancelled.\nLoading\nDID THIS ARTICLE SOLVE YOUR ISSUE?\nYes';
+    const article = extractRenderedHelpArticle(raw, 'Permissions in Profiles Retirement Cancelled');
+    assert.equal(article.header, '');
+    assert.match(article.text, /^Permissions in Profiles Retirement Cancelled\nPublish Date: Jun 6, 2026/);
+    assert.doesNotMatch(article.text, /DID THIS ARTICLE/);
+  });
+
+  it('matches the title across curly and straight quotes', () => {
+    const raw = "You are here:\nDOCS\nStrengthen Your Data's Security\nBody text.";
+    const article = extractRenderedHelpArticle(raw, 'Strengthen Your Data\u2019s Security');
+    assert.match(article.text, /^Strengthen Your Data's Security\nBody text\./);
+  });
+});
+
+describe('salesforceReleaseLabelForVersion', () => {
+  it('maps release numbers to their season', () => {
+    assert.equal(salesforceReleaseLabelForVersion('264'), "Winter '27");
+    assert.equal(salesforceReleaseLabelForVersion('262'), "Summer '26");
+    assert.equal(salesforceReleaseLabelForVersion('266'), "Spring '27");
+    assert.equal(salesforceReleaseLabelForVersion('208'), "Summer '17");
+    assert.equal(salesforceReleaseLabelForVersion('248'), "Spring '24");
+  });
+
+  it('returns undefined for anything that is not a release number', () => {
+    assert.equal(salesforceReleaseLabelForVersion(undefined), undefined);
+    assert.equal(salesforceReleaseLabelForVersion('263'), undefined);
+    assert.equal(salesforceReleaseLabelForVersion('62.0'), undefined);
+  });
+});
+
+describe('canonicalHelpArticleUrl', () => {
+  it('normalizes relative and absolute article links to id, language and type', () => {
+    assert.equal(
+      canonicalHelpArticleUrl('/s/articleView?id=platform.users_unlock.htm&language=en_US&type=5'),
+      'https://help.salesforce.com/s/articleView?id=platform.users_unlock.htm&language=en_US&type=5',
+    );
+    assert.equal(
+      canonicalHelpArticleUrl('https://help.salesforce.com/s/articleView?id=005167035&type=1'),
+      'https://help.salesforce.com/s/articleView?id=005167035&language=en_US&type=1',
+    );
+  });
+
+  it('rejects other hosts, other languages, and links without an id', () => {
+    assert.equal(canonicalHelpArticleUrl('https://example.com/s/articleView?id=x.htm'), null);
+    assert.equal(canonicalHelpArticleUrl('/s/articleView?id=x.htm&language=ja'), null);
+    assert.equal(canonicalHelpArticleUrl('articleView?nocache=https%3A%2F%2Fhelp.salesforce.com'), null);
+  });
+});
+
+describe('lookup misses', () => {
+  const miss = (query, at, extra = {}) => ({ topicId: 't', label: query, query, reason: 'no_full_text', at, ...extra });
+
+  it('keeps the words that identify a topic', () => {
+    assert.deepEqual(missTokens('How does Salesforce Help document the Flow trigger order?'), ['flow', 'trigger', 'order']);
+  });
+
+  it('folds repeated misses into one, carrying earlier unresolved ones', () => {
+    const carried = [{ label: 'Flow trigger order', query: 'Flow trigger order', reason: 'no_candidate_page', firstSeenAt: '2026-10-01T00:00:00Z', lastSeenAt: '2026-10-02T00:00:00Z', count: 2 }];
+    const folded = aggregateMisses([
+      miss('flow trigger order', '2026-10-10T00:00:00Z', { candidateUrls: ['https://help.salesforce.com/s/articleView?id=a.htm&language=en_US&type=5'] }),
+      miss('Health Check', '2026-10-11T00:00:00Z'),
+    ], carried);
+    assert.equal(folded.length, 2);
+    const flow = folded.find((entry) => /flow/i.test(entry.query));
+    assert.equal(flow.count, 3);
+    assert.equal(flow.firstSeenAt, '2026-10-01T00:00:00Z');
+    assert.equal(flow.lastSeenAt, '2026-10-10T00:00:00Z');
+    assert.equal(flow.reason, 'no_full_text');
+    assert.deepEqual(flow.candidateUrls, ['https://help.salesforce.com/s/articleView?id=a.htm&language=en_US&type=5']);
+  });
+
+  it("ranks the lookup's own unread pages first, then catalog titles carrying enough of the words", () => {
+    const catalog = [
+      { url: 'https://help.salesforce.com/s/articleView?id=platform.flow_task_trigger_run_order.htm&language=en_US&type=5', title: 'Define the Run Order of Record-Triggered Flows for an Object' },
+      { url: 'https://help.salesforce.com/s/articleView?id=platform.flow_build.htm&language=en_US&type=5', title: 'Build a Flow' },
+      { url: 'https://help.salesforce.com/s/articleView?id=platform.users_unlock.htm&language=en_US&type=5', title: 'Unlock Users' },
+    ];
+    const ranked = rankMissCandidates({
+      label: 'Record-triggered flow run order',
+      query: 'record triggered flows run order',
+      candidateUrls: ['https://help.salesforce.com/s/articleView?id=platform.flow_concepts_trigger.htm&type=5', 'https://resources.docs.salesforce.com/latest/latest/en-us/sfdc/pdf/api_meta.pdf'],
+    }, catalog);
+    assert.deepEqual(ranked, [
+      'https://help.salesforce.com/s/articleView?id=platform.flow_concepts_trigger.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=platform.flow_task_trigger_run_order.htm&language=en_US&type=5',
+    ]);
+  });
+
+  it('finds nothing for a miss whose words no title carries', () => {
+    assert.deepEqual(rankMissCandidates({ label: 'Quantum widgets', query: 'quantum widget telemetry' }, [
+      { url: 'https://help.salesforce.com/s/articleView?id=x.htm&language=en_US&type=5', title: 'Build a Flow' },
+    ]), []);
+  });
+});
+
+describe('passageAnswersTopic', () => {
+  const terms = (label, query = label) => topicOwnTerms({ label, query });
+
+  it('needs the topic in its own words, not generic ones', () => {
+    const ownTerms = terms('Salesforce data storage limits');
+    assert.deepEqual(ownTerms, ['data', 'storage', 'limits']);
+    assert.ok(passageAnswersTopic('Data storage limits depend on your edition.', ownTerms));
+    assert.ok(!passageAnswersTopic('Salesforce documentation for limits.', ownTerms));
+  });
+
+  it('matches short terms as whole words only', () => {
+    const ownTerms = terms('EDA');
+    assert.ok(passageAnswersTopic('Configure EDA settings.', ownTerms));
+    assert.ok(!passageAnswersTopic('The reader needed more.', ownTerms));
+  });
+
+  it('asks for three of a long topic\'s terms', () => {
+    const ownTerms = terms('Apex governor limits and bulkification', 'Apex governor limits SOQL DML loops bulkification best practices');
+    assert.ok(passageAnswersTopic('Apex governor limits cap SOQL queries per transaction.', ownTerms));
+    assert.ok(!passageAnswersTopic('Apex classes and limits.', ownTerms));
+  });
+});
+
+describe('help articles at lookup time', () => {
+  it('are not read, and say so, instead of becoming a stub', async () => {
+    const url = 'https://help.salesforce.com/s/articleView?id=xcloud.overview_storage.htm&language=en_US&type=5';
+    await assert.rejects(
+      fetchOfficialDocContent(url, { allowRendering: false }),
+      (error) => error instanceof SalesforceDocNotReadError && error.reason === 'not_rendered' && error.url === url,
     );
   });
 });
@@ -249,12 +434,12 @@ describe('refreshCoverageError', () => {
     };
   }
 
-  function makeIndex(records) {
+  function makeIndex(records, topics = []) {
     return {
       version: 1,
       generatedAt: new Date().toISOString(),
       sourcePolicy: { allowedHostPattern: '*.salesforce.com', storagePath: 'salesforce-docs/index-v1.json' },
-      topics: [],
+      topics,
       records,
       failures: [],
       warnings: [],
@@ -305,5 +490,36 @@ describe('refreshCoverageError', () => {
       })),
     ];
     assert.match(refreshCoverageError(makeIndex(records)), /metadata-only ratio/);
+  });
+
+  const topic = (id) => ({ id, label: id, query: id, category: 'apex', keywords: [], seedUrls: [] });
+
+  it('rejects a covered topic with no full-text record', () => {
+    const topics = [topic('apex-governor-limits'), topic('shield-platform-encryption')];
+    const records = [
+      ...passingRecords,
+      makeRecord({ id: 'stub', topicIds: ['shield-platform-encryption'], contentQuality: 'metadata_only', contentLength: 120 }),
+    ];
+    assert.deepEqual(topicsWithoutFullTextRecords(makeIndex(records, topics)), ['shield-platform-encryption']);
+    assert.match(refreshCoverageError(makeIndex(records, topics)), /1 topic\(s\) with no full-text record \(shield-platform-encryption\)/);
+    assert.equal(refreshCoverageError(makeIndex(passingRecords, [topic('apex-governor-limits')])), null);
+  });
+
+  it('compares builds: topics losing full-text records, dropped and added pages', () => {
+    const topics = [topic('apex-governor-limits'), topic('flow-order-recursion')];
+    const previous = makeIndex([
+      makeRecord({ id: 'a', url: 'https://developer.salesforce.com/docs/a.htm' }),
+      makeRecord({ id: 'b', url: 'https://developer.salesforce.com/docs/b.htm' }),
+      makeRecord({ id: 'c', url: 'https://developer.salesforce.com/docs/c.htm', topicIds: ['flow-order-recursion'] }),
+    ], topics);
+    const next = makeIndex([
+      makeRecord({ id: 'a', url: 'https://developer.salesforce.com/docs/a.htm' }),
+      makeRecord({ id: 'c', url: 'https://developer.salesforce.com/docs/c.htm', topicIds: ['flow-order-recursion'] }),
+      makeRecord({ id: 'd', url: 'https://developer.salesforce.com/docs/d.htm', topicIds: ['flow-order-recursion'] }),
+    ], topics);
+    const comparison = compareSalesforceDocsIndexes(previous, next);
+    assert.deepEqual(comparison.topicsLosingRecords, [{ topicId: 'apex-governor-limits', before: 2, after: 1 }]);
+    assert.deepEqual(comparison.droppedUrls, ['https://developer.salesforce.com/docs/b.htm']);
+    assert.deepEqual(comparison.addedUrls, ['https://developer.salesforce.com/docs/d.htm']);
   });
 });

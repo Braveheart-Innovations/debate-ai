@@ -14,7 +14,15 @@ import {
   type SandboxFetchTarget,
 } from './fetchToSandbox';
 import { e2bApiKey, getSandboxService } from './sandbox/callables';
-import { fetchOfficialDocContent, inferSalesforceDocumentationStatus, lookupSalesforceDocsIndex } from './salesforceDocsIndex';
+import {
+  SalesforceDocNotReadError,
+  fetchOfficialDocContent,
+  inferSalesforceDocumentationStatus,
+  lookupSalesforceDocsIndex,
+  passageAnswersTopic,
+  recordSalesforceDocsMisses,
+  topicOwnTerms,
+} from './salesforceDocsIndex';
 import {
   getDecryptedDataServiceKey,
   CONNECTOR_AUTH_CONFIG,
@@ -357,6 +365,15 @@ interface SalesforceDocEvidenceSource {
   releaseLabel?: string;
   documentationVersion?: string;
   confidenceImpact: 'supports' | 'unclear' | 'preview-risk' | 'release-link-risk' | 'stale-risk';
+}
+
+/** An official page a lookup found but did not read. It is listed for the AI, never cited as evidence. */
+interface SalesforceDocUnreadSource {
+  topicId: string;
+  title: string;
+  url: string;
+  reason: 'not_rendered' | 'blocked' | 'fetch_failed' | 'no_matching_passage';
+  detail?: string;
 }
 
 interface ConnectorInferenceRule {
@@ -869,6 +886,22 @@ function extractLinks(html: string, baseUrl: string, maxLinks: number = 20): Ext
     .map(({ text, url }) => ({ text, url })); // Remove score from output
 }
 
+const SALESFORCE_DOCS_FETCH_HINT = 'Use salesforce_docs_lookup: it reads official Salesforce documentation from the docs index, so its passages can be cited.';
+/** Below this a Salesforce docs page is a site shell, not the page's text (the docs index uses the same floor). */
+const SALESFORCE_DOCS_PAGE_TEXT_FLOOR = 300;
+
+/** A Salesforce documentation host whose pages fetch_url can't be trusted to read. */
+function salesforceDocsPageKind(urlValue: string): 'help_article' | 'docs_page' | null {
+  try {
+    const url = new URL(urlValue);
+    if (url.hostname === 'help.salesforce.com' && url.pathname.includes('/articleView')) return 'help_article';
+    if (['help.salesforce.com', 'developer.salesforce.com', 'architect.salesforce.com'].includes(url.hostname)) return 'docs_page';
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 async function handleFetchUrl(args: FetchUrlArgs): Promise<ToolResult> {
   let { url } = args;
   const { selector, includeMetadata = true, includeLinks = true, maxLinks = 15, maxLength = 50000 } = args;
@@ -880,6 +913,19 @@ async function handleFetchUrl(args: FetchUrlArgs): Promise<ToolResult> {
   }
 
   console.log('[handleFetchUrl] Fetching URL:', url);
+
+  // A Help article's body only exists after its page runs in a browser; a raw
+  // fetch gets the site shell. Failing here keeps that shell from becoming a
+  // "verified" source with fetch provenance.
+  const salesforceDocsKind = salesforceDocsPageKind(url);
+  if (salesforceDocsKind === 'help_article') {
+    return {
+      toolCallId: '',
+      success: false,
+      error: `Not read: Salesforce Help articles can't be read with fetch_url (the page is a JavaScript shell until it renders). ${SALESFORCE_DOCS_FETCH_HINT}`,
+      metadata: { executionTime: Date.now() - startTime },
+    };
+  }
 
   // Validate URL
   if (isBlockedUrl(url)) {
@@ -910,7 +956,7 @@ async function handleFetchUrl(args: FetchUrlArgs): Promise<ToolResult> {
       return {
         toolCallId: '',
         success: false,
-        error: `HTTP ${response.status}: ${response.statusText}`,
+        error: `HTTP ${response.status}: ${response.statusText}${salesforceDocsKind ? `. ${SALESFORCE_DOCS_FETCH_HINT}` : ''}`,
         metadata: { executionTime: Date.now() - startTime },
       };
     }
@@ -1050,6 +1096,15 @@ async function handleFetchUrl(args: FetchUrlArgs): Promise<ToolResult> {
       .replace(/\n\s*\n/g, '\n\n')
       .trim();
 
+    if (salesforceDocsKind && content.length < SALESFORCE_DOCS_PAGE_TEXT_FLOOR) {
+      return {
+        toolCallId: '',
+        success: false,
+        error: `Not read: this Salesforce documentation page returned no readable text (${content.length} characters, a site shell). ${SALESFORCE_DOCS_FETCH_HINT}`,
+        metadata: { executionTime: Date.now() - startTime },
+      };
+    }
+
     // Truncate if needed
     const originalLength = content.length;
     const truncated = content.length > maxLength;
@@ -1150,7 +1205,6 @@ interface SalesforceDocsFallbackCandidate {
   url: string;
   snippet?: string;
   content: string;
-  contentQuality: 'full_text' | 'metadata_only';
   apiVersion?: string;
   releaseLabel?: string;
   documentationVersion?: string;
@@ -1160,6 +1214,7 @@ interface SalesforceDocsFallbackCandidate {
 interface SalesforceDocsFallbackResolution {
   topic: SalesforceDocsTopic;
   candidates: SalesforceDocsFallbackCandidate[];
+  unread: SalesforceDocUnreadSource[];
   warnings: string[];
   rejectedUrls: string[];
 }
@@ -1182,6 +1237,7 @@ async function fetchSalesforceDocsFallbackCandidate(
   topic: SalesforceDocsTopic,
   candidate: { title: string; url: string; snippet?: string },
   warnings: string[],
+  unread: SalesforceDocUnreadSource[],
 ): Promise<SalesforceDocsFallbackCandidate | null> {
   if (/\.pdf$/i.test(new URL(candidate.url).pathname)) {
     warnings.push(`Skipped official Salesforce PDF ${candidate.url} for ${topic.label}: PDF guides are served from the cached documentation index, not live lookup.`);
@@ -1194,14 +1250,20 @@ async function fetchSalesforceDocsFallbackCandidate(
       url: candidate.url,
       snippet: candidate.snippet,
       content: content.text,
-      contentQuality: content.contentQuality,
       apiVersion: content.apiVersion,
       releaseLabel: content.releaseLabel,
       documentationVersion: content.documentationVersion,
       warnings: content.warnings || [],
     };
   } catch (error: any) {
-    warnings.push(`Fetch failed for ${candidate.url}: ${error?.message || 'no content returned'}`);
+    warnings.push(`Not read for ${topic.label}: ${candidate.url}: ${error?.message || 'no content returned'}`);
+    unread.push({
+      topicId: topic.id,
+      title: candidate.title || candidate.url,
+      url: candidate.url,
+      reason: error instanceof SalesforceDocNotReadError ? error.reason : 'fetch_failed',
+      detail: error?.message,
+    });
     return null;
   }
 }
@@ -1219,7 +1281,8 @@ async function resolveSalesforceDocsFallbackTopic(input: {
   const warnings: string[] = [];
   const rejectedUrls: string[] = [];
   const candidates: SalesforceDocsFallbackCandidate[] = [];
-  const resolution: SalesforceDocsFallbackResolution = { topic, candidates, warnings, rejectedUrls };
+  const unread: SalesforceDocUnreadSource[] = [];
+  const resolution: SalesforceDocsFallbackResolution = { topic, candidates, unread, warnings, rejectedUrls };
   const deadlineExceeded = () => {
     if (Date.now() < input.deadlineAt) return false;
     warnings.push(`Salesforce docs lookup deadline was reached before ${topic.label} could be resolved live; rerun the tool with fewer topics for live coverage.`);
@@ -1234,7 +1297,7 @@ async function resolveSalesforceDocsFallbackTopic(input: {
       title: topic.label,
       url: directTopicUrl,
       snippet: 'Direct official Salesforce documentation reference supplied by the audit context.',
-    }, warnings);
+    }, warnings, unread);
     if (candidate) candidates.push(candidate);
     return resolution;
   }
@@ -1278,7 +1341,7 @@ async function resolveSalesforceDocsFallbackTopic(input: {
 
   for (const result of officialResults) {
     if (deadlineExceeded()) return resolution;
-    const candidate = await fetchSalesforceDocsFallbackCandidate(topic, result, warnings);
+    const candidate = await fetchSalesforceDocsFallbackCandidate(topic, result, warnings, unread);
     if (candidate) candidates.push(candidate);
   }
   return resolution;
@@ -1300,6 +1363,7 @@ async function handleSalesforceDocsLookup(
   const releaseContextWarnings: string[] = [];
   const rejectedUrls = new Set<string>();
   const sources: SalesforceDocEvidenceSource[] = [];
+  const unread: SalesforceDocUnreadSource[] = [];
   const seenSourceKeys = new Set<string>();
   const sourceKey = (topicId: string, url: string) => `${topicId}:${url}`;
   let docsIndexSummary: Record<string, unknown> | undefined;
@@ -1396,12 +1460,13 @@ async function handleSalesforceDocsLookup(
 
   for (const resolution of fallbackResolutions) {
     warnings.push(...resolution.warnings);
+    unread.push(...resolution.unread);
     resolution.rejectedUrls.forEach((rejectedUrl) => rejectedUrls.add(rejectedUrl));
     for (const candidate of resolution.candidates) {
       const key = sourceKey(resolution.topic.id, candidate.url);
       if (seenSourceKeys.has(key)) continue;
       seenSourceKeys.add(key);
-      sources.push(buildSalesforceDocEvidenceSource({
+      const source = buildSalesforceDocEvidenceSource({
         topic: resolution.topic,
         title: candidate.title,
         url: candidate.url,
@@ -1409,12 +1474,17 @@ async function handleSalesforceDocsLookup(
         content: candidate.content,
         retrievedAt: generatedAt,
         sourceIndex: sources.length + 1,
-        contentQuality: candidate.contentQuality,
         apiVersion: candidate.apiVersion,
         releaseLabel: candidate.releaseLabel,
         documentationVersion: candidate.documentationVersion,
         extraWarnings: candidate.warnings,
-      }));
+      });
+      // Read, but nothing in it is about this topic: not evidence for it.
+      if (!source.matchedChunks?.length) {
+        unread.push({ topicId: resolution.topic.id, title: candidate.title, url: candidate.url, reason: 'no_matching_passage' });
+        continue;
+      }
+      sources.push(source);
     }
   }
 
@@ -1435,12 +1505,38 @@ async function handleSalesforceDocsLookup(
       docsIndexSummary,
       topics,
       sources,
+      unread,
       warnings,
     ),
     topics,
     sources: sources.sort((a, b) => a.topicId.localeCompare(b.topicId) || a.title.localeCompare(b.title)),
+    unreadSources: unread,
     warnings,
   };
+
+  // Every topic answered without read text goes to the miss log; the next
+  // index build looks for those pages (with the unread ones first).
+  const missedTopics = (evidence.documentationIndex?.missedTopics || []) as Array<{ topicId: string; reason: string }>;
+  try {
+    await recordSalesforceDocsMisses(missedTopics.flatMap((missed) => {
+      const topic = topics.find((candidate) => candidate.id === missed.topicId);
+      if (!topic) return [];
+      const candidateUrls = unread
+        .filter((page) => page.topicId === topic.id && page.reason !== 'no_matching_passage')
+        .map((page) => page.url);
+      return [{
+        topicId: topic.id,
+        label: topic.label,
+        query: topic.query,
+        category: topic.category,
+        reason: missed.reason,
+        at: generatedAt,
+        candidateUrls: candidateUrls.length > 0 ? candidateUrls : undefined,
+      }];
+    }));
+  } catch (error) {
+    console.warn('[salesforce_docs_lookup] Could not record documentation misses:', error);
+  }
 
   return {
     toolCallId: '',
@@ -1457,6 +1553,7 @@ function buildSalesforceDocumentationIndexHealth(
   indexSummary: Record<string, unknown> | undefined,
   topics: SalesforceDocsTopic[],
   sources: SalesforceDocEvidenceSource[],
+  unread: SalesforceDocUnreadSource[],
   warnings: string[],
 ): Record<string, unknown> | undefined {
   const sourceCountByTopic = sources.reduce((acc, source) => {
@@ -1517,16 +1614,21 @@ function buildSalesforceDocumentationIndexHealth(
       || warning.toLowerCase().includes(topic.id.toLowerCase())
     );
     const joined = relatedWarnings.join(' ');
+    const unreadForTopic = unread.filter((page) => page.topicId === topic.id);
     let status = indexedMisses.get(topic.id)?.reason || 'no_official_source';
     if (/403|permission|blocked|rate limit|rate-limit|too many requests/i.test(joined)) status = 'blocked';
     if (/too short|loading|empty|no content/i.test(joined)) status = 'empty_shell';
+    if (unreadForTopic.some((page) => page.reason === 'not_rendered')) status = 'not_read';
+    if (unreadForTopic.some((page) => page.reason === 'blocked')) status = 'blocked';
     if (!indexSummary || indexSummary.status === 'unavailable') status = 'unavailable';
 
     return {
       topicId: topic.id,
       status,
       sourceCount,
-      reason: relatedWarnings[0] || indexedMisses.get(topic.id)?.reason || 'No official Salesforce documentation source was fetched for this topic.',
+      reason: unreadForTopic.length > 0
+        ? `Found but not read: ${unreadForTopic.map((page) => page.url).join(', ')}`
+        : relatedWarnings[0] || indexedMisses.get(topic.id)?.reason || 'No official Salesforce documentation source was read for this topic.',
     };
   });
 
@@ -1643,7 +1745,7 @@ function scoreSalesforceDocsChunk(text: string, tokens: string[]): number {
 
 function buildSalesforceDocsMatchedChunks(
   content: string,
-  query: string,
+  topic: Pick<SalesforceDocsTopic, 'label' | 'query'>,
   sourceId: string,
 ): NonNullable<SalesforceDocEvidenceSource['matchedChunks']> {
   const normalized = content.replace(/\s+/g, ' ').trim();
@@ -1651,7 +1753,8 @@ function buildSalesforceDocsMatchedChunks(
   const targetChars = 3500;
   const overlapChars = 350;
   const step = targetChars - overlapChars;
-  const tokens = buildSalesforceDocsChunkTokens(query);
+  const tokens = buildSalesforceDocsChunkTokens(topic.query);
+  const ownTerms = topicOwnTerms(topic);
   const chunks: NonNullable<SalesforceDocEvidenceSource['matchedChunks']> = [];
   for (let start = 0; start < normalized.length; start += step) {
     const text = normalized.slice(start, start + targetChars).trim();
@@ -1664,11 +1767,10 @@ function buildSalesforceDocsMatchedChunks(
       contentLength: text.length,
     });
   }
-  const scored = chunks
-    .filter((chunk) => chunk.score > 0)
+  return chunks
+    .filter((chunk) => passageAnswersTopic(chunk.text, ownTerms))
     .sort((a, b) => b.score - a.score || a.ordinal - b.ordinal)
     .slice(0, 5);
-  return scored.length > 0 ? scored : chunks.slice(0, 2);
 }
 
 function canonicalizeSalesforceDocsUrl(urlValue: string): string | null {
@@ -1698,7 +1800,6 @@ function buildSalesforceDocEvidenceSource(input: {
   content: string;
   retrievedAt: string;
   sourceIndex: number;
-  contentQuality?: 'full_text' | 'metadata_only';
   apiVersion?: string;
   releaseLabel?: string;
   documentationVersion?: string;
@@ -1707,7 +1808,7 @@ function buildSalesforceDocEvidenceSource(input: {
   const sourceId = `sf-doc-${input.sourceIndex}`;
   const status = inferSalesforceDocumentationStatus(input.content);
   const warnings = [...inferSalesforceDocWarnings(input.content, status), ...(input.extraWarnings || [])];
-  const matchedChunks = buildSalesforceDocsMatchedChunks(input.content, input.topic.query, sourceId);
+  const matchedChunks = buildSalesforceDocsMatchedChunks(input.content, input.topic, sourceId);
   return {
     id: sourceId,
     topicId: input.topic.id,
@@ -1718,7 +1819,7 @@ function buildSalesforceDocEvidenceSource(input: {
     status,
     retrievedAt: input.retrievedAt,
     responseHash: crypto.createHash('sha256').update(input.content).digest('hex'),
-    contentQuality: input.contentQuality || 'full_text',
+    contentQuality: 'full_text',
     contentLength: input.content.length,
     excerpt: buildSalesforceDocExcerpt(input.content, input.topic.query),
     matchedChunks: matchedChunks.length > 0 ? matchedChunks : undefined,
@@ -2228,6 +2329,14 @@ export async function dispatchServerTool(
           throw new Error('Encryption not configured');
         }
         const fetchArgs = args as unknown as FetchApiArgs;
+        if (typeof fetchArgs.url === 'string' && salesforceDocsPageKind(fetchArgs.url) === 'help_article') {
+          result = {
+            toolCallId: '',
+            success: false,
+            error: `Not read: a Salesforce Help article fetched raw is a JavaScript shell, not the article. ${SALESFORCE_DOCS_FETCH_HINT}`,
+          };
+          break;
+        }
         // A malformed query_params / headers fails before any sandbox or network work.
         const argsError = fetchApiArgsError(fetchArgs);
         if (argsError) {
