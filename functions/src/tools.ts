@@ -886,6 +886,22 @@ function extractLinks(html: string, baseUrl: string, maxLinks: number = 20): Ext
     .map(({ text, url }) => ({ text, url })); // Remove score from output
 }
 
+const SALESFORCE_DOCS_FETCH_HINT = 'Use salesforce_docs_lookup: it reads official Salesforce documentation from the docs index, so its passages can be cited.';
+/** Below this a Salesforce docs page is a site shell, not the page's text (the docs index uses the same floor). */
+const SALESFORCE_DOCS_PAGE_TEXT_FLOOR = 300;
+
+/** A Salesforce documentation host whose pages fetch_url can't be trusted to read. */
+function salesforceDocsPageKind(urlValue: string): 'help_article' | 'docs_page' | null {
+  try {
+    const url = new URL(urlValue);
+    if (url.hostname === 'help.salesforce.com' && url.pathname.includes('/articleView')) return 'help_article';
+    if (['help.salesforce.com', 'developer.salesforce.com', 'architect.salesforce.com'].includes(url.hostname)) return 'docs_page';
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 async function handleFetchUrl(args: FetchUrlArgs): Promise<ToolResult> {
   let { url } = args;
   const { selector, includeMetadata = true, includeLinks = true, maxLinks = 15, maxLength = 50000 } = args;
@@ -897,6 +913,19 @@ async function handleFetchUrl(args: FetchUrlArgs): Promise<ToolResult> {
   }
 
   console.log('[handleFetchUrl] Fetching URL:', url);
+
+  // A Help article's body only exists after its page runs in a browser; a raw
+  // fetch gets the site shell. Failing here keeps that shell from becoming a
+  // "verified" source with fetch provenance.
+  const salesforceDocsKind = salesforceDocsPageKind(url);
+  if (salesforceDocsKind === 'help_article') {
+    return {
+      toolCallId: '',
+      success: false,
+      error: `Not read: Salesforce Help articles can't be read with fetch_url (the page is a JavaScript shell until it renders). ${SALESFORCE_DOCS_FETCH_HINT}`,
+      metadata: { executionTime: Date.now() - startTime },
+    };
+  }
 
   // Validate URL
   if (isBlockedUrl(url)) {
@@ -927,7 +956,7 @@ async function handleFetchUrl(args: FetchUrlArgs): Promise<ToolResult> {
       return {
         toolCallId: '',
         success: false,
-        error: `HTTP ${response.status}: ${response.statusText}`,
+        error: `HTTP ${response.status}: ${response.statusText}${salesforceDocsKind ? `. ${SALESFORCE_DOCS_FETCH_HINT}` : ''}`,
         metadata: { executionTime: Date.now() - startTime },
       };
     }
@@ -1066,6 +1095,15 @@ async function handleFetchUrl(args: FetchUrlArgs): Promise<ToolResult> {
       .replace(/\s+/g, ' ')
       .replace(/\n\s*\n/g, '\n\n')
       .trim();
+
+    if (salesforceDocsKind && content.length < SALESFORCE_DOCS_PAGE_TEXT_FLOOR) {
+      return {
+        toolCallId: '',
+        success: false,
+        error: `Not read: this Salesforce documentation page returned no readable text (${content.length} characters, a site shell). ${SALESFORCE_DOCS_FETCH_HINT}`,
+        metadata: { executionTime: Date.now() - startTime },
+      };
+    }
 
     // Truncate if needed
     const originalLength = content.length;
@@ -2291,6 +2329,14 @@ export async function dispatchServerTool(
           throw new Error('Encryption not configured');
         }
         const fetchArgs = args as unknown as FetchApiArgs;
+        if (typeof fetchArgs.url === 'string' && salesforceDocsPageKind(fetchArgs.url) === 'help_article') {
+          result = {
+            toolCallId: '',
+            success: false,
+            error: `Not read: a Salesforce Help article fetched raw is a JavaScript shell, not the article. ${SALESFORCE_DOCS_FETCH_HINT}`,
+          };
+          break;
+        }
         // A malformed query_params / headers fails before any sandbox or network work.
         const argsError = fetchApiArgsError(fetchArgs);
         if (argsError) {
