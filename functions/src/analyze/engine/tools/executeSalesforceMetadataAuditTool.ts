@@ -69,7 +69,7 @@ export async function executeSalesforceMetadataAuditTool(
 ): Promise<ToolResult> {
   try {
     const parsedArgs = normalizeArgs(args);
-    const { sourceFiles, insightPackets, invalidInsightPackets, retrieveRun } = await loadSalesforceWorkspaceInputs(files, parsedArgs.paths);
+    const { sourceFiles, insightPackets, invalidInsightPackets, retrieveRun, workspaceZips } = await loadSalesforceWorkspaceInputs(files, parsedArgs.paths);
 
     if (sourceFiles.length === 0) {
       return {
@@ -79,7 +79,7 @@ export async function executeSalesforceMetadataAuditTool(
       };
     }
 
-    const workspaceNote = await unpackWorkspace(files, sourceFiles);
+    const workspaceNote = await unpackWorkspace(files, workspaceZips);
 
     if (parsedArgs.operation === 'data_model') {
       return await writeSalesforceDataModel(files, toolCallId, sourceFiles, parsedArgs);
@@ -136,14 +136,12 @@ export async function executeSalesforceMetadataAuditTool(
 }
 
 /**
- * Unpack the workspace bundles into SALESFORCE_WORKSPACE_ROOT so the operator and
- * teammates can work over every file in Python. Returns the line that tells the model.
+ * Unpack the workspace's zips (source, and packets imported on their own) into
+ * SALESFORCE_WORKSPACE_ROOT so the operator and teammates can work over every
+ * file in Python. Returns the line that tells the model.
  */
-async function unpackWorkspace(files: SandboxFiles, sourceFiles: SalesforceSourceFile[]): Promise<string> {
+async function unpackWorkspace(files: SandboxFiles, bundles: string[]): Promise<string> {
   // Sorted, as the uploads restore lists them, so both unpack the same zips under one checksum.
-  const bundles = Array.from(new Set(sourceFiles
-    .map((file) => file.sourcePath)
-    .filter((path): path is string => typeof path === 'string' && /\.zip$/i.test(path)))).sort();
   if (bundles.length === 0) {
     return 'Read the uploaded Salesforce files with salesforce_read_source.';
   }

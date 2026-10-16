@@ -21,7 +21,7 @@ import {
   buildSalesforceVsCodeHandoff,
   findSalesforceComponent,
   formatComponentList,
-  isSalesforceBundle,
+  isSalesforceWorkspaceZip,
   loadSalesforceSourceFiles,
   loadSalesforceWorkspaceInputs,
   salesforceNamespaceOf,
@@ -242,20 +242,24 @@ describe('SalesforceMetadataService', () => {
     ]);
   });
 
-  it('knows a zip of Salesforce source from any other zip, by the same rules the audit reads it with', async () => {
+  it('knows a zip of the Salesforce workspace (source, packets on their own, the run record) from any other zip, by the rules the audit reads it with', async () => {
     const bundle = new JSZip();
     bundle.file('qa/sfdx-project.json', JSON.stringify({ packageDirectories: [{ path: 'force-app', default: true }] }));
     bundle.file('qa/force-app/main/default/flows/Lead_Validation.flow-meta.xml', '<Flow/>');
+    // Import agent findings uploads its packets alone; their limits.csv has to reach the workspace too.
     const packetsOnly = new JSZip();
-    packetsOnly.file('.symposium/salesforce-insights/2026-05-07-case-audit/evidence.md', '# Evidence');
+    packetsOnly.file('qa/.symposium/salesforce-insights/20261016T182500Z-limits/limits.csv', 'limit,max,remaining,at\nDataStorageMB,486640,293200,2026-10-16T18:25:00Z');
+    const runOnly = new JSZip();
+    runOnly.file('qa/.symposium/salesforce-runs/latest.json', JSON.stringify({ version: 1, runId: 'r1', createdAt: '2026-10-15T18:27:40Z' }));
     const data = new JSZip();
     data.file('enrollments.csv', 'center,count\n1,2');
     const bytes = async (zip: JSZip) => new Uint8Array(await zip.generateAsync({ type: 'arraybuffer' }));
 
-    await expect(isSalesforceBundle(await bytes(bundle))).resolves.toBe(true);
-    await expect(isSalesforceBundle(await bytes(packetsOnly))).resolves.toBe(false);
-    await expect(isSalesforceBundle(await bytes(data))).resolves.toBe(false);
-    await expect(isSalesforceBundle(new TextEncoder().encode('not a zip'))).resolves.toBe(false);
+    await expect(isSalesforceWorkspaceZip(await bytes(bundle))).resolves.toBe(true);
+    await expect(isSalesforceWorkspaceZip(await bytes(packetsOnly))).resolves.toBe(true);
+    await expect(isSalesforceWorkspaceZip(await bytes(runOnly))).resolves.toBe(true);
+    await expect(isSalesforceWorkspaceZip(await bytes(data))).resolves.toBe(false);
+    await expect(isSalesforceWorkspaceZip(new TextEncoder().encode('not a zip'))).resolves.toBe(false);
   });
 
   it('discovers and validates agent insight packets from uploaded ZIP metadata', async () => {

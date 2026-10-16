@@ -91,6 +91,21 @@ describe('executeSalesforceMetadataAuditTool', () => {
       expect(summary.managedComponentCount).toBe(1);
     });
 
+    it('unpacks packets imported on their own with the source, as the uploads restore does', async () => {
+      const packets = new JSZip();
+      packets.file('qa/.symposium/salesforce-insights/20261016T182500Z-limits/limits.csv', 'limit,max,remaining,at\nDataStorageMB,486640,293200,2026-10-16T18:25:00Z');
+      const packetZip = await packets.generateAsync({ type: 'arraybuffer' });
+      const bundle = await qaBundle();
+      mockSandboxService.readFile.mockImplementation(async (path: string) => (path.endsWith('insights.zip') ? packetZip : bundle));
+      const result = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-ws', {
+        operation: 'inventory',
+        paths: ['/uploads/qa-salesforce-metadata.zip', '/uploads/qa-salesforce-insights.zip'],
+      });
+
+      expect(result.success).toBe(true);
+      expect(mockSandboxService.extractZips).toHaveBeenCalledWith(['/uploads/qa-salesforce-insights.zip', '/uploads/qa-salesforce-metadata.zip'], '/data/salesforce/workspace');
+    });
+
     it('still audits when the workspace cannot be unpacked, and says so', async () => {
       mockSandboxService.readFile.mockResolvedValue(await qaBundle());
       mockSandboxService.extractZips.mockRejectedValue(new Error('sandbox busy'));

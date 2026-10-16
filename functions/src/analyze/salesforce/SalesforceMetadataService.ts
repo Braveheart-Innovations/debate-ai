@@ -384,6 +384,8 @@ export interface SalesforceWorkspaceInputs {
   insightPackets: SalesforceInsightPacket[];
   invalidInsightPackets: SalesforceInvalidInsightPacket[];
   retrieveRun?: SalesforceRetrieveRun;
+  /** The uploaded zips that hold any of it, sorted: what's unpacked into the workspace. */
+  workspaceZips: string[];
 }
 
 /** One workspace source file, read only when asked for. */
@@ -398,6 +400,8 @@ export interface SalesforceWorkspaceListing {
   sources: SalesforceWorkspaceSource[];
   packetFiles: SalesforceInsightPacketSourceFile[];
   retrieveRun?: SalesforceRetrieveRun;
+  /** The uploaded zips that hold a source file, a packet file or the run record, sorted. */
+  workspaceZips: string[];
 }
 
 export interface SalesforceMetadataHandoff {
@@ -1385,14 +1389,16 @@ async function zipPackageRoots(zip: JSZip): Promise<{ entries: JSZip.JSZipObject
 }
 
 /**
- * Whether an uploaded zip holds Salesforce source: one the audit reads files
- * from, so the one unpacked into the workspace (by the audit, and when the
- * session's uploads are restored to a sandbox).
+ * Whether an uploaded zip holds any of the Salesforce workspace: source, an
+ * insight packet (a packets-only zip from Import agent findings, with its
+ * `limits.csv`) or the run record, by the rules the audit reads it with. Each
+ * such zip is unpacked into the workspace, by the audit and when the session's
+ * uploads are restored to a sandbox.
  */
-export async function isSalesforceBundle(bytes: Uint8Array): Promise<boolean> {
+export async function isSalesforceWorkspaceZip(bytes: Uint8Array): Promise<boolean> {
   try {
     const { entries, packageRoots } = await zipPackageRoots(await JSZip.loadAsync(bytes));
-    return entries.some((entry) => bundleEntry(normalizePath(entry.name), packageRoots)?.kind === 'source');
+    return entries.some((entry) => bundleEntry(normalizePath(entry.name), packageRoots) !== null);
   } catch {
     return false;
   }
@@ -1411,6 +1417,7 @@ export async function listSalesforceWorkspace(files: SandboxFiles, paths?: strin
   const sources: SalesforceWorkspaceSource[] = [];
   const packetFiles: SalesforceInsightPacketSourceFile[] = [];
   let retrieveRun: SalesforceRetrieveRun | undefined;
+  const workspaceZips = new Set<string>();
 
   for (const path of candidatePaths) {
     const shouldInspectPath = isZipPath(path)
@@ -1428,6 +1435,7 @@ export async function listSalesforceWorkspace(files: SandboxFiles, paths?: strin
         const entryPath = normalizePath(entry.name);
         const role = bundleEntry(entryPath, packageRoots);
         if (!role) continue;
+        workspaceZips.add(path);
         if (role.kind === 'packet') {
           const content = await entry.async('string');
           packetFiles.push({ path: entryPath, content, sizeBytes: byteLength(content), sourcePath: path, packetInfo: role.packetInfo });
@@ -1486,17 +1494,17 @@ export async function listSalesforceWorkspace(files: SandboxFiles, paths?: strin
     }
   }
 
-  return { sources, packetFiles, retrieveRun };
+  return { sources, packetFiles, retrieveRun, workspaceZips: [...workspaceZips].sort() };
 }
 
 export async function loadSalesforceWorkspaceInputs(files: SandboxFiles, paths?: string[]): Promise<SalesforceWorkspaceInputs> {
-  const { sources, packetFiles, retrieveRun } = await listSalesforceWorkspace(files, paths);
+  const { sources, packetFiles, retrieveRun, workspaceZips } = await listSalesforceWorkspace(files, paths);
   const sourceFiles: SalesforceSourceFile[] = [];
   for (const source of sources) {
     sourceFiles.push(await source.load());
   }
   const { packets, invalidPackets } = buildSalesforceInsightPackets(packetFiles);
-  return { sourceFiles, insightPackets: packets, invalidInsightPackets: invalidPackets, retrieveRun };
+  return { sourceFiles, insightPackets: packets, invalidInsightPackets: invalidPackets, retrieveRun, workspaceZips };
 }
 
 export async function loadSalesforceSourceFiles(files: SandboxFiles, paths?: string[]): Promise<SalesforceSourceFile[]> {
