@@ -1,4 +1,4 @@
-/** Moved from symposium-ai-web src/services/salesforce/SalesforceDocsLookupService.ts (Phase 3 Step 5), unchanged. */
+/** Moved from symposium-ai-web src/services/salesforce/SalesforceDocsLookupService.ts (Phase 3 Step 5). 2.9.5: pages found but not read are listed apart and never treated as evidence. */
 import type { SalesforceComponentType } from './SalesforceMetadataService';
 
 export interface SalesforceDocumentationTopic {
@@ -62,6 +62,15 @@ export interface SalesforceDocEvidenceSource {
   confidenceImpact: 'supports' | 'unclear' | 'preview-risk' | 'release-link-risk' | 'stale-risk';
 }
 
+/** An official page the lookup found but did not read: never evidence, never cited. */
+export interface SalesforceDocUnreadSource {
+  topicId: string;
+  title: string;
+  url: string;
+  reason: 'not_rendered' | 'blocked' | 'fetch_failed' | 'no_matching_passage';
+  detail?: string;
+}
+
 export interface SalesforceDocEvidenceBundle {
   version: 1;
   generatedAt: string;
@@ -87,20 +96,30 @@ export interface SalesforceDocEvidenceBundle {
     failedDomains?: Record<string, number>;
     topicCoverage?: Array<{
       topicId: string;
-      status: 'hit' | 'miss' | 'unavailable' | 'stale' | 'blocked' | 'empty_shell' | 'no_official_source' | 'not_indexed';
+      status: 'hit' | 'miss' | 'unavailable' | 'stale' | 'blocked' | 'empty_shell' | 'no_official_source' | 'not_indexed' | 'not_read' | 'no_matching_passage';
       sourceCount: number;
       reason?: string;
     }>;
     missedTopics?: Array<{
       topicId: string;
       label?: string;
-      reason: 'blocked' | 'not_indexed' | 'empty_shell' | 'no_official_source' | 'stale' | 'unavailable';
+      reason: 'blocked' | 'not_indexed' | 'empty_shell' | 'no_official_source' | 'no_matching_passage' | 'not_read' | 'stale' | 'unavailable';
     }>;
     stalenessWarnings?: string[];
   };
   topics: SalesforceDocumentationTopic[];
   sources: SalesforceDocEvidenceSource[];
+  unreadSources?: SalesforceDocUnreadSource[];
   warnings: string[];
+}
+
+export function describeUnreadReason(reason: SalesforceDocUnreadSource['reason']): string {
+  switch (reason) {
+    case 'not_rendered': return 'a Help article not in the docs index yet (it is read at the next index build)';
+    case 'blocked': return 'Salesforce blocked the request';
+    case 'no_matching_passage': return 'read, but nothing in it is about this topic';
+    default: return 'the fetch failed';
+  }
 }
 
 export function renderSalesforceDocEvidenceMarkdown(bundle: SalesforceDocEvidenceBundle): string {
@@ -135,7 +154,7 @@ export function renderSalesforceDocEvidenceMarkdown(bundle: SalesforceDocEvidenc
   ].filter(Boolean);
 
   if (bundle.sources.length === 0) {
-    lines.push('No official Salesforce documentation sources were fetched.');
+    lines.push('No official Salesforce documentation was read.');
   } else {
     for (const source of bundle.sources) {
       lines.push(`- **${source.title}**`);
@@ -151,22 +170,27 @@ export function renderSalesforceDocEvidenceMarkdown(bundle: SalesforceDocEvidenc
       }
       const matchedChunks = Array.isArray(source.matchedChunks) ? source.matchedChunks : [];
       if (matchedChunks.length > 0) {
-        lines.push(`  Matched chunks: ${matchedChunks.length} chunk(s) from ${source.contentLength.toLocaleString()} source character(s). Use these chunks as the quoted source evidence, not just the URL.`);
+        lines.push(`  Passages read: ${matchedChunks.length} of this page's ${source.contentLength.toLocaleString()} characters. Quote these; the URL alone is not evidence.`);
         for (const chunk of matchedChunks) {
           lines.push(`  Chunk ${chunk.ordinal} (score: ${chunk.score}; ${chunk.contentLength.toLocaleString()} chars):`);
           appendIndentedMarkdownText(lines, chunk.text, '    ');
         }
       } else {
         lines.push(`  Excerpt: ${source.excerpt}`);
-        if (source.contentQuality === 'full_text' && source.contentLength > (source.excerpt || '').length + 1000) {
-          lines.push('  Limitation: this source was identified as full-text, but this evidence artifact only contains the excerpt above. Do not treat the URL alone as read documentation for field-level or behavior-level claims.');
-        }
       }
       if (source.warnings.length > 0) {
         for (const warning of source.warnings) {
           lines.push(`  Source warning: ${warning}`);
         }
       }
+    }
+  }
+
+  const unreadSources = bundle.unreadSources || [];
+  if (unreadSources.length > 0) {
+    lines.push('', '## Found but not read', '', 'These pages were found but their text was not read. They are not evidence: never cite them, and never write "per Salesforce Help" from a title or a link.', '');
+    for (const page of unreadSources) {
+      lines.push(`- ${page.title} - ${page.url} (topic ${page.topicId}: ${describeUnreadReason(page.reason)})`);
     }
   }
 
