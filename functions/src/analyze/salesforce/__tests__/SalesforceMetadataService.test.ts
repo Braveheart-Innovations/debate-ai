@@ -21,6 +21,7 @@ import {
   buildSalesforceVsCodeHandoff,
   findSalesforceComponent,
   formatComponentList,
+  isSalesforceBundle,
   loadSalesforceSourceFiles,
   loadSalesforceWorkspaceInputs,
   salesforceNamespaceOf,
@@ -239,6 +240,22 @@ describe('SalesforceMetadataService', () => {
         content: 'public with sharing class CaseService {}',
       }),
     ]);
+  });
+
+  it('knows a zip of Salesforce source from any other zip, by the same rules the audit reads it with', async () => {
+    const bundle = new JSZip();
+    bundle.file('qa/sfdx-project.json', JSON.stringify({ packageDirectories: [{ path: 'force-app', default: true }] }));
+    bundle.file('qa/force-app/main/default/flows/Lead_Validation.flow-meta.xml', '<Flow/>');
+    const packetsOnly = new JSZip();
+    packetsOnly.file('.symposium/salesforce-insights/2026-05-07-case-audit/evidence.md', '# Evidence');
+    const data = new JSZip();
+    data.file('enrollments.csv', 'center,count\n1,2');
+    const bytes = async (zip: JSZip) => new Uint8Array(await zip.generateAsync({ type: 'arraybuffer' }));
+
+    await expect(isSalesforceBundle(await bytes(bundle))).resolves.toBe(true);
+    await expect(isSalesforceBundle(await bytes(packetsOnly))).resolves.toBe(false);
+    await expect(isSalesforceBundle(await bytes(data))).resolves.toBe(false);
+    await expect(isSalesforceBundle(new TextEncoder().encode('not a zip'))).resolves.toBe(false);
   });
 
   it('discovers and validates agent insight packets from uploaded ZIP metadata', async () => {

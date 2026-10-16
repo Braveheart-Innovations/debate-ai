@@ -8,7 +8,8 @@
     "manifest.json",
     "findings.json",
     "evidence.md",
-    "transcript.md"
+    "transcript.md",
+    "limits.csv"
   ],
   "ignoredMetadataPathSegments": [
     ".git",

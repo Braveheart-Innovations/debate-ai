@@ -1357,6 +1357,47 @@ function parseRetrieveRun(content: string): SalesforceRetrieveRun | undefined {
   return run.runId || run.createdAt ? run : undefined;
 }
 
+/** The uploaded workspace, unpacked for Python at the upload's own paths. */
+export const SALESFORCE_WORKSPACE_ROOT = '/data/salesforce/workspace';
+
+/** What one entry of an uploaded zip is to the workspace: a packet file, the run record, a source file, or nothing. */
+type BundleEntry =
+  | { kind: 'packet'; packetInfo: NonNullable<ReturnType<typeof getSalesforceInsightPacketPathInfo>> }
+  | { kind: 'run' }
+  | { kind: 'source'; metadataPath: string | null }
+  | null;
+
+function bundleEntry(entryPath: string, packageRoots: ReturnType<typeof findSalesforcePackageRoots>): BundleEntry {
+  const packetInfo = isSalesforceInsightPacketPath(entryPath) ? getSalesforceInsightPacketPathInfo(entryPath) : null;
+  if (packetInfo) return { kind: 'packet', packetInfo };
+  if (isSalesforceRunRecordPath(entryPath)) return { kind: 'run' };
+  const metadataPath = getSalesforcePackagePath(entryPath, packageRoots);
+  if (metadataPath === null && !isSalesforceMetadataSourcePath(entryPath)) return null;
+  return { kind: 'source', metadataPath };
+}
+
+async function zipPackageRoots(zip: JSZip): Promise<{ entries: JSZip.JSZipObject[]; packageRoots: ReturnType<typeof findSalesforcePackageRoots> }> {
+  const entries = Object.values(zip.files).filter((entry) => !entry.dir);
+  const projectFiles = await Promise.all(entries
+    .filter((entry) => /(^|\/)sfdx-project\.json$/i.test(entry.name) && isSalesforceWorkspaceBundlePath(entry.name))
+    .map(async (entry) => ({ path: entry.name, content: await entry.async('string') })));
+  return { entries, packageRoots: findSalesforcePackageRoots(entries.map((entry) => entry.name), projectFiles) };
+}
+
+/**
+ * Whether an uploaded zip holds Salesforce source: one the audit reads files
+ * from, so the one unpacked into the workspace (by the audit, and when the
+ * session's uploads are restored to a sandbox).
+ */
+export async function isSalesforceBundle(bytes: Uint8Array): Promise<boolean> {
+  try {
+    const { entries, packageRoots } = await zipPackageRoots(await JSZip.loadAsync(bytes));
+    return entries.some((entry) => bundleEntry(normalizePath(entry.name), packageRoots)?.kind === 'source');
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Lists the uploaded workspace: its source files (each read only when loaded), insight
  * packet files and the run record. A bundle's package directories come from its own
@@ -1381,27 +1422,22 @@ export async function listSalesforceWorkspace(files: SandboxFiles, paths?: strin
     }
 
     if (isZipPath(path)) {
-      const zip = await JSZip.loadAsync(toExactBytes(await files.readFile(path)));
-      const entries = Object.values(zip.files).filter((entry) => !entry.dir);
-      const projectFiles = await Promise.all(entries
-        .filter((entry) => /(^|\/)sfdx-project\.json$/i.test(entry.name) && isSalesforceWorkspaceBundlePath(entry.name))
-        .map(async (entry) => ({ path: entry.name, content: await entry.async('string') })));
-      const packageRoots = findSalesforcePackageRoots(entries.map((entry) => entry.name), projectFiles);
+      const { entries, packageRoots } = await zipPackageRoots(await JSZip.loadAsync(toExactBytes(await files.readFile(path))));
 
       for (const entry of entries) {
         const entryPath = normalizePath(entry.name);
-        const packetInfo = isSalesforceInsightPacketPath(entryPath) ? getSalesforceInsightPacketPathInfo(entryPath) : null;
-        if (packetInfo) {
+        const role = bundleEntry(entryPath, packageRoots);
+        if (!role) continue;
+        if (role.kind === 'packet') {
           const content = await entry.async('string');
-          packetFiles.push({ path: entryPath, content, sizeBytes: byteLength(content), sourcePath: path, packetInfo });
+          packetFiles.push({ path: entryPath, content, sizeBytes: byteLength(content), sourcePath: path, packetInfo: role.packetInfo });
           continue;
         }
-        if (isSalesforceRunRecordPath(entryPath)) {
+        if (role.kind === 'run') {
           retrieveRun = parseRetrieveRun(await entry.async('string')) ?? retrieveRun;
           continue;
         }
-        const metadataPath = getSalesforcePackagePath(entryPath, packageRoots);
-        if (metadataPath === null && !isSalesforceMetadataSourcePath(entryPath)) continue;
+        const { metadataPath } = role;
         sources.push({
           path: entryPath,
           ...(metadataPath !== null ? { metadataPath } : {}),

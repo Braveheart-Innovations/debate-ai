@@ -13,6 +13,8 @@ import { buildSalesforceFlowDiagrams, countLoopIssues } from '../../salesforce/s
 import { buildSalesforceSaveOrders } from '../../salesforce/salesforceSaveOrder';
 import { buildSalesforceReferenceIndex } from '../../salesforce/salesforceReferenceIndex';
 import { referencesFileFor } from '../../contract/services/analyze/diagrams/salesforceReferences';
+import { accessFileFor } from '../../contract/services/analyze/diagrams/salesforceAccess';
+import { buildSalesforceAccess } from '../../salesforce/salesforceAccess';
 import {
   buildSalesforceAuditReport,
   buildSalesforceApexDrilldowns,
@@ -36,6 +38,7 @@ import {
   formatComponentList,
   formatRiskList,
   loadSalesforceWorkspaceInputs,
+  SALESFORCE_WORKSPACE_ROOT,
   searchSalesforceMetadata,
   summarizeSalesforceIndex,
   type SalesforceInvalidInsightPacket,
@@ -46,8 +49,6 @@ import {
 const DEFAULT_OPERATION: SalesforceMetadataAuditOperation = 'audit';
 const SALESFORCE_OUTPUT_ROOT = '/output/salesforce';
 const SALESFORCE_DATA_ROOT = '/data/salesforce';
-/** The uploaded workspace, unpacked for Python (same paths as in the upload). */
-export const SALESFORCE_WORKSPACE_ROOT = `${SALESFORCE_DATA_ROOT}/workspace`;
 
 interface SalesforceArtifactFile {
   filename: string;
@@ -139,9 +140,10 @@ export async function executeSalesforceMetadataAuditTool(
  * teammates can work over every file in Python. Returns the line that tells the model.
  */
 async function unpackWorkspace(files: SandboxFiles, sourceFiles: SalesforceSourceFile[]): Promise<string> {
+  // Sorted, as the uploads restore lists them, so both unpack the same zips under one checksum.
   const bundles = Array.from(new Set(sourceFiles
     .map((file) => file.sourcePath)
-    .filter((path): path is string => typeof path === 'string' && /\.zip$/i.test(path))));
+    .filter((path): path is string => typeof path === 'string' && /\.zip$/i.test(path)))).sort();
   if (bundles.length === 0) {
     return 'Read the uploaded Salesforce files with salesforce_read_source.';
   }
@@ -735,6 +737,10 @@ async function writeSalesforceDataModel(
   const referencesFile = referencesFileFor(filename);
   const referencesText = JSON.stringify(buildSalesforceReferenceIndex(sourceFiles, diagram, filename));
   await files.writeFile(`/output/${referencesFile}`, Buffer.from(referencesText, 'utf8'));
+  // Who can read or edit each object and field: the field access recipe reads it.
+  const accessFile = accessFileFor(filename);
+  const accessText = JSON.stringify(buildSalesforceAccess(sourceFiles, diagram, filename));
+  await files.writeFile(`/output/${accessFile}`, Buffer.from(accessText, 'utf8'));
   const withFields = diagram.entities.filter((entity) => !referenced.includes(entity.id)).map((entity) => entity.id);
   const ownReferenced = referenced.filter((id) => !packageObjects.includes(id));
   const recordTypes = diagram.entities.reduce((sum, entity) => sum + (entity.recordTypes?.length ?? 0), 0);
@@ -750,11 +756,12 @@ async function writeSalesforceDataModel(
       `Each object carries its sharing model (sharingModel, externalSharingModel)${recordTypes > 0 ? ` and record types (${recordTypes} in all)` : ''}; picklists that take their values from a value set name it (valueSet).`,
       notFound.length > 0 ? `Not in the upload: ${notFound.join(', ')}.` : '',
       'Each object and field names its source file. It is the user\'s diagram: to change it, read the file, change only what the question needs (objects or fields you design are marked "assumed"), and save it to the same name. Set a title and summary that say what it covers.',
-      `What refers to each object and field (Apex, Flows, layouts, reports, rules, email templates, field-level security…, with file and line) is in /output/${referencesFile}; the Diagram view shows the user what an edit touches from it. Read it with Python for impact questions; it is data, not something to save or change.`,
+      `What refers to each object and field (Apex, Flows, layouts, reports, rules, email templates, field-level security…, with file and line) is in /output/${referencesFile}, with the calls between components (subflows, Apex actions, platform events, quick actions, pages) in its calls; the Diagram view shows the user what an edit touches from it. Who can read or edit each object and field (profiles, permission sets and groups, View All Data, each object's sharing model) is in /output/${accessFile}. Read them with Python, or in a recipe with salesforce_impact and salesforce_access (MODELS); they are data, not something to save or change.`,
     ].filter(Boolean).join('\n'),
     dataOutputs: [
       { filename, base64: Buffer.from(text, 'utf8').toString('base64'), size: Buffer.byteLength(text, 'utf8') },
       { filename: referencesFile, base64: Buffer.from(referencesText, 'utf8').toString('base64'), size: Buffer.byteLength(referencesText, 'utf8') },
+      { filename: accessFile, base64: Buffer.from(accessText, 'utf8').toString('base64'), size: Buffer.byteLength(accessText, 'utf8') },
     ],
   };
 }

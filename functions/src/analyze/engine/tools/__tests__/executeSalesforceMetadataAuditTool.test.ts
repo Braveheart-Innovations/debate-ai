@@ -168,6 +168,10 @@ describe('executeSalesforceMetadataAuditTool', () => {
       zip.file('force-app/main/default/objects/Enrollment__c/Enrollment__c.object-meta.xml', '<CustomObject><label>Enrollment</label></CustomObject>');
       zip.file('force-app/main/default/objects/Enrollment__c/fields/Center__c.field-meta.xml', fieldXml('Center__c', '<label>Center</label><type>MasterDetail</type><referenceTo>Center__c</referenceTo>'));
       zip.file('force-app/main/default/objects/Enrollment__c/fields/Contact__c.field-meta.xml', fieldXml('Contact__c', '<label>Contact</label><type>Lookup</type><referenceTo>Contact</referenceTo>'));
+      zip.file('force-app/main/default/permissionsets/Center_Manager.permissionset-meta.xml', '<PermissionSet><label>Center Manager</label><fieldPermissions><editable>true</editable><field>Enrollment__c.Center__c</field><readable>true</readable></fieldPermissions><objectPermissions><allowCreate>false</allowCreate><allowDelete>false</allowDelete><allowEdit>true</allowEdit><allowRead>true</allowRead><modifyAllRecords>false</modifyAllRecords><object>Enrollment__c</object><viewAllRecords>false</viewAllRecords></objectPermissions></PermissionSet>');
+      zip.file('force-app/main/default/permissionsetgroups/Managers.permissionsetgroup-meta.xml', '<PermissionSetGroup><label>Managers</label><permissionSets>Center_Manager</permissionSets></PermissionSetGroup>');
+      zip.file('force-app/main/default/flows/Enroll.flow-meta.xml', '<Flow><subflows><name>Run_Child</name><flowName>Enroll_Child</flowName></subflows></Flow>');
+      zip.file('force-app/main/default/flows/Enroll_Child.flow-meta.xml', '<Flow><label>Enroll child</label></Flow>');
       mockSandboxService.readFile.mockResolvedValue(await zip.generateAsync({ type: 'arraybuffer' }));
 
       const result = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-dm', {
@@ -177,13 +181,25 @@ describe('executeSalesforceMetadataAuditTool', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(result.dataOutputs?.map((output) => output.filename)).toEqual(['enrollment_model.diagram.json', 'enrollment_model.references.json']);
+      expect(result.dataOutputs?.map((output) => output.filename)).toEqual(['enrollment_model.diagram.json', 'enrollment_model.references.json', 'enrollment_model.access.json']);
       const references = JSON.parse(writtenFile('/output/enrollment_model.references.json')!);
       expect(references).toMatchObject({ version: 1, kind: 'salesforce_references', diagram: 'enrollment_model.diagram.json' });
       expect(Object.keys(references.objects)).toEqual(['Center__c', 'Enrollment__c', 'Contact']);
       // Enrollment__c.Center__c looks up to Center__c: a reference to the object.
       expect(references.objects.Center__c.references).toEqual([expect.objectContaining({ kind: 'relationship', component: 'Enrollment__c.Center__c', how: 'looks up to it' })]);
       expect(result.content).toContain('What refers to each object and field');
+      // The calls between components, for a change's reach past the direct references.
+      expect(references.calls).toEqual([expect.objectContaining({ from: 'flow:Enroll', to: 'flow:Enroll_Child', how: 'subflow' })]);
+      // Who can read or edit each drawn object and field.
+      const access = JSON.parse(writtenFile('/output/enrollment_model.access.json')!);
+      expect(access).toMatchObject({ version: 1, kind: 'salesforce_access', diagram: 'enrollment_model.diagram.json' });
+      expect(access.holders).toEqual([
+        expect.objectContaining({ kind: 'permissionSet', name: 'Center_Manager', label: 'Center Manager' }),
+        expect.objectContaining({ kind: 'permissionSetGroup', name: 'Managers', permissionSets: [0] }),
+      ]);
+      expect(access.objects.Enrollment__c.grants).toEqual([{ holder: 0, read: true, create: false, edit: true, delete: false, viewAll: false, modifyAll: false }]);
+      expect(access.objects.Enrollment__c.fields.Center__c).toEqual({ read: [0], edit: [0] });
+      expect(result.content).toContain('Who can read or edit each object and field');
       const written = JSON.parse(writtenFile('/output/enrollment_model.diagram.json')!);
       expect(written).toMatchObject({ kind: 'data_model', platform: 'salesforce', summary: '2 objects with their fields and relationships, read from salesforce-metadata-kc.zip.' });
       expect(written.entities.map((entity: { id: string }) => entity.id)).toEqual(['Center__c', 'Enrollment__c', 'Contact']);
