@@ -326,15 +326,15 @@ export class SandboxSessionService {
 
   /**
    * Unpack zips into one folder, replacing what was there, in one command. A checksum of
-   * the zips is kept in the folder, so unpacking the same zips again does nothing.
+   * the zips is kept in the folder, so unpacking the same zips again does nothing. No zips
+   * empties the folder (the bundles it held were removed).
    */
   async extractZips(uid: string, sessionKey: string, zipPaths: string[], destination: string): Promise<void> {
-    if (zipPaths.length === 0) return;
-    const zips = zipPaths.map(shellQuote).join(' ');
     const dir = shellQuote(destination);
+    const zips = zipPaths.map(shellQuote).join(' ');
     const marker = shellQuote(`${destination}/.zip-sha256`);
     const unzip = shellQuote('import sys, zipfile\nfor path in sys.argv[2:]: zipfile.ZipFile(path).extractall(sys.argv[1])');
-    const command = [
+    const command = zipPaths.length === 0 ? `rm -rf ${dir}` : [
       `expected="$(sha256sum ${zips})"`,
       `if [ "$(cat ${marker} 2>/dev/null)" != "$expected" ]; then rm -rf ${dir} && mkdir -p ${dir} && python3 -c ${unzip} ${dir} ${zips} && printf '%s' "$expected" > ${marker}; fi`,
     ].join(' && ');

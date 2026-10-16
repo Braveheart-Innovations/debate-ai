@@ -27,6 +27,7 @@ import {
 import type { SandboxFiles } from './tools/sandboxFiles';
 import { listSessionArtifactIds, loadArtifactsById, removeUndefined } from './sessionStore';
 import { mountArtifactsToSandbox } from './artifactFilesystemHydration';
+import { isSalesforceBundle, SALESFORCE_WORKSPACE_ROOT } from '../salesforce/SalesforceMetadataService';
 
 /** Written after a restore; a sandbox without it is new (or was reset) and gets the session's files. */
 export const SESSION_FILES_MARKER = '/home/user/.symposium/session-files.json';
@@ -234,6 +235,8 @@ interface SessionFilesMarker {
   artifactIds?: string[];
   /** Uploads already in the sandbox: upload id → sha256. */
   uploads?: Record<string, string>;
+  /** The uploads that are Salesforce bundles, unpacked into the workspace. */
+  salesforceBundles?: string[];
 }
 
 async function readMarker(uid: string, sandboxSessionKey: string): Promise<SessionFilesMarker | null> {
@@ -266,14 +269,16 @@ function unchangedSkippingFiles(uid: string, sandboxSessionKey: string): Pick<Sa
  *  - every upload is at its pythonPath (a new sandbox gets them all back; an
  *    upload added or replaced since the last round is written in);
  *  - saved artifacts not yet mounted go under /output/<name>, where the tool
- *    history tells the model they are (toolResultHistory's file summary).
+ *    history tells the model they are (toolResultHistory's file summary);
+ *  - a Salesforce bundle is unpacked into the workspace, as the audit does, so
+ *    Python and recipes find it there on a new sandbox too.
  * sync() runs before every round and before a manual cell re-run. The marker
  * file remembers what's mounted; a round with nothing new costs two queries.
  * A session with no uploads or saved artifacts doesn't touch the sandbox, so
  * it starts only when a tool needs it.
  */
 export class SessionFilesSync {
-  private marker: { artifactIds: Set<string>; uploads: Record<string, string> } | null = null;
+  private marker: { artifactIds: Set<string>; uploads: Record<string, string>; salesforceBundles: Set<string> } | null = null;
 
   constructor(
     private readonly uid: string,
@@ -302,10 +307,15 @@ export class SessionFilesSync {
       // start one, and a text-only turn never needs it.
       if (records.length === 0 && artifactIds.length === 0) return;
       const stored = await readMarker(uid, sandboxSessionKey);
-      this.marker = { artifactIds: new Set(stored?.artifactIds ?? []), uploads: { ...(stored?.uploads ?? {}) } };
+      this.marker = {
+        artifactIds: new Set(stored?.artifactIds ?? []),
+        uploads: { ...(stored?.uploads ?? {}) },
+        salesforceBundles: new Set(stored?.salesforceBundles ?? []),
+      };
     }
     const marker = this.marker;
     let changed = false;
+    let bundlesChanged = false;
 
     for (const upload of records) {
       if (marker.uploads[upload.id] === upload.sha256) continue;
@@ -317,12 +327,32 @@ export class SessionFilesSync {
       });
       marker.uploads[upload.id] = upload.sha256;
       changed = true;
+      const bundle = /\.zip$/i.test(upload.pythonPath) && await isSalesforceBundle(bytes);
+      if (bundle || marker.salesforceBundles.has(upload.id)) bundlesChanged = true;
+      if (bundle) marker.salesforceBundles.add(upload.id);
+      else marker.salesforceBundles.delete(upload.id);
     }
     const kept = new Set(records.map((upload) => upload.id));
     for (const id of Object.keys(marker.uploads)) {
       if (!kept.has(id)) {
         delete marker.uploads[id];
         changed = true;
+      }
+    }
+    for (const id of [...marker.salesforceBundles]) {
+      if (!kept.has(id)) {
+        marker.salesforceBundles.delete(id);
+        bundlesChanged = true;
+      }
+    }
+    if (bundlesChanged) {
+      // Sorted, as the audit lists them, so both unpack under one checksum (and skip a repeat).
+      const bundles = records.filter((upload) => marker.salesforceBundles.has(upload.id)).map((upload) => upload.pythonPath).sort();
+      try {
+        await service.extractZips(uid, sandboxSessionKey, bundles, SALESFORCE_WORKSPACE_ROOT);
+      } catch (error) {
+        // The audit unpacks it again when it next runs.
+        console.warn('[analyzeUploads] could not unpack the Salesforce workspace', { sessionId, error: error instanceof Error ? error.message : String(error) });
       }
     }
 
@@ -333,7 +363,12 @@ export class SessionFilesSync {
       changed = true;
     }
     if (!changed) return;
-    const stored: SessionFilesMarker = { restoredAt: Date.now(), artifactIds: [...marker.artifactIds], uploads: marker.uploads };
+    const stored: SessionFilesMarker = {
+      restoredAt: Date.now(),
+      artifactIds: [...marker.artifactIds],
+      uploads: marker.uploads,
+      ...(marker.salesforceBundles.size > 0 ? { salesforceBundles: [...marker.salesforceBundles] } : {}),
+    };
     await service.writeFile(uid, sandboxSessionKey, {
       path: SESSION_FILES_MARKER,
       base64: Buffer.from(JSON.stringify(stored)).toString('base64'),

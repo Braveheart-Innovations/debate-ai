@@ -36,34 +36,12 @@ import type {
 } from '../contract/services/analyze/diagrams/salesforceReferences';
 import { isStandardObject, sourceFileRef } from './salesforceDataModel';
 import type { SalesforceSourceFile } from './SalesforceMetadataService';
+import { baseName, lineFinder, placeOf, tagValues, withoutComments } from './salesforceSourceText';
+import { buildSalesforceCalls } from './salesforceCalls';
 
 interface Target {
   object: string;
   field?: string;
-}
-
-/** A file's lines, found once, for turning an offset into a line number. */
-function lineFinder(content: string): (offset: number) => number {
-  let starts: number[] | null = null;
-  return (offset: number) => {
-    if (!starts) {
-      starts = [0];
-      for (let index = content.indexOf('\n'); index >= 0; index = content.indexOf('\n', index + 1)) starts.push(index + 1);
-    }
-    let low = 0;
-    let high = starts.length - 1;
-    while (low < high) {
-      const mid = (low + high + 1) >> 1;
-      if (starts[mid] <= offset) low = mid;
-      else high = mid - 1;
-    }
-    return low + 1;
-  };
-}
-
-/** Comments blanked out, keeping every offset and line where it was. */
-function withoutComments(code: string): string {
-  return code.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, (comment) => comment.replace(/[^\n]/g, ' '));
 }
 
 function escapeRegExp(value: string): string {
@@ -128,25 +106,6 @@ export function soqlFieldUses(code: string): Array<{ object: string; field: stri
     else frame.fields.push({ name: token, offset: match.index });
   }
   return uses;
-}
-
-/** Where a file sits: its metadata folder and the rest of its path under the package directory. */
-function placeOf(path: string): { folder: string; rest: string } | null {
-  const match = path.replace(/\\/g, '/').match(/(?:^|\/)(classes|triggers|flows|objects|layouts|flexipages|quickActions|pathAssistants|workflows|assignmentRules|autoResponseRules|escalationRules|duplicateRules|matchingRules|sharingRules|reports|reportTypes|email|lwc|aura|pages|components|permissionsets|profiles|tabs)\/(.+)$/);
-  return match ? { folder: match[1], rest: match[2] } : null;
-}
-
-/** A file's member name: `Lead.Block_Dupes` for `duplicateRules/Lead.Block_Dupes.duplicateRule-meta.xml`. */
-function baseName(rest: string): string {
-  return rest.split('/').pop()!.replace(/-meta\.xml$/i, '').replace(/\.[A-Za-z]+$/, '');
-}
-
-/** Values of an XML tag, with the offset of each value. */
-function tagValues(content: string, tag: string): Array<{ value: string; offset: number }> {
-  const found: Array<{ value: string; offset: number }> = [];
-  const pattern = new RegExp(`<${tag}>\\s*([^<]+?)\\s*</${tag}>`, 'g');
-  for (let match = pattern.exec(content); match; match = pattern.exec(content)) found.push({ value: match[1], offset: match.index });
-  return found;
 }
 
 /** Blocks of an XML element, with the offset of each. */
@@ -479,6 +438,7 @@ export function buildSalesforceReferenceIndex(
     if (entry) entry.access = { permissionSets: access.ps, profiles: access.pr };
   }
 
+  const calls = buildSalesforceCalls(sourceFiles, fileId);
   addValueMentions(diagram, objects, fileById);
   addLabelMentions(sourceFiles, diagram, objects, fieldLabels, fileId);
 
@@ -499,8 +459,10 @@ export function buildSalesforceReferenceIndex(
     generatedAt: new Date().toISOString(),
     files,
     objects,
+    calls,
     limits: [
       'Static references only: field names Apex builds as strings, and automation a record change starts, aren\'t seen.',
+      'Calls are static too: a class or flow picked by name at run time, and a record change that starts other automation, aren\'t followed.',
       'A standard field in a report on a standard report type is written without its object, so only custom fields and Object.Field names are found in reports.',
       'Label mentions cover custom object and custom field labels of two or more words.',
     ],

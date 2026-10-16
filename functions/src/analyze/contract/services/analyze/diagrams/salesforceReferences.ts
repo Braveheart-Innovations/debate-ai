@@ -95,6 +95,43 @@ export interface SalesforceObjectReferences {
   fields: Record<string, SalesforceFieldReferences>;
 }
 
+/** How one component reaches another, past the direct references. */
+export const CALL_KINDS = ['subflow', 'apex', 'publishes', 'starts', 'runs', 'calls', 'imports', 'hosts'] as const;
+export type CallKind = (typeof CALL_KINDS)[number];
+
+/** A call in words, read from the caller's side: "Conversion_3 runs subflow Conversion_2". */
+export const CALL_KIND_WORDS: Record<CallKind, string> = {
+  subflow: 'runs subflow',
+  apex: 'calls Apex action',
+  publishes: 'publishes',
+  starts: 'starts',
+  runs: 'runs',
+  calls: 'calls',
+  imports: 'imports',
+  hosts: 'hosts',
+};
+
+/**
+ * One component calling, starting or publishing to another: what a change's
+ * reach follows past the components that refer to a field. A component is
+ * `<kind>:<name>`, the kind and name its references carry
+ * (`flow:Conversion_2_Core_Conversion`, `apex:LeadSearchMatchInvocable`); a
+ * platform event is `event:<API name>`.
+ */
+export interface SalesforceCall {
+  from: string;
+  to: string;
+  how: CallKind;
+  /** Where the call is written: the file (an index into `files`) and its line. */
+  file: number;
+  line: number;
+}
+
+/** `flow:Conversion_2_Core_Conversion`: a component as calls name it. */
+export function componentKey(kind: ReferenceKind | 'event', name: string): string {
+  return `${kind}:${name}`;
+}
+
 export interface SalesforceReferencesIndex {
   version: 1;
   kind: 'salesforce_references';
@@ -105,6 +142,8 @@ export interface SalesforceReferencesIndex {
   files: string[];
   /** By the object's API name (the diagram's entity id). */
   objects: Record<string, SalesforceObjectReferences>;
+  /** Calls between components across the whole workspace (from 2.9.4; older indexes have none). */
+  calls?: SalesforceCall[];
   /** What the index can't see, said once: dynamic Apex, record changes, references by label alone… */
   limits: string[];
 }
