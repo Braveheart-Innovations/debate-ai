@@ -35,6 +35,7 @@ const MAX_METADATA_ONLY_SITEMAP_RECORDS_PER_TOPIC = 0;
 const FULL_TEXT_CONTENT_LENGTH_FLOOR = 300;
 const SALESFORCE_HELP_RENDER_TIMEOUT_MS = Number(process.env.SALESFORCE_DOCS_HELP_RENDER_TIMEOUT_MS || 60000);
 const SALESFORCE_HELP_RENDER_MAX_CHARS = Number(process.env.SALESFORCE_DOCS_HELP_RENDER_MAX_CHARS || 0);
+const SALESFORCE_HELP_RENDER_SPACING_MS = Number(process.env.SALESFORCE_DOCS_HELP_RENDER_SPACING_MS || 2000);
 const MIN_SITEMAP_TOPIC_SCORE = 8;
 const OFFICIAL_HOST_PATTERN = /(^|\.)salesforce\.com$/i;
 const ALLOW_CURL_TEXT_FETCH = process.env.SALESFORCE_DOCS_ALLOW_CURL_FETCH === '1';
@@ -73,6 +74,13 @@ export interface OfficialDocContent {
   releaseLabel?: string;
   documentationVersion?: string;
   warnings?: string[];
+  /** Help article links (table of contents, "See also") found on a rendered Help page. */
+  discoveredLinks?: SalesforceDocsHelpCatalogEntry[];
+}
+
+export interface SalesforceDocsHelpCatalogEntry {
+  url: string;
+  title: string;
 }
 
 interface SalesforceDocsPdfSource {
@@ -202,6 +210,12 @@ export interface SalesforceDocsIndex {
     sitemapRecordLimitPerTopic: number;
   };
   pdfCorpus?: SalesforceDocsPdfCorpusSummary;
+  /**
+   * Help articles linked from the pages this build rendered, by title. Help
+   * publishes no article sitemap, so this is how a lookup miss finds the
+   * article that answers it.
+   */
+  helpCatalog?: SalesforceDocsHelpCatalogEntry[];
   warnings: string[];
 }
 
@@ -1836,25 +1850,12 @@ function humanizeSalesforceDocId(id: string): string {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-// Help articles whose bodies are worth headless-Chrome rendering at index-build
-// time. These are domains with no developer-guide equivalent — their Help
-// articles ARE the primary documentation.
-const RENDERABLE_HELP_ARTICLE_ID_PATTERNS: RegExp[] = [
-  /^(?:sf\.)?os_/, // OmniStudio
-  /^(?:sf\.)?devops_center/, // DevOps Center
-];
-
+// Every Help article is rendered with headless Chrome at index-build time: the
+// article body only exists after the Lightning page runs, and admin Help
+// (storage, limits, security settings, Flow behaviour) has no developer-guide
+// equivalent. Lookups never render (allowRendering: false).
 function isRenderableSalesforceHelpArticleUrl(urlValue: string): boolean {
-  try {
-    const url = new URL(urlValue);
-    if (url.hostname !== 'help.salesforce.com' || !url.pathname.includes('/articleView')) return false;
-    const articleId = (url.searchParams.get('id') || '').toLowerCase();
-    if (articleId.startsWith('release-notes.')) return true;
-    if (articleId === 'data.c360_a_dc_releases.htm') return true;
-    return RENDERABLE_HELP_ARTICLE_ID_PATTERNS.some((pattern) => pattern.test(articleId));
-  } catch {
-    return false;
-  }
+  return isHelpArticleViewMetadataUrl(urlValue);
 }
 
 function isSalesforceHelpReleaseNotesUrl(urlValue: string): boolean {
@@ -1921,11 +1922,65 @@ function isSalesforceHelpErrorText(text: string): boolean {
   return /we looked high and low|couldn['\u2019]t find that page/i.test(text);
 }
 
+function sameRenderedHelpLine(line: string, title: string): boolean {
+  const normalize = (value: string) => value.replace(/[\u2018\u2019]/g, "'").replace(/\s+/g, ' ').trim().toLowerCase();
+  return normalize(line) === normalize(title);
+}
+
+/**
+ * Splits the article viewer's text into the page header (breadcrumb, guide
+ * name) and the article itself, dropping site banners before the breadcrumb
+ * and the feedback widget after the body. Knowledge articles (type=1) have no
+ * breadcrumb and start at their title.
+ */
+export function extractRenderedHelpArticle(rawText: string, title?: string): { header: string; text: string } {
+  let lines = rawText
+    .replace(/\u0000/g, ' ')
+    .replace(/\u00a0/g, ' ')
+    .replace(/\r/g, '\n')
+    .split('\n')
+    .map((line) => line.replace(/[ \t]{2,}/g, ' ').trim());
+  const feedbackIndex = lines.findIndex((line) => /^did this article solve your issue\??$/i.test(line));
+  if (feedbackIndex >= 0) lines = lines.slice(0, feedbackIndex);
+
+  let header: string[] = [];
+  const crumbIndex = lines.findIndex((line) => /^you are here:?$/i.test(line));
+  const titleIndex = title
+    ? lines.findIndex((line, index) => index > crumbIndex && sameRenderedHelpLine(line, title))
+    : -1;
+  if (titleIndex >= 0) {
+    header = lines.slice(0, titleIndex);
+    lines = lines.slice(titleIndex);
+  } else if (crumbIndex >= 0) {
+    header = lines.slice(0, crumbIndex + 1);
+    lines = lines.slice(crumbIndex + 1);
+  }
+
+  return {
+    header: header.filter(Boolean).join('\n'),
+    text: normalizeRenderedHelpText(lines.join('\n')),
+  };
+}
+
 function extractSalesforceReleaseLabel(text: string): string | undefined {
   const match = text.match(/\b(Spring|Summer|Winter)\s+[\u2019']?([0-9]{2})\b/i);
   if (!match) return undefined;
   const season = match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase();
   return `${season} '${match[2]}`;
+}
+
+/**
+ * Salesforce release numbers step by 2 per release, three releases a year:
+ * 264 = Winter '27, 266 = Spring '27, 268 = Summer '27 (208 = Summer '17).
+ */
+export function salesforceReleaseLabelForVersion(version: string | undefined): string | undefined {
+  const releaseNumber = Number(version);
+  if (!Number.isInteger(releaseNumber) || releaseNumber < 100 || releaseNumber % 2 !== 0) return undefined;
+  const step = (releaseNumber - 264) / 2;
+  const season = ['Winter', 'Spring', 'Summer'][((step % 3) + 3) % 3];
+  const year = 27 + Math.floor(step / 3);
+  if (year < 0 || year > 99) return undefined;
+  return `${season} '${String(year).padStart(2, '0')}`;
 }
 
 function extractHelpReleaseVersion(urlValue: string): string | undefined {
@@ -2003,9 +2058,35 @@ export async function closeSalesforceHelpBrowser(): Promise<void> {
   }
 }
 
-async function fetchRenderedHelpArticleContent(urlValue: string): Promise<OfficialDocContent | null> {
-  if (!isRenderableSalesforceHelpArticleUrl(urlValue)) return null;
+let lastHelpRenderAtMs = 0;
 
+// Renders run one at a time with a pause between them: bursts trip Salesforce's
+// IP cool-down, after which every Help and developer-docs request 403s for a while.
+async function waitForHelpRenderSlot(): Promise<void> {
+  const spacingMs = SALESFORCE_HELP_RENDER_SPACING_MS + Math.floor(Math.random() * 1000);
+  const waitMs = lastHelpRenderAtMs + spacingMs - Date.now();
+  if (waitMs > 0) await sleep(waitMs);
+  lastHelpRenderAtMs = Date.now();
+}
+
+/** A Help article link as `https://help.salesforce.com/s/articleView?id=…&language=en_US&type=…`, or null. */
+export function canonicalHelpArticleUrl(href: string): string | null {
+  try {
+    const url = new URL(href, 'https://help.salesforce.com/s/');
+    if (url.hostname !== 'help.salesforce.com' || !url.pathname.endsWith('/articleView')) return null;
+    const articleId = url.searchParams.get('id');
+    if (!articleId || !/^[A-Za-z0-9._-]+$/.test(articleId)) return null;
+    const language = url.searchParams.get('language');
+    if (language && language !== 'en_US') return null;
+    const type = url.searchParams.get('type') || '5';
+    return `https://help.salesforce.com/s/articleView?id=${articleId}&language=en_US&type=${type}`;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchRenderedHelpArticleContent(urlValue: string): Promise<OfficialDocContent> {
+  await waitForHelpRenderSlot();
   const browser = await getSalesforceHelpBrowser();
   const page = await browser.newPage();
   try {
@@ -2016,40 +2097,87 @@ async function fetchRenderedHelpArticleContent(urlValue: string): Promise<Offici
       waitUntil: 'domcontentloaded',
       timeout: SALESFORCE_HELP_RENDER_TIMEOUT_MS,
     });
-    // Substantial rendered body is the real readiness signal; the release-notes
-    // marker only lets known-slow release pages settle a little longer.
+    // The article viewer renders its feedback widget after the body, so that
+    // marker means the article is in; a long body is the fallback signal.
     await page.waitForFunction(
       () => {
+        const viewerText = (document.querySelector('c-hc-article-viewer') as HTMLElement | null)?.innerText || '';
+        if (/did this article solve your issue/i.test(viewerText)) return true;
         const text = document.body?.innerText || '';
         if (text.length > 4000) return true;
         return text.length > 1200 && /Release Notes|Release Updates|Features Become Available|About Data 360 Releases/i.test(text);
       },
       { timeout: Math.min(30000, SALESFORCE_HELP_RENDER_TIMEOUT_MS) },
     ).catch(() => undefined);
+    // The guide's table of contents loads after the article; Knowledge articles (type=1) have none.
+    if (new URL(urlValue).searchParams.get('type') !== '1') {
+      await page.waitForFunction(
+        () => {
+          let count = 0;
+          const walk = (root: Document | ShadowRoot) => {
+            for (const element of Array.from(root.querySelectorAll('*'))) {
+              if (element.tagName === 'A' && (element.getAttribute('href') || '').includes('articleView?id=')) count += 1;
+              if (element.shadowRoot) walk(element.shadowRoot);
+            }
+          };
+          walk(document);
+          return count > 20;
+        },
+        { timeout: 8000 },
+      ).catch(() => undefined);
+    }
 
-    const rendered = await page.evaluate(() => ({
-      title: document.title || '',
-      text: document.body?.innerText || '',
-      url: window.location.href,
-    }));
-    const normalizedText = normalizeRenderedHelpText(rendered.text);
-    if (isSalesforceHelpErrorText(normalizedText)) {
+    const rendered = await page.evaluate(() => {
+      // Table-of-contents and "See also" links live in nested shadow roots.
+      const links: Array<{ href: string; title: string }> = [];
+      const walk = (root: Document | ShadowRoot) => {
+        for (const element of Array.from(root.querySelectorAll('*'))) {
+          if (element.tagName === 'A') {
+            const href = element.getAttribute('href') || '';
+            const title = ((element as HTMLElement).innerText || element.textContent || '').replace(/\s+/g, ' ').trim();
+            if (href.includes('articleView?') && title) links.push({ href, title });
+          }
+          if (element.shadowRoot) walk(element.shadowRoot);
+        }
+      };
+      walk(document);
+      const viewer = document.querySelector('c-hc-article-viewer') as HTMLElement | null;
+      return {
+        title: document.title || '',
+        text: viewer?.innerText || document.body?.innerText || '',
+        url: window.location.href,
+        links,
+      };
+    });
+    const title = normalizeRenderedHelpTitle(rendered.title);
+    const article = extractRenderedHelpArticle(rendered.text, title);
+    if (isSalesforceHelpErrorText(article.text)) {
       throw new Error('Rendered Salesforce Help article was an error page.');
     }
-    if (normalizedText.length < FULL_TEXT_CONTENT_LENGTH_FLOOR) {
-      throw new Error(`Rendered Salesforce Help article was too short (${normalizedText.length} chars)`);
+    if (article.text.length < FULL_TEXT_CONTENT_LENGTH_FLOOR) {
+      throw new Error(`Rendered Salesforce Help article was too short (${article.text.length} chars)`);
     }
 
     const maxChars = positiveLimit(SALESFORCE_HELP_RENDER_MAX_CHARS);
-    const text = maxChars ? normalizedText.slice(0, maxChars) : normalizedText;
+    const text = maxChars ? article.text.slice(0, maxChars) : article.text;
+    const documentationVersion = extractHelpReleaseVersion(rendered.url) || extractHelpReleaseVersion(urlValue);
+    const discoveredLinks = new Map<string, string>();
+    for (const link of rendered.links) {
+      const canonical = canonicalHelpArticleUrl(link.href);
+      if (canonical && !discoveredLinks.has(canonical)) discoveredLinks.set(canonical, link.title.slice(0, 180));
+    }
     return {
       text,
       contentQuality: 'full_text',
-      title: normalizeRenderedHelpTitle(rendered.title) || extractTitle(text, humanizeSalesforceDocId(new URL(urlValue).searchParams.get('id') || 'Salesforce Help Article')),
-      releaseLabel: extractSalesforceReleaseLabel(`${rendered.title}\n${text}`),
-      documentationVersion: extractHelpReleaseVersion(rendered.url) || extractHelpReleaseVersion(urlValue),
+      title: title || extractTitle(text, humanizeSalesforceDocId(new URL(urlValue).searchParams.get('id') || 'Salesforce Help Article')),
+      // The page's own version only: its title, breadcrumb, or release number.
+      // A season mentioned in the body ("available since Summer '17") is not it.
+      releaseLabel: extractSalesforceReleaseLabel(`${rendered.title}\n${article.header}`)
+        || salesforceReleaseLabelForVersion(documentationVersion),
+      documentationVersion,
+      discoveredLinks: Array.from(discoveredLinks, ([url, linkTitle]) => ({ url, title: linkTitle })),
       warnings: [
-        maxChars && normalizedText.length > maxChars
+        maxChars && article.text.length > maxChars
           ? `Rendered Salesforce Help article text was truncated at ${maxChars} characters by SALESFORCE_DOCS_HELP_RENDER_MAX_CHARS.`
           : '',
       ].filter(Boolean),
@@ -2531,7 +2659,8 @@ async function fetchDeveloperDocsContent(
   }
 
   return {
-    text: text.slice(0, 120000),
+    // Whole page: long reference pages (Flow metadata) are chunked, not cut.
+    text,
     contentQuality: 'full_text',
     title,
     apiVersion,
@@ -2593,11 +2722,11 @@ export async function fetchOfficialDocContent(
   }
 
   if (plan === 'rendered_help') {
-    const renderedHelpArticle = await fetchRenderedHelpArticleContent(url);
-    if (renderedHelpArticle) return renderedHelpArticle;
+    // A render that fails is a failure: the article was not read.
+    return fetchRenderedHelpArticleContent(url);
   }
 
-  if (plan === 'rendered_help' || plan === 'help_metadata') {
+  if (plan === 'help_metadata') {
     const helpArticleMetadata = buildHelpArticleMetadata(url);
     if (helpArticleMetadata) return helpArticleMetadata;
   }
@@ -2608,7 +2737,7 @@ export async function fetchOfficialDocContent(
     throw new Error(`Fetched content was too short (${normalized.length} chars)`);
   }
   return {
-    text: normalized.slice(0, 120000),
+    text: normalized,
     contentQuality: 'full_text',
     title: extractHtmlTitle(html),
     warnings: developerDocsApiError
@@ -2789,12 +2918,16 @@ async function buildRecord(
     sitemapUrl?: string;
     sitemapScore?: number;
   } = { source: 'seed' },
+  helpCatalog?: Map<string, string>,
 ): Promise<SalesforceDocsIndexRecord> {
   const url = canonicalizeUrl(rawUrl);
   if (!url) {
     throw new Error(`URL is not an allowed official Salesforce URL: ${rawUrl}`);
   }
   const content = await fetchOfficialDocContent(url);
+  for (const link of content.discoveredLinks || []) {
+    if (helpCatalog && !helpCatalog.has(link.url)) helpCatalog.set(link.url, link.title);
+  }
   const text = content.text;
   const recordId = `sf-doc-index-${index}`;
   const textChunks = content.contentQuality === 'full_text'
@@ -2848,6 +2981,8 @@ async function buildPdfRecord(
   }
 
   const pdf = await fetchPdfDocument(url);
+  // Hash first: pdf.js takes ownership of the buffer and leaves it empty.
+  const responseHash = crypto.createHash('sha256').update(Buffer.from(pdf.bytes)).digest('hex');
   const extracted = await extractPdfText(pdf.bytes, source.id);
   if (extracted.text.length < FULL_TEXT_CONTENT_LENGTH_FLOOR) {
     throw new Error(`PDF text extraction was too short (${extracted.text.length} chars)`);
@@ -2885,7 +3020,7 @@ async function buildPdfRecord(
     pdfSourceId: source.id,
     status,
     retrievedAt,
-    responseHash: crypto.createHash('sha256').update(Buffer.from(pdf.bytes)).digest('hex'),
+    responseHash,
     contentQuality: 'full_text',
     contentLength: extracted.text.length,
     contentType: pdf.contentType,
@@ -2985,6 +3120,7 @@ async function buildSalesforceDocsIndexNowInternal(options: SalesforceDocsIndexB
   const records: SalesforceDocsIndexRecord[] = [];
   const failures: SalesforceDocsIndex['failures'] = [];
   const seenUrls = new Set<string>();
+  const helpCatalog = new Map<string, string>();
   const includePdfDocs = options.includePdfDocs !== false;
   const includeWebDocs = options.includeWebDocs !== false;
   const includeSitemapDocs = includeWebDocs && options.includeSitemapDocs !== false;
@@ -3039,7 +3175,7 @@ async function buildSalesforceDocsIndexNowInternal(options: SalesforceDocsIndexB
       seenUrls.add(canonicalUrl);
 
       try {
-        records.push(await buildRecord(topic, canonicalUrl, generatedAt, records.length + 1));
+        records.push(await buildRecord(topic, canonicalUrl, generatedAt, records.length + 1, { source: 'seed' }, helpCatalog));
       } catch (error: any) {
         failures.push({
           topicId: topic.id,
@@ -3076,7 +3212,7 @@ async function buildSalesforceDocsIndexNowInternal(options: SalesforceDocsIndexB
           lastModified: entry.lastModified,
           sitemapUrl: entry.sitemapUrl,
           sitemapScore: score,
-        }));
+        }, helpCatalog));
         topicSitemapRecordCount += 1;
       } catch (error: any) {
         failures.push({
@@ -3108,6 +3244,8 @@ async function buildSalesforceDocsIndexNowInternal(options: SalesforceDocsIndexB
       sitemapRecordLimitPerTopic: MAX_SITEMAP_RECORDS_PER_TOPIC,
     },
     pdfCorpus,
+    helpCatalog: Array.from(helpCatalog, ([url, title]) => ({ url, title }))
+      .sort((a, b) => a.title.localeCompare(b.title) || a.url.localeCompare(b.url)),
     warnings: [
       records.length === 0 ? 'No official Salesforce documentation records were fetched.' : '',
       failures.length > 0 ? `${failures.length} official Salesforce documentation seed URL(s) failed to fetch.` : '',
