@@ -135,6 +135,14 @@ describe('a Flow as a process diagram', () => {
     expect(label('')).toBe('Launched by Apex or another flow');
   });
 
+  it('sums the Flow up from what it holds, and keeps its own description (often version notes) on the start', () => {
+    const noted = flowFile('Route_to_CRC_Queue', ROUTE.content.replace('<label>Route to CRC Queue</label>', '<label>Route to CRC Queue</label><description>Hello World: saving new version to remove tag</description>').replace(/^<\?xml[^>]*>\n<Flow[^>]*>\n|\n<\/Flow>$/g, ''));
+    const [{ diagram }] = buildSalesforceFlowDiagrams([noted], { flows: ['Route_to_CRC_Queue'] }).results;
+    expect(diagram.summary).toBe('Lead created or updated (after save). 6 elements: 2 decisions and loops, 3 record operations, 1 action; 3 without a fault path. Drawn from Route_to_CRC_Queue.');
+    expect(diagram.summary).not.toContain('Hello World');
+    expect(diagram.nodes[0].description).toContain('Its description: Hello World: saving new version to remove tag');
+  });
+
   it('says which flows it could not find', () => {
     expect(buildSalesforceFlowDiagrams([ROUTE], { flows: ['Nope'] })).toEqual({ results: [], notFound: ['Nope'] });
   });
