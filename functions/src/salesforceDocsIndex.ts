@@ -156,7 +156,7 @@ export interface SalesforceDocsIndexRecord {
   refreshCadenceDays?: number;
   nextRefreshDueAt?: string;
   freshnessSignal?: SalesforceDocsFreshnessSignal;
-  discoverySource: 'seed' | 'sitemap';
+  discoverySource: 'seed' | 'sitemap' | 'miss';
   sitemapUrl?: string;
   sitemapScore?: number;
   confidenceImpact: SalesforceDocsConfidenceImpact;
@@ -216,7 +216,40 @@ export interface SalesforceDocsIndex {
    * article that answers it.
    */
   helpCatalog?: SalesforceDocsHelpCatalogEntry[];
+  /** Pages read because a lookup missed; each build re-reads them as seeds. */
+  learnedSources?: SalesforceDocsLearnedSource[];
+  /** Lookup misses no official page has answered yet; the next build tries again. */
+  unresolvedMisses?: SalesforceDocsUnresolvedMiss[];
   warnings: string[];
+}
+
+/** A lookup topic the index could not answer with read text. Logged by lookups, read by the next build. */
+export interface SalesforceDocsMiss {
+  topicId: string;
+  label: string;
+  query: string;
+  category?: string;
+  reason: string;
+  at: string;
+  /** Official pages the lookup found for this topic but could not read. */
+  candidateUrls?: string[];
+}
+
+export interface SalesforceDocsLearnedSource {
+  url: string;
+  title: string;
+  query: string;
+  learnedAt: string;
+}
+
+export interface SalesforceDocsUnresolvedMiss {
+  label: string;
+  query: string;
+  reason: string;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  count: number;
+  candidateUrls?: string[];
 }
 
 export interface SalesforceDocsIndexBuildOptions {
@@ -224,6 +257,10 @@ export interface SalesforceDocsIndexBuildOptions {
   includeWebDocs?: boolean;
   includeSitemapDocs?: boolean;
   topicIds?: string[];
+  /** The index this build replaces: its learned pages are re-read and its unresolved misses retried. */
+  previousIndex?: SalesforceDocsIndex | null;
+  /** Lookup misses logged since the previous build. */
+  misses?: SalesforceDocsMiss[];
 }
 
 export interface SalesforceDocsLookupTopicLike {
@@ -1746,6 +1783,63 @@ export async function writeSalesforceDocsIndex(index: SalesforceDocsIndex): Prom
   cachedIndexState = null;
 }
 
+const SALESFORCE_DOC_MISS_PREFIX = 'salesforce-docs/misses/';
+
+/**
+ * Logs the topics one lookup could not answer with read text, as one object
+ * under salesforce-docs/misses/<date>/ (server-only: storage rules deny the
+ * path). The next index build reads them and goes looking for those pages.
+ */
+export async function recordSalesforceDocsMisses(misses: SalesforceDocsMiss[]): Promise<void> {
+  if (misses.length === 0) return;
+  const at = new Date().toISOString();
+  const name = `${SALESFORCE_DOC_MISS_PREFIX}${at.slice(0, 10)}/${at}-${crypto.randomBytes(4).toString('hex')}.json`;
+  const uploadUrl = `https://storage.googleapis.com/upload/storage/v1/b/${storageBucketPath()}/o?uploadType=media&name=${encodeURIComponent(name)}`;
+  const response = await authorizedStorageFetch(uploadUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+    body: JSON.stringify({ version: 1, at, misses }),
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to record Salesforce docs misses (${response.status}): ${await response.text()}`);
+  }
+}
+
+/** Misses logged after `sinceIso` (all of them when it is absent). */
+export async function readSalesforceDocsMissesSince(sinceIso?: string): Promise<SalesforceDocsMiss[]> {
+  const sinceDate = sinceIso ? sinceIso.slice(0, 10) : '';
+  const names: string[] = [];
+  let pageToken: string | undefined;
+  do {
+    const listUrl = `https://storage.googleapis.com/storage/v1/b/${storageBucketPath()}/o?prefix=${encodeURIComponent(SALESFORCE_DOC_MISS_PREFIX)}&fields=items(name),nextPageToken${pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ''}`;
+    const response = await authorizedStorageFetch(listUrl, { method: 'GET' });
+    if (!response.ok) {
+      throw new Error(`Failed to list Salesforce docs misses (${response.status}): ${await response.text()}`);
+    }
+    const page = await response.json() as { items?: Array<{ name: string }>; nextPageToken?: string };
+    for (const item of page.items || []) {
+      // Object names start with the logging date, so older days are skipped unread.
+      const day = item.name.slice(SALESFORCE_DOC_MISS_PREFIX.length, SALESFORCE_DOC_MISS_PREFIX.length + 10);
+      if (!sinceDate || day >= sinceDate) names.push(item.name);
+    }
+    pageToken = page.nextPageToken;
+  } while (pageToken);
+
+  const misses: SalesforceDocsMiss[] = [];
+  for (const name of names) {
+    const response = await authorizedStorageFetch(
+      `https://storage.googleapis.com/storage/v1/b/${storageBucketPath()}/o/${encodeURIComponent(name)}?alt=media`,
+      { method: 'GET' },
+    );
+    if (!response.ok) continue;
+    const logged = await response.json() as { misses?: SalesforceDocsMiss[] };
+    for (const miss of logged.misses || []) {
+      if (!sinceIso || miss.at > sinceIso) misses.push(miss);
+    }
+  }
+  return misses;
+}
+
 const SALESFORCE_DOC_INDEX_CACHE_TTL_MS = 5 * 60 * 1000;
 
 interface DownloadedSalesforceDocsIndex {
@@ -3027,13 +3121,115 @@ function shouldFetchSitemapEntryForTopic(
   return fullTextRecordsForTopic === 0 || recordsForTopic.length < 2;
 }
 
+// --- Lookup misses → pages to read -------------------------------------------
+
+const MISS_STOPWORDS = new Set([
+  'salesforce', 'official', 'documentation', 'document', 'documents', 'documented', 'docs', 'doc', 'help', 'article', 'guide', 'says', 'the', 'and', 'for',
+  'with', 'how', 'what', 'when', 'which', 'does', 'are', 'from', 'into', 'about', 'behavior', 'behaviour',
+  'using', 'use', 'this', 'that', 'per', 'its', 'can', 'not', 'all', 'any',
+]);
+/** Pages read per miss: the best two candidates are enough to answer it, and renders are throttled. */
+const MISS_CANDIDATES_PER_MISS = 2;
+
+export function missTokens(text: string): string[] {
+  return Array.from(new Set(
+    normalizeForMatch(text).split(' ').filter((token) => token.length >= 3 && !MISS_STOPWORDS.has(token)),
+  ));
+}
+
+/** Folds repeated misses (same query) into one, keeping the earliest and latest sighting. */
+export function aggregateMisses(
+  misses: SalesforceDocsMiss[],
+  carried: SalesforceDocsUnresolvedMiss[] = [],
+): SalesforceDocsUnresolvedMiss[] {
+  const byKey = new Map<string, SalesforceDocsUnresolvedMiss>();
+  const add = (miss: SalesforceDocsUnresolvedMiss) => {
+    const key = normalizeForMatch(miss.query || miss.label);
+    if (!key) return;
+    const existing = byKey.get(key);
+    if (!existing) {
+      byKey.set(key, { ...miss, candidateUrls: miss.candidateUrls ? [...miss.candidateUrls] : undefined });
+      return;
+    }
+    existing.count += miss.count;
+    if (miss.firstSeenAt < existing.firstSeenAt) existing.firstSeenAt = miss.firstSeenAt;
+    if (miss.lastSeenAt > existing.lastSeenAt) {
+      existing.lastSeenAt = miss.lastSeenAt;
+      existing.reason = miss.reason;
+    }
+    const candidateUrls = new Set([...(existing.candidateUrls || []), ...(miss.candidateUrls || [])]);
+    existing.candidateUrls = candidateUrls.size > 0 ? Array.from(candidateUrls) : undefined;
+  };
+  carried.forEach(add);
+  misses.forEach((miss) => add({
+    label: miss.label,
+    query: miss.query,
+    reason: miss.reason,
+    firstSeenAt: miss.at,
+    lastSeenAt: miss.at,
+    count: 1,
+    candidateUrls: miss.candidateUrls,
+  }));
+  return Array.from(byKey.values());
+}
+
+/**
+ * Official pages most likely to answer a miss: the pages the lookup itself
+ * found but could not read come first, then Help catalog titles and sitemap
+ * paths that carry at least half of the miss's words (two at minimum).
+ */
+export function rankMissCandidates(
+  miss: Pick<SalesforceDocsUnresolvedMiss, 'label' | 'query' | 'candidateUrls'>,
+  catalog: SalesforceDocsHelpCatalogEntry[],
+): string[] {
+  const ranked: string[] = [];
+  for (const candidateUrl of miss.candidateUrls || []) {
+    const url = canonicalHelpArticleUrl(candidateUrl) || canonicalizeUrl(candidateUrl);
+    if (url && !/\.pdf$/i.test(new URL(url).pathname) && !ranked.includes(url)) ranked.push(url);
+  }
+  const tokens = missTokens(`${miss.label} ${miss.query}`);
+  if (tokens.length === 0) return ranked;
+  const needed = Math.max(Math.min(2, tokens.length), Math.ceil(tokens.length / 2));
+  const scored = catalog
+    .map((entry) => {
+      const titleTokens = new Set(normalizeForMatch(entry.title).split(' '));
+      const matched = tokens.filter((token) => titleTokens.has(token)).length;
+      return { url: entry.url, matched };
+    })
+    .filter((entry) => entry.matched >= needed)
+    .sort((a, b) => b.matched - a.matched || a.url.localeCompare(b.url));
+  for (const entry of scored) {
+    if (!ranked.includes(entry.url)) ranked.push(entry.url);
+  }
+  return ranked;
+}
+
+function sitemapCatalogEntries(entries: SalesforceDocsSitemapEntry[]): SalesforceDocsHelpCatalogEntry[] {
+  return entries.map((entry) => {
+    const url = new URL(entry.url);
+    return { url: entry.url, title: `${url.pathname} ${url.searchParams.get('id') || ''}` };
+  });
+}
+
+function learnedTopicForMiss(miss: Pick<SalesforceDocsUnresolvedMiss, 'label' | 'query'>): SalesforceDocsIndexTopic {
+  const slug = normalizeForMatch(miss.query || miss.label).replace(/\s+/g, '-').slice(0, 60);
+  return {
+    id: `learned-${slug}`,
+    label: miss.label,
+    query: miss.query,
+    category: 'learned',
+    keywords: missTokens(`${miss.label} ${miss.query}`),
+    seedUrls: [],
+  };
+}
+
 async function buildRecord(
   topic: SalesforceDocsIndexTopic,
   rawUrl: string,
   retrievedAt: string,
   index: number,
   discovery: {
-    source: 'seed' | 'sitemap';
+    source: 'seed' | 'sitemap' | 'miss';
     lastModified?: string;
     sitemapUrl?: string;
     sitemapScore?: number;
@@ -3344,6 +3540,61 @@ async function buildSalesforceDocsIndexNowInternal(options: SalesforceDocsIndexB
     }
   }
 
+  // Pages learned from earlier lookup misses are seeds now. One that fails
+  // today stays learned, so the next build tries it again.
+  const learnedSources: SalesforceDocsLearnedSource[] = [];
+  for (const learned of includeWebDocs ? options.previousIndex?.learnedSources || [] : []) {
+    learnedSources.push(learned);
+    if (records.some((record) => record.url === learned.url) || seenUrls.has(learned.url)) continue;
+    seenUrls.add(learned.url);
+    try {
+      records.push(await buildRecord(learnedTopicForMiss({ label: learned.title, query: learned.query }), learned.url, generatedAt, records.length + 1, { source: 'miss' }, helpCatalog));
+    } catch (error: any) {
+      failures.push({ topicId: 'learned', url: learned.url, error: error?.message || 'Unknown learned-page fetch failure' });
+    }
+  }
+
+  // New misses, plus the ones no page has answered yet, against every official
+  // page this build knows of: the Help catalog (this build's and earlier ones)
+  // and the developer and architect sitemaps.
+  for (const entry of options.previousIndex?.helpCatalog || []) {
+    if (!helpCatalog.has(entry.url)) helpCatalog.set(entry.url, entry.title);
+  }
+  const missCatalog = [
+    ...Array.from(helpCatalog, ([url, title]) => ({ url, title })),
+    ...sitemapCatalogEntries(sitemapEntries),
+  ];
+  const unresolvedMisses: SalesforceDocsUnresolvedMiss[] = [];
+  const pendingMisses = includeWebDocs
+    ? aggregateMisses(options.misses || [], options.previousIndex?.unresolvedMisses || [])
+    : [];
+  for (const miss of pendingMisses) {
+    const candidates = rankMissCandidates(miss, missCatalog).slice(0, MISS_CANDIDATES_PER_MISS);
+    let answered = false;
+    for (const url of candidates) {
+      if (records.some((record) => record.url === url && isFullTextRecord(record))) {
+        answered = true;
+        continue;
+      }
+      if (seenUrls.has(url)) continue;
+      seenUrls.add(url);
+      try {
+        const record = await buildRecord(learnedTopicForMiss(miss), url, generatedAt, records.length + 1, { source: 'miss' }, helpCatalog);
+        records.push(record);
+        learnedSources.push({ url, title: record.title, query: miss.query, learnedAt: generatedAt });
+        answered = true;
+      } catch (error: any) {
+        failures.push({ topicId: 'learned', url, error: error?.message || 'Unknown miss-candidate fetch failure' });
+      }
+    }
+    if (!answered) {
+      unresolvedMisses.push({
+        ...miss,
+        reason: candidates.length > 0 ? 'candidates_unreadable' : 'no_candidate_page',
+      });
+    }
+  }
+
   const fullTextRecords = records.filter(isFullTextRecord).length;
   const metadataOnlyRecords = records.filter((record) => contentQualityForRecord(record) === 'metadata_only').length;
   const pdfCorpus = buildPdfCorpusSummary(records, generatedAt);
@@ -3366,6 +3617,8 @@ async function buildSalesforceDocsIndexNowInternal(options: SalesforceDocsIndexB
     pdfCorpus,
     helpCatalog: Array.from(helpCatalog, ([url, title]) => ({ url, title }))
       .sort((a, b) => a.title.localeCompare(b.title) || a.url.localeCompare(b.url)),
+    learnedSources,
+    unresolvedMisses,
     warnings: [
       records.length === 0 ? 'No official Salesforce documentation records were fetched.' : '',
       failures.length > 0 ? `${failures.length} official Salesforce documentation seed URL(s) failed to fetch.` : '',
@@ -3425,6 +3678,43 @@ function countFailuresByDomain(index: SalesforceDocsIndex): Record<string, numbe
   }, {} as Record<string, number>);
 }
 
+/** Curated topics this build covered that ended up with no full-text record to answer from. */
+export function topicsWithoutFullTextRecords(index: SalesforceDocsIndex): string[] {
+  return index.topics
+    .filter((topic) => !index.records.some((record) => isFullTextRecord(record) && record.topicIds.includes(topic.id)))
+    .map((topic) => topic.id);
+}
+
+export interface SalesforceDocsIndexComparison {
+  previousGeneratedAt: string;
+  /** Topics whose full-text record count went down since the previous build. */
+  topicsLosingRecords: Array<{ topicId: string; before: number; after: number }>;
+  droppedUrls: string[];
+  addedUrls: string[];
+}
+
+export function compareSalesforceDocsIndexes(previous: SalesforceDocsIndex, next: SalesforceDocsIndex): SalesforceDocsIndexComparison {
+  const fullTextCountsByTopic = (index: SalesforceDocsIndex) => {
+    const counts = new Map<string, number>();
+    for (const record of index.records.filter(isFullTextRecord)) {
+      for (const topicId of record.topicIds) counts.set(topicId, (counts.get(topicId) || 0) + 1);
+    }
+    return counts;
+  };
+  const before = fullTextCountsByTopic(previous);
+  const after = fullTextCountsByTopic(next);
+  const previousUrls = new Set(previous.records.filter(isFullTextRecord).map((record) => record.url));
+  const nextUrls = new Set(next.records.filter(isFullTextRecord).map((record) => record.url));
+  return {
+    previousGeneratedAt: previous.generatedAt,
+    topicsLosingRecords: next.topics
+      .map((topic) => ({ topicId: topic.id, before: before.get(topic.id) || 0, after: after.get(topic.id) || 0 }))
+      .filter((topic) => topic.after < topic.before),
+    droppedUrls: Array.from(previousUrls).filter((url) => !nextUrls.has(url)).sort(),
+    addedUrls: Array.from(nextUrls).filter((url) => !previousUrls.has(url)).sort(),
+  };
+}
+
 export function refreshCoverageError(index: SalesforceDocsIndex): string | null {
   const developerRecords = developerDocRecordCount(index);
   if (developerRecords < MIN_REFRESH_DEVELOPER_DOC_RECORDS) {
@@ -3455,6 +3745,16 @@ export function refreshCoverageError(index: SalesforceDocsIndex): string | null 
     return [
       `Salesforce docs index refresh produced a metadata-only ratio of ${ratio.toFixed(2)},`,
       `above allowed maximum ${MAX_REFRESH_METADATA_ONLY_RATIO}; keeping the previous index.`,
+    ].join(' ');
+  }
+
+  // A topic with nothing readable would answer lookups with no evidence (Shield
+  // sat at zero records for weeks behind dead seeds before this gate).
+  const emptyTopics = topicsWithoutFullTextRecords(index);
+  if (emptyTopics.length > 0) {
+    return [
+      `Salesforce docs index refresh left ${emptyTopics.length} topic(s) with no full-text record`,
+      `(${emptyTopics.join(', ')}); keeping the previous index.`,
     ].join(' ');
   }
 

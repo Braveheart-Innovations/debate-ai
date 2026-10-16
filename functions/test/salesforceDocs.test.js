@@ -7,6 +7,11 @@ const {
   buildBm25CorpusStats,
   bm25ChunkScore,
   refreshCoverageError,
+  topicsWithoutFullTextRecords,
+  compareSalesforceDocsIndexes,
+  missTokens,
+  aggregateMisses,
+  rankMissCandidates,
   selectionIsAliasRouted,
   extractRenderedHelpArticle,
   salesforceReleaseLabelForVersion,
@@ -272,6 +277,52 @@ describe('canonicalHelpArticleUrl', () => {
   });
 });
 
+describe('lookup misses', () => {
+  const miss = (query, at, extra = {}) => ({ topicId: 't', label: query, query, reason: 'no_full_text', at, ...extra });
+
+  it('keeps the words that identify a topic', () => {
+    assert.deepEqual(missTokens('How does Salesforce Help document the Flow trigger order?'), ['flow', 'trigger', 'order']);
+  });
+
+  it('folds repeated misses into one, carrying earlier unresolved ones', () => {
+    const carried = [{ label: 'Flow trigger order', query: 'Flow trigger order', reason: 'no_candidate_page', firstSeenAt: '2026-10-01T00:00:00Z', lastSeenAt: '2026-10-02T00:00:00Z', count: 2 }];
+    const folded = aggregateMisses([
+      miss('flow trigger order', '2026-10-10T00:00:00Z', { candidateUrls: ['https://help.salesforce.com/s/articleView?id=a.htm&language=en_US&type=5'] }),
+      miss('Health Check', '2026-10-11T00:00:00Z'),
+    ], carried);
+    assert.equal(folded.length, 2);
+    const flow = folded.find((entry) => /flow/i.test(entry.query));
+    assert.equal(flow.count, 3);
+    assert.equal(flow.firstSeenAt, '2026-10-01T00:00:00Z');
+    assert.equal(flow.lastSeenAt, '2026-10-10T00:00:00Z');
+    assert.equal(flow.reason, 'no_full_text');
+    assert.deepEqual(flow.candidateUrls, ['https://help.salesforce.com/s/articleView?id=a.htm&language=en_US&type=5']);
+  });
+
+  it("ranks the lookup's own unread pages first, then catalog titles carrying enough of the words", () => {
+    const catalog = [
+      { url: 'https://help.salesforce.com/s/articleView?id=platform.flow_task_trigger_run_order.htm&language=en_US&type=5', title: 'Define the Run Order of Record-Triggered Flows for an Object' },
+      { url: 'https://help.salesforce.com/s/articleView?id=platform.flow_build.htm&language=en_US&type=5', title: 'Build a Flow' },
+      { url: 'https://help.salesforce.com/s/articleView?id=platform.users_unlock.htm&language=en_US&type=5', title: 'Unlock Users' },
+    ];
+    const ranked = rankMissCandidates({
+      label: 'Record-triggered flow run order',
+      query: 'record triggered flows run order',
+      candidateUrls: ['https://help.salesforce.com/s/articleView?id=platform.flow_concepts_trigger.htm&type=5', 'https://resources.docs.salesforce.com/latest/latest/en-us/sfdc/pdf/api_meta.pdf'],
+    }, catalog);
+    assert.deepEqual(ranked, [
+      'https://help.salesforce.com/s/articleView?id=platform.flow_concepts_trigger.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=platform.flow_task_trigger_run_order.htm&language=en_US&type=5',
+    ]);
+  });
+
+  it('finds nothing for a miss whose words no title carries', () => {
+    assert.deepEqual(rankMissCandidates({ label: 'Quantum widgets', query: 'quantum widget telemetry' }, [
+      { url: 'https://help.salesforce.com/s/articleView?id=x.htm&language=en_US&type=5', title: 'Build a Flow' },
+    ]), []);
+  });
+});
+
 describe('BM25 chunk scoring', () => {
   function statsWith(totalChunks, avgChunkLength) {
     return { totalChunks, avgChunkLength, dfByToken: new Map() };
@@ -346,12 +397,12 @@ describe('refreshCoverageError', () => {
     };
   }
 
-  function makeIndex(records) {
+  function makeIndex(records, topics = []) {
     return {
       version: 1,
       generatedAt: new Date().toISOString(),
       sourcePolicy: { allowedHostPattern: '*.salesforce.com', storagePath: 'salesforce-docs/index-v1.json' },
-      topics: [],
+      topics,
       records,
       failures: [],
       warnings: [],
@@ -402,5 +453,36 @@ describe('refreshCoverageError', () => {
       })),
     ];
     assert.match(refreshCoverageError(makeIndex(records)), /metadata-only ratio/);
+  });
+
+  const topic = (id) => ({ id, label: id, query: id, category: 'apex', keywords: [], seedUrls: [] });
+
+  it('rejects a covered topic with no full-text record', () => {
+    const topics = [topic('apex-governor-limits'), topic('shield-platform-encryption')];
+    const records = [
+      ...passingRecords,
+      makeRecord({ id: 'stub', topicIds: ['shield-platform-encryption'], contentQuality: 'metadata_only', contentLength: 120 }),
+    ];
+    assert.deepEqual(topicsWithoutFullTextRecords(makeIndex(records, topics)), ['shield-platform-encryption']);
+    assert.match(refreshCoverageError(makeIndex(records, topics)), /1 topic\(s\) with no full-text record \(shield-platform-encryption\)/);
+    assert.equal(refreshCoverageError(makeIndex(passingRecords, [topic('apex-governor-limits')])), null);
+  });
+
+  it('compares builds: topics losing full-text records, dropped and added pages', () => {
+    const topics = [topic('apex-governor-limits'), topic('flow-order-recursion')];
+    const previous = makeIndex([
+      makeRecord({ id: 'a', url: 'https://developer.salesforce.com/docs/a.htm' }),
+      makeRecord({ id: 'b', url: 'https://developer.salesforce.com/docs/b.htm' }),
+      makeRecord({ id: 'c', url: 'https://developer.salesforce.com/docs/c.htm', topicIds: ['flow-order-recursion'] }),
+    ], topics);
+    const next = makeIndex([
+      makeRecord({ id: 'a', url: 'https://developer.salesforce.com/docs/a.htm' }),
+      makeRecord({ id: 'c', url: 'https://developer.salesforce.com/docs/c.htm', topicIds: ['flow-order-recursion'] }),
+      makeRecord({ id: 'd', url: 'https://developer.salesforce.com/docs/d.htm', topicIds: ['flow-order-recursion'] }),
+    ], topics);
+    const comparison = compareSalesforceDocsIndexes(previous, next);
+    assert.deepEqual(comparison.topicsLosingRecords, [{ topicId: 'apex-governor-limits', before: 2, after: 1 }]);
+    assert.deepEqual(comparison.droppedUrls, ['https://developer.salesforce.com/docs/b.htm']);
+    assert.deepEqual(comparison.addedUrls, ['https://developer.salesforce.com/docs/d.htm']);
   });
 });
