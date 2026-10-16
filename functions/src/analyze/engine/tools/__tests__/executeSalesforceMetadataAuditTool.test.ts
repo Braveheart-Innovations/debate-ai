@@ -127,7 +127,7 @@ describe('executeSalesforceMetadataAuditTool', () => {
 
     it('asks for flows, and says what a Flow needs when none is found', async () => {
       mockSandboxService.readFile.mockResolvedValue(new TextEncoder().encode('public class A {}').buffer);
-      const none = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-flow-none', { operation: 'flow_diagram', paths: ['/uploads/force-app/main/default/classes/A.cls'] });
+      const none = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-flow-none', { operation: 'flow_diagram', paths: ['/uploads/force-app/main/default/classes/A.cls'], flows: [] });
       expect(none).toMatchObject({ success: false, error: expect.stringContaining('operation=flow_diagram needs flows') });
       const missing = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-flow-missing', { operation: 'flow_diagram', paths: ['/uploads/force-app/main/default/classes/A.cls'], flows: ['Nope'] });
       expect(missing).toMatchObject({ success: false, error: expect.stringContaining('No Flow file was found for Nope') });
@@ -154,7 +154,7 @@ describe('executeSalesforceMetadataAuditTool', () => {
 
     it('asks for objects', async () => {
       mockSandboxService.readFile.mockResolvedValue(new TextEncoder().encode('public class A {}').buffer);
-      const result = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-save-none', { operation: 'save_order', paths: ['/uploads/force-app/main/default/classes/A.cls'] });
+      const result = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-save-none', { operation: 'save_order', paths: ['/uploads/force-app/main/default/classes/A.cls'], objects: [] });
       expect(result).toMatchObject({ success: false, error: expect.stringContaining('operation=save_order needs objects') });
     });
   });
@@ -193,6 +193,23 @@ describe('executeSalesforceMetadataAuditTool', () => {
       expect(result.content).toContain('Added without fields, because a field points at them: Contact.');
       // Nothing of the audit bundle.
       expect(writtenFile('/output/salesforce/artifact-manifest.json')).toBeUndefined();
+    });
+
+    it('reads an empty objects list as no list, as a model that fills every parameter sends it', async () => {
+      const zip = new JSZip();
+      zip.file('force-app/main/default/objects/Center__c/Center__c.object-meta.xml', '<CustomObject><label>Center</label></CustomObject>');
+      zip.file('force-app/main/default/objects/Center__c/fields/Code__c.field-meta.xml', fieldXml('Code__c', '<type>Text</type><length>10</length>'));
+      mockSandboxService.readFile.mockResolvedValue(await zip.generateAsync({ type: 'arraybuffer' }));
+
+      // The arguments GPT sent in the live run that drew nothing.
+      const result = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-dm-empty', {
+        operation: 'data_model', objects: [], flows: [], chain: false, name: 'org_data_model',
+        paths: ['/uploads/QA-salesforce-metadata.zip'], query: '', component: '', include_artifacts: true,
+      });
+
+      expect(result.success).toBe(true);
+      expect(JSON.parse(writtenFile('/output/org_data_model.diagram.json')!).entities.map((entity: { id: string }) => entity.id)).toEqual(['Center__c']);
+      expect(result.content).toContain('Without a list of objects it draws the org\'s own');
     });
 
     it('reads a metadata-format .object upload and says which objects it could not find', async () => {
