@@ -274,6 +274,53 @@ function buildModelContent(
   return lines.join('\n');
 }
 
+/** A page as a stored lookup result shows it: its id, title, url and the passages quoted inline. */
+export interface SalesforceDocQuotedPage {
+  citationId: string;
+  title: string;
+  url: string;
+  passages: string[];
+}
+
+/**
+ * Reads back the pages a lookup result quoted (the format buildModelContent
+ * writes), for the Reviewer and the "check independently" verifier, which see
+ * stored tool results rather than the sandbox. Pages read past the inline
+ * budget come back with no passages.
+ */
+export function parseDocsLookupResult(content: string): SalesforceDocQuotedPage[] {
+  const pages: SalesforceDocQuotedPage[] = [];
+  let current: SalesforceDocQuotedPage | null = null;
+  let passage: string[] | null = null;
+  const closePassage = () => {
+    if (current && passage && passage.length > 0) current.passages.push(passage.join('\n'));
+    passage = null;
+  };
+  for (const line of content.split('\n')) {
+    const header = line.match(/^(?:- )?\[(SF-D[2-9A-HJKMNP-Z]{5})\] (.+) - (https:\/\/\S+)/);
+    if (header) {
+      closePassage();
+      current = { citationId: header[1], title: header[2], url: header[3], passages: [] };
+      pages.push(current);
+      continue;
+    }
+    if (!current) continue;
+    if (/^  Passage \d+:$/.test(line)) {
+      closePassage();
+      passage = [];
+      continue;
+    }
+    if (passage && line.startsWith('    ')) {
+      passage.push(line.slice(4));
+      continue;
+    }
+    closePassage();
+    if (!line.startsWith('  ')) current = null;
+  }
+  closePassage();
+  return pages;
+}
+
 const SOURCE_TYPE_LABELS: Record<SalesforceDocEvidenceSource['sourceType'], string> = {
   help_doc: 'Salesforce Help',
   release_notes: 'Release notes',
