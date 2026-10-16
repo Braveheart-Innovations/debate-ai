@@ -65,6 +65,8 @@ export interface SalesforceDocsLookupProvenance {
   lookup: string;
   lookedUpAt: string;
   documentationIndex?: { status?: string; generatedAt?: string };
+  /** The release page the lookup read to detect the current release (not a topic source). */
+  releaseContext?: { url: string; detected?: string };
   pages: Array<Omit<SalesforceDocReadPage, 'passages' | 'warnings' | 'status' | 'confidenceImpact'> & { passages: string[] }>;
   notRead: SalesforceDocUnreadSource[];
 }
@@ -137,6 +139,9 @@ export async function packageSalesforceDocsLookupEvidence(
     lookedUpAt: evidence.generatedAt,
     documentationIndex: evidence.documentationIndex
       ? { status: evidence.documentationIndex.status, generatedAt: evidence.documentationIndex.generatedAt }
+      : undefined,
+    releaseContext: evidence.releaseContext?.sourceUrl
+      ? { url: evidence.releaseContext.sourceUrl, detected: evidence.releaseContext.detected }
       : undefined,
     pages: pages.map(({ passages, warnings: _warnings, status: _status, confidenceImpact: _impact, ...page }) => ({
       ...page,
