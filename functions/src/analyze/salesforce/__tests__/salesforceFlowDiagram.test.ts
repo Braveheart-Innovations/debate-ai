@@ -1,4 +1,4 @@
-import { reviewDiagram } from '../../contract/services/analyze/diagrams/diagramFile';
+import { isSaveOrder, reviewDiagram } from '../../contract/services/analyze/diagrams/diagramFile';
 import type { SalesforceSourceFile } from '../SalesforceMetadataService';
 import { buildSalesforceFlowDiagrams, flowTriggerLabel, parseSalesforceFlow } from '../salesforceFlowDiagram';
 
@@ -90,6 +90,8 @@ describe('a Flow as a process diagram', () => {
     ]);
     expect(unreachable).toEqual({ Route_to_CRC_Queue: ['Orphan'] });
     expect(reviewDiagram(diagram)).toMatchObject({ problems: [], warnings: [] });
+    // A Flow, not a save order: its start is the Flow's own.
+    expect(isSaveOrder(diagram)).toBe(false);
     // The action, the update and the create have no fault path; the lookup has one.
     expect(issueCount).toBe(3);
     expect(diagram.nodes.find((node) => node.id === 'Assign')).toMatchObject({

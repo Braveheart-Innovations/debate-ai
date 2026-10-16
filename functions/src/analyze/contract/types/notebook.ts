@@ -197,6 +197,8 @@ export interface Artifact {
       entityCount: number;
       /** Relationships, or a process flow's flows. */
       relationshipCount: number;
+      /** A Salesforce save order (what runs when a record saves): how many pieces of the org's automation it places. */
+      saveOrder?: { automations: number };
       warnings?: string[];
       /** Saved from the Diagram view (a hand edit), not written by the agent. */
       savedByUser?: boolean;

@@ -1,4 +1,4 @@
-import { reviewDiagram } from '../../contract/services/analyze/diagrams/diagramFile';
+import { diagramMetadata, isSaveOrder, reviewDiagram } from '../../contract/services/analyze/diagrams/diagramFile';
 import type { SalesforceSourceFile } from '../SalesforceMetadataService';
 import { parseSalesforceFlow } from '../salesforceFlowDiagram';
 import { buildSalesforceSaveOrders, orderRecordTriggeredFlows, readTriggerHeader } from '../salesforceSaveOrder';
@@ -74,6 +74,9 @@ describe('what runs when a record saves', () => {
     expect(lead.inactiveFlows).toEqual(['Old_Flow']);
     expect(lead.deleteFlows).toEqual(['Before_Delete']);
     expect(reviewDiagram(lead.diagram)).toMatchObject({ problems: [], warnings: [] });
+    // The Outputs card knows it for a save order and counts the same automation.
+    expect(isSaveOrder(lead.diagram)).toBe(true);
+    expect(diagramMetadata(lead.diagram, []).saveOrder).toEqual({ automations: 15 });
     // One line from start to done.
     expect(lead.diagram.flows).toHaveLength(lead.diagram.nodes.length - 1);
   });
