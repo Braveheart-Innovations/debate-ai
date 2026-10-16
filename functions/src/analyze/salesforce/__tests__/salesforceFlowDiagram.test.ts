@@ -31,7 +31,7 @@ const ROUTE = flowFile('Route_to_CRC_Queue', `
     <triggerType>RecordAfterSave</triggerType>
   </start>
   <recordLookups>
-    <name>Get_Queue</name><label>Get queue</label>${connector('Found')}
+    <name>Get_Queue</name><label>Get queue</label>${connector('Found')}<getFirstRecordOnly>true</getFirstRecordOnly><sortField>CreatedDate</sortField><sortOrder>Desc</sortOrder>
     <faultConnector><targetReference>Log_Error</targetReference></faultConnector>
     <object>Group</object>
     <filters><field>DeveloperName</field><operator>EqualTo</operator><value><stringValue>CRC</stringValue></value></filters>
@@ -83,8 +83,8 @@ describe('a Flow as a process diagram', () => {
       ['Found', 'Each_Member', 'Yes', false],
       ['Found', 'end', 'Not found', false],
       ['Log_Error', 'end', '', false],
-      ['Each_Member', 'Notify', 'For each item', false],
-      ['Each_Member', 'Assign', 'After last item', false],
+      ['Each_Member', 'Notify', 'For Each Item', false],
+      ['Each_Member', 'Assign', 'After Last Item', false],
       ['Notify', 'Each_Member', '', false],
       ['Assign', 'end', '', false],
     ]);
@@ -141,6 +141,38 @@ describe('a Flow as a process diagram', () => {
     expect(diagram.summary).toBe('Lead created or updated (after save). 6 elements: 2 decisions and loops, 3 record operations, 1 action; 3 without a fault path. Drawn from Route_to_CRC_Queue.');
     expect(diagram.summary).not.toContain('Hello World');
     expect(diagram.nodes[0].description).toContain('Its description: Hello World: saving new version to remove tag');
+  });
+
+  it('gives every node its element facts: API name, line, object, filters, values set, outcomes, action', () => {
+    const [{ diagram }] = buildSalesforceFlowDiagrams([ROUTE], { flows: ['Route_to_CRC_Queue'] }).results;
+    const facts = (id: string) => diagram.nodes.find((node) => node.id === id)!.element;
+    expect(facts('start')).toEqual({ apiName: 'Start', object: 'Lead', filterLogic: 'and', filters: [{ field: 'Status', operator: 'EqualTo', value: '"Inquiry"' }, { field: 'Email', operator: 'IsNull', value: 'false' }] });
+    expect(facts('Get_Queue')).toMatchObject({ apiName: 'Get_Queue', object: 'Group', filterLogic: 'and', filters: [{ field: 'DeveloperName', operator: 'EqualTo', value: '"CRC"' }] });
+    expect(facts('Get_Queue')!.line).toBeGreaterThan(1);
+    expect(facts('Found')!.outcomes).toEqual([{ label: 'Yes', conditions: [] }, { label: 'Not found', conditions: [], isDefault: true }]);
+    expect(facts('Each_Member')).toMatchObject({ collection: 'Get_Members' });
+    expect(facts('Notify')).toMatchObject({ action: { name: 'Lead.Notify', type: 'emailAlert' } });
+    expect(facts('Assign')).toMatchObject({ object: 'Lead', inputRecord: '$Record', assignments: [{ field: 'OwnerId', value: 'Get_Queue.Id' }] });
+    expect(facts('Get_Queue')).toMatchObject({ firstRecordOnly: true, sort: { field: 'CreatedDate', order: 'Desc' } });
+  });
+
+  it('flags a record operation inside a loop against the transaction\'s limits', () => {
+    const looped = flowFile('Notify_Members', `
+      <label>Notify members</label><processType>AutoLaunchedFlow</processType><status>Active</status>
+      <start>${connector('Each')}</start>
+      <loops><name>Each</name><label>Each member</label><collectionReference>Members</collectionReference>
+        <nextValueConnector><targetReference>Find</targetReference></nextValueConnector>
+        <noMoreValuesConnector><targetReference>Done</targetReference></noMoreValuesConnector></loops>
+      <recordLookups><name>Find</name><label>Find the user</label>${connector('Save')}<object>User</object></recordLookups>
+      <recordUpdates><name>Save</name><label>Save the member</label>${connector('Each')}<inputReference>Member</inputReference></recordUpdates>
+      <assignments><name>Done</name><label>Done</label></assignments>
+    `);
+    const [{ diagram }] = buildSalesforceFlowDiagrams([looped], { flows: ['Notify_Members'] }).results;
+    const issues = (id: string) => diagram.nodes.find((node) => node.id === id)!.issues ?? [];
+    expect(issues('Find')).toContain('In a loop (Each member): this query runs once per item, and each one counts toward the 100 SOQL queries a transaction allows (200 asynchronous).');
+    expect(issues('Save')).toContain('In a loop (Each member): this update runs once per item, and each one counts toward the 150 DML statements a transaction allows.');
+    expect(issues('Done').some((issue) => issue.startsWith('In a loop'))).toBe(false);
+    expect(diagram.summary).toContain('2 record operations inside a loop');
   });
 
   it('says which flows it could not find', () => {

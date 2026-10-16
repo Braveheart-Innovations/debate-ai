@@ -145,6 +145,52 @@ const distributionSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('lognormal'), mean: z.number().positive(), sd: z.number().min(0) }),
 ], { error: (issue) => (issue.code === 'invalid_union' ? 'expected a distribution type: fixed, exponential, uniform, triangular, normal or lognormal' : undefined) });
 
+/** A condition as a Flow writes it: a field (or resource), an operator, a value. */
+const flowConditionSchema = z.object({
+  field: z.string(),
+  operator: z.string(),
+  value: z.string().optional(),
+});
+
+/**
+ * A Salesforce Flow element's facts, as Flow Builder shows them: what a Salesforce
+ * flow's node is (its file and line, the object, filters, values set, a
+ * decision's outcomes, the action or subflow it calls). Drawn from the Flow
+ * file; the side panel reads it.
+ */
+const flowElementSchema = z.object({
+  /** The element's API name in the Flow (a chained diagram prefixes node ids; this stays the name). */
+  apiName: nameSchema,
+  /** The line of the element in its Flow file. */
+  line: z.number().int().min(1).optional(),
+  /** The object a record operation (or the start) works on. */
+  object: z.string().optional(),
+  /** `and`, `or`, or custom logic (`1 AND (2 OR 3)`) for the filters. */
+  filterLogic: z.string().optional(),
+  filters: z.array(flowConditionSchema).optional(),
+  /** Fields a record operation sets, or the variables an assignment changes (operator `Assign`, `Add`…). */
+  assignments: z.array(z.object({ field: z.string(), operator: z.string().optional(), value: z.string().optional() })).optional(),
+  /** A decision's outcomes, in order, with their conditions (the default outcome has none). */
+  outcomes: z.array(z.object({
+    label: z.string(),
+    logic: z.string().optional(),
+    conditions: z.array(flowConditionSchema).default(() => []),
+    isDefault: z.boolean().optional(),
+  })).optional(),
+  /** An action's name and type (`apex`, `emailAlert`, `quickAction`…). */
+  action: z.object({ name: z.string(), type: z.string().optional() }).optional(),
+  /** The flow a subflow runs. */
+  flowName: z.string().optional(),
+  /** The collection a loop goes through. */
+  collection: z.string().optional(),
+  /** The record or collection a Create, Update or Delete Records uses (`$Record`, the record that triggered the flow, or a variable). */
+  inputRecord: z.string().optional(),
+  /** Get Records: only the first record (else all of them). */
+  firstRecordOnly: z.boolean().optional(),
+  /** Get Records: how the records are sorted. */
+  sort: z.object({ field: z.string(), order: z.string() }).optional(),
+});
+
 const flowNodeSchema = z.object({
   id: nameSchema,
   type: z.enum(FLOW_NODE_TYPES),
@@ -167,6 +213,8 @@ const flowNodeSchema = z.object({
   elementType: z.string().optional(),
   /** What its source does wrong here, drawn as a warning mark: "No fault path: …". */
   issues: z.array(z.string()).optional(),
+  /** A Salesforce flow's element facts (the side panel's detail). */
+  element: flowElementSchema.optional(),
 });
 
 const flowSchema = z.object({
@@ -227,6 +275,8 @@ export const diagramFileSchema = z.discriminatedUnion('kind', [dataModelSchema, 
 export type DiagramFileV1 = z.infer<typeof diagramFileSchema>;
 export type ProcessFlowDiagram = z.infer<typeof processFlowSchema>;
 export type FlowNode = z.infer<typeof flowNodeSchema>;
+export type SalesforceFlowElement = z.infer<typeof flowElementSchema>;
+export type FlowCondition = z.infer<typeof flowConditionSchema>;
 export type Flow = z.infer<typeof flowSchema>;
 export type FlowResource = z.infer<typeof resourceSchema>;
 export type FlowRun = z.infer<typeof runSchema>;
