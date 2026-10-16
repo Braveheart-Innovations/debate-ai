@@ -14,7 +14,12 @@
  *    the end. Elements nothing connects to never run, so they're left out and
  *    named in the result.
  *  - A record operation or action without a fault path carries an issue (not
- *    in a before-save flow, which has no fault paths).
+ *    in a before-save flow, which has no fault paths), and so does a record
+ *    operation inside a loop: DML or a query run once per item, against the
+ *    transaction's limits (Apex Developer Guide, Execution Governors and Limits).
+ *  - Every node carries its element's facts (`element`): API name and line,
+ *    object, filters, values set, a decision's outcomes and conditions, the
+ *    action or subflow, a loop's collection: what Flow Builder's panel shows.
  *  - Chained, it also draws the flows these start: a subflow, a flow a
  *    platform event they publish starts (by creating `<Event>__e` records, or
  *    from the invocable Apex they call), a flow that Apex starts. Those links
@@ -25,7 +30,7 @@
  * (in a chain, prefixed with the flow's).
  */
 import { XMLParser } from 'fast-xml-parser';
-import { uniqueName, type Flow, type FlowNode, type ProcessFlowDiagram } from '../contract/services/analyze/diagrams/diagramFile';
+import { uniqueName, type Flow, type FlowCondition, type FlowNode, type ProcessFlowDiagram, type SalesforceFlowElement } from '../contract/services/analyze/diagrams/diagramFile';
 import { list, node, sourceFileRef, text, type XmlNode } from './salesforceDataModel';
 import type { SalesforceSourceFile } from './SalesforceMetadataService';
 
@@ -42,10 +47,20 @@ const parser = new XMLParser({
   ignoreAttributes: true,
   parseTagValue: false,
   trimValues: true,
-  isArray: (name) => [...ELEMENT_TAGS, 'rules', 'filters', 'scheduledPaths', 'waitEvents', 'inputAssignments', 'assignmentItems', 'connectors'].includes(name),
+  isArray: (name) => [...ELEMENT_TAGS, 'rules', 'filters', 'scheduledPaths', 'waitEvents', 'inputAssignments', 'assignmentItems', 'connectors', 'conditions'].includes(name),
 });
 
 const NO_FAULT_PATH = 'No fault path: if it fails, the flow stops with an unhandled fault.';
+/** Record operations that are DML (a query is a Get Records). */
+const DML_TAGS = new Set(['recordCreates', 'recordUpdates', 'recordDeletes']);
+const DML_VERBS: Record<string, string> = { recordCreates: 'create', recordUpdates: 'update', recordDeletes: 'delete' };
+
+/** A record operation inside a loop: once per item, against the transaction's limits. */
+function loopIssue(tag: string, loopLabel: string): string | null {
+  if (DML_TAGS.has(tag)) return `In a loop (${loopLabel}): this ${DML_VERBS[tag]} runs once per item, and each one counts toward the 150 DML statements a transaction allows.`;
+  if (tag === 'recordLookups') return `In a loop (${loopLabel}): this query runs once per item, and each one counts toward the 100 SOQL queries a transaction allows (200 asynchronous).`;
+  return null;
+}
 
 const OPERATORS: Record<string, string> = {
   EqualTo: '=',
@@ -251,10 +266,15 @@ export function flowSummary(flow: ParsedSalesforceFlow, nodes: FlowNode[]): stri
     plural(elements.filter((node) => node.elementType === 'actionCalls' || node.elementType === 'apexPluginCalls').length, 'action'),
     plural(elements.filter((node) => node.elementType === 'subflows').length, 'subflow'),
   ].filter((part) => !part.startsWith('0 '));
-  const issues = nodes.filter((node) => node.issues && node.issues.length > 0).length;
+  const noFault = nodes.filter((node) => node.issues?.includes(NO_FAULT_PATH)).length;
+  const inLoops = nodes.filter((node) => node.issues?.some((issue) => issue.startsWith('In a loop'))).length;
+  const notes = [
+    noFault > 0 ? `${noFault} without a fault path` : '',
+    inLoops > 0 ? `${plural(inLoops, 'record operation')} inside a loop` : '',
+  ].filter(Boolean);
   return [
     `${flowTriggerLabel(flow)}.`,
-    `${plural(elements.length, 'element')}${parts.length > 0 ? `: ${parts.join(', ')}` : ''}${issues > 0 ? `; ${issues} without a fault path` : ''}.`,
+    `${plural(elements.length, 'element')}${parts.length > 0 ? `: ${parts.join(', ')}` : ''}${notes.length > 0 ? `; ${notes.join('; ')}` : ''}.`,
     `Drawn from ${flow.apiName}${flow.status && flow.status !== 'Active' ? ` (${flow.status})` : ''}.`,
   ].join(' ');
 }
@@ -320,6 +340,84 @@ function elementDescription(element: FlowElement, flow: ParsedSalesforceFlow): s
   const own = text(xml.description);
   if (own) parts.push(own);
   return parts.join(' ');
+}
+
+function conditionOf(xml: XmlNode): FlowCondition {
+  const value = valueText(xml.value ?? xml.rightValue);
+  return { field: text(xml.field) ?? text(xml.leftValueReference) ?? '?', operator: text(xml.operator) ?? '', ...(value ? { value } : {}) };
+}
+
+function conditionsOf(value: unknown): FlowCondition[] {
+  return list(value).flatMap((entry) => (node(entry) ? [conditionOf(node(entry)!)] : []));
+}
+
+/** The line of an element's `<name>` in its Flow file (element and resource names are unique in a Flow). */
+function lineOf(content: string, name: string): number | undefined {
+  const index = content.indexOf(`<name>${name}</name>`);
+  return index < 0 ? undefined : content.slice(0, index).split('\n').length;
+}
+
+/** What Flow Builder's panel shows for an element: its object, filters, values, outcomes, action, subflow, collection. */
+export function elementFacts(element: FlowElement, flow: ParsedSalesforceFlow): SalesforceFlowElement {
+  const { tag, xml } = element;
+  const line = lineOf(flow.file.content, element.name);
+  const facts: SalesforceFlowElement = { apiName: element.name, ...(line ? { line } : {}) };
+  const object = text(xml.object) ?? (text(xml.inputReference) === '$Record' ? flow.triggerObject : undefined);
+  if (object) facts.object = object;
+  if (text(xml.inputReference) && text(xml.inputReference) !== '$Record') facts.collection = text(xml.inputReference);
+  const filters = conditionsOf(xml.filters);
+  if (filters.length > 0) {
+    facts.filters = filters;
+    facts.filterLogic = text(xml.filterLogic) ?? 'and';
+  }
+  const assignments = [
+    ...list(xml.inputAssignments).flatMap((entry) => {
+      const item = node(entry);
+      const value = item ? valueText(item.value) : '';
+      return item && text(item.field) ? [{ field: text(item.field)!, ...(value ? { value } : {}) }] : [];
+    }),
+    ...list(xml.assignmentItems).flatMap((entry) => {
+      const item = node(entry);
+      const value = item ? valueText(item.value) : '';
+      return item && text(item.assignToReference) ? [{ field: text(item.assignToReference)!, ...(text(item.operator) ? { operator: text(item.operator) } : {}), ...(value ? { value } : {}) }] : [];
+    }),
+  ];
+  if (assignments.length > 0) facts.assignments = assignments;
+  if (tag === 'decisions') {
+    facts.outcomes = [
+      ...list(xml.rules).flatMap((entry) => {
+        const rule = node(entry);
+        if (!rule) return [];
+        const logic = text(rule.conditionLogic);
+        return [{ label: text(rule.label) ?? text(rule.name) ?? 'Outcome', ...(logic ? { logic } : {}), conditions: conditionsOf(rule.conditions) }];
+      }),
+      { label: text(xml.defaultConnectorLabel) ?? 'Default Outcome', conditions: [], isDefault: true },
+    ];
+  }
+  if (tag === 'actionCalls' && text(xml.actionName)) facts.action = { name: text(xml.actionName)!, ...(text(xml.actionType) ? { type: text(xml.actionType) } : {}) };
+  if (tag === 'apexPluginCalls' && text(xml.apexClass)) facts.action = { name: text(xml.apexClass)!, type: 'apexPlugin' };
+  if (tag === 'subflows' && text(xml.flowName)) facts.flowName = text(xml.flowName);
+  if (tag === 'loops' && text(xml.collectionReference)) facts.collection = text(xml.collectionReference);
+  return facts;
+}
+
+/** The loops each element sits inside: reached from a loop's "for each item" path before coming back to the loop. */
+function loopsAround(flow: ParsedSalesforceFlow): Map<string, string[]> {
+  const around = new Map<string, string[]>();
+  for (const loop of [...flow.elements.values()].filter((element) => element.tag === 'loops')) {
+    const seen = new Set<string>();
+    const queue = [target(loop.xml.nextValueConnector)].filter((name): name is string => Boolean(name && name !== loop.name && flow.elements.has(name)));
+    while (queue.length > 0) {
+      const name = queue.shift()!;
+      if (seen.has(name)) continue;
+      seen.add(name);
+      const { outs, fault } = elementOuts(flow.elements.get(name)!);
+      for (const next of [...outs.map((out) => out.to), fault]) if (next && next !== loop.name && flow.elements.has(next) && !seen.has(next)) queue.push(next);
+    }
+    const label = text(loop.xml.label) ?? loop.name;
+    for (const name of seen) around.set(name, [...(around.get(name) ?? []), label]);
+  }
+  return around;
 }
 
 /** Where an element goes: its outs (labelled for a decision's outcomes), and its fault path. */
@@ -488,7 +586,13 @@ function drawFlow(flow: ParsedSalesforceFlow, prefix: string, startLabel: string
   const beforeSave = flow.triggerType === 'RecordBeforeSave';
 
   const description = startDescription(flow);
-  nodes.push({ id: startId, type: 'start', label: startLabel, ...(description ? { description } : {}), source });
+  const startFilters = conditionsOf(flow.start?.filters);
+  const startFacts: SalesforceFlowElement = {
+    apiName: 'Start',
+    ...(flow.triggerObject ? { object: flow.triggerObject } : {}),
+    ...(startFilters.length > 0 ? { filters: startFilters, filterLogic: text(flow.start?.filterLogic) ?? 'and' } : {}),
+  };
+  nodes.push({ id: startId, type: 'start', label: startLabel, ...(description ? { description } : {}), source, element: startFacts });
 
   // Where the flow begins: the start's connector (or the old startElementReference), and its scheduled paths.
   const first = firstElement(flow);
@@ -510,6 +614,7 @@ function drawFlow(flow: ParsedSalesforceFlow, prefix: string, startLabel: string
 
   const reached = reachedElements(flow);
   const seen = new Set(reached);
+  const loops = loopsAround(flow);
 
   let endUsed = !first || !flow.elements.has(first) || paths.some((path) => !path.to || !flow.elements.has(path.to));
   for (const name of reached) {
@@ -517,7 +622,10 @@ function drawFlow(flow: ParsedSalesforceFlow, prefix: string, startLabel: string
     const { outs, fault } = elementOuts(element);
     const isDecision = element.tag === 'decisions' || element.tag === 'loops' || element.tag === 'waits';
     const details = elementDescription(element, flow);
-    const issues = FAULT_HANDLED_TAGS.has(element.tag) && !fault && !beforeSave ? [NO_FAULT_PATH] : [];
+    const issues = [
+      ...(FAULT_HANDLED_TAGS.has(element.tag) && !fault && !beforeSave ? [NO_FAULT_PATH] : []),
+      ...(loops.get(name) ?? []).flatMap((loopLabel) => loopIssue(element.tag, loopLabel) ?? []),
+    ];
     nodes.push({
       id: id(name),
       type: isDecision ? 'decision' : 'step',
@@ -526,6 +634,7 @@ function drawFlow(flow: ParsedSalesforceFlow, prefix: string, startLabel: string
       ...(details ? { description: details } : {}),
       source,
       ...(issues.length > 0 ? { issues } : {}),
+      element: elementFacts(element, flow),
     });
     for (const out of outs) {
       const to = elementId(out.to);
@@ -639,8 +748,14 @@ export function buildSalesforceFlowDiagrams(
   };
 }
 
+/** Elements without a fault path. */
 function countIssues(nodes: FlowNode[]): number {
-  return nodes.filter((entry) => entry.issues && entry.issues.length > 0).length;
+  return nodes.filter((entry) => entry.issues?.includes(NO_FAULT_PATH)).length;
+}
+
+/** Record operations inside a loop. */
+export function countLoopIssues(nodes: FlowNode[]): number {
+  return nodes.filter((entry) => entry.issues?.some((issue) => issue.startsWith('In a loop'))).length;
 }
 
 function flowDiagram(title: string, summary: string, nodes: FlowNode[], flows: Flow[]): ProcessFlowDiagram {

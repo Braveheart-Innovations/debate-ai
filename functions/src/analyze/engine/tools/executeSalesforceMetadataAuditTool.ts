@@ -9,7 +9,7 @@ import { SALESFORCE_ANALYSIS_LENSES } from '../../contract/config/analysis-lense
 import type { SandboxFiles } from './sandboxFiles';
 import { diagramFileText } from '../../contract/services/analyze/diagrams/diagramFile';
 import { buildSalesforceDataModel } from '../../salesforce/salesforceDataModel';
-import { buildSalesforceFlowDiagrams } from '../../salesforce/salesforceFlowDiagram';
+import { buildSalesforceFlowDiagrams, countLoopIssues } from '../../salesforce/salesforceFlowDiagram';
 import { buildSalesforceSaveOrders } from '../../salesforce/salesforceSaveOrder';
 import { buildSalesforceReferenceIndex } from '../../salesforce/salesforceReferenceIndex';
 import { referencesFileFor } from '../../contract/services/analyze/diagrams/salesforceReferences';
@@ -788,7 +788,7 @@ async function writeSalesforceFlowDiagrams(
     await files.writeFile(`/output/${filename}`, Buffer.from(text, 'utf8'));
     dataOutputs.push({ filename, base64: Buffer.from(text, 'utf8').toString('base64'), size: Buffer.byteLength(text, 'utf8') });
     const { nodes, flows } = result.diagram;
-    lines.push(`${args.chain ? 'Flow chain' : 'Flow'} written to /output/${filename}: ${result.flows.length > 1 ? `${result.flows.length} flows (${result.flows.join(', ')}), ` : `${result.flows[0]}, `}${nodes.length} nodes and ${flows.length} flows.${result.issueCount > 0 ? ` ${result.issueCount} ${result.issueCount === 1 ? 'element has' : 'elements have'} no fault path (each carries an issue).` : ''}`);
+    lines.push(`${args.chain ? 'Flow chain' : 'Flow'} written to /output/${filename}: ${result.flows.length > 1 ? `${result.flows.length} flows (${result.flows.join(', ')}), ` : `${result.flows[0]}, `}${nodes.length} nodes and ${flows.length} flows.${result.issueCount > 0 ? ` ${result.issueCount} ${result.issueCount === 1 ? 'element has' : 'elements have'} no fault path (each carries an issue).` : ''}${countLoopIssues(nodes) > 0 ? ` ${countLoopIssues(nodes)} record ${countLoopIssues(nodes) === 1 ? 'operation runs' : 'operations run'} inside a loop, once per item (DML or SOQL against the transaction's limits; each carries an issue).` : ''}`);
     if (result.links.length > 0) {
       lines.push(`Links followed: ${result.links.map((link) => `${link.from}.${link.fromElement} → ${link.flow} (${link.label})`).join('; ')}.`);
     }
@@ -798,7 +798,7 @@ async function writeSalesforceFlowDiagrams(
   }
   if (args.chain) lines.push('A chain follows subflows, platform events a flow or its invocable Apex publishes, and flows Apex starts. A record change that triggers another flow is not followed: that needs the org.');
   if (notFound.length > 0) lines.push(`No Flow file for: ${notFound.join(', ')}.`);
-  lines.push('Each node names the Flow file it came from and its element type; the start says what triggers the flow and its entry conditions. It is the user\'s diagram, drawn from metadata (platform "salesforce": no simulation). To change it, read the file, change only what the question needs (nodes you design are marked "assumed"), and save it to the same name.');
+  lines.push('Each node names the Flow file it came from, its element type and its facts (element: API name, line, object, filters, values set, a decision\'s outcomes and conditions); the start says what triggers the flow and its entry conditions. It is the user\'s diagram, drawn from metadata (platform "salesforce": no simulation). To change it, read the file, change only what the question needs (nodes you design are marked "assumed"), and save it to the same name.');
   return { toolCallId, success: true, content: lines.join('\n'), dataOutputs };
 }
 
