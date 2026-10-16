@@ -110,6 +110,30 @@ describe('run_recipe', () => {
     });
   });
 
+  it('writes what opening a table row shows, one per row, and a note\'s title', () => {
+    fs.writeFileSync(recipe, [
+      'PARAMS = {}',
+      'rows = [{"Field": "Lead.Email", "Readers": 2}, {"Field": "Lead.Phone", "Readers": 0}]',
+      'show_table(rows, title="Fields", details=[{"Profiles that can edit it": ["Admin", "Sales"], "No field-level security": []}, None])',
+      'show_table(rows, details=[[("Can edit", ("Lead.Email",))], {}])',
+      'show_note("Counts each holder on its own.", title="How to read this")',
+    ].join('\n'));
+    runPython(dir, `run_recipe(${JSON.stringify(recipe)})`);
+    const { items } = JSON.parse(fs.readFileSync(path.join(dir, 'staffing', 'model.json'), 'utf8'));
+    expect(items[0].details).toEqual([
+      [{ label: 'Profiles that can edit it', values: ['Admin', 'Sales'] }, { label: 'No field-level security', values: [] }],
+      null,
+    ]);
+    // Pairs work as well as a dict; an empty detail is no detail.
+    expect(items[1].details).toEqual([[{ label: 'Can edit', values: ['Lead.Email'] }], null]);
+    expect(items[2]).toEqual({ kind: 'note', text: 'Counts each holder on its own.', title: 'How to read this' });
+  });
+
+  it('refuses details that don\'t line up with the rows', () => {
+    fs.writeFileSync(recipe, 'PARAMS = {}\nshow_table([{"a": 1}, {"a": 2}], details=[None])\n');
+    expect(() => runPython(dir, `run_recipe(${JSON.stringify(recipe)})`)).toThrow(/details has 1 entries for 2 rows/);
+  });
+
   it('writes model.json even when the recipe shows nothing, so every run records its values', () => {
     runPython(dir, `run_recipe(${JSON.stringify(recipe)})`);
     expect(JSON.parse(fs.readFileSync(path.join(dir, 'staffing', 'model.json'), 'utf8')))

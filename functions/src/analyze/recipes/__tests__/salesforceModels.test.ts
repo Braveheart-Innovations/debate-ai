@@ -18,7 +18,7 @@ class _Plt:
 plt = _Plt()
 `;
 
-interface ModelItem { kind: string; label?: string; value?: unknown; detail?: string; title?: string; headers?: string[]; rows?: unknown[][]; text?: string }
+interface ModelItem { kind: string; label?: string; value?: unknown; detail?: string; title?: string; headers?: string[]; rows?: unknown[][]; details?: Array<Array<{ label: string; values: string[] }> | null>; text?: string }
 
 const D = '/uploads/qa.zip#force-app/main/default';
 
@@ -66,8 +66,10 @@ const access = {
     { kind: 'profile', name: 'Center Director', source: 'x' },
     { kind: 'profile', name: 'Admin', source: 'x', viewAllData: true },
     { kind: 'permissionSet', name: 'Lead_Editor', label: 'Lead Editor', source: 'x' },
-    { kind: 'permissionSetGroup', name: 'Lead_Team', label: 'Lead Team', source: 'x', permissionSets: [2] },
+    { kind: 'permissionSetGroup', name: 'Lead_Team', label: 'Lead Team', source: 'x', permissionSets: [2], mutingPermissionSets: [5] },
     { kind: 'permissionSet', name: 'Field_Only', source: 'x' },
+    { kind: 'mutingPermissionSet', name: 'No_Status_Edit', source: 'x' },
+    { kind: 'permissionSet', name: 'Read_All', label: 'Read All', source: 'x' },
   ],
   objects: {
     Lead: {
@@ -77,10 +79,15 @@ const access = {
         { holder: 0, read: true, create: false, edit: false, delete: false, viewAll: false, modifyAll: false },
         { holder: 1, read: true, create: true, edit: true, delete: true, viewAll: true, modifyAll: true },
         { holder: 2, read: true, create: false, edit: true, delete: false, viewAll: false, modifyAll: false },
+        { holder: 6, read: true, create: false, edit: false, delete: false, viewAll: false, modifyAll: false, viewAllFields: true },
       ],
       fields: {
-        Ready_to_Convert__c: { read: [0, 1, 2, 4], edit: [1, 2] },
-        Status: { read: [0, 1], edit: [1] },
+        // A required field: no field permissions at all.
+        Company: { read: [], edit: [] },
+        // Center Director may edit the field but not the object; Field_Only has the field but not the object.
+        Ready_to_Convert__c: { read: [0, 1, 2, 4], edit: [0, 1, 2] },
+        // Lead Team's muting set mutes editing Status.
+        Status: { read: [0, 1, 2], edit: [1, 2, 5] },
       },
     },
   },
@@ -152,23 +159,71 @@ describe('the Salesforce models', () => {
     expect(table(items, 'What starts it')!.map((row) => row.Component)).toEqual(['Lead.Pre']);
   });
 
-  it('says who can read and edit each field, through groups, with active users by profile', () => {
+  it('says who can read and edit each field on its own, by name, through groups, muting and View All Fields', () => {
     const users = path.join(dir, 'users.csv');
     fs.writeFileSync(users, 'kind,name,users\nprofile,Center Director,3386\nprofile,Admin,12\npermissionSet,Lead_Editor,40\n');
     const items = run(
       `show_access(salesforce_access(${JSON.stringify(path.join(dir, 'leads.access.json'))}, PARAMS["fields"], users=${JSON.stringify(users)}))`,
       { fields: 'Lead' },
     );
+    const counts = (security: string, profiles: [number, number], sets: [number, number], fieldOnly: number) => ({
+      'Field-level security': security,
+      'Profiles that can read': profiles[0], 'Profiles that can edit': profiles[1],
+      'Permission sets and groups that can read': sets[0], 'Permission sets and groups that can edit': sets[1],
+      'Granted without read on the object': fieldOnly, 'Active users (profiles)': 3398,
+    });
+    // On its own: Center Director's field edit needs Edit on Lead, Field_Only's field needs Read on Lead, and Lead Team can't edit Status (muted).
     expect(table(items, 'Who can read and edit each field')).toEqual([
-      { Field: 'Lead.Ready_to_Convert__c', 'Profiles (read)': 2, 'Permission sets (read)': 2, 'Groups (read)': 1, 'Profiles (edit)': 1, 'Permission sets (edit)': 1, 'Active users (profiles)': 3398 },
-      { Field: 'Lead.Status', 'Profiles (read)': 2, 'Permission sets (read)': 0, 'Groups (read)': 0, 'Profiles (edit)': 1, 'Permission sets (edit)': 0, 'Active users (profiles)': 3398 },
+      { Field: 'Lead.Company', ...counts('None: follows Lead', [2, 1], [3, 2], 0) },
+      { Field: 'Lead.Ready_to_Convert__c', ...counts('Yes', [2, 1], [3, 2], 1) },
+      { Field: 'Lead.Status', ...counts('Yes', [2, 1], [3, 1], 0) },
     ]);
-    expect(table(items, 'Who sees the most')![0]).toEqual({ Holder: 'Admin', Kind: 'Profile', 'Fields it can read': 2, 'Fields it can edit': 2 });
+    const fields = items.find((item) => item.title === 'Who can read and edit each field')!;
+    const opened = (index: number) => fields.details![index]!.map((group) => [group.label, group.values]);
+    expect(opened(0)[0]).toEqual(['No field-level security (a required or system field): it follows access to Lead', []]);
+    expect(opened(1)).toContainEqual(['Granted it without read on Lead, so it opens only with another grant that has that read (1)', ['Field_Only (permission set)']]);
+    expect(opened(2)).toEqual([
+      ['Profiles that can edit it (1)', ['Admin']],
+      ['Profiles that can only read it (1)', ['Center Director']],
+      ['Permission sets that can edit it (1)', ['Lead Editor']],
+      ['Permission sets that can only read it (1)', ['Read All (View All Fields)']],
+      ['Permission set groups that can only read it (1)', ['Lead Team']],
+    ]);
+
+    expect(table(items, 'Who can see the most')).toEqual([
+      { Holder: 'Admin', Kind: 'Profile', 'Fields it can read': 3, 'Fields it can edit': 3 },
+      { Holder: 'Center Director', Kind: 'Profile', 'Fields it can read': 3, 'Fields it can edit': 0 },
+      { Holder: 'Lead Editor', Kind: 'Permission set', 'Fields it can read': 3, 'Fields it can edit': 3 },
+      { Holder: 'Lead Team', Kind: 'Permission set group', 'Fields it can read': 3, 'Fields it can edit': 2 },
+      { Holder: 'Read All', Kind: 'Permission set', 'Fields it can read': 3, 'Fields it can edit': 0 },
+    ]);
+    const holders = items.find((item) => item.title === 'Who can see the most')!;
+    // The largest group in words when it's most of them, after the ones listed.
+    expect(holders.details![0]).toEqual([{ label: 'Can edit all 3 fields', values: [] }]);
+    expect(holders.details![3]).toEqual([
+      { label: 'Can only read (1)', values: ['Lead.Status'] },
+      { label: 'Can edit the other 2 fields', values: [] },
+    ]);
+
     expect(table(items, 'Sharing model: which records')).toEqual([{ Object: 'Lead', 'Sharing model (internal)': 'Private', External: 'Private' }]);
+    expect(table(items, 'Every record: View All Data and Modify All Data')).toEqual([{ Holder: 'Admin', Kind: 'Profile', Permission: 'View All Data' }]);
+    expect(table(items, 'Granted fields without read on the object')).toEqual([{ Holder: 'Field_Only', Kind: 'Permission set', 'Fields granted': 1 }]);
     expect(metric(items, 'Profiles that can read at least one')).toMatchObject({ value: 2 });
-    const notes = items.filter((item) => item.kind === 'note').map((item) => item.text);
-    expect(notes).toContain('View All Data sees every record and field, whatever the field permissions: Admin.');
-    expect(notes).toContain('These grant a field but not read on its object, so they open it only with another grant that does: Field_Only.');
+    expect(metric(items, 'Permission sets and groups that can read at least one')).toMatchObject({ value: 3 });
+
+    // The notes are one list under a heading, the access file's limits last.
+    const notes = items.filter((item) => item.kind === 'note');
+    expect(notes[0].title).toBe('How to read this');
+    expect(notes.slice(1).every((note) => note.title === undefined)).toBe(true);
+    expect(notes.map((note) => note.text)).toContain('View All Data and Modify All Data see every record, whatever the sharing model. Which fields they see still follows field permissions, or View All Fields on the object.');
+    expect(notes[notes.length - 1].text).toBe('Who can, not who does.');
+  });
+
+  it('names one field\'s holders without opening each holder, and the fields it doesn\'t know', () => {
+    const items = run(`show_access(salesforce_access(${JSON.stringify(path.join(dir, 'leads.access.json'))}, PARAMS["fields"]))`, { fields: 'Lead.Status, Lead.Nope__c' });
+    expect(items[0]).toMatchObject({ kind: 'note', text: expect.stringContaining('Not in the access file: Lead.Nope__c.') });
+    expect(items.find((item) => item.title === 'Who can see the most')!.details).toBeUndefined();
+    expect(table(items, 'Who can read and edit each field')![0]).not.toHaveProperty('Field-level security');
   });
 
   it('projects a storage limit from its readings, and a daily limit from its busiest day', () => {

@@ -25,8 +25,8 @@ const diagram: DataModelDiagram = {
   relationships: [],
 };
 
-const objectPermission = (object: string, read: boolean, edit: boolean, viewAll = false) =>
-  `<objectPermissions><allowCreate>false</allowCreate><allowDelete>false</allowDelete><allowEdit>${edit}</allowEdit><allowRead>${read}</allowRead><modifyAllRecords>false</modifyAllRecords><object>${object}</object><viewAllRecords>${viewAll}</viewAllRecords></objectPermissions>`;
+const objectPermission = (object: string, read: boolean, edit: boolean, viewAll = false, viewAllFields = false) =>
+  `<objectPermissions><allowCreate>false</allowCreate><allowDelete>false</allowDelete><allowEdit>${edit}</allowEdit><allowRead>${read}</allowRead><modifyAllRecords>false</modifyAllRecords><object>${object}</object><viewAllFields>${viewAllFields}</viewAllFields><viewAllRecords>${viewAll}</viewAllRecords></objectPermissions>`;
 const fieldPermission = (field: string, readable: boolean, editable: boolean) =>
   `<fieldPermissions><editable>${editable}</editable><field>${field}</field><readable>${readable}</readable></fieldPermissions>`;
 
@@ -40,6 +40,11 @@ describe('buildSalesforceAccess', () => {
       file('permissionsets/No_Lead_Edit.permissionset-meta.xml', '<PermissionSet><label>No_Lead_Edit</label></PermissionSet>'),
       file('permissionsetgroups/Lead_Team.permissionsetgroup-meta.xml', '<PermissionSetGroup><label>Lead Team</label><mutingPermissionSets>No_Lead_Edit</mutingPermissionSets><permissionSets>Lead_Editor</permissionSets><permissionSets>Not_In_Upload</permissionSets></PermissionSetGroup>'),
       file('permissionsets/Package_Set.permissionset-meta.xml', '(hidden)'),
+      // A muting set mutes exactly what it lists (edit here, not read); its system permissions see nothing.
+      file('mutingpermissionsets/Mute_Ready_Edit.mutingpermissionset-meta.xml', `<MutingPermissionSet><label>Mute Ready Edit</label>${fieldPermission('Lead.Ready_to_Convert__c', false, true)}<userPermissions><enabled>true</enabled><name>ViewAllData</name></userPermissions></MutingPermissionSet>`),
+      file('permissionsetgroups/Lead_Readers.permissionsetgroup-meta.xml', '<PermissionSetGroup><label>Lead Readers</label><mutingPermissionSets>Mute_Ready_Edit</mutingPermissionSets><permissionSets>Lead_Editor</permissionSets></PermissionSetGroup>'),
+      // View All Fields: read on every field, so its field permissions don't list them.
+      file('permissionsets/Read_All_Lead.permissionset-meta.xml', `<PermissionSet><label>Read All Lead</label>${objectPermission('Lead', true, false, false, true)}</PermissionSet>`),
     ], diagram, 'leads.diagram.json');
 
     expect(access.holders.map((holder) => `${holder.kind}:${holder.name}`)).toEqual([
@@ -48,7 +53,12 @@ describe('buildSalesforceAccess', () => {
       'permissionSet:Lead_Editor',
       'permissionSet:No_Lead_Edit',
       'permissionSetGroup:Lead_Team',
+      'mutingPermissionSet:Mute_Ready_Edit',
+      'permissionSetGroup:Lead_Readers',
+      'permissionSet:Read_All_Lead',
     ]);
+    expect(access.holders[5].viewAllData).toBeUndefined();
+    expect(access.holders[6]).toMatchObject({ permissionSets: [2], mutingPermissionSets: [5] });
     expect(access.holders[1]).toMatchObject({ viewAllData: true });
     expect(access.holders[1].modifyAllData).toBeUndefined();
     expect(access.holders[2]).toMatchObject({ label: 'Lead Editor', source: `/uploads/qa.zip#${D}/permissionsets/Lead_Editor.permissionset-meta.xml` });
@@ -60,9 +70,10 @@ describe('buildSalesforceAccess', () => {
     expect(lead.grants).toEqual([
       { holder: 0, read: true, create: false, edit: false, delete: false, viewAll: false, modifyAll: false },
       { holder: 1, read: true, create: false, edit: true, delete: false, viewAll: true, modifyAll: false },
+      { holder: 7, read: true, create: false, edit: false, delete: false, viewAll: false, modifyAll: false, viewAllFields: true },
     ]);
     // Edit implies read; a grant of neither adds no one (Status is still listed); a field of an object the diagram doesn't draw is left out.
-    expect(lead.fields).toEqual({ Status: { read: [], edit: [] }, Ready_to_Convert__c: { read: [0, 2], edit: [2] } });
+    expect(lead.fields).toEqual({ Status: { read: [], edit: [] }, Ready_to_Convert__c: { read: [0, 2], edit: [2, 5] } });
     expect(access.objects.Contact).toBeUndefined();
   });
 });

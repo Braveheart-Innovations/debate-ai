@@ -1,7 +1,7 @@
 /**
  * The access file of a Salesforce data model: for every object and field the
  * diagram draws, which profiles, permission sets and permission set groups
- * can read or edit it. `data_model` writes it next to the diagram; the field
+ * can read or edit it (and what a group's muting permission set takes away). `data_model` writes it next to the diagram; the field
  * access recipe reads it. Static: who holds each profile or permission set,
  * and which records they see, need the org.
  */
@@ -19,6 +19,7 @@ const HOLDER_FILES: Array<{ kind: AccessHolderKind; pattern: RegExp }> = [
   { kind: 'profile', pattern: /(?:^|\/)profiles\/([^/]+)\.profile(?:-meta\.xml)?$/i },
   { kind: 'permissionSet', pattern: /(?:^|\/)permissionsets\/([^/]+)\.permissionset(?:-meta\.xml)?$/i },
   { kind: 'permissionSetGroup', pattern: /(?:^|\/)permissionsetgroups\/([^/]+)\.permissionsetgroup(?:-meta\.xml)?$/i },
+  { kind: 'mutingPermissionSet', pattern: /(?:^|\/)mutingpermissionsets\/([^/]+)\.mutingpermissionset(?:-meta\.xml)?$/i },
 ];
 
 function blocks(content: string, tag: string): string[] {
@@ -81,7 +82,8 @@ export function buildSalesforceAccess(sourceFiles: SalesforceSourceFile[], diagr
       const name = kind === 'profile' ? decodedName(match[1]) : match[1];
       const label = value(file.content, 'label');
       const holder: SalesforceAccessHolder = { kind, name, ...(label && label !== name ? { label } : {}), source: sourceFileRef(file) };
-      for (const permission of blocks(file.content, 'userPermissions')) {
+      // A muting set's permissions take away; they don't see anything.
+      for (const permission of kind === 'mutingPermissionSet' ? [] : blocks(file.content, 'userPermissions')) {
         if (!flag(permission, 'enabled')) continue;
         if (value(permission, 'name') === 'ViewAllData') holder.viewAllData = true;
         if (value(permission, 'name') === 'ModifyAllData') holder.modifyAllData = true;
@@ -96,11 +98,11 @@ export function buildSalesforceAccess(sourceFiles: SalesforceSourceFile[], diagr
   for (const { file, kind, index } of files) {
     const content = file.content;
     if (kind === 'permissionSetGroup') {
-      const sets = (tag: string) => [...content.matchAll(new RegExp(`<${tag}>\\s*([^<]+?)\\s*</${tag}>`, 'g'))]
-        .map((match) => holderIndex.get(`permissionSet:${match[1].toLowerCase()}`))
+      const sets = (tag: string, kinds: AccessHolderKind[]) => [...content.matchAll(new RegExp(`<${tag}>\\s*([^<]+?)\\s*</${tag}>`, 'g'))]
+        .map((match) => kinds.map((setKind) => holderIndex.get(`${setKind}:${match[1].toLowerCase()}`)).find((found) => found !== undefined))
         .filter((found): found is number => found !== undefined);
-      const included = sets('permissionSets');
-      const muting = sets('mutingPermissionSets');
+      const included = sets('permissionSets', ['permissionSet']);
+      const muting = sets('mutingPermissionSets', ['mutingPermissionSet', 'permissionSet']);
       if (included.length > 0) holders[index].permissionSets = included;
       if (muting.length > 0) holders[index].mutingPermissionSets = muting;
       continue;
@@ -116,8 +118,9 @@ export function buildSalesforceAccess(sourceFiles: SalesforceSourceFile[], diagr
         delete: flag(body, 'allowDelete'),
         viewAll: flag(body, 'viewAllRecords'),
         modifyAll: flag(body, 'modifyAllRecords'),
+        ...(flag(body, 'viewAllFields') ? { viewAllFields: true } : {}),
       };
-      if (grant.read || grant.create || grant.edit || grant.delete || grant.viewAll || grant.modifyAll) objects[object].grants.push(grant);
+      if (grant.read || grant.create || grant.edit || grant.delete || grant.viewAll || grant.modifyAll || grant.viewAllFields) objects[object].grants.push(grant);
     }
     for (const body of blocks(content, 'fieldPermissions')) {
       const target = fieldNames.get((value(body, 'field') ?? '').toLowerCase());
@@ -126,8 +129,8 @@ export function buildSalesforceAccess(sourceFiles: SalesforceSourceFile[], diagr
       const editable = flag(body, 'editable');
       if (!readable && !editable) continue;
       const entry = objects[target.object].fields[target.field];
-      // Edit access implies read.
-      entry.read.push(index);
+      // Edit access implies read; a muting set mutes exactly what it lists.
+      if (readable || kind !== 'mutingPermissionSet') entry.read.push(index);
       if (editable) entry.edit.push(index);
     }
   }
@@ -144,7 +147,8 @@ export function buildSalesforceAccess(sourceFiles: SalesforceSourceFile[], diagr
       'Record-level visibility (roles, sharing rules, teams, the records themselves) isn\'t computed; each object\'s sharing model is the starting point.',
       'A field no profile or permission set is granted (a required or system field) has no field-level security: whoever can read the object can read it.',
       'Field permissions cover the fields the retrieve included.',
-      'A permission set group\'s access is its permission sets, less its muting sets.',
+      'A permission set group\'s access is its permission sets, less what its muting permission set mutes.',
+      'View All Fields on an object grants read on all its fields, so the holder\'s field permissions don\'t list them.',
     ],
   };
 }

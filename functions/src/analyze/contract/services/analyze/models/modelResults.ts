@@ -34,16 +34,26 @@ const chartItemSchema = z.object({
   spec: z.record(z.string(), z.unknown()),
 });
 
+/** What opening a table row shows: groups of names ("Profiles that can edit": Admin, …); a group with no names is a line of text. */
+const rowDetailSchema = z.array(z.object({
+  label: z.string().min(1),
+  values: z.array(z.string()),
+}));
+
 const tableItemSchema = z.object({
   kind: z.literal('table'),
   title: z.string().optional(),
   headers: z.array(z.string()),
   rows: z.array(z.array(cellSchema)),
+  /** One per row, null for a row with nothing more to show: the row opens to show it. */
+  details: z.array(rowDetailSchema.nullable()).optional(),
 });
 
 const noteItemSchema = z.object({
   kind: z.literal('note'),
   text: z.string().min(1),
+  /** A heading: the note starts a list of notes, which the untitled notes after it join. */
+  title: z.string().optional(),
 });
 
 const itemSchema = z.discriminatedUnion('kind', [metricItemSchema, chartItemSchema, tableItemSchema, noteItemSchema]);
@@ -61,6 +71,8 @@ export type ModelResultItem = z.infer<typeof itemSchema>;
 export type ModelMetricItem = z.infer<typeof metricItemSchema>;
 export type ModelChartItem = z.infer<typeof chartItemSchema>;
 export type ModelTableItem = z.infer<typeof tableItemSchema>;
+export type ModelNoteItem = z.infer<typeof noteItemSchema>;
+export type ModelRowDetail = z.infer<typeof rowDetailSchema>;
 export type ModelResultValues = Record<string, RecipeParamValue>;
 
 /** Whether this /output path is a model's results file (`<folder>/model.json`). */
