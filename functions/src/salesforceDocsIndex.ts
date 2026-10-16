@@ -423,6 +423,11 @@ export const SALESFORCE_DOC_TOPICS: SalesforceDocsIndexTopic[] = [
       'https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_visual_workflow.htm',
       'https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_flowsettings.htm',
       'https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_triggers_order_of_execution.htm',
+      'https://help.salesforce.com/s/articleView?id=platform.flow_task_trigger_run_order.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=platform.flow_concepts_trigger_record.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=platform.flow_considerations_trigger_record.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=platform.flow_concepts_trigger.htm&language=en_US&type=5',
+      'https://architect.salesforce.com/docs/architect/decision-guides/guide/record-triggered.html',
     ],
   },
   {
@@ -448,6 +453,11 @@ export const SALESFORCE_DOC_TOPICS: SalesforceDocsIndexTopic[] = [
       'https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_permissionset.htm',
       'https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_custompermission.htm',
       'https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_permissionsetgroup.htm',
+      // Knowledge article: the Spring '26 retirement of permissions on profiles was cancelled (2026-06-06).
+      'https://help.salesforce.com/s/articleView?id=003834041&language=en_US&type=1',
+      'https://help.salesforce.com/s/articleView?id=platform.perm_set_groups_muting.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=platform.perm_set_groups_muting_dependencies.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=platform.perm_sets_best_practices.htm&language=en_US&type=5',
     ],
   },
   {
@@ -766,6 +776,7 @@ export const SALESFORCE_DOC_TOPICS: SalesforceDocsIndexTopic[] = [
     category: 'object_reference',
     keywords: ['standard object', 'object reference', 'account', 'contact', 'lead', 'opportunity', 'case', 'task', 'event', 'user', 'product', 'quote', 'order'],
     seedUrls: [
+      'https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/system_fields.htm',
       'https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/sforce_api_objects_account.htm',
       'https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/sforce_api_objects_contact.htm',
       'https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/sforce_api_objects_lead.htm',
@@ -930,6 +941,7 @@ export const SALESFORCE_DOC_TOPICS: SalesforceDocsIndexTopic[] = [
     keywords: ['decision guide', 'architecture', 'record-triggered automation', 'data architecture', 'integration architecture', 'diagrams'],
     seedUrls: [
       'https://architect.salesforce.com/design/decision-guides',
+      'https://architect.salesforce.com/docs/architect/decision-guides/guide/record-triggered.html',
     ],
   },
   {
@@ -1033,9 +1045,12 @@ export const SALESFORCE_DOC_TOPICS: SalesforceDocsIndexTopic[] = [
     category: 'security',
     keywords: ['shield', 'platform encryption', 'tenant secret', 'key management', 'encrypted field', 'deterministic encryption'],
     seedUrls: [
-      'https://developer.salesforce.com/docs/atlas.en-us.securityImplGuide.meta/securityImplGuide/security_pe_encryption_process.htm',
-      'https://developer.salesforce.com/docs/atlas.en-us.securityImplGuide.meta/securityImplGuide/security_pe_considerations_general.htm',
-      'https://developer.salesforce.com/docs/atlas.en-us.securityImplGuide.meta/securityImplGuide/security_pe_deployment.htm',
+      // The securityImplGuide atlas pages are retired (62-character shells); Help is the source now.
+      'https://help.salesforce.com/s/articleView?id=xcloud.security_pe_overview.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=xcloud.security_pe_concepts.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=xcloud.security_pe_encryptable_data.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=xcloud.security_pe_considerations_general.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=xcloud.security_pe_setup.htm&language=en_US&type=5',
     ],
   },
   {
@@ -1223,6 +1238,83 @@ export const SALESFORCE_DOC_TOPICS: SalesforceDocsIndexTopic[] = [
       'https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/sforce_api_objects_agentwork.htm',
     ],
   },
+  // --- Docs grounding gap seeds (2.9.5): admin Help the index never had ---
+  {
+    id: 'org-limits-allocations',
+    label: 'Org limits, storage, and edition allocations',
+    query: 'Salesforce org limits data storage file storage custom fields per object edition allocations',
+    category: 'limits',
+    keywords: ['org limits', 'storage', 'data storage', 'file storage', 'custom fields allowed', 'allocations', 'limits resource', 'org list limits'],
+    seedUrls: [
+      'https://help.salesforce.com/s/articleView?id=xcloud.overview_storage.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=platform.custom_field_allocations.htm&language=en_US&type=5',
+      'https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/resources_limits.htm',
+      'https://developer.salesforce.com/docs/platform/salesforce-cli-reference/guide/cli_reference_org_list_limits.html',
+    ],
+  },
+  {
+    id: 'org-security-health-check',
+    label: 'Security Health Check and org security settings',
+    query: 'Salesforce Security Health Check baseline score security settings',
+    category: 'security',
+    keywords: ['health check', 'security health check', 'baseline', 'security settings', 'session settings', 'password policies'],
+    seedUrls: [
+      'https://help.salesforce.com/s/articleView?id=xcloud.security_health_check.htm&language=en_US&type=5',
+    ],
+  },
+  {
+    id: 'lead-conversion',
+    label: 'Lead conversion and lead field mapping',
+    query: 'Salesforce lead conversion custom lead field mapping LeadConvert convertLead',
+    category: 'sales_cloud',
+    keywords: ['lead conversion', 'convert lead', 'leadconvert', 'convertlead', 'lead field mapping', 'map lead fields'],
+    seedUrls: [
+      'https://help.salesforce.com/s/articleView?id=sales.customize_mapleads.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=sales.customize_mapleads_guidelines.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=sales.lead_conversion_mapping.htm&language=en_US&type=5',
+      'https://developer.salesforce.com/docs/atlas.en-us.apexref.meta/apexref/apex_dml_convertLead.htm',
+      'https://developer.salesforce.com/docs/atlas.en-us.apexref.meta/apexref/apex_class_database_leadconvertresult.htm',
+    ],
+  },
+  {
+    id: 'email-limits',
+    label: 'Email limits and allocations',
+    query: 'Salesforce email limits single email mass email list email workflow email alert daily allocations',
+    category: 'email',
+    keywords: ['email limits', 'single email', 'mass email', 'list email', 'email alerts', 'daily allocation', 'email allocations'],
+    seedUrls: [
+      'https://help.salesforce.com/s/articleView?id=000386730&language=en_US&type=1',
+      'https://help.salesforce.com/s/articleView?id=sales.allocations_email_general.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=sales.limitations_email_mass.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=platform.workflow_limits_email.htm&language=en_US&type=5',
+    ],
+  },
+  {
+    id: 'education-data-architecture',
+    label: 'Education Data Architecture (EDA, hed__)',
+    query: 'Education Data Architecture EDA hed objects affiliations program enrollment TDTM',
+    category: 'education',
+    keywords: ['education data architecture', 'eda', 'hed', 'affiliation', 'program enrollment', 'course connection', 'tdtm', 'higher education'],
+    seedUrls: [
+      'https://help.salesforce.com/s/articleView?id=sfdo.Education_Data_Architecture.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=sfdo.eda_objects.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=sfdo.EDA_Apex_Class_Descriptions.htm&language=en_US&type=5',
+      'https://help.salesforce.com/s/articleView?id=sfdo.eda_whats_installed.htm&language=en_US&type=5',
+    ],
+  },
+  {
+    id: 'salesforce-cli-reference',
+    label: 'Salesforce CLI (sf) command reference',
+    query: 'Salesforce CLI sf command reference org list limits project retrieve start data query',
+    category: 'devops',
+    keywords: ['salesforce cli', 'sf cli', 'sf org', 'project retrieve', 'data query', 'command reference', 'target-org'],
+    seedUrls: [
+      'https://developer.salesforce.com/docs/platform/salesforce-cli-reference/guide/cli_reference_org_list_limits.html',
+      'https://developer.salesforce.com/docs/platform/salesforce-cli-reference/guide/cli_reference_project_retrieve_start.html',
+      'https://developer.salesforce.com/docs/platform/salesforce-cli-reference/guide/cli_reference_project_retrieve_preview.html',
+      'https://developer.salesforce.com/docs/platform/salesforce-cli-reference/guide/cli_reference_data_query.html',
+    ],
+  },
 ];
 
 const SALESFORCE_DOC_SITEMAP_SOURCES: SalesforceDocsSitemapSource[] = [
@@ -1325,6 +1417,32 @@ export const SALESFORCE_DOC_TOPIC_ALIASES: Record<string, string[]> = {
   'einstein-analytics': ['crm-analytics-rest-data'],
   'omni-channel': ['omni-channel-routing'],
   'skills-based-routing': ['omni-channel-routing'],
+  // --- Docs grounding gap seeds (2.9.5) ---
+  'org-limits': ['org-limits-allocations', 'api-limits-allocations'],
+  'limits-forecast': ['org-limits-allocations'],
+  'storage-limits': ['org-limits-allocations'],
+  'data-storage': ['org-limits-allocations'],
+  'file-storage': ['org-limits-allocations'],
+  'custom-field-limits': ['org-limits-allocations'],
+  'health-check': ['org-security-health-check'],
+  'security-health-check': ['org-security-health-check'],
+  'lead-conversion': ['lead-conversion'],
+  'lead-convert': ['lead-conversion'],
+  'email-limits': ['email-limits'],
+  'eda': ['education-data-architecture'],
+  'hed': ['education-data-architecture'],
+  'education-data-architecture': ['education-data-architecture'],
+  'education-cloud': ['education-data-architecture'],
+  'sf-cli': ['salesforce-cli-reference'],
+  'salesforce-cli': ['salesforce-cli-reference', 'sfdx-source-driven-dev'],
+  'flow-trigger-order': ['flow-order-recursion'],
+  'trigger-order': ['flow-order-recursion', 'apex-order-of-execution'],
+  'before-save-flow': ['flow-order-recursion'],
+  'record-triggered-flow': ['flow-order-recursion', 'flow-metadata-edge-cases'],
+  'event-triggered-flow': ['flow-order-recursion', 'platform-events-pubsub'],
+  'muting-permission-sets': ['permissions-least-privilege'],
+  'permission-set-groups': ['permissions-least-privilege'],
+  'profile-permissions': ['permissions-least-privilege'],
 };
 
 const SALESFORCE_DOC_PDF_BASE_URL = 'https://resources.docs.salesforce.com/latest/latest/en-us/sfdc/pdf';
@@ -1458,6 +1576,7 @@ export const SALESFORCE_DOC_PDF_SOURCES: SalesforceDocsPdfSource[] = [
       'apex-async-processing',
       'soql-query-selectivity',
       'platform-events-pubsub',
+      'org-limits-allocations',
     ],
     keywords: ['limits', 'governor limits', 'api limits', 'async', 'platform events'],
   },
@@ -2654,7 +2773,7 @@ async function fetchDeveloperDocsContent(
   }
 
   const text = stripHtmlTags(html || '');
-  if (text.length < 80) {
+  if (text.length < FULL_TEXT_CONTENT_LENGTH_FLOOR) {
     throw new Error(`Developer docs API content was too short (${text.length} chars)`);
   }
 
@@ -2733,7 +2852,8 @@ export async function fetchOfficialDocContent(
 
   const html = await fetchText(url, timeoutMs, maxAttempts);
   const normalized = stripHtmlTags(html);
-  if (normalized.length < 80) {
+  // Below the full-text floor is a site shell ("Salesforce Developers"), not a page.
+  if (normalized.length < FULL_TEXT_CONTENT_LENGTH_FLOOR) {
     throw new Error(`Fetched content was too short (${normalized.length} chars)`);
   }
   return {

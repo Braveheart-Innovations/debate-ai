@@ -66,6 +66,24 @@ describe('topic catalog hygiene', () => {
   });
 });
 
+describe('docs grounding gap coverage (2.9.5)', () => {
+  const seedsFor = (topicId) => SALESFORCE_DOC_TOPICS.find((topic) => topic.id === topicId)?.seedUrls || [];
+
+  it('seeds the admin Help topics the index never had', () => {
+    for (const topicId of ['org-limits-allocations', 'org-security-health-check', 'lead-conversion', 'email-limits', 'education-data-architecture', 'salesforce-cli-reference']) {
+      assert.ok(seedsFor(topicId).length > 0, `${topicId} has no seeds`);
+    }
+    assert.ok(seedsFor('flow-order-recursion').some((url) => url.includes('flow_task_trigger_run_order')), 'flow trigger order Help page');
+    assert.ok(seedsFor('permissions-least-privilege').some((url) => url.includes('id=003834041')), 'profile permissions retirement cancellation');
+  });
+
+  it('seeds Shield from Help, not the retired securityImplGuide pages', () => {
+    const shieldSeeds = seedsFor('shield-platform-encryption');
+    assert.ok(shieldSeeds.length > 0);
+    assert.ok(shieldSeeds.every((url) => url.startsWith('https://help.salesforce.com/')), shieldSeeds.join(', '));
+  });
+});
+
 describe('selectionIsAliasRouted', () => {
   it('routes only when a selected record belongs to an aliased indexed topic', () => {
     const aliasIds = ['apex-governor-limits', 'soql-query-selectivity'];
