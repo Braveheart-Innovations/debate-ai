@@ -12,6 +12,10 @@ const {
   missTokens,
   aggregateMisses,
   rankMissCandidates,
+  topicOwnTerms,
+  passageAnswersTopic,
+  fetchOfficialDocContent,
+  SalesforceDocNotReadError,
   selectionIsAliasRouted,
   extractRenderedHelpArticle,
   salesforceReleaseLabelForVersion,
@@ -176,14 +180,14 @@ describe('officialDocRetrievalPlan', () => {
 
   it('renders release-notes help articles only when rendering is allowed', () => {
     assert.equal(officialDocRetrievalPlan(releaseNotesUrl), 'rendered_help');
-    assert.equal(officialDocRetrievalPlan(releaseNotesUrl, { allowRendering: false }), 'help_metadata');
+    assert.equal(officialDocRetrievalPlan(releaseNotesUrl, { allowRendering: false }), 'help_unrendered');
   });
 
   it('renders every help article, including Knowledge articles, at build time only', () => {
     const knowledgeUrl = 'https://help.salesforce.com/s/articleView?id=003834041&language=en_US&type=1';
     for (const url of [helpArticleUrl, knowledgeUrl]) {
       assert.equal(officialDocRetrievalPlan(url), 'rendered_help');
-      assert.equal(officialDocRetrievalPlan(url, { allowRendering: false }), 'help_metadata');
+      assert.equal(officialDocRetrievalPlan(url, { allowRendering: false }), 'help_unrendered');
     }
   });
 
@@ -320,6 +324,39 @@ describe('lookup misses', () => {
     assert.deepEqual(rankMissCandidates({ label: 'Quantum widgets', query: 'quantum widget telemetry' }, [
       { url: 'https://help.salesforce.com/s/articleView?id=x.htm&language=en_US&type=5', title: 'Build a Flow' },
     ]), []);
+  });
+});
+
+describe('passageAnswersTopic', () => {
+  const terms = (label, query = label) => topicOwnTerms({ label, query });
+
+  it('needs the topic in its own words, not generic ones', () => {
+    const ownTerms = terms('Salesforce data storage limits');
+    assert.deepEqual(ownTerms, ['data', 'storage', 'limits']);
+    assert.ok(passageAnswersTopic('Data storage limits depend on your edition.', ownTerms));
+    assert.ok(!passageAnswersTopic('Salesforce documentation for limits.', ownTerms));
+  });
+
+  it('matches short terms as whole words only', () => {
+    const ownTerms = terms('EDA');
+    assert.ok(passageAnswersTopic('Configure EDA settings.', ownTerms));
+    assert.ok(!passageAnswersTopic('The reader needed more.', ownTerms));
+  });
+
+  it('asks for three of a long topic\'s terms', () => {
+    const ownTerms = terms('Apex governor limits and bulkification', 'Apex governor limits SOQL DML loops bulkification best practices');
+    assert.ok(passageAnswersTopic('Apex governor limits cap SOQL queries per transaction.', ownTerms));
+    assert.ok(!passageAnswersTopic('Apex classes and limits.', ownTerms));
+  });
+});
+
+describe('help articles at lookup time', () => {
+  it('are not read, and say so, instead of becoming a stub', async () => {
+    const url = 'https://help.salesforce.com/s/articleView?id=xcloud.overview_storage.htm&language=en_US&type=5';
+    await assert.rejects(
+      fetchOfficialDocContent(url, { allowRendering: false }),
+      (error) => error instanceof SalesforceDocNotReadError && error.reason === 'not_rendered' && error.url === url,
+    );
   });
 });
 

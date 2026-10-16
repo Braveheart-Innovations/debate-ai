@@ -334,7 +334,7 @@ export interface SalesforceDocsIndexLookupResult {
     missedTopics?: Array<{
       topicId: string;
       label?: string;
-      reason: 'blocked' | 'not_indexed' | 'empty_shell' | 'no_official_source' | 'stale' | 'unavailable';
+      reason: 'blocked' | 'not_indexed' | 'empty_shell' | 'no_official_source' | 'no_matching_passage' | 'stale' | 'unavailable';
     }>;
     stalenessWarnings?: string[];
   };
@@ -2068,7 +2068,7 @@ function humanizeSalesforceDocId(id: string): string {
 // (storage, limits, security settings, Flow behaviour) has no developer-guide
 // equivalent. Lookups never render (allowRendering: false).
 function isRenderableSalesforceHelpArticleUrl(urlValue: string): boolean {
-  return isHelpArticleViewMetadataUrl(urlValue);
+  return isHelpArticleUrl(urlValue);
 }
 
 function isSalesforceHelpReleaseNotesUrl(urlValue: string): boolean {
@@ -2398,30 +2398,6 @@ async function fetchRenderedHelpArticleContent(urlValue: string): Promise<Offici
   } finally {
     await page.close().catch(() => undefined);
   }
-}
-
-function buildHelpArticleMetadata(urlValue: string): OfficialDocContent | null {
-  const url = new URL(urlValue);
-  if (url.hostname !== 'help.salesforce.com' || !url.pathname.includes('/articleView')) return null;
-  const articleId = url.searchParams.get('id');
-  if (!articleId) return null;
-  const release = url.searchParams.get('release') || undefined;
-  const title = humanizeSalesforceDocId(articleId);
-  return {
-    text: [
-      `Official Salesforce Help article: ${title}.`,
-      `Article id: ${articleId}.`,
-      release ? `Release parameter: ${release}.` : '',
-      `Canonical URL: ${url.toString()}.`,
-    ].filter(Boolean).join(' '),
-    contentQuality: 'metadata_only',
-    title,
-    documentationVersion: release,
-    releaseLabel: release ? `Salesforce release ${release}` : undefined,
-    warnings: [
-      'Salesforce Help article was indexed from official URL and sitemap metadata; rendered article body was not extracted server-side.',
-    ],
-  };
 }
 
 function addDaysIso(isoValue: string, days: number): string {
@@ -2885,7 +2861,7 @@ async function fetchDeveloperDocsContent(
   };
 }
 
-function isHelpArticleViewMetadataUrl(urlValue: string): boolean {
+function isHelpArticleUrl(urlValue: string): boolean {
   try {
     const url = new URL(urlValue);
     return url.hostname === 'help.salesforce.com'
@@ -2896,7 +2872,19 @@ function isHelpArticleViewMetadataUrl(urlValue: string): boolean {
   }
 }
 
-export type OfficialDocRetrievalPlan = 'developer_api' | 'rendered_help' | 'help_metadata' | 'raw_html';
+export type OfficialDocRetrievalPlan = 'developer_api' | 'rendered_help' | 'help_unrendered' | 'raw_html';
+
+/**
+ * An official page that was found but whose text was not read: a Help article
+ * outside the index (its body only exists after rendering, which lookups never
+ * do), or a page Salesforce blocked. It is never evidence.
+ */
+export class SalesforceDocNotReadError extends Error {
+  constructor(readonly url: string, readonly reason: 'not_rendered' | 'blocked', message: string) {
+    super(message);
+    this.name = 'SalesforceDocNotReadError';
+  }
+}
 
 export interface FetchOfficialDocOptions {
   /** Headless-Chrome rendering of help.salesforce.com release-notes articles. Index build only — never enable inside executeTool. */
@@ -2912,7 +2900,7 @@ export function officialDocRetrievalPlan(
   const allowRendering = options.allowRendering !== false;
   if (parseDeveloperDocsReference(urlValue)) return 'developer_api';
   if (allowRendering && isRenderableSalesforceHelpArticleUrl(urlValue)) return 'rendered_help';
-  if (isHelpArticleViewMetadataUrl(urlValue)) return 'help_metadata';
+  if (isHelpArticleUrl(urlValue)) return 'help_unrendered';
   return 'raw_html';
 }
 
@@ -2939,12 +2927,23 @@ export async function fetchOfficialDocContent(
     return fetchRenderedHelpArticleContent(url);
   }
 
-  if (plan === 'help_metadata') {
-    const helpArticleMetadata = buildHelpArticleMetadata(url);
-    if (helpArticleMetadata) return helpArticleMetadata;
+  if (plan === 'help_unrendered') {
+    throw new SalesforceDocNotReadError(
+      url,
+      'not_rendered',
+      'Salesforce Help article bodies are read when the docs index is built, and this article is not in the index yet.',
+    );
   }
 
-  const html = await fetchText(url, timeoutMs, maxAttempts);
+  let html: string;
+  try {
+    html = await fetchText(url, timeoutMs, maxAttempts);
+  } catch (error: any) {
+    if (/HTTP 403/.test(error?.message || '')) {
+      throw new SalesforceDocNotReadError(url, 'blocked', `Salesforce blocked this page (HTTP 403): ${error.message}`);
+    }
+    throw error;
+  }
   const normalized = stripHtmlTags(html);
   // Below the full-text floor is a site shell ("Salesforce Developers"), not a page.
   if (normalized.length < FULL_TEXT_CONTENT_LENGTH_FLOOR) {
@@ -3202,6 +3201,35 @@ export function rankMissCandidates(
     if (!ranked.includes(entry.url)) ranked.push(entry.url);
   }
   return ranked;
+}
+
+/** A topic's own words: its label and query, without generic words like "salesforce" or "docs". */
+export function topicOwnTerms(topic: { label: string; query: string }): string[] {
+  return missTokens(`${topic.label} ${topic.query}`);
+}
+
+/**
+ * Whether a passage is about the topic on the topic's own terms: it carries at
+ * least two of them (one when the topic has one), or three when the topic is
+ * long. Alias expansion and generic words help rank passages, but they can't
+ * make a passage count as an answer.
+ */
+export function passageAnswersTopic(text: string, ownTerms: string[]): boolean {
+  return loweredPassageAnswersTopic(text.toLowerCase(), ownTerms);
+}
+
+function loweredPassageAnswersTopic(lowered: string, ownTerms: string[]): boolean {
+  if (ownTerms.length === 0) return false;
+  const needed = Math.max(Math.min(2, ownTerms.length), Math.min(3, Math.ceil(ownTerms.length / 2)));
+  let matched = 0;
+  for (const term of ownTerms) {
+    const found = term.length >= 5
+      ? lowered.includes(term)
+      : new RegExp(`(^|[^a-z0-9])${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^a-z0-9]|$)`).test(lowered);
+    if (found) matched += 1;
+    if (matched >= needed) return true;
+  }
+  return false;
 }
 
 function sitemapCatalogEntries(entries: SalesforceDocsSitemapEntry[]): SalesforceDocsHelpCatalogEntry[] {
@@ -3944,10 +3972,12 @@ function matchedChunksForRecord(
   record: SalesforceDocsIndexRecord,
   tokens: string[],
   scoreChunk: ChunkScorer,
+  ownTerms: string[],
   maxChunks = MAX_MATCHED_CHUNKS_PER_SOURCE,
 ): NonNullable<SalesforceDocsIndexEvidenceSource['matchedChunks']> {
   if (!record.textChunks || record.textChunks.length === 0) return [];
   return record.textChunks
+    .filter((chunk) => loweredPassageAnswersTopic(loweredChunkText(chunk), ownTerms))
     .map((chunk) => ({ chunk, rawScore: scoreChunk(chunk, tokens) }))
     .filter(({ rawScore }) => rawScore > 0)
     .sort((a, b) => b.rawScore - a.rawScore || a.chunk.ordinal - b.chunk.ordinal)
@@ -4100,16 +4130,31 @@ export async function lookupSalesforceDocsIndex(
   const seenSourceKeys = new Set<string>();
 
   const scoreChunk = createChunkScorer(index);
+  const topicsWithUnansweringMatches = new Set<string>();
   for (const topic of topics) {
     const tokens = tokensForTopic(topic);
     const aliasTopicIds = aliasTopicIdsFor(topic);
+    const ownTerms = topicOwnTerms(topic);
     const scored = index.records
+      .filter(isFullTextRecord)
       .map((record) => ({ record, score: scoreRecordForTopic(record, topic, tokens, aliasTopicIds, scoreChunk) }))
       .filter((item) => item.score > 0)
       .sort((a, b) => b.score - a.score || a.record.title.localeCompare(b.record.title));
-    const selected = selectScoredRecordsForTopic(scored, aliasTopicIds, options.maxResultsPerTopic);
+    // A page is evidence for a topic only when one of its passages is about the
+    // topic in the topic's own words; ranking alone (aliases, "salesforce") isn't.
+    const answering: typeof scored = [];
+    for (const item of scored) {
+      if ((item.record.textChunks || []).some((chunk) => loweredPassageAnswersTopic(loweredChunkText(chunk), ownTerms))) {
+        answering.push(item);
+        if (answering.length >= options.maxResultsPerTopic * 3) break;
+      }
+    }
+    const selected = selectScoredRecordsForTopic(answering, aliasTopicIds, options.maxResultsPerTopic);
 
-    if (selected.length === 0) continue;
+    if (selected.length === 0) {
+      if (scored.length > 0) topicsWithUnansweringMatches.add(topic.id);
+      continue;
+    }
     topicHits.add(topic.id);
     if (selectionIsAliasRouted(selected.map((item) => item.record), aliasTopicIds)) {
       aliasRoutedTopicIds.add(topic.id);
@@ -4125,7 +4170,7 @@ export async function lookupSalesforceDocsIndex(
       const recordPdfRefreshStatus = item.record.sourceFormat === 'pdf'
         ? pdfRefreshStatus(item.record)
         : null;
-      const matchedChunks = matchedChunksForRecord(item.record, tokens, scoreChunk);
+      const matchedChunks = matchedChunksForRecord(item.record, tokens, scoreChunk, ownTerms);
       const sourceWarnings = [
         ...item.record.warnings,
         `Source came from cached official Salesforce docs index generated ${index.generatedAt}.`,
@@ -4190,7 +4235,9 @@ export async function lookupSalesforceDocsIndex(
           sourceCount,
           reason: sourceCount > 0
             ? undefined
-            : 'No cached official Salesforce documentation source matched this topic.',
+            : topicsWithUnansweringMatches.has(topic.id)
+              ? 'Indexed pages ranked for this topic, but none has a passage about it in its own terms.'
+              : 'No cached official Salesforce documentation source matched this topic.',
         };
       }),
       missedTopics: topics
@@ -4198,9 +4245,11 @@ export async function lookupSalesforceDocsIndex(
         .map((topic) => ({
           topicId: topic.id,
           label: topic.label,
-          reason: index.topics.some((indexedTopic) => aliasTopicIdsFor(topic).includes(indexedTopic.id))
-            ? 'no_official_source' as const
-            : 'not_indexed' as const,
+          reason: topicsWithUnansweringMatches.has(topic.id)
+            ? 'no_matching_passage' as const
+            : index.topics.some((indexedTopic) => aliasTopicIdsFor(topic).includes(indexedTopic.id))
+              ? 'no_official_source' as const
+              : 'not_indexed' as const,
         })),
       stalenessWarnings: warnings.filter((warning) => /older than|stale|previous|due|overdue/i.test(warning)),
     },
