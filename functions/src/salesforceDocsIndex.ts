@@ -357,8 +357,6 @@ export const SALESFORCE_DOC_TOPICS: SalesforceDocsIndexTopic[] = [
       'https://help.salesforce.com/s/articleView?id=release-notes.rn_sales.htm&language=en_US&type=5',
       'https://help.salesforce.com/s/articleView?id=release-notes.rn_service.htm&language=en_US&type=5',
       'https://help.salesforce.com/s/articleView?id=release-notes.rn_automate.htm&language=en_US&type=5',
-      'https://help.salesforce.com/s/articleView?id=release-notes.rn_automate_flow_release_update.htm&language=en_US&type=5',
-      'https://help.salesforce.com/s/articleView?id=release-notes.rn_development.htm&language=en_US&type=5',
       'https://help.salesforce.com/s/articleView?id=release-notes.rn_apex.htm&language=en_US&type=5',
       'https://help.salesforce.com/s/articleView?id=release-notes.rn_api_objects.htm&language=en_US&type=5',
       'https://help.salesforce.com/s/articleView?id=release-notes.rn_api_meta.htm&language=en_US&type=5',
@@ -3583,12 +3581,14 @@ async function buildSalesforceDocsIndexNowInternal(options: SalesforceDocsIndexB
   }
 
   // New misses, plus the ones no page has answered yet, against every official
-  // page this build knows of: the Help catalog (this build's and earlier ones)
-  // and the developer and architect sitemaps.
+  // page this build knows of: the pages it read (a seed may already answer a
+  // miss), the Help catalog (this build's and earlier ones), and the developer
+  // and architect sitemaps.
   for (const entry of options.previousIndex?.helpCatalog || []) {
     if (!helpCatalog.has(entry.url)) helpCatalog.set(entry.url, entry.title);
   }
   const missCatalog = [
+    ...records.filter(isFullTextRecord).map((record) => ({ url: record.url, title: record.title })),
     ...Array.from(helpCatalog, ([url, title]) => ({ url, title })),
     ...sitemapCatalogEntries(sitemapEntries),
   ];
