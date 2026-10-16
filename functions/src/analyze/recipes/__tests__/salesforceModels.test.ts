@@ -8,6 +8,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { RECIPE_RUNNER_SOURCE } from '../../../sandbox/runtime';
+import { modelResultsProblem } from '../../contract/services/analyze/models/modelResults';
 
 const PLT_STUB = `
 import os as _sym_os, json as _sym_json
@@ -103,7 +104,10 @@ describe('the Salesforce models', () => {
     const script = path.join(dir, 'harness.py');
     fs.writeFileSync(script, `${PLT_STUB}\n${RECIPE_RUNNER_SOURCE}\nrun_recipe(${JSON.stringify(recipe)})\n`);
     execFileSync('python3', ['-I', script], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
-    return JSON.parse(fs.readFileSync(path.join(dir, 'model', 'model.json'), 'utf8')).items;
+    const text = fs.readFileSync(path.join(dir, 'model', 'model.json'), 'utf8');
+    // What the app checks before the Model view draws a run.
+    expect(modelResultsProblem(text)).toBeNull();
+    return JSON.parse(text).items;
   }
 
   const table = (items: ModelItem[], title: string) => {
@@ -176,7 +180,8 @@ describe('the Salesforce models', () => {
       'SingleEmail,10000,9023,2026-08-28T15:24:00Z',
       'SingleEmail,10000,9500,2026-08-28T09:00:00Z',
     ].join('\n'));
-    const storage = run(`show_forecast(forecast_limits(${JSON.stringify(readings)}, PARAMS["limit"], threshold=PARAMS["threshold"], months=PARAMS["months"]))`, { limit: 'DataStorageMB', threshold: 90, months: 24 });
+    // As the prompt writes it: fit_growth on fits the trend (an input is never None).
+    const storage = run(`show_forecast(forecast_limits(${JSON.stringify(readings)}, PARAMS["limit"], growth=None if PARAMS["fit_growth"] else PARAMS["growth"], threshold=PARAMS["threshold"], months=PARAMS["months"]))`, { limit: 'DataStorageMB', fit_growth: true, growth: 2, threshold: 90, months: 24 });
     expect(metric(storage, 'DataStorageMB (in use)')).toMatchObject({ value: 193427, detail: '39.75% of 486640' });
     // 504 MB over 5.9 days: about 2,600 MB a month, nowhere near 90% in two years.
     expect(Number(metric(storage, 'Growth a month')!.value)).toBeCloseTo(2603, -1);
