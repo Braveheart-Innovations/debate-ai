@@ -13,8 +13,10 @@
  *  - Fault connectors are fault flows. An out a connector leaves empty goes to
  *    the end. Elements nothing connects to never run, so they're left out and
  *    named in the result.
- *  - A record operation or action without a fault path carries an issue (not
- *    in a before-save flow, which has no fault paths), and so does a record
+ *  - An element that can fail (Get, Create, Update or Delete Records, an
+ *    Action, an Apex Action, a Wait: FAULT_PATH_ELEMENTS) without a fault
+ *    path carries an issue (not in a before-save flow, which has no fault
+ *    paths), and so does a record
  *    operation inside a loop: DML or a query run once per item, against the
  *    transaction's limits (Apex Developer Guide, Execution Governors and Limits).
  *  - Every node carries its element's facts (`element`): API name and line,
@@ -30,7 +32,8 @@
  * (in a chain, prefixed with the flow's).
  */
 import { XMLParser } from 'fast-xml-parser';
-import { uniqueName, type Flow, type FlowCondition, type FlowNode, type ProcessFlowDiagram, type SalesforceFlowElement } from '../contract/services/analyze/diagrams/diagramFile';
+import { FAULT_PATH_ELEMENTS, uniqueName, type Flow, type FlowCondition, type FlowNode, type ProcessFlowDiagram, type SalesforceFlowElement } from '../contract/services/analyze/diagrams/diagramFile';
+import { NO_FAULT_PATH } from '../contract/services/analyze/diagrams/processFlows';
 import { list, node, sourceFileRef, text, type XmlNode } from './salesforceDataModel';
 import type { SalesforceSourceFile } from './SalesforceMetadataService';
 
@@ -40,9 +43,6 @@ const ELEMENT_TAGS = [
   'screens', 'steps', 'subflows', 'transforms', 'waits',
 ];
 
-/** Elements that change data or call out: without a fault path, a failure stops the flow. */
-const FAULT_HANDLED_TAGS = new Set(['recordCreates', 'recordUpdates', 'recordDeletes', 'actionCalls', 'apexPluginCalls']);
-
 const parser = new XMLParser({
   ignoreAttributes: true,
   parseTagValue: false,
@@ -50,7 +50,6 @@ const parser = new XMLParser({
   isArray: (name) => [...ELEMENT_TAGS, 'rules', 'filters', 'scheduledPaths', 'waitEvents', 'inputAssignments', 'assignmentItems', 'connectors', 'conditions'].includes(name),
 });
 
-const NO_FAULT_PATH = 'No fault path: if it fails, the flow stops with an unhandled fault.';
 /** Record operations that are DML (a query is a Get Records). */
 const DML_TAGS = new Set(['recordCreates', 'recordUpdates', 'recordDeletes']);
 const DML_VERBS: Record<string, string> = { recordCreates: 'create', recordUpdates: 'update', recordDeletes: 'delete' };
@@ -593,6 +592,7 @@ function drawFlow(flow: ParsedSalesforceFlow, prefix: string, startLabel: string
   const startFilters = conditionsOf(flow.start?.filters);
   const startFacts: SalesforceFlowElement = {
     apiName: 'Start',
+    ...(flow.triggerType ? { trigger: flow.triggerType } : {}),
     ...(flow.triggerObject ? { object: flow.triggerObject } : {}),
     ...(startFilters.length > 0 ? { filters: startFilters, filterLogic: text(flow.start?.filterLogic) ?? 'and' } : {}),
   };
@@ -627,7 +627,7 @@ function drawFlow(flow: ParsedSalesforceFlow, prefix: string, startLabel: string
     const isDecision = element.tag === 'decisions' || element.tag === 'loops' || element.tag === 'waits';
     const details = elementDescription(element, flow);
     const issues = [
-      ...(FAULT_HANDLED_TAGS.has(element.tag) && !fault && !beforeSave ? [NO_FAULT_PATH] : []),
+      ...(FAULT_PATH_ELEMENTS.has(element.tag) && !fault && !beforeSave ? [NO_FAULT_PATH] : []),
       ...(loops.get(name) ?? []).flatMap((loopLabel) => loopIssue(element.tag, loopLabel) ?? []),
     ];
     nodes.push({

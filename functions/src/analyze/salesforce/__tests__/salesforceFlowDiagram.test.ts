@@ -146,7 +146,7 @@ describe('a Flow as a process diagram', () => {
   it('gives every node its element facts: API name, line, object, filters, values set, outcomes, action', () => {
     const [{ diagram }] = buildSalesforceFlowDiagrams([ROUTE], { flows: ['Route_to_CRC_Queue'] }).results;
     const facts = (id: string) => diagram.nodes.find((node) => node.id === id)!.element;
-    expect(facts('start')).toEqual({ apiName: 'Start', object: 'Lead', filterLogic: 'and', filters: [{ field: 'Status', operator: 'EqualTo', value: '"Inquiry"' }, { field: 'Email', operator: 'IsNull', value: 'false' }] });
+    expect(facts('start')).toEqual({ apiName: 'Start', trigger: 'RecordAfterSave', object: 'Lead', filterLogic: 'and', filters: [{ field: 'Status', operator: 'EqualTo', value: '"Inquiry"' }, { field: 'Email', operator: 'IsNull', value: 'false' }] });
     expect(facts('Get_Queue')).toMatchObject({ apiName: 'Get_Queue', object: 'Group', filterLogic: 'and', filters: [{ field: 'DeveloperName', operator: 'EqualTo', value: '"CRC"' }] });
     expect(facts('Get_Queue')!.line).toBeGreaterThan(1);
     expect(facts('Found')!.outcomes).toEqual([{ label: 'Yes', conditions: [] }, { label: 'Not found', conditions: [], isDefault: true }]);
@@ -154,6 +154,19 @@ describe('a Flow as a process diagram', () => {
     expect(facts('Notify')).toMatchObject({ action: { name: 'Lead.Notify', type: 'emailAlert' } });
     expect(facts('Assign')).toMatchObject({ object: 'Lead', inputRecord: '$Record', assignments: [{ field: 'OwnerId', value: 'Get_Queue.Id' }] });
     expect(facts('Get_Queue')).toMatchObject({ firstRecordOnly: true, sort: { field: 'CreatedDate', order: 'Desc' } });
+  });
+
+  it('flags every element that can fail without a fault path: Get Records and Waits too, not Subflows', () => {
+    const flow = flowFile('Check_Members', `
+      <label>Check members</label><processType>AutoLaunchedFlow</processType><status>Active</status>
+      <start>${connector('Find')}</start>
+      <recordLookups><name>Find</name><label>Find the user</label>${connector('Pause')}<object>User</object></recordLookups>
+      <waits><name>Pause</name><label>Wait a day</label><defaultConnector><targetReference>Run</targetReference></defaultConnector></waits>
+      <subflows><name>Run</name><label>Run the checks</label><flowName>Checks</flowName></subflows>
+    `);
+    const [{ diagram }] = buildSalesforceFlowDiagrams([flow], { flows: ['Check_Members'] }).results;
+    const flagged = diagram.nodes.filter((node) => node.issues?.some((issue) => issue.startsWith('No fault path'))).map((node) => node.id);
+    expect(flagged).toEqual(['Find', 'Pause']);
   });
 
   it('flags a record operation inside a loop against the transaction\'s limits', () => {

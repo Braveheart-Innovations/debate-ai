@@ -6,6 +6,7 @@
  * from metadata) has no numbers, so its edits add none.
  */
 import {
+  FAULT_PATH_ELEMENTS,
   uniqueName,
   type Distribution,
   type Flow,
@@ -185,10 +186,76 @@ export function flowDml(diagram: ProcessFlowDiagram): {
   };
 }
 
+/** Whether a Salesforce element can have a fault path: it can fail (a record operation, an action, a wait). */
+export function takesFaultPath(node: Pick<FlowNode, 'elementType'>): boolean {
+  return Boolean(node.elementType && FAULT_PATH_ELEMENTS.has(node.elementType));
+}
+
+/** A before-save flow has no fault paths. Its start says so (a drawing from before `trigger` says "(before save)" in its label). */
+export function isBeforeSaveFlow(diagram: ProcessFlowDiagram): boolean {
+  const starts = diagram.nodes.filter((node) => node.type === 'start');
+  return starts.length > 0 && starts.every((start) => (start.element?.trigger ? start.element.trigger === 'RecordBeforeSave' : /\(before save\)$/.test(start.label)));
+}
+
+/** The issue an element that can fail carries while nothing catches its fault. */
+export const NO_FAULT_PATH = 'No fault path: if it fails, the flow stops with an unhandled fault.';
+
+/** Whether an element that can fail has nowhere to go when it does. */
+export function lacksFaultPath(diagram: ProcessFlowDiagram, node: FlowNode): boolean {
+  return isAutomationFlow(diagram) && takesFaultPath(node) && !isBeforeSaveFlow(diagram) && !diagram.flows.some((flow) => flow.from === node.id && flow.fault);
+}
+
+/** A node's issues as the diagram now stands: the reader's, with "No fault path" kept true as fault paths are added and removed. */
+export function nodeIssues(diagram: ProcessFlowDiagram, node: FlowNode): string[] {
+  const kept = (node.issues ?? []).filter((issue) => !issue.startsWith('No fault path'));
+  return lacksFaultPath(diagram, node) ? [NO_FAULT_PATH, ...kept] : kept;
+}
+
+/** Where `from` goes when it fails: an element has one fault path, so this replaces any other. */
+export function addFaultPath(diagram: ProcessFlowDiagram, from: string, to: string): { diagram: ProcessFlowDiagram; id: string } {
+  if (from === to || !diagram.nodes.some((node) => node.id === to)) return { diagram, id: '' };
+  const id = uniqueName(diagram.flows.map((flow) => flow.id), `${from}-fault`);
+  const others = diagram.flows.filter((flow) => !(flow.from === from && flow.fault));
+  return { diagram: { ...diagram, flows: [...others, { id, from, to, fault: true }] }, id };
+}
+
+/** What a fault path usually leads to, offered when adding one: each a new element with a name that says what it does. */
+export const FAULT_HANDLERS: Array<{ elementType: string; label: string }> = [
+  { elementType: 'customErrors', label: 'Show an error' },
+  { elementType: 'recordCreates', label: 'Log the error' },
+  { elementType: 'actionCalls', label: 'Email the error' },
+];
+
+/** A new element on `from`'s fault path (Show an error, Log the error, Email the error), going on to the flow's end. */
+export function addFaultHandler(diagram: ProcessFlowDiagram, from: string, elementType: string): { diagram: ProcessFlowDiagram; id: string } {
+  const added = addFlowElement(diagram, elementType);
+  const label = FAULT_HANDLERS.find((handler) => handler.elementType === elementType)?.label;
+  let next = label ? updateFlowNode(added.diagram, added.id, { label }) : added.diagram;
+  next = addFaultPath(next, from, added.id).diagram;
+  const end = next.nodes.find((node) => node.type === 'end');
+  if (end) return { diagram: addFlow(next, { from: added.id, to: end.id }).diagram, id: added.id };
+  const ending = addFlowNode(next, 'end');
+  return { diagram: addFlow(ending.diagram, { from: added.id, to: ending.id }).diagram, id: added.id };
+}
+
+/** A flow made a fault path, or a way on again. An element keeps one fault path: the one it had becomes a way on. */
+export function setFaultPath(diagram: ProcessFlowDiagram, id: string, fault: boolean): ProcessFlowDiagram {
+  const target = diagram.flows.find((flow) => flow.id === id);
+  if (!target) return diagram;
+  return {
+    ...diagram,
+    flows: diagram.flows.map((flow) => {
+      if (flow.id === id) return withoutEmpty({ ...flow, fault: fault || undefined });
+      if (fault && flow.from === target.from && flow.fault) return withoutEmpty({ ...flow, fault: undefined });
+      return flow;
+    }),
+  };
+}
+
 /** Elements the Add menu offers for a Salesforce flow, grouped as Flow Builder groups them. */
 export const FLOW_ELEMENT_MENU: Array<{ group: string; elementTypes: string[] }> = [
   { group: 'Interaction', elementTypes: ['screens', 'actionCalls', 'subflows'] },
-  { group: 'Logic', elementTypes: ['assignments', 'decisions', 'loops', 'collectionProcessors'] },
+  { group: 'Logic', elementTypes: ['assignments', 'decisions', 'loops', 'collectionProcessors', 'customErrors'] },
   { group: 'Data', elementTypes: ['recordLookups', 'recordCreates', 'recordUpdates', 'recordDeletes'] },
 ];
 
@@ -354,6 +421,10 @@ export function addFlow(diagram: ProcessFlowDiagram, input: { from: string; to: 
   const from = diagram.nodes.find((node) => node.id === input.from);
   if (!from || from.type === 'end' || input.from === input.to) return { diagram, id: '' };
   const id = uniqueName(diagram.flows.map((flow) => flow.id), `${input.from}-${input.to}`);
+  // A second line out of an element that can fail is its fault path, as Flow Builder draws it.
+  if (from.type === 'step' && lacksFaultPath(diagram, from) && diagram.flows.some((flow) => flow.from === from.id && !flow.fault && !flow.launch)) {
+    return { diagram: { ...diagram, flows: [...diagram.flows, { id, from: input.from, to: input.to, fault: true }] }, id };
+  }
   if (from.type === 'decision' && isAutomationFlow(diagram)) {
     return { diagram: { ...diagram, flows: [...diagram.flows, { id, from: input.from, to: input.to }] }, id };
   }
