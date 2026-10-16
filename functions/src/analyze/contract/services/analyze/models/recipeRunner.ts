@@ -17,7 +17,8 @@
  *    defaults in the source before it runs; unknown names are refused.
  *  - OUTPUT_DIR (/output/<name>/) exists before the recipe runs.
  *  - The recipe shows its results with show_metric / show_chart / show_table /
- *    show_note; run_recipe writes them, with the values the run used, to
+ *    show_note (a table's rows can open to show more: details=, one per row;
+ *    a note with a title starts a list of notes); run_recipe writes them, with the values the run used, to
  *    OUTPUT_DIR/model.json (the app's Model view draws that file; each run is
  *    a new version of it). Figures left open are saved as figure-<n>.png
  *    (stable names, so a re-run versions them instead of adding charts).
@@ -99,6 +100,20 @@ def _sym_table(data, headers=None):
         return [str(_h) for _h in headers], _sym_jsonable([list(_row) for _row in data])
     raise TypeError('show_table takes a pandas DataFrame, a list of dicts, or rows with headers=[...]')
 
+def _sym_details(details, count):
+    """A table's row details: one per row, None or {label: [names]} (or a list of (label, names) pairs)."""
+    _details = list(details)
+    if len(_details) != count:
+        raise ValueError(f"details has {len(_details)} entries for {count} rows: give one per row (None for a row with nothing more)")
+    _out = []
+    for _detail in _details:
+        if not _detail:
+            _out.append(None)
+            continue
+        _pairs = _detail.items() if isinstance(_detail, dict) else _detail
+        _out.append([{'label': str(_label), 'values': [str(_value) for _value in (_values or [])]} for _label, _values in _pairs])
+    return _out
+
 def _sym_run_recipe(path, params=None, **values):
     import ast as _ast
     if not _sym_os.path.isabs(path):
@@ -162,15 +177,20 @@ def _sym_run_recipe(path, params=None, **values):
             _item['title'] = str(title)
         _items.append(_item)
 
-    def show_table(data, title=None, headers=None):
+    def show_table(data, title=None, headers=None, details=None):
         _headers, _rows = _sym_table(data, headers)
         _item = {'kind': 'table', 'headers': _headers, 'rows': _rows}
         if title is not None:
             _item['title'] = str(title)
+        if details is not None:
+            _item['details'] = _sym_details(details, len(_rows))
         _items.append(_item)
 
-    def show_note(text):
-        _items.append({'kind': 'note', 'text': str(text)})
+    def show_note(text, title=None):
+        _item = {'kind': 'note', 'text': str(text)}
+        if title is not None:
+            _item['title'] = str(title)
+        _items.append(_item)
 
     plt.close('all')
     _globals = {

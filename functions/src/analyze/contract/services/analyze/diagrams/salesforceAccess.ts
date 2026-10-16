@@ -15,8 +15,12 @@
 
 export const ACCESS_FILE_SUFFIX = '.access.json';
 
-/** What grants access: a profile, a permission set, or a group of permission sets. */
-export type AccessHolderKind = 'profile' | 'permissionSet' | 'permissionSetGroup';
+/**
+ * What grants access: a profile, a permission set, or a group of permission
+ * sets. A muting permission set grants nothing: what it lists, it takes away
+ * from the groups that include it.
+ */
+export type AccessHolderKind = 'profile' | 'permissionSet' | 'permissionSetGroup' | 'mutingPermissionSet';
 
 export interface SalesforceAccessHolder {
   kind: AccessHolderKind;
@@ -28,7 +32,7 @@ export interface SalesforceAccessHolder {
   /** A permission set group's permission sets (holder indexes); muting sets take away. */
   permissionSets?: number[];
   mutingPermissionSets?: number[];
-  /** System permissions that see or change every record and field. */
+  /** System permissions that see or change every record, whatever the sharing model (field permissions still apply). */
   viewAllData?: boolean;
   modifyAllData?: boolean;
 }
@@ -42,6 +46,8 @@ export interface SalesforceObjectGrant {
   delete: boolean;
   viewAll: boolean;
   modifyAll: boolean;
+  /** View All Fields (API 63.0+): read on every field of the object, so its fields aren't listed in the holder's field permissions. */
+  viewAllFields?: boolean;
 }
 
 export interface SalesforceObjectAccess {
@@ -49,7 +55,7 @@ export interface SalesforceObjectAccess {
   sharingModel?: string;
   externalSharingModel?: string;
   grants: SalesforceObjectGrant[];
-  /** By the field's API name: the holders (indexes) that can read it, and that can edit it. */
+  /** By the field's API name: the holders (indexes) whose field permissions read it, and edit it (a muting set's: mute them). */
   fields: Record<string, { read: number[]; edit: number[] }>;
 }
 
@@ -59,7 +65,7 @@ export interface SalesforceAccessFile {
   /** The diagram file it belongs to: `salesforce_data_model.diagram.json`. */
   diagram: string;
   generatedAt: string;
-  /** Every profile, permission set and group, once; grants point at them by index. */
+  /** Every profile, permission set, group and muting set, once; grants point at them by index. */
   holders: SalesforceAccessHolder[];
   /** By the object's API name (the diagram's entity id). */
   objects: Record<string, SalesforceObjectAccess>;

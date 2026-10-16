@@ -197,11 +197,18 @@ def _sym_show_impact(result, show_metric, show_chart, show_table, show_note, tit
     for _limit in result['limits']:
         show_note(_limit)
 
+_SF_HOLDER_KINDS = (('profile', 'Profile', 'Profiles'), ('permissionSet', 'Permission set', 'Permission sets'), ('permissionSetGroup', 'Permission set group', 'Permission set groups'))
+_SF_HOLDER_WORDS = {_kind: _word for _kind, _word, _plural in _SF_HOLDER_KINDS}
+
+def _sf_holder_name(holder):
+    return holder.get('label') or holder['name']
+
 def _sf_holders(access, ids):
-    _groups = {'profile': [], 'permissionSet': [], 'permissionSetGroup': []}
+    _groups = {_kind: [] for _kind, _word, _plural in _SF_HOLDER_KINDS}
     for _id in ids:
         _holder = access['holders'][_id]
-        _groups[_holder['kind']].append(_holder.get('label') or _holder['name'])
+        if _holder['kind'] in _groups:
+            _groups[_holder['kind']].append(_sf_holder_name(_holder))
     return {_kind: sorted(set(_names)) for _kind, _names in _groups.items()}
 
 def _sf_user_counts(users):
@@ -224,11 +231,19 @@ def _sym_salesforce_access(access, fields, users=None):
         _access = _sf_json.load(_file)
     _objects = _access.get('objects', {})
     _holders = _access.get('holders', [])
-    # A group grants what its permission sets grant, less what its muting sets take away.
-    _group_of = {}
-    for _index, _holder in enumerate(_holders):
-        for _member in _holder.get('permissionSets', []):
-            _group_of.setdefault(_member, []).append((_index, set(_holder.get('mutingPermissionSets', []))))
+    _muting = {_index for _index, _holder in enumerate(_holders) if _holder['kind'] == 'mutingPermissionSet'}
+    _groups = [(_index, set(_holder.get('permissionSets', [])), set(_holder.get('mutingPermissionSets', []))) for _index, _holder in enumerate(_holders) if _holder['kind'] == 'permissionSetGroup']
+
+    def _holding(ids):
+        """The holders that grant it, given the indexes whose permissions list it: a group holds what one of
+        its permission sets does, unless one of its muting sets mutes it; a muting set holds nothing."""
+        _ids = set(ids)
+        _out = _ids - _muting
+        for _group, _sets, _mutes in _groups:
+            if _sets & _out and not _mutes & _ids:
+                _out.add(_group)
+        return _out
+
     _counts = _sf_user_counts(users)
     _rows, _unknown, _models = [], [], {}
     for _name in _sf_names(fields):
@@ -247,75 +262,150 @@ def _sym_salesforce_access(access, fields, users=None):
                 continue
         else:
             _keys = sorted(_object.get('fields', {}))
-        _object_readers = {_grant['holder'] for _grant in _object.get('grants', []) if _grant['read'] or _grant['viewAll'] or _grant['modifyAll']}
+        _grants = _object.get('grants', [])
+        _object_read = _holding(_grant['holder'] for _grant in _grants if _grant['read'] or _grant['viewAll'] or _grant['modifyAll'])
+        _object_edit = _holding(_grant['holder'] for _grant in _grants if _grant['edit'] or _grant['modifyAll'])
+        _all_fields = [_grant['holder'] for _grant in _grants if _grant.get('viewAllFields')]
         for _key in _keys:
             _grant = _object['fields'][_key]
-            _row = {'field': f"{_object_key}.{_key}"}
-            for _mode in ('read', 'edit'):
-                _ids = set(_grant[_mode])
-                for _member in list(_ids):
-                    for _group, _muting in _group_of.get(_member, []):
-                        if not (_muting & _ids):
-                            _ids.add(_group)
-                _row[_mode] = _sf_holders(_access, _ids)
-                _row[f"{_mode}_ids"] = sorted(_ids)
-            _row['open'] = not _grant['read'] and not _grant['edit']
-            _row['no_object_access'] = sorted(_holders[_id].get('label') or _holders[_id]['name'] for _id in _row['read_ids'] if _holders[_id]['kind'] != 'permissionSetGroup' and _id not in _object_readers)
+            _open = not _grant['read'] and not _grant['edit']
+            if _open:
+                # No field-level security (a required or system field): it follows access to the object.
+                _field_read, _field_edit, _through_all = set(_object_read), set(_object_edit), set()
+            else:
+                _granted = _holding(_grant['read'])
+                _field_read = _holding(list(_grant['read']) + _all_fields)
+                _field_edit = _holding(_grant['edit'])
+                _through_all = _field_read - _granted
+            # On its own, a holder opens a field with the object permission as well as the field's.
+            _read = _field_read & _object_read
+            _edit = _field_edit & _object_edit & _read
+            _row = {
+                'field': f"{_object_key}.{_key}", 'object': _object_key, 'open': _open,
+                'read': _sf_holders(_access, _read), 'edit': _sf_holders(_access, _edit),
+                'read_ids': sorted(_read), 'edit_ids': sorted(_edit),
+                'field_only_ids': sorted(_field_read - _object_read),
+                'view_all_fields_ids': sorted(_through_all & _read),
+            }
+            _row['field_only'] = sorted(_sf_holder_name(_holders[_id]) for _id in _row['field_only_ids'])
             if _counts is not None:
-                _row['users'] = sum(_counts.get((_holders[_id]['kind'], _holders[_id]['name'].lower()), 0) for _id in _row['read_ids'] if _holders[_id]['kind'] == 'profile')
+                _row['users'] = sum(_counts.get((_holders[_id]['kind'], _holders[_id]['name'].lower()), 0) for _id in _read if _holders[_id]['kind'] == 'profile')
             _rows.append(_row)
     return {
         'fields': _rows, 'unknown': _unknown, 'objects': _models,
-        'view_all_data': sorted(_holder.get('label') or _holder['name'] for _holder in _holders if _holder.get('viewAllData')),
+        'view_all_data': sorted(_sf_holder_name(_holder) for _holder in _holders if _holder.get('viewAllData') or _holder.get('modifyAllData')),
         'holders': _holders, 'users': _counts is not None, 'limits': _access.get('limits', []),
     }
+
+def _sf_fields_words(count, other=False):
+    if count == 1:
+        return 'the other field' if other else 'the field'
+    if other:
+        return f"the other {count} fields"
+    return 'both fields' if count == 2 else f"all {count} fields"
+
+def _sf_field_detail(row, holders):
+    """Opening a field's row: who can edit it and who can only read it, by kind, and who is granted it without the object."""
+    _detail = []
+    if row['open']:
+        _detail.append((f"No field-level security (a required or system field): it follows access to {row['object']}", []))
+    _through_all = set(row['view_all_fields_ids'])
+    _edit = set(row['edit_ids'])
+    _read_only = set(row['read_ids']) - _edit
+
+    def _names(ids, kind):
+        return sorted(f"{_sf_holder_name(holders[_id])} (View All Fields)" if _id in _through_all else _sf_holder_name(holders[_id]) for _id in ids if holders[_id]['kind'] == kind)
+
+    for _kind, _word, _plural in _SF_HOLDER_KINDS:
+        for _ids, _verb in ((_edit, 'can edit'), (_read_only, 'can only read')):
+            _found = _names(_ids, _kind)
+            if _found:
+                _detail.append((f"{_plural} that {_verb} it ({len(_found)})", _found))
+    _only = sorted(f"{_sf_holder_name(holders[_id])} ({_SF_HOLDER_WORDS[holders[_id]['kind']].lower()})" for _id in row['field_only_ids'])
+    if _only:
+        _detail.append((f"Granted it without read on {row['object']}, so it opens only with another grant that has that read ({len(_only)})", _only))
+    if not row['read_ids'] and not _only:
+        _detail.append(('No profile, permission set or group grants it', []))
+    return _detail
+
+def _sf_holder_detail(holder_id, rows):
+    """Opening a holder's row: the fields it can edit, can only read and can't read, the largest group in words when it's most of them."""
+    _groups = [
+        ('Can edit', [_row['field'] for _row in rows if holder_id in _row['edit_ids']]),
+        ('Can only read', [_row['field'] for _row in rows if holder_id in _row['read_ids'] and holder_id not in _row['edit_ids']]),
+        ("Can't read", [_row['field'] for _row in rows if holder_id not in _row['read_ids']]),
+    ]
+    _groups = [(_label, _fields) for _label, _fields in _groups if _fields]
+    _largest = max(_groups, key=lambda _group: len(_group[1]))
+    _rest = sum(len(_fields) for _label, _fields in _groups) - len(_largest[1])
+    _detail, _in_words = [], []
+    for _label, _fields in _groups:
+        if _label == _largest[0] and len(_fields) > _rest and len(_fields) > 1:
+            _in_words.append((f"{_label} {_sf_fields_words(len(_fields), other=_rest > 0)}", []))
+        else:
+            _detail.append((f"{_label} ({len(_fields)})", sorted(_fields)))
+    return _detail + _in_words
 
 def _sym_show_access(result, show_metric, show_chart, show_table, show_note, title=None):
     _prefix = f"{title}: " if title else ''
     _holders = result['holders']
-    _readers = {_id for _row in result['fields'] for _id in _row['read_ids']}
-    _editors = {_id for _row in result['fields'] for _id in _row['edit_ids']}
-    show_metric(f"{_prefix}Fields", len(result['fields']))
+    _rows = result['fields']
+    if result['unknown']:
+        show_note(f"Not in the access file: {', '.join(result['unknown'])}. It covers the objects the data model draws; name them as Object.Field or Object.")
+    _readers = {_id for _row in _rows for _id in _row['read_ids']}
+    _editors = {_id for _row in _rows for _id in _row['edit_ids']}
+    show_metric(f"{_prefix}Fields", len(_rows))
     show_metric(f"{_prefix}Profiles that can read at least one", sum(1 for _id in _readers if _holders[_id]['kind'] == 'profile'))
     show_metric(f"{_prefix}Permission sets and groups that can read at least one", sum(1 for _id in _readers if _holders[_id]['kind'] != 'profile'))
-    show_metric(f"{_prefix}Holders that can edit at least one", len(_editors))
+    show_metric(f"{_prefix}Profiles, permission sets and groups that can edit at least one", len(_editors))
     if result['users']:
-        show_metric(f"{_prefix}Most active users who can read a field (by profile)", max((_row.get('users', 0) for _row in result['fields']), default=0), detail='permission sets can add more')
-    if result['fields']:
+        show_metric(f"{_prefix}Most active users who can read a field (by profile)", max((_row.get('users', 0) for _row in _rows), default=0), detail='permission sets can add more')
+    if _rows:
+        _any_open = any(_row['open'] for _row in _rows)
         _table = []
-        for _row in result['fields']:
-            _entry = {
-                'Field': _row['field'],
-                'Profiles (read)': len(_row['read']['profile']), 'Permission sets (read)': len(_row['read']['permissionSet']), 'Groups (read)': len(_row['read']['permissionSetGroup']),
-                'Profiles (edit)': len(_row['edit']['profile']), 'Permission sets (edit)': len(_row['edit']['permissionSet']),
-            }
+        for _row in _rows:
+            _sets = lambda _mode: len(_row[_mode]['permissionSet']) + len(_row[_mode]['permissionSetGroup'])
+            _entry = {'Field': _row['field']}
+            if _any_open:
+                _entry['Field-level security'] = f"None: follows {_row['object']}" if _row['open'] else 'Yes'
+            _entry.update({
+                'Profiles that can read': len(_row['read']['profile']), 'Profiles that can edit': len(_row['edit']['profile']),
+                'Permission sets and groups that can read': _sets('read'), 'Permission sets and groups that can edit': _sets('edit'),
+                'Granted without read on the object': len(_row['field_only_ids']),
+            })
             if result['users']:
                 _entry['Active users (profiles)'] = _row.get('users', 0)
             _table.append(_entry)
-        show_table(_table, title=f"{_prefix}Who can read and edit each field")
-        _grid = {}
-        for _row in result['fields']:
-            for _id in _row['read_ids']:
-                _cell = _grid.setdefault(_id, {'read': 0, 'edit': 0})
-                _cell['read'] += 1
-            for _id in _row['edit_ids']:
-                _grid.setdefault(_id, {'read': 0, 'edit': 0})['edit'] += 1
-        _kinds = {'profile': 'Profile', 'permissionSet': 'Permission set', 'permissionSetGroup': 'Permission set group'}
-        show_table(sorted(({'Holder': _holders[_id].get('label') or _holders[_id]['name'], 'Kind': _kinds[_holders[_id]['kind']], 'Fields it can read': _cell['read'], 'Fields it can edit': _cell['edit']} for _id, _cell in _grid.items()), key=lambda _entry: (-_entry['Fields it can read'], _entry['Holder'])), title=f"{_prefix}Who sees the most")
+        show_table(_table, title=f"{_prefix}Who can read and edit each field", details=[_sf_field_detail(_row, _holders) for _row in _rows])
+        _holder_rows = sorted(_readers, key=lambda _id: (-sum(1 for _row in _rows if _id in _row['read_ids']), _sf_holder_name(_holders[_id]).lower()))
+        show_table([{
+            'Holder': _sf_holder_name(_holders[_id]), 'Kind': _SF_HOLDER_WORDS[_holders[_id]['kind']],
+            'Fields it can read': sum(1 for _row in _rows if _id in _row['read_ids']), 'Fields it can edit': sum(1 for _row in _rows if _id in _row['edit_ids']),
+        } for _id in _holder_rows], title=f"{_prefix}Who can see the most", details=[_sf_holder_detail(_id, _rows) for _id in _holder_rows] if len(_rows) > 1 else None)
     if result['objects']:
         show_table([{'Object': _name, 'Sharing model (internal)': _model['sharing'] or 'not in the upload', 'External': _model['external'] or ''} for _name, _model in sorted(result['objects'].items())], title=f"{_prefix}Sharing model: which records")
-    if result['view_all_data']:
-        show_note(f"View All Data sees every record and field, whatever the field permissions: {', '.join(result['view_all_data'])}.")
-    _open = [_row['field'] for _row in result['fields'] if _row['open']]
-    if _open:
-        show_note(f"No field permissions at all, so whoever can read the object can read them (required and system fields): {', '.join(_open)}.")
-    _no_object = sorted({_name for _row in result['fields'] for _name in _row['no_object_access']})
-    if _no_object:
-        show_note(f"These grant a field but not read on its object, so they open it only with another grant that does: {', '.join(_no_object)}.")
-    if result['unknown']:
-        show_note(f"Not in the access file: {', '.join(result['unknown'])}. It covers the objects the data model draws; name them as Object.Field or Object.")
-    for _limit in result['limits']:
-        show_note(_limit)
+    _everything = [_holder for _holder in _holders if _holder.get('viewAllData') or _holder.get('modifyAllData')]
+    if _everything:
+        show_table([{
+            'Holder': _sf_holder_name(_holder), 'Kind': _SF_HOLDER_WORDS.get(_holder['kind'], _holder['kind']),
+            'Permission': 'Modify All Data' if _holder.get('modifyAllData') else 'View All Data',
+        } for _holder in sorted(_everything, key=lambda _holder: _sf_holder_name(_holder).lower())], title=f"{_prefix}Every record: View All Data and Modify All Data")
+    _field_only = sorted({_id for _row in _rows for _id in _row['field_only_ids']}, key=lambda _id: _sf_holder_name(_holders[_id]).lower())
+    if _field_only:
+        _granted = {_id: [_row['field'] for _row in _rows if _id in _row['field_only_ids']] for _id in _field_only}
+        show_table([{
+            'Holder': _sf_holder_name(_holders[_id]), 'Kind': _SF_HOLDER_WORDS[_holders[_id]['kind']], 'Fields granted': len(_granted[_id]),
+        } for _id in _field_only], title=f"{_prefix}Granted fields without read on the object", details=[[('Fields', _granted[_id])] for _id in _field_only])
+    _notes = ['Can read and can edit count what each profile, permission set or group grants on its own, the object permission and the field permission together. A user has one profile plus any permission sets and groups, and their access is all of those added up.']
+    if _everything:
+        _notes.append('View All Data and Modify All Data see every record, whatever the sharing model. Which fields they see still follows field permissions, or View All Fields on the object.')
+    if _field_only:
+        _notes.append("A grant without read on the object opens its fields only for users whose profile or another permission set has that read.")
+    if any(_row['view_all_fields_ids'] for _row in _rows):
+        _notes.append('Holders marked (View All Fields) read every field of the object through that object permission.')
+    _notes.extend(result['limits'])
+    for _index, _text in enumerate(_notes):
+        show_note(_text, title=f"{_prefix}How to read this" if _index == 0 else None)
 
 # Limits that reset every day (or hour): their trend is the busiest day's use, not a running total.
 _SF_DAILY_LIMIT = _sf_re.compile(r'^(Daily|Hourly)|^(SingleEmail|MassEmail)$', _sf_re.IGNORECASE)
