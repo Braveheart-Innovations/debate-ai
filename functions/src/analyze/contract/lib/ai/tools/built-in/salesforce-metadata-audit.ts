@@ -12,25 +12,34 @@ import type { ToolDefinition } from '../types';
 export const salesforceMetadataAuditTool: ToolDefinition = {
   name: 'salesforce_metadata_audit',
 
-  description: `Inspect uploaded Salesforce metadata in read-only mode. Use this for Salesforce DX project ZIPs, metadata ZIPs, uploaded source folders/files, or GitHub source snapshots. If the upload contains user-selected .symposium/salesforce-insights/<run-id>/manifest.json plus findings/evidence files, import those findings as optional imported agent evidence and join them to the metadata by path/component name. It builds a component inventory, dependency map, evidence ledger, Flow/Apex drilldowns, feature reference map, risk findings, troubleshooting brief, remediation backlog, feature-readiness brief, executive brief, stakeholder visual artifact plan, and engineering handoff package. Its outputs summarize the workspace; to read the source code itself (method bodies, SOQL, DML), use salesforce_read_source. For a data model (an ERD of the workspace's objects), use operation=data_model: it reads the object and field metadata (types with their sizes, required, unique, external IDs, picklist values, lookups and master-details) and writes /output/<name>.diagram.json, a diagram the user edits, with every object and field's source file. It does not edit files, generate deployable patches, deploy metadata, or mutate a Salesforce org.`,
+  description: `Inspect uploaded Salesforce metadata in read-only mode. Use this for Salesforce DX project ZIPs, metadata ZIPs, uploaded source folders/files, or GitHub source snapshots. If the upload contains user-selected .symposium/salesforce-insights/<run-id>/manifest.json plus findings/evidence files, import those findings as optional imported agent evidence and join them to the metadata by path/component name. It builds a component inventory, dependency map, evidence ledger, Flow/Apex drilldowns, feature reference map, risk findings, troubleshooting brief, remediation backlog, feature-readiness brief, executive brief, stakeholder visual artifact plan, and engineering handoff package. Its outputs summarize the workspace; to read the source code itself (method bodies, SOQL, DML), use salesforce_read_source. For a data model (an ERD of the workspace's objects), use operation=data_model: it reads the object and field metadata (types with their sizes, required, unique, external IDs, picklist values and value sets, lookups and master-details, sharing models, record types) and writes /output/<name>.diagram.json, a diagram the user edits, with every object and field's source file. Without objects it draws the org's own objects; installed-package objects appear collapsed where those point at them. For a Flow as a diagram, use operation=flow_diagram with flows (API names): it draws each Flow's start (its trigger and entry conditions), decisions, loops, record operations, actions, subflows and fault paths as /output/flow_<name>.diagram.json, and marks each record operation or action that has no fault path; chain=true draws the named flows and every flow they start (subflows, platform events they or their invocable Apex publish, flows Apex starts) as one diagram. For what runs when a record saves, use operation=save_order with objects: for each object it writes /output/save_order_<object>.diagram.json, Salesforce's documented order of execution with the object's own automation in it (before-save flows, triggers, validation rules, duplicate rules, assignment, auto-response and workflow rules, after-save flows in trigger order, roll-ups, sharing, asynchronous paths), each step linking to its file and saying which saves it runs on. It does not edit files, generate deployable patches, deploy metadata, or mutate a Salesforce org.`,
 
   parameters: {
     type: 'object',
     properties: {
       operation: {
         type: 'string',
-        enum: ['audit', 'inventory', 'search', 'component', 'dependencies', 'risks', 'packet_findings', 'handoff', 'feature_readiness', 'troubleshooting', 'data_model'],
+        enum: ['audit', 'inventory', 'search', 'component', 'dependencies', 'risks', 'packet_findings', 'handoff', 'feature_readiness', 'troubleshooting', 'data_model', 'flow_diagram', 'save_order'],
         default: 'audit',
-        description: 'Audit operation to run. Use audit for the full artifact bundle, troubleshooting for pasted Flow/Apex errors or production bug reports, packet_findings when the user specifically asks for imported agent evidence, or data_model for a data model diagram of the objects.',
+        description: 'Audit operation to run. Use audit for the full artifact bundle, troubleshooting for pasted Flow/Apex errors or production bug reports, packet_findings when the user specifically asks for imported agent evidence, data_model for a data model diagram of the objects, flow_diagram for a Flow (or a chain of Flows) as a process diagram, or save_order for what runs, in order, when a record of an object saves.',
       },
       objects: {
         type: 'array',
         items: { type: 'string' },
-        description: 'For operation=data_model: the object API names to include with all their fields (e.g. ["Center__c", "Enrollment__c", "Account"]). Objects they look up to are added without fields so both ends of each relationship show. If omitted, every custom object and every standard object with field metadata is included.',
+        description: 'For operation=data_model: the object API names to include with all their fields (e.g. ["Center__c", "Enrollment__c", "Account"]). Objects they look up to are added without fields so both ends of each relationship show. If omitted, the org\'s own objects are included: its custom objects and the standard objects it added fields to. For operation=save_order (required): the objects whose save order to draw, one diagram each (e.g. ["Lead"]).',
+      },
+      flows: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'For operation=flow_diagram: the Flow API names to draw (e.g. ["Conversion_1_Search_Match"]), each as its own diagram unless chain is true.',
+      },
+      chain: {
+        type: 'boolean',
+        description: 'For operation=flow_diagram: draw the named flows and every flow they start (subflows, platform events, flows their Apex starts) as one diagram.',
       },
       name: {
         type: 'string',
-        description: 'For operation=data_model: the diagram file name, a short snake_case name (default salesforce_data_model); the file is /output/<name>.diagram.json.',
+        description: 'For operation=data_model or flow_diagram: the diagram file name, a short snake_case name (defaults: salesforce_data_model, flow_<flow name>, flow_chain_<first flow>); the file is /output/<name>.diagram.json. With several flows not chained, each keeps its default name.',
       },
       paths: {
         type: 'array',
@@ -72,7 +81,9 @@ export type SalesforceMetadataAuditOperation =
   | 'handoff'
   | 'feature_readiness'
   | 'troubleshooting'
-  | 'data_model';
+  | 'data_model'
+  | 'flow_diagram'
+  | 'save_order';
 
 export interface SalesforceMetadataAuditArgs {
   operation?: SalesforceMetadataAuditOperation;
@@ -80,8 +91,12 @@ export interface SalesforceMetadataAuditArgs {
   query?: string;
   component?: string;
   include_artifacts?: boolean;
-  /** operation=data_model: the objects to include with their fields. */
+  /** operation=data_model: the objects to include with their fields; operation=save_order: the objects whose save order to draw. */
   objects?: string[];
-  /** operation=data_model: the diagram file name (without .diagram.json). */
+  /** operation=data_model or flow_diagram: the diagram file name (without .diagram.json). */
   name?: string;
+  /** operation=flow_diagram: the Flow API names to draw. */
+  flows?: string[];
+  /** operation=flow_diagram: one diagram of the flows and every flow they start. */
+  chain?: boolean;
 }

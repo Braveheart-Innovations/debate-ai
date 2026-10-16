@@ -7,6 +7,10 @@
  *  - a process flow: start, step, decision and end nodes joined by flows, with
  *    the numbers a simulation needs (arrivals, durations, capacities, branch
  *    shares). The app-owned simulator (models/processSimulator.ts) runs it.
+ *    A flow drawn from Salesforce metadata (`platform: "salesforce"`: a Flow,
+ *    or what runs when a record saves) is automation, not a staffed process:
+ *    it has no simulation numbers, and its steps may have fault flows and
+ *    launch flows (other automation the step starts).
  *
  * Shared with the server (scripts/sync-analyze-contract.mjs): the same review
  * runs when the agent saves the file and when the app reads it. Problems
@@ -53,6 +57,19 @@ const fieldSchema = z.object({
   externalId: z.boolean().optional(),
   /** Where it came from; a field without one takes its entity's (sourceOf). */
   source: z.string().optional(),
+  /** Salesforce: the global or standard value set its picklist values come from (`LeadStatus`). */
+  valueSet: z.string().optional(),
+});
+
+/** Salesforce: one of an object's record types. */
+const recordTypeSchema = z.object({
+  /** Its API name: `Creme_Family`. */
+  name: nameSchema,
+  label: z.string().optional(),
+  /** False when the record type is inactive. */
+  active: z.boolean().optional(),
+  description: z.string().optional(),
+  source: z.string().optional(),
 });
 
 const entitySchema = z.object({
@@ -64,6 +81,17 @@ const entitySchema = z.object({
   description: z.string().optional(),
   source: z.string().optional(),
   fields: z.array(fieldSchema).default(() => []),
+  /** Salesforce: the installed package's namespace (`hed` in `hed__Course__c`), when it comes from one. */
+  namespace: z.string().optional(),
+  /** Salesforce: from an installed package, so the org can't change it. Drawn collapsed. */
+  managed: z.boolean().optional(),
+  /** Salesforce: who sees its records by default, as the object file writes it (`Private`, `Read`, `ReadWrite`, `ControlledByParent`). */
+  sharingModel: z.string().optional(),
+  /** Salesforce: the same for external users (Experience Cloud). */
+  externalSharingModel: z.string().optional(),
+  recordTypes: z.array(recordTypeSchema).optional(),
+  /** Salesforce: fields from installed packages on this object, left out of `fields` and counted here. */
+  packageFieldCount: z.number().int().min(0).optional(),
 });
 
 const relationshipSchema = z.object({
@@ -101,8 +129,11 @@ const dataModelSchema = z.object({
 
 export const FLOW_NODE_TYPES = ['start', 'step', 'decision', 'end'] as const;
 export const TIME_UNITS = ['seconds', 'minutes', 'hours', 'days'] as const;
+/** Where a process flow was drawn from, when not by hand or by the AI: Salesforce metadata. */
+export const PROCESS_FLOW_PLATFORMS = ['salesforce'] as const;
 export type FlowNodeType = (typeof FLOW_NODE_TYPES)[number];
 export type TimeUnit = (typeof TIME_UNITS)[number];
+export type ProcessFlowPlatform = (typeof PROCESS_FLOW_PLATFORMS)[number];
 
 /** A random time, in the flow's time unit: between arrivals at a start, or the work at a step. */
 const distributionSchema = z.discriminatedUnion('type', [
@@ -132,6 +163,10 @@ const flowNodeSchema = z.object({
   capacity: z.union([z.number().int().min(1), z.literal('unlimited')]).optional(),
   /** step: a shared resource (resources[].id), used instead of its own capacity. */
   resource: nameSchema.optional(),
+  /** What the platform calls it: a Flow element (`recordUpdates`, `actionCalls`), or `apexTrigger`, `validationRule`… */
+  elementType: z.string().optional(),
+  /** What its source does wrong here, drawn as a warning mark: "No fault path: …". */
+  issues: z.array(z.string()).optional(),
 });
 
 const flowSchema = z.object({
@@ -141,6 +176,14 @@ const flowSchema = z.object({
   /** A decision's branch: the share of arrivals that take it (the branches add up to 1). */
   share: z.number().min(0).max(1).optional(),
   label: z.string().optional(),
+  /** A Salesforce flow only: where a step goes when it fails (a fault connector). Drawn dashed. */
+  fault: z.boolean().optional(),
+  /**
+   * A Salesforce flow only: other automation the step starts as well as going
+   * on (a subflow it runs, a flow a platform event it publishes starts). It may
+   * end at a start. Drawn dotted.
+   */
+  launch: z.boolean().optional(),
 });
 
 const resourceSchema = z.object({
@@ -163,9 +206,12 @@ const runSchema = z.object({
 const processFlowSchema = z.object({
   version: z.literal(1),
   kind: z.literal('process_flow'),
+  /** Drawn from Salesforce metadata: automation, so no simulation numbers and no time unit. */
+  platform: z.enum(PROCESS_FLOW_PLATFORMS).optional(),
   title: nameSchema,
   summary: nameSchema,
-  timeUnit: z.enum(TIME_UNITS),
+  /** The unit of every time in the flow. A simulated flow needs one; a Salesforce flow has none. */
+  timeUnit: z.enum(TIME_UNITS).optional(),
   nodes: z.array(flowNodeSchema).default(() => []),
   flows: z.array(flowSchema).default(() => []),
   resources: z.array(resourceSchema).default(() => []),
@@ -188,6 +234,7 @@ export type Distribution = z.infer<typeof distributionSchema>;
 export type DataModelDiagram = z.infer<typeof dataModelSchema>;
 export type DataModelEntity = z.infer<typeof entitySchema>;
 export type DataModelField = z.infer<typeof fieldSchema>;
+export type DataModelRecordType = z.infer<typeof recordTypeSchema>;
 export type DataModelRelationship = z.infer<typeof relationshipSchema>;
 export type DiagramLayout = z.infer<typeof layoutSchema>;
 
@@ -210,6 +257,7 @@ export type DiagramMetadata = NonNullable<NonNullable<Artifact['metadata']>['dia
 export function diagramMetadata(diagram: DiagramFileV1, warnings: string[], savedByUser = false): DiagramMetadata {
   return {
     kind: diagram.kind,
+    ...(diagram.kind === 'process_flow' && diagram.platform ? { platform: diagram.platform } : {}),
     title: diagram.title,
     summary: diagram.summary,
     // A process flow counts its nodes and flows here.
@@ -330,29 +378,46 @@ function reviewProcessFlow(diagram: ProcessFlowDiagram): { problems: string[]; w
   const starts = diagram.nodes.filter((node) => node.type === 'start');
   if (starts.length === 0) problems.push('a process flow needs a start node (where work arrives)');
   if (!diagram.nodes.some((node) => node.type === 'end')) problems.push('a process flow needs an end node (where work leaves)');
+  // A Salesforce flow is automation: nothing to simulate, so no numbers to ask for.
+  const simulated = diagram.platform !== 'salesforce';
+  if (simulated && !diagram.timeUnit) problems.push('a process flow needs a timeUnit (seconds, minutes, hours or days): the unit of its times');
+  if (simulated) {
+    for (const flow of diagram.flows) {
+      if (flow.fault) problems.push(`flow "${flow.id}": fault flows are for Salesforce flows (platform "salesforce"); a simulated process branches with a decision`);
+      if (flow.launch) problems.push(`flow "${flow.id}": launch flows are for Salesforce flows (platform "salesforce"); a simulated process branches with a decision`);
+    }
+  }
 
   for (const node of diagram.nodes) {
     const where = `node "${node.id}"`;
-    const out = outgoing.get(node.id) ?? [];
+    const all = outgoing.get(node.id) ?? [];
+    // A fault flow is where a step goes when it fails, and a launch flow what else it starts, beside its one way on.
+    const out = all.filter((flow) => !flow.fault && !flow.launch);
+    if (node.type !== 'step') {
+      for (const flow of all) if (flow.launch) problems.push(`flow "${flow.id}": only a step starts other automation (a launch flow)`);
+    }
     if (node.type === 'start') {
-      if (!node.arrivals) problems.push(`${where}: a start needs arrivals, the time between arrivals`);
-      if ((incoming.get(node.id) ?? []).length > 0) problems.push(`${where}: nothing flows into a start`);
-      if (out.length !== 1) problems.push(`${where}: a start has one flow out (it has ${out.length})`);
+      if (simulated && !node.arrivals) problems.push(`${where}: a start needs arrivals, the time between arrivals`);
+      // Another flow's step may start this one (a subflow, a platform event).
+      if ((incoming.get(node.id) ?? []).some((flow) => !flow.launch)) problems.push(`${where}: nothing flows into a start`);
+      if (all.length !== 1) problems.push(`${where}: a start has one flow out (it has ${all.length})`);
     } else if (node.type === 'step') {
-      if (!node.duration) problems.push(`${where}: a step needs a duration`);
+      if (simulated && !node.duration) problems.push(`${where}: a step needs a duration`);
       if (out.length !== 1) problems.push(`${where}: a step has one flow out; branch with a decision node (it has ${out.length})`);
       if (node.resource !== undefined && !resources.has(node.resource)) problems.push(`${where}: resource "${node.resource}" isn't in resources`);
       if (node.resource !== undefined && node.capacity !== undefined) warnings.push(`${where}: it has a resource and a capacity; the resource's capacity is used`);
     } else if (node.type === 'decision') {
       if (out.length < 2) problems.push(`${where}: a decision has two or more flows out (it has ${out.length})`);
       const shares = out.map((flow) => flow.share);
-      if (shares.some((share) => share === undefined)) {
+      if (!simulated) {
+        // A Salesforce decision branches on its outcomes' conditions, not on shares.
+      } else if (shares.some((share) => share === undefined)) {
         problems.push(`${where}: every branch of a decision needs a share (the shares add up to 1)`);
       } else {
         const total = (shares as number[]).reduce((sum, share) => sum + share, 0);
         if (out.length > 0 && Math.abs(total - 1) > 0.01) problems.push(`${where}: its branch shares add up to ${Number(total.toFixed(3))}, not 1`);
       }
-    } else if (out.length > 0) {
+    } else if (all.length > 0) {
       problems.push(`${where}: nothing flows out of an end`);
     }
     for (const [key, distribution] of [['arrivals', node.arrivals], ['duration', node.duration]] as const) {
@@ -360,7 +425,10 @@ function reviewProcessFlow(diagram: ProcessFlowDiagram): { problems: string[]; w
       if (problem) problems.push(`${where}: ${key}: ${problem}`);
     }
     if (node.type !== 'decision') {
-      for (const flow of out) if (flow.share !== undefined) warnings.push(`flow "${flow.id}": only a decision's branches have shares`);
+      for (const flow of all) if (flow.share !== undefined) warnings.push(`flow "${flow.id}": only a decision's branches have shares`);
+    }
+    if (!simulated && node.type === 'start') {
+      for (const flow of all) if (flow.fault) problems.push(`flow "${flow.id}": a start has no fault path`);
     }
   }
 
@@ -415,6 +483,12 @@ function reviewDataModel(diagram: DataModelDiagram): { problems: string[]; warni
       if (fieldNames.has(field.name)) problems.push(`entity "${entity.id}" has two fields named "${field.name}"`);
       fieldNames.add(field.name);
       checkSource(field.source, `field "${entity.id}.${field.name}"`);
+    }
+    const recordTypeNames = new Set<string>();
+    for (const recordType of entity.recordTypes ?? []) {
+      if (recordTypeNames.has(recordType.name)) warnings.push(`entity "${entity.id}" has two record types named "${recordType.name}"`);
+      recordTypeNames.add(recordType.name);
+      checkSource(recordType.source, `record type "${entity.id}.${recordType.name}"`);
     }
   }
 

@@ -189,6 +189,8 @@ export interface Artifact {
      */
     diagram?: {
       kind: 'data_model' | 'process_flow';
+      /** A process flow drawn from Salesforce metadata (a Flow, a save order). */
+      platform?: 'salesforce';
       title: string;
       summary: string;
       /** Entities, or a process flow's nodes. */

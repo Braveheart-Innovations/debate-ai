@@ -9,6 +9,10 @@ import { SALESFORCE_ANALYSIS_LENSES } from '../../contract/config/analysis-lense
 import type { SandboxFiles } from './sandboxFiles';
 import { diagramFileText } from '../../contract/services/analyze/diagrams/diagramFile';
 import { buildSalesforceDataModel } from '../../salesforce/salesforceDataModel';
+import { buildSalesforceFlowDiagrams } from '../../salesforce/salesforceFlowDiagram';
+import { buildSalesforceSaveOrders } from '../../salesforce/salesforceSaveOrder';
+import { buildSalesforceReferenceIndex } from '../../salesforce/salesforceReferenceIndex';
+import { referencesFileFor } from '../../contract/services/analyze/diagrams/salesforceReferences';
 import {
   buildSalesforceAuditReport,
   buildSalesforceApexDrilldowns,
@@ -78,6 +82,12 @@ export async function executeSalesforceMetadataAuditTool(
 
     if (parsedArgs.operation === 'data_model') {
       return await writeSalesforceDataModel(files, toolCallId, sourceFiles, parsedArgs);
+    }
+    if (parsedArgs.operation === 'flow_diagram') {
+      return await writeSalesforceFlowDiagrams(files, toolCallId, sourceFiles, parsedArgs);
+    }
+    if (parsedArgs.operation === 'save_order') {
+      return await writeSalesforceSaveOrders(files, toolCallId, sourceFiles, parsedArgs);
     }
 
     const index = buildSalesforceMetadataIndex(sourceFiles, parsedArgs.paths || [], insightPackets, parsedArgs.query, retrieveRun);
@@ -162,11 +172,15 @@ function normalizeArgs(args: Record<string, unknown>): SalesforceMetadataAuditAr
       ? args.objects.filter((object): object is string => typeof object === 'string' && object.trim().length > 0)
       : undefined,
     name: typeof args.name === 'string' ? args.name : undefined,
+    flows: Array.isArray(args.flows)
+      ? args.flows.filter((flow): flow is string => typeof flow === 'string' && flow.trim().length > 0)
+      : undefined,
+    chain: typeof args.chain === 'boolean' ? args.chain : undefined,
   };
 }
 
 function isOperation(value: string): value is SalesforceMetadataAuditOperation {
-  return ['audit', 'inventory', 'search', 'component', 'dependencies', 'risks', 'packet_findings', 'handoff', 'feature_readiness', 'troubleshooting', 'data_model'].includes(value);
+  return ['audit', 'inventory', 'search', 'component', 'dependencies', 'risks', 'packet_findings', 'handoff', 'feature_readiness', 'troubleshooting', 'data_model', 'flow_diagram', 'save_order'].includes(value);
 }
 
 /**
@@ -672,15 +686,15 @@ function encodeArtifactOutputs(outputs: SalesforceArtifactFile[]): NonNullable<T
   }));
 }
 
-/** The data model file's name: a short snake_case name, without `.diagram.json`. */
-export function dataModelFileName(name: string | undefined): string {
+/** A diagram file's name: a short snake_case name, without `.diagram.json`. */
+export function dataModelFileName(name: string | undefined, fallback = 'salesforce_data_model'): string {
   const cleaned = (name ?? '')
     .replace(/^\/?output\//, '')
     .replace(/\.diagram\.json$/i, '')
     .toLowerCase()
     .replace(/[^a-z0-9_]+/g, '_')
     .replace(/^_+|_+$/g, '');
-  return cleaned || 'salesforce_data_model';
+  return cleaned || fallback;
 }
 
 /**
@@ -695,7 +709,7 @@ async function writeSalesforceDataModel(
   args: SalesforceMetadataAuditArgs,
 ): Promise<ToolResult> {
   const uploads = [...new Set(sourceFiles.map((file) => (file.sourcePath ?? '').split('/').pop()).filter(Boolean))];
-  const { diagram, notFound, referenced } = buildSalesforceDataModel(sourceFiles, {
+  const { diagram, notFound, referenced, packageObjects, packageFieldCount } = buildSalesforceDataModel(sourceFiles, {
     objects: args.objects,
     uploadName: uploads.length === 1 ? uploads[0] : undefined,
   });
@@ -712,16 +726,108 @@ async function writeSalesforceDataModel(
   const filename = `${dataModelFileName(args.name)}.diagram.json`;
   const text = diagramFileText(diagram);
   await files.writeFile(`/output/${filename}`, Buffer.from(text, 'utf8'));
+  // What refers to each object and field: the Diagram view shows an edit's impact from it.
+  const referencesFile = referencesFileFor(filename);
+  const referencesText = JSON.stringify(buildSalesforceReferenceIndex(sourceFiles, diagram, filename));
+  await files.writeFile(`/output/${referencesFile}`, Buffer.from(referencesText, 'utf8'));
   const withFields = diagram.entities.filter((entity) => !referenced.includes(entity.id)).map((entity) => entity.id);
+  const ownReferenced = referenced.filter((id) => !packageObjects.includes(id));
+  const recordTypes = diagram.entities.reduce((sum, entity) => sum + (entity.recordTypes?.length ?? 0), 0);
   return {
     toolCallId,
     success: true,
     content: [
       `Data model written to /output/${filename} from the uploaded metadata: ${withFields.length} ${withFields.length === 1 ? 'object' : 'objects'} with their fields (${withFields.join(', ')}) and ${diagram.relationships.length} ${diagram.relationships.length === 1 ? 'relationship' : 'relationships'}.`,
-      referenced.length > 0 ? `Added without fields, because a field points at them: ${referenced.join(', ')}. Name them in objects to include their fields.` : '',
+      args.objects ? '' : 'Without a list of objects it draws the org\'s own: its custom objects, and the standard objects it added fields to.',
+      ownReferenced.length > 0 ? `Added without fields, because a field points at them: ${ownReferenced.join(', ')}. Name them in objects to include their fields.` : '',
+      packageObjects.length > 0 ? `From installed packages, drawn collapsed where the org's objects point at them: ${packageObjects.join(', ')}. The org can't change them; name one in objects to see its fields.` : '',
+      packageFieldCount > 0 ? `${packageFieldCount} ${packageFieldCount === 1 ? 'field' : 'fields'} from installed packages are left out of the org's objects and counted on each (packageFieldCount).` : '',
+      `Each object carries its sharing model (sharingModel, externalSharingModel)${recordTypes > 0 ? ` and record types (${recordTypes} in all)` : ''}; picklists that take their values from a value set name it (valueSet).`,
       notFound.length > 0 ? `Not in the upload: ${notFound.join(', ')}.` : '',
       'Each object and field names its source file. It is the user\'s diagram: to change it, read the file, change only what the question needs (objects or fields you design are marked "assumed"), and save it to the same name. Set a title and summary that say what it covers.',
+      `What refers to each object and field (Apex, Flows, layouts, reports, rules, email templates, field-level security…, with file and line) is in /output/${referencesFile}; the Diagram view shows the user what an edit touches from it. Read it with Python for impact questions; it is data, not something to save or change.`,
     ].filter(Boolean).join('\n'),
-    dataOutputs: [{ filename, base64: Buffer.from(text, 'utf8').toString('base64'), size: Buffer.byteLength(text, 'utf8') }],
+    dataOutputs: [
+      { filename, base64: Buffer.from(text, 'utf8').toString('base64'), size: Buffer.byteLength(text, 'utf8') },
+      { filename: referencesFile, base64: Buffer.from(referencesText, 'utf8').toString('base64'), size: Buffer.byteLength(referencesText, 'utf8') },
+    ],
   };
+}
+
+/**
+ * operation=flow_diagram: each named Flow (or, chained, one picture of them and
+ * every flow they start) as a process diagram, /output/flow_<name>.diagram.json,
+ * written into the sandbox and returned for capture, which makes each a diagram.
+ */
+async function writeSalesforceFlowDiagrams(
+  files: SandboxFiles,
+  toolCallId: string,
+  sourceFiles: SalesforceSourceFile[],
+  args: SalesforceMetadataAuditArgs,
+): Promise<ToolResult> {
+  const wanted = args.flows ?? [];
+  if (wanted.length === 0) {
+    return { toolCallId, success: false, error: 'operation=flow_diagram needs flows: the Flow API names to draw (search the inventory for flows first).' };
+  }
+  const { results, notFound } = buildSalesforceFlowDiagrams(sourceFiles, { flows: wanted, chain: args.chain === true });
+  if (results.length === 0) {
+    return { toolCallId, success: false, error: `No Flow file was found for ${notFound.join(', ')}: a Flow needs flows/<Name>.flow-meta.xml (source format) or flows/<Name>.flow in the upload.` };
+  }
+  const named = results.length === 1 && args.name;
+  const lines: string[] = [];
+  const dataOutputs: NonNullable<ToolResult['dataOutputs']> = [];
+  for (const result of results) {
+    const fallback = args.chain ? `flow_chain_${result.flows[0]}` : `flow_${result.flows[0]}`;
+    const filename = `${dataModelFileName(named ? args.name : undefined, dataModelFileName(fallback))}.diagram.json`;
+    const text = diagramFileText(result.diagram);
+    await files.writeFile(`/output/${filename}`, Buffer.from(text, 'utf8'));
+    dataOutputs.push({ filename, base64: Buffer.from(text, 'utf8').toString('base64'), size: Buffer.byteLength(text, 'utf8') });
+    const { nodes, flows } = result.diagram;
+    lines.push(`${args.chain ? 'Flow chain' : 'Flow'} written to /output/${filename}: ${result.flows.length > 1 ? `${result.flows.length} flows (${result.flows.join(', ')}), ` : `${result.flows[0]}, `}${nodes.length} nodes and ${flows.length} flows.${result.issueCount > 0 ? ` ${result.issueCount} ${result.issueCount === 1 ? 'element has' : 'elements have'} no fault path (each carries an issue).` : ''}`);
+    if (result.links.length > 0) {
+      lines.push(`Links followed: ${result.links.map((link) => `${link.from}.${link.fromElement} → ${link.flow} (${link.label})`).join('; ')}.`);
+    }
+    for (const [flow, elements] of Object.entries(result.unreachable)) {
+      lines.push(`In ${flow}, nothing connects to ${elements.join(', ')}: they never run, so they aren't drawn.`);
+    }
+  }
+  if (args.chain) lines.push('A chain follows subflows, platform events a flow or its invocable Apex publishes, and flows Apex starts. A record change that triggers another flow is not followed: that needs the org.');
+  if (notFound.length > 0) lines.push(`No Flow file for: ${notFound.join(', ')}.`);
+  lines.push('Each node names the Flow file it came from and its element type; the start says what triggers the flow and its entry conditions. It is the user\'s diagram, drawn from metadata (platform "salesforce": no simulation). To change it, read the file, change only what the question needs (nodes you design are marked "assumed"), and save it to the same name.');
+  return { toolCallId, success: true, content: lines.join('\n'), dataOutputs };
+}
+
+/**
+ * operation=save_order: what runs when a record of each object saves, in
+ * Salesforce's order of execution, as /output/save_order_<object>.diagram.json.
+ */
+async function writeSalesforceSaveOrders(
+  files: SandboxFiles,
+  toolCallId: string,
+  sourceFiles: SalesforceSourceFile[],
+  args: SalesforceMetadataAuditArgs,
+): Promise<ToolResult> {
+  const objects = args.objects ?? [];
+  if (objects.length === 0) {
+    return { toolCallId, success: false, error: 'operation=save_order needs objects: the object API names whose save order to draw (e.g. ["Lead"]).' };
+  }
+  const { results, notFound } = buildSalesforceSaveOrders(sourceFiles, objects);
+  if (results.length === 0) {
+    return { toolCallId, success: false, error: `The upload has no metadata for ${notFound.join(', ')}: a save order needs the object's folder (objects/<Object>/) or flows that trigger on it.` };
+  }
+  const lines: string[] = [];
+  const dataOutputs: NonNullable<ToolResult['dataOutputs']> = [];
+  for (const result of results) {
+    const filename = `${dataModelFileName(results.length === 1 ? args.name : undefined, dataModelFileName(`save_order_${result.object}`))}.diagram.json`;
+    const text = diagramFileText(result.diagram);
+    await files.writeFile(`/output/${filename}`, Buffer.from(text, 'utf8'));
+    dataOutputs.push({ filename, base64: Buffer.from(text, 'utf8').toString('base64'), size: Buffer.byteLength(text, 'utf8') });
+    lines.push(`Save order for ${result.object} written to /output/${filename}: ${result.automationCount} ${result.automationCount === 1 ? 'piece' : 'pieces'} of automation between the platform's own steps.`);
+    if (result.hiddenTriggers.length > 0) lines.push(`Package triggers with hidden source can't be placed on an object; these names mention ${result.object}: ${result.hiddenTriggers.join(', ')}. Say they may also run; org evidence (ApexTrigger.TableEnumOrId) settles it.`);
+    if (result.inactiveFlows.length > 0) lines.push(`Left out, not active: ${result.inactiveFlows.join(', ')}.`);
+    if (result.deleteFlows.length > 0) lines.push(`Left out, they run on delete: ${result.deleteFlows.join(', ')}.`);
+  }
+  if (notFound.length > 0) lines.push(`No metadata for: ${notFound.join(', ')}.`);
+  lines.push('The order is the Apex Developer Guide\'s "Triggers and Order of Execution"; record-triggered flows run by trigger order (1–1000, then flows without one by activation date, then 1001–2000). Each step names its file and the saves it runs on. It is the user\'s diagram, drawn from metadata (platform "salesforce": no simulation); save changes to the same name.');
+  return { toolCallId, success: true, content: lines.join('\n'), dataOutputs };
 }

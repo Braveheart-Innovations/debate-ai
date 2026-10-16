@@ -5,12 +5,17 @@
  * agent writes per session.
  *
  *  - Objects: `objects/<Object>/<Object>.object-meta.xml` (source format) or
- *    `objects/<Object>.object` (metadata format, with its fields inline).
+ *    `objects/<Object>.object` (metadata format, with its fields inline). Each
+ *    carries its sharing models and record types
+ *    (`objects/<Object>/recordTypes/<Type>.recordType-meta.xml`, or the
+ *    `<recordTypes>` of a `.object` file).
  *  - Fields: `objects/<Object>/fields/<Field>.field-meta.xml`, or the `<fields>`
  *    of a `.object` file. The type is written with its size (`Text(80)`,
  *    `Number(18,2)`, `Formula(Currency)`), plus required, unique, external ID,
  *    picklist values and the description. A custom object's Name field comes
- *    from its `<nameField>`.
+ *    from its `<nameField>`. A picklist's values can come from a value set:
+ *    the global one it names (`globalValueSets/`), or for a standard picklist
+ *    the standard one (`standardValueSets/LeadStatus` for `Lead.Status`).
  *  - Relationships: every Lookup, MasterDetail and Hierarchy field. An object a
  *    field points at that isn't in the model is added without fields, so both
  *    ends show: `platform` for a standard object, else the pointing field's file.
@@ -18,44 +23,49 @@
  *    path, or `<zip>#<entry>`). A standard object with no object file is
  *    `platform`; its standard fields aren't in metadata at all.
  *
- * Without a list of objects it takes every custom object (`__c`) and every
- * standard object the metadata has fields for.
+ * Owned first: without a list of objects it takes the org's own custom objects
+ * and the standard objects the org added fields to. Objects from installed
+ * packages (a namespace that isn't the workspace's) appear only where the
+ * org's objects point at them, collapsed; package fields on the org's objects
+ * are counted (`packageFieldCount`), not drawn.
  */
 import { XMLParser } from 'fast-xml-parser';
 import type {
   DataModelDiagram,
   DataModelEntity,
   DataModelField,
+  DataModelRecordType,
   DataModelRelationship,
 } from '../contract/services/analyze/diagrams/diagramFile';
-import type { SalesforceSourceFile } from './SalesforceMetadataService';
+import { salesforceNamespaceOf, workspaceNamespace, type SalesforceSourceFile } from './SalesforceMetadataService';
 
-type XmlNode = Record<string, unknown>;
+export type XmlNode = Record<string, unknown>;
 
 const parser = new XMLParser({
   ignoreAttributes: true,
   parseTagValue: false,
   trimValues: true,
-  isArray: (name) => name === 'fields' || name === 'referenceTo' || name === 'value',
+  isArray: (name) => ['fields', 'referenceTo', 'value', 'recordTypes', 'customValue', 'standardValue'].includes(name),
 });
 
 const RELATIONSHIP_TYPES = new Set(['Lookup', 'MasterDetail', 'Hierarchy', 'ExternalLookup', 'IndirectLookup']);
 
-function text(value: unknown): string | undefined {
+/** An XML value as trimmed text, or undefined when it's empty or not text. */
+export function text(value: unknown): string | undefined {
   if (typeof value === 'string') return value.trim() || undefined;
   if (typeof value === 'number' || typeof value === 'boolean') return String(value);
   return undefined;
 }
 
-function flag(value: unknown): boolean {
+export function flag(value: unknown): boolean {
   return text(value)?.toLowerCase() === 'true';
 }
 
-function node(value: unknown): XmlNode | undefined {
+export function node(value: unknown): XmlNode | undefined {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as XmlNode : undefined;
 }
 
-function list(value: unknown): unknown[] {
+export function list(value: unknown): unknown[] {
   return Array.isArray(value) ? value : value === undefined ? [] : [value];
 }
 
@@ -102,6 +112,8 @@ interface ParsedField {
   field: DataModelField;
   type?: string;
   referenceTo: string[];
+  /** The global value set the field names (`<valueSet><valueSetName>`). */
+  valueSetName?: string;
 }
 
 function parseField(xml: XmlNode, fallbackName: string, source: string | undefined): ParsedField {
@@ -122,7 +134,25 @@ function parseField(xml: XmlNode, fallbackName: string, source: string | undefin
     ...(flag(xml.externalId) ? { externalId: true } : {}),
     ...(source ? { source } : {}),
   };
-  return { field, type, referenceTo: list(xml.referenceTo).flatMap((entry) => (text(entry) ? [text(entry)!] : [])) };
+  const valueSetName = text(node(xml.valueSet)?.valueSetName);
+  return {
+    field,
+    type,
+    referenceTo: list(xml.referenceTo).flatMap((entry) => (text(entry) ? [text(entry)!] : [])),
+    ...(valueSetName ? { valueSetName } : {}),
+  };
+}
+
+function parseRecordType(xml: XmlNode, fallbackName: string, source: string | undefined): DataModelRecordType {
+  const label = text(xml.label);
+  const description = text(xml.description);
+  return {
+    name: text(xml.fullName)?.split('.').pop() ?? fallbackName,
+    ...(label ? { label } : {}),
+    ...(xml.active !== undefined ? { active: flag(xml.active) } : {}),
+    ...(description ? { description } : {}),
+    ...(source ? { source } : {}),
+  };
 }
 
 /** A custom object's Name field, from its `<nameField>`. */
@@ -140,6 +170,12 @@ interface ObjectMetadata {
   file?: SalesforceSourceFile;
   xml?: XmlNode;
   fields: ParsedField[];
+  recordTypes: DataModelRecordType[];
+}
+
+interface ValueSet {
+  values: string[];
+  source: string;
 }
 
 function parseXml(file: SalesforceSourceFile): XmlNode | undefined {
@@ -150,13 +186,13 @@ function parseXml(file: SalesforceSourceFile): XmlNode | undefined {
   }
 }
 
-/** Every object the upload describes, with its fields, keyed by API name. */
+/** Every object the upload describes, with its fields and record types, keyed by API name. */
 export function readSalesforceObjects(sourceFiles: SalesforceSourceFile[]): Map<string, ObjectMetadata> {
   const objects = new Map<string, ObjectMetadata>();
   const objectFor = (apiName: string): ObjectMetadata => {
     const existing = objects.get(apiName);
     if (existing) return existing;
-    const created: ObjectMetadata = { apiName, fields: [] };
+    const created: ObjectMetadata = { apiName, fields: [], recordTypes: [] };
     objects.set(apiName, created);
     return created;
   };
@@ -169,6 +205,12 @@ export function readSalesforceObjects(sourceFiles: SalesforceSourceFile[]): Map<
       if (xml) objectFor(fieldMatch[1]).fields.push(parseField(xml, fieldMatch[2], sourceFileRef(file)));
       continue;
     }
+    const recordTypeMatch = path.match(/(?:^|\/)objects\/([^/]+)\/recordTypes\/([^/]+)\.recordType-meta\.xml$/i);
+    if (recordTypeMatch) {
+      const xml = node(parseXml(file)?.RecordType);
+      if (xml) objectFor(recordTypeMatch[1]).recordTypes.push(parseRecordType(xml, recordTypeMatch[2], sourceFileRef(file)));
+      continue;
+    }
     const sourceFormat = path.match(/(?:^|\/)objects\/([^/]+)\/([^/]+)\.object-meta\.xml$/i);
     const metadataFormat = path.match(/(?:^|\/)objects\/([^/]+)\.object$/i);
     const apiName = sourceFormat && sourceFormat[1].toLowerCase() === sourceFormat[2].toLowerCase() ? sourceFormat[1] : metadataFormat?.[1];
@@ -178,13 +220,77 @@ export function readSalesforceObjects(sourceFiles: SalesforceSourceFile[]): Map<
     const object = objectFor(apiName);
     object.file = file;
     object.xml = xml;
-    // The metadata format keeps the fields inside the object file.
+    // The metadata format keeps the fields and record types inside the object file.
     for (const entry of list(xml.fields)) {
       const fieldXml = node(entry);
       if (fieldXml) object.fields.push(parseField(fieldXml, text(fieldXml.fullName) ?? 'field', undefined));
     }
+    for (const entry of list(xml.recordTypes)) {
+      const recordTypeXml = node(entry);
+      if (recordTypeXml) object.recordTypes.push(parseRecordType(recordTypeXml, text(recordTypeXml.fullName) ?? 'recordType', undefined));
+    }
   }
   return objects;
+}
+
+/** The global and standard value sets in the upload, by name (case kept as written). */
+function readValueSets(sourceFiles: SalesforceSourceFile[]): { global: Map<string, ValueSet>; standard: Map<string, ValueSet> } {
+  const global = new Map<string, ValueSet>();
+  const standard = new Map<string, ValueSet>();
+  for (const file of sourceFiles) {
+    const path = file.path.replace(/\\/g, '/');
+    const globalMatch = path.match(/(?:^|\/)globalValueSets\/([^/]+?)\.globalValueSet(?:-meta\.xml)?$/i);
+    const standardMatch = path.match(/(?:^|\/)standardValueSets\/([^/]+?)\.standardValueSet(?:-meta\.xml)?$/i);
+    if (!globalMatch && !standardMatch) continue;
+    const parsed = parseXml(file);
+    const xml = node(globalMatch ? parsed?.GlobalValueSet : parsed?.StandardValueSet);
+    if (!xml) continue;
+    const values = list(globalMatch ? xml.customValue : xml.standardValue).flatMap((entry) => {
+      const name = text(node(entry)?.fullName);
+      return name ? [name] : [];
+    });
+    if (values.length === 0) continue;
+    (globalMatch ? global : standard).set((globalMatch ?? standardMatch)![1], { values, source: sourceFileRef(file) });
+  }
+  return { global, standard };
+}
+
+/** Standard picklists whose value set isn't named `<Object><Field>` or `<Field>`. */
+const STANDARD_VALUE_SET_EXCEPTIONS: Record<string, string> = {
+  'Opportunity.StageName': 'OpportunityStage',
+  'OpportunityContactRole.Role': 'ContactRole',
+  'AccountContactRole.Role': 'AccountContactRole',
+  'CaseContactRole.Role': 'CaseContactRole',
+  'ContractContactRole.Role': 'ContractContactRole',
+  'AccountTeamMember.TeamMemberRole': 'SalesTeamRole',
+  'OpportunityTeamMember.TeamMemberRole': 'SalesTeamRole',
+};
+
+/** The standard value set a standard picklist reads, when the upload has it: `LeadStatus` for `Lead.Status`, `LeadSource` for `Contact.LeadSource`. */
+function standardValueSetFor(objectName: string, fieldName: string, standard: Map<string, ValueSet>): string | undefined {
+  if (!isStandardObject(objectName) || /__c$/i.test(fieldName)) return undefined;
+  const byLowerName = new Map([...standard.keys()].map((name) => [name.toLowerCase(), name]));
+  const candidates = [STANDARD_VALUE_SET_EXCEPTIONS[`${objectName}.${fieldName}`], `${objectName}${fieldName}`, fieldName];
+  for (const candidate of candidates) {
+    const name = candidate ? byLowerName.get(candidate.toLowerCase()) : undefined;
+    if (name) return name;
+  }
+  return undefined;
+}
+
+/** A field with its value set's values, when it takes them from one. */
+function withValueSet(
+  objectName: string,
+  parsed: ParsedField,
+  valueSets: ReturnType<typeof readValueSets>,
+): DataModelField {
+  if (parsed.field.values || !/picklist/i.test(parsed.type ?? '')) return parsed.field;
+  if (parsed.valueSetName) {
+    const set = valueSets.global.get(parsed.valueSetName);
+    return { ...parsed.field, valueSet: parsed.valueSetName, ...(set ? { values: set.values } : {}) };
+  }
+  const name = standardValueSetFor(objectName, parsed.field.name, valueSets.standard);
+  return name ? { ...parsed.field, valueSet: name, values: valueSets.standard.get(name)!.values } : parsed.field;
 }
 
 export interface SalesforceDataModelResult {
@@ -193,46 +299,84 @@ export interface SalesforceDataModelResult {
   notFound: string[];
   /** Objects added without fields because a field points at them. */
   referenced: string[];
+  /** Of those, the ones from installed packages (drawn collapsed). */
+  packageObjects: string[];
+  /** Fields from installed packages left out of the org's objects. */
+  packageFieldCount: number;
 }
 
-/** The data model of these objects (or every custom and standard object), as a diagram file's data model. */
+/** The data model of these objects (or the org's own objects), as a diagram file's data model. */
 export function buildSalesforceDataModel(
   sourceFiles: SalesforceSourceFile[],
   options: { objects?: string[]; uploadName?: string } = {},
 ): SalesforceDataModelResult {
   const all = readSalesforceObjects(sourceFiles);
+  const valueSets = readValueSets(sourceFiles);
+  const own = workspaceNamespace(sourceFiles)?.toLowerCase();
+  /** The installed package a name comes from: a namespace that isn't the workspace's own. */
+  const packageOf = (name: string): string | undefined => {
+    const namespace = salesforceNamespaceOf(name);
+    return namespace && namespace.toLowerCase() !== own ? namespace : undefined;
+  };
+  const ownField = (parsed: ParsedField) => /__c$/i.test(parsed.field.name) && !packageOf(parsed.field.name);
+
   const byLowerName = new Map([...all.keys()].map((name) => [name.toLowerCase(), name]));
   const wanted = options.objects?.map((name) => name.trim()).filter(Boolean);
   const notFound = (wanted ?? []).filter((name) => !byLowerName.has(name.toLowerCase()));
   const chosen = wanted
     ? [...new Set(wanted.flatMap((name) => byLowerName.get(name.toLowerCase()) ?? []))]
-    : [...all.keys()].filter((name) => includedByDefault(name) && (all.get(name)!.fields.length > 0 || !isStandardObject(name))).sort();
+    : [...all.keys()].filter((name) => {
+      if (!includedByDefault(name) || packageOf(name)) return false;
+      // A standard object is drawn when the org added fields to it.
+      return !isStandardObject(name) || all.get(name)!.fields.some(ownField);
+    }).sort();
 
   const entities: DataModelEntity[] = [];
   const relationships: DataModelRelationship[] = [];
   const present = new Set(chosen);
   const referenced: DataModelEntity[] = [];
+  let packageFieldCount = 0;
+
+  /** What every box says about its object, drawn or collapsed: label, package, sharing. */
+  const objectDetails = (apiName: string, object: ObjectMetadata | undefined) => {
+    const label = object?.xml ? text(object.xml.label) : undefined;
+    const namespace = packageOf(apiName);
+    const sharingModel = object?.xml ? text(object.xml.sharingModel) : undefined;
+    const externalSharingModel = object?.xml ? text(object.xml.externalSharingModel) : undefined;
+    return {
+      ...(label ? { label } : {}),
+      ...(namespace ? { namespace, managed: true } : {}),
+      ...(sharingModel ? { sharingModel } : {}),
+      ...(externalSharingModel ? { externalSharingModel } : {}),
+    };
+  };
 
   for (const apiName of chosen) {
     const object = all.get(apiName)!;
     const objectSource = object.file ? sourceFileRef(object.file) : isStandardObject(apiName) ? 'platform' : undefined;
+    // A package object asked for by name shows all its fields; the org's objects leave package fields out.
+    const drawn = packageOf(apiName) ? object.fields : object.fields.filter((parsed) => !packageOf(parsed.field.name));
+    const leftOut = object.fields.length - drawn.length;
+    packageFieldCount += leftOut;
     const name = object.xml ? nameField(object.xml) : null;
     const fields = [
-      ...(name && !object.fields.some((parsed) => parsed.field.name === 'Name') ? [name] : []),
-      ...object.fields.map((parsed) => parsed.field),
+      ...(name && !drawn.some((parsed) => parsed.field.name === 'Name') ? [name] : []),
+      ...drawn.map((parsed) => withValueSet(apiName, parsed, valueSets)),
     ];
-    const label = object.xml ? text(object.xml.label) : undefined;
     const description = object.xml ? text(object.xml.description) : undefined;
+    const recordTypes = [...object.recordTypes].sort((a, b) => a.name.localeCompare(b.name));
     entities.push({
       id: apiName,
       name: apiName,
-      ...(label ? { label } : {}),
+      ...objectDetails(apiName, object),
       ...(description ? { description } : {}),
       ...(objectSource ? { source: objectSource } : {}),
       fields,
+      ...(recordTypes.length > 0 ? { recordTypes } : {}),
+      ...(leftOut > 0 ? { packageFieldCount: leftOut } : {}),
     });
 
-    for (const parsed of object.fields) {
+    for (const parsed of drawn) {
       if (!parsed.type || !RELATIONSHIP_TYPES.has(parsed.type)) continue;
       // A hierarchy field points at its own object (User's Manager).
       const targets = parsed.type === 'Hierarchy' && parsed.referenceTo.length === 0 ? [apiName] : parsed.referenceTo;
@@ -242,8 +386,7 @@ export function buildSalesforceDataModel(
           present.add(targetName);
           const targetObject = all.get(targetName);
           const source = isStandardObject(targetName) ? 'platform' : targetObject?.file ? sourceFileRef(targetObject.file) : parsed.field.source ?? objectSource;
-          const targetLabel = targetObject?.xml ? text(targetObject.xml.label) : undefined;
-          referenced.push({ id: targetName, name: targetName, ...(targetLabel ? { label: targetLabel } : {}), ...(source ? { source } : {}), fields: [] });
+          referenced.push({ id: targetName, name: targetName, ...objectDetails(targetName, targetObject), ...(source ? { source } : {}), fields: [] });
         }
         const masterDetail = parsed.type === 'MasterDetail';
         relationships.push({
@@ -259,14 +402,20 @@ export function buildSalesforceDataModel(
   }
 
   const count = entities.length;
+  const packageObjects = referenced.filter((entity) => entity.managed).map((entity) => entity.id);
+  const summary = [
+    `${count} ${count === 1 ? 'object' : 'objects'} with their fields and relationships, read from ${options.uploadName ? options.uploadName : 'the uploaded metadata'}.`,
+    packageObjects.length > 0 ? `Objects from installed packages appear only where these point at them, collapsed (${packageObjects.length}).` : '',
+    packageFieldCount > 0 ? `${packageFieldCount} ${packageFieldCount === 1 ? 'field' : 'fields'} from installed packages are counted on their objects, not drawn.` : '',
+  ].filter(Boolean).join(' ');
   const diagram: DataModelDiagram = {
     version: 1,
     kind: 'data_model',
     platform: 'salesforce',
     title: 'Salesforce data model',
-    summary: `${count} ${count === 1 ? 'object' : 'objects'} with their fields and relationships, read from ${options.uploadName ? options.uploadName : 'the uploaded metadata'}.`,
+    summary,
     entities: [...entities, ...referenced],
     relationships,
   };
-  return { diagram, notFound, referenced: referenced.map((entity) => entity.id) };
+  return { diagram, notFound, referenced: referenced.map((entity) => entity.id), packageObjects, packageFieldCount };
 }
