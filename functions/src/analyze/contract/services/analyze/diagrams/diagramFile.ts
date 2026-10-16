@@ -131,6 +131,12 @@ export const FLOW_NODE_TYPES = ['start', 'step', 'decision', 'end'] as const;
 export const TIME_UNITS = ['seconds', 'minutes', 'hours', 'days'] as const;
 /** Where a process flow was drawn from, when not by hand or by the AI: Salesforce metadata. */
 export const PROCESS_FLOW_PLATFORMS = ['salesforce'] as const;
+/**
+ * The Salesforce Flow elements that can have a fault path (a fault connector
+ * in the Flow's metadata): the ones that can fail. A Subflow can't (Metadata
+ * API Developer Guide, Flow).
+ */
+export const FAULT_PATH_ELEMENTS: ReadonlySet<string> = new Set(['recordCreates', 'recordUpdates', 'recordDeletes', 'recordLookups', 'actionCalls', 'apexPluginCalls', 'waits']);
 export type FlowNodeType = (typeof FLOW_NODE_TYPES)[number];
 export type TimeUnit = (typeof TIME_UNITS)[number];
 export type ProcessFlowPlatform = (typeof PROCESS_FLOW_PLATFORMS)[number];
@@ -161,6 +167,8 @@ const flowConditionSchema = z.object({
 const flowElementSchema = z.object({
   /** The element's API name in the Flow (a chained diagram prefixes node ids; this stays the name). */
   apiName: nameSchema,
+  /** The start: what triggers the flow, as the Flow writes it (`RecordBeforeSave`, `RecordAfterSave`, `PlatformEvent`, `Scheduled`…). */
+  trigger: z.string().optional(),
   /** The line of the element in its Flow file. */
   line: z.number().int().min(1).optional(),
   /** The object a record operation (or the start) works on. */
@@ -479,6 +487,13 @@ function reviewProcessFlow(diagram: ProcessFlowDiagram): { problems: string[]; w
     }
     if (!simulated && node.type === 'start') {
       for (const flow of all) if (flow.fault) problems.push(`flow "${flow.id}": a start has no fault path`);
+    }
+    if (!simulated && node.type !== 'start') {
+      const faults = all.filter((flow) => flow.fault);
+      if (faults.length > 1) problems.push(`${where}: an element has one fault path (it has ${faults.length})`);
+      if (faults.length > 0 && node.elementType && !FAULT_PATH_ELEMENTS.has(node.elementType)) {
+        problems.push(`flow "${faults[0].id}": only an element that can fail has a fault path (Create, Update, Delete or Get Records, an Action, an Apex Action, a Wait), not ${node.elementType}`);
+      }
     }
   }
 
