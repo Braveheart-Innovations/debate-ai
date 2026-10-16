@@ -311,6 +311,34 @@ export interface DiagramReview {
 
 export type DiagramMetadata = NonNullable<NonNullable<Artifact['metadata']>['diagram']>;
 
+/** Whether a Salesforce process flow is a save order (what runs when a record saves): it starts from the platform, not from a Flow's own start. */
+export function isSaveOrder(diagram: DiagramFileV1): boolean {
+  return diagram.kind === 'process_flow' && diagram.platform === 'salesforce' && diagram.nodes.some((node) => node.type === 'start' && node.source === 'platform');
+}
+
+type DiagramWordsInput = Pick<DiagramMetadata, 'kind' | 'platform' | 'saveOrder' | 'entityCount' | 'relationshipCount'>;
+
+/** What kind of diagram it is, in a word or two: "Data model", "Process", "Salesforce Flow", "Save order". */
+export function diagramKindWords(meta: Pick<DiagramMetadata, 'kind' | 'platform' | 'saveOrder'>): string {
+  if (meta.kind === 'data_model') return 'Data model';
+  if (meta.platform !== 'salesforce') return 'Process';
+  return meta.saveOrder ? 'Save order' : 'Salesforce Flow';
+}
+
+/**
+ * How big it is, in its own kind's words: a data model's entities and
+ * relationships, a process's steps and flows, a Flow's elements and
+ * connectors (as Flow Builder says), a save order's automation (its other
+ * boxes are Salesforce's own steps, and its arrows only the order).
+ */
+export function diagramSizeWords(meta: DiagramWordsInput): string[] {
+  const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+  if (meta.kind === 'data_model') return [count(meta.entityCount, 'entity', 'entities'), count(meta.relationshipCount, 'relationship', 'relationships')];
+  if (meta.platform !== 'salesforce') return [count(meta.entityCount, 'step', 'steps'), count(meta.relationshipCount, 'flow', 'flows')];
+  if (meta.saveOrder) return [count(meta.saveOrder.automations, 'automation', 'automations')];
+  return [count(meta.entityCount, 'element', 'elements'), count(meta.relationshipCount, 'connector', 'connectors')];
+}
+
 /** metadata.diagram for a diagram the review kept: what the Outputs list shows without reading the file. */
 export function diagramMetadata(diagram: DiagramFileV1, warnings: string[], savedByUser = false): DiagramMetadata {
   return {
@@ -321,6 +349,9 @@ export function diagramMetadata(diagram: DiagramFileV1, warnings: string[], save
     // A process flow counts its nodes and flows here.
     entityCount: diagram.kind === 'data_model' ? diagram.entities.length : diagram.nodes.length,
     relationshipCount: diagram.kind === 'data_model' ? diagram.relationships.length : diagram.flows.length,
+    ...(diagram.kind === 'process_flow' && isSaveOrder(diagram)
+      ? { saveOrder: { automations: diagram.nodes.filter((node) => node.type === 'step' && node.source !== 'platform').length } }
+      : {}),
     ...(warnings.length > 0 ? { warnings } : {}),
     ...(savedByUser ? { savedByUser: true } : {}),
   };
