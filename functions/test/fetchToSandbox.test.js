@@ -153,7 +153,7 @@ test('runSandboxFetch claims the sandbox slot first: a refusal downloads nothing
   });
   assert.equal(fetched, 0);
   assert.equal(result.success, false);
-  assert.match(result.error, /You already have 3 Analyze sessions using Python right now/);
+  assert.match(result.error, /You already have 3 Analyze sessions using their Python environment/);
   assert.match(result.error, /Nothing ran\. Don't retry Python, file, or data-fetch tools in this turn/);
 });
 

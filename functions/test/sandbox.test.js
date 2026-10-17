@@ -385,9 +385,11 @@ test('a user can have 3 sessions with a sandbox awake; the 4th is refused with t
   await assert.rejects(svc.ensure('u1', 's4'), (error) => {
     assert.ok(error instanceof SandboxLimitError);
     assert.equal(error.message,
-      'You already have 3 Analyze sessions using Python right now, the most at once. '
-      + 'A session\'s Python environment frees up 15 minutes after its last use; '
-      + 'the next one frees up in about 5 minutes. Try again then, or keep working in one of those sessions.');
+      'You already have 3 Analyze sessions using their Python environment, the most at once. '
+      + 'A session uses it to run Python and to save files (uploads, fetched data, Salesforce docs lookups), '
+      + 'and keeps it for 15 minutes after its last use, even with its tab closed; '
+      + 'the next one frees up in about 5 minutes. '
+      + 'Keep working in one of those sessions, delete one you\'re done with, or try again then.');
     return true;
   });
   assert.equal(provider.calls.filter(([c]) => c === 'create').length, 3);

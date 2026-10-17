@@ -1011,7 +1011,7 @@ describeEmulator('step 7 free tier and sandbox time', () => {
     const { runId } = await startOperatorTurn({ uid, sessionId, content: 'Read it', config: config({ team: undefined }) });
     await drain();
     expect((await run(runId)).status).toBe('completed');
-    expect(toolError).toContain('You already have 3 Analyze sessions using Python right now');
+    expect(toolError).toContain('You already have 3 Analyze sessions using their Python environment');
     expect(toolError).toContain('the next one frees up in about 5 minutes');
     expect(sandboxFiles.has('/uploads/scan.pdf')).toBe(false);
 
