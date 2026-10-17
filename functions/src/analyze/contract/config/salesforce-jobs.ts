@@ -57,6 +57,8 @@ export interface SalesforceJobDetail {
 export interface SalesforceJobInputs {
   question?: string;
   objects?: string[];
+  /** Every object in the workspace is picked (the data model's Select all): the prompt says so instead of listing them. */
+  allObjects?: boolean;
   flows?: string[];
   /** `Object.Field`, or `Object` for all of an object's fields. */
   fields?: string[];
@@ -107,10 +109,10 @@ export const SALESFORCE_JOBS: SalesforceJob[] = [
     summary: 'Objects, fields and how they relate, as a diagram you can edit.',
     output: 'diagram',
     deliverable: 'diagram',
-    details: [{ kind: 'objects', required: false }],
+    details: [{ kind: 'objects', required: true }],
     operations: ['data_model'],
     whenToUse: 'the user asks for a data model, an ERD, or how objects relate',
-    path: '`salesforce_metadata_audit(operation="data_model")` with `objects` set to the objects named (none: the org\'s own objects). The diagram file is the deliverable.',
+    path: '`salesforce_metadata_audit(operation="data_model")` with `objects` set to the objects named, or `["*"]` when the user asks for every object in the workspace. The diagram file is the deliverable.',
   },
   {
     id: 'flow',
@@ -337,9 +339,11 @@ export function buildSalesforceJobPrompt(job: SalesforceJob, inputs: SalesforceJ
       lead = inputs.question?.trim() || 'Explain how the main automation in this workspace works.';
       break;
     case 'data_model':
-      lead = objects.length > 0
-        ? `Draw the data model of ${listWords(objects)}.`
-        : 'Draw the data model of the org\'s own objects.';
+      lead = inputs.allObjects
+        ? 'Draw the data model of every object in the workspace.'
+        : objects.length > 0
+          ? `Draw the data model of ${listWords(objects)}.`
+          : 'Draw the data model.';
       break;
     case 'flow':
       lead = flows.length === 1

@@ -228,6 +228,28 @@ describe('buildSalesforceDataModel: the org\'s own objects first', () => {
     expect(diagram.entities[0].packageFieldCount).toBeUndefined();
   });
 
+  it('draws the platform\'s own lookups, whose metadata names no target, and leaves out owner fields', () => {
+    const files = [
+      ...workspace(),
+      // Contact.AccountId's real metadata: a type, nothing else.
+      field('Contact', 'AccountId', '<trackHistory>false</trackHistory><type>Lookup</type>'),
+      field('Contact', 'OwnerId', '<type>Lookup</type>'),
+      field('Account', 'ParentId', '<type>Hierarchy</type>'),
+    ];
+    const { diagram } = buildSalesforceDataModel(files, { objects: ['Account', 'Contact'] });
+    expect(diagram.relationships.map((relationship) => `${relationship.from}.${relationship.field} -> ${relationship.to}`).sort()).toEqual([
+      'Account.ParentId -> Account',
+      'Contact.AccountId -> Account',
+    ]);
+  });
+
+  it('draws every object in the workspace for ["*"]', () => {
+    const { diagram, notFound } = buildSalesforceDataModel(workspace(), { objects: ['*'] });
+    expect(notFound).toEqual([]);
+    // The custom metadata type too: every object, not only the org's data objects.
+    expect(diagram.entities.filter((entity) => entity.fields.length > 0).map((entity) => entity.id)).toEqual(['Account', 'Center__c', 'Child__c', 'Enrollment__c', 'Rate_Setting__mdt']);
+  });
+
   it('reads an empty objects list as no list', () => {
     expect(buildSalesforceDataModel(packagedWorkspace(), { objects: [] }).diagram).toEqual(buildSalesforceDataModel(packagedWorkspace()).diagram);
     expect(buildSalesforceDataModel(packagedWorkspace(), { objects: ['  '] }).diagram.entities.length).toBeGreaterThan(0);
