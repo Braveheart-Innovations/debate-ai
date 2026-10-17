@@ -7,6 +7,7 @@
  * lookup no longer overwrites the operator's.
  */
 import { createHash } from 'crypto';
+import { SandboxLimitError } from '../../../sandbox/service';
 import type { ToolResult } from '../../contract/lib/ai/tools/types';
 import {
   describeUnreadReason,
@@ -155,17 +156,25 @@ export async function packageSalesforceDocsLookupEvidence(
   const provenanceJson = JSON.stringify(provenance, null, 2);
   // Short and per lookup: the Artifacts tab lists the readable evidence by this name.
   const outputName = `salesforce-doc-evidence-${sha256Hex(toolCallId).slice(0, 8)}`;
-  await persist(sandbox, `${base}.json`, json, `${SALESFORCE_DOCS_DIR}/${base}.json`);
-  await persist(sandbox, `${base}.md`, markdown, `${SALESFORCE_DOCS_DIR}/${base}.md`);
-  await persist(sandbox, `${base}.provenance.json`, provenanceJson, `${SALESFORCE_DOCS_DIR}/${base}.provenance.json`);
-  // Where the tool history says data outputs are (toolResultHistory: /output/<filename>).
-  await persist(sandbox, `${outputName}.json`, json, `/output/${outputName}.json`);
-  await persist(sandbox, `${outputName}.md`, markdown, `/output/${outputName}.md`);
+  let filesSaved = true;
+  try {
+    await persist(sandbox, `${base}.json`, json, `${SALESFORCE_DOCS_DIR}/${base}.json`);
+    await persist(sandbox, `${base}.md`, markdown, `${SALESFORCE_DOCS_DIR}/${base}.md`);
+    await persist(sandbox, `${base}.provenance.json`, provenanceJson, `${SALESFORCE_DOCS_DIR}/${base}.provenance.json`);
+    // Where the tool history says data outputs are (toolResultHistory: /output/<filename>).
+    await persist(sandbox, `${outputName}.json`, json, `/output/${outputName}.json`);
+    await persist(sandbox, `${outputName}.md`, markdown, `/output/${outputName}.md`);
+  } catch (error) {
+    // At the per-user sandbox limit the passages were still read: the model
+    // gets them, and is told nothing was saved for a report to cite.
+    if (!(error instanceof SandboxLimitError)) throw error;
+    filesSaved = false;
+  }
 
   return {
     toolCallId,
     success: true,
-    content: buildModelContent(evidence, pages, unread, base),
+    content: buildModelContent(evidence, pages, unread, base, filesSaved),
     dataOutputs: [
       encodeTextOutput(`${outputName}.json`, json),
       encodeTextOutput(`${outputName}.md`, markdown),
@@ -177,7 +186,7 @@ export async function packageSalesforceDocsLookupEvidence(
       parameters: {
         topics: (evidence.topics || []).map((topic) => topic.label).join(' | ').slice(0, 280),
         pagesRead: String(pages.length),
-        provenanceFile: `${SALESFORCE_DOCS_DIR}/${base}.provenance.json`,
+        ...(filesSaved ? { provenanceFile: `${SALESFORCE_DOCS_DIR}/${base}.provenance.json` } : {}),
       },
       parameterHash: sha256Hex(JSON.stringify((evidence.topics || []).map((topic) => [topic.id, topic.query]))),
       fetchedAt: evidence.generatedAt,
@@ -195,6 +204,7 @@ function buildModelContent(
   pages: SalesforceDocReadPage[],
   unread: SalesforceDocUnreadSource[],
   base: string,
+  filesSaved: boolean,
 ): string {
   const topics = evidence.topics || [];
   const topicLabel = (topicId: string) => topics.find((topic) => topic.id === topicId)?.label || topicId;
@@ -235,13 +245,21 @@ function buildModelContent(
         for (const textLine of text.replace(/\r\n/g, '\n').trim().split('\n')) lines.push(`    ${textLine}`);
       });
       if (page.passages.length > inline.length) {
-        lines.push(`  (${page.passages.length - inline.length} more passage(s) from this page in ${SALESFORCE_DOCS_DIR}/${base}.md)`);
+        lines.push(filesSaved
+          ? `  (${page.passages.length - inline.length} more passage(s) from this page in ${SALESFORCE_DOCS_DIR}/${base}.md)`
+          : `  (${page.passages.length - inline.length} more passage(s) from this page, not shown and not saved)`);
       }
     }
-    if (overflow.length > 0) {
+    if (overflow.length > 0 && filesSaved) {
       lines.push('', `Also read; their passages are in ${SALESFORCE_DOCS_DIR}/${base}.md (read it before quoting them):`);
       for (const page of overflow) {
         lines.push(`- [${page.citationId}] ${page.title} - ${page.url} (${describePage(page, topicLabel)})`);
+      }
+    } else if (overflow.length > 0) {
+      // No citation id: with no file to read them from, these pages aren't evidence.
+      lines.push('', 'Also read, but their passages didn\'t fit here and couldn\'t be saved, so they can\'t be quoted or cited:');
+      for (const page of overflow) {
+        lines.push(`- ${page.title} - ${page.url}`);
       }
     }
   }
@@ -268,8 +286,15 @@ function buildModelContent(
 
   lines.push(
     '',
-    `Files: ${SALESFORCE_DOCS_DIR}/${base}.md (every passage in full), ${base}.json, and ${base}.provenance.json.`,
-    `In a report, cite a page as a source with its title and url, and set its sourceArtifactId to "${SALESFORCE_DOCS_DIR}/${base}.provenance.json".`,
+    ...(filesSaved
+      ? [
+        `Files: ${SALESFORCE_DOCS_DIR}/${base}.md (every passage in full), ${base}.json, and ${base}.provenance.json.`,
+        `In a report, cite a page as a source with its title and url, and set its sourceArtifactId to "${SALESFORCE_DOCS_DIR}/${base}.provenance.json".`,
+      ]
+      : [
+        'Files: none saved. This account already has the most Analyze sessions using their Python environment at once, so the evidence files weren\'t written.',
+        'Answer from the passages above, citing each page by its id. A report can cite them only after salesforce_docs_lookup runs again once a slot frees up: the report check reads the saved files.',
+      ]),
     'Keep apart: your org\'s metadata, org runtime evidence, imported agent assertions, and Salesforce documentation (only the passages above).',
   );
   return lines.join('\n');
