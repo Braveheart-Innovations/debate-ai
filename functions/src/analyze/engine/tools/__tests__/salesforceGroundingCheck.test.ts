@@ -75,8 +75,28 @@ describe('attributesToSalesforce', () => {
     expect(attributesToSalesforce('The org has 14 record-triggered flows on Account.')).toBe(false);
   });
 
+  it('finds speech verbs with modifiers, and "According to Salesforce,"', () => {
+    expect(attributesToSalesforce('Salesforce commonly cites about 2 KB per record.')).toBe(true);
+    expect(attributesToSalesforce('Salesforce says each record uses 2 KB.')).toBe(true);
+    expect(attributesToSalesforce('Salesforce advises archiving old cases.')).toBe(true);
+    expect(attributesToSalesforce('Salesforce no longer recommends workflow rules.')).toBe(true);
+    expect(attributesToSalesforce('Salesforce notes that big objects are not counted.')).toBe(true);
+    expect(attributesToSalesforce('As Salesforce notes, file storage is separate.')).toBe(true);
+    expect(attributesToSalesforce('According to Salesforce, file storage is separate.')).toBe(true);
+    expect(attributesToSalesforce('Per Salesforce, file storage is separate.')).toBe(true);
+  });
+
+  it('leaves the same words alone where they are nouns or a rate', () => {
+    expect(attributesToSalesforce('Salesforce documents stored in Files count toward file storage.')).toBe(false);
+    expect(attributesToSalesforce('Salesforce Notes attach to records.')).toBe(false);
+    expect(attributesToSalesforce('Salesforce states and countries picklists are enabled.')).toBe(false);
+    expect(attributesToSalesforce('The org gets 10 GB per Salesforce org plus 20 MB per license.')).toBe(false);
+    expect(attributesToSalesforce('According to Salesforce Optimizer, the org has 40 unused fields.')).toBe(false);
+  });
+
   it('lets a sentence that says it is unverified stand', () => {
     expect(attributesToSalesforce('Not verified against Salesforce documentation: Salesforce recommends one flow per object.')).toBe(false);
+    expect(attributesToSalesforce('Salesforce commonly cites about 2 KB per record, but that figure is not in the pages read.')).toBe(false);
   });
 
   it('keeps citation markers with the sentence they follow', () => {

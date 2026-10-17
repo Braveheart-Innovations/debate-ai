@@ -23,10 +23,21 @@ import type { SandboxFiles } from './sandboxFiles';
 
 type GroundingFiles = Pick<SandboxFiles, 'readFile' | 'listFiles'>;
 
+/** Verbs that put words in Salesforce's mouth. */
+const SPEECH_VERBS = 'says|said|cites|cited|advises|advised|suggests|suggested|recommends|recommended|warns|warned|confirms|confirmed|specifies|specified|explains|explained|describes|described|requires that';
+/** Also nouns ("Salesforce documents stored in Files", "Salesforce Notes"): verbs only before what they report. */
+const NOUN_LIKE_VERBS = 'documents|documented|notes|noted|states|stated|lists|listed';
+const BEFORE_WHAT_IS_REPORTED = '(?=\\s+(?:that|the|a|an|how|this|these|those|it|its|each|every|which|what|when|whether|why|where|you|your|users?|admins?|customers?)\\b|\\s*:)';
+/** "commonly cites", "no longer recommends", "itself documents". */
+const VERB_MODIFIERS = '(?:(?:\\w+ly|also|itself|now|still|even|no longer)\\s+){0,2}';
+
 const ATTRIBUTION_PATTERNS: RegExp[] = [
   /\b(?:per|according to|as (?:documented|stated|described|noted|explained) (?:in|by))\s+(?:the\s+)?(?:official\s+)?Salesforce(?:['’]s)?\s+(?:Help|documentation|docs|release notes|developer (?:guide|docs|documentation)|guide|guidance|knowledge article|architects?)/i,
   /\bSalesforce(?:['’]s)?\s+(?:Help|documentation|docs|release notes|knowledge article|developer guide)\s+(?:says|states|notes|confirms|recommends|explains|describes|documents|warns|lists|specifies|requires)\b/i,
-  /\bSalesforce\s+(?:officially\s+)?(?:documents|recommends|states|warns|confirms|specifies|requires that)\b/i,
+  new RegExp(`\\bSalesforce\\s+${VERB_MODIFIERS}(?:${SPEECH_VERBS}|(?:${NOUN_LIKE_VERBS})${BEFORE_WHAT_IS_REPORTED})\\b`, 'i'),
+  new RegExp(`\\bas Salesforce\\s+${VERB_MODIFIERS}(?:${SPEECH_VERBS}|${NOUN_LIKE_VERBS})\\b`, 'i'),
+  // "According to Salesforce, …"; "per Salesforce" only before a comma, never the rate ("5 GB per Salesforce org").
+  /\b(?:according to|per|as (?:documented|stated|described|noted|explained|recommended) by)\s+Salesforce\s*[,.;:)]/i,
   /\bofficial Salesforce (?:documentation|guidance|docs|Help)\b/i,
 ];
 
@@ -59,7 +70,7 @@ function isSalesforceDocsSource(urlValue: string | undefined): boolean {
 }
 
 /** A sentence that already says its Salesforce claim is unverified is what the rule asks for. */
-const MARKED_UNVERIFIED = /\b(?:unverified|not verified|could(?:n['\u2019]t| not) (?:be )?verif|(?:documentation|docs) (?:was|were) not (?:found|read)|no (?:official )?(?:Salesforce )?(?:documentation|docs) (?:was |were )?(?:found|read))/i;
+const MARKED_UNVERIFIED = /\b(?:unverified|not verified|could(?:n['\u2019]t| not) (?:be )?verif|(?:documentation|docs) (?:was|were) not (?:found|read)|no (?:official )?(?:Salesforce )?(?:documentation|docs) (?:was |were )?(?:found|read)|(?:is|was|are|were)(?:n['\u2019]t| not) in the (?:pages|passages|documentation|docs) (?:I |we )?read)/i;
 
 export function attributesToSalesforce(sentence: string): boolean {
   return ATTRIBUTION_PATTERNS.some((pattern) => pattern.test(sentence)) && !MARKED_UNVERIFIED.test(sentence);
