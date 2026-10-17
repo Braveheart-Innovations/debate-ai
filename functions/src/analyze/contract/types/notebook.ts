@@ -235,10 +235,6 @@ export interface Artifact {
       operatorName: string;
       panelists: Array<{ name: string; model: string; status: 'running' | 'completed' | 'failed' | 'stopped' }>;
     };
-    /** Marks artifacts produced by a Salesforce workspace lens run */
-    salesforceLensRun?: boolean;
-    /** Selected Salesforce lens IDs / operations represented by this artifact group */
-    salesforceLensIds?: string[];
     /** Role of an artifact within a Salesforce workspace analysis packet */
     salesforceRole?:
       | 'workspace_report'
@@ -385,6 +381,8 @@ export interface NotebookCellData {
   userMessage: Message;
   /** The AI operator's response message (may be streaming) */
   aiMessage?: Message;
+  /** The turn's operator replies, oldest first: what the turn made carries one of their ids as its cellId. */
+  operatorMessageIds?: string[];
   /** Reviewer-pass messages for this turn, shown after the operator's response */
   reviewerMessages?: Message[];
   /** Extracted code block from AI response */

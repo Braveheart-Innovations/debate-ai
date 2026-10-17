@@ -9,7 +9,8 @@
     "findings.json",
     "evidence.md",
     "transcript.md",
-    "limits.csv"
+    "limits.csv",
+    "drift.json"
   ],
   "ignoredMetadataPathSegments": [
     ".git",

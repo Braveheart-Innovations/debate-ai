@@ -37,6 +37,7 @@ import type {
   DataModelRecordType,
   DataModelRelationship,
 } from '../contract/services/analyze/diagrams/diagramFile';
+import { relationshipTargets } from '../contract/services/salesforce/salesforceRelationships';
 import { salesforceNamespaceOf, workspaceNamespace, type SalesforceSourceFile } from './SalesforceMetadataService';
 
 export type XmlNode = Record<string, unknown>;
@@ -48,7 +49,6 @@ const parser = new XMLParser({
   isArray: (name) => ['fields', 'referenceTo', 'value', 'recordTypes', 'customValue', 'standardValue'].includes(name),
 });
 
-const RELATIONSHIP_TYPES = new Set(['Lookup', 'MasterDetail', 'Hierarchy', 'ExternalLookup', 'IndirectLookup']);
 
 /** An XML value as trimmed text, or undefined when it's empty or not text. */
 export function text(value: unknown): string | undefined {
@@ -321,11 +321,14 @@ export function buildSalesforceDataModel(
   const ownField = (parsed: ParsedField) => /__c$/i.test(parsed.field.name) && !packageOf(parsed.field.name);
 
   const byLowerName = new Map([...all.keys()].map((name) => [name.toLowerCase(), name]));
-  // An empty list is no list: the org's own objects.
+  // An empty list is no list: the org's own objects. ["*"] is every object in the workspace.
   const listed = options.objects?.map((name) => name.trim()).filter(Boolean);
-  const wanted = listed && listed.length > 0 ? listed : undefined;
+  const everything = Boolean(listed?.includes('*'));
+  const wanted = !everything && listed && listed.length > 0 ? listed : undefined;
   const notFound = (wanted ?? []).filter((name) => !byLowerName.has(name.toLowerCase()));
-  const chosen = wanted
+  const chosen = everything
+    ? [...all.keys()].sort()
+    : wanted
     ? [...new Set(wanted.flatMap((name) => byLowerName.get(name.toLowerCase()) ?? []))]
     : [...all.keys()].filter((name) => {
       if (!includedByDefault(name) || packageOf(name)) return false;
@@ -379,9 +382,8 @@ export function buildSalesforceDataModel(
     });
 
     for (const parsed of drawn) {
-      if (!parsed.type || !RELATIONSHIP_TYPES.has(parsed.type)) continue;
-      // A hierarchy field points at its own object (User's Manager).
-      const targets = parsed.type === 'Hierarchy' && parsed.referenceTo.length === 0 ? [apiName] : parsed.referenceTo;
+      // The platform's own lookups (Contact.AccountId) name no target: the shared rule reads them by name.
+      const targets = relationshipTargets(apiName, { name: parsed.field.name, type: parsed.type, referenceTo: parsed.referenceTo }, (name) => byLowerName.get(name.toLowerCase()));
       for (const target of targets) {
         const targetName = byLowerName.get(target.toLowerCase()) ?? target;
         if (!present.has(targetName)) {

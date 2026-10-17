@@ -419,6 +419,58 @@ describe('executeSalesforceMetadataAuditTool', () => {
     });
   });
 
+  it('names the org a version 3 packet queried, and flags production evidence for a sandbox workspace', async () => {
+    const manifest = {
+      version: 3,
+      kind: 'salesforce_insight_packet',
+      createdAt: '2026-10-17T14:30:00Z',
+      source: { workspaceName: 'qa', gitBranch: 'main', gitCommit: null },
+      agentSession: { agent: 'claude_code', toolsUsed: ['sf_cli'] },
+      goals: ['Lead conversion latency'],
+      orgs: [
+        { alias: 'QA', orgId: '00Dca000005CnrhEAC', sandbox: true },
+        { alias: 'Prod', orgId: '00DA0000000IMJcMAO', sandbox: false },
+      ],
+      files: { findings: 'findings.json', evidence: 'evidence.md' },
+    };
+    const findings = {
+      findings: [{
+        id: 'f1-latency',
+        title: 'Leads convert in about 3 seconds',
+        severity: 'low',
+        audienceImpact: 'product',
+        summary: 'Median create-to-convert latency was 3 s.',
+        affectedPaths: ['force-app/main/default/classes/CaseService.cls'],
+        affectedComponents: ['CaseService'],
+        evidenceRefs: ['evidence.md#f1-latency'],
+        runtimeQueries: [
+          { id: 'q1', org: 'Prod', query: 'SELECT COUNT() FROM Lead WHERE IsConverted = true' },
+          { id: 'q2', org: 'QA', query: 'SELECT COUNT() FROM FlowDefinitionView' },
+        ],
+        recommendedNextStep: 'None.',
+        confidence: 0.9,
+      }],
+    };
+    const zip = new JSZip();
+    zip.file('qa/sfdx-project.json', JSON.stringify({ packageDirectories: [{ path: 'force-app', default: true }] }));
+    zip.file('qa/force-app/main/default/classes/CaseService.cls', 'public with sharing class CaseService {}');
+    zip.file('qa/.symposium/salesforce-runs/latest.json', JSON.stringify({ version: 1, kind: 'salesforce_retrieve_run', runId: 'pull-1', createdAt: '2026-10-15T18:27:40Z', org: { alias: 'QA', orgId: '00Dca000005CnrhEAC' } }));
+    zip.file('qa/.symposium/salesforce-insights/20261017T143000Z-latency/manifest.json', JSON.stringify(manifest));
+    zip.file('qa/.symposium/salesforce-insights/20261017T143000Z-latency/findings.json', JSON.stringify(findings));
+    zip.file('qa/.symposium/salesforce-insights/20261017T143000Z-latency/evidence.md', '## f1-latency\n\nThree seconds.');
+    mockSandboxService.readFile.mockResolvedValue(await zip.generateAsync({ type: 'arraybuffer' }));
+
+    const result = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-orgs', {
+      operation: 'packet_findings',
+      paths: ['/uploads/qa-salesforce-metadata.zip'],
+    });
+
+    expect(result.content).toContain('- 20261017T143000Z-latency: Queried QA (sandbox), Prod (production). Prod is production; the workspace\'s metadata came from QA. Say that these facts are production\'s wherever you use them');
+    const summary = JSON.parse(writtenFile('/output/salesforce/salesforce-insight-packets.json')!);
+    expect(summary.validPackets[0]).toMatchObject({ queriedOrgs: ['Prod', 'QA'], productionEvidence: true });
+    expect(summary.importedFindings[0].runtimeQueries[0]).toMatchObject({ id: 'q1', org: 'Prod' });
+  });
+
   it('supports packet_findings as a direct operation for imported agent evidence', async () => {
     const manifest = {
       version: 1,
@@ -487,9 +539,12 @@ describe('executeSalesforceMetadataAuditTool', () => {
     const insightPacketWrite = writtenFile('/output/salesforce/salesforce-insight-packets.json');
     expect(insightPacketWrite).toBeDefined();
     const summary = JSON.parse(insightPacketWrite!);
-    expect(summary.validPackets[0].warnings).toEqual([
-      'source.gitBranch is missing or empty; imported with gitBranch set to "unknown".',
-    ]);
+    expect(summary.validPackets[0].warnings).toEqual(expect.arrayContaining([
+      'manifest.source.gitBranch is blank; the branch shows as unknown.',
+    ]));
+    // Before version 3 a packet doesn't say which org it queried, and the AI is told so.
+    expect(summary.validPackets[0]).toMatchObject({ orgs: null, productionEvidence: false });
+    expect(result.content).toContain('Which org each packet queried:\n- 20260507T190145Z-qa-source-audit: Which org this packet queried isn\'t recorded');
     expect(summary.importedFindings[0]).toMatchObject({
       id: 'sf-token-risk',
       matchedComponentNames: ['CaseService'],
@@ -516,10 +571,9 @@ describe('executeSalesforceMetadataAuditTool', () => {
     expect(result.content).toContain('MUST call request_salesforce_org_evidence BEFORE writing the report');
   });
 
-  it('carries the lens synthesis guidance + report-type hint for the chosen operation', async () => {
-    // Auto mode: the operation choice IS the lens choice — the tool result
-    // must carry the lens's synthesis framing so Auto isn't lighter-touch
-    // than pinning (asymmetry closed 2026-07-24).
+  it('carries the job\'s synthesis guidance + report-type hint for the chosen operation', async () => {
+    // Auto: the operation choice IS the job choice, so the tool result carries
+    // the job's framing and report type (a picked job sets them in the composer).
     const zip = new JSZip();
     zip.file('sfdx-project.json', JSON.stringify({ packageDirectories: [{ path: 'force-app', default: true }] }));
     zip.file('force-app/main/default/classes/CaseService.cls', 'public with sharing class CaseService {}');
@@ -530,7 +584,7 @@ describe('executeSalesforceMetadataAuditTool', () => {
       operation: 'audit',
       paths: ['/uploads/QA-salesforce-metadata.zip'],
     });
-    expect(audit.content).toContain('Synthesis guidance (Workspace Audit path)');
+    expect(audit.content).toContain('Synthesis guidance (Audit the workspace): Risks, conflicts and what to fix first.');
     expect(audit.content).toContain('`source_grounded_audit`');
 
     mockSandboxService.readFile.mockResolvedValue(bundle);
@@ -539,8 +593,16 @@ describe('executeSalesforceMetadataAuditTool', () => {
       paths: ['/uploads/QA-salesforce-metadata.zip'],
       query: 'Winter release go-live readiness for the Creme rollout',
     });
-    expect(readiness.content).toContain('Synthesis guidance (Release Readiness path)');
+    expect(readiness.content).toContain('Synthesis guidance (Get ready for a release or a feature)');
     expect(readiness.content).toContain('`executive_brief`');
+
+    // A diagram operation's job has no report type to suggest.
+    mockSandboxService.readFile.mockResolvedValue(bundle);
+    const dependencies = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-synth-deps', {
+      operation: 'dependencies',
+      paths: ['/uploads/QA-salesforce-metadata.zip'],
+    });
+    expect(dependencies.content).not.toContain('Synthesis guidance');
   });
 
   it('supports troubleshooting as a direct operation for pasted Flow and Apex errors', async () => {
@@ -631,7 +693,7 @@ public without sharing class CaseService {
     const summary = JSON.parse(insightPacketWrite!);
     expect(summary.invalidPackets[0]).toMatchObject({
       runId: 'bad-run',
-      errors: expect.arrayContaining(['kind must be salesforce_insight_packet.']),
+      errors: expect.arrayContaining(['manifest.kind must be salesforce_insight_packet.']),
     });
   });
 });

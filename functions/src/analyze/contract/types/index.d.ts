@@ -182,10 +182,9 @@ export interface MessageMetadata {
      * Stored for history/debugging.
      */
     selectedConnectorIds?: string[];
-    /**
-     * Domain analysis lens IDs explicitly selected by the user for this message.
-     * Stored for history/debugging.
-     */
+    /** The Salesforce job the user picked for this send (src/config/salesforce-jobs.ts). */
+    salesforceJobId?: string;
+    /** Before 2.9.6: the Salesforce lenses pinned for this send. Read only, as the job that replaced them. */
     selectedAnalysisLensIds?: string[];
     /** Structured debate vote metadata for transcript and history. */
     debateVote?: DebateVoteResult;

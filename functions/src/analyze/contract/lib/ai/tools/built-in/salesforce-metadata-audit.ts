@@ -26,7 +26,7 @@ export const salesforceMetadataAuditTool: ToolDefinition = {
       objects: {
         type: 'array',
         items: { type: 'string' },
-        description: 'For operation=data_model: the object API names to include with all their fields (e.g. ["Center__c", "Enrollment__c", "Account"]). Objects they look up to are added without fields so both ends of each relationship show. If omitted, the org\'s own objects are included: its custom objects and the standard objects it added fields to. For operation=save_order (required): the objects whose save order to draw, one diagram each (e.g. ["Lead"]).',
+        description: 'For operation=data_model: the object API names to include with all their fields (e.g. ["Center__c", "Enrollment__c", "Account"]). Objects they look up to are added without fields so both ends of each relationship show. If omitted, the org\'s own objects are included: its custom objects and the standard objects it added fields to. ["*"] includes every object in the workspace. For operation=save_order (required): the objects whose save order to draw, one diagram each (e.g. ["Lead"]).',
       },
       flows: {
         type: 'array',

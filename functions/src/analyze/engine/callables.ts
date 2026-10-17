@@ -24,6 +24,7 @@ import { DiagramNotFoundError, DiagramReviewError, DiagramStaleError, saveDiagra
 import { resolveSessionQuestions } from './notifications';
 import { SandboxLimitError } from '../../sandbox/service';
 import { normalizeAnalyzeOutputSelection } from '../contract/types/analyze';
+import { readSalesforceJobId } from '../contract/config/salesforce-jobs';
 import { MAX_PANEL_SIZE, TeamArgsError } from '../team/teamTools';
 import {
   TeamControlError,
@@ -109,15 +110,22 @@ function parseAttachments(value: unknown): MessageAttachment[] {
   });
 }
 
-/** The composer's context controls on the message: lists of ids, nothing else. */
+/**
+ * The composer's context controls on the message: connector ids and the
+ * Salesforce job, nothing else. A tab still on a build from before jobs sends
+ * its pinned lenses: they're read as the job that replaced them.
+ */
 function parseMessageContext(value: unknown): UserMessageContext | undefined {
   const metadata = (value && typeof value === 'object' ? value : {}) as Record<string, unknown>;
   const selectedConnectorIds = stringList(metadata.selectedConnectorIds, 50).filter((id) => id.length <= 200);
-  const selectedAnalysisLensIds = stringList(metadata.selectedAnalysisLensIds, 50).filter((id) => id.length <= 200);
-  if (selectedConnectorIds.length === 0 && selectedAnalysisLensIds.length === 0) return undefined;
+  const salesforceJobId = readSalesforceJobId({
+    salesforceJobId: metadata.salesforceJobId,
+    selectedAnalysisLensIds: stringList(metadata.selectedAnalysisLensIds, 50),
+  });
+  if (selectedConnectorIds.length === 0 && !salesforceJobId) return undefined;
   return {
     ...(selectedConnectorIds.length > 0 ? { selectedConnectorIds } : {}),
-    ...(selectedAnalysisLensIds.length > 0 ? { selectedAnalysisLensIds } : {}),
+    ...(salesforceJobId ? { salesforceJobId } : {}),
   };
 }
 
