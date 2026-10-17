@@ -37,20 +37,21 @@ export interface OperatorTurnInput {
   attachments?: MessageAttachment[];
   /** Participants the user @-mentioned. */
   mentions?: string[];
-  /** The composer's context controls, saved on the message (History; a restored session's lens selection). */
+  /** The composer's context controls, saved on the message (History; a restored session's Salesforce job). */
   context?: UserMessageContext;
 }
 
 export interface UserMessageContext {
   selectedConnectorIds?: string[];
-  selectedAnalysisLensIds?: string[];
+  /** The Salesforce job the user picked (src/config/salesforce-jobs.ts in the web app). */
+  salesforceJobId?: string;
 }
 
 /** The user's message as the web's ChatService.createUserMessage builds it, plus what this turn carries. */
 export function buildUserMessage(input: Pick<OperatorTurnInput, 'content' | 'messageId' | 'teamRuns' | 'mentions' | 'context'>, now: number): Message {
   const metadata = {
     ...(input.context?.selectedConnectorIds?.length ? { selectedConnectorIds: input.context.selectedConnectorIds } : {}),
-    ...(input.context?.selectedAnalysisLensIds?.length ? { selectedAnalysisLensIds: input.context.selectedAnalysisLensIds } : {}),
+    ...(input.context?.salesforceJobId ? { salesforceJobId: input.context.salesforceJobId } : {}),
     ...(input.teamRuns?.length ? { teamRuns: input.teamRuns } : {}),
   };
   return {

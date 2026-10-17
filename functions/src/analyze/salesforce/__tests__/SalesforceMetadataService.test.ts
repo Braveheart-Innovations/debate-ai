@@ -179,11 +179,13 @@ function makeInsightPacket(): SalesforceInsightPacket {
         documentationRefs: ['https://help.salesforce.com/s/articleView?id=sf.flow_ref_elements_actions_update_records.htm&type=5'],
         recommendedNextStep: 'Align product and engineering on a staged Case escalation remediation plan before implementation.',
         confidence: 0.86,
+        sourceType: 'agent_summary',
       },
     ],
     evidence: '# Evidence\n\n<a id="case-escalation-blast-radius"></a>\nCaseService and Case_Escalation both update Case escalation state.',
     transcript: 'Agent transcript summary.',
     warnings: [],
+    queriedOrgs: [],
   };
 }
 
@@ -323,7 +325,7 @@ describe('SalesforceMetadataService', () => {
           source: expect.objectContaining({ gitBranch: 'unknown' }),
         }),
         warnings: expect.arrayContaining([
-          'source.gitBranch is missing or empty; imported with gitBranch set to "unknown".',
+          'manifest.source.gitBranch is blank; the branch shows as unknown.',
         ]),
         findings: expect.arrayContaining([
           expect.objectContaining({ id: 'case-escalation-blast-radius' }),
@@ -483,8 +485,8 @@ public with sharing class EmailRoutingService {
       expect.objectContaining({
         runId: 'bad-run',
         errors: expect.arrayContaining([
-          'kind must be salesforce_insight_packet.',
-          'createdAt must be a non-empty string.',
+          'manifest.kind must be salesforce_insight_packet.',
+          'manifest.createdAt must be an ISO-8601 timestamp.',
         ]),
       }),
     ]);

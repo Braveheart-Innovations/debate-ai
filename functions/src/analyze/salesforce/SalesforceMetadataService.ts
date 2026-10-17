@@ -21,6 +21,16 @@ import type { SandboxFileInfo, SandboxFiles } from '../engine/tools/sandboxFiles
 
 export type { SalesforceComponentType } from '../contract/services/salesforce/componentTypes';
 import type { SalesforceComponentType } from '../contract/services/salesforce/componentTypes';
+import {
+  validateInsightPacket,
+  type InsightDescribeResult,
+  type InsightEvidenceClaim,
+  type InsightFinding,
+  type InsightPacketFileContents,
+  type InsightPacketManifest,
+  type InsightPacketOrg,
+  type InsightRuntimeQuery,
+} from '../contract/services/salesforce/insightPacketContract';
 
 export type SalesforceRiskSeverity = 'critical' | 'high' | 'medium' | 'low';
 
@@ -43,7 +53,8 @@ export interface SalesforceRetrieveRun {
   startedAt?: string;
   finishedAt?: string;
   status?: string;
-  org?: { alias?: string; orgId?: string; apiVersion?: string };
+  /** `sandbox` when the writer recorded it (our CLI does). */
+  org?: { alias?: string; orgId?: string; apiVersion?: string; sandbox?: boolean };
   sourceApiVersion?: string;
   components?: { retrieved?: number; failed?: number; failedProject?: number; failedManaged?: number };
   writer?: string;
@@ -144,39 +155,10 @@ export type SalesforceEvidenceSourceType =
   | 'inference'
   | 'runtime_unverified';
 
-export interface SalesforcePacketEvidenceClaim {
-  claimId: string;
-  claim: string;
-  sourceType: SalesforceEvidenceSourceType;
-  confidence?: number;
-  observedAt?: string;
-  evidenceRefs: string[];
-  queryRefs: string[];
-  limitations: string[];
-}
-
-export interface SalesforcePacketRuntimeQuery {
-  id: string;
-  tool?: string;
-  query: string;
-  resultShape?: string;
-  rows?: Array<Record<string, unknown>>;
-  rowCount?: number;
-  executedAt?: string;
-  observedAt?: string;
-  apiVersion?: string;
-  warnings?: string[];
-}
-
-export interface SalesforcePacketDescribeResult {
-  id: string;
-  objectName: string;
-  fields?: Array<Record<string, unknown>>;
-  fieldNames?: string[];
-  apiVersion?: string;
-  observedAt?: string;
-  warnings?: string[];
-}
+/** A packet's claims, queries and describes, as the shared contract reads them. */
+export type SalesforcePacketEvidenceClaim = InsightEvidenceClaim;
+export type SalesforcePacketRuntimeQuery = InsightRuntimeQuery;
+export type SalesforcePacketDescribeResult = InsightDescribeResult;
 
 export interface SalesforceEvidenceLedgerClaim {
   claimId: string;
@@ -255,45 +237,9 @@ export interface SalesforceFeatureReferenceMap {
   }>;
 }
 
-export interface SalesforceInsightPacketManifest {
-  version: 1 | 2;
-  kind: 'salesforce_insight_packet';
-  createdAt: string;
-  source: {
-    workspaceName: string;
-    gitBranch: string;
-    gitCommit: string | null;
-  };
-  agentSession: {
-    agent: SalesforceInsightAgent;
-    toolsUsed: string[];
-  };
-  goals: string[];
-  files: {
-    findings: string;
-    evidence: string;
-    transcript?: string;
-  };
-}
-
-export interface SalesforceInsightPacketFinding {
-  id: string;
-  title: string;
-  severity: SalesforceRiskSeverity;
-  audienceImpact: SalesforceInsightAudienceImpact;
-  summary: string;
-  affectedPaths: string[];
-  affectedComponents: string[];
-  evidenceRefs: string[];
-  recommendedNextStep: string;
-  confidence: number;
-  sourceType?: SalesforceEvidenceSourceType;
-  observedAt?: string;
-  evidenceClaims?: SalesforcePacketEvidenceClaim[];
-  runtimeQueries?: SalesforcePacketRuntimeQuery[];
-  describeResults?: SalesforcePacketDescribeResult[];
-  documentationRefs?: string[];
-}
+/** The packet's manifest and findings: the shared contract's types (version 3 records the org). */
+export type SalesforceInsightPacketManifest = InsightPacketManifest;
+export type SalesforceInsightPacketFinding = InsightFinding;
 
 export interface SalesforceInsightPacket {
   runId: string;
@@ -304,6 +250,8 @@ export interface SalesforceInsightPacket {
   evidence: string;
   transcript?: string;
   warnings: string[];
+  /** The org each query and describe ran against, by alias (version 3). */
+  queriedOrgs: string[];
 }
 
 export interface SalesforceInvalidInsightPacket {
@@ -375,6 +323,14 @@ export interface SalesforceMetadataIndex {
     goals: string[];
     findingCount: number;
     warnings: string[];
+    /** The orgs the packet lists (version 3); null when it doesn't record them. */
+    orgs: InsightPacketOrg[] | null;
+    /** The org each query and describe ran against, by alias. */
+    queriedOrgs: string[];
+    /** It holds production evidence for a workspace whose metadata came from another org. */
+    productionEvidence: boolean;
+    /** Which org it queried, in a sentence the AI reads before using its findings. */
+    orgNote: string;
   }>;
   importedFindings: SalesforceImportedInsightFinding[];
 }
@@ -885,356 +841,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function isStringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every((item) => typeof item === 'string');
-}
-
-function isStringRecordArray(value: unknown): value is Array<Record<string, unknown>> {
-  return Array.isArray(value) && value.every((item) => isRecord(item));
-}
-
-const EVIDENCE_SOURCE_TYPES: SalesforceEvidenceSourceType[] = [
-  'metadata',
-  'soql',
-  'describe',
-  'docs',
-  'agent_summary',
-  'inference',
-  'runtime_unverified',
-];
-
-function normalizeEvidenceSourceType(value: unknown): SalesforceEvidenceSourceType | undefined {
-  return typeof value === 'string' && EVIDENCE_SOURCE_TYPES.includes(value as SalesforceEvidenceSourceType)
-    ? value as SalesforceEvidenceSourceType
-    : undefined;
-}
-
-function normalizeConfidence(value: unknown, fallback?: number): number | undefined {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return Math.max(0, Math.min(1, value));
-  }
-  return fallback;
-}
-
-function parseJsonObject(content: string, label: string): Record<string, unknown> {
-  const parsed = JSON.parse(content) as unknown;
-  if (!isRecord(parsed)) {
-    throw new Error(`${label} must be a JSON object.`);
-  }
-  return parsed;
-}
-
-function normalizePacketFileRef(path: string): string {
-  return normalizePath(path)
-    .split('/')
-    .filter((segment) => segment && segment !== '.' && segment !== '..')
-    .join('/');
-}
-
-function requireString(record: Record<string, unknown>, key: string, errors: string[]): string {
-  const value = record[key];
-  if (typeof value === 'string' && value.trim().length > 0) return value;
-  errors.push(`${key} must be a non-empty string.`);
-  return '';
-}
-
-function parseInsightPacketManifest(content: string): {
-  manifest?: SalesforceInsightPacketManifest;
-  errors: string[];
-  warnings: string[];
-} {
-  const errors: string[] = [];
-  const warnings: string[] = [];
-  let raw: Record<string, unknown>;
-  try {
-    raw = parseJsonObject(content, 'manifest.json');
-  } catch (error) {
-    return {
-      errors: [error instanceof Error ? error.message : 'manifest.json is not valid JSON.'],
-      warnings,
-    };
-  }
-
-  if (raw.version !== 1 && raw.version !== 2) errors.push('version must be 1 or 2.');
-  if (raw.kind !== 'salesforce_insight_packet') errors.push('kind must be salesforce_insight_packet.');
-
-  const createdAt = requireString(raw, 'createdAt', errors);
-  if (createdAt && Number.isNaN(Date.parse(createdAt))) {
-    errors.push('createdAt must be an ISO-8601 parseable timestamp.');
-  }
-
-  const source = isRecord(raw.source) ? raw.source : null;
-  if (!source) errors.push('source must be an object.');
-  const workspaceName = source ? requireString(source, 'workspaceName', errors) : '';
-  let gitBranch = 'unknown';
-  if (source) {
-    if (typeof source.gitBranch === 'string' && source.gitBranch.trim().length > 0) {
-      gitBranch = source.gitBranch.trim();
-    } else {
-      warnings.push('source.gitBranch is missing or empty; imported with gitBranch set to "unknown".');
-    }
-  }
-  const gitCommit = source?.gitCommit;
-  if (gitCommit !== undefined && gitCommit !== null && typeof gitCommit !== 'string') {
-    errors.push('source.gitCommit must be a string or null.');
-  }
-
-  const agentSession = isRecord(raw.agentSession) ? raw.agentSession : null;
-  if (!agentSession) errors.push('agentSession must be an object.');
-  const agent = agentSession?.agent;
-  if (agent !== 'codex' && agent !== 'claude_code' && agent !== 'other') {
-    errors.push('agentSession.agent must be codex, claude_code, or other.');
-  }
-  const toolsUsed = agentSession?.toolsUsed;
-  if (!isStringArray(toolsUsed)) errors.push('agentSession.toolsUsed must be an array of strings.');
-
-  const goals = raw.goals;
-  if (!isStringArray(goals)) errors.push('goals must be an array of strings.');
-
-  const files = isRecord(raw.files) ? raw.files : null;
-  if (!files) errors.push('files must be an object.');
-  const findings = files ? requireString(files, 'findings', errors) : '';
-  const evidence = files ? requireString(files, 'evidence', errors) : '';
-  const transcript = files?.transcript;
-  if (transcript !== undefined && typeof transcript !== 'string') {
-    errors.push('files.transcript must be a string when provided.');
-  }
-
-  if (errors.length > 0) return { errors, warnings };
-
-  return {
-    errors,
-    warnings,
-    manifest: {
-      version: raw.version as 1 | 2,
-      kind: 'salesforce_insight_packet',
-      createdAt,
-      source: {
-        workspaceName,
-        gitBranch,
-        gitCommit: typeof gitCommit === 'string' ? gitCommit : null,
-      },
-      agentSession: {
-        agent: agent as SalesforceInsightAgent,
-        toolsUsed: toolsUsed as string[],
-      },
-      goals: goals as string[],
-      files: {
-        findings: normalizePacketFileRef(findings),
-        evidence: normalizePacketFileRef(evidence),
-        ...(typeof transcript === 'string' && transcript.trim().length > 0
-          ? { transcript: normalizePacketFileRef(transcript) }
-          : {}),
-      },
-    },
-  };
-}
-
-function parsePacketEvidenceClaims(value: unknown, findingId: string): { claims: SalesforcePacketEvidenceClaim[]; errors: string[] } {
-  if (value === undefined) return { claims: [], errors: [] };
-  if (!Array.isArray(value)) return { claims: [], errors: ['evidenceClaims must be an array when provided.'] };
-
-  const errors: string[] = [];
-  const claims: SalesforcePacketEvidenceClaim[] = [];
-  value.forEach((item, index) => {
-    if (!isRecord(item)) {
-      errors.push(`evidenceClaims[${index}] must be an object.`);
-      return;
-    }
-    const claim = typeof item.claim === 'string' ? item.claim.trim() : '';
-    if (!claim) {
-      errors.push(`evidenceClaims[${index}].claim must be a non-empty string.`);
-      return;
-    }
-    const sourceType = normalizeEvidenceSourceType(item.sourceType);
-    if (!sourceType) {
-      errors.push(`evidenceClaims[${index}].sourceType must be one of ${EVIDENCE_SOURCE_TYPES.join(', ')}.`);
-      return;
-    }
-    const claimId = typeof item.claimId === 'string' && item.claimId.trim()
-      ? item.claimId.trim()
-      : `${findingId}-claim-${index + 1}`;
-    claims.push({
-      claimId,
-      claim,
-      sourceType,
-      confidence: normalizeConfidence(item.confidence),
-      observedAt: typeof item.observedAt === 'string' ? item.observedAt : undefined,
-      evidenceRefs: isStringArray(item.evidenceRefs) ? item.evidenceRefs : [],
-      queryRefs: isStringArray(item.queryRefs) ? item.queryRefs : [],
-      limitations: isStringArray(item.limitations) ? item.limitations : [],
-    });
-  });
-  return { claims, errors };
-}
-
-function parsePacketRuntimeQueries(value: unknown, findingId: string): { queries: SalesforcePacketRuntimeQuery[]; errors: string[] } {
-  if (value === undefined) return { queries: [], errors: [] };
-  if (!Array.isArray(value)) return { queries: [], errors: ['runtimeQueries must be an array when provided.'] };
-
-  const errors: string[] = [];
-  const queries: SalesforcePacketRuntimeQuery[] = [];
-  value.forEach((item, index) => {
-    if (!isRecord(item)) {
-      errors.push(`runtimeQueries[${index}] must be an object.`);
-      return;
-    }
-    const query = typeof item.query === 'string' ? item.query.trim() : '';
-    if (!query) {
-      errors.push(`runtimeQueries[${index}].query must be a non-empty string.`);
-      return;
-    }
-    queries.push({
-      id: typeof item.id === 'string' && item.id.trim() ? item.id.trim() : `${findingId}-query-${index + 1}`,
-      tool: typeof item.tool === 'string' ? item.tool : undefined,
-      query,
-      resultShape: typeof item.resultShape === 'string' ? item.resultShape : undefined,
-      rows: isStringRecordArray(item.rows) ? item.rows.slice(0, 50) : undefined,
-      rowCount: typeof item.rowCount === 'number' && Number.isFinite(item.rowCount) ? item.rowCount : undefined,
-      executedAt: typeof item.executedAt === 'string' ? item.executedAt : undefined,
-      observedAt: typeof item.observedAt === 'string' ? item.observedAt : undefined,
-      apiVersion: typeof item.apiVersion === 'string' ? item.apiVersion : undefined,
-      warnings: isStringArray(item.warnings) ? item.warnings : undefined,
-    });
-  });
-  return { queries, errors };
-}
-
-function parsePacketDescribeResults(value: unknown, findingId: string): { describes: SalesforcePacketDescribeResult[]; errors: string[] } {
-  if (value === undefined) return { describes: [], errors: [] };
-  if (!Array.isArray(value)) return { describes: [], errors: ['describeResults must be an array when provided.'] };
-
-  const errors: string[] = [];
-  const describes: SalesforcePacketDescribeResult[] = [];
-  value.forEach((item, index) => {
-    if (!isRecord(item)) {
-      errors.push(`describeResults[${index}] must be an object.`);
-      return;
-    }
-    const objectName = typeof item.objectName === 'string' ? item.objectName.trim() : '';
-    if (!objectName) {
-      errors.push(`describeResults[${index}].objectName must be a non-empty string.`);
-      return;
-    }
-    describes.push({
-      id: typeof item.id === 'string' && item.id.trim() ? item.id.trim() : `${findingId}-describe-${index + 1}`,
-      objectName,
-      fields: isStringRecordArray(item.fields) ? item.fields.slice(0, 250) : undefined,
-      fieldNames: isStringArray(item.fieldNames) ? item.fieldNames : undefined,
-      apiVersion: typeof item.apiVersion === 'string' ? item.apiVersion : undefined,
-      observedAt: typeof item.observedAt === 'string' ? item.observedAt : undefined,
-      warnings: isStringArray(item.warnings) ? item.warnings : undefined,
-    });
-  });
-  return { describes, errors };
-}
-
-function inferPacketFindingSourceType(input: {
-  explicitSourceType?: SalesforceEvidenceSourceType;
-  evidenceClaims: SalesforcePacketEvidenceClaim[];
-  runtimeQueries: SalesforcePacketRuntimeQuery[];
-  describeResults: SalesforcePacketDescribeResult[];
-  documentationRefs?: string[];
-}): SalesforceEvidenceSourceType {
-  if (input.explicitSourceType) return input.explicitSourceType;
-  if (input.runtimeQueries.length > 0) return 'soql';
-  if (input.describeResults.length > 0) return 'describe';
-  const claimSourceType = input.evidenceClaims.find((claim) => claim.sourceType !== 'agent_summary')?.sourceType;
-  if (claimSourceType) return claimSourceType;
-  if ((input.documentationRefs || []).length > 0 && input.evidenceClaims.some((claim) => claim.sourceType === 'docs')) return 'docs';
-  return 'agent_summary';
-}
-
-function parseInsightPacketFindings(content: string): { findings: SalesforceInsightPacketFinding[]; errors: string[] } {
-  let raw: Record<string, unknown>;
-  try {
-    raw = parseJsonObject(content, 'findings.json');
-  } catch (error) {
-    return { findings: [], errors: [error instanceof Error ? error.message : 'findings.json is not valid JSON.'] };
-  }
-
-  if (!Array.isArray(raw.findings)) {
-    return { findings: [], errors: ['findings.json must contain a findings array.'] };
-  }
-
-  const errors: string[] = [];
-  const findings: SalesforceInsightPacketFinding[] = [];
-
-  raw.findings.forEach((item, index) => {
-    if (!isRecord(item)) {
-      errors.push(`findings[${index}] must be an object.`);
-      return;
-    }
-
-    const itemErrors: string[] = [];
-    const id = requireString(item, 'id', itemErrors);
-    const title = requireString(item, 'title', itemErrors);
-    const summary = requireString(item, 'summary', itemErrors);
-    const recommendedNextStep = requireString(item, 'recommendedNextStep', itemErrors);
-    const severity = item.severity;
-    if (severity !== 'critical' && severity !== 'high' && severity !== 'medium' && severity !== 'low') {
-      itemErrors.push('severity must be critical, high, medium, or low.');
-    }
-    const audienceImpact = item.audienceImpact;
-    if (
-      audienceImpact !== 'executive'
-      && audienceImpact !== 'product'
-      && audienceImpact !== 'engineering'
-      && audienceImpact !== 'security'
-      && audienceImpact !== 'operations'
-    ) {
-      itemErrors.push('audienceImpact must be executive, product, engineering, security, or operations.');
-    }
-    if (!isStringArray(item.affectedPaths)) itemErrors.push('affectedPaths must be an array of strings.');
-    if (!isStringArray(item.affectedComponents)) itemErrors.push('affectedComponents must be an array of strings.');
-    if (!isStringArray(item.evidenceRefs)) itemErrors.push('evidenceRefs must be an array of strings.');
-    if (item.documentationRefs !== undefined && !isStringArray(item.documentationRefs)) itemErrors.push('documentationRefs must be an array of strings when provided.');
-    const explicitSourceType = normalizeEvidenceSourceType(item.sourceType);
-    if (item.sourceType !== undefined && !explicitSourceType) itemErrors.push(`sourceType must be one of ${EVIDENCE_SOURCE_TYPES.join(', ')} when provided.`);
-    if (item.observedAt !== undefined && typeof item.observedAt !== 'string') itemErrors.push('observedAt must be a string when provided.');
-    const evidenceClaimsResult = parsePacketEvidenceClaims(item.evidenceClaims, id || `finding-${index}`);
-    const runtimeQueriesResult = parsePacketRuntimeQueries(item.runtimeQueries, id || `finding-${index}`);
-    const describeResultsResult = parsePacketDescribeResults(item.describeResults, id || `finding-${index}`);
-    itemErrors.push(...evidenceClaimsResult.errors, ...runtimeQueriesResult.errors, ...describeResultsResult.errors);
-    const confidence = item.confidence;
-    if (typeof confidence !== 'number' || Number.isNaN(confidence) || confidence < 0 || confidence > 1) {
-      itemErrors.push('confidence must be a number from 0 to 1.');
-    }
-
-    if (itemErrors.length > 0) {
-      errors.push(...itemErrors.map((message) => `findings[${index}].${message}`));
-      return;
-    }
-
-    findings.push({
-      id,
-      title,
-      severity: severity as SalesforceRiskSeverity,
-      audienceImpact: audienceImpact as SalesforceInsightAudienceImpact,
-      summary,
-      affectedPaths: item.affectedPaths as string[],
-      affectedComponents: item.affectedComponents as string[],
-      evidenceRefs: item.evidenceRefs as string[],
-      recommendedNextStep,
-      confidence: confidence as number,
-      sourceType: inferPacketFindingSourceType({
-        explicitSourceType,
-        evidenceClaims: evidenceClaimsResult.claims,
-        runtimeQueries: runtimeQueriesResult.queries,
-        describeResults: describeResultsResult.describes,
-        documentationRefs: isStringArray(item.documentationRefs) ? item.documentationRefs : undefined,
-      }),
-      ...(typeof item.observedAt === 'string' ? { observedAt: item.observedAt } : {}),
-      ...(evidenceClaimsResult.claims.length > 0 ? { evidenceClaims: evidenceClaimsResult.claims } : {}),
-      ...(runtimeQueriesResult.queries.length > 0 ? { runtimeQueries: runtimeQueriesResult.queries } : {}),
-      ...(describeResultsResult.describes.length > 0 ? { describeResults: describeResultsResult.describes } : {}),
-      ...(isStringArray(item.documentationRefs) ? { documentationRefs: item.documentationRefs } : {}),
-    });
-  });
-
-  return { findings, errors };
-}
-
+/**
+ * The packets in the upload, each checked by the shared contract
+ * (insightPacketContract, the same validator the import preview and the CLI
+ * kit run): valid ones with their normalized findings, the rest with why.
+ */
 function buildSalesforceInsightPackets(files: SalesforceInsightPacketSourceFile[]): {
   packets: SalesforceInsightPacket[];
   invalidPackets: SalesforceInvalidInsightPacket[];
@@ -1250,76 +861,28 @@ function buildSalesforceInsightPackets(files: SalesforceInsightPacketSourceFile[
   const invalidPackets: SalesforceInvalidInsightPacket[] = [];
 
   for (const [rootPath, packetFiles] of grouped) {
-    const firstFile = packetFiles[0];
-    const byRelativePath = new Map(
-      packetFiles.map((file) => [file.packetInfo.relativePath.toLowerCase(), file])
-    );
-    const manifestFile = byRelativePath.get('manifest.json');
-    if (!manifestFile) {
-      invalidPackets.push({
-        runId: firstFile.packetInfo.runId,
-        rootPath,
-        sourcePath: firstFile.sourcePath,
-        errors: ['manifest.json is required.'],
-      });
+    const runId = packetFiles[0].packetInfo.runId;
+    const byName = new Map(packetFiles.map((file) => [file.packetInfo.relativePath.toLowerCase(), file]));
+    const contents: InsightPacketFileContents = {};
+    for (const file of packetFiles) contents[file.packetInfo.relativePath] = file.content;
+    const validation = validateInsightPacket(contents);
+    const sourcePath = byName.get('manifest.json')?.sourcePath ?? packetFiles[0].sourcePath;
+
+    if (validation.status !== 'valid' || !validation.manifest) {
+      invalidPackets.push({ runId, rootPath, sourcePath, errors: validation.errors });
       continue;
     }
-
-    const manifestResult = parseInsightPacketManifest(manifestFile.content);
-    if (!manifestResult.manifest) {
-      invalidPackets.push({
-        runId: firstFile.packetInfo.runId,
-        rootPath,
-        sourcePath: manifestFile.sourcePath,
-        errors: manifestResult.errors,
-      });
-      continue;
-    }
-
-    const manifest = manifestResult.manifest;
-    const findingsFile = byRelativePath.get(manifest.files.findings.toLowerCase());
-    const evidenceFile = byRelativePath.get(manifest.files.evidence.toLowerCase());
-    const transcriptFile = manifest.files.transcript
-      ? byRelativePath.get(manifest.files.transcript.toLowerCase())
-      : undefined;
-    const errors: string[] = [];
-    const warnings: string[] = [...manifestResult.warnings];
-
-    if (!findingsFile) errors.push(`Missing findings file: ${manifest.files.findings}`);
-    if (!evidenceFile) errors.push(`Missing evidence file: ${manifest.files.evidence}`);
-    if (manifest.files.transcript && !transcriptFile) {
-      warnings.push(`Transcript file declared but not found: ${manifest.files.transcript}`);
-    }
-    if (errors.length > 0) {
-      invalidPackets.push({
-        runId: firstFile.packetInfo.runId,
-        rootPath,
-        sourcePath: manifestFile.sourcePath,
-        errors,
-      });
-      continue;
-    }
-
-    const findingsResult = parseInsightPacketFindings(findingsFile!.content);
-    if (findingsResult.errors.length > 0) {
-      invalidPackets.push({
-        runId: firstFile.packetInfo.runId,
-        rootPath,
-        sourcePath: findingsFile!.sourcePath,
-        errors: findingsResult.errors,
-      });
-      continue;
-    }
-
+    const manifest = validation.manifest;
     packets.push({
-      runId: firstFile.packetInfo.runId,
+      runId,
       rootPath,
-      sourcePath: manifestFile.sourcePath,
+      sourcePath,
       manifest,
-      findings: findingsResult.findings,
-      evidence: evidenceFile!.content,
-      transcript: transcriptFile?.content,
-      warnings,
+      findings: validation.findings,
+      evidence: byName.get(manifest.files.evidence.toLowerCase())?.content ?? '',
+      transcript: manifest.files.transcript ? byName.get(manifest.files.transcript.toLowerCase())?.content : undefined,
+      warnings: validation.warnings,
+      queriedOrgs: validation.queriedOrgs,
     });
   }
 
@@ -1348,7 +911,12 @@ function parseRetrieveRun(content: string): SalesforceRetrieveRun | undefined {
     startedAt: text(raw.startedAt),
     finishedAt: text(raw.finishedAt),
     status: text(raw.status),
-    org: { alias: text(org.alias), orgId: text(org.orgId), apiVersion: text(org.apiVersion) },
+    org: {
+      alias: text(org.alias),
+      orgId: text(org.orgId),
+      apiVersion: text(org.apiVersion),
+      ...(typeof org.sandbox === 'boolean' ? { sandbox: org.sandbox } : {}),
+    },
     sourceApiVersion: text(raw.sourceApiVersion),
     components: {
       retrieved: count(components.retrieved),
@@ -1970,15 +1538,9 @@ function joinInsightFindingsToComponents(
     }
 
     const matchedComponents = Array.from(matched.values()).sort((a, b) => a.name.localeCompare(b.name));
-    const sourceType = finding.sourceType || inferPacketFindingSourceType({
-      evidenceClaims: finding.evidenceClaims || [],
-      runtimeQueries: finding.runtimeQueries || [],
-      describeResults: finding.describeResults || [],
-      documentationRefs: finding.documentationRefs,
-    });
     return {
+      // The contract sets sourceType (inferred from the queries and claims when the packet leaves it out).
       ...finding,
-      sourceType,
       packetRunId: packet.runId,
       packetRootPath: packet.rootPath,
       packetSourcePath: packet.sourcePath,
@@ -1996,7 +1558,36 @@ function joinInsightFindingsToComponents(
   }));
 }
 
-function summarizeInsightPackets(packets: SalesforceInsightPacket[]): SalesforceMetadataIndex['insightPackets'] {
+/**
+ * Which org a packet's evidence is from, against the org the workspace's metadata
+ * came from (its run record): production evidence explaining a sandbox's
+ * metadata is said to be production evidence, never the sandbox's.
+ */
+function describePacketOrgs(packet: SalesforceInsightPacket, retrieveRun?: SalesforceRetrieveRun): Pick<SalesforceMetadataIndex['insightPackets'][number], 'orgs' | 'queriedOrgs' | 'productionEvidence' | 'orgNote'> {
+  const orgs = packet.manifest.orgs ?? null;
+  if (!orgs) {
+    return {
+      orgs: null,
+      queriedOrgs: [],
+      productionEvidence: false,
+      orgNote: `Which org this packet queried isn't recorded (packet version ${packet.manifest.version}): don't assume its runtime facts are from the workspace's org${retrieveRun?.org?.alias ? ` (${retrieveRun.org.alias})` : ''}.`,
+    };
+  }
+  const snapshot = retrieveRun?.org;
+  const isSnapshotOrg = (org: InsightPacketOrg) => Boolean(snapshot && ((snapshot.orgId && org.orgId && org.orgId.slice(0, 15) === snapshot.orgId.slice(0, 15)) || (!snapshot.orgId && snapshot.alias && org.alias === snapshot.alias)));
+  const queried = orgs.filter((org) => packet.queriedOrgs.includes(org.alias));
+  const production = queried.filter((org) => !org.sandbox && !isSnapshotOrg(org));
+  const names = queried.map((org) => `${org.alias}${org.sandbox ? ' (sandbox)' : ' (production)'}`);
+  const workspaceOrg = snapshot?.alias ? `${snapshot.alias}${snapshot.sandbox === true ? ' (sandbox)' : snapshot.sandbox === false ? ' (production)' : ''}` : 'an unrecorded org';
+  const orgNote = queried.length === 0
+    ? 'This packet ran no org queries or describes.'
+    : production.length > 0
+      ? `Queried ${names.join(', ')}. ${production.map((org) => org.alias).join(', ')} is production; the workspace's metadata came from ${workspaceOrg}. Say that these facts are production's wherever you use them, and don't present them as the workspace org's.`
+      : `Queried ${names.join(', ')}; the workspace's metadata came from ${workspaceOrg}.`;
+  return { orgs, queriedOrgs: packet.queriedOrgs, productionEvidence: production.length > 0, orgNote };
+}
+
+function summarizeInsightPackets(packets: SalesforceInsightPacket[], retrieveRun?: SalesforceRetrieveRun): SalesforceMetadataIndex['insightPackets'] {
   return packets.map((packet) => ({
     runId: packet.runId,
     rootPath: packet.rootPath,
@@ -2010,6 +1601,7 @@ function summarizeInsightPackets(packets: SalesforceInsightPacket[]): Salesforce
     goals: packet.manifest.goals,
     findingCount: packet.findings.length,
     warnings: packet.warnings,
+    ...describePacketOrgs(packet, retrieveRun),
   }));
 }
 
@@ -2673,7 +2265,7 @@ export function buildSalesforceMetadataIndex(
     flowDrilldowns,
     apexDrilldowns,
     featureReferenceMap,
-    insightPackets: summarizeInsightPackets(insightPackets),
+    insightPackets: summarizeInsightPackets(insightPackets, retrieveRun),
     importedFindings,
   };
 }
@@ -4266,7 +3858,8 @@ export function buildSalesforceInsightPacketSummary(
     importContract: {
       packetRoot: '.symposium/salesforce-insights/<run-id>/',
       requiredFiles: ['manifest.json', 'findings.json', 'evidence.md'],
-      optionalFiles: ['transcript.md'],
+      optionalFiles: ['transcript.md', 'limits.csv', 'drift.json'],
+      version: 'Version 3 lists the orgs the packet queried (manifest.orgs) and names each query\'s org; versions 1 and 2 don\'t record it.',
       boundary: index.sourceSummary.safetyBoundary,
     },
   });

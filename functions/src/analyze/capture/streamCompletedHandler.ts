@@ -44,6 +44,7 @@ import { diagramMetadata, isDiagramFilename, reviewDiagramText } from '../contra
 import { diagramReaderFromArtifacts, inlineDiagramRefs } from '../contract/services/analyze/diagrams/diagramMermaid';
 import { chartFileReaderFromArtifacts, inlineChartDataFiles, sessionDataPath } from '../contract/services/analyze/charts/inlineChartData';
 import { normalizeRequestSalesforceOrgEvidenceArgs } from '../engine/tools/executeRequestSalesforceOrgEvidenceTool';
+import { readSalesforceJobId } from '../contract/config/salesforce-jobs';
 import type { AnalyzeAction } from './types';
 import {
   sanitizeToolCallIdForFetchPath,
@@ -300,54 +301,16 @@ function isSalesforceArtifactType(type: Artifact['type']): boolean {
     || type === 'salesforce_vscode_handoff';
 }
 
-function getSalesforceLensIdsForOperation(operation: string | undefined): string[] {
-  switch (operation) {
-    case 'troubleshooting':
-      return ['salesforce_troubleshooting'];
-    case 'dependencies':
-      return ['salesforce_dependency_impact'];
-    case 'risks':
-      return ['salesforce_access_governance'];
-    case 'handoff':
-      return ['salesforce_engineering_handoff'];
-    case 'feature_readiness':
-      return ['salesforce_feature_readiness'];
-    case 'packet_findings':
-      return ['salesforce_packet_findings'];
-    case 'inventory':
-    case 'search':
-    case 'component':
-    case 'audit':
-    default:
-      return ['salesforce_stakeholder_audit'];
-  }
-}
-
-function getSalesforceOperationFromToolCall(
-  toolCall: NonNullable<StreamCompletedEventData['toolCalls']>[number] | undefined,
-): string | undefined {
-  if (!toolCall?.function.arguments) return undefined;
-  try {
-    const args = JSON.parse(toolCall.function.arguments) as { operation?: unknown };
-    return typeof args.operation === 'string' ? args.operation : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-function getSelectedSalesforceLensIdsForMessage(messages: Message[], messageId: string): string[] {
+/**
+ * Whether the user's latest message before this reply ran a Salesforce job (the
+ * workspace dialog's pick; a session from before jobs pinned lenses, which read
+ * as jobs): its report is the deliverable, so incidental text files stay hidden.
+ */
+function hasSalesforceJobForMessage(messages: Message[], messageId: string): boolean {
   const messageIndex = messages.findIndex((message) => message.id === messageId);
-  const priorMessages = messageIndex >= 0
-    ? messages.slice(0, messageIndex)
-    : messages;
-  const lensSourceMessage = [...priorMessages].reverse().find((message) => (
-    Array.isArray(message.metadata?.selectedAnalysisLensIds)
-    && message.metadata.selectedAnalysisLensIds.some((lensId) => lensId.startsWith('salesforce_'))
-  ));
-
-  return lensSourceMessage?.metadata?.selectedAnalysisLensIds?.filter((lensId) => (
-    lensId.startsWith('salesforce_')
-  )) || [];
+  const priorMessages = messageIndex >= 0 ? messages.slice(0, messageIndex) : messages;
+  const latestUser = [...priorMessages].reverse().find((message) => message.senderType === 'user');
+  return readSalesforceJobId(latestUser?.metadata) !== null;
 }
 
 function shouldPersistSalesforcePacketArtifacts(outputSelection: AnalyzeOutputSelection): boolean {
@@ -740,7 +703,6 @@ function extractDataArtifacts(
     artifactProvenance: Artifact['provenance'];
     htmlArtifactProvenance?: Artifact['provenance'];
     salesforceArtifactGroupId?: string;
-    salesforceLensIds?: string[];
     suppressSalesforcePacketArtifacts?: boolean;
     suppressSalesforceIncidentalTextArtifacts?: boolean;
     // General intent-gated surfacing: when the user asked for a Rich HTML
@@ -900,8 +862,6 @@ function extractDataArtifacts(
       artifactMeta = {
         ...artifactMeta,
         artifactGroupId: ctx.salesforceArtifactGroupId,
-        salesforceLensRun: true,
-        salesforceLensIds: ctx.salesforceLensIds,
         salesforceRole,
       };
     }
@@ -1506,8 +1466,7 @@ export function handleStreamCompleted(
         .filter((source): source is ToolResultProvenance => Boolean(source)),
     );
     const allDerivedSources: ToolResultProvenance[] = [];
-    const selectedSalesforceLensIds = getSelectedSalesforceLensIdsForMessage(state.messages, messageId);
-    const shouldSuppressSalesforceTextArtifacts = selectedSalesforceLensIds.length > 0
+    const shouldSuppressSalesforceTextArtifacts = hasSalesforceJobForMessage(state.messages, messageId)
       && hasStructuredReportDeliverable(processedToolExecutionResults);
     // When a run produced a structured report, surface ONLY that report and treat
     // every intermediate (figures/data/dataset/auto session-workbook/HTML) as backing
@@ -1568,16 +1527,8 @@ export function handleStreamCompleted(
           },
         });
       }
-      const salesforceOperation = isSalesforceToolResult
-        ? getSalesforceOperationFromToolCall(toolCall)
-        : undefined;
       const salesforceArtifactGroupId = isSalesforceToolResult
         ? `salesforce-${messageId}-${i}`
-        : undefined;
-      const salesforceLensIds = isSalesforceToolResult
-        ? selectedSalesforceLensIds.length > 0
-          ? selectedSalesforceLensIds
-          : getSalesforceLensIdsForOperation(salesforceOperation)
         : undefined;
       const suppressSalesforcePacketArtifacts = isSalesforceToolResult
         && !shouldPersistSalesforcePacketArtifacts(outputSelection);
@@ -1708,7 +1659,6 @@ export function handleStreamCompleted(
           existingArtifacts,
           artifactProvenance,
           salesforceArtifactGroupId,
-          salesforceLensIds,
           suppressSalesforcePacketArtifacts,
           suppressSalesforceIncidentalTextArtifacts,
           suppressNonDeliverableData: suppressIntermediates,

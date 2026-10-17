@@ -466,6 +466,7 @@ describe('handleStreamCompleted bundle outputs', () => {
         senderType: 'user',
         content: 'Audit this workspace',
         timestamp: 0,
+        // A session from before jobs: its pinned lenses read as the job that replaced them.
         metadata: {
           selectedAnalysisLensIds: [
             'salesforce_stakeholder_audit',
@@ -641,7 +642,7 @@ describe('handleStreamCompleted bundle outputs', () => {
     expect(artifacts).toHaveLength(0);
     expect(actions.some((action) => (
       action.type === 'ADD_ARTIFACT'
-      && action.payload.metadata?.salesforceLensRun === true
+      && action.payload.metadata?.salesforceRole !== undefined
     ))).toBe(false);
   });
 
@@ -727,11 +728,12 @@ describe('handleStreamCompleted bundle outputs', () => {
       name: 'salesforce-component-index.json',
       type: 'salesforce_component_index',
       metadata: {
-        salesforceLensRun: true,
         salesforceRole: 'component_index',
-        salesforceLensIds: ['salesforce_stakeholder_audit'],
       },
     });
+    // Lens tags went with the lenses: nothing read them.
+    expect(artifacts[0].metadata).not.toHaveProperty('salesforceLensRun');
+    expect(artifacts[0].metadata).not.toHaveProperty('salesforceLensIds');
   });
 
   it('suppresses incidental Salesforce text scratch files when a report is produced', () => {
@@ -744,7 +746,7 @@ describe('handleStreamCompleted bundle outputs', () => {
         content: 'Create an HTML Salesforce flow audit',
         timestamp: 0,
         metadata: {
-          selectedAnalysisLensIds: ['salesforce_stakeholder_audit'],
+          salesforceJobId: 'audit',
         },
       },
       {

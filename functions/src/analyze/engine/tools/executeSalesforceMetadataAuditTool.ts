@@ -5,7 +5,7 @@
  */
 import type { ToolResult } from '../../contract/lib/ai/tools/types';
 import type { SalesforceMetadataAuditArgs, SalesforceMetadataAuditOperation } from '../../contract/lib/ai/tools/built-in/salesforce-metadata-audit';
-import { SALESFORCE_ANALYSIS_LENSES } from '../../contract/config/analysis-lenses';
+import { salesforceJobForOperation, salesforceJobReportType } from '../../contract/config/salesforce-jobs';
 import type { SandboxFiles } from './sandboxFiles';
 import { diagramFileText } from '../../contract/services/analyze/diagrams/diagramFile';
 import { buildSalesforceDataModel } from '../../salesforce/salesforceDataModel';
@@ -205,29 +205,22 @@ function buildOrgEvidenceNote(index: SalesforceMetadataIndex): string {
 }
 
 /**
- * In Auto mode no lens is pinned, so the model's OPERATION choice is the lens
- * choice — but until now that choice carried none of the lens's synthesis
- * framing or report-type hint (only pinned lenses injected those via the
- * system prompt). Close the asymmetry at the moment the choice becomes real:
- * the tool result names the path taken, its synthesis focus, and the report
- * type that usually fits it. Deferential when the user pinned things — the
- * OUTPUT section's pinned report type always wins.
+ * Under Auto the model's OPERATION choice is the job choice, but the choice
+ * carried none of the job's framing or report-type hint (a picked job sets the
+ * report type in the composer). Close that at the moment the choice becomes
+ * real: the tool result names the job the operation starts, what it gives, and
+ * the report type that usually fits. Deferential: a user-pinned type in the
+ * OUTPUT section always wins.
  */
-function buildLensSynthesisNote(
+function buildJobSynthesisNote(
   operation: SalesforceMetadataAuditOperation,
   query?: string,
 ): string {
-  const candidates = SALESFORCE_ANALYSIS_LENSES.filter(
-    (lens) => lens.recommendedOperation === operation && lens.selectable !== false,
-  );
-  if (candidates.length === 0) return '';
-  // feature_readiness serves two lenses; a release/go-live flavored query
-  // selects the Release Readiness framing.
-  const lens = candidates.length > 1 && query && /release|go-live|seasonal/i.test(query)
-    ? candidates.find((candidate) => candidate.id === 'salesforce_release_readiness') ?? candidates[0]
-    : candidates[0];
-
-  return `Synthesis guidance (${lens.name} path): ${lens.description} If the user did not pin a report type, \`${lens.defaultReportTypeId}\` is usually the best fit for this path — set the spec's reportTypeId accordingly; a user-pinned type in the OUTPUT section always wins.`;
+  const job = salesforceJobForOperation(operation);
+  if (!job) return '';
+  // feature_readiness serves releases and features; a release-flavored query reads as a release.
+  const reportType = salesforceJobReportType(job, { readinessKind: query && /release|go-live|seasonal/i.test(query) ? 'release' : 'feature' });
+  return `Synthesis guidance (${job.name}): ${job.summary}${reportType ? ` If the user did not pin a report type, \`${reportType}\` is usually the best fit for this path — set the spec's reportTypeId accordingly; a user-pinned type in the OUTPUT section always wins.` : ''}`;
 }
 
 function buildOperationContent(
@@ -237,7 +230,7 @@ function buildOperationContent(
   invalidInsightPackets: SalesforceInvalidInsightPacket[] = [],
 ): string {
   const filesystemSection = formatFilesystemArtifactSection(filesystemArtifacts);
-  const synthesisNote = buildLensSynthesisNote(args.operation, args.query);
+  const synthesisNote = buildJobSynthesisNote(args.operation, args.query);
   switch (args.operation) {
     case 'inventory':
       return [
@@ -318,6 +311,9 @@ function buildOperationContent(
         `Invalid insight packets / validation warnings: ${invalidInsightPackets.length}`,
         'Imported agent evidence entries are available at the top-level `importedFindings` key in `salesforce-insight-packets.json`; packet metadata is in `validPackets` and rejected packets are in `invalidPackets`.',
         '',
+        ...(index.insightPackets.length > 0
+          ? ['Which org each packet queried:', ...index.insightPackets.map((packet) => `- ${packet.runId}: ${packet.orgNote}`), '']
+          : []),
         index.importedFindings.length === 0
           ? 'No valid imported agent evidence was found. Check `invalidPackets[]` in `salesforce-insight-packets.json` for validation warnings/errors.'
           : index.importedFindings.slice(0, 20).map((finding) => [
