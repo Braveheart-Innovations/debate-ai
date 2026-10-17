@@ -1,3 +1,4 @@
+import { SandboxLimitError } from '../../../../sandbox/service';
 import {
   lookupFileBase,
   packageSalesforceDocsLookupEvidence,
@@ -195,6 +196,42 @@ describe('packageSalesforceDocsLookupEvidence', () => {
       passages: ['Line one.\nLine two.'],
     });
     expect(pages[pages.length - 1]).toMatchObject({ passages: [], description: 'Salesforce Help · topics: Org storage limits' });
+  });
+
+  it('at the sandbox limit, still quotes what it read, and says nothing was saved for a report', async () => {
+    const atLimit = jest.fn(async (): Promise<string> => {
+      throw new SandboxLimitError(3, 5 * 60_000, 15 * 60_000);
+    });
+    const longText = 'Storage allocations per edition. '.repeat(400);
+    const sources = [
+      source({}),
+      ...Array.from({ length: 4 }, (_, index) => source({
+        id: `sf-doc-${index}`,
+        url: `https://help.salesforce.com/s/articleView?id=xcloud.page_${index}.htm&language=en_US&type=5`,
+        title: `Page ${index}`,
+        matchedChunks: [{ id: `c${index}`, ordinal: 1, text: longText, score: 1, contentLength: longText.length }],
+      })),
+    ];
+    const result = await packageSalesforceDocsLookupEvidence('call-limit', JSON.stringify(bundle({ sources })), { mountFile: atLimit });
+
+    expect(result.success).toBe(true);
+    expect(result.content).toContain('Storage is divided into two categories.');
+    expect(result.content).toContain('Files: none saved.');
+    expect(result.content).not.toContain('/data/salesforce/docs/lookup_call_limit');
+    expect(result.content).not.toContain('sourceArtifactId');
+    expect(result.provenance?.parameters).not.toHaveProperty('provenanceFile');
+    expect(result.dataOutputs).toHaveLength(2);
+    // Pages past the inline budget had only the file to be read from: listed, but not as evidence.
+    expect(result.content).toContain('- Page 3 - https://help.salesforce.com/s/articleView?id=xcloud.page_3.htm');
+    expect(parseDocsLookupResult(result.content!).map((page) => page.title)).toEqual(['Data and File Storage Allocations', 'Page 0', 'Page 1']);
+  });
+
+  it('fails on any other sandbox error', async () => {
+    const broken = jest.fn(async (): Promise<string> => {
+      throw new Error('disk full');
+    });
+    await expect(packageSalesforceDocsLookupEvidence('call-broken', JSON.stringify(bundle({ sources: [source({})] })), { mountFile: broken }))
+      .rejects.toThrow('disk full');
   });
 
   it('leaves confidence as the server judged it', async () => {

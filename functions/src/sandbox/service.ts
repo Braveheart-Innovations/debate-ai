@@ -31,6 +31,9 @@ export class SandboxInputError extends Error {}
 /**
  * The user already has `limit` sessions with a sandbox awake. A sandbox stays
  * awake until the idle timeout after its last use, so a slot frees up then.
+ * Any sandbox use takes a slot (saving a docs lookup or a fetch, syncing an
+ * upload), not only Python, and a closed tab doesn't free one: the message
+ * says so, since a user who reads "using Python" looks for open Python tabs.
  */
 export class SandboxLimitError extends Error {
   constructor(readonly limit: number, readonly waitMs: number, idleTimeoutMs: number) {
@@ -39,10 +42,11 @@ export class SandboxLimitError extends Error {
       return `${count} minute${count === 1 ? '' : 's'}`;
     };
     super(
-      `You already have ${limit} Analyze sessions using Python right now, the most at once. `
-      + `A session's Python environment frees up ${minutes(idleTimeoutMs)} after its last use; `
+      `You already have ${limit} Analyze sessions using their Python environment, the most at once. `
+      + 'A session uses it to run Python and to save files (uploads, fetched data, Salesforce docs lookups), '
+      + `and keeps it for ${minutes(idleTimeoutMs)} after its last use, even with its tab closed; `
       + `the next one frees up in about ${minutes(waitMs)}. `
-      + 'Try again then, or keep working in one of those sessions.',
+      + 'Keep working in one of those sessions, delete one you\'re done with, or try again then.',
     );
   }
 }
