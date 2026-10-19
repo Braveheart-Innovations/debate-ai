@@ -536,6 +536,11 @@ export class SandboxSessionService {
     }
   }
 
+  /** Whether the session's sandbox is up (it holds a slot: used in the last idle timeout, not paused since). */
+  async isAwake(uid: string, sessionKey: string): Promise<boolean> {
+    return await this.deps.store.awakeUntil(uid, sessionKey) > this.deps.now();
+  }
+
   /**
    * Pause the session's sandbox now rather than at its idle timeout, and free
    * its slot: a watch run that woke it is done with it. The next use resumes

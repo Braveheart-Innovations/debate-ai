@@ -369,6 +369,9 @@ export async function deleteServerOwnedSessionData(uid: string, sessionId: strin
   for (const name of ['analyzeRuns', 'reviewItems', 'analyzeUploads', 'recipeRuns', 'fetches']) {
     await db().recursiveDelete(session.collection(name));
   }
+  // The session's watches (analyze/watches) live under the user, not the session.
+  const watches = await db().collection(`users/${uid}/watches`).where('sessionId', '==', sessionId).get();
+  for (const watch of watches.docs) await watch.ref.delete();
   for (const prefix of analyzeScratchPrefixes(uid, sessionId)) {
     await bucket().deleteFiles({ prefix, force: true });
   }

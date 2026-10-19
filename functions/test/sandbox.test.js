@@ -30,6 +30,7 @@ function memoryStore() {
       awake.set(uid, { ...Object.fromEntries(others), [sessionKey]: at + awakeForMs });
       return { ok: true };
     },
+    async awakeUntil(uid, sessionKey) { return (awake.get(uid) ?? {})[sessionKey] ?? 0; },
     async releaseAwake(uid, sessionKey) {
       const until = { ...(awake.get(uid) ?? {}) };
       delete until[sessionKey];
@@ -475,12 +476,15 @@ test('pause stops the sandbox at once and frees its slot; the next use resumes i
     provider, store, templateFor: () => 'tpl', idleTimeoutMs: 15 * minute, now: () => t, maxAwakePerUser: 1,
     meter: async (uid, record) => { usage.push(record); },
   });
+  assert.equal(await svc.isAwake('u1', 'watched'), false);
   await svc.writeBytes('u1', 'watched', '/output/a.json', new Uint8Array([1]));
+  assert.equal(await svc.isAwake('u1', 'watched'), true);
   const { sandboxId } = store.docs.get('u1/watched');
   t = 2 * minute;
   await svc.pause('u1', 'watched');
   assert.deepEqual(provider.calls.filter(([c]) => c === 'pause'), [['pause', sandboxId]]);
   assert.equal(store.docs.get('u1/watched').pausedAt, 2 * minute);
+  assert.equal(await svc.isAwake('u1', 'watched'), false);
   // Its slot is free for another session straight away.
   await svc.ensure('u1', 'other');
   await svc.reset('u1', 'other');

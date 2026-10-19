@@ -61,6 +61,11 @@ export class FirestoreSandboxStore implements SandboxStore {
     });
   }
 
+  async awakeUntil(uid: string, sessionKey: string): Promise<number> {
+    const until = ((await slotsDoc(uid).get()).data()?.until ?? {}) as Record<string, number>;
+    return until[sessionKey] ?? 0;
+  }
+
   async releaseAwake(uid: string, sessionKey: string): Promise<void> {
     const ref = getFirestore().collection('users').doc(uid).collection('sandboxSlots').doc('awake');
     await getFirestore().runTransaction(async (transaction) => {
@@ -70,6 +75,10 @@ export class FirestoreSandboxStore implements SandboxStore {
       transaction.set(ref, { until, updatedAt: FieldValue.serverTimestamp() });
     });
   }
+}
+
+export function slotsDoc(uid: string) {
+  return getFirestore().collection('users').doc(uid).collection('sandboxSlots').doc('awake');
 }
 
 function toRef(doc: QueryDocumentSnapshot): SandboxRecordRef {

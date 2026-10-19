@@ -88,6 +88,8 @@ export interface SandboxStore {
   claimAwake(uid: string, sessionKey: string, at: number, awakeForMs: number, limit: number): Promise<AwakeClaim>;
   /** The session's sandbox is gone (reset, destroyed): it no longer holds a slot. */
   releaseAwake(uid: string, sessionKey: string): Promise<void>;
+  /** Until when the session holds its slot (0: it doesn't). */
+  awakeUntil(uid: string, sessionKey: string): Promise<number>;
 }
 
 export type AwakeClaim = { ok: true } | { ok: false; freesAt: number };

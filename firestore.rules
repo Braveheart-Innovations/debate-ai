@@ -235,6 +235,14 @@ service cloud.firestore {
         allow create: if false;
       }
 
+      // Watches (Analyze 2.9.7): written only by Cloud Functions
+      // (analyzeWatchSet, analyzeWatchControl and the watch runs), so their
+      // checks live once, on the server. The owner reads them.
+      match /watches/{watchId} {
+        allow read: if isOwner(userId);
+        allow write: if false;
+      }
+
       // Conversations subcollection (path-based auth)
       match /conversations/{sessionId} {
         allow read, write: if isOwner(userId);

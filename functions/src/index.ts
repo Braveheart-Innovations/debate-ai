@@ -96,3 +96,4 @@ export { sandboxRetentionSweep } from './sandbox/callables';
 export { analyzeStartTurn, analyzeRunControl, analyzeReviewControl, analyzeUploads, analyzeRunCell, analyzeRunRecipe, analyzeRefreshData, analyzeSaveDiagram } from './analyze/engine/callables';
 export { analyzeRunStep } from './analyze/engine/step';
 export { analyzeRunSweeper } from './analyze/engine/sweeper';
+export { analyzeWatchSet, analyzeWatchControl, analyzeWatchSweep, analyzeWatchRun } from './analyze/watches/callables';

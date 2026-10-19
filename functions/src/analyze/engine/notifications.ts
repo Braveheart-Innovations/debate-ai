@@ -14,19 +14,33 @@
  *
  * A plan or a question stops needing the user once it's answered: the server
  * marks its notification `resolved` (and read), so "Needs you" drops it.
+ *
+ * A watch's run (analyze/watches) notifies with kind `watch`: no run, and the
+ * server writes the title and body, because a phone push shows them as they
+ * are (web docs/analyze-beyond-reports-plan.md, "Notifications").
  */
 import { getFirestore } from 'firebase-admin/firestore';
 import type { AnalyzeRunDoc } from './runStore';
 import type { TeamPlan } from '../team/types';
 
-export type NotificationKind = 'completed' | 'error' | 'awaiting_approval' | 'asked_user';
+export type NotificationKind = 'completed' | 'error' | 'awaiting_approval' | 'asked_user' | 'watch';
+
+/** What a watch's notification is about. */
+export type WatchEvent = 'new_data' | 'alert' | 'skipped' | 'error';
 
 export interface NotificationDoc {
   id: string;
   kind: NotificationKind;
   mode: 'analyze';
   sessionId: string;
-  runId: string;
+  /** The operator run (every kind but `watch`). */
+  runId?: string;
+  /** A watch's notification: what happened, the watch, what opening it shows, and the words. */
+  event?: WatchEvent;
+  watchId?: string;
+  target?: { recipeName: string } | { artifactId: string };
+  title?: string;
+  body?: string;
   /** The question, the error, or the plan's goal (short). */
   detail?: string;
   createdAt: number;
@@ -90,6 +104,30 @@ export async function notifyTurnEnded(run: AnalyzeRunDoc, outcome: string, now =
   } else if (outcome === 'error') {
     await createOnce(run.uid, base(run, `${run.runId}_error`, 'error', run.error?.message, now));
   }
+}
+
+export interface WatchNotification {
+  /** Unique per watch and occurrence: a redelivered run doesn't notify twice. */
+  id: string;
+  event: WatchEvent;
+  sessionId: string;
+  watchId: string;
+  target: { recipeName: string } | { artifactId: string };
+  title: string;
+  body: string;
+}
+
+/** A watch's run found new data, crossed an alert, was skipped, or failed. */
+export async function notifyWatch(uid: string, notification: WatchNotification, now = Date.now()): Promise<void> {
+  await createOnce(uid, {
+    ...notification,
+    kind: 'watch',
+    mode: 'analyze',
+    title: clip(notification.title) ?? notification.title,
+    body: clip(notification.body) ?? notification.body,
+    createdAt: now,
+    read: false,
+  });
 }
 
 /** Plans the user has to approve: one notification per plan. */
