@@ -715,6 +715,17 @@ export function buildSandboxUsageUpdate(record: SandboxUsageRecord, dateStr: str
   return { date: dateStr, sandbox, updatedAt: FieldValue.serverTimestamp() };
 }
 
+/** The user's sandbox time today (UTC): running code plus awake between uses, as recorded (the daily ceiling). */
+export async function sandboxMsToday(uid: string, now = Date.now()): Promise<number> {
+  const dateStr = new Date(now).toISOString().split('T')[0];
+  const snapshot = await getFirestore().collection('users').doc(uid)
+    .collection('usage').doc('daily')
+    .collection('days').doc(dateStr)
+    .get();
+  const sandbox = (snapshot.data()?.sandbox ?? {}) as SandboxUsageRecord;
+  return (sandbox.executeMs ?? 0) + (sandbox.awakeMs ?? 0);
+}
+
 export async function recordSandboxUsage(uid: string, record: SandboxUsageRecord): Promise<void> {
   const dateStr = new Date().toISOString().split('T')[0];
   const update = buildSandboxUsageUpdate(record, dateStr);

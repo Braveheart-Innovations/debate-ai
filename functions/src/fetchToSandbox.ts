@@ -1,6 +1,6 @@
 import * as crypto from 'crypto';
 import type { ToolResult } from './tools';
-import { SANDBOX_LIMIT_MODEL_NOTE, SandboxLimitError } from './sandbox/service';
+import { SandboxUnavailableError } from './sandbox/service';
 
 /**
  * fetch_api responses written straight into the caller's Analyze sandbox
@@ -191,8 +191,8 @@ export async function runSandboxFetch(
   try {
     await sandbox.claimSlot(uid, target.sessionKey);
   } catch (error) {
-    if (!(error instanceof SandboxLimitError)) throw error;
-    return { toolCallId: '', success: false, error: `${error.message} ${SANDBOX_LIMIT_MODEL_NOTE}` };
+    if (!(error instanceof SandboxUnavailableError)) throw error;
+    return { toolCallId: '', success: false, error: `${error.message} ${error.modelNote}` };
   }
   const result = await fetch(MAX_SANDBOX_FETCH_BYTES);
   if (!result.success || typeof result.content !== 'string') return result;
@@ -216,7 +216,7 @@ export async function runSandboxFetch(
     return {
       toolCallId: result.toolCallId,
       success: false,
-      error: `Fetched ${Buffer.byteLength(result.content, result.metadata?.binaryExtension ? 'base64' : 'utf8')} bytes but could not save them to the sandbox: ${error instanceof Error ? error.message : String(error)}${error instanceof SandboxLimitError ? ` ${SANDBOX_LIMIT_MODEL_NOTE}` : ''}`,
+      error: `Fetched ${Buffer.byteLength(result.content, result.metadata?.binaryExtension ? 'base64' : 'utf8')} bytes but could not save them to the sandbox: ${error instanceof Error ? error.message : String(error)}${error instanceof SandboxUnavailableError ? ` ${error.modelNote}` : ''}`,
       metadata: result.metadata,
     };
   }

@@ -29,26 +29,13 @@ const RESTART_READY_DEADLINE_MS = 30_000;
 export class SandboxInputError extends Error {}
 
 /**
- * The user already has `limit` sessions with a sandbox awake. A sandbox stays
- * awake until the idle timeout after its last use, so a slot frees up then.
- * Any sandbox use takes a slot (saving a docs lookup or a fetch, syncing an
- * upload), not only Python, and a closed tab doesn't free one: the message
- * says so, since a user who reads "using Python" looks for open Python tabs.
+ * No sandbox for this call right now: the user's awake limit or their daily
+ * ceiling. A tool result gives the model the message and then `modelNote`; a
+ * callable answers resource-exhausted with `reason`.
  */
-export class SandboxLimitError extends Error {
-  constructor(readonly limit: number, readonly waitMs: number, idleTimeoutMs: number) {
-    const minutes = (ms: number) => {
-      const count = Math.max(1, Math.ceil(ms / 60_000));
-      return `${count} minute${count === 1 ? '' : 's'}`;
-    };
-    super(
-      `You already have ${limit} Analyze sessions using their Python environment, the most at once. `
-      + 'A session uses it to run Python and to save files (uploads, fetched data, Salesforce docs lookups), '
-      + `and keeps it for ${minutes(idleTimeoutMs)} after its last use, even with its tab closed; `
-      + `the next one frees up in about ${minutes(waitMs)}. `
-      + 'Keep working in one of those sessions, delete one you\'re done with, or try again then.',
-    );
-  }
+export abstract class SandboxUnavailableError extends Error {
+  abstract readonly reason: 'sandbox-limit' | 'sandbox-ceiling';
+  abstract readonly modelNote: string;
 }
 
 /**
@@ -56,6 +43,60 @@ export class SandboxLimitError extends Error {
  * can't succeed until a slot frees up, so it shouldn't spend the turn trying.
  */
 export const SANDBOX_LIMIT_MODEL_NOTE = 'Nothing ran. Don\'t retry Python, file, or data-fetch tools in this turn: answer from what you already have, or tell the user they can reply once a slot frees up.';
+
+function minutesText(ms: number): string {
+  const count = Math.max(1, Math.ceil(ms / 60_000));
+  return `${count} minute${count === 1 ? '' : 's'}`;
+}
+
+/** "about 5 hours", or minutes under an hour. */
+function waitText(ms: number): string {
+  if (ms < 60 * 60_000) return `about ${minutesText(ms)}`;
+  const hours = Math.round(ms / (60 * 60_000));
+  return `about ${hours} hour${hours === 1 ? '' : 's'}`;
+}
+
+/**
+ * The user already has `limit` sessions with a sandbox awake. A sandbox stays
+ * awake until the idle timeout after its last use, so a slot frees up then.
+ * Any sandbox use takes a slot (saving a docs lookup or a fetch, syncing an
+ * upload), not only Python, and a closed tab doesn't free one: the message
+ * says so, since a user who reads "using Python" looks for open Python tabs.
+ */
+export class SandboxLimitError extends SandboxUnavailableError {
+  readonly reason = 'sandbox-limit';
+  readonly modelNote = SANDBOX_LIMIT_MODEL_NOTE;
+
+  constructor(readonly limit: number, readonly waitMs: number, idleTimeoutMs: number) {
+    super(
+      `You already have ${limit} Analyze sessions using their Python environment, the most at once. `
+      + 'A session uses it to run Python and to save files (uploads, fetched data, Salesforce docs lookups), '
+      + `and keeps it for ${minutesText(idleTimeoutMs)} after its last use, even with its tab closed; `
+      + `the next one frees up in about ${minutesText(waitMs)}. `
+      + 'Keep working in one of those sessions, delete one you\'re done with, or try again then.',
+    );
+  }
+}
+
+/**
+ * The user's sandboxes have been up for the day's ceiling (UTC days, as usage
+ * is recorded: running code plus awake between uses). An abuse guard, and the
+ * bound on what watches spend with nobody watching.
+ */
+export class SandboxCeilingError extends SandboxUnavailableError {
+  readonly reason = 'sandbox-ceiling';
+  readonly modelNote: string;
+
+  constructor(readonly ceilingMs: number, readonly resetsInMs: number) {
+    const hours = Math.round(ceilingMs / (60 * 60_000));
+    super(
+      `Your Analyze sessions have had their Python environment running for ${hours} hours today, the most in a day. `
+      + `It's available again in ${waitText(resetsInMs)}, when the day resets at midnight UTC.`,
+    );
+    this.modelNote = 'Nothing ran. Don\'t retry Python, file, or data-fetch tools in this turn: answer from what you already have, '
+      + `or tell the user Python is available again in ${waitText(resetsInMs)}.`;
+  }
+}
 
 export function shellQuote(value: string): string {
   return `'${value.replace(/'/g, `'\\''`)}'`;
@@ -82,18 +123,48 @@ export interface SandboxServiceDeps {
   meter?: (uid: string, usage: SandboxUsage) => Promise<void>;
   /** How many of a user's sessions may have a sandbox awake at once. */
   maxAwakePerUser?: number;
+  /** The most sandbox time a user can have in a UTC day (running code plus awake between uses). */
+  dailyCeilingMs?: number;
+  /** The user's sandbox time so far today (UTC), as the meter recorded it. A failure here never fails the call. */
+  usedToday?: (uid: string) => Promise<number>;
 }
+
+const DAY_MS = 24 * 60 * 60_000;
+/** How long a reading of the day's usage serves a user's later calls on this instance. */
+const USAGE_READING_MS = 60_000;
 
 export class SandboxSessionService {
   private readonly deps: Required<SandboxServiceDeps>;
+  private readonly usageReadings = new Map<string, { at: number; usedMs: number }>();
 
   constructor(deps: SandboxServiceDeps) {
     this.deps = {
       sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
       meter: async () => undefined,
       maxAwakePerUser: Number.POSITIVE_INFINITY,
+      dailyCeilingMs: Number.POSITIVE_INFINITY,
+      usedToday: async () => 0,
       ...deps,
     };
+  }
+
+  /** Refuses a call once the user's sandbox time today reaches the ceiling. */
+  private async assertUnderCeiling(uid: string): Promise<void> {
+    const { dailyCeilingMs, usedToday, now } = this.deps;
+    if (!Number.isFinite(dailyCeilingMs)) return;
+    const at = now();
+    let reading = this.usageReadings.get(uid);
+    if (!reading || at - reading.at >= USAGE_READING_MS || Math.floor(reading.at / DAY_MS) !== Math.floor(at / DAY_MS)) {
+      try {
+        reading = { at, usedMs: await usedToday(uid) };
+        this.usageReadings.set(uid, reading);
+      } catch (error) {
+        console.warn('[sandbox] usage not read; the ceiling isn\'t checked', error);
+        return;
+      }
+    }
+    if (reading.usedMs < dailyCeilingMs) return;
+    throw new SandboxCeilingError(dailyCeilingMs, (Math.floor(at / DAY_MS) + 1) * DAY_MS - at);
   }
 
   /** Runs one service call and records its sandbox time. */
@@ -114,6 +185,7 @@ export class SandboxSessionService {
    */
   async claimSlot(uid: string, sessionKey: string): Promise<void> {
     const { store, now, idleTimeoutMs, maxAwakePerUser } = this.deps;
+    await this.assertUnderCeiling(uid);
     const claimedAt = now();
     const claim = await store.claimAwake(uid, sessionKey, claimedAt, idleTimeoutMs, maxAwakePerUser);
     if (!claim.ok) throw new SandboxLimitError(maxAwakePerUser, claim.freesAt - claimedAt, idleTimeoutMs);
@@ -122,17 +194,21 @@ export class SandboxSessionService {
   /** Connect to (resuming if paused) or create the sandbox owned by uid for this session. */
   async ensure(uid: string, sessionKey: string, usage?: SandboxUsage): Promise<{ sandboxId: string; environmentReset: boolean }> {
     const { provider, store, now, idleTimeoutMs, maxAwakePerUser } = this.deps;
+    await this.assertUnderCeiling(uid);
     // Every use keeps the sandbox up for the idle timeout, so it holds a slot until then.
     const claimedAt = now();
     const claim = await store.claimAwake(uid, sessionKey, claimedAt, idleTimeoutMs, maxAwakePerUser);
     if (!claim.ok) throw new SandboxLimitError(maxAwakePerUser, claim.freesAt - claimedAt, idleTimeoutMs);
     const record = await store.get(uid, sessionKey);
-    // The sandbox stayed up after its last use until it paused (idle timeout) or was used again.
+    // The sandbox stayed up after its last use until it paused (at the idle
+    // timeout, or sooner when paused on purpose) or was used again.
     const idleGap = record ? Math.max(0, now() - record.lastUsedAt) : 0;
-    if (usage && record) usage.awakeMs = Math.min(idleGap, idleTimeoutMs);
+    const pausedAt = record?.pausedAt !== undefined && record.pausedAt >= record.lastUsedAt ? record.pausedAt : undefined;
+    const awakeGap = pausedAt !== undefined ? Math.min(idleGap, pausedAt - record!.lastUsedAt) : idleGap;
+    if (usage && record) usage.awakeMs = Math.min(awakeGap, idleTimeoutMs);
     if (record && await provider.connect(record.sandboxId, idleTimeoutMs)) {
       await store.touch(uid, sessionKey, now());
-      if (usage && idleGap > idleTimeoutMs) usage.resumes = 1;
+      if (usage && (idleGap > idleTimeoutMs || pausedAt !== undefined)) usage.resumes = 1;
       return { sandboxId: record.sandboxId, environmentReset: false };
     }
     const template = this.deps.templateFor(uid);
@@ -458,6 +534,20 @@ export class SandboxSessionService {
     } catch {
       return false;
     }
+  }
+
+  /**
+   * Pause the session's sandbox now rather than at its idle timeout, and free
+   * its slot: a watch run that woke it is done with it. The next use resumes
+   * it with its memory and files, as after an idle pause.
+   */
+  async pause(uid: string, sessionKey: string): Promise<void> {
+    const { provider, store, now } = this.deps;
+    const record = await store.get(uid, sessionKey);
+    if (!record) return;
+    await provider.pause(record.sandboxId);
+    await store.put(uid, sessionKey, { ...record, pausedAt: now() });
+    await store.releaseAwake(uid, sessionKey);
   }
 
   /** Destroy the session's sandbox (variables and files). */

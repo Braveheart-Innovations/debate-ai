@@ -2,7 +2,7 @@ import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { defineSecret } from 'firebase-functions/params';
 import { E2BSandboxProvider } from './e2bProvider';
 import { FirestoreSandboxStore } from './firestoreStore';
-import { recordSandboxUsage } from '../usageTracking';
+import { recordSandboxUsage, sandboxMsToday } from '../usageTracking';
 import { SandboxSessionService } from './service';
 
 export const e2bApiKey = defineSecret('E2B_API_KEY');
@@ -33,6 +33,12 @@ export function sandboxTemplateFor(uid: string): string {
 const IDLE_TIMEOUT_MS = 15 * 60_000;
 /** Sandboxes one user can have awake at once (Michael, 2026-10-11): E2B Hobby allows 20 for everyone. */
 const MAX_AWAKE_SANDBOXES_PER_USER = 3;
+/**
+ * Sandbox time one user can have in a UTC day (Michael, 2026-10-19): 12 hours,
+ * about 2.6 times the heaviest real day measured (4.5 h, almost all of it
+ * awake between uses). An abuse guard, and the bound on what watches spend.
+ */
+export const DAILY_SANDBOX_CEILING_MS = 12 * 60 * 60_000;
 /** Sandboxes (and the uploaded files inside them) are deleted after this much inactivity. */
 export const SANDBOX_RETENTION_MS = 7 * 24 * 60 * 60_000;
 
@@ -48,6 +54,8 @@ export function getSandboxService(): SandboxSessionService {
       now: () => Date.now(),
       meter: recordSandboxUsage,
       maxAwakePerUser: MAX_AWAKE_SANDBOXES_PER_USER,
+      dailyCeilingMs: DAILY_SANDBOX_CEILING_MS,
+      usedToday: (uid) => sandboxMsToday(uid),
     });
   }
   return service;

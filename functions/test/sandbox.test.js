@@ -5,6 +5,8 @@ const {
   SandboxSessionService,
   SandboxInputError,
   SandboxLimitError,
+  SandboxCeilingError,
+  SandboxUnavailableError,
   shellQuote,
   INLINE_OUTPUT_BUDGET_BYTES,
 } = require('../lib/sandbox/service');
@@ -61,6 +63,7 @@ function fakeProvider(overrides = {}) {
     async create() { const id = `sbx-${nextId++}`; alive.add(id); calls.push(['create', id]); return id; },
     async connect(id) { calls.push(['connect', id]); return alive.has(id); },
     async destroy(id) { alive.delete(id); calls.push(['destroy', id]); },
+    async pause(id) { calls.push(['pause', id]); },
     async runCode(id, code, timeoutMs, kernelKey) {
       calls.push(['runCode', isPre(code) ? 'PRE' : code.startsWith('_sym_post') ? code : 'USER', kernelKey]);
       if (code.startsWith('_sym_post')) {
@@ -420,6 +423,80 @@ test('claimSlot claims a session\'s awake slot without waking a sandbox, and ref
   await assert.rejects(svc.ensure('u1', 's2'), SandboxLimitError);
   // The session that holds it keeps it.
   await svc.claimSlot('u1', 's1');
+});
+
+test('past the day\'s ceiling every use is refused until midnight UTC; a failed usage read never refuses one', async () => {
+  const provider = fakeProvider();
+  const hour = 60 * 60_000;
+  let t = Date.UTC(2026, 9, 19, 21, 0);
+  let used = 11 * hour;
+  let reads = 0;
+  const svc = new SandboxSessionService({
+    provider, store: memoryStore(), templateFor: () => 'tpl', idleTimeoutMs: 15 * 60_000, now: () => t,
+    dailyCeilingMs: 12 * hour,
+    usedToday: async () => { reads += 1; return used; },
+  });
+  await svc.ensure('u1', 's1');
+  used = 12 * hour;
+  // A reading serves the user's calls for a minute.
+  await svc.ensure('u1', 's1');
+  assert.equal(reads, 1);
+  t += 60_000;
+  await assert.rejects(svc.ensure('u1', 's1'), (error) => {
+    assert.ok(error instanceof SandboxCeilingError);
+    assert.ok(error instanceof SandboxUnavailableError);
+    assert.equal(error.reason, 'sandbox-ceiling');
+    assert.equal(error.message,
+      'Your Analyze sessions have had their Python environment running for 12 hours today, the most in a day. '
+      + 'It\'s available again in about 3 hours, when the day resets at midnight UTC.');
+    assert.match(error.modelNote, /^Nothing ran\. .*available again in about 3 hours\.$/);
+    return true;
+  });
+  await assert.rejects(svc.claimSlot('u1', 's2'), SandboxCeilingError);
+  await assert.rejects(svc.execute('u1', 's1', 'x = 1', 10_000), SandboxCeilingError);
+  // A new UTC day reads its own usage.
+  t = Date.UTC(2026, 9, 20, 0, 1);
+  used = 0;
+  await svc.ensure('u1', 's1');
+  const failing = new SandboxSessionService({
+    provider, store: memoryStore(), templateFor: () => 'tpl', idleTimeoutMs: 1, now: () => t,
+    dailyCeilingMs: 1, usedToday: async () => { throw new Error('firestore down'); },
+  });
+  await failing.ensure('u1', 's1');
+});
+
+test('pause stops the sandbox at once and frees its slot; the next use resumes it, counting awake time only until the pause', async () => {
+  const provider = fakeProvider();
+  const store = memoryStore();
+  const usage = [];
+  let t = 0;
+  const minute = 60_000;
+  const svc = new SandboxSessionService({
+    provider, store, templateFor: () => 'tpl', idleTimeoutMs: 15 * minute, now: () => t, maxAwakePerUser: 1,
+    meter: async (uid, record) => { usage.push(record); },
+  });
+  await svc.writeBytes('u1', 'watched', '/output/a.json', new Uint8Array([1]));
+  const { sandboxId } = store.docs.get('u1/watched');
+  t = 2 * minute;
+  await svc.pause('u1', 'watched');
+  assert.deepEqual(provider.calls.filter(([c]) => c === 'pause'), [['pause', sandboxId]]);
+  assert.equal(store.docs.get('u1/watched').pausedAt, 2 * minute);
+  // Its slot is free for another session straight away.
+  await svc.ensure('u1', 'other');
+  await svc.reset('u1', 'other');
+
+  t = 60 * minute;
+  usage.length = 0;
+  await svc.writeBytes('u1', 'watched', '/output/a.json', new Uint8Array([2]));
+  assert.equal(store.docs.get('u1/watched').sandboxId, sandboxId);
+  assert.deepEqual(usage, [{ calls: 1, executeMs: 0, awakeMs: 2 * minute, resumes: 1 }]);
+  // Used again after the pause: the next gap is an ordinary one.
+  t = 65 * minute;
+  usage.length = 0;
+  await svc.writeBytes('u1', 'watched', '/output/a.json', new Uint8Array([3]));
+  assert.deepEqual(usage, [{ calls: 1, executeMs: 0, awakeMs: 5 * minute }]);
+  // A session with no sandbox has nothing to pause.
+  await svc.pause('u1', 'none');
 });
 
 test('reset destroys the sandbox and forgets the mapping', async () => {

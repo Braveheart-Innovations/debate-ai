@@ -16,7 +16,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import type { FileMetadata, FileSourceMetadata } from '../contract/services/files/types';
 import { getSandboxService } from '../../sandbox/callables';
-import { FILE_CHUNK_BYTES, SandboxLimitError } from '../../sandbox/service';
+import { FILE_CHUNK_BYTES, SandboxUnavailableError } from '../../sandbox/service';
 import {
   deletePayloadForUser,
   downloadPayloadBytes,
@@ -224,8 +224,8 @@ export async function removeUpload(uid: string, sessionId: string, path: unknown
   try {
     await getSandboxService().deleteFile(uid, sessionId, pythonPath);
   } catch (error) {
-    // At the per-user sandbox limit the copy stays in the sandbox; the upload itself is gone.
-    if (!(error instanceof SandboxLimitError)) throw error;
+    // At the per-user sandbox limit (or the day's ceiling) the copy stays in the sandbox; the upload itself is gone.
+    if (!(error instanceof SandboxUnavailableError)) throw error;
   }
 }
 
@@ -290,9 +290,10 @@ export class SessionFilesSync {
     try {
       await this.syncFiles();
     } catch (error) {
-      // At the per-user sandbox limit: the round goes ahead, a tool that needs
-      // the sandbox gets the limit message, and the next round syncs again.
-      if (!(error instanceof SandboxLimitError)) throw error;
+      // At the per-user sandbox limit (or the day's ceiling): the round goes
+      // ahead, a tool that needs the sandbox gets the message, and the next
+      // round syncs again.
+      if (!(error instanceof SandboxUnavailableError)) throw error;
       this.marker = null;
     }
   }
