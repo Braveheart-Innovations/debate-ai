@@ -7,7 +7,7 @@
  * lookup no longer overwrites the operator's.
  */
 import { createHash } from 'crypto';
-import { SandboxLimitError } from '../../../sandbox/service';
+import { SandboxUnavailableError } from '../../../sandbox/service';
 import type { ToolResult } from '../../contract/lib/ai/tools/types';
 import {
   describeUnreadReason,
@@ -165,9 +165,10 @@ export async function packageSalesforceDocsLookupEvidence(
     await persist(sandbox, `${outputName}.json`, json, `/output/${outputName}.json`);
     await persist(sandbox, `${outputName}.md`, markdown, `/output/${outputName}.md`);
   } catch (error) {
-    // At the per-user sandbox limit the passages were still read: the model
-    // gets them, and is told nothing was saved for a report to cite.
-    if (!(error instanceof SandboxLimitError)) throw error;
+    // At the per-user sandbox limit (or the day's ceiling) the passages were
+    // still read: the model gets them, and is told nothing was saved for a
+    // report to cite.
+    if (!(error instanceof SandboxUnavailableError)) throw error;
     filesSaved = false;
   }
 

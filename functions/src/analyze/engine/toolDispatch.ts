@@ -24,7 +24,7 @@ import { ServerToolExecutor } from './tools/serverToolExecutor';
 import { buildFetchProvenance } from './tools/provenance';
 import { DatasetRegistry } from './dataset/DatasetRegistry';
 import { writeFetchRecord } from './fetchRecords';
-import { SANDBOX_LIMIT_MODEL_NOTE, SandboxLimitError } from '../../sandbox/service';
+import { SandboxUnavailableError } from '../../sandbox/service';
 
 /** The browser's client tools (ClientToolExecutor), run here against the session sandbox. */
 const SANDBOX_TOOLS = new Set([
@@ -128,8 +128,8 @@ export function createToolDispatcher(context: ToolDispatchContext): (call: ToolC
       return {
         toolCallId: call.id,
         success: false,
-        error: error instanceof SandboxLimitError
-          ? `${error.message} ${SANDBOX_LIMIT_MODEL_NOTE}`
+        error: error instanceof SandboxUnavailableError
+          ? `${error.message} ${error.modelNote}`
           : error instanceof Error ? error.message : 'Tool execution failed',
       };
     }

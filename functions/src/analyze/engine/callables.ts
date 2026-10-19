@@ -26,7 +26,7 @@ import { SERVER_TOOL_SECRETS } from '../../tools';
 import { encryptionKey } from '../../apiKeys';
 import { DiagramNotFoundError, DiagramReviewError, DiagramStaleError, saveDiagram } from '../diagrams/saveDiagram';
 import { resolveSessionQuestions } from './notifications';
-import { SandboxLimitError } from '../../sandbox/service';
+import { SandboxUnavailableError } from '../../sandbox/service';
 import { normalizeAnalyzeOutputSelection } from '../contract/types/analyze';
 import { readSalesforceJobId } from '../contract/config/salesforce-jobs';
 import { MAX_PANEL_SIZE, TeamArgsError } from '../team/teamTools';
@@ -423,7 +423,7 @@ export const analyzeRunCell = onCall(
     } catch (error) {
       if (error instanceof SessionBusyError) throw new HttpsError('failed-precondition', 'Wait for the current run to finish before running a cell.');
       if (error instanceof NoSessionSandboxError) throw new HttpsError('failed-precondition', error.message);
-      if (error instanceof SandboxLimitError) throw new HttpsError('resource-exhausted', error.message, { reason: 'sandbox-limit' });
+      if (error instanceof SandboxUnavailableError) throw new HttpsError('resource-exhausted', error.message, { reason: error.reason });
       console.error('[analyzeRunCell] failed', error);
       throw new HttpsError('internal', 'The cell could not run. Please try again.');
     }
@@ -446,7 +446,7 @@ export const analyzeRunRecipe = onCall(
       if (error instanceof SessionBusyError) throw new HttpsError('failed-precondition', 'Wait for the current run to finish before running the model.');
       if (error instanceof RecipeNotFoundError || error instanceof NoRecipeSandboxError) throw new HttpsError('failed-precondition', error.message);
       if (error instanceof RecipeValuesError) throw new HttpsError('invalid-argument', error.message);
-      if (error instanceof SandboxLimitError) throw new HttpsError('resource-exhausted', error.message, { reason: 'sandbox-limit' });
+      if (error instanceof SandboxUnavailableError) throw new HttpsError('resource-exhausted', error.message, { reason: error.reason });
       console.error('[analyzeRunRecipe] failed', error);
       throw new HttpsError('internal', 'The model could not run. Please try again.');
     }
@@ -478,7 +478,7 @@ export const analyzeRefreshData = onCall(
         throw new HttpsError('failed-precondition', error.message);
       }
       if (error instanceof RecipeValuesError) throw new HttpsError('invalid-argument', error.message);
-      if (error instanceof SandboxLimitError) throw new HttpsError('resource-exhausted', error.message, { reason: 'sandbox-limit' });
+      if (error instanceof SandboxUnavailableError) throw new HttpsError('resource-exhausted', error.message, { reason: error.reason });
       console.error('[analyzeRefreshData] failed', error);
       throw new HttpsError('internal', 'The data could not be refreshed. Please try again.');
     }

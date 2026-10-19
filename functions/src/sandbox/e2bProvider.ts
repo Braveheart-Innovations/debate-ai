@@ -69,6 +69,16 @@ export class E2BSandboxProvider implements SandboxProvider {
     }
   }
 
+  async pause(sandboxId: string): Promise<void> {
+    const { Sandbox, NotFoundError } = await loadE2B();
+    this.connected.delete(sandboxId);
+    try {
+      await Sandbox.pause(sandboxId, { apiKey: this.apiKey });
+    } catch (error) {
+      if (!(error instanceof NotFoundError)) throw error;
+    }
+  }
+
   async destroy(sandboxId: string): Promise<void> {
     const { Sandbox, NotFoundError } = await loadE2B();
     this.connected.delete(sandboxId);

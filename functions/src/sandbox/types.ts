@@ -37,6 +37,8 @@ export interface SandboxProvider {
   /** Resume/connect. Returns false when the sandbox no longer exists. */
   connect(sandboxId: string, idleTimeoutMs: number): Promise<boolean>;
   destroy(sandboxId: string): Promise<void>;
+  /** Pause now, keeping memory and files; the next connect resumes it. */
+  pause(sandboxId: string): Promise<void>;
   /** Run a cell in the kernel for `kernelKey`, creating that kernel on first use. */
   runCode(sandboxId: string, code: string, timeoutMs: number, kernelKey: string): Promise<RawRunResult>;
   /** Send SIGINT to one kernel (KeyboardInterrupt): stops running code, keeps Python state. */
@@ -59,6 +61,8 @@ export interface SandboxRecord {
   template: string;
   createdAt: number;
   lastUsedAt: number;
+  /** When it was last paused on purpose (SandboxSessionService.pause); idle pauses aren't recorded. */
+  pausedAt?: number;
 }
 
 export interface SandboxRecordRef {

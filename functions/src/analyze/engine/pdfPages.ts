@@ -9,7 +9,7 @@
  */
 import type { MessageAttachment } from '../contract/types';
 import { getSandboxService } from '../../sandbox/callables';
-import { SandboxLimitError } from '../../sandbox/service';
+import { SandboxUnavailableError } from '../../sandbox/service';
 import { readWholeFile } from './sandboxBridge';
 import { loadUploadRecords, type UploadRecord } from './uploads';
 
@@ -99,8 +99,8 @@ export async function loadPdfPageAttachments(uid: string, sessionId: string, san
     results = parseRenderResult(run.stdout);
     if (!run.success) console.warn('[analyzeRun] PDF page rendering failed', { sessionId, error: run.error });
   } catch (error) {
-    // At the per-user sandbox limit the turn goes without page images.
-    if (!(error instanceof SandboxLimitError)) throw error;
+    // At the per-user sandbox limit (or the day's ceiling) the turn goes without page images.
+    if (!(error instanceof SandboxUnavailableError)) throw error;
     atLimit = true;
   } finally {
     // Releasing the kernel would wake the sandbox the limit just refused.
