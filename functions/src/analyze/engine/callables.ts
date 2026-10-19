@@ -8,6 +8,7 @@
  *   analyzeUploads       the session's uploads: write (chunked), download, remove, list
  *   analyzeRunCell       a manual cell re-run, refused while a turn is running
  *   analyzeRunRecipe     a Model re-run: a recipe with the user's values, outputs saved as versions
+ *   analyzeRefreshData   a model's sources fetched again, and a scenario run on new data
  *   analyzeSaveDiagram   a hand edit from the Diagram view, saved as the diagram's next version
  */
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
@@ -20,6 +21,9 @@ import { isTerminal, runRef, type AnalyzeRunDoc, type RosterAI, type RunConfig }
 import { SessionBusyError, TurnAlreadyStartedError, startOperatorTurn, type UserMessageContext } from './turns';
 import { NoSessionSandboxError, runCell } from './runCell';
 import { NoRecipeSandboxError, RecipeNotFoundError, RecipeValuesError, runRecipe } from '../recipes/runRecipe';
+import { NoModelSourcesError, listModelSources, refreshDataDeps, refreshModelData } from '../recipes/refreshData';
+import { SERVER_TOOL_SECRETS } from '../../tools';
+import { encryptionKey } from '../../apiKeys';
 import { DiagramNotFoundError, DiagramReviewError, DiagramStaleError, saveDiagram } from '../diagrams/saveDiagram';
 import { resolveSessionQuestions } from './notifications';
 import { SandboxLimitError } from '../../sandbox/service';
@@ -445,6 +449,38 @@ export const analyzeRunRecipe = onCall(
       if (error instanceof SandboxLimitError) throw new HttpsError('resource-exhausted', error.message, { reason: 'sandbox-limit' });
       console.error('[analyzeRunRecipe] failed', error);
       throw new HttpsError('internal', 'The model could not run. Please try again.');
+    }
+  },
+);
+
+/**
+ * Refresh data: `op: 'sources'` lists the model's sources (none: it can't be
+ * refreshed); otherwise they're fetched again and, when the data changed, the
+ * model runs on it with `values` (refreshData.ts).
+ */
+export const analyzeRefreshData = onCall(
+  // The fetches (connector keys), then a recipe run as analyzeRunRecipe's.
+  { region: 'us-central1', secrets: SERVER_TOOL_SECRETS, timeoutSeconds: 540, memory: '1GiB' },
+  async (request) => {
+    const uid = requireUid(request.auth?.uid);
+    const data = (request.data ?? {}) as Record<string, unknown>;
+    const sessionId = requireString(data.sessionId, 'sessionId');
+    const artifactId = requireString(data.artifactId, 'artifactId');
+    try {
+      if (data.op === 'sources') return { sources: await listModelSources(uid, sessionId, artifactId) };
+      const values = data.values ?? {};
+      if (typeof values !== 'object' || values === null || Array.isArray(values)) throw new HttpsError('invalid-argument', 'values must be an object');
+      return await refreshModelData(uid, sessionId, artifactId, values as Record<string, unknown>, refreshDataDeps(uid, encryptionKey.value()));
+    } catch (error) {
+      if (error instanceof HttpsError) throw error;
+      if (error instanceof SessionBusyError) throw new HttpsError('failed-precondition', 'Wait for the current run to finish before refreshing the data.');
+      if (error instanceof RecipeNotFoundError || error instanceof NoRecipeSandboxError || error instanceof NoModelSourcesError) {
+        throw new HttpsError('failed-precondition', error.message);
+      }
+      if (error instanceof RecipeValuesError) throw new HttpsError('invalid-argument', error.message);
+      if (error instanceof SandboxLimitError) throw new HttpsError('resource-exhausted', error.message, { reason: 'sandbox-limit' });
+      console.error('[analyzeRefreshData] failed', error);
+      throw new HttpsError('internal', 'The data could not be refreshed. Please try again.');
     }
   },
 );

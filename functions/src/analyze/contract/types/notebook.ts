@@ -212,6 +212,15 @@ export interface Artifact {
       values: Record<string, RecipeParamValue>;
       ranAt: number;
     };
+    /**
+     * Refresh data (analyzeRefreshData): a model's data fetched again on the server
+     * (a source file's new version) or the scenario that ran on it, which is named
+     * for `fetchedAt` ("Data of Oct 19") until the user names it.
+     */
+    dataRefresh?: {
+      runId: string;
+      fetchedAt: number;
+    };
     /** Monotonically increasing version number within lineage */
     versionNumber?: number;
     /**

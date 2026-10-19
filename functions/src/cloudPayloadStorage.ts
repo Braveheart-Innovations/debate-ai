@@ -361,12 +361,12 @@ function analyzeScratchPrefixes(uid: string, sessionId?: string): string[] {
 /**
  * Delete what the Analyze server loop keeps for a session that clients can't
  * delete themselves: runs (with their events, tool calls and transcripts),
- * the review queue, upload records and scratch. Upload bytes live under the
- * session's payload prefix, which the caller deletes.
+ * the review queue, upload records, model runs, fetch records and scratch.
+ * Upload bytes live under the session's payload prefix, which the caller deletes.
  */
 export async function deleteServerOwnedSessionData(uid: string, sessionId: string): Promise<void> {
   const session = db().doc(`users/${uid}/conversations/${sessionId}`);
-  for (const name of ['analyzeRuns', 'reviewItems', 'analyzeUploads', 'recipeRuns']) {
+  for (const name of ['analyzeRuns', 'reviewItems', 'analyzeUploads', 'recipeRuns', 'fetches']) {
     await db().recursiveDelete(session.collection(name));
   }
   for (const prefix of analyzeScratchPrefixes(uid, sessionId)) {

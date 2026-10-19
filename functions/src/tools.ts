@@ -11,6 +11,7 @@ import {
   isTextContentType,
   parseSandboxFetchTarget,
   runSandboxFetch,
+  type FetchSandbox,
   type SandboxFetchTarget,
 } from './fetchToSandbox';
 import { e2bApiKey, getSandboxService } from './sandbox/callables';
@@ -2289,6 +2290,8 @@ export async function dispatchServerTool(
   uid: string,
   call: ServerToolCall,
   keyValue: string,
+  /** Where a fetch-to-sandbox writes: the session's sandbox unless given (a refetch keeps it in memory). */
+  fetchSandbox?: FetchSandbox,
 ): Promise<ToolResult> {
   const { toolName, toolCallId, args, sandboxTarget } = call;
   try {
@@ -2310,14 +2313,14 @@ export async function dispatchServerTool(
             responseFormat: convertedArgs.response_format,
           });
           result = sandboxTarget
-            ? await runSandboxFetch(uid, sandboxTarget, getSandboxService(), (maxBytes) => handleFetchApi(convertedArgs, uid, keyValue, maxBytes))
+            ? await runSandboxFetch(uid, sandboxTarget, fetchSandbox ?? getSandboxService(), (maxBytes) => handleFetchApi(convertedArgs, uid, keyValue, maxBytes))
             : noSandboxTarget(toolCallId);
         } else {
           result = await handleFetchUrl(fetchUrlArgs);
           // A page URL that served a file: fetch it again, as a file, into the sandbox.
           if (!result.success && result.metadata?.fileContentType && sandboxTarget && keyValue) {
             const fileArgs = convertFetchUrlArgsToFetchApiArgs(fetchUrlArgs);
-            result = await runSandboxFetch(uid, sandboxTarget, getSandboxService(), (maxBytes) => handleFetchApi(fileArgs, uid, keyValue, maxBytes));
+            result = await runSandboxFetch(uid, sandboxTarget, fetchSandbox ?? getSandboxService(), (maxBytes) => handleFetchApi(fileArgs, uid, keyValue, maxBytes));
           }
         }
 
@@ -2344,7 +2347,7 @@ export async function dispatchServerTool(
           break;
         }
         result = sandboxTarget
-          ? await runSandboxFetch(uid, sandboxTarget, getSandboxService(), (maxBytes) => handleFetchApi(fetchArgs, uid, keyValue, maxBytes))
+          ? await runSandboxFetch(uid, sandboxTarget, fetchSandbox ?? getSandboxService(), (maxBytes) => handleFetchApi(fetchArgs, uid, keyValue, maxBytes))
           : noSandboxTarget(toolCallId);
         break;
       }
@@ -2397,6 +2400,40 @@ export async function dispatchServerTool(
       error: (error as Error)?.message || 'Tool execution failed',
     };
   }
+}
+
+/** A fetch made again with no sandbox: the bytes the loop would have saved, or why it failed. */
+export type RefetchResult =
+  | { success: true; bytes: Buffer; contentType?: string }
+  | { success: false; error: string };
+
+/** Any valid target: a refetch writes to memory, so only its shape matters. */
+const REFETCH_TARGET: SandboxFetchTarget = { sessionKey: 'refetch', pathBase: '/data/refetch' };
+
+/**
+ * Make a recorded fetch again (Refresh data): dispatchServerTool's routing and file
+ * handling, with the response kept in memory instead of written to the sandbox.
+ * A page's text comes back inline, and the loop saves it as UTF-8
+ * (ServerToolExecutor), so its bytes are the text's.
+ */
+export async function refetchServerTool(
+  uid: string,
+  toolName: 'fetch_api' | 'fetch_url',
+  args: Record<string, unknown>,
+  keyValue: string,
+): Promise<RefetchResult> {
+  const saved: { bytes?: Buffer } = {};
+  const memory: FetchSandbox = {
+    claimSlot: async () => undefined,
+    writeFile: async (_uid, _sessionKey, input) => {
+      saved.bytes = Buffer.from(input.base64, 'base64');
+    },
+  };
+  const result = await dispatchServerTool(uid, { toolName, toolCallId: 'refetch', args, sandboxTarget: REFETCH_TARGET }, keyValue, memory);
+  if (!result.success) return { success: false, error: result.error || `${toolName} failed` };
+  const bytes = saved.bytes ?? (typeof result.content === 'string' ? Buffer.from(result.content, 'utf8') : undefined);
+  if (!bytes) return { success: false, error: `${toolName} returned nothing` };
+  return { success: true, bytes, ...(result.metadata?.contentType ? { contentType: result.metadata.contentType } : {}) };
 }
 
 /**

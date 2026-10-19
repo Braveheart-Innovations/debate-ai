@@ -30,6 +30,8 @@ export interface RecipeRunDoc {
   /** What the recipe printed, for the Model panel. */
   stdout?: string;
   error?: string;
+  /** A Refresh data run (refreshData.ts): whether the data had changed, and when it was fetched. */
+  refresh?: { outcome?: 'new_data' | 'no_change' | 'error'; fetchedAt?: number };
 }
 
 export function recipeRunsPath(uid: string, sessionId: string): string {

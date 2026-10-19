@@ -122,6 +122,41 @@ describe('fetches saved into the sandbox server-side', () => {
     expect(entries[0]).not.toHaveProperty('content');
   });
 
+  it('records each saved response\'s request for Refresh data, but not a reuse of one', async () => {
+    const recordFetch = jest.fn(async () => undefined);
+    const executor = new ServerToolExecutor({
+      sandbox: { mountFile: jest.fn(async (_f: string, _d: ArrayBuffer, path?: string) => path ?? ''), getSessionKey: () => 'session_1' },
+      datasetRegistry: new DatasetRegistry(),
+      recordFetch,
+      buildFetchProvenance,
+      packageSalesforceDocsLookupEvidence: jest.fn(),
+      executeToolCallable: jest.fn(async () => ({
+        success: true,
+        content: '{"observations":[]}',
+        metadata: { sandboxPath: '/data/fetch_call_1.json', bytes: 19, responseHash: 'abc123' },
+      })),
+      logger: { warn: jest.fn(), error: jest.fn() },
+    });
+    const fred = { url: 'https://api.stlouisfed.org/fred/series/observations', query_params: { series_id: 'UNRATE', file_type: 'json' } };
+
+    await executor.executeServerTool('call-1', 'fetch_api', fred);
+    expect(recordFetch).toHaveBeenCalledTimes(1);
+    expect(recordFetch).toHaveBeenCalledWith({
+      tool: 'fetch_api',
+      // As made: with the key reference the server inferred, never a key.
+      args: { ...fred, api_key_ref: 'fred' },
+      toolCallId: 'call-1',
+      path: '/data/fetch_call_1.json',
+      bytes: 19,
+      responseHash: 'abc123',
+      fetchedAt: expect.any(Number),
+    });
+
+    const reused = await executor.executeServerTool('call-2', 'fetch_api', fred);
+    expect(reused.metadata?.cached).toBe(true);
+    expect(recordFetch).toHaveBeenCalledTimes(1);
+  });
+
   it('still saves an inline response (fetch_url page text) from the browser', async () => {
     const { executor, mountFile } = setup({ success: true, content: 'Title: Example\n\nSome page text' });
 
