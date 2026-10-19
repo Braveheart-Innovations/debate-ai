@@ -43,7 +43,7 @@ function filenameFromPath(path: string): string {
   return path.split('/').filter(Boolean).pop() || 'artifact';
 }
 
-function isRawTextArtifact(artifact: Artifact): boolean {
+export function isRawTextArtifact(artifact: Pick<Artifact, 'type'>): boolean {
   if (
     artifact.type === 'html'
     || artifact.type === 'code'
@@ -58,7 +58,8 @@ function isRawTextArtifact(artifact: Artifact): boolean {
   return false;
 }
 
-function artifactDataToArrayBuffer(artifact: Artifact): ArrayBuffer {
+/** The file's bytes as the sandbox gets them: text types as UTF-8, the rest decoded from base64. */
+export function artifactDataToArrayBuffer(artifact: Artifact): ArrayBuffer {
   if (isRawTextArtifact(artifact)) {
     return encodeTextArtifactData(artifact.data);
   }

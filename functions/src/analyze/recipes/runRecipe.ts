@@ -16,7 +16,7 @@
  *    change is not a new version.
  */
 import { randomBytes } from 'node:crypto';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, type DocumentReference } from 'firebase-admin/firestore';
 import type { Artifact, RecipeParamValue } from '../contract/types/notebook';
 import { repairModelAuthoredHtml } from '../contract/services/artifacts/htmlProfiles';
 import { decodeBase64ToUtf8 } from '../contract/lib/encoding/utf8Base64';
@@ -71,7 +71,7 @@ function extensionOf(filename: string): string {
 }
 
 /** Row and column counts for a tabular file, as capture records them. */
-function tabularMetadata(mimeType: string, base64: string): NonNullable<Artifact['metadata']> | null {
+export function tabularMetadata(mimeType: string, base64: string): NonNullable<Artifact['metadata']> | null {
   let text: string;
   try {
     text = decodeBase64ToUtf8(base64);
@@ -118,8 +118,10 @@ export function buildRecipeRunArtifacts(input: {
   ranAt: number;
   existing: Artifact[];
   outputs: RecipeOutputFile[];
+  /** A Refresh data run: the outputs ran on data fetched at this time. */
+  dataRefresh?: { runId: string; fetchedAt: number };
 }): Artifact[] {
-  const { sessionId, recipe, runId, values, ranAt, existing } = input;
+  const { sessionId, recipe, runId, values, ranAt, existing, dataRefresh } = input;
   const created: Artifact[] = [];
   input.outputs.forEach((output, index) => {
     // The recipe itself doesn't change by running it.
@@ -148,6 +150,7 @@ export function buildRecipeRunArtifacts(input: {
       ...(tabular ?? {}),
       ...(lineage ?? {}),
       recipeRun: { recipeName: recipe.name, runId, values, ranAt },
+      dataRefresh,
     });
     created.push(withArtifactPreviewMetadata(removeUndefined({
       id: `artifact-recipe-${runId}-${index}`,
@@ -166,7 +169,7 @@ export function buildRecipeRunArtifacts(input: {
   return created;
 }
 
-function outputFiles(result: ExecutionResult): RecipeOutputFile[] {
+export function outputFiles(result: ExecutionResult): RecipeOutputFile[] {
   return [
     ...(result.dataOutputs ?? []).map((file) => ({ filename: file.filename, data: file.base64, kind: 'data' as const })),
     ...(result.htmlOutputs ?? []).map((file) => ({ filename: file.filename, data: file.content, kind: 'html' as const })),
@@ -178,19 +181,18 @@ export interface RunRecipeDeps {
   newRunId: () => string;
 }
 
-const defaultDeps: RunRecipeDeps = {
+export const defaultRunRecipeDeps: RunRecipeDeps = {
   now: () => Date.now(),
   newRunId: () => `recipe_${Date.now()}_${randomBytes(6).toString('hex')}`,
 };
 
-export async function runRecipe(
+/** The recipe, the values checked against its inputs, and the sandbox it runs in. */
+export async function loadRecipeForRun(
   uid: string,
   sessionId: string,
   recipeArtifactId: string,
   requestedValues: Record<string, unknown>,
-  deps: RunRecipeDeps = defaultDeps,
-): Promise<RecipeRunResult> {
-  const db = getFirestore();
+): Promise<{ recipe: Artifact; values: Record<string, RecipeParamValue>; sessionKey: string }> {
   const recipeSnap = await artifactRef(uid, sessionId, recipeArtifactId).get();
   const recipe = recipeSnap.exists ? (recipeSnap.data() as Artifact) : null;
   if (!recipe || recipe.type !== 'recipe') throw new RecipeNotFoundError();
@@ -204,18 +206,40 @@ export async function runRecipe(
 
   const latest = await findLatestOperatorRun(uid, sessionId);
   if (!latest) throw new NoRecipeSandboxError();
-  const sessionKey = latest.config.sandboxSessionKey;
+  return { recipe, values, sessionKey: latest.config.sandboxSessionKey };
+}
 
-  // Claim the session: no operator turn running, no other recipe run.
-  const runId = deps.newRunId();
-  const startedAt = deps.now();
-  const runRef = db.doc(`${recipeRunsPath(uid, sessionId)}/${runId}`);
+/** Claim the session for a recipe run: no operator turn running, no other recipe run. */
+export async function claimRecipeRun(uid: string, sessionId: string, record: RecipeRunDoc): Promise<DocumentReference> {
+  const db = getFirestore();
+  const runRef = db.doc(`${recipeRunsPath(uid, sessionId)}/${record.runId}`);
   await db.runTransaction(async (tx) => {
     const operators = await tx.get(db.collection(`users/${uid}/conversations/${sessionId}/analyzeRuns`).where('status', 'in', OPERATOR_ACTIVE));
     if (operators.docs.some((doc) => (doc.data() as AnalyzeRunDoc).kind === 'operator')) throw new SessionBusyError();
-    if (await activeRecipeRunIn(tx, uid, sessionId, startedAt)) throw new SessionBusyError();
-    const record: RecipeRunDoc = { runId, recipeArtifactId, recipeName: recipe.name, values, status: 'running', startedAt };
+    if (await activeRecipeRunIn(tx, uid, sessionId, record.startedAt)) throw new SessionBusyError();
     tx.set(runRef, record);
+  });
+  return runRef;
+}
+
+/** Save artifacts the server made (new versions), in order. */
+export async function saveArtifacts(uid: string, sessionId: string, artifacts: Artifact[]): Promise<void> {
+  for (const artifact of artifacts) {
+    await artifactRef(uid, sessionId, artifact.id).set(await prepareArtifactRecord(uid, sessionId, artifact), { merge: true });
+  }
+}
+
+export async function runRecipe(
+  uid: string,
+  sessionId: string,
+  recipeArtifactId: string,
+  requestedValues: Record<string, unknown>,
+  deps: RunRecipeDeps = defaultRunRecipeDeps,
+): Promise<RecipeRunResult> {
+  const { recipe, values, sessionKey } = await loadRecipeForRun(uid, sessionId, recipeArtifactId, requestedValues);
+  const runId = deps.newRunId();
+  const runRef = await claimRecipeRun(uid, sessionId, {
+    runId, recipeArtifactId, recipeName: recipe.name, values, status: 'running', startedAt: deps.now(),
   });
 
   const finish = async (result: Omit<RecipeRunResult, 'runId'>): Promise<RecipeRunResult> => {
@@ -245,9 +269,7 @@ export async function runRecipe(
       existing,
       outputs,
     });
-    for (const artifact of artifacts) {
-      await artifactRef(uid, sessionId, artifact.id).set(await prepareArtifactRecord(uid, sessionId, artifact), { merge: true });
-    }
+    await saveArtifacts(uid, sessionId, artifacts);
     return await finish({
       status: result.success ? 'completed' : 'error',
       outputArtifactIds: artifacts.map((artifact) => artifact.id),

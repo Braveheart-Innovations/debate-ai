@@ -64,8 +64,22 @@ function provenancePathFor(path: string): string {
   return path.replace(/\.[a-z0-9]+$/i, '.provenance.json');
 }
 
+/** A response the loop saved: what its fetch record holds (fetchRecords.ts). */
+export interface SavedFetch {
+  tool: 'fetch_api' | 'fetch_url';
+  /** The arguments the request was made with. */
+  args: Record<string, unknown>;
+  toolCallId: string;
+  path: string;
+  bytes: number;
+  responseHash: string;
+  fetchedAt: number;
+}
+
 export interface ServerToolExecutorDeps {
   sandbox: SandboxFileBridge;
+  /** Keeps the request of every response saved, so a refresh can make it again. */
+  recordFetch?: (fetch: SavedFetch) => Promise<void>;
   datasetRegistry: DatasetRegistry;
   logger?: Pick<typeof console, 'warn' | 'error'>;
   buildFetchProvenance: typeof buildFetchProvenanceFn;
@@ -217,6 +231,22 @@ export class ServerToolExecutor {
             await this.deps.sandbox.mountFile(provPath.slice('/data/'.length), provenanceEncoded.buffer, provPath);
           } catch (error) {
             this.logger.warn('[AnalyzeOrchestrator] Failed to save provenance to the sandbox filesystem:', error);
+          }
+        }
+
+        if (savedToFs && result.provenance?.responseHash && this.deps.recordFetch) {
+          try {
+            await this.deps.recordFetch({
+              tool: toolName as 'fetch_api' | 'fetch_url',
+              args: normalizedArgs,
+              toolCallId,
+              path,
+              bytes,
+              responseHash: result.provenance.responseHash,
+              fetchedAt: Date.parse(result.provenance.fetchedAt) || Date.now(),
+            });
+          } catch (error) {
+            this.logger.warn('[AnalyzeOrchestrator] Failed to record the fetch:', error);
           }
         }
 

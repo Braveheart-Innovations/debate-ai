@@ -169,6 +169,8 @@ export async function runStep(payload: StepPayload, owner: string, finalAttempt 
       tools: getToolDefinitions(run.config.toolNames),
       executeTool: createToolDispatcher({
         uid,
+        sessionId,
+        runId: ref.id,
         sandboxSessionKey: run.config.sandboxSessionKey,
         kernelKey: run.config.kernel,
         keyValue,

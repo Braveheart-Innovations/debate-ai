@@ -23,6 +23,7 @@ import { packageSalesforceDocsLookupEvidence } from './tools/executeSalesforceDo
 import { ServerToolExecutor } from './tools/serverToolExecutor';
 import { buildFetchProvenance } from './tools/provenance';
 import { DatasetRegistry } from './dataset/DatasetRegistry';
+import { writeFetchRecord } from './fetchRecords';
 import { SANDBOX_LIMIT_MODEL_NOTE, SandboxLimitError } from '../../sandbox/service';
 
 /** The browser's client tools (ClientToolExecutor), run here against the session sandbox. */
@@ -41,6 +42,9 @@ export const SERVER_LOOP_TOOLS = new Set([...SANDBOX_TOOLS, ...SERVER_TOOLS]);
 
 export interface ToolDispatchContext {
   uid: string;
+  sessionId: string;
+  /** The run making the calls: its fetch records name it. */
+  runId: string;
   sandboxSessionKey: string;
   /** A subagent's own Python kernel (the operator uses the default one). */
   kernelKey?: string;
@@ -63,6 +67,15 @@ export function createToolDispatcher(context: ToolDispatchContext): (call: ToolC
       mountFile: files.mountFile,
     },
     datasetRegistry,
+    recordFetch: async ({ tool, args, ...saved }) => {
+      await writeFetchRecord(uid, context.sessionId, {
+        tool,
+        request: JSON.stringify(args),
+        origin: 'run',
+        runId: context.runId,
+        ...saved,
+      });
+    },
     buildFetchProvenance,
     packageSalesforceDocsLookupEvidence,
     executeToolCallable: async (toolName, toolCallId, args, sandboxTarget) => {
