@@ -215,11 +215,13 @@ export interface Artifact {
     /**
      * Refresh data (analyzeRefreshData): a model's data fetched again on the server
      * (a source file's new version) or the scenario that ran on it, which is named
-     * for `fetchedAt` ("Data of Oct 19") until the user names it.
+     * for `fetchedAt` ("Data of Oct 19") until the user names it. `watchId`: a
+     * watch's scheduled run did it, not the Refresh data button.
      */
     dataRefresh?: {
       runId: string;
       fetchedAt: number;
+      watchId?: string;
     };
     /** Monotonically increasing version number within lineage */
     versionNumber?: number;

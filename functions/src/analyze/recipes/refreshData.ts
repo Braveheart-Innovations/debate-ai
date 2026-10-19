@@ -20,12 +20,17 @@
  *     new data), the previous copies go back: the folder keeps the data its
  *     scenarios used.
  *
- * It holds the session as Run model does (a recipeRuns record), from the
- * first fetch to the last save.
+ * It holds the session as Run model does (a recipeRuns record) from the moment
+ * the data is found changed to the last save: a check that finds no new data
+ * never blocks a turn, and a turn never blocks it.
+ *
+ * A watch's run (analyze/watches) is the same refresh with `watchId`, which
+ * marks what it saves, and `pauseIfWoken`: a sandbox the run woke is paused
+ * before the session is let go, so it doesn't hold one of the user's slots.
  */
 import type { ToolResultProvenance } from '../contract/types';
 import type { Artifact } from '../contract/types/notebook';
-import { MODEL_RESULTS_FILENAME } from '../contract/services/analyze/models/modelResults';
+import { MODEL_RESULTS_FILENAME, parseModelResults, type ModelResultsV1 } from '../contract/services/analyze/models/modelResults';
 import { refetchServerTool, type RefetchResult } from '../../tools';
 import { sha256Hex } from '../../fetchToSandbox';
 import { getSandboxService } from '../../sandbox/callables';
@@ -62,6 +67,15 @@ export interface RefreshDataResult {
   outputArtifactIds: string[];
   stdout: string;
   error?: string;
+  /** New data: the scenario's results file and what it shows (null when it has none). */
+  scenario?: { artifactId: string; results: ModelResultsV1 | null };
+}
+
+export interface RefreshOptions {
+  /** A watch's run: marks the copies and the scenario it saves (metadata.dataRefresh.watchId). */
+  watchId?: string;
+  /** Pause the session's sandbox when done, if it was this refresh that woke it. */
+  pauseIfWoken?: boolean;
 }
 
 /** None of the model's files is an unchanged copy of fetched data (uploads only, a Salesforce workspace). */
@@ -99,9 +113,10 @@ export function buildSourceCopyArtifacts(input: {
   sessionId: string;
   runId: string;
   fetchedAt: number;
+  watchId?: string;
   copies: Array<{ file: Artifact; bytes: Buffer; provenance: ToolResultProvenance }>;
 }): Artifact[] {
-  const { sessionId, runId, fetchedAt } = input;
+  const { sessionId, runId, fetchedAt, watchId } = input;
   return input.copies.map(({ file, bytes, provenance }, index) => {
     const text = isRawTextArtifact(file);
     const data = text ? bytes.toString('utf8') : bytes.toString('base64');
@@ -115,7 +130,7 @@ export function buildSourceCopyArtifacts(input: {
       sourceOutputArtifactId: file.metadata?.sourceOutputArtifactId,
       ...(tabular ?? {}),
       ...deriveArtifactLineage(file, [file]),
-      dataRefresh: { runId, fetchedAt },
+      dataRefresh: removeUndefined({ runId, fetchedAt, watchId }),
     });
     return withArtifactPreviewMetadata(removeUndefined({
       id: `artifact-refresh-${runId}-${index}`,
@@ -146,16 +161,45 @@ export async function refreshModelData(
   recipeArtifactId: string,
   requestedValues: Record<string, unknown>,
   deps: RefreshDataDeps,
+  options: RefreshOptions = {},
 ): Promise<RefreshDataResult> {
   const { recipe, values, sessionKey } = await loadRecipeForRun(uid, sessionId, recipeArtifactId, requestedValues);
   const sources = await findModelSources(uid, sessionId, recipe);
   if (sources.length === 0) throw new NoModelSourcesError();
   const dataFetchedAt = Math.max(...sources.map((source) => source.fetch.fetchedAt));
-
   const runId = deps.newRunId();
+  const noChange = (stdout = ''): Outcome => ({ outcome: 'no_change', fetchedAt: dataFetchedAt, outputArtifactIds: [], stdout });
+
+  // 1. Each fetch once, however many copies of it the folder has.
+  const responses = new Map<string, RefetchResult>();
+  for (const source of sources) {
+    if (!responses.has(source.fetch.id)) responses.set(source.fetch.id, await deps.refetch(source.fetch));
+  }
+  const fetchedAt = deps.now();
+  const changed: Refetched[] = [];
+  for (const source of sources) {
+    const response = responses.get(source.fetch.id)!;
+    if (!response.success) {
+      return {
+        runId,
+        outcome: 'error',
+        fetchedAt: dataFetchedAt,
+        outputArtifactIds: [],
+        stdout: '',
+        error: `${sourceEndpoint(source.fetch) || source.file.name} couldn't be fetched again: ${response.error}`,
+      };
+    }
+    const hash = sha256Hex(response.bytes);
+    if (hash !== sha256Hex(source.bytes)) changed.push({ source, bytes: response.bytes, hash });
+  }
+  // 2. The same bytes: no new data, and no sandbox woken.
+  if (changed.length === 0) return { runId, ...noChange() };
+
+  // 3. The model on the new copies, holding the session.
   const runRef = await claimRecipeRun(uid, sessionId, {
     runId, recipeArtifactId, recipeName: recipe.name, values, status: 'running', startedAt: deps.now(), refresh: {},
   });
+  const service = getSandboxService();
   const finish = async (outcome: Outcome): Promise<RefreshDataResult> => {
     await runRef.update(removeUndefined({
       status: outcome.outcome === 'error' ? 'error' : 'completed',
@@ -167,36 +211,11 @@ export async function refreshModelData(
     }));
     return { runId, ...outcome };
   };
-  const noChange = (stdout = ''): Outcome => ({ outcome: 'no_change', fetchedAt: dataFetchedAt, outputArtifactIds: [], stdout });
 
+  let wasAwake = true;
   try {
-    // 1. Each fetch once, however many copies of it the folder has.
-    const responses = new Map<string, RefetchResult>();
-    for (const source of sources) {
-      if (!responses.has(source.fetch.id)) responses.set(source.fetch.id, await deps.refetch(source.fetch));
-    }
-    const fetchedAt = deps.now();
-    const changed: Refetched[] = [];
-    for (const source of sources) {
-      const response = responses.get(source.fetch.id)!;
-      if (!response.success) {
-        return await finish({
-          outcome: 'error',
-          fetchedAt: dataFetchedAt,
-          outputArtifactIds: [],
-          stdout: '',
-          error: `${sourceEndpoint(source.fetch) || source.file.name} couldn't be fetched again: ${response.error}`,
-        });
-      }
-      const hash = sha256Hex(response.bytes);
-      if (hash !== sha256Hex(source.bytes)) changed.push({ source, bytes: response.bytes, hash });
-    }
-    // 2. The same bytes: no new data, and no sandbox woken.
-    if (changed.length === 0) return await finish(noChange());
-
-    // 3. The model on the new copies.
+    if (options.pauseIfWoken) wasAwake = await service.isAwake(uid, sessionKey);
     await new SessionFilesSync(uid, sessionId, sessionKey).sync();
-    const service = getSandboxService();
     const putCopies = async (which: 'new' | 'previous') => {
       for (const entry of changed) {
         const bytes = which === 'new' ? entry.bytes : entry.source.bytes;
@@ -218,8 +237,9 @@ export async function refreshModelData(
         const sourceNames = new Set(sources.map((source) => source.file.name));
         const outputs = outputFiles(result).filter((output) => !sourceNames.has(output.filename));
         const existing = outputs.length > 0 ? await loadArtifactsNamed(uid, sessionId, outputs.map((output) => output.filename)) : [];
+        const dataRefresh = removeUndefined({ runId, fetchedAt, watchId: options.watchId });
         const scenario = buildRecipeRunArtifacts({
-          sessionId, recipe, runId, values, ranAt: deps.now(), existing, outputs, dataRefresh: { runId, fetchedAt },
+          sessionId, recipe, runId, values, ranAt: deps.now(), existing, outputs, dataRefresh,
         });
         const resultsName = `${modelOutputDir(recipe)}/${MODEL_RESULTS_FILENAME}`;
         const results = outputs.find((output) => output.filename === resultsName);
@@ -234,6 +254,7 @@ export async function refreshModelData(
             sessionId,
             runId,
             fetchedAt,
+            watchId: options.watchId,
             copies: await Promise.all(changed.map(async (entry) => ({
               file: entry.source.file,
               bytes: entry.bytes,
@@ -263,7 +284,16 @@ export async function refreshModelData(
               runId,
             });
           }
-          outcome = { outcome: 'new_data', fetchedAt, outputArtifactIds: [...copies, ...scenario].map((artifact) => artifact.id), stdout: result.stdout };
+          const resultsArtifact = scenario.find((artifact) => artifact.name === resultsName);
+          outcome = {
+            outcome: 'new_data',
+            fetchedAt,
+            outputArtifactIds: [...copies, ...scenario].map((artifact) => artifact.id),
+            stdout: result.stdout,
+            ...(resultsArtifact && results
+              ? { scenario: { artifactId: resultsArtifact.id, results: parseModelResults(Buffer.from(results.data, 'base64').toString('utf8')) } }
+              : {}),
+          };
         }
       }
     } catch (error) {
@@ -271,8 +301,10 @@ export async function refreshModelData(
       throw error;
     }
     if (outcome.outcome !== 'new_data') await putPreviousBack();
+    if (!wasAwake) await pauseWoken(uid, sessionId, sessionKey);
     return await finish(outcome);
   } catch (error) {
+    if (!wasAwake) await pauseWoken(uid, sessionId, sessionKey);
     await finish({
       outcome: 'error',
       fetchedAt: dataFetchedAt,
@@ -282,4 +314,11 @@ export async function refreshModelData(
     }).catch((finishError) => console.warn('[analyzeRefreshData] could not record the failed run', finishError));
     throw error;
   }
+}
+
+/** A sandbox this refresh woke: paused while the session is still held, so no turn is using it. */
+async function pauseWoken(uid: string, sessionId: string, sessionKey: string): Promise<void> {
+  await getSandboxService().pause(uid, sessionKey).catch((error) => {
+    console.warn('[analyzeRefreshData] could not pause the sandbox', { sessionId, error: error instanceof Error ? error.message : String(error) });
+  });
 }

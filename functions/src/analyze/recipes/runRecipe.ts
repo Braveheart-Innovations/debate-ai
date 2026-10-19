@@ -119,7 +119,7 @@ export function buildRecipeRunArtifacts(input: {
   existing: Artifact[];
   outputs: RecipeOutputFile[];
   /** A Refresh data run: the outputs ran on data fetched at this time. */
-  dataRefresh?: { runId: string; fetchedAt: number };
+  dataRefresh?: NonNullable<Artifact['metadata']>['dataRefresh'];
 }): Artifact[] {
   const { sessionId, recipe, runId, values, ranAt, existing, dataRefresh } = input;
   const created: Artifact[] = [];

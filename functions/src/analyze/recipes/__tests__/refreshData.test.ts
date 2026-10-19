@@ -2,10 +2,16 @@ import { createHash } from 'node:crypto';
 import type { Artifact } from '../../contract/types/notebook';
 import type { FetchRecord } from '../../engine/fetchRecords';
 
-const mockSandbox = { writeFile: jest.fn(async () => ({ written: true, environmentReset: false })) };
+const mockEvents: string[] = [];
+const mockSandbox = {
+  writeFile: jest.fn(async () => ({ written: true, environmentReset: false })),
+  isAwake: jest.fn(async () => true),
+  pause: jest.fn(async () => { mockEvents.push('pause'); }),
+};
 const mockExecute = jest.fn();
 const mockSync = jest.fn(async () => undefined);
-const mockRunRef = { update: jest.fn(async () => undefined) };
+const mockRunRef = { update: jest.fn(async () => { mockEvents.push('finish'); }) };
+const mockClaim = jest.fn(async () => mockRunRef);
 const mockFindSources = jest.fn();
 const mockLoadNamed = jest.fn();
 const mockSave = jest.fn(async () => undefined);
@@ -40,11 +46,12 @@ jest.mock('../../engine/fetchRecords', () => ({
 jest.mock('../runRecipe', () => ({
   ...jest.requireActual('../runRecipe'),
   loadRecipeForRun: async () => ({ recipe, values: { rate: 6 }, sessionKey: 'key' }),
-  claimRecipeRun: async () => mockRunRef,
+  claimRecipeRun: (...args: unknown[]) => mockClaim(...args),
   saveArtifacts: (...args: unknown[]) => mockSave(...args),
 }));
 
 import { buildSourceCopyArtifacts, refreshModelData, type RefreshDataDeps } from '../refreshData';
+import { SessionBusyError } from '../../engine/turns';
 
 const b64 = (text: string) => Buffer.from(text).toString('base64');
 const sha = (text: string) => createHash('sha256').update(text).digest('hex');
@@ -95,7 +102,11 @@ function source(file = fredFile, record = fetchRecord('fetch-1')) {
 }
 
 function results(payment: number) {
-  return b64(JSON.stringify({ version: 1, values: { rate: 6 }, items: [{ kind: 'metric', label: 'Monthly payment', value: payment }] }));
+  return b64(JSON.stringify(resultsJson(payment)));
+}
+
+function resultsJson(payment: number) {
+  return { version: 1, kind: 'model_results', values: { rate: 6 }, items: [{ kind: 'metric', label: 'Monthly payment', value: payment }] };
 }
 
 const baselineResults = {
@@ -128,19 +139,29 @@ function finished() {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockEvents.length = 0;
   clock = 0;
   mockFindSources.mockResolvedValue([source()]);
   mockLoadNamed.mockResolvedValue([baselineResults]);
 });
 
 describe('refreshModelData', () => {
-  it('stops at the fetch when every response matches its copy: no new data, no sandbox', async () => {
-    const result = await refreshModelData('uid', 's1', 'recipe-1', {}, deps(OLD));
+  it('stops at the fetch when every response matches its copy: no new data, no sandbox, the session never held', async () => {
+    const result = await refreshModelData('uid', 's1', 'recipe-1', {}, deps(OLD), { pauseIfWoken: true });
     expect(result).toEqual({ runId: 'recipe_refresh_1', outcome: 'no_change', fetchedAt: Date.UTC(2026, 9, 12), outputArtifactIds: [], stdout: '' });
+    expect(mockClaim).not.toHaveBeenCalled();
     expect(mockSync).not.toHaveBeenCalled();
     expect(mockSandbox.writeFile).not.toHaveBeenCalled();
+    expect(mockSandbox.isAwake).not.toHaveBeenCalled();
+    expect(mockSandbox.pause).not.toHaveBeenCalled();
     expect(mockExecute).not.toHaveBeenCalled();
-    expect(finished()).toMatchObject({ status: 'completed', refresh: { outcome: 'no_change', fetchedAt: Date.UTC(2026, 9, 12) } });
+  });
+
+  it('holds the session only once the data changed: a busy session refuses the run before the sandbox is touched', async () => {
+    mockClaim.mockRejectedValueOnce(new SessionBusyError());
+    await expect(refreshModelData('uid', 's1', 'recipe-1', {}, deps(NEW))).rejects.toThrow(SessionBusyError);
+    expect(mockSync).not.toHaveBeenCalled();
+    expect(mockSandbox.writeFile).not.toHaveBeenCalled();
   });
 
   it('runs the model on new data and saves the copy, then the scenario, both marked as a refresh', async () => {
@@ -173,7 +194,31 @@ describe('refreshModelData', () => {
       origin: 'refresh', responseHash: sha(NEW), path: '/output/mortgage/fred_mortgage30.json', request: fetchRecord('fetch-1').request,
     }));
     expect(result).toMatchObject({ outcome: 'new_data', outputArtifactIds: [copy.id, scenario.id], stdout: 'ok' });
+    expect(result.scenario).toEqual({ artifactId: scenario.id, results: resultsJson(1450) });
     expect(finished()).toMatchObject({ status: 'completed', refresh: { outcome: 'new_data', fetchedAt } });
+    expect(mockSandbox.pause).not.toHaveBeenCalled();
+  });
+
+  it('a watch\'s run marks what it saves, and pauses a sandbox it woke before letting the session go', async () => {
+    mockSandbox.isAwake.mockResolvedValueOnce(false);
+    mockExecute.mockResolvedValue({ success: true, stdout: '', dataOutputs: [{ filename: 'mortgage/model.json', base64: results(1450) }], htmlOutputs: [] });
+    const result = await refreshModelData('uid', 's1', 'recipe-1', {}, deps(NEW), { watchId: 'w1', pauseIfWoken: true });
+    const [, , [copy, scenario]] = mockSave.mock.calls[0] as unknown as [string, string, Artifact[]];
+    expect(copy.metadata?.dataRefresh).toEqual({ runId: 'recipe_refresh_1', fetchedAt: result.fetchedAt, watchId: 'w1' });
+    expect(scenario.metadata?.dataRefresh).toEqual({ runId: 'recipe_refresh_1', fetchedAt: result.fetchedAt, watchId: 'w1' });
+    expect(mockSandbox.pause).toHaveBeenCalledWith('uid', 'key');
+    expect(mockEvents).toEqual(['pause', 'finish']);
+  });
+
+  it('a watch\'s run leaves a sandbox that was already awake alone, and pauses one it woke even when the run fails', async () => {
+    mockExecute.mockResolvedValue({ success: true, stdout: '', dataOutputs: [{ filename: 'mortgage/model.json', base64: results(1450) }], htmlOutputs: [] });
+    await refreshModelData('uid', 's1', 'recipe-1', {}, deps(NEW), { watchId: 'w1', pauseIfWoken: true });
+    expect(mockSandbox.pause).not.toHaveBeenCalled();
+
+    mockSandbox.isAwake.mockResolvedValueOnce(false);
+    mockExecute.mockRejectedValueOnce(new Error('sandbox gone'));
+    await expect(refreshModelData('uid', 's1', 'recipe-1', {}, deps(NEW), { watchId: 'w1', pauseIfWoken: true })).rejects.toThrow('sandbox gone');
+    expect(mockSandbox.pause).toHaveBeenCalledTimes(1);
   });
 
   it('treats results a scenario already has as no new data, and puts the previous copy back', async () => {
@@ -201,6 +246,7 @@ describe('refreshModelData', () => {
       outcome: 'error',
       error: 'https://api.stlouisfed.org/fred/series/observations couldn\'t be fetched again: HTTP 503: Service Unavailable',
     });
+    expect(mockClaim).not.toHaveBeenCalled();
     expect(mockSync).not.toHaveBeenCalled();
     expect(mockExecute).not.toHaveBeenCalled();
   });

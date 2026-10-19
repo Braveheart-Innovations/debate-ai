@@ -542,6 +542,13 @@ function isActiveServerOwnedPremium(
     || userData?.isPremium === true;
 }
 
+/** Premium or a trial, as the server records it (Analyze watches need one). */
+export async function isPremiumOrTrial(uid: string): Promise<boolean> {
+  const userRef = getFirestore().collection('users').doc(uid);
+  const [userDoc, billingDoc] = await Promise.all([userRef.get(), userRef.collection('billing').doc('subscription').get()]);
+  return isActiveServerOwnedPremium(userDoc.data(), billingDoc.data());
+}
+
 // ============================================================================
 // Server-authoritative free-tier enforcement for the AI proxies
 // ============================================================================

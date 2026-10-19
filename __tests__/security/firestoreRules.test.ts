@@ -57,6 +57,10 @@ describe('firestore entitlement rules', () => {
     expect(rules).toMatch(/match \/storageReservations\/\{reservationId\} \{\s+allow read: if isOwner\(userId\);\s+allow write: if false;\s+\}/);
   });
 
+  it('makes watches read-only for clients: the watch callables and runs write them', () => {
+    expect(rules).toMatch(/match \/watches\/\{watchId\} \{\s+allow read: if isOwner\(userId\);\s+allow write: if false;\s+\}/);
+  });
+
   it('lets clients only mark their run notifications read or delete them', () => {
     expect(rules).toMatch(/match \/notifications\/\{notificationId\} \{\s+allow read: if isOwner\(userId\);\s+allow update: if isOwner\(userId\)\s+&& request\.resource\.data\.diff\(resource\.data\)\.affectedKeys\(\)\.hasOnly\(\['read'\]\)\s+&& request\.resource\.data\.read is bool;\s+allow delete: if isOwner\(userId\);\s+allow create: if false;\s+\}/);
   });
