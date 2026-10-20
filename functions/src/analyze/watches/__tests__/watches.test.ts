@@ -99,7 +99,7 @@ import { SessionBusyError } from '../../engine/turns';
 import { NoModelSourcesError } from '../../recipes/refreshData';
 import { sweepDueWatches } from '../callables';
 import { WatchNotAllowedError, WatchNotFoundError, controlWatch, setWatch, watchId, type WatchDoc } from '../watchStore';
-import { blockedReason, crossedAlerts, formatMetric, runWatch, type WatchRunDeps } from '../watchRun';
+import { blockedReason, crossedAlerts, formatMetric, missingAlerts, runWatch, type WatchRunDeps } from '../watchRun';
 
 const HOUR = 60 * 60_000;
 const DAY = 24 * HOUR;
@@ -202,6 +202,27 @@ describe('runWatch', () => {
     await run(run1);
     expect(run1.notify).not.toHaveBeenCalled();
     expect(stored()?.metrics?.[0].value).toBe(4.7);
+  });
+
+  it('says once when an alert\'s metric is gone from the results (its label moved), and not again', async () => {
+    mockDocs.set(PATH, watch({ notifyOnNewData: false }) as unknown as Record<string, unknown>);
+    const moved: RefreshDataResult = {
+      ...newData(4.6),
+      scenario: { artifactId: 'scenario', results: { ...results(4.6), items: [{ kind: 'metric' as const, label: 'Unemployment rate, Oct', value: 4.6, unit: '%', decimals: 1 }] } },
+    };
+    const run1 = deps({ refresh: jest.fn(async () => moved) });
+    await run(run1);
+    expect(run1.notify.mock.calls.map(([, notification]) => [notification.id, notification.event, notification.title, notification.body])).toEqual([[
+      'w1_alert_missing_recipe_9_0',
+      'alert_missing',
+      'Recession indicators: an alert lost its number',
+      'The results on the data of Oct 19 have no "Unemployment rate", so the alert on it can\'t go off. Open the model\'s watch to pick another number.',
+    ]]);
+
+    clock = T0 + DAY + 60_000;
+    const run2 = deps({ refresh: jest.fn(async () => ({ ...moved, runId: 'recipe_10', fetchedAt: T0 + DAY + 30_000 })) });
+    await run(run2, T0 + DAY);
+    expect(run2.notify).not.toHaveBeenCalled();
   });
 
   it('records no new data without a notification', async () => {
@@ -320,6 +341,16 @@ describe('alerts and their words', () => {
     expect(crossedAlerts([above], metric(4), metric(5))).toHaveLength(0);
     expect(crossedAlerts([below], metric(4), metric(2))).toHaveLength(1);
     expect(crossedAlerts([above], metric(4), [])).toHaveLength(0);
+  });
+
+  it('an alert\'s metric is missing when the results stop showing it, once', () => {
+    const alert = { metric: 'Forecast for Sep 2027', direction: 'above' as const, value: 660 };
+    const sep = [{ label: 'Forecast for Sep 2027', value: 654.6 }];
+    const oct = [{ label: 'Forecast for Oct 2027', value: 657.1 }];
+    expect(missingAlerts([alert], sep, oct)).toEqual([alert]);
+    expect(missingAlerts([alert], oct, oct)).toEqual([]);
+    expect(missingAlerts([alert], undefined, oct)).toEqual([alert]);
+    expect(missingAlerts([alert], sep, sep)).toEqual([]);
   });
 
   it('formats a metric as the model shows it', () => {
