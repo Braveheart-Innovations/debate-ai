@@ -19,7 +19,9 @@ import { artifactDataToArrayBuffer } from '../engine/artifactFilesystemHydration
 import { fetchRecordsByHash, fetchRequestArgs, recordTranscriptFetches, sessionBeganWithRecords, type FetchRecord } from '../engine/fetchRecords';
 import { PAYLOAD_SENTINEL } from '../../cloudPayloadStorage';
 import { artifactRef, loadArtifactsById } from '../engine/sessionStore';
-import { recipeOutputDir } from './recipeParams';
+import { modelOutputDir } from './recipeParams';
+
+export { modelOutputDir };
 
 export interface ModelSource {
   /** The file's latest version. */
@@ -28,11 +30,6 @@ export interface ModelSource {
   bytes: Buffer;
   /** The fetch it's a copy of. */
   fetch: FetchRecord;
-}
-
-/** The recipe's folder under /output. */
-export function modelOutputDir(recipe: Artifact): string {
-  return recipe.metadata?.recipe?.outputDir ?? recipeOutputDir(recipe.name);
 }
 
 function versionOf(artifact: { metadata?: { versionNumber?: number } }): number {

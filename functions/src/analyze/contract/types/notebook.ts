@@ -231,6 +231,19 @@ export interface Artifact {
      * folder with one; Refresh data and Watches fetch them again.
      */
     fetchedFrom?: { endpoint: string; fetchedAt: number } | null;
+    /**
+     * A report version (analysis_artifact_spec): the models it was written
+     * from, as the server found when it saved it (debate-ai
+     * recipes/writtenFrom.ts). Its turn used them: its code named a model's
+     * recipe or a file in its folder, or it saved the model's results. A
+     * version from a turn that used none keeps its previous version's list, so
+     * a wording fix (or a hand edit) doesn't make its numbers newer. Empty: a
+     * report on no model. Absent: saved before 2.9.7.
+     * `fetchedAt`: when the model's data was fetched (its files' newest mark),
+     * absent when none is marked; `writtenAt` then bounds it. A newer-data
+     * scenario of one of these models puts the report behind.
+     */
+    writtenFrom?: Array<{ recipeName: string; fetchedAt?: number; writtenAt: number }>;
     /** Monotonically increasing version number within lineage */
     versionNumber?: number;
     /**
