@@ -28,6 +28,7 @@ import { artifactRef, latestByName, loadArtifactsNamed, prepareArtifactRecord, r
 import { OPERATOR_ACTIVE, type AnalyzeRunDoc } from '../engine/runStore';
 import { SessionBusyError, findLatestOperatorRun } from '../engine/turns';
 import { SessionFilesSync } from '../engine/uploads';
+import { markFetchedCopies } from './modelSources';
 import { isRecipeFilename, validateRecipeValues } from './recipeParams';
 import {
   RECIPE_RUN_TIMEOUT_MS,
@@ -222,9 +223,9 @@ export async function claimRecipeRun(uid: string, sessionId: string, record: Rec
   return runRef;
 }
 
-/** Save artifacts the server made (new versions), in order. */
+/** Save artifacts the server made (new versions), in order, each file marked with whether it's a copy of a fetch. */
 export async function saveArtifacts(uid: string, sessionId: string, artifacts: Artifact[]): Promise<void> {
-  for (const artifact of artifacts) {
+  for (const artifact of await markFetchedCopies(uid, sessionId, artifacts)) {
     await artifactRef(uid, sessionId, artifact.id).set(await prepareArtifactRecord(uid, sessionId, artifact), { merge: true });
   }
 }

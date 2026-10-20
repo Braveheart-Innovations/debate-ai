@@ -53,6 +53,11 @@ jest.mock('../../../sandbox/callables', () => ({
   }),
 }));
 
+// The fetch marks have their own tests (modelSources.test.ts).
+jest.mock('../../recipes/modelSources', () => ({
+  markFetchedCopies: async (_uid: string, _sessionId: string, artifacts: unknown[]) => artifacts,
+}));
+
 import { CaptureSession, WORKBOOK_STATE_PATH } from '../captureRound';
 import type { AnalyzeRunDoc } from '../../engine/runStore';
 

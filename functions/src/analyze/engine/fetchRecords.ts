@@ -44,6 +44,9 @@ export function fetchesPath(uid: string, sessionId: string): string {
 /** Marks a session whose transcripts were read. It has no responseHash, so lookups never return it. */
 const TRANSCRIPTS_READ_ID = 'transcripts-read';
 
+/** Records were kept from here on (debate-ai #294 finished deploying 2026-10-19 19:05 UTC). */
+export const FETCH_RECORDS_SINCE = Date.UTC(2026, 9, 19, 20, 0);
+
 export function isFetchTool(toolName: string): toolName is FetchTool {
   return toolName === 'fetch_api' || toolName === 'fetch_url';
 }
@@ -116,6 +119,12 @@ export function fetchesInTranscript(messages: Message[], runId?: string): FetchR
     }));
   }
   return records;
+}
+
+/** Whether the session began after records were kept: every fetch it made has one, and its transcripts need no reading. */
+export async function sessionBeganWithRecords(uid: string, sessionId: string): Promise<boolean> {
+  const createdAt = (await getFirestore().doc(`users/${uid}/conversations/${sessionId}`).get()).get('createdAt') as unknown;
+  return typeof createdAt === 'number' && createdAt >= FETCH_RECORDS_SINCE;
 }
 
 /**

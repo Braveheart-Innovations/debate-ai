@@ -223,6 +223,14 @@ export interface Artifact {
       fetchedAt: number;
       watchId?: string;
     };
+    /**
+     * Whether this file is an unchanged copy of a fetched response, as the server
+     * found when it saved the file (or when the Model view first asked): where it
+     * was fetched from (the URL without its query) and when, or null when it
+     * isn't one. Absent: not checked yet. A model's sources are the files in its
+     * folder with one; Refresh data and Watches fetch them again.
+     */
+    fetchedFrom?: { endpoint: string; fetchedAt: number } | null;
     /** Monotonically increasing version number within lineage */
     versionNumber?: number;
     /**
