@@ -3,7 +3,8 @@
  *
  *   analyzeWatchSet       turn a watch on for a model, or save a changed one
  *   analyzeWatchControl   pause, resume or stop a watch
- *   analyzeWatchSweep     every 5 minutes: queue a run for each watch that's due
+ *   analyzeWatchSweep     every 5 minutes on the clock (:00, :05, ...): queue a
+ *                         run for each watch that's due
  *   analyzeWatchRun       one watch's run (watchRun.ts), a Cloud Task per watch,
  *                         so one slow run never holds up the others
  *
@@ -144,7 +145,9 @@ export async function sweepDueWatches(now = Date.now(), enqueue = enqueueWatchRu
 }
 
 export const analyzeWatchSweep = onSchedule(
-  { schedule: 'every 5 minutes', region: 'us-central1', timeoutSeconds: 300 },
+  // Cron, not 'every 5 minutes': Cloud Scheduler counts that from when the job
+  // was made (it fired at :04, :09, ...), so a 7:00 watch ran at 7:04.
+  { schedule: '*/5 * * * *', region: 'us-central1', timeoutSeconds: 300 },
   async () => {
     const queued = await sweepDueWatches();
     if (queued.length) console.log('[analyzeWatchSweep] queued watch runs', { count: queued.length });
