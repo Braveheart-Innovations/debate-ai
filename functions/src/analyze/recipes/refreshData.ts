@@ -41,7 +41,7 @@ import { createSandboxBridge } from '../engine/sandboxBridge';
 import { artifactRef, loadArtifactsNamed, removeUndefined } from '../engine/sessionStore';
 import { buildFetchProvenance } from '../engine/tools/provenance';
 import { SessionFilesSync } from '../engine/uploads';
-import { findModelSources, modelOutputDir, sourceEndpoint, summarizeSources, type ModelSource, type ModelSourceSummary } from './modelSources';
+import { findAndMarkModelSources, findModelSources, modelOutputDir, sourceEndpoint, summarizeSources, type ModelSource, type ModelSourceSummary } from './modelSources';
 import { RECIPE_RUN_TIMEOUT_MS } from './recipeRunStore';
 import {
   RecipeNotFoundError,
@@ -96,28 +96,31 @@ export function refreshDataDeps(uid: string, keyValue: string): RefreshDataDeps 
   };
 }
 
-/** The model's sources, as the Model view shows them (none: it can't be refreshed). */
+/**
+ * The model's sources, as the Model view shows them (none: it can't be
+ * refreshed). It asks only when a file has no mark yet; this marks them.
+ */
 export async function listModelSources(uid: string, sessionId: string, recipeArtifactId: string): Promise<ModelSourceSummary[]> {
   const snapshot = await artifactRef(uid, sessionId, recipeArtifactId).get();
   const recipe = snapshot.exists ? (snapshot.data() as Artifact) : null;
   if (!recipe || recipe.type !== 'recipe') throw new RecipeNotFoundError();
-  return summarizeSources(await findModelSources(uid, sessionId, recipe));
+  return summarizeSources(await findAndMarkModelSources(uid, sessionId, recipe));
 }
 
 function outputPath(name: string): string {
   return `/output/${name.replace(/^\/?output\//, '')}`;
 }
 
-/** A source's new copy as the next version of its file, carrying the fetch it came from. */
+/** A source's new copy as the next version of its file, carrying the fetch it came from (and its mark: its record is written after the save). */
 export function buildSourceCopyArtifacts(input: {
   sessionId: string;
   runId: string;
   fetchedAt: number;
   watchId?: string;
-  copies: Array<{ file: Artifact; bytes: Buffer; provenance: ToolResultProvenance }>;
+  copies: Array<{ file: Artifact; bytes: Buffer; endpoint: string; provenance: ToolResultProvenance }>;
 }): Artifact[] {
   const { sessionId, runId, fetchedAt, watchId } = input;
-  return input.copies.map(({ file, bytes, provenance }, index) => {
+  return input.copies.map(({ file, bytes, endpoint, provenance }, index) => {
     const text = isRawTextArtifact(file);
     const data = text ? bytes.toString('utf8') : bytes.toString('base64');
     const tabular = !text && (file.type === 'dataset' || file.type === 'data') ? tabularMetadata(file.mimeType, data) : null;
@@ -131,6 +134,7 @@ export function buildSourceCopyArtifacts(input: {
       ...(tabular ?? {}),
       ...deriveArtifactLineage(file, [file]),
       dataRefresh: removeUndefined({ runId, fetchedAt, watchId }),
+      fetchedFrom: { endpoint, fetchedAt },
     });
     return withArtifactPreviewMetadata(removeUndefined({
       id: `artifact-refresh-${runId}-${index}`,
@@ -258,6 +262,7 @@ export async function refreshModelData(
             copies: await Promise.all(changed.map(async (entry) => ({
               file: entry.source.file,
               bytes: entry.bytes,
+              endpoint: sourceEndpoint(entry.source.fetch),
               provenance: {
                 ...await buildFetchProvenance({
                   toolName: entry.source.fetch.tool,

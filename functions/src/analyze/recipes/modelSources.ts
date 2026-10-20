@@ -6,15 +6,19 @@
  * sandbox), so the hash is what ties a file to the request that made it.
  * Refresh data fetches each source again; the folder's other files (an
  * assumptions table, a cleaned extract) stay as they are.
+ *
+ * The server marks each file it saves with what it found
+ * (metadata.fetchedFrom), so the Model view knows a model's sources without
+ * asking; it asks only about files saved before the marks.
  */
 import { getFirestore } from 'firebase-admin/firestore';
 import type { Artifact } from '../contract/types/notebook';
 import { MODEL_RESULTS_FILENAME } from '../contract/services/analyze/models/modelResults';
 import { sha256Hex } from '../../fetchToSandbox';
 import { artifactDataToArrayBuffer } from '../engine/artifactFilesystemHydration';
-import { fetchRecordsByHash, fetchRequestArgs, recordTranscriptFetches, type FetchRecord } from '../engine/fetchRecords';
+import { fetchRecordsByHash, fetchRequestArgs, recordTranscriptFetches, sessionBeganWithRecords, type FetchRecord } from '../engine/fetchRecords';
 import { PAYLOAD_SENTINEL } from '../../cloudPayloadStorage';
-import { loadArtifactsById } from '../engine/sessionStore';
+import { artifactRef, loadArtifactsById } from '../engine/sessionStore';
 import { recipeOutputDir } from './recipeParams';
 
 export interface ModelSource {
@@ -56,27 +60,111 @@ export async function loadModelFolderFiles(uid: string, sessionId: string, outpu
   return loadArtifactsById(uid, sessionId, [...latest.values()].map((entry) => entry.id));
 }
 
+export type FetchedFromMark = NonNullable<NonNullable<Artifact['metadata']>['fetchedFrom']>;
+
+interface CheckedFile {
+  file: Artifact;
+  bytes: Buffer;
+  /** The fetch it's an unchanged copy of, if any. */
+  fetch?: FetchRecord;
+}
+
+/** A file's bytes as the sandbox has them: what a fetch record's responseHash is of. */
+function fileBytes(file: Artifact): Buffer {
+  return Buffer.from(artifactDataToArrayBuffer(file));
+}
+
+function hasData(file: Artifact): boolean {
+  return typeof file.data === 'string' && file.data.length > 0 && file.data !== PAYLOAD_SENTINEL;
+}
+
 /**
- * The model's sources, by name. A session from before fetch records were kept
- * has its transcripts read the first time a file finds no record.
+ * The newest fetch record for each hash. A session from before records were
+ * kept has its transcripts read the first time a hash finds none.
  */
-export async function findModelSources(uid: string, sessionId: string, recipe: Artifact): Promise<ModelSource[]> {
-  const files = (await loadModelFolderFiles(uid, sessionId, modelOutputDir(recipe)))
-    .filter((file) => typeof file.data === 'string' && file.data.length > 0 && file.data !== PAYLOAD_SENTINEL);
+async function recordsFor(uid: string, sessionId: string, hashes: string[]): Promise<Map<string, FetchRecord>> {
+  const records = await fetchRecordsByHash(uid, sessionId, hashes);
+  if (hashes.every((hash) => records.has(hash)) || await sessionBeganWithRecords(uid, sessionId)) return records;
+  return await recordTranscriptFetches(uid, sessionId) ? fetchRecordsByHash(uid, sessionId, hashes) : records;
+}
+
+/** Each file in the model's folder, with the fetch it's a copy of. */
+async function checkModelFiles(uid: string, sessionId: string, recipe: Artifact): Promise<CheckedFile[]> {
+  const files = (await loadModelFolderFiles(uid, sessionId, modelOutputDir(recipe))).filter(hasData);
   if (files.length === 0) return [];
   const hashed = files.map((file) => {
-    const bytes = Buffer.from(artifactDataToArrayBuffer(file));
+    const bytes = fileBytes(file);
     return { file, bytes, hash: sha256Hex(bytes) };
   });
-  const hashes = hashed.map((entry) => entry.hash);
-  let records = await fetchRecordsByHash(uid, sessionId, hashes);
-  if (hashed.some((entry) => !records.has(entry.hash)) && await recordTranscriptFetches(uid, sessionId)) {
-    records = await fetchRecordsByHash(uid, sessionId, hashes);
-  }
-  return hashed
-    .filter((entry) => records.has(entry.hash))
-    .map((entry) => ({ file: entry.file, bytes: entry.bytes, fetch: records.get(entry.hash)! }))
+  const records = await recordsFor(uid, sessionId, hashed.map((entry) => entry.hash));
+  return hashed.map(({ file, bytes, hash }) => ({ file, bytes, fetch: records.get(hash) }));
+}
+
+function toSources(checked: CheckedFile[]): ModelSource[] {
+  return checked
+    .flatMap(({ file, bytes, fetch }) => (fetch ? [{ file, bytes, fetch }] : []))
     .sort((a, b) => a.file.name.localeCompare(b.file.name));
+}
+
+/** The model's sources, by name. */
+export async function findModelSources(uid: string, sessionId: string, recipe: Artifact): Promise<ModelSource[]> {
+  return toSources(await checkModelFiles(uid, sessionId, recipe));
+}
+
+/** A copy's mark: where its fetch was made, and when. */
+export function fetchedFromMark(record: FetchRecord): FetchedFromMark {
+  return { endpoint: sourceEndpoint(record), fetchedAt: record.fetchedAt };
+}
+
+function sameMark(a: FetchedFromMark | null | undefined, b: FetchedFromMark | null): boolean {
+  return a === b || (!!a && !!b && a.endpoint === b.endpoint && a.fetchedAt === b.fetchedAt);
+}
+
+/**
+ * The model's sources, marking the folder's files on the way (files saved
+ * before the marks), so the Model view knows them next time without asking.
+ * A mark that fails to save is only a slower Model view next time.
+ */
+export async function findAndMarkModelSources(uid: string, sessionId: string, recipe: Artifact): Promise<ModelSource[]> {
+  const checked = await checkModelFiles(uid, sessionId, recipe);
+  await Promise.all(checked.map(async ({ file, fetch }) => {
+    const mark = fetch ? fetchedFromMark(fetch) : null;
+    if (sameMark(file.metadata?.fetchedFrom, mark)) return;
+    await artifactRef(uid, sessionId, file.id).update({ 'metadata.fetchedFrom': mark }).catch((error: unknown) => {
+      console.warn(`[modelSources] ${file.name} wasn't marked:`, error);
+    });
+  }));
+  return toSources(checked);
+}
+
+/** A file a model can read: in a folder under /output, with its data, and not a model's results. */
+function isFolderFile(artifact: Artifact): boolean {
+  return artifact.name.includes('/') && !artifact.name.endsWith(`/${MODEL_RESULTS_FILENAME}`) && hasData(artifact);
+}
+
+/**
+ * Mark the files a save is about to write: a copy of a fetch gets where and
+ * when it was fetched, another file null. A file marked already (a Refresh
+ * data copy) keeps its mark. Marks never stop a save: a failed lookup leaves
+ * the files unmarked, and the Model view asks the server about them.
+ */
+export async function markFetchedCopies(uid: string, sessionId: string, artifacts: Artifact[]): Promise<Artifact[]> {
+  try {
+    const hashes = new Map(artifacts
+      .filter((artifact) => artifact.metadata?.fetchedFrom === undefined && isFolderFile(artifact))
+      .map((artifact) => [artifact.id, sha256Hex(fileBytes(artifact))] as const));
+    if (hashes.size === 0) return artifacts;
+    const records = await recordsFor(uid, sessionId, [...hashes.values()]);
+    return artifacts.map((artifact) => {
+      const hash = hashes.get(artifact.id);
+      if (!hash) return artifact;
+      const record = records.get(hash);
+      return { ...artifact, metadata: { ...artifact.metadata, fetchedFrom: record ? fetchedFromMark(record) : null } };
+    });
+  } catch (error) {
+    console.warn('[modelSources] the saved files weren\'t marked:', error);
+    return artifacts;
+  }
 }
 
 /** Where a source was fetched from: the URL without its query, which can hold a key. */

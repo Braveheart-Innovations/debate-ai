@@ -180,6 +180,8 @@ describe('refreshModelData', () => {
       data: b64(NEW),
       metadata: { versionNumber: 2, previousArtifactId: 'artifact-fred-1', dataRefresh: { runId: 'recipe_refresh_1', fetchedAt }, artifactDisposition: 'output' },
     });
+    // Marked by the refresh itself: the copy's fetch record is written after the save.
+    expect(copy.metadata?.fetchedFrom).toEqual({ endpoint: 'https://api.stlouisfed.org/fred/series/observations', fetchedAt });
     expect(copy.provenance?.sources).toEqual([expect.objectContaining({
       endpoint: 'https://api.stlouisfed.org/fred/series/observations',
       responseHash: sha(NEW),
@@ -277,12 +279,13 @@ describe('buildSourceCopyArtifacts', () => {
       runId: 'r1',
       fetchedAt: 9,
       copies: [
-        { file: csv, bytes: Buffer.from('date,rate\n2026-10-08,6.3\n2026-10-15,6.1\n'), provenance },
-        { file: page, bytes: Buffer.from('<p>new</p>'), provenance },
+        { file: csv, bytes: Buffer.from('date,rate\n2026-10-08,6.3\n2026-10-15,6.1\n'), endpoint: 'https://example.org/rates', provenance },
+        { file: page, bytes: Buffer.from('<p>new</p>'), endpoint: 'https://example.org/', provenance },
       ],
     });
     expect(table.metadata).toMatchObject({ rowCount: 2, columnCount: 2 });
     expect(html.data).toBe('<p>new</p>');
     expect(html.metadata?.fileSize).toBe(10);
+    expect(table.metadata?.fetchedFrom).toEqual({ endpoint: 'https://example.org/rates', fetchedAt: 9 });
   });
 });

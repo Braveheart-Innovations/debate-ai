@@ -37,6 +37,7 @@ import {
 } from '../engine/sessionStore';
 import type { StoredPayloadRefs } from '../../cloudPayloadStorage';
 import { handleStreamCompleted, type StreamCompletedEventData } from './streamCompletedHandler';
+import { markFetchedCopies } from '../recipes/modelSources';
 import type { AnalyzeOrgEvidenceRequest } from './types';
 import type { TeamPanelRecord } from './teamPanelNote';
 
@@ -218,7 +219,8 @@ export class CaptureSession {
       },
     );
 
-    const upserted = [...upserts.values()];
+    // Each file marked with whether it's a copy of a fetch: the Model view reads a model's sources from the marks.
+    const upserted = await markFetchedCopies(uid, sessionId, [...upserts.values()]);
     // 1. Artifacts.
     await runInBatches(upserted, UPSERT_CONCURRENCY, async (artifact) => {
       await artifactRef(uid, sessionId, artifact.id).set(await prepareArtifactRecord(uid, sessionId, artifact), { merge: true });
