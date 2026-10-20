@@ -47,6 +47,7 @@ import {
   sortAnalyzeReviewItems,
 } from './reviewService';
 import { buildSalesforceReviewEvidence, docsPagesReadInTurn } from './salesforceReviewEvidence';
+import { writeSessionSummary } from '../engine/sessionSummary';
 
 const REVIEWER_TEMPERATURE = 0.2;
 const REVIEWER_MAX_TOKENS = 4096;
@@ -508,6 +509,10 @@ export async function applyVerification(child: AnalyzeRunDoc, result: AgentRunRe
   }));
   batch.set(messageRef(uid, sessionId, message.id), await prepareMessageRecord(uid, sessionId, message), { merge: true });
   await batch.commit();
+  // The verdict is the session's newest message.
+  await writeSessionSummary(uid, sessionId).catch((error) => {
+    console.error('[analyzeReview] session summary failed', { sessionId, error });
+  });
 }
 
 // ============================================================================

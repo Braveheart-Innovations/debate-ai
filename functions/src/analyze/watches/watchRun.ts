@@ -58,6 +58,8 @@ export interface WatchRunDeps {
     options: RefreshOptions,
   ) => Promise<RefreshDataResult>;
   notify: (uid: string, notification: WatchNotification) => Promise<void>;
+  /** History: a run that saved a scenario moves its session up, with this as the preview. */
+  markSession: (uid: string, sessionId: string, at: number, preview: string) => Promise<void>;
 }
 
 export type WatchRunResult =
@@ -257,6 +259,8 @@ export async function runWatch(payload: WatchRunPayload, owner: string, deps: Wa
     }
     update.metrics = metrics;
     update.metricsFetchedAt = result.fetchedAt;
+    await deps.markSession(uid, sessionId, finishedAt, `Watch: new data, ${day(result.fetchedAt)}`)
+      .catch((error) => console.error('[analyzeWatchRun] session summary failed', { watchId, error }));
   }
 
   await finishRun(uid, watchId, (current) => ({
