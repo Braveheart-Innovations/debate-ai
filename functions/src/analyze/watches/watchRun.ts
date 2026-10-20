@@ -103,6 +103,16 @@ export function crossedAlerts(alerts: WatchAlert[], previous: WatchMetric[] | un
   });
 }
 
+/**
+ * The alerts whose metric the new results don't show, when the last scenario
+ * the watch knew did (or it knew none): a label with a date in it ("Forecast
+ * for Sep 2027") moves with new data, and the alert can't go off. Once each.
+ */
+export function missingAlerts(alerts: WatchAlert[], previous: WatchMetric[] | undefined, current: WatchMetric[]): WatchAlert[] {
+  const shows = (metrics: WatchMetric[], alert: WatchAlert) => metrics.some((metric) => metric.label === alert.metric);
+  return alerts.filter((alert) => !shows(current, alert) && (!previous || shows(previous, alert)));
+}
+
 function firstLine(text: string | undefined): string {
   return (text ?? '').split('\n').map((line) => line.trim()).find(Boolean) ?? 'The watch stopped with an error.';
 }
@@ -227,6 +237,14 @@ export async function runWatch(payload: WatchRunPayload, owner: string, deps: Wa
         event: 'alert',
         title: `${watch.title}: ${alert.metric} ${alert.direction} ${formatMetric({ ...now, value: alert.value })}`,
         body: `${formatMetric(now)} in the data of ${day(result.fetchedAt)}${was}.`,
+      });
+    }
+    for (const alert of missingAlerts(watch.alerts, watch.metrics, metrics)) {
+      await notify({
+        id: `${watchId}_alert_missing_${result.runId}_${watch.alerts.indexOf(alert)}`,
+        event: 'alert_missing',
+        title: `${watch.title}: an alert lost its number`,
+        body: `The results on the data of ${day(result.fetchedAt)} have no "${alert.metric}", so the alert on it can't go off. Open the model's watch to pick another number.`,
       });
     }
     if (watch.notifyOnNewData) {

@@ -25,8 +25,8 @@ import type { TeamPlan } from '../team/types';
 
 export type NotificationKind = 'completed' | 'error' | 'awaiting_approval' | 'asked_user' | 'watch';
 
-/** What a watch's notification is about. */
-export type WatchEvent = 'new_data' | 'alert' | 'skipped' | 'error';
+/** What a watch's notification is about. `alert_missing`: an alert's metric is gone from the results (its label moved). */
+export type WatchEvent = 'new_data' | 'alert' | 'alert_missing' | 'skipped' | 'error';
 
 export interface NotificationDoc {
   id: string;
