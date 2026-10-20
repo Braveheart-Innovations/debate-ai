@@ -11,6 +11,7 @@ import { OPERATOR_ACTIVE, finishRun, runRef, saveMessageAttachments, type Analyz
 import { buildMessageRecord, removeUndefined } from './sessionStore';
 import { newRunId } from '../team/teamStore';
 import { activeRecipeRunIn } from '../recipes/recipeRunStore';
+import { sessionDoc, turnStartSummary } from './sessionSummary';
 
 export class SessionBusyError extends Error {
   constructor() {
@@ -135,10 +136,13 @@ export async function startOperatorTurn(input: OperatorTurnInput): Promise<{ run
     const recipeRunning = await activeRecipeRunIn(tx, uid, sessionId, Date.now());
     // Items dismissed since the user picked them are simply not queued.
     const items = await Promise.all((input.reviewItemIds ?? []).map((itemId) => tx.get(db.doc(`users/${uid}/conversations/${sessionId}/reviewItems/${itemId}`))));
+    const session = await tx.get(sessionDoc(uid, sessionId));
     if (recipeRunning || active.docs.some((doc) => (doc.data() as AnalyzeRunDoc).kind === 'operator')) throw new SessionBusyError();
     tx.set(messageDoc, buildMessageRecord(sessionId, userMessage));
     tx.set(runRef(uid, sessionId, runId), run);
     for (const item of items) if (item.exists) tx.update(item.ref, { status: 'queued' });
+    // History moves the session up with the user's message (one the web hasn't saved yet gets it at the turn's end).
+    if (session.exists) tx.update(session.ref, turnStartSummary(userMessage));
   });
 
   try {

@@ -34,6 +34,7 @@ import {
   type WatchDoc,
 } from './watchStore';
 import { runWatch, type WatchRunDeps, type WatchRunPayload } from './watchRun';
+import { markSessionWatched } from '../engine/sessionSummary';
 
 export const WATCH_RUN_FUNCTION = 'analyzeWatchRun';
 /** A queued run that hasn't started by the next sweep is queued again (duplicates do nothing: the lease and dueAt). */
@@ -163,6 +164,7 @@ export function watchRunDeps(keyValue: string): WatchRunDeps {
       uid, sessionId, recipeArtifactId, values, refreshDataDeps(uid, keyValue), options,
     ),
     notify: (uid, notification) => notifyWatch(uid, notification),
+    markSession: markSessionWatched,
   };
 }
 

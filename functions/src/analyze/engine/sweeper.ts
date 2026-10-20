@@ -17,6 +17,7 @@ import { enqueueStep } from './queue';
 import { finishRun, runRef, type AnalyzeRunDoc } from './runStore';
 import { endedChildResult, finishChild } from '../team/teamStore';
 import { notifyTurnEnded } from './notifications';
+import { writeSessionSummary } from './sessionSummary';
 
 /** Longer than any Cloud Tasks retry gap (≤ 60 s) plus a lease (30 s): steps bump updatedAt on every attempt. */
 export const STRANDED_MS = 5 * 60_000;
@@ -50,6 +51,10 @@ export async function sweepStrandedRuns(now = Date.now()): Promise<SweepOutcome>
           await finishRun(ref, 'error', error);
           await notifyTurnEnded({ ...run, error }, 'error').catch((notifyError) => {
             console.error('[analyzeSweeper] notification failed', { path: doc.ref.path, notifyError });
+          });
+          // What the turn wrote before it stalled.
+          await writeSessionSummary(run.uid, run.sessionId).catch((summaryError) => {
+            console.error('[analyzeSweeper] session summary failed', { path: doc.ref.path, summaryError });
           });
         }
         else await finishChild(run, run.result ?? endedChildResult(run, 'failed', `The subagent failed: ${message}`));

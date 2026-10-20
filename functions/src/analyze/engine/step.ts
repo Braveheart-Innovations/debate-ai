@@ -41,6 +41,7 @@ import { deliverPendingReruns } from '../team/reruns';
 import { SessionFilesSync } from './uploads';
 import { loadPdfPageAttachments } from './pdfPages';
 import { notifyTurnEnded } from './notifications';
+import { writeSessionSummary } from './sessionSummary';
 
 export { STEP_FUNCTION, enqueueStep, type StepPayload };
 
@@ -268,6 +269,7 @@ async function operatorMessageStore(uid: string, sessionId: string): Promise<Mes
 
 /** The browser's end-of-turn reactions (queued review items, auto-review, waiting reruns), and the user's notification. Best effort. */
 async function afterOperatorTurn(run: AnalyzeRunDoc, outcome: RoundOutcome): Promise<void> {
+  await summarizeSession(run);
   try {
     await notifyTurnEnded(run, outcome);
   } catch (error) {
@@ -282,6 +284,15 @@ async function afterOperatorTurn(run: AnalyzeRunDoc, outcome: RoundOutcome): Pro
     await deliverPendingReruns(run.uid, run.sessionId);
   } catch (error) {
     console.error('[analyzeRun] rerun delivery failed', { runId: run.runId, error });
+  }
+}
+
+/** History's summary of the session, from its messages now (a turn's or a review's end). Best effort. */
+async function summarizeSession(run: AnalyzeRunDoc): Promise<void> {
+  try {
+    await writeSessionSummary(run.uid, run.sessionId);
+  } catch (error) {
+    console.error('[analyzeRun] session summary failed', { runId: run.runId, error });
   }
 }
 
@@ -304,4 +315,6 @@ async function runReviewerStep(ref: DocumentReference, run: AnalyzeRunDoc, owner
     stopHeartbeat();
     cancel.stop();
   }
+  // The reviewer's message is the session's newest.
+  await summarizeSession(run);
 }

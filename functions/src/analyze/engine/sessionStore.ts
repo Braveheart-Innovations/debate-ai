@@ -126,7 +126,7 @@ export async function writeMessage(uid: string, sessionId: string, message: Mess
 }
 
 /** Put offloaded fields back (web hydratePayloadRefs); a failed download leaves the sentinel. */
-async function hydratePayloadRefs(record: AnyRecord): Promise<void> {
+export async function hydratePayloadRefs(record: AnyRecord): Promise<void> {
   const refs = record.payloadRefs as StoredPayloadRefs | undefined;
   if (!refs) return;
   await Promise.all([

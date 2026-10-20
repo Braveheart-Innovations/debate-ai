@@ -140,15 +140,16 @@ function newData(rate: number, fetchedAt = T0 + 30_000): RefreshDataResult {
 const noChange: RefreshDataResult = { runId: 'recipe_9', outcome: 'no_change', fetchedAt: Date.UTC(2026, 8, 19, 12), outputArtifactIds: [], stdout: '' };
 
 let clock = T0 + 60_000;
-function deps(overrides: Partial<WatchRunDeps> = {}): WatchRunDeps & { refresh: jest.Mock; notify: jest.Mock; canWatch: jest.Mock; latestRecipeId: jest.Mock } {
+function deps(overrides: Partial<WatchRunDeps> = {}): WatchRunDeps & { refresh: jest.Mock; notify: jest.Mock; canWatch: jest.Mock; latestRecipeId: jest.Mock; markSession: jest.Mock } {
   return {
     now: () => clock,
     canWatch: jest.fn(async () => true),
     latestRecipeId: jest.fn(async () => 'recipe-3'),
     refresh: jest.fn(async () => newData(4.6)),
     notify: jest.fn(async () => undefined),
+    markSession: jest.fn(async () => undefined),
     ...overrides,
-  } as WatchRunDeps & { refresh: jest.Mock; notify: jest.Mock; canWatch: jest.Mock; latestRecipeId: jest.Mock };
+  } as WatchRunDeps & { refresh: jest.Mock; notify: jest.Mock; canWatch: jest.Mock; latestRecipeId: jest.Mock; markSession: jest.Mock };
 }
 
 const stored = () => mockDocs.get(PATH) as unknown as WatchDoc | undefined;
@@ -194,6 +195,8 @@ describe('runWatch', () => {
       errorNotified: false,
     });
     expect(stored()?.lease).toBeUndefined();
+    // History moves the session up with what the run did.
+    expect(run1.markSession).toHaveBeenCalledWith('u1', 's1', clock, 'Watch: new data, Oct 19');
   });
 
   it('doesn\'t alert again while a metric stays across its line, and keeps quiet about new data when that\'s switched off', async () => {
@@ -225,11 +228,12 @@ describe('runWatch', () => {
     expect(run2.notify).not.toHaveBeenCalled();
   });
 
-  it('records no new data without a notification', async () => {
+  it('records no new data without a notification, and leaves History alone', async () => {
     mockDocs.set(PATH, watch() as unknown as Record<string, unknown>);
     const run1 = deps({ refresh: jest.fn(async () => noChange) });
     expect(await run(run1)).toEqual({ kind: 'ran', outcome: 'no_change' });
     expect(run1.notify).not.toHaveBeenCalled();
+    expect(run1.markSession).not.toHaveBeenCalled();
     expect(stored()).toMatchObject({ lastRun: { outcome: 'no_change', fetchedAt: Date.UTC(2026, 8, 19, 12) }, nextRunAt: T0 + DAY });
     expect(stored()?.metrics?.[0].value).toBe(4.4);
   });
