@@ -176,6 +176,8 @@ export interface AnalyzeRunDoc {
   reportProduced?: boolean;
   latestCompletedOperatorMessageId?: string;
   pendingOrgEvidenceRequest?: AnalyzeOrgEvidenceRequest;
+  /** The models (recipe names) the turn's code named so far: what its report versions were written from (recipes/writtenFrom.ts). */
+  modelsNamed?: string[];
   /** Sandbox time this run's tools used: wall time of each sandbox call, and how many. */
   compute?: { sandboxExecMs?: number; sandboxCalls?: number };
 }

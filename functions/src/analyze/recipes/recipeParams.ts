@@ -12,7 +12,7 @@
  * run_recipe reads PARAMS with ast.literal_eval, so the two agree on what a
  * literal is: this reads the same subset).
  */
-import type { RecipeParam, RecipeParamValue } from '../contract/types/notebook';
+import type { Artifact, RecipeParam, RecipeParamValue } from '../contract/types/notebook';
 
 export const RECIPE_SUFFIX = '.recipe.py';
 
@@ -24,6 +24,11 @@ export function isRecipeFilename(filename: string): boolean {
 export function recipeOutputDir(recipeName: string): string {
   const normalized = recipeName.replace(/^\/?output\//, '');
   return normalized.slice(0, normalized.length - RECIPE_SUFFIX.length);
+}
+
+/** A recipe artifact's folder under /output: the one its metadata names, else from its name. */
+export function modelOutputDir(recipe: Pick<Artifact, 'name' | 'metadata'>): string {
+  return recipe.metadata?.recipe?.outputDir ?? recipeOutputDir(recipe.name);
 }
 
 /**

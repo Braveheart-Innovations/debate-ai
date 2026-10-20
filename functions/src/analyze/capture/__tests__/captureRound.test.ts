@@ -171,6 +171,43 @@ describe('CaptureSession.capture', () => {
     expect(batchOps.find((op) => op.op === 'update')?.data).toMatchObject({ reportProduced: true });
   });
 
+  it('marks a report with the model its turn ran, and carries the turn\'s models to its later rounds', async () => {
+    storedArtifacts = [
+      { id: 'recipe1', cellId: 'earlier', sessionId: 's', name: 'retail.recipe.py', type: 'recipe', mimeType: 'text/x-python', data: 'PARAMS = {}', createdAt: 1 },
+      {
+        id: 'obs1', cellId: 'earlier', sessionId: 's', name: 'retail/obs.json', type: 'data', mimeType: 'application/json', data: '{}', createdAt: 1,
+        metadata: { fetchedFrom: { endpoint: 'https://api.example/obs', fetchedAt: 100 } },
+      },
+    ] as never;
+    const spec = {
+      version: 1, kind: 'analysis_artifact_spec', title: 'Retail', summary: 'Sales rose [S1].',
+      pages: [{ slug: 'overview', title: 'Overview', blocks: [{ kind: 'markdown', markdown: 'Sales rose [S1].' }] }],
+      sources: [{ id: 'S1', label: 'FRED' }],
+    };
+    const rich = makeRun({ config: { ...makeRun().config, outputSelection: { mode: 'rich', rich: { type: 'single_page_html', documentPreset: 'auto', packages: [] }, portable: { formats: [] } } } });
+    const runCall: ToolCall = { id: 'c1', type: 'function', function: { name: 'execute_python', arguments: JSON.stringify({ code: 'run_recipe("/output/retail.recipe.py")' }) } };
+    const reportResult = (id: string): ToolResult => ({
+      toolCallId: id, success: true, content: 'Executed.',
+      dataOutputs: [{ filename: 'report.json', base64: encodeUtf8ToBase64(JSON.stringify(spec)), size: 10 }],
+    } as ToolResult);
+    const first = aiMessage('run1_r0', [runCall]);
+    storedMessages.push(first);
+
+    await makeSession(rich).capture({ message: first, toolCalls: [runCall], results: [reportResult('c1')] });
+
+    const report = [...artifactWrites.values()].find((a) => a.type === 'analysis_artifact_spec') as Artifact;
+    expect(report.metadata?.writtenFrom).toEqual([{ recipeName: 'retail.recipe.py', fetchedAt: 100, writtenAt: 1000 }]);
+    expect(batchOps.find((op) => op.op === 'update')?.data).toMatchObject({ modelsNamed: ['retail.recipe.py'] });
+
+    // A later step of the same turn: its code names no model, and the run doc remembers the one it ran.
+    artifactWrites.clear();
+    const second = aiMessage('run1_r1', [pythonCall('c2')]);
+    storedMessages.push(second);
+    await makeSession({ ...rich, modelsNamed: ['retail.recipe.py'] }).capture({ message: second, toolCalls: [pythonCall('c2')], results: [reportResult('c2')] });
+    const again = [...artifactWrites.values()].find((a) => a.type === 'analysis_artifact_spec') as Artifact;
+    expect(again.metadata?.writtenFrom).toEqual([{ recipeName: 'retail.recipe.py', fetchedAt: 100, writtenAt: 1000 }]);
+  });
+
   it('re-captures a crashed round as if its partial writes never happened, and removes what the re-run does not produce', async () => {
     const message = aiMessage('run1_r0', [pythonCall('c1')]);
     storedMessages.push(message);

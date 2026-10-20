@@ -38,6 +38,7 @@ import {
 import type { StoredPayloadRefs } from '../../cloudPayloadStorage';
 import { handleStreamCompleted, type StreamCompletedEventData } from './streamCompletedHandler';
 import { markFetchedCopies } from '../recipes/modelSources';
+import { modelsNamedInRound, stampWrittenFrom } from '../recipes/writtenFrom';
 import type { AnalyzeOrgEvidenceRequest } from './types';
 import type { TeamPanelRecord } from './teamPanelNote';
 
@@ -95,8 +96,10 @@ export class CaptureSession {
   private artifacts: StoredArtifact[] | null = null;
   private workbook: SessionWorkbookManager | null = null;
   private fetchProvenance: Map<string, ToolResultProvenance>;
+  private modelsNamed: string[];
 
   constructor(private readonly context: CaptureContext) {
+    this.modelsNamed = context.run.modelsNamed ?? [];
     this.fetchProvenance = new Map(
       context.run.fetchProvenanceJson
         ? Object.entries(JSON.parse(context.run.fetchProvenanceJson) as Record<string, ToolResultProvenance>)
@@ -220,7 +223,12 @@ export class CaptureSession {
     );
 
     // Each file marked with whether it's a copy of a fetch: the Model view reads a model's sources from the marks.
-    const upserted = await markFetchedCopies(uid, sessionId, [...upserts.values()]);
+    const marked = await markFetchedCopies(uid, sessionId, [...upserts.values()]);
+    // Each report version marked with the models it was written from, as this turn has used them so far.
+    const modelsNamed = [...new Set([...this.modelsNamed, ...modelsNamedInRound(input.toolCalls, input.results, artifacts)])];
+    const markedById = new Map(marked.map((artifact) => [artifact.id, artifact]));
+    const session = artifacts.map((artifact) => markedById.get(artifact.id) ?? artifact);
+    const upserted = stampWrittenFrom(marked, session, run.runId, modelsNamed, capturedAt);
     // 1. Artifacts.
     await runInBatches(upserted, UPSERT_CONCURRENCY, async (artifact) => {
       await artifactRef(uid, sessionId, artifact.id).set(await prepareArtifactRecord(uid, sessionId, artifact), { merge: true });
@@ -240,6 +248,7 @@ export class CaptureSession {
     batch.set(messageRef(uid, sessionId, messageId), messageRecord, { merge: true });
     batch.update(runRef, removeUndefined({
       fetchProvenanceJson: JSON.stringify(Object.fromEntries(fetchProvenance)),
+      ...(modelsNamed.length > 0 ? { modelsNamed } : {}),
       ...(reportProduced ? { reportProduced: true } : {}),
       ...(pendingOrgEvidenceRequest ? { pendingOrgEvidenceRequest } : {}),
       updatedAt: Date.now(),
@@ -252,6 +261,7 @@ export class CaptureSession {
 
     // Track the committed state for the rest of the step.
     this.fetchProvenance = fetchProvenance;
+    this.modelsNamed = modelsNamed;
     const removedIds = new Set(removed.map((artifact) => artifact.id));
     this.artifacts = [
       ...stored.filter((artifact) => !removedIds.has(artifact.id) && !upserts.has(artifact.id)),
