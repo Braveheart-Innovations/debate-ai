@@ -6,16 +6,7 @@ export const writeOutputFileTool: ToolDefinition = {
 
   description: `Write or append text/binary content directly to a file under /output/.
 
-Use this instead of execute_python when creating long HTML, CSS, JavaScript, JSON, Markdown, or text artifacts. It avoids wrapping large strings inside Python code, which is brittle and can fail when history is compacted. Do not switch to execute_python merely to keep artifact content "in code"; that recreates the compaction failure mode.
-
-If a later history item shows write_output_file content was omitted or replaced with a placeholder, the file content was still written. Inspect the saved file with read_file(path="/output/...", format="text", offset=0, max_chars=4000) instead of regenerating it from memory.
-
-The tool will reject history-compaction placeholder strings as content so they cannot overwrite a real artifact file.
-
-Use this tool for:
-- Writing single-page Rich HTML artifacts, supporting styles, scripts, and local assets
-- Appending large files in chunks
-- Saving full audit findings or intermediate text files for later paged reading with read_file
+Use it for text you write by hand: a report spec, a diagram file, the HTML, CSS or JavaScript of an embedded component, Markdown. A file assembled from data you computed is better written from Python, where the data already is. Append to write a large file in chunks.
 
 Do not use this for data analysis or computation; use execute_python for that.`,
 

@@ -20,6 +20,7 @@ import { getCatalogModel } from '../modelCatalog';
 import { isTerminal, runRef, type AnalyzeRunDoc, type RosterAI, type RunConfig } from './runStore';
 import { SessionBusyError, TurnAlreadyStartedError, startOperatorTurn, type UserMessageContext } from './turns';
 import { NoSessionSandboxError, runCell } from './runCell';
+import { toolNamesForTurn } from './toolDefinitions';
 import { NoRecipeSandboxError, RecipeNotFoundError, RecipeValuesError, runRecipe } from '../recipes/runRecipe';
 import { NoModelSourcesError, listModelSources, refreshDataDeps, refreshModelData } from '../recipes/refreshData';
 import { SERVER_TOOL_SECRETS } from '../../tools';
@@ -168,7 +169,7 @@ export const analyzeStartTurn = onCall({ region: 'us-central1' }, async (request
     ? data.message.content
     : requireString(data.message?.content, 'message.content', 200_000);
   const systemPrompt = typeof data.systemPrompt === 'string' ? data.systemPrompt : '';
-  const toolNames = stringList(data.toolNames);
+  const toolNames = toolNamesForTurn(stringList(data.toolNames), data.salesforceWorkspace === true);
   const operator = rosterAI(data.ai, 'ai', toolNames.length > 0);
   const teammates = (Array.isArray(data.teammates) ? data.teammates : []).slice(0, 20)
     .map((ai, index) => rosterAI(ai, `teammates[${index}]`, toolNames.length > 0));

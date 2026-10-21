@@ -146,6 +146,15 @@ refactor: [component] to atomic architecture
 4. Place complex components with business logic in organisms
 5. Run TypeScript and ESLint checks before every commit
 
+## Analyze prompts and context
+
+Every Analyze model call resends the system prompt, the tool definitions and the history, each round (symposium-ai-web docs/analyze-context-design.md). Every call logs `requestChars`, `cacheReadTokens` and `cacheWriteTokens` (`stream_complete`).
+- **A fix goes into code first:** a validator, a repair, a tool's behavior, or a tool result that says what went wrong. Don't add a prompt rule for what the code enforces or repairs.
+- **A rule that has to be in the prompt** needs a reason, the jobs that need it, and room in its budget (the web's `promptBudgets.test.ts`).
+- **Salesforce tools only with a Salesforce workspace** (`toolNamesForTurn`).
+- **History tells the truth:** never cut it by size (the June 2026 rebuild loop); what's carried forward names what exists and how to read the rest.
+- **A PR that changes what a model call sends** states the request size before and after, measured on a real request.
+
 ## Important Notes for Future Development
 - **MAINTAIN** the atomic design structure - atoms are ONLY pure wrappers
 - **ENSURE** TypeScript and ESLint pass with zero errors before commits

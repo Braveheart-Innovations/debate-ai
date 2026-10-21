@@ -28,6 +28,21 @@ const DEFINITIONS: ToolDefinition[] = [
   requestSalesforceOrgEvidenceTool,
 ];
 
+const SALESFORCE_TOOL_NAMES: ReadonlySet<string> = new Set([
+  salesforceMetadataAuditTool.name,
+  salesforceReadSourceTool.name,
+  salesforceDocsLookupTool.name,
+  requestSalesforceOrgEvidenceTool.name,
+]);
+
+/**
+ * The tools a turn may offer. Salesforce is the user's deliberate choice: without
+ * a Salesforce workspace none of its tools is offered, whatever the request names.
+ */
+export function toolNamesForTurn(names: string[], salesforceWorkspace: boolean): string[] {
+  return salesforceWorkspace ? names : names.filter((name) => !SALESFORCE_TOOL_NAMES.has(name));
+}
+
 export function getToolDefinitions(names: string[]): ToolDefinition[] {
   const wanted = new Set(names.filter((name) => SERVER_LOOP_TOOLS.has(name)));
   return DEFINITIONS.filter((tool) => wanted.has(tool.name));
