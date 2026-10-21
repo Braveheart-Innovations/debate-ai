@@ -8,6 +8,7 @@
 import type { Message, MessageMetadata } from '../contract/types';
 import { DEFAULT_MAX_OUTPUT_TOKENS, getCatalogModel } from '../modelCatalog';
 import type { AnalyzeSession } from './contracts';
+import { withTurnRecords } from './turnRecords';
 
 function getToolCalls(message: Message): NonNullable<MessageMetadata['toolCalls']> {
   return message.senderType === 'ai' && message.metadata?.toolCalls?.length
@@ -141,10 +142,15 @@ export function normalizeAnalyzeHistoryToolProtocol(history: Message[]): Message
   return normalized;
 }
 
-export function buildAnalyzeHistory(session: AnalyzeSession | null): Message[] {
+/**
+ * The history a round sends. With the user message that started the operator's
+ * turn, earlier turns go in as records (turnRecords.ts); a teammate's run is one
+ * task and goes in whole.
+ */
+export function buildAnalyzeHistory(session: AnalyzeSession | null, currentAskId?: string): Message[] {
   if (!session) return [];
 
-  let history = session.messages
+  let history = withTurnRecords(session.messages, currentAskId)
     .filter((msg) => {
       if (msg.senderType === 'tool') return true;
       if (msg.content && msg.content.trim()) return true;

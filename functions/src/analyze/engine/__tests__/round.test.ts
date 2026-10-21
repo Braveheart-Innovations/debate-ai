@@ -107,6 +107,29 @@ describe('runRound', () => {
     expect(stored[2]).toMatchObject({ senderType: 'tool', content: 'ok', metadata: expect.objectContaining({ isToolResult: true, toolCallId: 'c1', toolName: 'execute_python', success: true }) });
   });
 
+  it('sends earlier turns as records, and runs read_turn from the session without the sandbox', async () => {
+    const reply = { providerId: 'claude', aiId: 'ai-claude' };
+    stored = [
+      { id: 'u0', sender: 'You', senderType: 'user', content: 'Fetch sales', timestamp: 0 },
+      { id: 'run0_r0', sender: 'Claude', senderType: 'ai', content: '', timestamp: 0, metadata: { ...reply, toolCalls: [call('c0')] } },
+      { id: 'toolresult_c0', sender: 'tool', senderType: 'tool', content: 'sales.csv loaded', timestamp: 0, metadata: { isToolResult: true, toolCallId: 'c0', toolName: 'execute_python', success: true } },
+      { id: 'run0_r1', sender: 'Claude', senderType: 'ai', content: 'Sales are up.', timestamp: 0, metadata: reply },
+      user,
+    ];
+    const { context, executeTool } = makeContext();
+    const readCall: ToolCall = { id: 'rt1', type: 'function', function: { name: 'read_turn', arguments: '{"turn":1,"round":1}' } };
+    streamQueue.push([done({ finish_reason: 'tool_calls', tool_calls: [readCall] })]);
+
+    expect(await runRound(context, state())).toBe('continue');
+    // Turn 1 goes in as its ask with the record, then the reply: no tool exchange.
+    expect(streamCalls[0].messages.map((m) => m.role)).toEqual(['user', 'assistant', 'user']);
+    expect(streamCalls[0].messages[0].content).toContain('Symposium\'s record of turn 1');
+    expect(streamCalls[0].messages[1].content).toBe('Sales are up.');
+    // read_turn reads the session's messages on the server: the sandbox dispatcher never runs.
+    expect(executeTool).not.toHaveBeenCalled();
+    expect(stored.find((m) => m.id === 'toolresult_rt1')?.content).toContain('Call: execute_python\n```python\nprint(1)\n```\n\nResult:\nsales.csv loaded');
+  });
+
   it('streams execute_python arguments as live code, and no other tool\'s', async () => {
     const { context, events } = makeContext();
     streamQueue.push([

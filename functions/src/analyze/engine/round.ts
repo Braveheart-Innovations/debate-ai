@@ -33,6 +33,7 @@ import type { CanonicalToolDefinition } from '../../types/canonical';
 import { buildModelRequest } from '../model/requestShaping';
 import { getCatalogModel, DEFAULT_MAX_OUTPUT_TOKENS } from '../modelCatalog';
 import { buildAnalyzeHistory } from './history';
+import { READ_TURN_TOOL_NAME, buildReadTurnTool, readTurn } from './turnRecords';
 import { AnalyzeStatus, type AnalyzeSession } from './contracts';
 import { buildToolResultContentForFollowUp } from './toolResultHistory';
 import type { MessageStore } from './sessionStore';
@@ -193,9 +194,11 @@ function teamState(context: RoundContext): TeamTurnState {
 export function roundTools(context: RoundContext): RoundTools {
   const team = context.team?.members ?? [];
   const state = teamState(context);
+  // The operator reads its earlier turns' work with read_turn (they're records in its history).
+  const own = context.run.kind === 'operator' && context.tools.length > 0 ? [...context.tools, buildReadTurnTool()] : context.tools;
   const tools = team.length > 0 && context.tools.length > 0 && !state.solo
-    ? [...context.tools, buildProposeTeamTool(team), buildDelegateTool(team)]
-    : context.tools;
+    ? [...own, buildProposeTeamTool(team), buildDelegateTool(team)]
+    : own;
   const proposeTeam = tools.find((tool) => tool.name === PROPOSE_TEAM_TOOL_NAME);
   if (!context.run.config.teamPlanTurn || state.planProposed || state.planRoundSpent || !proposeTeam) return { tools };
   const salesforce = context.run.config.salesforceWorkspace
@@ -352,12 +355,26 @@ async function runToolOnce(context: RoundContext, call: ToolCall): Promise<Round
 
   await markToolCallStarted(ref);
   context.events.push({ type: 'tool_executing', toolCallId: call.id, toolName: call.function.name });
-  const result = await context.executeTool(call);
+  const result = call.function.name === READ_TURN_TOOL_NAME ? await readTurnResult(context, call) : await context.executeTool(call);
   context.toolResults.set(call.id, result);
   const stored = toStoredToolResult(result);
   await markToolCallDone(ref, stored, await saveToolOutputs(ref, result));
   context.events.push({ type: 'tool_completed', toolCallId: call.id, toolName: call.function.name, success: result.success });
   return { ...stored, provenance: result.provenance };
+}
+
+/** read_turn runs on the server, from the session's messages: no sandbox. */
+async function readTurnResult(context: RoundContext, call: ToolCall): Promise<ToolResult> {
+  let args: Record<string, unknown> = {};
+  try {
+    args = JSON.parse(call.function.arguments || '{}') as Record<string, unknown>;
+  } catch {
+    // Read as no arguments: the result says which turns there are.
+  }
+  const read = readTurn(await context.messages.load(), context.run.userMessageId, args);
+  return read.success
+    ? { toolCallId: call.id, success: true, content: read.content }
+    : { toolCallId: call.id, success: false, error: read.content };
 }
 
 type RoundToolResult = StoredToolResult & { provenance?: ToolResult['provenance'] };
@@ -619,7 +636,7 @@ export async function runRound(context: RoundContext, state: TurnState): Promise
   if (endTurnReply(context)) return 'completed';
 
   const session = sessionFor(context.run, messages);
-  const history = buildAnalyzeHistory(session);
+  const history = buildAnalyzeHistory(session, context.run.kind === 'operator' ? context.run.userMessageId : undefined);
   const messageId = `${context.run.runId}_r${state.round}`;
   const toolSet = roundTools(context);
 

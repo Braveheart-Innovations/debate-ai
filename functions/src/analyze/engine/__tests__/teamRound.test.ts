@@ -110,11 +110,12 @@ beforeEach(() => {
 
 describe('operator tools', () => {
   it('offers the team tools with teammates, never without, and withholds them once solo', () => {
-    expect(roundTools(makeContext().context).tools.map((t) => t.name)).toEqual(['execute_python', 'propose_team', 'delegate']);
+    // read_turn is the operator's in every round but the plan round: its earlier turns are records.
+    expect(roundTools(makeContext().context).tools.map((t) => t.name)).toEqual(['execute_python', 'read_turn', 'propose_team', 'delegate']);
     const noTeam = makeContext();
     noTeam.context.team = { ...noTeam.hooks, members: [] };
-    expect(roundTools(noTeam.context).tools.map((t) => t.name)).toEqual(['execute_python']);
-    expect(roundTools(makeContext({}, { solo: true }).context).tools.map((t) => t.name)).toEqual(['execute_python']);
+    expect(roundTools(noTeam.context).tools.map((t) => t.name)).toEqual(['execute_python', 'read_turn']);
+    expect(roundTools(makeContext({}, { solo: true }).context).tools.map((t) => t.name)).toEqual(['execute_python', 'read_turn']);
   });
 });
 
@@ -141,7 +142,7 @@ describe('Team mode', () => {
 
     streamQueue.push([{ type: 'text_delta', delta: 'Reconciled.' }, done()]);
     expect(await runRound(context, state(1))).toBe('completed');
-    expect(toolNames(1)).toEqual(['execute_python', 'propose_team', 'delegate']);
+    expect(toolNames(1)).toEqual(['execute_python', 'read_turn', 'propose_team', 'delegate']);
     expect(streamCalls[1].toolChoice).not.toBe('required');
     expect(streamCalls[1].deepThinking).toBeUndefined();
     expect(stored.at(-1)?.metadata?.teamModeSkipped).toBeUndefined();
@@ -160,7 +161,7 @@ describe('Team mode', () => {
 
     streamQueue.push([done({ finish_reason: 'tool_calls', tool_calls: [call('x2', 'execute_python', { code: 'print(2)' })] })]);
     expect(await runRound(context, state(1))).toBe('continue');
-    expect(toolNames(1)).toEqual(['execute_python', 'propose_team', 'delegate']);
+    expect(toolNames(1)).toEqual(['execute_python', 'read_turn', 'propose_team', 'delegate']);
     expect(streamCalls[1].toolChoice).not.toBe('required');
     expect(streamCalls[1].deepThinking).toBeUndefined();
     expect(executeTool).toHaveBeenCalledTimes(1);
@@ -290,7 +291,7 @@ describe('team calls in a round', () => {
     streamQueue.push([done({ finish_reason: 'tool_calls', tool_calls: [call('d1', 'delegate', { task: 'A', agent: 'teammate1' })] })]);
     expect(await runRound(context, state(0))).toBe('continue');
     expect(suspended).toHaveLength(0);
-    expect(toolMessages()[0].content).toContain("Not run: delegate isn't available this round. Available: execute_python.");
+    expect(toolMessages()[0].content).toContain("Not run: delegate isn't available this round. Available: execute_python, read_turn.");
   });
 
   it('a stopped operator writes the results that exist and captures the round', async () => {
