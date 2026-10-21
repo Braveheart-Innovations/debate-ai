@@ -30,16 +30,54 @@ import { claudeDeepThinkingEffort, normalizeProviderTemperature } from '../../mo
 // Claude Message Types
 // ============================================================================
 
-type ClaudeContentBlock =
+type CacheControl = { type: 'ephemeral' };
+
+type ClaudeContentBlock = (
   | { type: 'text'; text: string }
   | { type: 'image'; source: { type: 'base64'; media_type: string; data: string } }
   | { type: 'document'; source: { type: 'base64'; media_type: string; data: string } }
   | { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> }
-  | { type: 'tool_result'; tool_use_id: string; content: string; is_error?: boolean };
+  | { type: 'tool_result'; tool_use_id: string; content: string; is_error?: boolean }
+) & { cache_control?: CacheControl };
 
 interface ClaudeMessage {
   role: 'user' | 'assistant';
   content: string | ClaudeContentBlock[];
+}
+
+// ============================================================================
+// Prompt Caching (ProviderRequest.promptCache)
+// ============================================================================
+
+const EPHEMERAL: CacheControl = { type: 'ephemeral' };
+
+/** How many user messages, newest first, end in a cache breakpoint. */
+const CACHED_USER_MESSAGES = 2;
+
+/**
+ * The cached prefix runs tools, system prompt, then messages, and a breakpoint
+ * caches everything before it. The system prompt's breakpoint (buildRequest)
+ * keeps the tools and the rules cached across rounds and turns. The newest user
+ * message's caches the history for the next round, and the user message before
+ * it is where the previous round wrote its cache, so this round reads it there.
+ * Three breakpoints; Anthropic allows four.
+ */
+function markCacheBreakpoints(messages: ClaudeMessage[]): ClaudeMessage[] {
+  const marked = messages.slice();
+  let remaining = CACHED_USER_MESSAGES;
+  for (let i = marked.length - 1; i >= 0 && remaining > 0; i--) {
+    const message = marked[i];
+    if (message.role !== 'user') continue;
+    const blocks: ClaudeContentBlock[] = typeof message.content === 'string'
+      ? [{ type: 'text', text: message.content }]
+      : message.content;
+    const last = blocks[blocks.length - 1];
+    // An empty text block can't carry a breakpoint.
+    if (!last || (last.type === 'text' && !last.text.trim())) continue;
+    marked[i] = { ...message, content: [...blocks.slice(0, -1), { ...last, cache_control: EPHEMERAL }] };
+    remaining -= 1;
+  }
+  return marked;
 }
 
 // ============================================================================
@@ -90,7 +128,8 @@ export class ClaudeRuntime implements ProviderRuntime {
    * Build Claude API request from canonical format
    */
   buildRequest(request: ProviderRequest, apiKey: string): BuiltRequest {
-    const claudeMessages = this.transformMessages(request);
+    const transformed = this.transformMessages(request);
+    const claudeMessages = request.promptCache ? markCacheBreakpoints(transformed) : transformed;
     const systemPrompt = this.extractSystemPrompt(request);
 
     const body: Record<string, unknown> = {
@@ -114,9 +153,11 @@ export class ClaudeRuntime implements ProviderRuntime {
       body.output_config = { effort };
     }
 
-    // Add system prompt as top-level field
+    // Add system prompt as top-level field (a block with a breakpoint when caching)
     if (systemPrompt) {
-      body.system = systemPrompt;
+      body.system = request.promptCache
+        ? [{ type: 'text', text: systemPrompt, cache_control: EPHEMERAL }]
+        : systemPrompt;
     }
 
     // Add tools if provided
@@ -151,6 +192,8 @@ export class ClaudeRuntime implements ProviderRuntime {
     const completedToolCalls: CanonicalToolCall[] = [];
     let inputTokens = 0;
     let outputTokens = 0;
+    let cacheReadTokens = 0;
+    let cacheWriteTokens = 0;
     let finishReason = 'stop';
 
     for await (const data of parseSSEStream(responseStream)) {
@@ -220,7 +263,11 @@ export class ClaudeRuntime implements ProviderRuntime {
 
         // Message start (contains input token count)
         else if (event.type === 'message_start' && event.message?.usage) {
-          inputTokens = event.message.usage.input_tokens || 0;
+          const usage = event.message.usage;
+          cacheReadTokens = usage.cache_read_input_tokens || 0;
+          cacheWriteTokens = usage.cache_creation_input_tokens || 0;
+          // input_tokens counts only the input after the last cache breakpoint.
+          inputTokens = (usage.input_tokens || 0) + cacheReadTokens + cacheWriteTokens;
         }
 
         // Message delta (contains output tokens and stop reason)
@@ -245,6 +292,7 @@ export class ClaudeRuntime implements ProviderRuntime {
         inputTokens,
         outputTokens,
         totalTokens: inputTokens + outputTokens,
+        ...(cacheReadTokens || cacheWriteTokens ? { cacheReadTokens, cacheWriteTokens } : {}),
       },
       tool_calls: completedToolCalls.length > 0 ? completedToolCalls : undefined,
     };

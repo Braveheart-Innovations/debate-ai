@@ -51,6 +51,8 @@ export interface ModelStreamRequest {
   attachments?: CanonicalAttachment[];
   /** Think harder than the model's default where it has a setting (ProviderRequest.deepThinking). */
   deepThinking?: boolean;
+  /** Cache the request's prefix for the next call that resends it (ProviderRequest.promptCache). */
+  promptCache?: boolean;
   /** `encryptionKey.value()` — the caller's function must declare the secret. */
   keyValue: string;
   sessionId?: string;
@@ -176,6 +178,8 @@ async function* streamModelCall(
     : createErrorEvent('Request was cancelled.', CANCELLED_CODE));
 
   const runtime = ProviderRegistry.get(providerId);
+  /** The latest request body's size, logged so a prompt's growth shows. */
+  let requestChars = 0;
   const send = (toolChoice: CanonicalToolChoice | undefined) => {
     const built = runtime.buildRequest({
       model: resolvedModel,
@@ -187,24 +191,30 @@ async function* streamModelCall(
       toolChoice,
       attachments: request.attachments,
       deepThinking: request.deepThinking,
+      promptCache: request.promptCache,
     }, apiKey);
+    const bodyText = JSON.stringify(built.body);
+    requestChars = bodyText.length;
     console.log(JSON.stringify({
       traceId,
       event: 'provider_request',
       providerId,
       hasBody: !!built.body,
       messageCount: (built.body as { messages?: unknown[] } | undefined)?.messages?.length || 0,
+      requestChars,
     }));
     return deps.fetch(built.url, {
       method: 'POST',
       headers: built.headers,
-      body: JSON.stringify(built.body),
+      body: bodyText,
       signal,
     });
   };
 
   let inputTokens = 0;
   let outputTokens = 0;
+  let cacheReadTokens = 0;
+  let cacheWriteTokens = 0;
   let finishReason = 'stop';
   let toolCallsDetected: CanonicalToolCall[] = [];
 
@@ -255,6 +265,8 @@ async function* streamModelCall(
         if (event.usage) {
           inputTokens = event.usage.inputTokens;
           outputTokens = event.usage.outputTokens;
+          cacheReadTokens = event.usage.cacheReadTokens ?? 0;
+          cacheWriteTokens = event.usage.cacheWriteTokens ?? 0;
         }
         finishReason = event.finish_reason;
         if (event.tool_calls) toolCallsDetected = event.tool_calls;
@@ -291,7 +303,10 @@ async function* streamModelCall(
     providerId,
     model: resolvedModel,
     duration: Date.now() - startTime,
+    requestChars,
     inputTokens,
+    cacheReadTokens,
+    cacheWriteTokens,
     outputTokens,
     finishReason,
     toolCallsDetected: toolCallsDetected.length,

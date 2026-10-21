@@ -44,6 +44,13 @@ export interface ProviderRequest {
    * it (Analyze's Team plan round). Each runtime maps it; others ignore it.
    */
   deepThinking?: boolean;
+  /**
+   * Cache the request's prefix (tools, system prompt, history so far) for the
+   * next call, which resends it: Analyze's loop resends the whole session every
+   * round. Anthropic caches only what a request marks; OpenAI and Gemini cache
+   * repeated prefixes on their own, so other runtimes ignore it.
+   */
+  promptCache?: boolean;
 }
 
 /**

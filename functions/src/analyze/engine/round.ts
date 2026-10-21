@@ -250,6 +250,8 @@ async function callModel(
     toolChoice: shaped.toolChoice,
     attachments: shaped.attachments,
     deepThinking: roundToolSet.deepThinking,
+    // Every round resends the session so far; the next round reads it from the cache.
+    promptCache: true,
     keyValue: context.keyValue,
     sessionId: run.sessionId,
     sessionType: 'analyze',

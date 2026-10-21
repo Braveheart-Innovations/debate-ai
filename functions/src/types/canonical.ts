@@ -63,9 +63,14 @@ export interface CanonicalMessage {
  * Token usage information
  */
 export interface CanonicalUsage {
+  /** All the input the model read, cached or not. */
   inputTokens: number;
   outputTokens: number;
   totalTokens?: number;
+  /** The part of inputTokens read from the provider's prompt cache. */
+  cacheReadTokens?: number;
+  /** The part of inputTokens written to the provider's prompt cache. */
+  cacheWriteTokens?: number;
 }
 
 // ============================================================================

@@ -8,7 +8,7 @@ import type { Message } from '../../contract/types';
 import type { ToolCall } from '../../contract/lib/ai/tools/types';
 
 const streamQueue: Array<Array<Record<string, unknown>>> = [];
-const streamCalls: Array<{ tools?: Array<{ name: string }>; toolChoice?: unknown; deepThinking?: boolean }> = [];
+const streamCalls: Array<{ tools?: Array<{ name: string }>; toolChoice?: unknown; deepThinking?: boolean; promptCache?: boolean }> = [];
 jest.mock('../../../modelStream', () => ({
   CANCELLED_CODE: 'cancelled',
   streamModel: jest.fn((request: { tools?: Array<{ name: string }>; toolChoice?: unknown }) => {
@@ -145,6 +145,8 @@ describe('Team mode', () => {
     expect(streamCalls[1].toolChoice).not.toBe('required');
     expect(streamCalls[1].deepThinking).toBeUndefined();
     expect(stored.at(-1)?.metadata?.teamModeSkipped).toBeUndefined();
+    // Every round asks for the prompt cache: the next round resends the same session.
+    expect(streamCalls.map((c) => c.promptCache)).toEqual([true, true]);
   });
 
   it('a plan round the operator ignores is spent: its other calls don\'t run, and the turn goes on with the normal tools (F9)', async () => {
