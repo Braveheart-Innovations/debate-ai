@@ -36,8 +36,7 @@ The results include:
 Tips:
 - Be specific in your queries for better results
 - After searching, use fetch_url on promising URLs to get full content
-- For data analysis, search for CSV, JSON, or API endpoints
-- When incorporating search results into your response, cite sources using numbered references like [1], [2], etc. matching the order of results returned`,
+- For data analysis, search for CSV, JSON, or API endpoints`,
 
   parameters: {
     type: 'object',

@@ -555,9 +555,10 @@ function splitMarkdownPipeTables(block: unknown): unknown[] {
  * Repair model-authored source entries that are semantically right but
  * schema-fatal. The live case: two internal documents cited as
  * `"url": "internal"` — correct meaning, but `url` requires a real link, and
- * that one word sank a whole 10-page report to a plain data file. A non-URL
- * `url` is really a note, so it moves there (when no note exists) and the
- * field is dropped; empty-string urls are dropped outright.
+ * that one word sank a whole 10-page report to a plain data file. A `url`
+ * that isn't an http(s) link (a word, a sandbox path, `sandbox:/…`) is really a
+ * note, so it moves there (when no note exists) and the field is dropped;
+ * empty-string urls are dropped outright.
  */
 function normalizeSpecSources(spec: LooseRecord): LooseRecord {
   const sources = spec.sources;
@@ -565,8 +566,8 @@ function normalizeSpecSources(spec: LooseRecord): LooseRecord {
 
   const isParseableUrl = (value: string): boolean => {
     try {
-      new URL(value);
-      return true;
+      const { protocol } = new URL(value);
+      return protocol === 'http:' || protocol === 'https:';
     } catch {
       return false;
     }

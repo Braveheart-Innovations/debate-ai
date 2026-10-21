@@ -34,7 +34,7 @@ FILE ACCESS:
 - Uploaded files are at: /uploads/<filename>
 - Save outputs to: /output/<filename>
 - Use pd.read_csv('/uploads/data.csv') to read CSV files
-- Use plt.savefig('/output/chart.png') to save figures
+- A report's charts are Vega-Lite chart blocks drawn from your data; save a matplotlib figure (plt.savefig('/output/x.png')) only for one Vega-Lite can't draw
 
 INSTALLED PACKAGES (fixed set - just import them; never pip install):
 - numpy, pandas, matplotlib - pre-imported as np, pd, plt
@@ -73,13 +73,13 @@ NO INTERNET ACCESS:
 Use this tool for:
 - Calculations and mathematical operations
 - Data analysis with pandas
-- Visualizations with matplotlib
+- Figures Vega-Lite can't draw
 - Algorithms and simulations
 - Processing uploaded data files
 
 Important:
 - Use print() to output results
-- Save artifacts to /output/ with descriptive filenames so users can review/download them
+- Write what you deliver to /output/ with descriptive filenames; scratch files go in /tmp
 - Variables persist - build on previous work
 - Never embed tool-call syntax inside Python code (e.g., call:default/fetch_api{...} or fetch_api(...))
 - Call tools separately, then read resulting files from /data/ or /uploads/ in Python
@@ -91,7 +91,7 @@ Important:
     properties: {
       code: {
         type: 'string',
-        description: 'Python code to execute. Use print() for output. For visualizations, use matplotlib (figures are automatically captured).',
+        description: 'Python code to execute. Use print() for output.',
       },
     },
     required: ['code'],
