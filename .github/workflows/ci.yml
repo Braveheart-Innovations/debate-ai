@@ -41,3 +41,37 @@ jobs:
 
       - name: Functions quality gate
         run: npm run check:functions
+
+  # The team engine's suite against the Firestore emulator (functions:
+  # npm run test:emulator). check:functions skips it: it needs the emulator.
+  functions-emulator:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install Functions dependencies
+        run: npm ci
+        working-directory: functions
+
+      # The Firebase emulators need Java 21 or later.
+      - name: Setup Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools@15.34.1
+
+      - name: Team engine on the Firestore emulator
+        run: npm run test:emulator
+        working-directory: functions
