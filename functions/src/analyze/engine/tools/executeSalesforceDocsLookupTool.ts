@@ -368,12 +368,12 @@ export function parseDocsLookupResult(content: string): SalesforceDocQuotedPage[
       continue;
     }
     if (!current) continue;
-    if (!current.description && !passage && /^ {2}\S/.test(line) && !/^ {2}Passage \d+:$/.test(line) && !/^ {2}\(/.test(line)) {
+    if (!current.description && !passage && /^  \S/.test(line) && !/^  Passage \d+:$/.test(line) && !/^  \(/.test(line)) {
       current.description = line.trim();
       current.releaseLabel = releaseFromDescription(current.description);
       continue;
     }
-    if (/^ {2}Passage \d+:$/.test(line)) {
+    if (/^  Passage \d+:$/.test(line)) {
       closePassage();
       passage = [];
       continue;

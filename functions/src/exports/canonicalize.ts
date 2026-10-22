@@ -376,6 +376,7 @@ export function canonicalizeReportSpecV1(input: unknown): ReportSpecV1 {
 export function canonicalHashInput(
   spec: ReportSpecV1,
 ): Omit<ReportSpecV1, 'createdAt'> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { createdAt, ...rest } = spec;
   return rest;
 }

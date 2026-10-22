@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
-const { createHash } = require('node:crypto');
+const crypto = require('node:crypto');
 
 const {
   getAndroidPurchaseOwnershipDecision,
@@ -10,7 +10,7 @@ const {
 
 test('sha256 produces the same obfuscated account id used by the Android app', () => {
   const uid = 'test-user-123';
-  const expected = createHash('sha256').update(uid).digest('hex');
+  const expected = crypto.createHash('sha256').update(uid).digest('hex');
 
   assert.equal(sha256(uid), expected);
   assert.equal(getExpectedAndroidObfuscatedAccountId(uid), expected);

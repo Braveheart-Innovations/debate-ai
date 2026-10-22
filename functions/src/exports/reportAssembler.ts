@@ -10,11 +10,13 @@ import type {
   ReportSpecV1,
   ReportBlock,
   ReportTheme,
+  RenderedBlock,
   ArtifactBlock,
   ArtifactDoc,
   HeadingBlock,
   ParagraphBlock,
   TableBlock,
+  SpacerBlock,
   ArtifactExplanationBlock,
   ReportSource,
 } from './types';
@@ -178,7 +180,6 @@ function decodeArtifactData(data: string): string {
   try {
     const decoded = Buffer.from(data, 'base64').toString('utf-8');
     // Verify it produced valid UTF-8 text (not binary garbage)
-    // eslint-disable-next-line no-control-regex -- control characters are what marks binary content here
     if (/[\x00-\x08\x0E-\x1F]/.test(decoded.slice(0, 200))) {
       return data; // Binary content, use raw
     }

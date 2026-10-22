@@ -22,7 +22,7 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import type { RecipeParamValue } from '../contract/types/notebook';
 import { SandboxCeilingError, SandboxLimitError } from '../../sandbox/service';
-import type { WatchNotification } from '../engine/notifications';
+import { notifyWatch, type WatchNotification } from '../engine/notifications';
 import { removeUndefined } from '../engine/sessionStore';
 import { SessionBusyError } from '../engine/turns';
 import type { RefreshDataResult, RefreshOptions } from '../recipes/refreshData';

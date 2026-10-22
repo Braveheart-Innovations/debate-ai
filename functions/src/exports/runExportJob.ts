@@ -92,7 +92,7 @@ async function verifyCloudTasksInvoker(
 // Puppeteer version for provenance
 let puppeteerVersion = 'unknown';
 try {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports -- read at run time inside a try, so a missing package leaves the version 'unknown' instead of failing to load
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const pptrPkg = require('puppeteer-core/package.json');
   puppeteerVersion = pptrPkg.version;
 } catch {
@@ -311,7 +311,7 @@ export const runExportJob = onRequest(
         const page = await createPage(browser);
         await setupNetworkBlocking(page);
 
-        const { pdfBuffer, artifactName } = await runHtmlDirectPipeline(
+        const { pdfBuffer, sourceHash, artifactName } = await runHtmlDirectPipeline(
           artifact,
           page,
           job.options,
@@ -590,7 +590,7 @@ export const runExportJob = onRequest(
                 format: 'svg',
                 renderFn: async () => {
                   const spec = JSON.parse(artifact.data);
-                  return renderVegaToSvg(spec, page);
+                  return renderVegaToSvg(spec, page, 20_000);
                 },
               });
               break;

@@ -1,7 +1,6 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getDecryptedApiKey, encryptionKey } from './apiKeys';
 import { checkFreeTierForInteraction, freeLimitError, isPremiumOrTrial } from './usageTracking';
-import { statusOf } from './errorDetails';
 
 type MediaProviderId = 'runway' | 'elevenlabs';
 type CreateMediaType = 'video' | 'audio';
@@ -139,24 +138,23 @@ function extractProviderError(error: unknown): string {
   return 'Unknown error';
 }
 
-function mapProviderError(providerId: string, error: unknown, prefix: string): HttpsError {
+function mapProviderError(providerId: string, error: any, prefix: string): HttpsError {
   const message = extractProviderError(error);
   const lower = message.toLowerCase();
-  const status = statusOf(error);
 
-  if (error instanceof HttpsError) {
+  if (error?.code) {
     return error;
   }
-  if (status === 401 || status === 403 || lower.includes('unauthorized') || lower.includes('forbidden')) {
+  if (error?.status === 401 || error?.status === 403 || lower.includes('unauthorized') || lower.includes('forbidden')) {
     return new HttpsError('permission-denied', `Invalid ${providerId} API key`);
   }
-  if (status === 429 || lower.includes('rate limit') || lower.includes('too many requests')) {
+  if (error?.status === 429 || lower.includes('rate limit') || lower.includes('too many requests')) {
     return new HttpsError('resource-exhausted', `${providerId} rate limit exceeded. Please try again later.`);
   }
   if (lower.includes('safety') || lower.includes('content policy') || lower.includes('moderation')) {
     return new HttpsError('invalid-argument', 'Content policy violation. Please modify your prompt.');
   }
-  if (status === 402 || lower.includes('credit') || lower.includes('quota')) {
+  if (error?.status === 402 || lower.includes('credit') || lower.includes('quota')) {
     return new HttpsError('resource-exhausted', `${providerId} credits or quota are exhausted.`);
   }
 
@@ -676,7 +674,7 @@ export const proxyMediaGeneration = onCall(
 
       const asset = await generateElevenLabsAudio(apiKey, input, prompt);
       return { success: true, asset };
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Media generation error for ${providerId}:`, error);
       throw mapProviderError(providerId, error, 'Media generation failed');
     }
@@ -730,7 +728,7 @@ export const getMediaTaskStatus = onCall(
         outputUrls: Array.isArray(task.output) ? task.output : undefined,
         error: providerError || task.failure || task.failureCode,
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Runway task status error:', error);
       throw mapProviderError('runway', error, 'Failed to get Runway task status');
     }
@@ -863,7 +861,7 @@ export const listMediaProviderOptions = onCall(
         voiceNextPageToken: voiceData.next_page_token || null,
         models,
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('ElevenLabs voice list error:', error);
       throw mapProviderError('elevenlabs', error, 'Failed to list ElevenLabs voices');
     }
@@ -926,7 +924,7 @@ export const addElevenLabsSharedVoice = onCall(
           is_bookmarked: true,
         },
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('ElevenLabs shared voice add error:', error);
       throw mapProviderError('elevenlabs', error, 'Failed to add ElevenLabs shared voice');
     }

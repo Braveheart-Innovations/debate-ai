@@ -356,7 +356,7 @@ export const validatePurchase = onCall({ secrets: [appleSharedSecret] }, async (
         const ios = await validateAppleReceipt(receipt, sharedSecret);
         // For non-consumables, check receipt.in_app array
         const inAppPurchases = ios.receipt?.in_app || [];
-        const lifetimePurchase = inAppPurchases.find((item) => item.product_id === productId);
+        const lifetimePurchase = inAppPurchases.find((item: any) => item.product_id === productId);
         if (!lifetimePurchase) {
           throw new HttpsError('not-found', 'No matching lifetime purchase found in receipt');
         }
@@ -388,9 +388,9 @@ export const validatePurchase = onCall({ secrets: [appleSharedSecret] }, async (
 
         const ios = await validateAppleReceipt(receipt, sharedSecret);
         // Filter to subscription entries matching productId
-        const items = (ios.latest_receipt_info || []).filter((it) => it.product_id === productId);
+        const items = (ios.latest_receipt_info || []).filter((it: any) => it.product_id === productId);
         const target = items.length
-          ? items.reduce((a, b) => (parseInt(a.expires_date_ms ?? '') > parseInt(b.expires_date_ms ?? '') ? a : b))
+          ? items.reduce((a: any, b: any) => (parseInt(a.expires_date_ms) > parseInt(b.expires_date_ms) ? a : b))
           : null;
         if (!target) {
           throw new HttpsError('not-found', 'No matching subscription found in receipt');
@@ -399,15 +399,15 @@ export const validatePurchase = onCall({ secrets: [appleSharedSecret] }, async (
         appleOriginalTransactionId = target.original_transaction_id
           ?? ios.latest_receipt_info?.[0]?.original_transaction_id ?? null;
         await assertAppleReceiptBelongsToUser(userId, appleOriginalTransactionId);
-        expiresAt = new Date(parseInt(target.expires_date_ms ?? '', 10));
+        expiresAt = new Date(parseInt(target.expires_date_ms, 10));
         inTrial = target.is_trial_period === 'true' || target.is_in_intro_offer_period === 'true';
         if (inTrial) {
           // Approximate trial window from purchase to expiry
-          trialStart = new Date(parseInt(target.purchase_date_ms ?? '', 10));
-          trialEnd = new Date(parseInt(target.expires_date_ms ?? '', 10));
+          trialStart = new Date(parseInt(target.purchase_date_ms, 10));
+          trialEnd = new Date(parseInt(target.expires_date_ms, 10));
         }
         // Determine auto-renew from pending_renewal_info
-        const pending = ios.pending_renewal_info?.find((p) => p.product_id === productId);
+        const pending = ios.pending_renewal_info?.find((p: any) => p.product_id === productId);
         autoRenewing = pending ? pending.auto_renew_status === '1' : true;
       } else {
         // Android validation via Google Play Developer API
@@ -460,7 +460,7 @@ export const validatePurchase = onCall({ secrets: [appleSharedSecret] }, async (
 
     // Persist authoritative state
     // If starting a trial, mark hasUsedTrial = true so they can't retry later
-    const updateData: Record<string, unknown> = {
+    const updateData: Record<string, any> = {
       membershipStatus: isActiveEntitlement ? (isActiveTrial ? 'trial' : 'premium') : 'demo',
       isPremium: isActiveEntitlement, // Both active trial and paid users have premium access
       subscriptionSource: platform === 'ios' ? 'apple_iap' : 'google_play',
@@ -567,28 +567,9 @@ export const validatePurchase = onCall({ secrets: [appleSharedSecret] }, async (
   }
 });
 
-/** A purchase in Apple's verifyReceipt response (receipt.in_app, latest_receipt_info). */
-interface AppleReceiptItem {
-  product_id?: string;
-  original_transaction_id?: string;
-  purchase_date_ms?: string;
-  expires_date_ms?: string;
-  is_trial_period?: string;
-  is_in_intro_offer_period?: string;
-}
-
-/** Apple's verifyReceipt response, as far as validation reads it. */
-interface AppleVerifyReceiptResponse {
-  status?: number;
-  environment?: string;
-  receipt?: { in_app?: AppleReceiptItem[]; original_transaction_id?: string };
-  latest_receipt_info?: AppleReceiptItem[];
-  pending_renewal_info?: Array<{ product_id?: string; auto_renew_status?: string }>;
-}
-
-async function validateAppleReceipt(receiptData: string, sharedSecret: string): Promise<AppleVerifyReceiptResponse> {
+async function validateAppleReceipt(receiptData: string, sharedSecret: string) {
   // Try production first
-  let response = await axios.post<AppleVerifyReceiptResponse>(APPLE_PRODUCTION_URL, {
+  let response = await axios.post(APPLE_PRODUCTION_URL, {
     'receipt-data': receiptData,
     password: sharedSecret,
     'exclude-old-transactions': true,
@@ -596,7 +577,7 @@ async function validateAppleReceipt(receiptData: string, sharedSecret: string): 
   let data = response.data;
   if (data?.status === 21007) {
     // Retry sandbox
-    response = await axios.post<AppleVerifyReceiptResponse>(APPLE_SANDBOX_URL, {
+    response = await axios.post(APPLE_SANDBOX_URL, {
       'receipt-data': receiptData,
       password: sharedSecret,
       'exclude-old-transactions': true,
@@ -662,7 +643,7 @@ async function validateAndroidSubscription(
   const res = await publisher.purchases.subscriptionsv2.get({
     packageName,
     token,
-  });
+  } as any);
   const purchase = res.data as androidpublisher_v3.Schema$SubscriptionPurchaseV2;
   const lineItem = getLatestSubscriptionLineItem(purchase.lineItems, productId);
 

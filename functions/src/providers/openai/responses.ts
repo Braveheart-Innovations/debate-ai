@@ -253,19 +253,6 @@ interface ResponsesObject {
   error?: { message?: string; code?: string } | null;
 }
 
-/** One event of the Responses stream, as far as the parser reads it. */
-interface ResponsesStreamEvent {
-  type?: string;
-  delta?: unknown;
-  item?: ResponsesOutputItem;
-  item_id?: string;
-  output_index?: unknown;
-  response?: ResponsesObject;
-  message?: string;
-  code?: string;
-  error?: { message?: string; code?: string };
-}
-
 function mapResponsesStatus(
   response: ResponsesObject | undefined,
   hasToolCalls: boolean
@@ -347,7 +334,7 @@ export async function* parseResponsesStream(
   let streamError: { message: string; code: string } | undefined;
 
   for await (const data of dataEvents) {
-    let event: ResponsesStreamEvent;
+    let event: any;
     try {
       event = JSON.parse(data);
     } catch {
@@ -373,7 +360,7 @@ export async function* parseResponsesStream(
         break;
 
       case 'response.output_item.added': {
-        const item = event.item;
+        const item = event.item as ResponsesOutputItem | undefined;
         if (item?.type === 'function_call' && item.id) {
           const index = typeof event.output_index === 'number' ? event.output_index : inProgress.size;
           inProgress.set(item.id, {
@@ -407,7 +394,7 @@ export async function* parseResponsesStream(
       }
 
       case 'response.output_item.done': {
-        const item = event.item;
+        const item = event.item as ResponsesOutputItem | undefined;
         if (item?.type === 'function_call' && item.id) {
           const tc = inProgress.get(item.id);
           const completed = tc
@@ -428,7 +415,7 @@ export async function* parseResponsesStream(
       case 'response.completed':
       case 'response.incomplete':
       case 'response.failed':
-        finalResponse = event.response;
+        finalResponse = event.response as ResponsesObject;
         if (event.type === 'response.failed') {
           streamError = {
             message: finalResponse?.error?.message || 'OpenAI response failed',

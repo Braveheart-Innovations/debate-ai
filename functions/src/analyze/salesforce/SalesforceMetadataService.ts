@@ -1761,7 +1761,7 @@ function findMatchingBrace(content: string, openBraceIndex: number): number {
 
 function apexMethodSpans(content: string): SalesforceApexDrilldown['methodSpans'] {
   const spans: SalesforceApexDrilldown['methodSpans'] = [];
-  const methodPattern = /\b(?:public|private|protected|global)\s+(?:static\s+)?(?:[\w<>[\],]+\s+)+([A-Za-z_][A-Za-z0-9_]*)\s*\([^)]*\)\s*\{/g;
+  const methodPattern = /\b(?:public|private|protected|global)\s+(?:static\s+)?(?:[\w<>\[\],]+\s+)+([A-Za-z_][A-Za-z0-9_]*)\s*\([^)]*\)\s*\{/g;
   for (const match of content.matchAll(methodPattern)) {
     const openBraceIndex = (match.index || 0) + match[0].lastIndexOf('{');
     const closeBraceIndex = findMatchingBrace(content, openBraceIndex);

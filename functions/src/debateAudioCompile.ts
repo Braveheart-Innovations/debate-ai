@@ -7,9 +7,10 @@ import * as fs from 'fs/promises';
 import * as os from 'os';
 import * as path from 'path';
 import { spawn } from 'child_process';
-import ffmpegPath from 'ffmpeg-static';
 
 try { admin.app(); } catch { admin.initializeApp(); }
+
+const ffmpegPath = require('ffmpeg-static') as string | null;
 
 const STORAGE_BUCKET = 'symposium-ai.firebasestorage.app';
 const COMPILE_ROOT = 'debate-audio-compile';
@@ -229,13 +230,12 @@ export function buildOutputMetadataArgs(topic?: string): string[] {
 }
 
 async function runFfmpeg(args: string[], description: string, timeoutMs = FFMPEG_TIMEOUT_MS): Promise<void> {
-  const ffmpeg = ffmpegPath;
-  if (!ffmpeg) {
+  if (!ffmpegPath) {
     throw new HttpsError('internal', 'FFmpeg is not available in this Functions runtime.');
   }
 
   await new Promise<void>((resolve, reject) => {
-    const child = spawn(ffmpeg, args, { stdio: ['ignore', 'ignore', 'pipe'] });
+    const child = spawn(ffmpegPath, args, { stdio: ['ignore', 'ignore', 'pipe'] });
     const stderr: Buffer[] = [];
     let settled = false;
     const timeoutId = setTimeout(() => {

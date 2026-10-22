@@ -2,7 +2,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import * as crypto from 'crypto';
 import { promises as dns } from 'dns';
 import * as net from 'net';
-import { encryptionKey } from './apiKeys';
+import { getDecryptedApiKey, encryptionKey } from './apiKeys';
 import { executeWebSearch } from './web_search';
 import { fetchApiArgsError, parseHeadersArg, parseQueryParamsArg } from './fetchArgs';
 import {
@@ -39,7 +39,6 @@ import {
   librariesIoApiKey,
   unPopulationApiToken,
 } from './dataConnectors';
-import { causeOf, messageOf, nameOf, stackOf } from './errorDetails';
 
 // ============================================================================
 // Types
@@ -803,8 +802,8 @@ function extractLinks(html: string, baseUrl: string, maxLinks: number = 20): Ext
   let match;
 
   while ((match = linkRegex.exec(html)) !== null && links.length < maxLinks * 3) {
-    const href = match[1];
-    const text = match[2]
+    let href = match[1];
+    let text = match[2]
       .replace(/<[^>]+>/g, ' ') // Remove nested tags
       .replace(/\s+/g, ' ')
       .trim();
@@ -983,7 +982,7 @@ async function handleFetchUrl(args: FetchUrlArgs): Promise<ToolResult> {
     // Simple content extraction (server-side, no JSDOM dependency)
     // For production, add jsdom and @mozilla/readability
     let content: string;
-    const metadata: Record<string, string> = {};
+    let metadata: Record<string, string> = {};
 
     if (selector) {
       // With selector, do basic regex extraction
@@ -1153,18 +1152,18 @@ async function handleFetchUrl(args: FetchUrlArgs): Promise<ToolResult> {
         originalLength,
       },
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('[handleFetchUrl] Error fetching URL:', {
       url,
-      errorName: nameOf(error),
-      errorMessage: messageOf(error),
-      errorCause: causeOf(error),
-      errorStack: stackOf(error)?.slice(0, 500),
+      errorName: error.name,
+      errorMessage: error.message,
+      errorCause: error.cause,
+      errorStack: error.stack?.slice(0, 500),
     });
 
-    const errorMessage = nameOf(error) === 'AbortError'
+    const errorMessage = error.name === 'AbortError'
       ? 'Request timed out'
-      : messageOf(error, 'Failed to fetch URL');
+      : error.message || 'Failed to fetch URL';
 
     return {
       toolCallId: '',
@@ -1259,14 +1258,14 @@ async function fetchSalesforceDocsFallbackCandidate(
       documentationVersion: content.documentationVersion,
       warnings: content.warnings || [],
     };
-  } catch (error) {
-    warnings.push(`Not read for ${topic.label}: ${candidate.url}: ${messageOf(error, 'no content returned')}`);
+  } catch (error: any) {
+    warnings.push(`Not read for ${topic.label}: ${candidate.url}: ${error?.message || 'no content returned'}`);
     unread.push({
       topicId: topic.id,
       title: candidate.title || candidate.url,
       url: candidate.url,
       reason: error instanceof SalesforceDocNotReadError ? error.reason : 'fetch_failed',
-      detail: messageOf(error) || undefined,
+      detail: error?.message,
     });
     return null;
   }
@@ -1320,8 +1319,8 @@ async function resolveSalesforceDocsFallbackTopic(input: {
       query,
       num_results: Math.max(input.maxResultsPerTopic * 3, 5),
     }, input.encryptionKeyValue);
-  } catch (error) {
-    warnings.push(`Search failed for ${topic.label}: ${messageOf(error, 'unknown search failure')}`);
+  } catch (error: any) {
+    warnings.push(`Search failed for ${topic.label}: ${error?.message || 'unknown search failure'}`);
     return resolution;
   }
 
@@ -1370,6 +1369,7 @@ async function handleSalesforceDocsLookup(
   const unread: SalesforceDocUnreadSource[] = [];
   const seenSourceKeys = new Set<string>();
   const sourceKey = (topicId: string, url: string) => `${topicId}:${url}`;
+  let docsIndexSummary: Record<string, unknown> | undefined;
 
   const deadlineAt = startTime + SALESFORCE_DOCS_FALLBACK_DEADLINE_MS;
   const [releaseFetch, indexLookup] = await Promise.all([
@@ -1416,7 +1416,7 @@ async function handleSalesforceDocsLookup(
   }
 
   warnings.push(...indexLookup.warnings);
-  const docsIndexSummary: Record<string, unknown> | undefined = indexLookup.indexSummary;
+  docsIndexSummary = indexLookup.indexSummary;
   // Only alias-routed hits (topics the index genuinely curates) may suppress
   // live lookup. Token-scavenged matches keep their index sources as
   // supplementary evidence, but the topic still goes to live fallback —
@@ -2189,11 +2189,11 @@ async function handleFetchApi(
       try {
         const data = JSON.parse(rawBody);
         content = JSON.stringify(data);
-      } catch (jsonError) {
+      } catch (jsonError: any) {
         return {
           toolCallId: '',
           success: false,
-          error: `Failed to parse JSON response. ${messageOf(jsonError, 'Malformed JSON received from API.')}`,
+          error: `Failed to parse JSON response. ${jsonError?.message || 'Malformed JSON received from API.'}`,
           metadata: {
             executionTime: Date.now() - startTime,
             originalLength: contentLengthHeader || bytesRead,
@@ -2212,16 +2212,16 @@ async function handleFetchApi(
         contentType: contentType || undefined,
       },
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('[handleFetchApi] Error:', {
       url,
-      errorName: nameOf(error),
-      errorMessage: messageOf(error),
+      errorName: error.name,
+      errorMessage: error.message,
     });
 
-    const errorMessage = nameOf(error) === 'AbortError'
+    const errorMessage = error.name === 'AbortError'
       ? `Request timed out after ${Math.round(clampedTimeout / 1000)}s`
-      : messageOf(error, 'Failed to fetch API');
+      : error.message || 'Failed to fetch API';
 
     return {
       toolCallId: '',

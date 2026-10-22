@@ -213,7 +213,7 @@ export function filterStderr(stderr: string): string[] {
     .filter((line) => line.trim() && !BENIGN_STDERR_PATTERNS.some((p) => p.test(line)));
 }
 
-// eslint-disable-next-line no-control-regex -- an ANSI color code starts with the ESC control character
+// eslint-disable-next-line no-control-regex
 const ANSI = /\x1b\[[0-9;]*m/g;
 
 export function stripAnsi(value: string): string {
