@@ -11,12 +11,12 @@ export const e2bApiKey = defineSecret('E2B_API_KEY');
  * Built from scripts/build-sandbox-template.mjs. Templates are versioned by name and
  * never rebuilt in place: a same-name rebuild reaches every new sandbox at once.
  */
-export const SANDBOX_TEMPLATE = 'symposium-analyze-v3';
+export const SANDBOX_TEMPLATE = 'symposium-analyze-v4';
 /**
  * The next template, dark-tested by SANDBOX_TEMPLATE_TESTERS before the switch.
  * The switch is: SANDBOX_TEMPLATE = this, then this = null.
  */
-export const SANDBOX_TEMPLATE_CANDIDATE: string | null = 'symposium-analyze-v4';
+export const SANDBOX_TEMPLATE_CANDIDATE: string | null = null;
 /**
  * Accounts that get SANDBOX_TEMPLATE_CANDIDATE while one is set:
  *  - mspencer@braveheartinnovations.com (Michael's web account)

@@ -123,10 +123,10 @@ test('each new sandbox uses the template chosen for its user, and the record kee
   assert.equal(store.docs.get('someone/s').template, 'tpl');
 });
 
-test('everyone gets the v3 template; only testers would get a candidate', () => {
+test('everyone gets the v4 template; only testers would get a candidate', () => {
   const { sandboxTemplateFor, SANDBOX_TEMPLATE, SANDBOX_TEMPLATE_CANDIDATE, SANDBOX_TEMPLATE_TESTERS } = require('../lib/sandbox/callables');
   const [tester] = SANDBOX_TEMPLATE_TESTERS;
-  assert.equal(SANDBOX_TEMPLATE, 'symposium-analyze-v3');
+  assert.equal(SANDBOX_TEMPLATE, 'symposium-analyze-v4');
   assert.equal(sandboxTemplateFor('anyone'), SANDBOX_TEMPLATE);
   assert.equal(sandboxTemplateFor(tester), SANDBOX_TEMPLATE_CANDIDATE ?? SANDBOX_TEMPLATE);
 });
