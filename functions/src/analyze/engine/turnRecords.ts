@@ -3,7 +3,8 @@
  *
  * Every round resends the session. The turn in progress goes in exactly as it
  * happened; each earlier turn goes in as the user's message, a record built
- * from its messages, and the final reply. The record names what the turn
+ * from its messages, and the final reply. An earlier turn the current one
+ * continues goes in exactly as it happened too (`unfinished`). The record names what the turn
  * fetched, saved and ran; its code, tool calls and results stay one call away
  * (`read_turn`). Nothing is cut by size and nothing is summarized by a model:
  * the June 2026 caps made the model think its work was gone, and it rebuilt it.
@@ -12,7 +13,7 @@
  */
 import type { Message } from '../contract/types';
 import type { ToolCall, ToolDefinition } from '../contract/lib/ai/tools/types';
-import { ORG_EVIDENCE_TOOL_NAME } from '../team/teamTools';
+import { ASK_USER_TOOL_NAME, ORG_EVIDENCE_TOOL_NAME } from '../team/teamTools';
 
 export const READ_TURN_TOOL_NAME = 'read_turn';
 
@@ -121,6 +122,23 @@ function fetchedPath(result: Message): string | undefined {
   return /saved to (\/data\/\S+)/.exec(result.content || '')?.[1];
 }
 
+/** Calls that end the turn to wait for the user (round.ts endTurnReply, the org evidence card). */
+const WAITING_TOOLS = new Set([ORG_EVIDENCE_TOOL_NAME, ASK_USER_TOOL_NAME]);
+
+/**
+ * A turn the next one picks up: it ended waiting for the user (org evidence, a
+ * question) or before its reply (stopped or failed, its last round still
+ * calling tools). Its findings are in its tool results, which a record leaves
+ * out, so the turns that continue it get it in full.
+ */
+function unfinished(turn: Turn): boolean {
+  const rounds = roundsOf(turn);
+  const last = rounds[rounds.length - 1];
+  if (!last) return true;
+  const calls = rounds.flatMap((round) => callsOf(round.message));
+  return callsOf(last.message).length > 0 || WAITING_TOOLS.has(calls[calls.length - 1]?.function.name ?? '');
+}
+
 function finalReply(rounds: Round[]): Message | undefined {
   return [...rounds].reverse().find((round) => round.message.content?.trim())?.message;
 }
@@ -175,17 +193,19 @@ export function buildTurnRecord(turn: Turn): string {
 }
 
 /**
- * The history a round sends: earlier turns as records, the current turn (from
- * the user message that started this run) in full. Without that message, all
- * of it in full.
+ * The history a round sends: earlier turns as records; the current turn (from
+ * the user message that started this run) and the unfinished turns it
+ * continues in full. Without that message, all of it in full.
  */
 export function withTurnRecords(messages: Message[], currentAskId: string | undefined): Message[] {
   const { before, turns } = splitTurns(messages);
   const current = turns.findIndex((turn) => turn.ask.id === currentAskId);
   if (current < 0) return messages;
+  let firstInFull = current;
+  while (firstInFull > 0 && unfinished(turns[firstInFull - 1])) firstInFull -= 1;
 
   const history: Message[] = [...before];
-  for (const turn of turns.slice(0, current)) {
+  for (const turn of turns.slice(0, firstInFull)) {
     const rounds = roundsOf(turn);
     const reply = finalReply(rounds);
     history.push(turn.ask, {
@@ -202,7 +222,7 @@ export function withTurnRecords(messages: Message[], currentAskId: string | unde
     }
     history.push(...turn.messages.filter((message) => !isOperatorMessage(message)));
   }
-  for (const turn of turns.slice(current)) history.push(turn.ask, ...turn.messages);
+  for (const turn of turns.slice(firstInFull)) history.push(turn.ask, ...turn.messages);
   return history;
 }
 
@@ -212,8 +232,9 @@ function describeRound(round: Round, index: number): string {
   return `${index}. ${calls.map((call) => {
     const args = argsOf(call);
     const result = resultFor(round, call);
-    const what = call.function.name === 'execute_python' && typeof args.code === 'string'
-      ? `execute_python (${args.code.split('\n').length} lines: ${args.code.split('\n')[0].slice(0, 80)})`
+    const code = typeof args.code === 'string' ? args.code.trim().split('\n') : undefined;
+    const what = call.function.name === 'execute_python' && code
+      ? `execute_python (${code.length} lines: ${code[0].slice(0, 80)})`
       : `${call.function.name}(${describeArgs(args)})`;
     return `${what} → ${failed(result) ? 'failed' : `${(result?.content || '').length.toLocaleString('en-US')} characters`}`;
   }).join('; ')}`;
@@ -269,7 +290,7 @@ export function readTurn(messages: Message[], currentAskId: string | undefined, 
 export function buildReadTurnTool(): ToolDefinition {
   return {
     name: READ_TURN_TOOL_NAME,
-    description: 'Read an earlier turn of this session. Earlier turns are in your context as records: the user\'s message, what was fetched and saved, and the final reply, without the code, tool calls and results. With only `turn`, this lists the turn\'s rounds; with `round` too, it returns that round exactly as it happened: what you wrote, each call with its arguments (Python code included) and each result.',
+    description: 'Read an earlier turn of this session. Earlier turns are in your context as records: the user\'s message, what was fetched and saved, and the final reply, without the code, tool calls and results. A turn this one continues (it asked for org evidence or a question, or stopped) is in full. With only `turn`, this lists the turn\'s rounds; with `round` too, it returns that round exactly as it happened: what you wrote, each call with its arguments (Python code included) and each result.',
     parameters: {
       type: 'object',
       properties: {

@@ -27,7 +27,7 @@ const result = (callId: string, toolName: string, content: string, timestamp: nu
 
 const CODE = 'import pandas as pd\ndf = pd.read_json("/data/fetch_a.json")\nopen("/output/brief.json", "w").write(spec)';
 
-/** Turn 1 fetches, builds a report and is reviewed; turn 2 asks for org evidence; turn 3 is under way. */
+/** Turn 1 fetches, builds a report and is reviewed; turn 2 asks for org evidence (the request ends it); turn 3 imports it and is under way. */
 const session: Message[] = [
   ask('msg_1', 'Is a recession coming?', 1),
   round('run_1_aa_r0', 'Fetching unemployment.', [['c1', 'fetch_api', { url: 'https://api.stlouisfed.org/fred/series/observations', query_params: { series_id: 'UNRATE', file_type: 'json' }, api_key_ref: 'fred' }]], 2),
@@ -37,9 +37,8 @@ const session: Message[] = [
   round('run_1_aa_r2', 'The brief is ready: unemployment is rising but below the Sahm threshold.', [], 6),
   { id: 'review-run_2_bb-0', sender: 'Reviewer', senderType: 'ai', content: 'Review: cite the Sahm rule source.', timestamp: 7, metadata: { providerId: 'openai', aiId: 'ai-gpt' } },
   ask('msg_2', 'Check the org too', 8),
-  round('run_3_cc_r0', '', [['c3', 'request_salesforce_org_evidence', { investigation_prompt: 'Run SELECT COUNT() FROM Lead WHERE IsConverted = false in production.' }]], 9),
+  round('run_3_cc_r0', 'I asked for org evidence: the lead counts decide the recommendation.', [['c3', 'request_salesforce_org_evidence', { investigation_prompt: 'Run SELECT COUNT() FROM Lead WHERE IsConverted = false in production.' }]], 9),
   result('c3', 'request_salesforce_org_evidence', 'Org evidence request presented to the user.', 10),
-  round('run_3_cc_r1', 'I asked for org evidence: the lead counts decide the recommendation.', [], 11),
   ask('msg_3', 'Findings imported', 12),
   round('run_4_dd_r0', 'Verifying.', [['c4', 'execute_python', { code: 'print(1)' }]], 13),
   result('c4', 'execute_python', '1', 14),
@@ -47,16 +46,43 @@ const session: Message[] = [
 
 describe('earlier turns as records', () => {
   it('sends earlier turns as the ask, a record and the reply, and the current turn exactly as it happened', () => {
+    const finished = [...session, round('run_4_dd_r1', 'Done.', [], 15), ask('msg_4', 'Thanks', 16)];
+    const history = withTurnRecords(finished, 'msg_4');
+    expect(history.map((message) => message.id)).toEqual([
+      'msg_1', 'turn_record_1', 'run_1_aa_r2', 'review-run_2_bb-0',
+      'msg_2', 'turn_record_2', 'run_3_cc_r0',
+      'msg_3', 'turn_record_3', 'run_4_dd_r1',
+      'msg_4',
+    ]);
+    // No tool protocol from earlier turns.
+    expect(history.some((message) => message.metadata?.toolCalls || message.senderType === 'tool')).toBe(false);
+    expect(history.find((message) => message.id === 'turn_record_1')).toMatchObject({ senderType: 'user', sender: 'Symposium' });
+  });
+
+  it('sends the turns the current one continues in full: it asked for org evidence (the Flow redesign live test)', () => {
     const history = withTurnRecords(session, 'msg_3');
     expect(history.map((message) => message.id)).toEqual([
       'msg_1', 'turn_record_1', 'run_1_aa_r2', 'review-run_2_bb-0',
-      'msg_2', 'turn_record_2', 'run_3_cc_r1',
+      'msg_2', 'run_3_cc_r0', 'toolresult_c3',
       'msg_3', 'run_4_dd_r0', 'toolresult_c4',
     ]);
-    // No tool protocol from earlier turns; the current turn keeps its calls and results.
-    expect(history.slice(0, 7).some((message) => message.metadata?.toolCalls || message.senderType === 'tool')).toBe(false);
-    expect(history.slice(7)).toEqual(session.slice(11));
-    expect(history.find((message) => message.id === 'turn_record_1')).toMatchObject({ senderType: 'user', sender: 'Symposium' });
+    expect(history.slice(4)).toEqual(session.slice(7));
+  });
+
+  it('sends a turn that stopped mid-work or asked the user a question in full to the next', () => {
+    const stopped = [
+      ask('msg_1', 'Build the model', 1),
+      round('run_1_aa_r0', '', [['c1', 'execute_python', { code: 'rows = load()' }]], 2),
+      result('c1', 'execute_python', 'Executed successfully.', 3),
+      ask('msg_2', 'Keep going', 4),
+    ];
+    expect(withTurnRecords(stopped, 'msg_2')).toEqual(stopped);
+    const asked = [
+      ask('msg_1', 'Plan a team for this', 1),
+      round('run_1_aa_r0', 'Which org should the team use?', [['c1', 'ask_user', { questions: 'Which org?' }]], 2),
+      ask('msg_2', 'QA', 3),
+    ];
+    expect(withTurnRecords(asked, 'msg_2')).toEqual(asked);
   });
 
   it('records what the turn fetched, saved and ran, from the server\'s own lines', () => {
@@ -92,7 +118,7 @@ describe('earlier turns as records', () => {
   it('gives the same record every time, so a new turn leaves the earlier records unchanged for the cache', () => {
     const now = withTurnRecords(session, 'msg_3');
     const later = withTurnRecords([...session, round('run_4_dd_r1', 'Done.', [], 15), ask('msg_4', 'Thanks', 16)], 'msg_4');
-    expect(later.slice(0, 7)).toEqual(now.slice(0, 7));
+    expect(later.slice(0, 4)).toEqual(now.slice(0, 4));
   });
 
   it('sends everything as it is without the turn\'s message (a teammate\'s run)', () => {
@@ -110,6 +136,17 @@ describe('read_turn', () => {
     expect(read.content).toContain('1. fetch_api(url=https://api.stlouisfed.org/fred/series/observations, query_params={"series_id":"UNRATE","file_type":"json"}) →');
     expect(read.content).toContain('2. execute_python (3 lines: import pandas as pd) →');
     expect(read.content).toContain('3. reply');
+  });
+
+  it('names a Python call by its first line of code, past any blank lines', () => {
+    const turn = [
+      ask('msg_1', 'Parse the flows', 1),
+      round('run_1_aa_r0', '', [['c1', 'execute_python', { code: '\nimport glob\nfiles = glob.glob("/data/*")\n' }]], 2),
+      result('c1', 'execute_python', 'Executed successfully.', 3),
+      round('run_1_aa_r1', 'Parsed.', [], 4),
+      ask('msg_2', 'Next', 5),
+    ];
+    expect(readTurn(turn, 'msg_2', { turn: 1 }).content).toContain('1. execute_python (2 lines: import glob) →');
   });
 
   it('returns a round exactly as it was sent: the code and the whole result', () => {
