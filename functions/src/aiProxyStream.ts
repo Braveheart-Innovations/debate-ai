@@ -2,7 +2,7 @@ import { onRequest, HttpsError } from 'firebase-functions/v2/https';
 import { getAuth } from 'firebase-admin/auth';
 import { getDecryptedApiKey, encryptionKey } from './apiKeys';
 import { normalizeProviderTemperature, resolveProviderModelId } from './modelRegistry';
-import { recordUsageInternal, enforceFreeTierForInteraction, freeTierRefusal } from './usageTracking';
+import { recordUsageInternal, enforceFreeTierForInteraction, freeTierGateError } from './usageTracking';
 import { buildGeminiGenerationConfig } from './providers/google/thinking';
 import {
   type ToolDefinition,
@@ -160,6 +160,8 @@ interface SSEErrorEvent {
   type: 'error';
   error: string;
   code?: string;
+  /** Typed detail, as on a callable's HttpsError (the free-limit refusal) */
+  details?: unknown;
 }
 
 type SSEEvent = SSEDeltaEvent | SSEToolCallStartEvent | SSEToolCallDoneEvent | SSEDoneEvent | SSEErrorEvent;
@@ -1398,8 +1400,8 @@ export const proxyAIRequestStream = onRequest(
       // stands in for interactionId), and is counted once per session.
       const freeTierGate = await enforceFreeTierForInteraction(uid, sessionType, interactionId ?? sessionId);
       if (!freeTierGate.allowed) {
-        const refusal = freeTierRefusal(freeTierGate, sessionType);
-        writeSSE(res, { type: 'error', error: refusal.message, code: refusal.code });
+        const refusal = freeTierGateError(freeTierGate, sessionType);
+        writeSSE(res, { type: 'error', error: refusal.message, code: refusal.code, details: refusal.details });
         res.end();
         return;
       }

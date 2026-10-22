@@ -562,29 +562,26 @@ const FREE_TIER_TYPE_BY_SESSION_TYPE: Record<string, FreeTierInteractionType> = 
   analyze: 'analyze',
 };
 
-// Session types the free tier doesn't cover: Create needs a trial or a subscription.
-const PAID_ONLY_SESSION_TYPES = new Set(['create']);
-
 export interface FreeTierGateResult {
   allowed: boolean;
   /**
-   * 'paid-only': a Create call from an account without a trial or subscription.
    * 'unlabeled': no session type or id, or an id already counted as another
    * type, so the call can't be counted; refused unless the account pays.
    */
-  reason: 'premium' | 'counted' | 'decremented' | 'exhausted' | 'paid-only' | 'unlabeled';
+  reason: 'premium' | 'counted' | 'decremented' | 'exhausted' | 'unlabeled';
   remaining?: number;
 }
 
 /**
- * Idempotent, server-authoritative free-tier gate for every AI entry point
- * (the text proxies, image and media generation, analyzeStartTurn).
+ * Idempotent, server-authoritative free-tier gate for the text proxies and
+ * analyzeStartTurn: Analyze's rule for every mode. Create isn't in the free
+ * tier (image and media generation check isPremiumOrTrial, like Watches).
  *
  * The web free tier grants a fixed number of sessions per type; trial and paid
  * accounts are uncapped. A call says which session it belongs to (`sessionType`
  * and `interactionId`, the session's id) so one session (a debate's many turns,
- * a compare's parallel calls, its title and voices) counts exactly once; the
- * marker doc also makes the check idempotent across retries.
+ * a compare's parallel calls, its title) counts exactly once, at its first
+ * call; the marker doc also makes the check idempotent across retries.
  *
  * It fails closed: a call from an account without a trial or subscription that
  * doesn't say which session it belongs to is refused, so a client that forgets
@@ -623,9 +620,6 @@ export function computeFreeTierGate(params: {
 }): { result: FreeTierGateResult; decrementTo?: number } {
   const { sessionType, interactionId, isPremium, markerType, usage } = params;
   if (isPremium) return { result: { allowed: true, reason: 'premium' } };
-  if (typeof sessionType === 'string' && PAID_ONLY_SESSION_TYPES.has(sessionType)) {
-    return { result: { allowed: false, reason: 'paid-only' } };
-  }
   const mappedType = mapSessionTypeToFreeTier(sessionType);
   if (!mappedType || !usableInteractionId(interactionId)) {
     return { result: { allowed: false, reason: 'unlabeled' } };
@@ -724,39 +718,42 @@ export function freeTierLimit(type: FreeTierInteractionType): number {
   return FREE_TIER_LIMITS[FREE_TIER_FIELD_BY_TYPE[type]];
 }
 
-const FREE_TIER_LABEL: Record<FreeTierInteractionType, string> = {
+const FREE_LIMIT_LABEL: Record<FreeLimitType, string> = {
   chat: 'Chat',
   compare: 'Compare',
   debate: 'Debate',
   analyze: 'Analyze',
+  create: 'Create',
 };
 
-/** Marks a free-tier refusal on the error's details, so the web shows its message rather than a generic one. */
-export const FREE_TIER_REFUSAL_REASON = 'free-tier';
+/** Create has no free sessions: it needs a trial or a subscription. */
+export type FreeLimitType = FreeTierInteractionType | 'create';
 
-export interface FreeTierRefusal {
-  code: 'resource-exhausted';
-  message: string;
-  details: { reason: typeof FREE_TIER_REFUSAL_REASON; gate: FreeTierGateResult['reason'] };
+/** The typed detail on resource-exhausted at the free limit; the web shows it as the limit card, in every mode. */
+export const FREE_LIMIT_REASON = 'free-limit';
+
+export interface FreeLimitDetails {
+  reason: typeof FREE_LIMIT_REASON;
+  type: FreeLimitType;
+  limit: number;
 }
 
-/** What a refused AI call tells the user. */
-export function freeTierRefusal(result: FreeTierGateResult, sessionType: string | undefined): FreeTierRefusal {
-  const details = { reason: FREE_TIER_REFUSAL_REASON, gate: result.reason } as const;
-  if (result.reason === 'paid-only') {
-    return { code: 'resource-exhausted', message: 'Create needs a free trial or a subscription.', details };
-  }
-  if (result.reason === 'exhausted') {
-    const type = mapSessionTypeToFreeTier(sessionType);
-    const sessions = type ? `${freeTierLimit(type)} free ${FREE_TIER_LABEL[type]} sessions` : 'free sessions';
-    return {
-      code: 'resource-exhausted',
-      message: `You've used your ${sessions}. Start a free trial or subscribe to keep going.`,
-      details,
-    };
-  }
-  // Only a client that didn't label the call gets here: an out-of-date page.
-  return { code: 'resource-exhausted', message: 'This page is out of date. Reload it to keep going.', details };
+/** The refusal at the free limit, from every AI entry point. */
+export function freeLimitError(type: FreeLimitType): HttpsError {
+  const limit = type === 'create' ? 0 : freeTierLimit(type);
+  const details: FreeLimitDetails = { reason: FREE_LIMIT_REASON, type, limit };
+  const message = type === 'create'
+    ? 'Create comes with a free trial or a subscription.'
+    : `You've used your ${limit} free ${FREE_LIMIT_LABEL[type]} sessions.`;
+  return new HttpsError('resource-exhausted', message, details);
+}
+
+/** What a call the gate refused gets: the limit, or, unlabeled, the page is from before calls named their session. */
+export function freeTierGateError(result: FreeTierGateResult, sessionType: string | undefined): HttpsError {
+  const type = mapSessionTypeToFreeTier(sessionType);
+  return result.reason === 'exhausted' && type
+    ? freeLimitError(type)
+    : new HttpsError('failed-precondition', 'This page is out of date. Reload it to keep going.');
 }
 
 // ============================================================================

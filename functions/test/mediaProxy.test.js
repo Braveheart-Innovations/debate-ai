@@ -3,6 +3,7 @@ const { describe, it } = require('node:test');
 const {
   buildElevenLabsVoiceSearchUrl,
   buildRunwayVideoTaskRequest,
+  isDebateVoice,
   mapElevenLabsModelOption,
   mapElevenLabsVoiceOption,
   mapRunwayStatus,
@@ -242,5 +243,18 @@ describe('mapElevenLabsModelOption', () => {
 
     assert.equal(model.id, 'eleven_text_to_sound_v2');
     assert.deepEqual(model.operations, ['sound_effect']);
+  });
+});
+
+describe('isDebateVoice', () => {
+  it('is speech labeled with its debate', () => {
+    assert.equal(isDebateVoice({ sessionType: 'debate', mediaType: 'audio', operation: 'text_to_speech' }), true);
+  });
+
+  it('is Create for anything else, whatever the label', () => {
+    assert.equal(isDebateVoice({ sessionType: 'debate', mediaType: 'video', operation: 'text_to_video' }), false);
+    assert.equal(isDebateVoice({ sessionType: 'debate', mediaType: 'audio', operation: 'sound_effect' }), false);
+    assert.equal(isDebateVoice({ sessionType: 'create', mediaType: 'audio', operation: 'text_to_speech' }), false);
+    assert.equal(isDebateVoice({ mediaType: 'audio', operation: 'text_to_speech' }), false);
   });
 });

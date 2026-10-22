@@ -1,6 +1,6 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getDecryptedApiKey, encryptionKey } from './apiKeys';
-import { checkFreeTierForInteraction, freeTierRefusal } from './usageTracking';
+import { freeLimitError, isPremiumOrTrial } from './usageTracking';
 import {
   getImageModels,
   getResolvedImageModel,
@@ -76,11 +76,7 @@ export const proxyImageGeneration = onCall(
     }
 
     // Image generation is Create, which needs a trial or a subscription.
-    const freeTierGate = await checkFreeTierForInteraction(request.auth.uid, 'create', undefined);
-    if (!freeTierGate.allowed) {
-      const refusal = freeTierRefusal(freeTierGate, 'create');
-      throw new HttpsError(refusal.code, refusal.message, refusal.details);
-    }
+    if (!await isPremiumOrTrial(request.auth.uid)) throw freeLimitError('create');
 
     if (prompt.length > (modelConfig.maxPromptLength || 4000)) {
       throw new HttpsError('invalid-argument', `Prompt exceeds maximum length of ${modelConfig.maxPromptLength || 4000} characters`);

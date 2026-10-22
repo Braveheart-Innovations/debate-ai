@@ -1,6 +1,6 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getDecryptedApiKey, encryptionKey } from './apiKeys';
-import { enforceFreeTierForInteraction, freeTierRefusal } from './usageTracking';
+import { checkFreeTierForInteraction, freeLimitError, isPremiumOrTrial } from './usageTracking';
 
 type MediaProviderId = 'runway' | 'elevenlabs';
 type CreateMediaType = 'video' | 'audio';
@@ -603,6 +603,11 @@ async function generateElevenLabsAudio(
   };
 }
 
+/** A debate's voices: speech labeled with its debate. Everything else here is Create. */
+export function isDebateVoice(input: Pick<ProxyMediaGenerationRequest, 'sessionType' | 'mediaType' | 'operation'>): boolean {
+  return input.sessionType === 'debate' && input.mediaType === 'audio' && input.operation === 'text_to_speech';
+}
+
 export const proxyMediaGeneration = onCall(
   {
     timeoutSeconds: 300,
@@ -626,11 +631,14 @@ export const proxyMediaGeneration = onCall(
 
     const prompt = validatePrompt(input.prompt, providerId === 'runway' ? 1000 : input.operation === 'sound_effect' ? 450 : 5000);
 
-    const freeTierGate = await enforceFreeTierForInteraction(request.auth!.uid, input.sessionType, input.sessionId);
-    if (!freeTierGate.allowed) {
-      const refusal = freeTierRefusal(freeTierGate, input.sessionType);
-      throw new HttpsError(refusal.code, refusal.message, refusal.details);
-    }
+    // Media is Create, which needs a trial or a subscription. A debate's voices
+    // are part of that debate: speech for a debate already counted, which a
+    // voice never starts (like Analyze's actions on a session).
+    const uid = request.auth!.uid;
+    const allowed = isDebateVoice(input)
+      ? ['premium', 'counted'].includes((await checkFreeTierForInteraction(uid, 'debate', input.sessionId)).reason)
+      : await isPremiumOrTrial(uid);
+    if (!allowed) throw freeLimitError('create');
 
     const apiKey = await getUserApiKey(request.auth!.uid, providerId, keyValue);
 

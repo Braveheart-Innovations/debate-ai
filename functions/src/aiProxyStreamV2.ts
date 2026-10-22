@@ -13,7 +13,7 @@
 import { onRequest, HttpsError } from 'firebase-functions/v2/https';
 import { getAuth } from 'firebase-admin/auth';
 import { encryptionKey } from './apiKeys';
-import { enforceFreeTierForInteraction, freeTierRefusal } from './usageTracking';
+import { enforceFreeTierForInteraction, freeTierGateError } from './usageTracking';
 import { generateTraceId, createErrorEvent } from './providers/base-runtime';
 import { PROVIDER_NAMES, streamModel, validateModelTarget } from './modelStream';
 import type { CanonicalSSEEvent } from './types/canonical';
@@ -259,8 +259,8 @@ export const proxyAIRequestStreamV2 = onRequest(
       // stands in for interactionId), and is counted once per session.
       const freeTierGate = await enforceFreeTierForInteraction(uid, sessionType, interactionId ?? sessionId);
       if (!freeTierGate.allowed) {
-        const refusal = freeTierRefusal(freeTierGate, sessionType);
-        writer.write(createErrorEvent(refusal.message, refusal.code));
+        const refusal = freeTierGateError(freeTierGate, sessionType);
+        writer.write(createErrorEvent(refusal.message, refusal.code, refusal.details));
         writer.end();
         return;
       }

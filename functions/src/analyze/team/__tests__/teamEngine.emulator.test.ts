@@ -150,7 +150,8 @@ import { NoSessionSandboxError, runCell } from '../../engine/runCell';
 import { FirestoreSandboxStore } from '../../../sandbox/firestoreStore';
 import { SessionBusyError } from '../../engine/turns';
 import { resolveSessionQuestions, type NotificationDoc } from '../../engine/notifications';
-import { ANALYZE_FREE_LIMIT_REASON, assertAnalyzeSessionAllowed, countAnalyzeSession } from '../../engine/freeTier';
+import { assertAnalyzeSessionAllowed, countAnalyzeSession } from '../../engine/freeTier';
+import { FREE_LIMIT_REASON } from '../../../usageTracking';
 
 const emulator = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
 const describeEmulator = emulator ? describe : describe.skip;
@@ -919,7 +920,7 @@ describeEmulator('step 7 free tier and sandbox time', () => {
   jest.setTimeout(60_000);
   const account = () => `free_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
   const remaining = async (user: string) => (await getFirestore().doc(`users/${user}`).get()).data()?.freeAnalyzesRemaining;
-  const limitError = expect.objectContaining({ code: 'resource-exhausted', details: { reason: ANALYZE_FREE_LIMIT_REASON, limit: 5 } });
+  const limitError = expect.objectContaining({ code: 'resource-exhausted', details: { reason: FREE_LIMIT_REASON, type: 'analyze', limit: 5 } });
 
   it('a free account gets 5 sessions; follow-ups stay free; the 6th is refused with the typed reason', async () => {
     const user = account();

@@ -10,7 +10,8 @@ const {
   normalizeSessionType,
   mapSessionTypeToFreeTier,
   computeFreeTierGate,
-  freeTierRefusal,
+  freeLimitError,
+  freeTierGateError,
   buildSandboxUsageUpdate,
   freeTierLimit,
 } = require('../lib/usageTracking');
@@ -325,9 +326,8 @@ test('gate: a free account\'s call without a session id is refused, not let thro
   assert.equal(decrementTo, undefined);
 });
 
-test('gate: Create needs a trial or a subscription', () => {
-  assert.deepEqual(gate({ sessionType: 'create' }).result, { allowed: false, reason: 'paid-only' });
-  assert.deepEqual(gate({ sessionType: 'create', isPremium: true }).result, { allowed: true, reason: 'premium' });
+test('gate: Create isn\'t a free-tier session type (it checks a trial or subscription instead)', () => {
+  assert.deepEqual(gate({ sessionType: 'create' }).result, { allowed: false, reason: 'unlabeled' });
 });
 
 test('gate: premium users always pass without decrement, labeled or not', () => {
@@ -371,13 +371,23 @@ test('gate: an id that can\'t be a doc id is unlabeled', () => {
   assert.deepEqual(gate({ interactionId: 'x'.repeat(257) }).result, { allowed: false, reason: 'unlabeled' });
 });
 
-test('refusal messages: the limit, Create, and an out-of-date page', () => {
-  const exhausted = freeTierRefusal({ allowed: false, reason: 'exhausted', remaining: 0 }, 'comparison');
-  assert.equal(exhausted.code, 'resource-exhausted');
-  assert.equal(exhausted.message, "You've used your 5 free Compare sessions. Start a free trial or subscribe to keep going.");
-  assert.deepEqual(exhausted.details, { reason: 'free-tier', gate: 'exhausted' });
-  assert.equal(freeTierRefusal({ allowed: false, reason: 'paid-only' }, 'create').message, 'Create needs a free trial or a subscription.');
-  assert.equal(freeTierRefusal({ allowed: false, reason: 'unlabeled' }, undefined).message, 'This page is out of date. Reload it to keep going.');
+test('refusals: every mode at its limit gets Analyze\'s typed free-limit error', () => {
+  for (const [sessionType, type, label] of [['chat', 'chat', 'Chat'], ['comparison', 'compare', 'Compare'], ['debate', 'debate', 'Debate'], ['analyze', 'analyze', 'Analyze']]) {
+    const error = freeTierGateError({ allowed: false, reason: 'exhausted', remaining: 0 }, sessionType);
+    assert.equal(error.code, 'resource-exhausted');
+    assert.equal(error.message, `You've used your 5 free ${label} sessions.`);
+    assert.deepEqual(error.details, { reason: 'free-limit', type, limit: 5 });
+  }
+});
+
+test('refusals: Create has no free sessions; an unlabeled call is an out-of-date page', () => {
+  const create = freeLimitError('create');
+  assert.equal(create.code, 'resource-exhausted');
+  assert.equal(create.message, 'Create comes with a free trial or a subscription.');
+  assert.deepEqual(create.details, { reason: 'free-limit', type: 'create', limit: 0 });
+  const unlabeled = freeTierGateError({ allowed: false, reason: 'unlabeled' }, undefined);
+  assert.equal(unlabeled.code, 'failed-precondition');
+  assert.equal(unlabeled.message, 'This page is out of date. Reload it to keep going.');
 });
 
 test('free tier: 5 Analyze sessions', () => {
