@@ -99,7 +99,7 @@ const NUMBER = /^[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?$/;
  * empty cells as null, everything else (dates included) as strings.
  */
 export function parseDelimitedRows(text: string, delimiter: string): LooseRecord[] {
-  const [header, ...body] = splitDelimited(text.replace(/^﻿/, ''), delimiter);
+  const [header, ...body] = splitDelimited(text.replace(/^\uFEFF/, ''), delimiter);
   if (!header) return [];
   const names = header.map((name) => name.trim());
   const kinds = names.map((_, column) => {
