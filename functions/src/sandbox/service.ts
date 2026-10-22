@@ -288,7 +288,6 @@ export class SandboxSessionService {
     const stdout = stdoutParts.join('\n');
 
     const budget = { remaining: INLINE_OUTPUT_BUDGET_BYTES };
-    const images = failed ? [] : [...scan.images, ...main.pngs];
     const htmlOutputs = [];
     for (const file of scan.html) {
       const content = await this.readInline(sandboxId, file, budget);
@@ -299,6 +298,13 @@ export class SandboxSessionService {
       const bytes = await this.readInline(sandboxId, file, budget);
       dataOutputs.push(bytes ? { ...file, base64: Buffer.from(bytes).toString('base64') } : file);
     }
+    // Out shows each chart once: a PNG the cell saved to /output as that file (the
+    // runtime leaves its figure out of the open-figure render), then the figures left
+    // open unsaved, then what the cell displayed itself.
+    const savedPngs = dataOutputs.flatMap((file) => (
+      file.base64 && file.filename.toLowerCase().endsWith('.png') ? [file.base64] : []
+    ));
+    const images = failed ? [] : [...savedPngs, ...scan.images, ...main.pngs];
 
     if (failed) {
       return {

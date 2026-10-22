@@ -73,6 +73,17 @@ assert 'SourceSerif4' in fm.findfont(fm.FontProperties(family=['serif']))
 assert 'JetBrainsMono' in fm.findfont(fm.FontProperties(family=['monospace']))
 assert rc['savefig.dpi'] == 150 and rc['axes.prop_cycle'].by_key()['color'][0].lower() == '#0e9594'
 ${SAMPLE_CHART}`],
+  ['Pillow save hook the runtime undoes', `
+# E2B's kernel startup (0003_images.py) makes Pillow's Image.save display every image
+# saved to a path; the sandbox runtime puts the original back through the hook's
+# original_save (functions/src/sandbox/runtime.ts). If E2B reshapes the hook, the
+# runtime can't, and every plt.savefig would show twice: update the runtime.
+from PIL.Image import Image
+save = Image.save
+if save.__module__ != 'PIL.Image':
+    original = getattr(save, '__globals__', {}).get('original_save')
+    assert callable(original) and original.__module__ == 'PIL.Image', (save.__module__, save.__qualname__)
+print('Pillow save:', save.__module__)`],
   ['plotly write_image', `
 import plotly.express as px, plotly.io as pio
 assert pio.templates.default == 'symposium', pio.templates.default
@@ -157,7 +168,7 @@ have = {norm(d.metadata['Name']): d.version for d in md.distributions()}
 want = dict(line.strip().split('==') for line in open('/opt/symposium/constraints.txt') if '==' in line and not line.startswith('#'))
 drift = {name: (version, have.get(norm(name))) for name, version in want.items() if have.get(norm(name)) != version}
 assert not drift, drift
-print(len(want), 'packages at the last template's versions (constraints.txt)')`],
+print(len(want), 'packages at the versions in constraints.txt (the last template)')`],
   ['graphviz house style', `
 import graphviz, re, struct, subprocess
 fonts = lambda svg: set(re.findall(r'font-family="([^"]+)"', svg))
