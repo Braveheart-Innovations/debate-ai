@@ -197,6 +197,21 @@ test('execute maps stdout, filtered stderr, last-expression text, images and out
   assert.equal(Buffer.from(result.dataOutputs[0].base64, 'base64').toString(), 'a,b\n1,2\n');
 });
 
+test('execute reports the files the cell removed from /output', async () => {
+  const provider = fakeProvider({
+    async runCode(id, code) {
+      if (isPre(code)) return { stdout: '', stderr: '', pngs: [], timedOut: false };
+      if (code.startsWith('_sym_post')) {
+        return { stdout: `${POST_MARKER}${JSON.stringify({ images: [], html: [], data: [], deleted: ['test.png'] })}\n`, stderr: '', pngs: [], timedOut: false };
+      }
+      return { stdout: '', stderr: '', pngs: [], timedOut: false };
+    },
+  });
+  const { svc } = service(provider);
+  const result = await svc.execute('u1', 's', "import os; os.remove('/output/test.png')", 5000);
+  assert.deepEqual(result.deletedFiles, ['test.png']);
+});
+
 test('a Python error returns the traceback, keeps data outputs, drops visuals', async () => {
   const provider = fakeProvider({
     async runCode(id, code) {
@@ -578,7 +593,8 @@ test('shell quoting', () => {
 
 test('runtime helpers', () => {
   assert.equal(parsePostScan('nothing here'), null);
-  assert.deepEqual(parsePostScan(`${POST_MARKER}{"images":["a"]}`), { images: ['a'], html: [], data: [] });
+  assert.deepEqual(parsePostScan(`${POST_MARKER}{"images":["a"]}`), { images: ['a'], html: [], data: [], deleted: [] });
+  assert.deepEqual(parsePostScan(`${POST_MARKER}{"deleted":["test.png","agents/a1/x.csv"]}`).deleted, ['test.png', 'agents/a1/x.csv']);
   assert.deepEqual(filterStderr('keep me\nGlyph 9 (\\N{TAB}) missing from current font.\n  plt.show()\n'), ['keep me']);
   assert.equal(stripAnsi('\u001b[0;31mErr\u001b[0m'), 'Err');
   // Real E2B traceback shape (captured 2026-10-03).

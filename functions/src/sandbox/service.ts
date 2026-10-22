@@ -249,7 +249,7 @@ export class SandboxSessionService {
   ): Promise<ExecutionResult> {
     const { provider } = this.deps;
     const { sandboxId, environmentReset } = await this.ensure(uid, sessionKey, usage);
-    const empty = { images: [], htmlOutputs: [], dataOutputs: [], environmentReset };
+    const empty = { images: [], htmlOutputs: [], dataOutputs: [], deletedFiles: [], environmentReset };
 
     const pre = await provider.runCode(sandboxId, preCode(kernelKey), BOOTSTRAP_TIMEOUT_MS, kernelKey);
     if (pre.timedOut || pre.error) {
@@ -279,7 +279,7 @@ export class SandboxSessionService {
 
     const failed = Boolean(main.error);
     const post = await provider.runCode(sandboxId, postCode(!failed, kernelKey), POST_TIMEOUT_MS, kernelKey);
-    const scan = parsePostScan(post.stdout) ?? { images: [], html: [], data: [] };
+    const scan = parsePostScan(post.stdout) ?? { images: [], html: [], data: [], deleted: [] };
 
     const stdoutParts: string[] = [];
     if (main.stdout.trim()) stdoutParts.push(main.stdout.replace(/\s+$/, ''));
@@ -307,6 +307,7 @@ export class SandboxSessionService {
         images: [],
         htmlOutputs: [],
         dataOutputs,
+        deletedFiles: scan.deleted,
         error: formatError(main.error!),
         environmentReset,
       };
@@ -318,6 +319,7 @@ export class SandboxSessionService {
       images,
       htmlOutputs,
       dataOutputs,
+      deletedFiles: scan.deleted,
       result: stdout || (images.length > 0
         ? 'Generated visualization'
         : htmlOutputs.length > 0

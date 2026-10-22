@@ -368,6 +368,8 @@ export interface CellCodeBlock {
   language: string;
   /** If saved as an artifact, the artifact ID */
   artifactId?: string;
+  /** Code a Python call ran, not a block quoted from the reply (the reply then keeps its own). */
+  ran?: boolean;
 }
 
 /** Execution output from running code */

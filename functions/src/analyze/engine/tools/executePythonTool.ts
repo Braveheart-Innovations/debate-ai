@@ -129,6 +129,7 @@ export async function executePythonTool(
   const images = result.images?.map(img => ({ mimeType: 'image/png', base64: img }));
   const htmlOutputs = result.htmlOutputs;
   const dataOutputs = result.dataOutputs;
+  const deletedFiles = result.deletedFiles?.length ? result.deletedFiles : undefined;
 
   if (result.error) {
     return {
@@ -139,6 +140,7 @@ export async function executePythonTool(
       images,
       htmlOutputs,
       dataOutputs,
+      deletedFiles,
       metadata: { fullStdout },
     };
   }
@@ -150,6 +152,7 @@ export async function executePythonTool(
     images,
     htmlOutputs,
     dataOutputs,
+    deletedFiles,
     metadata: { fullStdout },
   };
 }
