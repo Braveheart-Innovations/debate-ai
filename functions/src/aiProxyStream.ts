@@ -2,6 +2,7 @@ import { onRequest, HttpsError } from 'firebase-functions/v2/https';
 import { getAuth } from 'firebase-admin/auth';
 import { getDecryptedApiKey, encryptionKey } from './apiKeys';
 import { isRecord, messageOf, statusOf } from './errorDetails';
+import { refusalOf } from './streamRefusal';
 import { normalizeProviderTemperature, resolveProviderModelId } from './modelRegistry';
 import { recordUsageInternal, enforceFreeTierForInteraction, freeTierGateError } from './usageTracking';
 import { buildGeminiGenerationConfig } from './providers/google/thinking';
@@ -1472,6 +1473,13 @@ export const proxyAIRequestStream = onRequest(
       res.end();
     } catch (error) {
       console.error('Streaming error:', error);
+
+      const refusal = refusalOf(error);
+      if (refusal) {
+        writeSSE(res, { type: 'error', error: refusal.message, code: refusal.code });
+        res.end();
+        return;
+      }
 
       const displayName = PROVIDER_NAMES[req.body?.providerId] || 'AI';
       let userMessage = `${displayName} encountered an error. Please try again.`;
