@@ -377,6 +377,11 @@ describe('firebase auth service', () => {
       autoRenewing: false,
       androidPurchaseToken: null,
       appAccountToken: null,
+      // The same four free counters the web writes and the server meters.
+      freeDebatesRemaining: null,
+      freeComparesRemaining: null,
+      freeChatsRemaining: null,
+      freeAnalyzesRemaining: null,
     }));
 
     mockAuthModule.createUserWithEmailAndPassword.mockRejectedValue({ code: 'auth/email-already-in-use' });
