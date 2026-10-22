@@ -4,6 +4,7 @@ import { recordUsageInternal, enforceFreeTierForInteraction, freeTierGateError }
 import { normalizeProviderTemperature, resolveProviderModelId, requiresResponsesApi } from './modelRegistry';
 import { OPENAI_RESPONSES_URL, buildResponsesBody, parseResponsesOutput } from './providers/openai/responses';
 import { buildGeminiGenerationConfig } from './providers/google/thinking';
+import { isRecord, messageOf, statusOf } from './errorDetails';
 
 // Provider API endpoints
 const PROVIDER_CONFIGS: Record<string, {
@@ -104,31 +105,6 @@ function getBase64Data(attachment: MessageAttachment): string {
   return '';
 }
 
-/**
- * Format file size for display (e.g., "1.5 MB")
- */
-function formatFileSize(bytes?: number): string {
-  if (!bytes) return '';
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-/**
- * Create fallback text description for attachments when model doesn't support vision
- */
-function createAttachmentFallbackText(attachments?: MessageAttachment[]): string {
-  if (!attachments || attachments.length === 0) return '';
-
-  const descriptions = attachments.map((att, idx) => {
-    const name = att.fileName ? att.fileName : `${att.type} ${idx + 1}`;
-    const size = att.fileSize ? ` (${formatFileSize(att.fileSize)})` : '';
-    return `[User attached ${att.type}: ${name}${size}]`;
-  });
-
-  return descriptions.join('\n');
-}
-
 function getCitationDomain(url: string): string {
   try {
     return new URL(url).hostname.replace(/^www\./, '');
@@ -200,31 +176,34 @@ const PROVIDER_NAMES: Record<string, string> = {
  * Parse provider error responses into user-friendly messages
  */
 function parseProviderError(
-  error: any,
+  error: unknown,
   providerId: string
 ): { status: number; userMessage: string; technicalDetails: string } {
   const displayName = PROVIDER_NAMES[providerId] || providerId;
-  const status = error.status || 500;
+  const status = statusOf(error) || 500;
   let technicalDetails = '';
   let userMessage = `${displayName} encountered an error. Please try again.`;
 
   // Try to parse the error message as JSON (most providers return JSON errors)
-  let parsedError: any = null;
-  if (typeof error.message === 'string') {
+  const rawMessage = messageOf(error);
+  let parsedError: unknown = null;
+  if (rawMessage) {
     try {
-      parsedError = JSON.parse(error.message);
+      parsedError = JSON.parse(rawMessage);
     } catch {
       // Not JSON, use as-is
-      technicalDetails = error.message;
+      technicalDetails = rawMessage;
     }
   }
 
   // Extract the actual error message from various provider formats
+  const body = isRecord(parsedError) ? parsedError : {};
+  const nested = isRecord(body.error) ? body.error : {};
   const errorMessage =
-    parsedError?.error?.message ||  // OpenAI, Mistral, Perplexity, Grok
-    parsedError?.message ||          // Generic
-    parsedError?.error ||            // Some providers
-    error.message ||
+    (typeof nested.message === 'string' && nested.message) ||  // OpenAI, Mistral, Perplexity, Grok
+    (typeof body.message === 'string' && body.message) ||      // Generic
+    (typeof body.error === 'string' && body.error) ||          // Some providers
+    rawMessage ||
     'Unknown error';
 
   technicalDetails = errorMessage;
@@ -422,7 +401,7 @@ export const proxyAIRequest = onCall(
         citations: result.citations,
         searchPerformed: result.searchPerformed,
       };
-    } catch (error: any) {
+    } catch (error) {
       console.error(`Error calling ${providerId}:`, error);
 
       // Parse the error to extract meaningful information

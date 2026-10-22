@@ -12,7 +12,6 @@
  */
 
 import type {
-  CanonicalMessage,
   CanonicalToolCall,
   CanonicalSSEEvent,
   CanonicalToolDefinition,

@@ -1,11 +1,11 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getDecryptedApiKey, encryptionKey } from './apiKeys';
+import { codeOf, isRecord, messageOf, statusOf } from './errorDetails';
 import { freeLimitError, isPremiumOrTrial } from './usageTracking';
 import {
   getImageModels,
   getResolvedImageModel,
   isImageProvider,
-  type ImageModelConfig,
 } from './imageModelRegistry';
 
 // Simplified request - just prompt and basic options
@@ -25,6 +25,23 @@ interface GeneratedImage {
   base64?: string;
   revisedPrompt?: string;
   mimeType?: string;
+}
+
+/** An OpenAI-shaped images response (OpenAI's and xAI's generations and edits). */
+interface ImagesResponse {
+  data: Array<{ url?: string; b64_json?: string; revised_prompt?: string }>;
+}
+
+/** A part of a Gemini message: text, or an inline image. */
+interface GeminiPart {
+  text?: string;
+  inlineData?: { mimeType?: string; data?: string };
+}
+
+/** Gemini's generateContent response, as far as image generation reads it. */
+interface GeminiImageResponse {
+  candidates?: Array<{ content?: { parts?: GeminiPart[] } }>;
+  promptFeedback?: unknown;
 }
 
 /**
@@ -135,34 +152,40 @@ export const proxyImageGeneration = onCall(
         providerId,
         model: resolvedModel,
       };
-    } catch (error: any) {
+    } catch (error) {
       console.error(`Error generating image with ${providerId}:`, error);
 
       // Extract error message from various error formats
       let errorMessage = 'Unknown error';
+      const rawMessage = messageOf(error);
       if (typeof error === 'string') {
         errorMessage = error;
-      } else if (error.message) {
+      } else if (rawMessage) {
         // Try to parse JSON error messages from APIs
         try {
-          const parsed = JSON.parse(error.message);
-          errorMessage = parsed.error?.message || parsed.message || error.message;
+          const parsed: unknown = JSON.parse(rawMessage);
+          const body = isRecord(parsed) ? parsed : {};
+          const nested = isRecord(body.error) ? body.error : {};
+          errorMessage = (typeof nested.message === 'string' && nested.message)
+            || (typeof body.message === 'string' && body.message)
+            || rawMessage;
         } catch {
-          errorMessage = error.message;
+          errorMessage = rawMessage;
         }
       }
 
       // Handle specific error types
-      if (error.status === 401 || errorMessage.includes('401') || errorMessage.toLowerCase().includes('unauthorized')) {
+      const status = statusOf(error);
+      if (status === 401 || errorMessage.includes('401') || errorMessage.toLowerCase().includes('unauthorized')) {
         throw new HttpsError('permission-denied', 'Invalid API key');
       }
-      if (error.status === 429 || errorMessage.includes('429') || errorMessage.toLowerCase().includes('rate limit')) {
+      if (status === 429 || errorMessage.includes('429') || errorMessage.toLowerCase().includes('rate limit')) {
         throw new HttpsError('resource-exhausted', 'Rate limit exceeded. Please try again later.');
       }
       if (errorMessage.toLowerCase().includes('content policy') || errorMessage.toLowerCase().includes('safety')) {
         throw new HttpsError('invalid-argument', 'Content policy violation. Please modify your prompt.');
       }
-      if (error.code) {
+      if (codeOf(error)) {
         throw error; // Re-throw HttpsError
       }
 
@@ -207,7 +230,7 @@ async function generateOpenAI(
   }
 
   // Standard image generation - let API use defaults
-  const body: Record<string, any> = {
+  const body: Record<string, unknown> = {
     model,
     prompt,
     n: Math.min(n, model === 'dall-e-3' ? 1 : 10),
@@ -238,10 +261,10 @@ async function generateOpenAI(
     throw { status: response.status, message: error };
   }
 
-  const data = await response.json();
+  const data: ImagesResponse = await response.json();
 
   return {
-    images: data.data.map((item: any) => ({
+    images: data.data.map((item) => ({
       url: item.url || `data:image/png;base64,${item.b64_json}`,
       base64: item.b64_json,
       revisedPrompt: item.revised_prompt,
@@ -286,10 +309,10 @@ async function generateOpenAIEdit(
     throw { status: response.status, message: error };
   }
 
-  const data = await response.json();
+  const data: ImagesResponse = await response.json();
 
   return {
-    images: data.data.map((item: any) => ({
+    images: data.data.map((item) => ({
       url: item.url || `data:image/png;base64,${item.b64_json}`,
       base64: item.b64_json,
       revisedPrompt: item.revised_prompt,
@@ -313,7 +336,7 @@ async function generateGemini(
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
   // Build content parts
-  const parts: any[] = [];
+  const parts: GeminiPart[] = [];
 
   if (sourceImage) {
     parts.push({
@@ -355,7 +378,7 @@ async function generateGemini(
     throw { status: response.status, message: error };
   }
 
-  const data = await response.json();
+  const data: GeminiImageResponse = await response.json();
 
   // Log Gemini response structure for debugging
   console.log(`[Gemini] Response structure: candidates=${data.candidates?.length || 0}, promptFeedback=${JSON.stringify(data.promptFeedback || {})}`);
@@ -380,9 +403,9 @@ async function generateGemini(
   }
 
   if (images.length === 0) {
-    const textPart = candidates[0]?.content?.parts?.find((p: any) => p.text);
-    if (textPart) {
-      throw new HttpsError('failed-precondition', `Gemini returned text instead of image: ${textPart.text.substring(0, 100)}`);
+    const text = candidates[0]?.content?.parts?.find((p) => p.text)?.text;
+    if (text) {
+      throw new HttpsError('failed-precondition', `Gemini returned text instead of image: ${text.substring(0, 100)}`);
     }
     throw new HttpsError('internal', 'No image generated by Gemini');
   }
@@ -427,10 +450,10 @@ async function generateGrok(
     throw { status: response.status, message: error };
   }
 
-  const data = await response.json();
+  const data: ImagesResponse = await response.json();
 
   return {
-    images: data.data.map((item: any) => ({
+    images: data.data.map((item) => ({
       url: item.url || `data:image/png;base64,${item.b64_json}`,
       base64: item.b64_json,
       mimeType: 'image/png',
@@ -470,10 +493,10 @@ async function generateGrokEdit(
     throw { status: response.status, message: error };
   }
 
-  const data = await response.json();
+  const data: ImagesResponse = await response.json();
 
   return {
-    images: data.data.map((item: any) => ({
+    images: data.data.map((item) => ({
       url: item.url || `data:image/png;base64,${item.b64_json}`,
       base64: item.b64_json,
       mimeType: 'image/png',

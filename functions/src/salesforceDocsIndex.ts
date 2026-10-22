@@ -4,6 +4,8 @@ import { existsSync } from 'fs';
 import { execFile as execFileCallback } from 'child_process';
 import { promisify } from 'util';
 import { GoogleAuth } from 'google-auth-library';
+import type { Browser } from 'puppeteer-core';
+import { causeOf, codeOf, messageOf } from './errorDetails';
 
 try {
   admin.app();
@@ -2121,7 +2123,7 @@ function normalizeRenderedHelpText(value: string): string {
   ];
 
   return value
-    .replace(/\u0000/g, ' ')
+    .split('\u0000').join(' ')
     .replace(/\u00a0/g, ' ')
     .replace(/\r/g, '\n')
     .split('\n')
@@ -2149,7 +2151,7 @@ function sameRenderedHelpLine(line: string, title: string): boolean {
  */
 export function extractRenderedHelpArticle(rawText: string, title?: string): { header: string; text: string } {
   let lines = rawText
-    .replace(/\u0000/g, ' ')
+    .split('\u0000').join(' ')
     .replace(/\u00a0/g, ' ')
     .replace(/\r/g, '\n')
     .split('\n')
@@ -2206,7 +2208,7 @@ function extractHelpReleaseVersion(urlValue: string): string | undefined {
   }
 }
 
-async function resolveSalesforceHelpChromeExecutable(chromium: any): Promise<string> {
+async function resolveSalesforceHelpChromeExecutable(chromium: typeof import('@sparticuz/chromium')): Promise<string> {
   const configuredPath = process.env.CHROME_EXECUTABLE_PATH || process.env.PUPPETEER_EXECUTABLE_PATH;
   if (configuredPath) return configuredPath;
   for (const localPath of LOCAL_CHROME_EXECUTABLE_PATHS) {
@@ -2221,9 +2223,9 @@ function isLocalChromeExecutablePath(executablePath: string): boolean {
     || /\/Applications\/.*Chromium/i.test(executablePath);
 }
 
-let salesforceHelpBrowserPromise: Promise<any> | null = null;
+let salesforceHelpBrowserPromise: Promise<Browser> | null = null;
 
-async function getSalesforceHelpBrowser(): Promise<any> {
+async function getSalesforceHelpBrowser(): Promise<Browser> {
   if (!salesforceHelpBrowserPromise) {
     salesforceHelpBrowserPromise = (async () => {
       const chromium = await import('@sparticuz/chromium');
@@ -2514,11 +2516,12 @@ function excerptFor(text: string, topic: SalesforceDocsIndexTopic): string {
   return `${start > 0 ? '...' : ''}${text.slice(start, start + 700)}${start + 700 < text.length ? '...' : ''}`;
 }
 
-function fetchErrorMessage(error: any, fallback = 'Unknown fetch failure'): string {
-  const message = error?.message || fallback;
-  const cause = error?.cause;
-  const causeCode = typeof cause?.code === 'string' ? cause.code : undefined;
-  const causeMessage = typeof cause?.message === 'string' ? cause.message : undefined;
+function fetchErrorMessage(error: unknown, fallback = 'Unknown fetch failure'): string {
+  const message = messageOf(error, fallback);
+  const cause = causeOf(error);
+  const code = codeOf(cause);
+  const causeCode = typeof code === 'string' ? code : undefined;
+  const causeMessage = messageOf(cause) || undefined;
   if (causeCode && causeMessage) return `${message}: ${causeCode} ${causeMessage}`;
   if (causeCode) return `${message}: ${causeCode}`;
   if (causeMessage) return `${message}: ${causeMessage}`;
@@ -2562,7 +2565,7 @@ async function fetchText(url: string, timeoutMs = 20000, maxAttempts = 3): Promi
       if (![403, 429, 500, 502, 503, 504].includes(response.status) || attempt === maxAttempts - 1) {
         break;
       }
-    } catch (error: any) {
+    } catch (error) {
       lastError = error instanceof Error ? new Error(fetchErrorMessage(error)) : new Error(fetchErrorMessage(error, 'Unknown fetch failure'));
       if (ALLOW_CURL_TEXT_FETCH && /UNABLE_TO_VERIFY|fetch failed/i.test(lastError.message)) break;
       if (attempt === maxAttempts - 1) break;
@@ -2578,7 +2581,7 @@ async function fetchText(url: string, timeoutMs = 20000, maxAttempts = 3): Promi
         fetchError: lastError?.message,
       });
       return await fetchTextWithCurl(url, timeoutMs);
-    } catch (curlError: any) {
+    } catch (curlError) {
       throw new Error(`Text fetch failed via fetch (${lastError?.message || 'unknown'}) and curl fallback (${fetchErrorMessage(curlError, 'Unknown curl text fetch failure')})`);
     }
   }
@@ -2595,7 +2598,7 @@ async function fetchPdfDocumentWithCurl(url: string): Promise<FetchedPdfDocument
     execFile('curl', ['-L', '--fail', '--silent', '--show-error', '--max-time', '90', url], {
       encoding: 'buffer',
       maxBuffer: 80 * 1024 * 1024,
-    } as any) as Promise<{ stdout: Buffer; stderr: Buffer }>,
+    }),
     execFile('curl', ['-I', '-L', '--silent', '--show-error', '--max-time', '30', url], {
       encoding: 'utf8',
       maxBuffer: 1024 * 1024,
@@ -2656,7 +2659,7 @@ async function fetchPdfDocument(url: string, timeoutMs = 60000): Promise<Fetched
       if (![403, 429, 500, 502, 503, 504].includes(response.status) || attempt === 2) {
         break;
       }
-    } catch (error: any) {
+    } catch (error) {
       lastError = error instanceof Error ? new Error(fetchErrorMessage(error, 'Unknown PDF fetch failure')) : new Error(fetchErrorMessage(error, 'Unknown PDF fetch failure'));
       if ((ALLOW_CURL_PDF_FETCH || ALLOW_CURL_TEXT_FETCH) && /UNABLE_TO_VERIFY|fetch failed/i.test(lastError.message)) break;
       if (attempt === 2) break;
@@ -2672,7 +2675,7 @@ async function fetchPdfDocument(url: string, timeoutMs = 60000): Promise<Fetched
         fetchError: lastError?.message,
       });
       return await fetchPdfDocumentWithCurl(url);
-    } catch (curlError: any) {
+    } catch (curlError) {
       throw new Error(`PDF fetch failed via fetch (${lastError?.message || 'unknown'}) and curl fallback (${fetchErrorMessage(curlError, 'Unknown curl PDF fetch failure')})`);
     }
   }
@@ -2684,9 +2687,11 @@ async function fetchOfficialJson<T>(url: string, options: { timeoutMs?: number; 
   return JSON.parse(text) as T;
 }
 
-let pdfJsPromise: Promise<any> | null = null;
+type PdfJs = typeof import('pdfjs-dist/legacy/build/pdf.mjs');
 
-async function loadPdfJs(): Promise<any> {
+let pdfJsPromise: Promise<PdfJs> | null = null;
+
+async function loadPdfJs(): Promise<PdfJs> {
   if (!pdfJsPromise) {
     pdfJsPromise = import('pdfjs-dist/legacy/build/pdf.mjs');
   }
@@ -2695,7 +2700,7 @@ async function loadPdfJs(): Promise<any> {
 
 function normalizeExtractedPdfText(text: string): string {
   return text
-    .replace(/\u0000/g, ' ')
+    .split('\u0000').join(' ')
     .replace(/[ \t]+\n/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .replace(/[ \t]{2,}/g, ' ')
@@ -2729,7 +2734,6 @@ async function extractPdfText(bytes: Uint8Array, sourceId: string): Promise<Extr
   const pdfjs = await loadPdfJs();
   const document = await pdfjs.getDocument({
     data: bytes,
-    disableWorker: true,
     isEvalSupported: false,
     useWorkerFetch: false,
   }).promise;
@@ -2746,7 +2750,7 @@ async function extractPdfText(bytes: Uint8Array, sourceId: string): Promise<Extr
     const page = await document.getPage(pageNumber);
     const content = await page.getTextContent();
     const pageText = content.items
-      .map((item: any) => typeof item?.str === 'string' ? item.str : '')
+      .map((item) => ('str' in item && typeof item.str === 'string' ? item.str : ''))
       .filter(Boolean)
       .join(' ');
     if (pageText.trim()) pageChunks.push(pageText);
@@ -2918,8 +2922,8 @@ export async function fetchOfficialDocContent(
     try {
       const developerContent = await fetchDeveloperDocsContent(url, { timeoutMs, maxAttempts });
       if (developerContent) return developerContent;
-    } catch (error: any) {
-      developerDocsApiError = error?.message || 'Unknown developer docs API failure';
+    } catch (error) {
+      developerDocsApiError = messageOf(error, 'Unknown developer docs API failure');
     }
   }
 
@@ -2939,9 +2943,9 @@ export async function fetchOfficialDocContent(
   let html: string;
   try {
     html = await fetchText(url, timeoutMs, maxAttempts);
-  } catch (error: any) {
-    if (/HTTP 403/.test(error?.message || '')) {
-      throw new SalesforceDocNotReadError(url, 'blocked', `Salesforce blocked this page (HTTP 403): ${error.message}`);
+  } catch (error) {
+    if (/HTTP 403/.test(messageOf(error))) {
+      throw new SalesforceDocNotReadError(url, 'blocked', `Salesforce blocked this page (HTTP 403): ${messageOf(error)}`);
     }
     throw error;
   }
@@ -2985,19 +2989,19 @@ async function collectSitemapEntries(
       try {
         const childXml = await fetchSitemapXml(childUrl);
         entries.push(...parseSitemapEntries(childXml, childUrl, source.label));
-      } catch (error: any) {
+      } catch (error) {
         failures.push({
           topicId: 'sitemap-discovery',
           url: childUrl,
-          error: error?.message || 'Unknown sitemap fetch failure',
+          error: messageOf(error, 'Unknown sitemap fetch failure'),
         });
       }
     }
-  } catch (error: any) {
+  } catch (error) {
     failures.push({
       topicId: 'sitemap-discovery',
       url: source.url,
-      error: error?.message || 'Unknown sitemap fetch failure',
+      error: messageOf(error, 'Unknown sitemap fetch failure'),
     });
   }
   return entries.slice(0, source.maxEntries);
@@ -3493,11 +3497,11 @@ async function buildSalesforceDocsIndexNowInternal(options: SalesforceDocsIndexB
         url: canonicalUrl,
       });
       records.push(await buildPdfRecord(pdfSource, generatedAt, records.length + 1));
-    } catch (error: any) {
+    } catch (error) {
       failures.push({
         topicId: pdfSource.topicIds[0] || pdfSource.id,
         url: canonicalUrl,
-        error: error?.message || 'Unknown PDF fetch or extraction failure',
+        error: messageOf(error, 'Unknown PDF fetch or extraction failure'),
       });
     }
   }
@@ -3521,11 +3525,11 @@ async function buildSalesforceDocsIndexNowInternal(options: SalesforceDocsIndexB
 
       try {
         records.push(await buildRecord(topic, canonicalUrl, generatedAt, records.length + 1, { source: 'seed' }, helpCatalog));
-      } catch (error: any) {
+      } catch (error) {
         failures.push({
           topicId: topic.id,
           url: canonicalUrl,
-          error: error?.message || 'Unknown fetch failure',
+          error: messageOf(error, 'Unknown fetch failure'),
         });
       }
     }
@@ -3559,11 +3563,11 @@ async function buildSalesforceDocsIndexNowInternal(options: SalesforceDocsIndexB
           sitemapScore: score,
         }, helpCatalog));
         topicSitemapRecordCount += 1;
-      } catch (error: any) {
+      } catch (error) {
         failures.push({
           topicId: topic.id,
           url: entry.url,
-          error: error?.message || 'Unknown sitemap-discovered fetch failure',
+          error: messageOf(error, 'Unknown sitemap-discovered fetch failure'),
         });
       }
     }
@@ -3578,8 +3582,8 @@ async function buildSalesforceDocsIndexNowInternal(options: SalesforceDocsIndexB
     seenUrls.add(learned.url);
     try {
       records.push(await buildRecord(learnedTopicForMiss({ label: learned.title, query: learned.query }), learned.url, generatedAt, records.length + 1, { source: 'miss' }, helpCatalog));
-    } catch (error: any) {
-      failures.push({ topicId: 'learned', url: learned.url, error: error?.message || 'Unknown learned-page fetch failure' });
+    } catch (error) {
+      failures.push({ topicId: 'learned', url: learned.url, error: messageOf(error, 'Unknown learned-page fetch failure') });
     }
   }
 
@@ -3614,8 +3618,8 @@ async function buildSalesforceDocsIndexNowInternal(options: SalesforceDocsIndexB
         records.push(record);
         learnedSources.push({ url, title: record.title, query: miss.query, learnedAt: generatedAt });
         answered = true;
-      } catch (error: any) {
-        failures.push({ topicId: 'learned', url, error: error?.message || 'Unknown miss-candidate fetch failure' });
+      } catch (error) {
+        failures.push({ topicId: 'learned', url, error: messageOf(error, 'Unknown miss-candidate fetch failure') });
       }
     }
     if (!answered) {

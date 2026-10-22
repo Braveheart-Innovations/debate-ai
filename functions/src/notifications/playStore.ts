@@ -17,7 +17,6 @@ export const handlePlayStoreNotification = onMessagePublished(
     const message = event.data;
     try {
       const data = JSON.parse(Buffer.from(message.message.data || '', 'base64').toString());
-      const subtype = data?.subscriptionNotification?.notificationType;
       const purchaseToken = data?.subscriptionNotification?.purchaseToken as string | undefined;
       const subscriptionId = data?.subscriptionNotification?.subscriptionId as string | undefined;
       if (!purchaseToken || !subscriptionId) return;
@@ -136,7 +135,7 @@ async function validateAndroidSubscription(
   const res = await publisher.purchases.subscriptionsv2.get({
     packageName,
     token,
-  } as any);
+  });
   const purchase = res.data as androidpublisher_v3.Schema$SubscriptionPurchaseV2;
   const lineItem = getLatestSubscriptionLineItem(purchase.lineItems, subscriptionId);
   const expiryTimeMillis = parseAndroidTimestampMillis(lineItem?.expiryTime);
