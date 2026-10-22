@@ -29,7 +29,8 @@ describe('deep thinking (the Team plan round)', () => {
       assert.equal(build(claude, model, true).output_config, undefined, model);
     }
     // Never a fixed thinking budget: the current models reject budget_tokens.
-    assert.equal(build(claude, 'claude-opus-5-5', true).thinking, undefined);
+    assert.equal(build(claude, 'claude-opus-5-5', true).thinking.type, 'adaptive');
+    assert.equal(build(claude, 'claude-opus-5-5', true).thinking.budget_tokens, undefined);
   });
 
   it('OpenAI: reasoning.effort high on Responses API models; chat-completions models unchanged', () => {

@@ -15,6 +15,7 @@ import type {
   CanonicalSSEEvent,
   CanonicalToolDefinition,
   CanonicalToolChoice,
+  ClaudeReplayBlock,
 } from '../../types/canonical';
 import type { ProviderRuntime, ProviderRequest, BuiltRequest, ProviderConfig } from '../types';
 import {
@@ -24,7 +25,7 @@ import {
   mapClaudeStopReason,
   type ToolCallInProgress,
 } from '../base-runtime';
-import { claudeDeepThinkingEffort, normalizeProviderTemperature } from '../../modelRegistry';
+import { claudeDeepThinkingEffort, claudeThinksByDefault, normalizeProviderTemperature } from '../../modelRegistry';
 
 // ============================================================================
 // Claude Message Types
@@ -33,12 +34,112 @@ import { claudeDeepThinkingEffort, normalizeProviderTemperature } from '../../mo
 type CacheControl = { type: 'ephemeral' };
 
 type ClaudeContentBlock = (
-  | { type: 'text'; text: string }
+  | ClaudeReplayBlock
   | { type: 'image'; source: { type: 'base64'; media_type: string; data: string } }
   | { type: 'document'; source: { type: 'base64'; media_type: string; data: string } }
-  | { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> }
+  | { type: 'tool_use'; id: string; name: string; input: Record<string, unknown>; [field: string]: unknown }
   | { type: 'tool_result'; tool_use_id: string; content: string; is_error?: boolean }
 ) & { cache_control?: CacheControl };
+
+// ============================================================================
+// Thinking (adaptive on the current models)
+// ============================================================================
+
+/**
+ * The beta that adds thinking.block_binding. A thinking block is valid only
+ * while everything sent before it is unchanged. With "drop_block" a block
+ * whose history changed is dropped; without it, accounts created from
+ * 2026-08-31 get a 400. The Analyze loop rebuilds its history each round, and
+ * some rebuilds change it: pruning, the first round's attachments, a recovery
+ * prompt, the Team plan round's tools.
+ */
+const THINKING_BINDING_BETA = 'thinking-binding-controls-2026-08-01';
+
+/**
+ * An assistant message as Claude wrote it, its thinking included, when its
+ * tool calls kept the reply's blocks (streamParse). Within a tool-use turn
+ * Anthropic requires the thinking back, unchanged and in order. A message whose
+ * text no longer matches the reply (the app filled or rewrote it) goes back
+ * without them.
+ */
+function replayContent(msg: CanonicalMessage): ClaudeContentBlock[] | null {
+  const calls = msg.tool_calls ?? [];
+  if (calls.length === 0 || !calls.every((call) => call.extra_content?.claude)) return null;
+  const content: ClaudeContentBlock[] = [];
+  for (const call of calls) {
+    const kept = call.extra_content!.claude!;
+    content.push(...kept.before, {
+      ...kept.fields,
+      type: 'tool_use',
+      id: call.id,
+      name: call.function.name,
+      input: JSON.parse(call.function.arguments || '{}'),
+    });
+    if (kept.after) content.push(...kept.after);
+  }
+  const text = content.map((block) => (block.type === 'text' ? block.text : '')).join('');
+  return text === (msg.content ?? '') ? content : null;
+}
+
+type StreamedBlock = {
+  type?: string;
+  id?: string;
+  thinking?: string;
+  signature?: string;
+  data?: string;
+  text?: string;
+  [field: string]: unknown;
+};
+
+/**
+ * A reply's blocks in order, as they stream, so a reply that thought can go
+ * back exactly with its tool results (replayContent).
+ */
+class ReplyBlocks {
+  private open = new Map<number, ClaudeReplayBlock>();
+  private pending: ClaudeReplayBlock[] = [];
+  private kept = new Map<string, { before: ClaudeReplayBlock[]; fields?: Record<string, unknown> }>();
+  private thought = false;
+
+  start(index: number, block: StreamedBlock | undefined): void {
+    if (block?.type === 'thinking') {
+      this.thought = true;
+      this.open.set(index, { type: 'thinking', thinking: block.thinking ?? '', signature: block.signature ?? '' });
+    } else if (block?.type === 'redacted_thinking') {
+      this.thought = true;
+      this.open.set(index, { type: 'redacted_thinking', data: block.data ?? '' });
+    } else if (block?.type === 'text') {
+      this.open.set(index, { type: 'text', text: block.text ?? '' });
+    } else if (block?.type === 'tool_use' && block.id) {
+      const { type: _type, id, name: _name, input: _input, ...fields } = block;
+      this.kept.set(id, { before: this.pending, ...(Object.keys(fields).length > 0 ? { fields } : {}) });
+      this.pending = [];
+    }
+  }
+
+  delta(index: number, delta: StreamedBlock | undefined): void {
+    const block = this.open.get(index);
+    if (block?.type === 'thinking' && delta?.type === 'thinking_delta') block.thinking += delta.thinking ?? '';
+    else if (block?.type === 'thinking' && delta?.type === 'signature_delta') block.signature += delta.signature ?? '';
+    else if (block?.type === 'text' && delta?.type === 'text_delta') block.text += delta.text ?? '';
+  }
+
+  stop(index: number): void {
+    const block = this.open.get(index);
+    if (!block) return;
+    this.pending.push(block);
+    this.open.delete(index);
+  }
+
+  /** When the reply thought, each call keeps the blocks around it (extra_content.claude). */
+  attach(calls: CanonicalToolCall[]): void {
+    if (!this.thought || calls.length === 0 || !calls.every((call) => this.kept.has(call.id))) return;
+    calls.forEach((call, index) => {
+      const after = index === calls.length - 1 && this.pending.length > 0 ? { after: this.pending } : {};
+      call.extra_content = { ...call.extra_content, claude: { ...this.kept.get(call.id)!, ...after } };
+    });
+  }
+}
 
 interface ClaudeMessage {
   role: 'user' | 'assistant';
@@ -152,6 +253,11 @@ export class ClaudeRuntime implements ProviderRuntime {
     if (effort) {
       body.output_config = { effort };
     }
+    // Named explicitly (the same setting as leaving it out) for the binding beta.
+    const bindThinking = claudeThinksByDefault(request.model);
+    if (bindThinking) {
+      body.thinking = { type: 'adaptive', block_binding: { prefix_mismatch_behavior: 'drop_block' } };
+    }
 
     // Add system prompt as top-level field (a block with a breakpoint when caching)
     if (systemPrompt) {
@@ -172,6 +278,7 @@ export class ClaudeRuntime implements ProviderRuntime {
       'Content-Type': 'application/json',
       [this.config.authHeader]: apiKey,
       ...this.config.staticHeaders,
+      ...(bindThinking ? { 'anthropic-beta': THINKING_BINDING_BETA } : {}),
     };
 
     return {
@@ -195,10 +302,15 @@ export class ClaudeRuntime implements ProviderRuntime {
     let cacheReadTokens = 0;
     let cacheWriteTokens = 0;
     let finishReason = 'stop';
+    const reply = new ReplyBlocks();
 
     for await (const data of parseSSEStream(responseStream)) {
       try {
         const event = JSON.parse(data);
+
+        if (event.type === 'content_block_start') reply.start(event.index, event.content_block);
+        else if (event.type === 'content_block_delta') reply.delta(event.index, event.delta);
+        else if (event.type === 'content_block_stop') reply.stop(event.index);
 
         // Text delta
         if (event.type === 'content_block_delta' && event.delta?.text) {
@@ -263,6 +375,11 @@ export class ClaudeRuntime implements ProviderRuntime {
 
         // Message start (contains input token count)
         else if (event.type === 'message_start' && event.message?.usage) {
+          // Thinking blocks the API dropped (their history changed, or another model wrote them).
+          const transformations = event.message.input_transformations;
+          if (Array.isArray(transformations) && transformations.length > 0) {
+            console.warn(JSON.stringify({ traceId, event: 'claude_input_transformations', transformations }));
+          }
           const usage = event.message.usage;
           cacheReadTokens = usage.cache_read_input_tokens || 0;
           cacheWriteTokens = usage.cache_creation_input_tokens || 0;
@@ -283,6 +400,8 @@ export class ClaudeRuntime implements ProviderRuntime {
         // Skip invalid JSON
       }
     }
+
+    reply.attach(completedToolCalls);
 
     // Emit message complete event
     yield {
@@ -348,6 +467,12 @@ export class ClaudeRuntime implements ProviderRuntime {
 
       // Handle assistant messages with tool calls → tool_use blocks
       if (msg.role === 'assistant' && msg.tool_calls && msg.tool_calls.length > 0) {
+        const replayed = replayContent(msg);
+        if (replayed) {
+          claudeMessages.push({ role: 'assistant', content: replayed });
+          continue;
+        }
+
         const contentBlocks: ClaudeContentBlock[] = [];
 
         // Add text content first

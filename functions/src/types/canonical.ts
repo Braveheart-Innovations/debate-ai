@@ -16,6 +16,16 @@
 // ============================================================================
 
 /**
+ * A block of a Claude reply other than a tool call, kept so the reply goes back
+ * exactly as Claude wrote it. A thinking block's text is empty when the display
+ * is omitted (the default on the current models); its signature carries it.
+ */
+export type ClaudeReplayBlock =
+  | { type: 'thinking'; thinking: string; signature: string }
+  | { type: 'redacted_thinking'; data: string }
+  | { type: 'text'; text: string };
+
+/**
  * A tool call in canonical format.
  * This is the standardized representation used across all providers.
  */
@@ -38,6 +48,19 @@ export interface CanonicalToolCall {
   extra_content?: {
     google?: {
       thought_signature?: string;
+    };
+    /**
+     * A Claude reply that thought: its blocks around this call, in order, and
+     * the tool_use block's other fields. Anthropic requires the thinking back,
+     * unchanged, with the tool results (ClaudeRuntime).
+     */
+    claude?: {
+      /** The blocks between the previous call (or the reply's start) and this one. */
+      before: ClaudeReplayBlock[];
+      /** The last call only: blocks after it. */
+      after?: ClaudeReplayBlock[];
+      /** The tool_use block's fields besides type, id, name and input (such as caller). */
+      fields?: Record<string, unknown>;
     };
   };
 }

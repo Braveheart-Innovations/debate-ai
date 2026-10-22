@@ -273,6 +273,25 @@ export function claudeDeepThinkingEffort(modelId: string | undefined): 'xhigh' |
   return CLAUDE_XHIGH_EFFORT_MODELS.has(resolveModelAlias(modelId)) ? 'xhigh' : undefined;
 }
 
+/**
+ * Claude models that think by default (adaptive thinking with no `thinking`
+ * field). Their requests set it explicitly to add the thinking binding beta
+ * (ClaudeRuntime.buildRequest); each accepts it, verified 2026-10-22.
+ */
+const CLAUDE_ADAPTIVE_THINKING_MODELS = new Set([
+  'claude-opus-5',
+  'claude-opus-5-5',
+  'claude-sonnet-5',
+  'claude-sonnet-5-5',
+  'claude-haiku-5-5',
+  'claude-fable-5',
+  'claude-fable-5-1',
+]);
+
+export function claudeThinksByDefault(modelId: string | undefined): boolean {
+  return !!modelId && CLAUDE_ADAPTIVE_THINKING_MODELS.has(resolveModelAlias(modelId));
+}
+
 /** Responses API models take reasoning.effort; "high" is above their "medium" default. */
 export function openAIDeepThinkingEffort(modelId: string | undefined): 'high' | undefined {
   return requiresResponsesApi(modelId) ? 'high' : undefined;
