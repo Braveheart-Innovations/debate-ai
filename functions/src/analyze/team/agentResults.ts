@@ -10,7 +10,7 @@ import type { AgentRunResult } from './types';
 export const ANSWER_FILENAME = 'final-reply.md';
 const NO_ANSWER_TEXT = 'The subagent ended without a final answer.';
 /** Leads a teammate's answer that stopped at its output limit, so the operator doesn't take it as complete. */
-export const OUTPUT_LIMIT_NOTE = '[App note: this reply reached the model\'s output limit and may be cut off. Treat missing parts as not done.]';
+export const OUTPUT_LIMIT_NOTE = '[App note: this reply reached the model\'s output limit and may be cut off; what it doesn\'t show wasn\'t done.]';
 
 /**
  * A delegated task is the operator's own text, plus the two facts the teammate

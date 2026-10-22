@@ -27,4 +27,10 @@ describe('checkRecipes', () => {
     const plain = result([{ filename: 'summary.csv', text: 'a,b\n1,2\n' }, { filename: 'notes/model.json.bak', text: '{}' }]);
     expect(checkRecipes(plain)).toBe(plain);
   });
+
+  it('names the model guide when a model can\'t be read and the run has the guide', () => {
+    const noControls = result([{ filename: 'staffing.recipe.py', text: 'PARAMS = {"staff": n}\n' }]);
+    expect(checkRecipes(noControls, { model: 'How a model works.' }).content).toMatch(/The how-to is in read_guide\("model"\)\.$/);
+    expect(checkRecipes(noControls).content).not.toContain('read_guide');
+  });
 });

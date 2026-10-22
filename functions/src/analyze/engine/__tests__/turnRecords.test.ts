@@ -103,6 +103,19 @@ describe('earlier turns as records', () => {
     expect(record).toContain('The org evidence brief it sent:\nRun SELECT COUNT() FROM Lead WHERE IsConverted = false in production.');
   });
 
+  it('counts read_turn and read_guide but doesn\'t list them: they only read', () => {
+    const reading = [
+      ask('msg_1', 'Write the report', 1),
+      round('run_1_aa_r0', '', [['g1', 'read_guide', { name: 'report' }], ['t1', 'read_turn', { turn: 1 }]], 2),
+      result('g1', 'read_guide', 'The report contract.', 3),
+      result('t1', 'read_turn', 'Turn 1…', 3),
+      round('run_1_aa_r1', 'Done.', [], 4),
+    ];
+    const record = buildTurnRecord(splitTurns(reading).turns[0]);
+    expect(record).toContain('Tools run: read_guide ×1, read_turn ×1.');
+    expect(record).not.toContain('Other calls');
+  });
+
   it('says when a turn failed to fetch or ended without a reply', () => {
     const stopped = [
       ask('msg_1', 'Get the data', 1),

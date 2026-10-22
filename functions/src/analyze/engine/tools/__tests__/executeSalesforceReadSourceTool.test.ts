@@ -61,10 +61,10 @@ describe('readSalesforceSource', () => {
     const long = file('classes/Big.cls', Array.from({ length: SOURCE_PAGE_LINES + 50 }, (_, i) => `line ${i + 1}`).join('\n'));
     const first = content(readSalesforceSource([long], { path: 'Big.cls' }));
     expect(first).toContain(`lines 1-${SOURCE_PAGE_LINES} of ${SOURCE_PAGE_LINES + 50}`);
-    expect(first).toContain(`call again with path="classes/Big.cls", start_line=${SOURCE_PAGE_LINES + 1}`);
+    expect(first).toContain(`The file continues: path="classes/Big.cls", start_line=${SOURCE_PAGE_LINES + 1} reads the next lines.`);
     const second = content(readSalesforceSource([long], { path: 'Big.cls', start_line: SOURCE_PAGE_LINES + 1 }));
     expect(second).toContain(`line ${SOURCE_PAGE_LINES + 50}`);
-    expect(second).not.toContain('call again');
+    expect(second).not.toContain('The file continues');
   });
 
   it('searches the workspace with a pattern and cites path:line', () => {

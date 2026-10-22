@@ -10,14 +10,15 @@ import type { ToolResult } from '../../contract/lib/ai/tools/types';
 import { isModelResultsFilename, modelResultsProblem } from '../../contract/services/analyze/models/modelResults';
 import { isRecipeFilename, parseRecipeParams } from '../../recipes/recipeParams';
 import { outputPath, withNotes } from './toolResultNotes';
+import { guideHint } from '../guides';
 
-export function checkRecipes(result: ToolResult): ToolResult {
+export function checkRecipes(result: ToolResult, guides?: Record<string, string>): ToolResult {
   const notes: string[] = [];
   for (const output of result.dataOutputs ?? []) {
     if (isModelResultsFilename(output.filename)) {
       const problem = modelResultsProblem(Buffer.from(output.base64, 'base64').toString('utf8'));
       if (problem) {
-        notes.push(`Model results NOT readable: ${outputPath(output.filename)}: ${problem}. Don't write model.json by hand: call show_metric / show_chart / show_table / show_note in the recipe and run it with run_recipe, which writes the file.`);
+        notes.push(`Model results NOT readable: ${outputPath(output.filename)}: ${problem}. Don't write model.json by hand: call show_metric / show_chart / show_table / show_note in the recipe and run it with run_recipe, which writes the file.${guideHint(guides, 'model')}`);
       }
       continue;
     }
@@ -30,7 +31,7 @@ export function checkRecipes(result: ToolResult): ToolResult {
         ? `Model saved: ${path} with parameters ${names}. The user can change them and run it again without you.`
         : `Model saved: ${path}, with no PARAMS, so the user can only run it again as it is.`);
     } catch (error) {
-      notes.push(`Model saved WITHOUT controls: ${path}: ${error instanceof Error ? error.message : String(error)}. Fix PARAMS / PARAM_SPECS (plain literals only) and save it again.`);
+      notes.push(`Model saved WITHOUT controls: ${path}: ${error instanceof Error ? error.message : String(error)}. Fix PARAMS / PARAM_SPECS (plain literals only) and save it again.${guideHint(guides, 'model')}`);
     }
   }
   return notes.length > 0 ? withNotes(result, notes) : result;

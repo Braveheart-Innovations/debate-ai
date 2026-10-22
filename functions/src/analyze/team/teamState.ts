@@ -43,8 +43,8 @@ export const SOLO_RESULT_TEXT = 'The user chose to have you do this yourself; su
 /** Tool result text when the user declines a plan, with what they want changed. */
 export function declinedResultText(toolName: TeamCallState['toolName'], feedback: string): string {
   return toolName === PROPOSE_TEAM_TOOL_NAME
-    ? `The user declined this plan: ${feedback}\n\nPropose a revised plan with propose_team, ask the user if something is unclear, or say if you'd rather work alone.`
-    : `The user declined this handoff: ${feedback}\n\nRevise it and delegate again, ask the user if something is unclear, or do the work yourself.`;
+    ? `The user declined this plan: ${feedback}`
+    : `The user declined this handoff: ${feedback}`;
 }
 
 /** One teammate's place on an approved task. "Replace with…" reruns the slot on another model. */

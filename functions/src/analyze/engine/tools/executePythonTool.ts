@@ -120,9 +120,9 @@ export async function executePythonTool(
 
   if (hasDataOutputs) {
     const fileList = result.dataOutputs!.map(d => formatOutputPath(d.filename)).join(', ');
-    summaryForAI += ` Generated output file(s) retained for final synthesis: ${fileList}. Do not regenerate these files solely because binary/file contents are not shown in conversation history.`;
+    summaryForAI += ` Output file(s) saved and kept: ${fileList}. The history names them; their contents stay in the files.`;
   } else if (hasImages && !result.error) {
-    summaryForAI += ' The visualization artifact(s) were captured by the app for final synthesis; do not rerun solely because binary image data is not shown in conversation history.';
+    summaryForAI += ' The app captured the image(s); the history doesn\'t show image data.';
   }
 
   const fullStdout = result.stdout || '';

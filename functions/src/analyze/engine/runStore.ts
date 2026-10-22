@@ -94,6 +94,8 @@ export interface RunConfig {
   subagentSystemPrompt?: string;
   /** The operator prompt for turns the server starts (Run again, review hand-off): Team mode off. Defaults to systemPrompt. */
   followUpSystemPrompt?: string;
+  /** The how-to for each kind of output, by name, for read_guide (guides.ts); the caller builds them like the prompts. */
+  guides?: Record<string, string>;
 }
 
 /** What a subagent run is doing for whom. */

@@ -5,7 +5,6 @@
  */
 import type { ToolResult } from '../../contract/lib/ai/tools/types';
 import type { SalesforceMetadataAuditArgs, SalesforceMetadataAuditOperation } from '../../contract/lib/ai/tools/built-in/salesforce-metadata-audit';
-import { salesforceJobForOperation, salesforceJobReportType } from '../../contract/config/salesforce-jobs';
 import type { SandboxFiles } from './sandboxFiles';
 import { diagramFileText } from '../../contract/services/analyze/diagrams/diagramFile';
 import { buildSalesforceDataModel } from '../../salesforce/salesforceDataModel';
@@ -47,6 +46,26 @@ import {
 } from '../../salesforce/SalesforceMetadataService';
 
 const DEFAULT_OPERATION: SalesforceMetadataAuditOperation = 'audit';
+
+/** The arguments as the operations use them: `deliver` puts a diagram in the user's Outputs. */
+type AuditArgs = SalesforceMetadataAuditArgs & { operation: SalesforceMetadataAuditOperation; deliver: boolean };
+
+/** Where a diagram goes that the model drew to look at the org, not to deliver: kept out of the user's Outputs. */
+export const SALESFORCE_DIAGRAM_WORK_DIR = '/data/salesforce/diagrams';
+
+/** A diagram operation's folder: the user's Outputs when the model delivers it, else the working folder. */
+function diagramDir(args: AuditArgs): string {
+  return args.deliver ? '/output' : SALESFORCE_DIAGRAM_WORK_DIR;
+}
+
+function savedWhere(args: AuditArgs, path: string): string {
+  return args.deliver ? `Saved to the user's Outputs: ${path}` : `Working file (not in the user's Outputs): ${path}`;
+}
+
+/** A delivered diagram's files go back for capture, which puts them in Outputs; a working file isn't captured. */
+function deliveredOutputs(args: AuditArgs, outputs: NonNullable<ToolResult['dataOutputs']>): ToolResult['dataOutputs'] {
+  return args.deliver ? outputs : undefined;
+}
 const SALESFORCE_OUTPUT_ROOT = '/output/salesforce';
 const SALESFORCE_DATA_ROOT = '/data/salesforce';
 
@@ -143,14 +162,14 @@ export async function executeSalesforceMetadataAuditTool(
 async function unpackWorkspace(files: SandboxFiles, bundles: string[]): Promise<string> {
   // Sorted, as the uploads restore lists them, so both unpack the same zips under one checksum.
   if (bundles.length === 0) {
-    return 'Read the uploaded Salesforce files with salesforce_read_source.';
+    return 'The upload has no zipped workspace to unpack; salesforce_read_source reads its files.';
   }
   try {
     await files.extractZips(bundles, SALESFORCE_WORKSPACE_ROOT);
-    return `The workspace's files are unpacked at ${SALESFORCE_WORKSPACE_ROOT}/ (the upload's paths). Use Python over them for questions the audit's files don't answer, such as every automation that writes a field or every place a label appears; quote code with salesforce_read_source and cite path:line.`;
+    return `The workspace's files are unpacked at ${SALESFORCE_WORKSPACE_ROOT}/ (the upload's paths).`;
   } catch (error) {
     const reason = error instanceof Error ? error.message : 'unknown error';
-    return `The workspace could not be unpacked at ${SALESFORCE_WORKSPACE_ROOT}/ (${reason}); read files with salesforce_read_source.`;
+    return `The workspace could not be unpacked at ${SALESFORCE_WORKSPACE_ROOT}/ (${reason}); salesforce_read_source reads its files.`;
   }
 }
 
@@ -165,7 +184,7 @@ function stringList(value: unknown): string[] | undefined {
   return items.length > 0 ? items : undefined;
 }
 
-function normalizeArgs(args: Record<string, unknown>): SalesforceMetadataAuditArgs & { operation: SalesforceMetadataAuditOperation } {
+function normalizeArgs(args: Record<string, unknown>): AuditArgs {
   const operation = typeof args.operation === 'string' && isOperation(args.operation)
     ? args.operation
     : DEFAULT_OPERATION;
@@ -177,6 +196,7 @@ function normalizeArgs(args: Record<string, unknown>): SalesforceMetadataAuditAr
     query: typeof args.query === 'string' ? args.query : undefined,
     component: typeof args.component === 'string' ? args.component : undefined,
     include_artifacts: typeof args.include_artifacts === 'boolean' ? args.include_artifacts : true,
+    deliver: args.deliver === true,
     objects: stringList(args.objects),
     name: typeof args.name === 'string' ? args.name : undefined,
     flows: stringList(args.flows),
@@ -188,49 +208,13 @@ function isOperation(value: string): value is SalesforceMetadataAuditOperation {
   return ['audit', 'inventory', 'search', 'component', 'dependencies', 'risks', 'packet_findings', 'handoff', 'feature_readiness', 'troubleshooting', 'data_model', 'flow_diagram', 'save_order'].includes(value);
 }
 
-/**
- * The org-evidence decision instruction lives HERE, in the tool result at the
- * exact moment the model reads its evidence — not only in the system prompt.
- * Two live runs finalized reports containing an "org runtime evidence: none
- * was supplied" caveat without ever raising the request card: with
- * reasoning_effort forced to 'none' for GPT-5.6 tool turns, a conditional
- * rule buried in a large system prompt loses; a state-conditioned imperative
- * adjacent to the evidence does not.
- */
-function buildOrgEvidenceNote(index: SalesforceMetadataIndex): string {
-  if (index.importedFindings.length > 0) {
-    return 'Org evidence note: imported agent findings are present — verify runtime claims against their raw SOQL/describe evidence before finalizing.';
-  }
-  return 'ORG EVIDENCE DECISION (read now): NO org-runtime evidence packet is present, so active flow versions, permission/queue assignments, OAuth scopes, and org settings are ALL unverifiable from this audit. If any conclusion in your report depends on such runtime state, you MUST call request_salesforce_org_evidence BEFORE writing the report — author its investigation_prompt as a real brief for the org-connected agent (each specific question, why it matters, what answer would change your recommendation). Do NOT finalize with an "org runtime evidence: none was supplied" style caveat unless the user has already declined the request.';
-}
-
-/**
- * Under Auto the model's OPERATION choice is the job choice, but the choice
- * carried none of the job's framing or report-type hint (a picked job sets the
- * report type in the composer). Close that at the moment the choice becomes
- * real: the tool result names the job the operation starts, what it gives, and
- * the report type that usually fits. Deferential: a user-pinned type in the
- * OUTPUT section always wins.
- */
-function buildJobSynthesisNote(
-  operation: SalesforceMetadataAuditOperation,
-  query?: string,
-): string {
-  const job = salesforceJobForOperation(operation);
-  if (!job) return '';
-  // feature_readiness serves releases and features; a release-flavored query reads as a release.
-  const reportType = salesforceJobReportType(job, { readinessKind: query && /release|go-live|seasonal/i.test(query) ? 'release' : 'feature' });
-  return `Synthesis guidance (${job.name}): ${job.summary}${reportType ? ` If the user did not pin a report type, \`${reportType}\` is usually the best fit for this path — set the spec's reportTypeId accordingly; a user-pinned type in the OUTPUT section always wins.` : ''}`;
-}
-
 function buildOperationContent(
   index: SalesforceMetadataIndex,
-  args: SalesforceMetadataAuditArgs & { operation: SalesforceMetadataAuditOperation },
+  args: AuditArgs,
   filesystemArtifacts: SalesforceArtifactFilesystemEntry[] = [],
   invalidInsightPackets: SalesforceInvalidInsightPacket[] = [],
 ): string {
-  const filesystemSection = formatFilesystemArtifactSection(filesystemArtifacts);
-  const synthesisNote = buildJobSynthesisNote(args.operation, args.query);
+  const filesystemSection = formatWorkingFiles(filesystemArtifacts);
   switch (args.operation) {
     case 'inventory':
       return [
@@ -251,7 +235,7 @@ function buildOperationContent(
     case 'component': {
       const component = args.component ? findSalesforceComponent(index, args.component) : null;
       if (!component) {
-        return `Component not found. Use operation="search" first.\n\n${summarizeSalesforceIndex(index)}`;
+        return `No component named "${args.component ?? ''}" in the workspace; operation="search" finds components by part of a name.\n\n${summarizeSalesforceIndex(index)}`;
       }
       const dependencies = index.dependencies.filter((dependency) =>
         dependency.sourceId === component.id || dependency.targetId === component.id
@@ -287,8 +271,6 @@ function buildOperationContent(
         dependencies.length === 0
           ? 'No dependency links inferred from the indexed metadata.'
           : dependencies.slice(0, 80).map((dependency) => `- ${dependency.sourceName} -> ${dependency.targetName} (${dependency.reference})`).join('\n'),
-        '',
-        synthesisNote,
       ].join('\n');
     }
 
@@ -298,8 +280,6 @@ function buildOperationContent(
         '',
         'Static signals requiring docs/AI review:',
         formatRiskList(index.risks),
-        '',
-        synthesisNote,
       ].join('\n');
 
     case 'packet_findings':
@@ -315,12 +295,12 @@ function buildOperationContent(
           ? ['Which org each packet queried:', ...index.insightPackets.map((packet) => `- ${packet.runId}: ${packet.orgNote}`), '']
           : []),
         index.importedFindings.length === 0
-          ? 'No valid imported agent evidence was found. Check `invalidPackets[]` in `salesforce-insight-packets.json` for validation warnings/errors.'
+          ? 'No valid imported agent evidence was found; `invalidPackets[]` in `salesforce-insight-packets.json` holds the validation warnings and errors.'
           : index.importedFindings.slice(0, 20).map((finding) => [
             `- ${finding.id}: ${finding.title} (${finding.severity}, ${finding.audienceImpact}, confidence ${finding.confidence})`,
             `  Matched components: ${finding.matchedComponents.map((component) => component.name).join(', ') || 'none'}`,
             `  Affected paths: ${finding.affectedPaths.join(', ') || 'none'}`,
-            `  Next step: ${finding.recommendedNextStep}`,
+            `  The agent's recommended next step: ${finding.recommendedNextStep}`,
           ].join('\n')).join('\n'),
         filesystemSection,
       ].join('\n');
@@ -330,24 +310,18 @@ function buildOperationContent(
         summarizeSalesforceIndex(index),
         '',
         'Engineering handoff package generated as an artifact. It includes target components, imported agent evidence when present, desired changes, acceptance criteria, test guidance, and local agent prompts.',
-        '',
-        synthesisNote,
         filesystemSection,
       ].join('\n');
 
     case 'feature_readiness':
       return [
         buildSalesforceFeatureReadinessBrief(index, args.query),
-        synthesisNote,
-        buildOrgEvidenceNote(index),
         filesystemSection,
       ].filter(Boolean).join('\n\n');
 
     case 'troubleshooting':
       return [
         buildSalesforceTroubleshootingBrief(index, args.query),
-        synthesisNote,
-        buildOrgEvidenceNote(index),
         filesystemSection,
       ].filter(Boolean).join('\n\n');
 
@@ -361,73 +335,24 @@ function buildOperationContent(
         `Imported agent evidence from .symposium packets: ${index.importedFindings.length}`,
         `Invalid insight packets / validation warnings: ${invalidInsightPackets.length}`,
         'Imported agent evidence entries are available at the top-level `importedFindings` key in `salesforce-insight-packets.json`; packet metadata is in `validPackets`.',
-        '',
-        'Generated artifacts:',
-        '- Salesforce component index JSON',
-        '- Salesforce dependency map JSON',
-        '- Salesforce metadata audit report Markdown',
-        '- Salesforce remediation backlog JSON',
-        '- Salesforce signal evidence JSON',
-        '- Salesforce evidence ledger JSON',
-        '- Salesforce Flow drilldowns JSON',
-        '- Salesforce Apex drilldowns JSON',
-        '- Salesforce feature reference map JSON',
-        '- Salesforce workbench summary JSON',
-        '- Salesforce documentation lookup topics JSON',
-        '- Salesforce feature-readiness brief Markdown',
-        '- Salesforce executive brief Markdown',
-        '- Salesforce insight packet summary JSON',
-        '- Salesforce stakeholder visual artifact plan JSON',
-        '- Salesforce engineering handoff JSON',
-        '- Salesforce artifact schema JSON',
-        '',
-        synthesisNote,
-        buildOrgEvidenceNote(index),
-        'Evidence grounding note: use salesforce-evidence-ledger.json to distinguish metadata, SOQL, describe, docs, imported agent summary, inference, and runtime-unverified claims. Do not state org runtime/setup facts unless backed by SOQL/describe evidence.',
-        'Documentation grounding note: for audit, risks, troubleshooting, feature_readiness, or handoff synthesis, call salesforce_docs_lookup with topics from salesforce-doc-topics.json before final findings. If docs lookup fails or only preview/beta/pilot docs are available, downgrade confidence and state the limitation.',
-        'Deliverable note: these generated files are evidence/source material for the final response. Continue to the selected output format after this tool call. If the user requested HTML or a static page, synthesize one HTML artifact from these files and do not substitute JSON schema output. Do not write extra intermediate diagnostics under /output unless the user explicitly requested those files.',
         filesystemSection,
       ].join('\n');
   }
 }
 
-function formatFilesystemArtifactSection(filesystemArtifacts: SalesforceArtifactFilesystemEntry[]): string {
+/**
+ * Where the operation's files are. The result's file list (toolResultHistory)
+ * names each one under /output; the same files are linked under /data/salesforce
+ * and kept in /output/salesforce.
+ */
+function formatWorkingFiles(filesystemArtifacts: SalesforceArtifactFilesystemEntry[]): string {
   if (filesystemArtifacts.length === 0) return '';
-  const manifest = filesystemArtifacts.find((entry) => entry.filename === 'artifact-manifest.json');
-  const keyArtifacts = [
-    'artifact-manifest.json',
-    'salesforce-component-index.json',
-    'salesforce-dependency-map.json',
-    'salesforce-insight-packets.json',
-    'salesforce-workbench-summary.json',
-    'salesforce-signal-evidence.json',
-    'salesforce-evidence-ledger.json',
-    'salesforce-flow-drilldowns.json',
-    'salesforce-apex-drilldowns.json',
-    'salesforce-feature-reference-map.json',
-    'salesforce-doc-topics.json',
-    'salesforce-artifact-schema.json',
-    'salesforce-stakeholder-visual-artifacts.json',
-    'salesforce-executive-brief.md',
-    'salesforce-troubleshooting-brief.md',
-    'salesforce-vscode-handoff.json',
-  ];
-  const byFilename = new Map(filesystemArtifacts.map((entry) => [entry.filename, entry]));
-  return [
-    '',
-    'Filesystem artifact paths for follow-up Python analysis:',
-    manifest ? `- Manifest: \`${manifest.outputPath}\` (also \`${manifest.dataPath}\`)` : '',
-    ...keyArtifacts
-      .filter((filename) => filename !== 'artifact-manifest.json')
-      .map((filename) => byFilename.get(filename))
-      .filter((entry): entry is SalesforceArtifactFilesystemEntry => !!entry)
-      .map((entry) => `- \`${entry.outputPath}\` (also \`${entry.dataPath}\`)`),
-  ].filter(Boolean).join('\n');
+  return `\nThe audit's ${filesystemArtifacts.length} working files are listed below; each is also at ${SALESFORCE_DATA_ROOT}/<name> and ${SALESFORCE_OUTPUT_ROOT}/<name>.`;
 }
 
 function buildArtifactFiles(
   index: SalesforceMetadataIndex,
-  args: SalesforceMetadataAuditArgs & { operation: SalesforceMetadataAuditOperation },
+  args: AuditArgs,
   invalidInsightPackets: SalesforceInvalidInsightPacket[],
 ): SalesforceArtifactFile[] {
   const outputs: SalesforceArtifactFile[] = [];
@@ -653,13 +578,9 @@ function buildSalesforceArtifactSchema(index: SalesforceMetadataIndex): string {
       },
     },
     countSemantics: {
-      deterministicMetadataRisks: 'Static metadata signals auto-detected by Symposium and reported in index.risks / remediation backlog. Treat as evidence to verify against docs and org context, not final findings.',
+      deterministicMetadataRisks: 'Static metadata signals auto-detected by Symposium and reported in index.risks / remediation backlog: evidence to verify against docs and org context, not final findings.',
       importedAgentFindings: 'Imported from .symposium/salesforce-insights packets and reported in salesforce-insight-packets.json importedFindings[]. sourceType=agent_summary means the finding is a lead requiring verification, not a final org fact.',
       documentationEvidence: 'Generated by salesforce_docs_lookup from official Salesforce domains: only the passages it read, in /data/salesforce/docs/lookup_<call>.md, with what to cite in lookup_<call>.provenance.json.',
-    },
-    outputGuidance: {
-      richArtifacts: 'Follow the selected output config. If the user requested HTML or a static page, produce HTML from these packet files; do not substitute JSON schema output for the requested deliverable.',
-      avoidStdoutExploration: 'For large JSON, inspect keys and write derived files instead of printing entire documents to stdout.',
     },
   }, null, 2);
 }
@@ -700,14 +621,15 @@ export function dataModelFileName(name: string | undefined, fallback = 'salesfor
 
 /**
  * operation=data_model: the workspace's objects, fields and relationships as a
- * diagram file (/output/<name>.diagram.json), written into the sandbox for the
- * agent to change and returned for capture, which makes it a diagram.
+ * diagram file. Delivered (`deliver`), it's /output/<name>.diagram.json,
+ * returned for capture, which puts it in the user's Outputs; otherwise a working
+ * file under SALESFORCE_DIAGRAM_WORK_DIR. Its references and access files sit beside it.
  */
 async function writeSalesforceDataModel(
   files: SandboxFiles,
   toolCallId: string,
   sourceFiles: SalesforceSourceFile[],
-  args: SalesforceMetadataAuditArgs,
+  args: AuditArgs,
 ): Promise<ToolResult> {
   const uploads = [...new Set(sourceFiles.map((file) => (file.sourcePath ?? '').split('/').pop()).filter(Boolean))];
   const { diagram, notFound, referenced, packageObjects, packageFieldCount } = buildSalesforceDataModel(sourceFiles, {
@@ -724,17 +646,18 @@ async function writeSalesforceDataModel(
       ].filter(Boolean).join(' '),
     };
   }
+  const dir = diagramDir(args);
   const filename = `${dataModelFileName(args.name)}.diagram.json`;
   const text = diagramFileText(diagram);
-  await files.writeFile(`/output/${filename}`, Buffer.from(text, 'utf8'));
+  await files.writeFile(`${dir}/${filename}`, Buffer.from(text, 'utf8'));
   // What refers to each object and field: the Diagram view shows an edit's impact from it.
   const referencesFile = referencesFileFor(filename);
   const referencesText = JSON.stringify(buildSalesforceReferenceIndex(sourceFiles, diagram, filename));
-  await files.writeFile(`/output/${referencesFile}`, Buffer.from(referencesText, 'utf8'));
+  await files.writeFile(`${dir}/${referencesFile}`, Buffer.from(referencesText, 'utf8'));
   // Who can read or edit each object and field: the field access recipe reads it.
   const accessFile = accessFileFor(filename);
   const accessText = JSON.stringify(buildSalesforceAccess(sourceFiles, diagram, filename));
-  await files.writeFile(`/output/${accessFile}`, Buffer.from(accessText, 'utf8'));
+  await files.writeFile(`${dir}/${accessFile}`, Buffer.from(accessText, 'utf8'));
   const withFields = diagram.entities.filter((entity) => !referenced.includes(entity.id)).map((entity) => entity.id);
   const ownReferenced = referenced.filter((id) => !packageObjects.includes(id));
   const recordTypes = diagram.entities.reduce((sum, entity) => sum + (entity.recordTypes?.length ?? 0), 0);
@@ -742,34 +665,35 @@ async function writeSalesforceDataModel(
     toolCallId,
     success: true,
     content: [
-      `Data model written to /output/${filename} from the uploaded metadata: ${withFields.length} ${withFields.length === 1 ? 'object' : 'objects'} with their fields (${withFields.join(', ')}) and ${diagram.relationships.length} ${diagram.relationships.length === 1 ? 'relationship' : 'relationships'}.`,
+      `Data model from the uploaded metadata: ${withFields.length} ${withFields.length === 1 ? 'object' : 'objects'} with their fields (${withFields.join(', ')}) and ${diagram.relationships.length} ${diagram.relationships.length === 1 ? 'relationship' : 'relationships'}.`,
+      `${savedWhere(args, `${dir}/${filename}`)}.`,
       args.objects ? '' : 'Without a list of objects it draws the org\'s own: its custom objects, and the standard objects it added fields to.',
-      ownReferenced.length > 0 ? `Added without fields, because a field points at them: ${ownReferenced.join(', ')}. Name them in objects to include their fields.` : '',
-      packageObjects.length > 0 ? `From installed packages, drawn collapsed where the org's objects point at them: ${packageObjects.join(', ')}. The org can't change them; name one in objects to see its fields.` : '',
+      ownReferenced.length > 0 ? `Added without fields, because a field points at them: ${ownReferenced.join(', ')} (naming them in objects adds their fields).` : '',
+      packageObjects.length > 0 ? `From installed packages, drawn collapsed where the org's objects point at them: ${packageObjects.join(', ')}. The org can't change them; naming one in objects adds its fields.` : '',
       packageFieldCount > 0 ? `${packageFieldCount} ${packageFieldCount === 1 ? 'field' : 'fields'} from installed packages are left out of the org's objects and counted on each (packageFieldCount).` : '',
       `Each object carries its sharing model (sharingModel, externalSharingModel)${recordTypes > 0 ? ` and record types (${recordTypes} in all)` : ''}; picklists that take their values from a value set name it (valueSet).`,
       notFound.length > 0 ? `Not in the upload: ${notFound.join(', ')}.` : '',
-      'Each object and field names its source file. It is the user\'s diagram: to change it, read the file, change only what the question needs (objects or fields you design are marked "assumed"), and save it to the same name. Set a title and summary that say what it covers.',
-      `What refers to each object and field (Apex, Flows, layouts, reports, rules, email templates, field-level security…, with file and line) is in /output/${referencesFile}, with the calls between components (subflows, Apex actions, platform events, quick actions, pages) in its calls; the Diagram view shows the user what an edit touches from it. Who can read or edit each object and field (profiles, permission sets and groups, View All Data, each object's sharing model) is in /output/${accessFile}. Read them with Python, or in a recipe with salesforce_impact and salesforce_access (MODELS); they are data, not something to save or change.`,
+      'Each object and field names its source file.',
+      `What refers to each object and field (Apex, Flows, layouts, reports, rules, email templates, field-level security…, with file and line) is in ${dir}/${referencesFile}, with the calls between components (subflows, Apex actions, platform events, quick actions, pages) in its calls${args.deliver ? '; the Diagram view shows the user what an edit touches from it' : ''}. Who can read or edit each object and field (profiles, permission sets and groups, View All Data, each object's sharing model) is in ${dir}/${accessFile}. salesforce_impact and salesforce_access read them in a recipe.`,
     ].filter(Boolean).join('\n'),
-    dataOutputs: [
+    dataOutputs: deliveredOutputs(args, [
       { filename, base64: Buffer.from(text, 'utf8').toString('base64'), size: Buffer.byteLength(text, 'utf8') },
       { filename: referencesFile, base64: Buffer.from(referencesText, 'utf8').toString('base64'), size: Buffer.byteLength(referencesText, 'utf8') },
       { filename: accessFile, base64: Buffer.from(accessText, 'utf8').toString('base64'), size: Buffer.byteLength(accessText, 'utf8') },
-    ],
+    ]),
   };
 }
 
 /**
  * operation=flow_diagram: each named Flow (or, chained, one picture of them and
- * every flow they start) as a process diagram, /output/flow_<name>.diagram.json,
- * written into the sandbox and returned for capture, which makes each a diagram.
+ * every flow they start) as a process diagram, flow_<name>.diagram.json: in the
+ * user's Outputs when delivered, else a working file (writeSalesforceDataModel).
  */
 async function writeSalesforceFlowDiagrams(
   files: SandboxFiles,
   toolCallId: string,
   sourceFiles: SalesforceSourceFile[],
-  args: SalesforceMetadataAuditArgs,
+  args: AuditArgs,
 ): Promise<ToolResult> {
   const wanted = args.flows ?? [];
   if (wanted.length === 0) {
@@ -780,16 +704,18 @@ async function writeSalesforceFlowDiagrams(
     return { toolCallId, success: false, error: `No Flow file was found for ${notFound.join(', ')}: a Flow needs flows/<Name>.flow-meta.xml (source format) or flows/<Name>.flow in the upload.` };
   }
   const named = results.length === 1 && args.name;
+  const dir = diagramDir(args);
   const lines: string[] = [];
   const dataOutputs: NonNullable<ToolResult['dataOutputs']> = [];
   for (const result of results) {
     const fallback = args.chain ? `flow_chain_${result.flows[0]}` : `flow_${result.flows[0]}`;
     const filename = `${dataModelFileName(named ? args.name : undefined, dataModelFileName(fallback))}.diagram.json`;
     const text = diagramFileText(result.diagram);
-    await files.writeFile(`/output/${filename}`, Buffer.from(text, 'utf8'));
+    await files.writeFile(`${dir}/${filename}`, Buffer.from(text, 'utf8'));
     dataOutputs.push({ filename, base64: Buffer.from(text, 'utf8').toString('base64'), size: Buffer.byteLength(text, 'utf8') });
     const { nodes, flows } = result.diagram;
-    lines.push(`${args.chain ? 'Flow chain' : 'Flow'} written to /output/${filename}: ${result.flows.length > 1 ? `${result.flows.length} flows (${result.flows.join(', ')}), ` : `${result.flows[0]}, `}${nodes.length} nodes and ${flows.length} flows.${result.issueCount > 0 ? ` ${result.issueCount} ${result.issueCount === 1 ? 'element has' : 'elements have'} no fault path (each carries an issue).` : ''}${countLoopIssues(nodes) > 0 ? ` ${countLoopIssues(nodes)} record ${countLoopIssues(nodes) === 1 ? 'operation runs' : 'operations run'} inside a loop, once per item (DML or SOQL against the transaction's limits; each carries an issue).` : ''}`);
+    lines.push(`${savedWhere(args, `${dir}/${filename}`)}.`);
+    lines.push(`${args.chain ? 'Flow chain' : 'Flow'}: ${result.flows.length > 1 ? `${result.flows.length} flows (${result.flows.join(', ')}), ` : `${result.flows[0]}, `}${nodes.length} nodes and ${flows.length} flows.${result.issueCount > 0 ? ` ${result.issueCount} ${result.issueCount === 1 ? 'element has' : 'elements have'} no fault path (each carries an issue).` : ''}${countLoopIssues(nodes) > 0 ? ` ${countLoopIssues(nodes)} record ${countLoopIssues(nodes) === 1 ? 'operation runs' : 'operations run'} inside a loop, once per item (DML or SOQL against the transaction's limits; each carries an issue).` : ''}`);
     if (result.links.length > 0) {
       lines.push(`Links followed: ${result.links.map((link) => `${link.from}.${link.fromElement} → ${link.flow} (${link.label})`).join('; ')}.`);
     }
@@ -799,19 +725,20 @@ async function writeSalesforceFlowDiagrams(
   }
   if (args.chain) lines.push('A chain follows subflows, platform events a flow or its invocable Apex publishes, and flows Apex starts. A record change that triggers another flow is not followed: that needs the org.');
   if (notFound.length > 0) lines.push(`No Flow file for: ${notFound.join(', ')}.`);
-  lines.push('Each node names the Flow file it came from, its element type and its facts (element: API name, line, object, filters, values set, a decision\'s outcomes and conditions); the start says what triggers the flow and its entry conditions. It is the user\'s diagram, drawn from metadata (platform "salesforce": no simulation). To change it, read the file, change only what the question needs (nodes you design are marked "assumed"), and save it to the same name.');
-  return { toolCallId, success: true, content: lines.join('\n'), dataOutputs };
+  lines.push('Each node names the Flow file it came from, its element type and its facts (element: API name, line, object, filters, values set, a decision\'s outcomes and conditions); the start says what triggers the flow and its entry conditions. Drawn from metadata (platform "salesforce": no simulation).');
+  return { toolCallId, success: true, content: lines.join('\n'), dataOutputs: deliveredOutputs(args, dataOutputs) };
 }
 
 /**
  * operation=save_order: what runs when a record of each object saves, in
- * Salesforce's order of execution, as /output/save_order_<object>.diagram.json.
+ * Salesforce's order of execution, as save_order_<object>.diagram.json: in the
+ * user's Outputs when delivered, else a working file (writeSalesforceDataModel).
  */
 async function writeSalesforceSaveOrders(
   files: SandboxFiles,
   toolCallId: string,
   sourceFiles: SalesforceSourceFile[],
-  args: SalesforceMetadataAuditArgs,
+  args: AuditArgs,
 ): Promise<ToolResult> {
   const objects = args.objects ?? [];
   if (objects.length === 0) {
@@ -821,19 +748,21 @@ async function writeSalesforceSaveOrders(
   if (results.length === 0) {
     return { toolCallId, success: false, error: `The upload has no metadata for ${notFound.join(', ')}: a save order needs the object's folder (objects/<Object>/) or flows that trigger on it.` };
   }
+  const dir = diagramDir(args);
   const lines: string[] = [];
   const dataOutputs: NonNullable<ToolResult['dataOutputs']> = [];
   for (const result of results) {
     const filename = `${dataModelFileName(results.length === 1 ? args.name : undefined, dataModelFileName(`save_order_${result.object}`))}.diagram.json`;
     const text = diagramFileText(result.diagram);
-    await files.writeFile(`/output/${filename}`, Buffer.from(text, 'utf8'));
+    await files.writeFile(`${dir}/${filename}`, Buffer.from(text, 'utf8'));
     dataOutputs.push({ filename, base64: Buffer.from(text, 'utf8').toString('base64'), size: Buffer.byteLength(text, 'utf8') });
-    lines.push(`Save order for ${result.object} written to /output/${filename}: ${result.automationCount} ${result.automationCount === 1 ? 'piece' : 'pieces'} of automation between the platform's own steps.`);
-    if (result.hiddenTriggers.length > 0) lines.push(`Package triggers with hidden source can't be placed on an object; these names mention ${result.object}: ${result.hiddenTriggers.join(', ')}. Say they may also run; org evidence (ApexTrigger.TableEnumOrId) settles it.`);
+    lines.push(`${savedWhere(args, `${dir}/${filename}`)}.`);
+    lines.push(`Save order for ${result.object}: ${result.automationCount} ${result.automationCount === 1 ? 'piece' : 'pieces'} of automation between the platform's own steps.`);
+    if (result.hiddenTriggers.length > 0) lines.push(`Package triggers with hidden source can't be placed on an object; these names mention ${result.object}: ${result.hiddenTriggers.join(', ')}. They may also run on its saves; org evidence (ApexTrigger.TableEnumOrId) settles it.`);
     if (result.inactiveFlows.length > 0) lines.push(`Left out, not active: ${result.inactiveFlows.join(', ')}.`);
     if (result.deleteFlows.length > 0) lines.push(`Left out, they run on delete: ${result.deleteFlows.join(', ')}.`);
   }
   if (notFound.length > 0) lines.push(`No metadata for: ${notFound.join(', ')}.`);
-  lines.push('The order is the Apex Developer Guide\'s "Triggers and Order of Execution"; record-triggered flows run by trigger order (1–1000, then flows without one by activation date, then 1001–2000). Each step names its file and the saves it runs on. It is the user\'s diagram, drawn from metadata (platform "salesforce": no simulation); save changes to the same name.');
-  return { toolCallId, success: true, content: lines.join('\n'), dataOutputs };
+  lines.push('The order is the Apex Developer Guide\'s "Triggers and Order of Execution"; record-triggered flows run by trigger order (1–1000, then flows without one by activation date, then 1001–2000). Each step names its file and the saves it runs on. Drawn from metadata (platform "salesforce": no simulation).');
+  return { toolCallId, success: true, content: lines.join('\n'), dataOutputs: deliveredOutputs(args, dataOutputs) };
 }

@@ -130,6 +130,21 @@ describe('runRound', () => {
     expect(stored.find((m) => m.id === 'toolresult_rt1')?.content).toContain('Call: execute_python\n```python\nprint(1)\n```\n\nResult:\nsales.csv loaded');
   });
 
+  it('runs read_guide from the run\'s guides without the sandbox, and names the guides when one is unknown', async () => {
+    const { context, executeTool } = makeContext();
+    context.run.config.guides = { report: 'The report contract: pages of blocks.', model: 'How a model works.' };
+    const guideCalls: ToolCall[] = [
+      { id: 'g1', type: 'function', function: { name: 'read_guide', arguments: '{"name":"report"}' } },
+      { id: 'g2', type: 'function', function: { name: 'read_guide', arguments: '{"name":"maps"}' } },
+    ];
+    streamQueue.push([done({ finish_reason: 'tool_calls', tool_calls: guideCalls })]);
+
+    expect(await runRound(context, state())).toBe('continue');
+    expect(executeTool).not.toHaveBeenCalled();
+    expect(stored.find((m) => m.id === 'toolresult_g1')).toMatchObject({ content: 'The report contract: pages of blocks.', metadata: expect.objectContaining({ success: true }) });
+    expect(stored.find((m) => m.id === 'toolresult_g2')?.content).toContain('There is no guide "maps". The guides are: model, report.');
+  });
+
   it('streams execute_python arguments as live code, and no other tool\'s', async () => {
     const { context, events } = makeContext();
     streamQueue.push([

@@ -34,6 +34,7 @@ import { buildModelRequest } from '../model/requestShaping';
 import { getCatalogModel, DEFAULT_MAX_OUTPUT_TOKENS } from '../modelCatalog';
 import { buildAnalyzeHistory } from './history';
 import { READ_TURN_TOOL_NAME, buildReadTurnTool, readTurn } from './turnRecords';
+import { READ_GUIDE_TOOL_NAME, buildReadGuideTool, guideNames, readGuide } from './guides';
 import { AnalyzeStatus, type AnalyzeSession } from './contracts';
 import { buildToolResultContentForFollowUp } from './toolResultHistory';
 import type { MessageStore } from './sessionStore';
@@ -194,8 +195,15 @@ function teamState(context: RoundContext): TeamTurnState {
 export function roundTools(context: RoundContext): RoundTools {
   const team = context.team?.members ?? [];
   const state = teamState(context);
-  // The operator reads its earlier turns' work with read_turn (they're records in its history).
-  const own = context.run.kind === 'operator' && context.tools.length > 0 ? [...context.tools, buildReadTurnTool()] : context.tools;
+  // The operator reads its earlier turns' work with read_turn (they're records in its history);
+  // the operator and teammates read an output's how-to with read_guide when they make one.
+  const guides = guideNames(context.run.config.guides);
+  const withTools = context.tools.length > 0;
+  const own = [
+    ...context.tools,
+    ...(withTools && context.run.kind === 'operator' ? [buildReadTurnTool()] : []),
+    ...(withTools && guides.length > 0 && (context.run.kind === 'operator' || context.run.kind === 'teammate') ? [buildReadGuideTool(guides)] : []),
+  ];
   const tools = team.length > 0 && context.tools.length > 0 && !state.solo
     ? [...own, buildProposeTeamTool(team), buildDelegateTool(team)]
     : own;
@@ -355,7 +363,11 @@ async function runToolOnce(context: RoundContext, call: ToolCall): Promise<Round
 
   await markToolCallStarted(ref);
   context.events.push({ type: 'tool_executing', toolCallId: call.id, toolName: call.function.name });
-  const result = call.function.name === READ_TURN_TOOL_NAME ? await readTurnResult(context, call) : await context.executeTool(call);
+  const result = call.function.name === READ_TURN_TOOL_NAME
+    ? await readTurnResult(context, call)
+    : call.function.name === READ_GUIDE_TOOL_NAME
+      ? readGuideResult(context, call)
+      : await context.executeTool(call);
   context.toolResults.set(call.id, result);
   const stored = toStoredToolResult(result);
   await markToolCallDone(ref, stored, await saveToolOutputs(ref, result));
@@ -372,6 +384,20 @@ async function readTurnResult(context: RoundContext, call: ToolCall): Promise<To
     // Read as no arguments: the result says which turns there are.
   }
   const read = readTurn(await context.messages.load(), context.run.userMessageId, args);
+  return read.success
+    ? { toolCallId: call.id, success: true, content: read.content }
+    : { toolCallId: call.id, success: false, error: read.content };
+}
+
+/** read_guide runs on the server, from the run's guides: no sandbox. */
+function readGuideResult(context: RoundContext, call: ToolCall): ToolResult {
+  let args: Record<string, unknown> = {};
+  try {
+    args = JSON.parse(call.function.arguments || '{}') as Record<string, unknown>;
+  } catch {
+    // Read as no arguments: the result says which guides there are.
+  }
+  const read = readGuide(context.run.config.guides, args);
   return read.success
     ? { toolCallId: call.id, success: true, content: read.content }
     : { toolCallId: call.id, success: false, error: read.content };

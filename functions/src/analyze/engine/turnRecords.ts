@@ -14,6 +14,7 @@
 import type { Message } from '../contract/types';
 import type { ToolCall, ToolDefinition } from '../contract/lib/ai/tools/types';
 import { ASK_USER_TOOL_NAME, ORG_EVIDENCE_TOOL_NAME } from '../team/teamTools';
+import { READ_GUIDE_TOOL_NAME } from './guides';
 
 export const READ_TURN_TOOL_NAME = 'read_turn';
 
@@ -143,6 +144,9 @@ function finalReply(rounds: Round[]): Message | undefined {
   return [...rounds].reverse().find((round) => round.message.content?.trim())?.message;
 }
 
+/** Calls the record counts but doesn't list: their work shows in what was saved, or they only read. */
+const UNLISTED_CALLS = new Set(['execute_python', 'write_output_file', 'read_file', READ_TURN_TOOL_NAME, READ_GUIDE_TOOL_NAME]);
+
 /** The record of one earlier turn, as a user-role note the request merges after the user's message. */
 export function buildTurnRecord(turn: Turn): string {
   const rounds = roundsOf(turn);
@@ -167,7 +171,7 @@ export function buildTurnRecord(turn: Turn): string {
       } else if (name === ORG_EVIDENCE_TOOL_NAME && !failed(result) && typeof args.investigation_prompt === 'string') {
         // The next turn imports its answers: the brief goes in whole.
         evidenceBriefs.push(args.investigation_prompt);
-      } else if (name !== 'execute_python' && name !== 'write_output_file' && name !== 'read_file' && name !== READ_TURN_TOOL_NAME) {
+      } else if (!UNLISTED_CALLS.has(name)) {
         otherCalls.push(`- ${name}(${describeArgs(args)})${failed(result) ? ' (failed)' : ''}`);
       }
       if (result && !failed(result)) {
