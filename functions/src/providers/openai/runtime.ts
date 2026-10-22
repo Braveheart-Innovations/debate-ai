@@ -266,6 +266,8 @@ export class OpenAIRuntime implements ProviderRuntime {
     const completedToolCalls: CanonicalToolCall[] = [];
     let inputTokens = 0;
     let outputTokens = 0;
+    let cacheReadTokens = 0;
+    let cacheWriteTokens = 0;
     let finishReason = 'stop';
 
     for await (const data of dataEvents) {
@@ -345,10 +347,13 @@ export class OpenAIRuntime implements ProviderRuntime {
           toolCallsInProgress.clear();
         }
 
-        // Extract usage from final message
+        // Extract usage from final message; every OpenAI-compatible API here reports its
+        // prompt cache under prompt_tokens_details (live-checked 2026-10-22)
         if (event.usage) {
           inputTokens = event.usage.prompt_tokens || inputTokens;
           outputTokens = event.usage.completion_tokens || outputTokens;
+          cacheReadTokens = event.usage.prompt_tokens_details?.cached_tokens || cacheReadTokens;
+          cacheWriteTokens = event.usage.prompt_tokens_details?.cache_write_tokens || cacheWriteTokens;
         }
       } catch {
         // Skip invalid JSON
@@ -363,6 +368,8 @@ export class OpenAIRuntime implements ProviderRuntime {
         inputTokens,
         outputTokens,
         totalTokens: inputTokens + outputTokens,
+        ...(cacheReadTokens ? { cacheReadTokens } : {}),
+        ...(cacheWriteTokens ? { cacheWriteTokens } : {}),
       },
       tool_calls: completedToolCalls.length > 0 ? completedToolCalls : undefined,
     };

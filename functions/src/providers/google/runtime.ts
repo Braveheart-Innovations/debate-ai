@@ -166,6 +166,7 @@ export class GoogleRuntime implements ProviderRuntime {
     const completedToolCalls: CanonicalToolCall[] = [];
     let inputTokens = 0;
     let outputTokens = 0;
+    let cacheReadTokens = 0;
     let finishReason = 'STOP';
     let toolCallIndex = 0;
 
@@ -246,10 +247,12 @@ export class GoogleRuntime implements ProviderRuntime {
 
         }
 
-        // Extract usage metadata
+        // Extract usage metadata: thinking is billed as output but counted apart
+        // (thoughtsTokenCount), and implicit caching reports cachedContentTokenCount
         if (event.usageMetadata) {
           inputTokens = event.usageMetadata.promptTokenCount || inputTokens;
-          outputTokens = event.usageMetadata.candidatesTokenCount || outputTokens;
+          outputTokens = (event.usageMetadata.candidatesTokenCount || 0) + (event.usageMetadata.thoughtsTokenCount || 0) || outputTokens;
+          cacheReadTokens = event.usageMetadata.cachedContentTokenCount || cacheReadTokens;
         }
       } catch {
         // Skip invalid JSON
@@ -264,6 +267,7 @@ export class GoogleRuntime implements ProviderRuntime {
         inputTokens,
         outputTokens,
         totalTokens: inputTokens + outputTokens,
+        ...(cacheReadTokens ? { cacheReadTokens } : {}),
       },
       tool_calls: completedToolCalls.length > 0 ? completedToolCalls : undefined,
     };
