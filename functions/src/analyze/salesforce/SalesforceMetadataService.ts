@@ -3464,7 +3464,7 @@ export function buildSalesforceFeatureReadinessBrief(index: SalesforceMetadataIn
           '## Agent Findings To Reconcile',
           '',
           ...index.importedFindings.slice(0, 10).map((finding) =>
-            `- **${finding.title}** (${finding.audienceImpact}) - ${finding.matchedComponentNames.join(', ') || 'no component match'}; next step: ${finding.recommendedNextStep}`
+            `- **${finding.title}** (${finding.audienceImpact}) - ${finding.matchedComponentNames.join(', ') || 'no component match'}; the agent's next step: ${finding.recommendedNextStep}`
           ),
         ]
       : []),
@@ -3515,7 +3515,7 @@ export function buildSalesforceTroubleshootingBrief(index: SalesforceMetadataInd
     '',
     issueText ? '## Reported Error Or Bug' : '## Reported Error Or Bug',
     '',
-    issueText ? truncateForMarkdown(issueText, 3000) : 'No Flow error, Apex exception, or production bug report was provided. Ask the user to paste the observed error, stack trace, failed flow interview details, or end-user reproduction notes.',
+    issueText ? truncateForMarkdown(issueText, 3000) : 'No Flow error, Apex exception, or production bug report was provided (the observed error, stack trace, failed flow interview details, or end-user reproduction notes).',
     '',
     '## Detected Issue Shape',
     '',
@@ -3540,7 +3540,7 @@ export function buildSalesforceTroubleshootingBrief(index: SalesforceMetadataInd
           '## Imported Agent Evidence To Reconcile',
           '',
           relatedFindings.slice(0, 10).map((finding) =>
-            `- **${finding.title}** (${finding.severity}, ${finding.audienceImpact}) - matched components: ${finding.matchedComponentNames.join(', ') || 'none'}; next step: ${finding.recommendedNextStep}`
+            `- **${finding.title}** (${finding.severity}, ${finding.audienceImpact}) - matched components: ${finding.matchedComponentNames.join(', ') || 'none'}; the agent's next step: ${finding.recommendedNextStep}`
           ).join('\n'),
         ]
       : []),
@@ -3551,7 +3551,7 @@ export function buildSalesforceTroubleshootingBrief(index: SalesforceMetadataInd
     '- For Flow errors, inspect active flow entry criteria, element names, record updates/creates/deletes, invocable Apex, and missing fault paths.',
     '- For Apex exceptions, inspect the named class/trigger from the stack trace, then trace callers, SOQL/DML in loops, null assumptions, sharing mode, and companion tests.',
     '- For validation or production bugs, map the user action to validation rules, flows, triggers, field-level dependencies, and permission/profile exposure.',
-    '- If the cause depends on live org state, use the optional VS Code agent enrichment prompt with Salesforce MCP/read-only SOQL so Symposium can import org-aware evidence.',
+    '- A cause that depends on live org state needs org evidence (read-only SOQL, describes) from the org-connected agent, imported as a findings packet.',
     '',
     '## Boundary',
     '',

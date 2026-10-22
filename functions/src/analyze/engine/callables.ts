@@ -21,6 +21,7 @@ import { isTerminal, runRef, type AnalyzeRunDoc, type RosterAI, type RunConfig }
 import { SessionBusyError, TurnAlreadyStartedError, startOperatorTurn, type UserMessageContext } from './turns';
 import { NoSessionSandboxError, runCell } from './runCell';
 import { toolNamesForTurn } from './toolDefinitions';
+import { parseGuides } from './guides';
 import { NoRecipeSandboxError, RecipeNotFoundError, RecipeValuesError, runRecipe } from '../recipes/runRecipe';
 import { NoModelSourcesError, listModelSources, refreshDataDeps, refreshModelData } from '../recipes/refreshData';
 import { SERVER_TOOL_SECRETS } from '../../tools';
@@ -155,6 +156,8 @@ interface StartTurnRequest {
   /** System prompts the caller builds like systemPrompt: teammates', and the operator's with Team mode off. */
   subagentSystemPrompt?: string;
   followUpSystemPrompt?: string;
+  /** The guides read_guide returns (name → text); the caller builds them like the prompts. */
+  guides?: Record<string, string>;
   /** This message imports org findings or continues without them: the open org-evidence request is answered. */
   resolvesOrgEvidenceRequest?: boolean;
 }
@@ -170,6 +173,7 @@ export const analyzeStartTurn = onCall({ region: 'us-central1' }, async (request
     : requireString(data.message?.content, 'message.content', 200_000);
   const systemPrompt = typeof data.systemPrompt === 'string' ? data.systemPrompt : '';
   const toolNames = toolNamesForTurn(stringList(data.toolNames), data.salesforceWorkspace === true);
+  const guides = parseGuides(data.guides);
   const operator = rosterAI(data.ai, 'ai', toolNames.length > 0);
   const teammates = (Array.isArray(data.teammates) ? data.teammates : []).slice(0, 20)
     .map((ai, index) => rosterAI(ai, `teammates[${index}]`, toolNames.length > 0));
@@ -197,6 +201,7 @@ export const analyzeStartTurn = onCall({ region: 'us-central1' }, async (request
     ...(data.salesforceWorkspace === true ? { salesforceWorkspace: true } : {}),
     ...(optionalString(data.subagentSystemPrompt) !== undefined ? { subagentSystemPrompt: data.subagentSystemPrompt } : {}),
     ...(optionalString(data.followUpSystemPrompt) !== undefined ? { followUpSystemPrompt: data.followUpSystemPrompt } : {}),
+    ...(guides ? { guides } : {}),
   };
 
   try {

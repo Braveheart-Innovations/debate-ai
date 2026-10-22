@@ -48,15 +48,15 @@ function formatBytes(bytes: number): string {
 }
 
 function readHint(path: string): string {
-  if (path.endsWith('.json')) return `Use pd.read_json("${path}") or open("${path}") in Python to access the full data.`;
-  if (path.endsWith('.csv')) return `Use pd.read_csv("${path}") in Python to access the full data.`;
+  if (path.endsWith('.json')) return `The full data: pd.read_json("${path}") or open("${path}") in Python.`;
+  if (path.endsWith('.csv')) return `The full data: pd.read_csv("${path}") in Python.`;
   // Binary files, saved byte for byte.
-  if (/\.(xlsx|xlsm|xlsb|xls|ods)$/.test(path)) return `Use pd.read_excel("${path}", sheet_name=None) in Python to see every sheet.`;
-  if (path.endsWith('.parquet')) return `Use pd.read_parquet("${path}") in Python to access the full data.`;
-  if (path.endsWith('.pdf')) return `Use pdfplumber.open("${path}") in Python (page.extract_text(), page.extract_table()).`;
-  if (path.endsWith('.zip')) return `Use zipfile.ZipFile("${path}").namelist() in Python to list its files.`;
-  if (/\.(gz|docx|pptx|png|jpg|gif|webp|bin|sav|dta|sas7bdat|feather)$/.test(path)) return `It's a binary file: open("${path}", "rb") or the matching Python reader, never as text.`;
-  return `Use open("${path}") in Python to access the full data.`;
+  if (/\.(xlsx|xlsm|xlsb|xls|ods)$/.test(path)) return `Every sheet: pd.read_excel("${path}", sheet_name=None) in Python.`;
+  if (path.endsWith('.parquet')) return `The full data: pd.read_parquet("${path}") in Python.`;
+  if (path.endsWith('.pdf')) return `The text and tables: pdfplumber.open("${path}") in Python (page.extract_text(), page.extract_table()).`;
+  if (path.endsWith('.zip')) return `Its files: zipfile.ZipFile("${path}").namelist() in Python.`;
+  if (/\.(gz|docx|pptx|png|jpg|gif|webp|bin|sav|dta|sas7bdat|feather)$/.test(path)) return `A binary file: open("${path}", "rb") or the matching Python reader reads it; as text it's unreadable.`;
+  return `The full data: open("${path}") in Python.`;
 }
 
 function provenancePathFor(path: string): string {

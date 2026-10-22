@@ -121,7 +121,7 @@ describe('executeSalesforceMetadataAuditTool', () => {
   describe('operation=flow_diagram', () => {
     const flowXml = (body: string) => `<?xml version="1.0" encoding="UTF-8"?><Flow>${body}</Flow>`;
 
-    it('writes each Flow as a diagram file in /output and returns it for capture', async () => {
+    it('writes each Flow as a diagram file in the user\'s Outputs when the model delivers it, and returns it for capture', async () => {
       const zip = new JSZip();
       zip.file('force-app/main/default/flows/Set_Source.flow-meta.xml', flowXml('<label>Set source</label><processType>AutoLaunchedFlow</processType><start><connector><targetReference>Set</targetReference></connector><object>Lead</object><recordTriggerType>Create</recordTriggerType><triggerType>RecordAfterSave</triggerType></start><recordUpdates><name>Set</name><label>Set the source</label><inputReference>$Record</inputReference></recordUpdates>'));
       mockSandboxService.readFile.mockResolvedValue(await zip.generateAsync({ type: 'arraybuffer' }));
@@ -130,14 +130,30 @@ describe('executeSalesforceMetadataAuditTool', () => {
         operation: 'flow_diagram',
         paths: ['/uploads/qa.zip'],
         flows: ['Set_Source', 'Missing_Flow'],
+        deliver: true,
       });
 
       expect(result.success).toBe(true);
       expect(result.dataOutputs?.map((output) => output.filename)).toEqual(['flow_set_source.diagram.json']);
       const written = JSON.parse(writtenFile('/output/flow_set_source.diagram.json')!);
       expect(written).toMatchObject({ kind: 'process_flow', platform: 'salesforce', title: 'Flow: Set source' });
-      expect(result.content).toContain('Flow written to /output/flow_set_source.diagram.json: Set_Source, 3 nodes and 2 flows. 1 element has no fault path (each carries an issue).');
+      expect(result.content).toContain('Saved to the user\'s Outputs: /output/flow_set_source.diagram.json.');
+      expect(result.content).toContain('Flow: Set_Source, 3 nodes and 2 flows. 1 element has no fault path (each carries an issue).');
       expect(result.content).toContain('No Flow file for: Missing_Flow.');
+    });
+
+    it('keeps a Flow it drew to look at the org out of the user\'s Outputs: a working file, not captured', async () => {
+      const zip = new JSZip();
+      zip.file('force-app/main/default/flows/Set_Source.flow-meta.xml', flowXml('<label>Set source</label><processType>AutoLaunchedFlow</processType><start><connector><targetReference>Set</targetReference></connector><object>Lead</object><recordTriggerType>Create</recordTriggerType><triggerType>RecordAfterSave</triggerType></start><recordUpdates><name>Set</name><label>Set the source</label><inputReference>$Record</inputReference></recordUpdates>'));
+      mockSandboxService.readFile.mockResolvedValue(await zip.generateAsync({ type: 'arraybuffer' }));
+
+      const result = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-flow-look', { operation: 'flow_diagram', paths: ['/uploads/qa.zip'], flows: ['Set_Source'] });
+
+      expect(result.success).toBe(true);
+      expect(result.dataOutputs).toBeUndefined();
+      expect(writtenFile('/output/flow_set_source.diagram.json')).toBeUndefined();
+      expect(JSON.parse(writtenFile('/data/salesforce/diagrams/flow_set_source.diagram.json')!)).toMatchObject({ kind: 'process_flow' });
+      expect(result.content).toContain('Working file (not in the user\'s Outputs): /data/salesforce/diagrams/flow_set_source.diagram.json.');
     });
 
     it('asks for flows, and says what a Flow needs when none is found', async () => {
@@ -157,14 +173,23 @@ describe('executeSalesforceMetadataAuditTool', () => {
       zip.file('force-app/main/default/triggers/hed__TDTM_Lead.trigger', '(hidden)');
       mockSandboxService.readFile.mockResolvedValue(await zip.generateAsync({ type: 'arraybuffer' }));
 
-      const result = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-save', { operation: 'save_order', paths: ['/uploads/qa.zip'], objects: ['Lead', 'Nope__c'] });
+      const result = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-save', { operation: 'save_order', paths: ['/uploads/qa.zip'], objects: ['Lead', 'Nope__c'], deliver: true });
 
       expect(result.success).toBe(true);
       expect(result.dataOutputs?.map((output) => output.filename)).toEqual(['save_order_lead.diagram.json']);
       expect(JSON.parse(writtenFile('/output/save_order_lead.diagram.json')!)).toMatchObject({ kind: 'process_flow', platform: 'salesforce', title: 'What runs when a Lead saves' });
-      expect(result.content).toContain('Save order for Lead written to /output/save_order_lead.diagram.json: 1 piece of automation');
-      expect(result.content).toContain('these names mention Lead: hed__TDTM_Lead');
+      expect(result.content).toContain('Saved to the user\'s Outputs: /output/save_order_lead.diagram.json.');
+      expect(result.content).toContain('Save order for Lead: 1 piece of automation');
+      expect(result.content).toContain('these names mention Lead: hed__TDTM_Lead. They may also run on its saves');
       expect(result.content).toContain('No metadata for: Nope__c.');
+
+      // Drawn to look at the org (no deliver): a working file, not captured.
+      sandboxFiles.clear();
+      const look = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-save-look', { operation: 'save_order', paths: ['/uploads/qa.zip'], objects: ['Lead'] });
+      expect(look.dataOutputs).toBeUndefined();
+      expect(writtenFile('/output/save_order_lead.diagram.json')).toBeUndefined();
+      expect(writtenFile('/data/salesforce/diagrams/save_order_lead.diagram.json')).toBeDefined();
+      expect(look.content).toContain('Working file (not in the user\'s Outputs): /data/salesforce/diagrams/save_order_lead.diagram.json.');
     });
 
     it('asks for objects', async () => {
@@ -177,7 +202,7 @@ describe('executeSalesforceMetadataAuditTool', () => {
   describe('operation=data_model', () => {
     const fieldXml = (name: string, body: string) => `<?xml version="1.0" encoding="UTF-8"?><CustomField><fullName>${name}</fullName>${body}</CustomField>`;
 
-    it('writes the objects as a diagram file in /output and returns it for capture', async () => {
+    it('writes the objects as a diagram file in the user\'s Outputs when the model delivers it, and returns it for capture', async () => {
       const zip = new JSZip();
       zip.file('force-app/main/default/objects/Center__c/Center__c.object-meta.xml', '<CustomObject><label>Center</label><nameField><label>Center Name</label><type>Text</type></nameField></CustomObject>');
       zip.file('force-app/main/default/objects/Enrollment__c/Enrollment__c.object-meta.xml', '<CustomObject><label>Enrollment</label></CustomObject>');
@@ -193,6 +218,7 @@ describe('executeSalesforceMetadataAuditTool', () => {
         operation: 'data_model',
         paths: ['/uploads/salesforce-metadata-kc.zip'],
         name: 'Enrollment Model.diagram.json',
+        deliver: true,
       });
 
       expect(result.success).toBe(true);
@@ -220,8 +246,10 @@ describe('executeSalesforceMetadataAuditTool', () => {
       expect(written.entities.map((entity: { id: string }) => entity.id)).toEqual(['Center__c', 'Enrollment__c', 'Contact']);
       expect(written.relationships).toHaveLength(2);
       expect(Buffer.from(result.dataOutputs![0].base64, 'base64').toString('utf8')).toBe(writtenFile('/output/enrollment_model.diagram.json'));
-      expect(result.content).toContain('Data model written to /output/enrollment_model.diagram.json from the uploaded metadata: 2 objects with their fields (Center__c, Enrollment__c) and 2 relationships.');
-      expect(result.content).toContain('Added without fields, because a field points at them: Contact.');
+      expect(result.content).toContain('Data model from the uploaded metadata: 2 objects with their fields (Center__c, Enrollment__c) and 2 relationships.');
+      expect(result.content).toContain('Saved to the user\'s Outputs: /output/enrollment_model.diagram.json.');
+      expect(result.content).toContain('Added without fields, because a field points at them: Contact (naming them in objects adds their fields).');
+      expect(result.content).toContain('is in /output/enrollment_model.references.json');
       // Nothing of the audit bundle.
       expect(writtenFile('/output/salesforce/artifact-manifest.json')).toBeUndefined();
     });
@@ -239,8 +267,14 @@ describe('executeSalesforceMetadataAuditTool', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(JSON.parse(writtenFile('/output/org_data_model.diagram.json')!).entities.map((entity: { id: string }) => entity.id)).toEqual(['Center__c']);
+      expect(JSON.parse(writtenFile('/data/salesforce/diagrams/org_data_model.diagram.json')!).entities.map((entity: { id: string }) => entity.id)).toEqual(['Center__c']);
       expect(result.content).toContain('Without a list of objects it draws the org\'s own');
+      // Not delivered: a working file with its references and access files beside it, none captured.
+      expect(result.dataOutputs).toBeUndefined();
+      expect(writtenFile('/data/salesforce/diagrams/org_data_model.references.json')).toBeDefined();
+      expect(writtenFile('/data/salesforce/diagrams/org_data_model.access.json')).toBeDefined();
+      expect(result.content).toContain('Working file (not in the user\'s Outputs): /data/salesforce/diagrams/org_data_model.diagram.json.');
+      expect(result.content).toContain('is in /data/salesforce/diagrams/org_data_model.references.json');
     });
 
     it('reads a metadata-format .object upload and says which objects it could not find', async () => {
@@ -251,6 +285,7 @@ describe('executeSalesforceMetadataAuditTool', () => {
         operation: 'data_model',
         paths: ['/uploads/unpackaged/objects/Invoice__c.object'],
         objects: ['Invoice__c', 'Payment__c'],
+        deliver: true,
       });
       expect(result.success).toBe(true);
       expect(result.dataOutputs?.[0].filename).toBe('salesforce_data_model.diagram.json');
@@ -328,9 +363,7 @@ describe('executeSalesforceMetadataAuditTool', () => {
     expect(result.content).toContain('Salesforce documentation lookup topics generated:');
     expect(result.content).toContain('Imported agent evidence from .symposium packets: 1');
     expect(result.content).toContain('top-level `importedFindings` key');
-    expect(result.content).toContain('/output/salesforce/artifact-manifest.json');
-    expect(result.content).toContain('/output/salesforce/salesforce-insight-packets.json');
-    expect(result.content).toContain('/output/salesforce/salesforce-artifact-schema.json');
+    expect(result.content).toMatch(/The audit's \d+ working files are listed below; each is also at \/data\/salesforce\/<name> and \/output\/salesforce\/<name>\./);
     expect(result.dataOutputs?.map((output) => output.filename)).toEqual(
       expect.arrayContaining([
         'artifact-manifest.json',
@@ -526,7 +559,8 @@ describe('executeSalesforceMetadataAuditTool', () => {
     expect(result.content).toContain('Imported agent evidence from .symposium packets: 1');
     expect(result.content).toContain('Invalid insight packets / validation warnings: 0');
     expect(result.content).toContain('sf-token-risk: Token field is not constrained');
-    expect(result.content).toContain('/output/salesforce/salesforce-insight-packets.json');
+    expect(result.content).toContain('The agent\'s recommended next step: Review the token lookup path before implementation.');
+    expect(result.content).toMatch(/The audit's \d+ working files are listed below; each is also at \/data\/salesforce\/<name> and \/output\/salesforce\/<name>\./);
     expect(result.dataOutputs?.map((output) => output.filename)).toEqual(
       expect.arrayContaining([
         'artifact-manifest.json',
@@ -551,58 +585,27 @@ describe('executeSalesforceMetadataAuditTool', () => {
     });
   });
 
-  it('embeds the org-evidence decision instruction in the tool result when no packets are imported', async () => {
-    // Two live runs finalized reports with an "org runtime evidence: none was
-    // supplied" caveat without raising the request card — the system-prompt
-    // rule alone loses under reasoning_effort 'none'. The instruction must sit
-    // in the tool result at the decision moment.
-    const zip = new JSZip();
-    zip.file('sfdx-project.json', JSON.stringify({ packageDirectories: [{ path: 'force-app', default: true }] }));
-    zip.file('force-app/main/default/classes/CaseService.cls', 'public with sharing class CaseService {}');
-    mockSandboxService.readFile.mockResolvedValue(await zip.generateAsync({ type: 'arraybuffer' }));
-
-    const result = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-org-evidence-note', {
-      operation: 'audit',
-      paths: ['/uploads/QA-salesforce-metadata.zip'],
-    });
-
-    expect(result.success).toBe(true);
-    expect(result.content).toContain('ORG EVIDENCE DECISION (read now)');
-    expect(result.content).toContain('MUST call request_salesforce_org_evidence BEFORE writing the report');
-  });
-
-  it('carries the job\'s synthesis guidance + report-type hint for the chosen operation', async () => {
-    // Auto: the operation choice IS the job choice, so the tool result carries
-    // the job's framing and report type (a picked job sets them in the composer).
+  it('reports what the audit found and wrote, with no instructions: no org evidence order, no job framing', async () => {
+    // Under Auto the model chooses its output from the request (the web's guides);
+    // the result reports facts. The org evidence order and the job's synthesis
+    // note turned a look at the org into the audit job (the Flow redesign live test).
     const zip = new JSZip();
     zip.file('sfdx-project.json', JSON.stringify({ packageDirectories: [{ path: 'force-app', default: true }] }));
     zip.file('force-app/main/default/classes/CaseService.cls', 'public with sharing class CaseService {}');
     const bundle = await zip.generateAsync({ type: 'arraybuffer' });
-    mockSandboxService.readFile.mockResolvedValue(bundle);
 
-    const audit = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-synth-audit', {
-      operation: 'audit',
-      paths: ['/uploads/QA-salesforce-metadata.zip'],
-    });
-    expect(audit.content).toContain('Synthesis guidance (Audit the workspace): Risks, conflicts and what to fix first.');
-    expect(audit.content).toContain('`source_grounded_audit`');
-
-    mockSandboxService.readFile.mockResolvedValue(bundle);
-    const readiness = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-synth-release', {
-      operation: 'feature_readiness',
-      paths: ['/uploads/QA-salesforce-metadata.zip'],
-      query: 'Winter release go-live readiness for the Creme rollout',
-    });
-    expect(readiness.content).toContain('Synthesis guidance (Get ready for a release or a feature)');
-    expect(readiness.content).toContain('`executive_brief`');
-
-    // A diagram operation's job has no report type to suggest.
-    mockSandboxService.readFile.mockResolvedValue(bundle);
-    const dependencies = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-synth-deps', {
-      operation: 'dependencies',
-      paths: ['/uploads/QA-salesforce-metadata.zip'],
-    });
-    expect(dependencies.content).not.toContain('Synthesis guidance');
+    for (const [operation, query] of [['audit', undefined], ['feature_readiness', 'Winter release go-live readiness'], ['troubleshooting', 'System.DmlException at Class.CaseService'], ['risks', undefined], ['handoff', 'Add a fault path']] as const) {
+      mockSandboxService.readFile.mockResolvedValue(bundle);
+      const result = await executeSalesforceMetadataAuditTool(mockSandboxService, `call-facts-${operation}`, {
+        operation,
+        paths: ['/uploads/QA-salesforce-metadata.zip'],
+        ...(query ? { query } : {}),
+      });
+      expect(result.success).toBe(true);
+      for (const order of ['ORG EVIDENCE', 'MUST', 'Synthesis guidance', 'grounding note', 'Deliverable note', 'before final', 'Org evidence note']) {
+        expect(result.content).not.toContain(order);
+      }
+    }
   });
 
   it('supports troubleshooting as a direct operation for pasted Flow and Apex errors', async () => {
@@ -642,7 +645,8 @@ public without sharing class CaseService {
     expect(result.content).toContain('CaseService');
     expect(result.content).toContain('Case_Escalation');
     expect(result.content).toContain('Read-Only Diagnostic Path');
-    expect(result.content).toContain('/output/salesforce/salesforce-troubleshooting-brief.md');
+    expect(result.content).toMatch(/The audit's \d+ working files are listed below; each is also at \/data\/salesforce\/<name> and \/output\/salesforce\/<name>\./);
+    expect(result.dataOutputs?.map((output) => output.filename)).toContain('salesforce-troubleshooting-brief.md');
     expect(result.dataOutputs?.map((output) => output.filename)).toEqual(
       expect.arrayContaining([
         'artifact-manifest.json',

@@ -52,10 +52,12 @@ export interface ToolDispatchContext {
   signal: AbortSignal;
   /** Each sandbox call's wall time (the run's compute totals). */
   onSandboxTime?: SandboxTimeListener;
+  /** The run's guides (RunConfig.guides): a save check names the one for what it rejected. */
+  guides?: Record<string, string>;
 }
 
 export function createToolDispatcher(context: ToolDispatchContext): (call: ToolCall) => Promise<ToolResult> {
-  const { uid, sandboxSessionKey, keyValue } = context;
+  const { uid, sandboxSessionKey, keyValue, guides } = context;
   const sandbox = createSandboxBridge(uid, sandboxSessionKey, context.kernelKey, context.onSandboxTime);
   const files = createSandboxFiles(uid, sandboxSessionKey, context.onSandboxTime);
   // One registry per step, as one per page load was in the browser.
@@ -110,13 +112,16 @@ export function createToolDispatcher(context: ToolDispatchContext): (call: ToolC
           return checkDiagrams(checkRecipes(await checkSalesforceGrounding(checkReportSpecs(await guardWebMapTiles(
             await executePythonTool(sandbox, call.id, typeof args.code === 'string' ? args.code : '', context.signal),
             files.readFile,
-          )), files)));
+            guides,
+          ), guides), files), guides), guides);
         case 'read_file':
           return await executeReadFileTool(files, call.id, args);
         case 'write_output_file':
-          return checkDiagrams(checkRecipes(await checkSalesforceGrounding(checkReportSpecs(await guardWebMapTiles(await executeWriteOutputFileTool(files, call.id, args), files.readFile)), files)));
+          return checkDiagrams(checkRecipes(await checkSalesforceGrounding(checkReportSpecs(await guardWebMapTiles(await executeWriteOutputFileTool(files, call.id, args), files.readFile, guides), guides), files), guides), guides);
         case 'salesforce_metadata_audit':
-          return checkDiagrams(await executeSalesforceMetadataAuditTool(files, call.id, args));
+          // A run without guides comes from a web build before 2.9.7, whose prompt never sets
+          // deliver: its diagrams go to the user's Outputs as they always did.
+          return checkDiagrams(await executeSalesforceMetadataAuditTool(files, call.id, guides ? args : { deliver: true, ...args }), guides);
         case 'salesforce_read_source':
           return await executeSalesforceReadSourceTool(files, call.id, args);
         case 'request_salesforce_org_evidence':

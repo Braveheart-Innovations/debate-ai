@@ -25,7 +25,10 @@ const TILE_SIGNS: Array<{ pattern: RegExp; label: string }> = [
   { pattern: /maps\.googleapis\.com\/maps\/api\/js/, label: 'the Google Maps JavaScript API' },
 ];
 
-const CHART_INSTEAD = 'Draw this map as a report `chart` block instead: Vega-Lite `geoshape` over the app-hosted boundaries (see MAPS in the output contract).';
+/** Where a map's how-to is: the maps guide when the run has one, else the prompt's MAPS section. */
+function mapsHowTo(guides: Record<string, string> | undefined): string {
+  return guides?.maps ? 'read_guide("maps")' : 'MAPS in the output contract';
+}
 
 /** What in the HTML loads web map tiles, or null. */
 export function detectWebMapTiles(html: string): string | null {
@@ -75,6 +78,7 @@ function embeddedHtmlRefs(base64: string): EmbeddedHtmlRef[] | null {
 export async function guardWebMapTiles(
   result: ToolResult,
   readFile: (path: string) => Promise<ArrayBuffer>,
+  guides?: Record<string, string>,
 ): Promise<ToolResult> {
   const htmlOutputs = result.htmlOutputs ?? [];
   const dataOutputs = result.dataOutputs ?? [];
@@ -90,7 +94,7 @@ export async function guardWebMapTiles(
     if (name) tileMaps.set(name, sign);
     if (sign) {
       const file = name ? `/output/${name}` : 'This HTML output';
-      notes.push(`Note: ${file} draws a web tile map (${sign}). Reports have no map tile provider, so its basemap won't load (blank, or an error image). ${CHART_INSTEAD} Don't embed ${name || 'it'} in the report.`);
+      notes.push(`Note: ${file} draws a web tile map (${sign}). Reports have no map tile provider, so in a report its basemap won't load (blank, or an error image). A report \`chart\` block draws a map as Vega-Lite \`geoshape\` over the app-hosted boundaries (${mapsHowTo(guides)}).`);
     }
   }
 
@@ -117,7 +121,7 @@ export async function guardWebMapTiles(
       const sign = await tileMapSign(ref.artifactId);
       if (!sign) continue;
       rejected.add(output.filename);
-      notes.push(`Report NOT saved: /output/${outputRelativePath(output.filename)} embeds ${ref.artifactId} (block ${ref.where}), which draws a web tile map (${sign}). Reports have no map tile provider, so that map can't render. Replace that embedded_html block with a \`chart\` block (Vega-Lite \`geoshape\` over the app-hosted boundaries, see MAPS in the output contract) and save the report again.`);
+      notes.push(`Report NOT saved: /output/${outputRelativePath(output.filename)} embeds ${ref.artifactId} (block ${ref.where}), which draws a web tile map (${sign}). Reports have no map tile provider, so that map can't render. A \`chart\` block draws the map instead (Vega-Lite \`geoshape\` over the app-hosted boundaries, ${mapsHowTo(guides)}).`);
     }
   }
 

@@ -117,6 +117,26 @@ describe('operator tools', () => {
     expect(roundTools(noTeam.context).tools.map((t) => t.name)).toEqual(['execute_python', 'read_turn']);
     expect(roundTools(makeContext({}, { solo: true }).context).tools.map((t) => t.name)).toEqual(['execute_python', 'read_turn']);
   });
+
+  it('offers read_guide when the run has guides: to the operator and teammates, not to checks or the plan round', () => {
+    const guides = { report: 'The report contract.', model: 'How a model works.' };
+    const operator = roundTools(makeContext({ guides }).context).tools;
+    expect(operator.map((t) => t.name)).toEqual(['execute_python', 'read_turn', 'read_guide', 'propose_team', 'delegate']);
+    expect(operator.find((t) => t.name === 'read_guide')?.parameters).toMatchObject({ properties: { name: { type: 'string', enum: ['model', 'report'] } }, required: ['name'] });
+
+    const teammate = makeContext({ guides });
+    teammate.context.run.kind = 'teammate';
+    teammate.context.team = null;
+    expect(roundTools(teammate.context).tools.map((t) => t.name)).toEqual(['execute_python', 'read_guide']);
+
+    const check = makeContext({ guides });
+    check.context.run.kind = 'verify';
+    check.context.team = null;
+    expect(roundTools(check.context).tools.map((t) => t.name)).toEqual(['execute_python']);
+
+    // The plan round plans: its tools stay the planning ones.
+    expect(roundTools(makeContext({ guides, teamPlanTurn: true }).context).tools.map((t) => t.name)).toEqual(['propose_team', 'ask_user']);
+  });
 });
 
 describe('Team mode', () => {

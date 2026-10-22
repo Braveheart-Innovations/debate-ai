@@ -4,10 +4,9 @@ import type { AnalyzeDeliverable, AnalyzeDocumentPresetId } from '../types/analy
 /**
  * The Salesforce workspace's jobs: what the user wants to come away with. Each
  * names its output (an answer, a report, a diagram or a model) and sets the
- * audit path, the run's deliverable and, for a report, its type. The dialog
- * shows them as cards; the system prompt reads the picked job's path, and its
- * Auto menu lists every job with when it fits, so the AI chooses among the same
- * outputs the user can. Synced to debateai (the audit's synthesis note reads it).
+ * run's deliverable and, for a report, its type. The dialog shows them as cards;
+ * each job's how-to is its guide (services/analyze/prompt/salesforcePrompt.ts).
+ * Synced to debateai.
  */
 
 export const SALESFORCE_JOB_IDS = [
@@ -83,12 +82,6 @@ export interface SalesforceJob {
   /** A report job's type; the composer's picker shows it and the user can change it. */
   reportTypeId?: Exclude<AnalyzeDocumentPresetId, 'auto'>;
   details: SalesforceJobDetail[];
-  /** The audit operations the job runs, in order (the server's synthesis note matches on these). */
-  operations: string[];
-  /** When the job fits, for the AI's Auto menu. */
-  whenToUse: string;
-  /** How to do it: the path the AI takes. */
-  path: string;
 }
 
 export const SALESFORCE_JOBS: SalesforceJob[] = [
@@ -99,9 +92,6 @@ export const SALESFORCE_JOBS: SalesforceJob[] = [
     output: 'answer',
     deliverable: 'answer',
     details: [{ kind: 'question', required: true }],
-    operations: ['search', 'component'],
-    whenToUse: 'a question about how something in the org works or why it behaves as it does',
-    path: 'Find what the question names with `salesforce_metadata_audit(operation="search", query=…)` or `operation="component"`, read its source with `salesforce_read_source` and cite `path:line`; for how Salesforce itself behaves, `salesforce_docs_lookup`. Answer in your reply. Write a report only when the user asks for one or the answer needs more than a reply holds, and a diagram only when the user asks for one.',
   },
   {
     id: 'data_model',
@@ -110,9 +100,6 @@ export const SALESFORCE_JOBS: SalesforceJob[] = [
     output: 'diagram',
     deliverable: 'diagram',
     details: [{ kind: 'objects', required: true }],
-    operations: ['data_model'],
-    whenToUse: 'the user asks for a data model, an ERD, or how objects relate',
-    path: '`salesforce_metadata_audit(operation="data_model")` with `objects` set to the objects named, or `["*"]` when the user asks for every object in the workspace. The diagram file is the deliverable.',
   },
   {
     id: 'flow',
@@ -121,9 +108,6 @@ export const SALESFORCE_JOBS: SalesforceJob[] = [
     output: 'diagram',
     deliverable: 'diagram',
     details: [{ kind: 'flows', required: true }],
-    operations: ['flow_diagram'],
-    whenToUse: 'the user asks to see a Flow, or a chain of Flows, as a diagram',
-    path: '`salesforce_metadata_audit(operation="flow_diagram")` with `flows` set to the Flows named and `chain=true`, so the diagram includes every flow they start. The diagram file is the deliverable.',
   },
   {
     id: 'save_order',
@@ -132,9 +116,6 @@ export const SALESFORCE_JOBS: SalesforceJob[] = [
     output: 'diagram',
     deliverable: 'diagram',
     details: [{ kind: 'objects', required: true }],
-    operations: ['save_order'],
-    whenToUse: 'the question is about the order automation runs in when a record saves: which runs first, recursion between automations, or what changed a field during a save',
-    path: '`salesforce_metadata_audit(operation="save_order")` with `objects` set to the objects named, one diagram each. The diagram file is the deliverable.',
   },
   {
     id: 'change_impact',
@@ -143,9 +124,6 @@ export const SALESFORCE_JOBS: SalesforceJob[] = [
     output: 'model',
     deliverable: 'model',
     details: [{ kind: 'fields', required: true }],
-    operations: ['data_model'],
-    whenToUse: 'the user plans a change (renaming or deleting a field or object, changing a type or a picklist\'s values) and asks what it reaches',
-    path: '`salesforce_metadata_audit(operation="data_model")` with `objects` set to the objects the changes touch, so its references file exists, then the change impact model (`salesforce_impact`, the Salesforce models rule) with those changes as its default input.',
   },
   {
     id: 'field_access',
@@ -154,9 +132,6 @@ export const SALESFORCE_JOBS: SalesforceJob[] = [
     output: 'model',
     deliverable: 'model',
     details: [{ kind: 'fields', required: true }],
-    operations: ['data_model'],
-    whenToUse: 'the question is who can read or edit fields: student data, FERPA, sensitive fields',
-    path: '`salesforce_metadata_audit(operation="data_model")` with `objects` set to the fields\' objects, so its access file exists, then the field access model (`salesforce_access`, the Salesforce models rule) with those fields as its default input.',
   },
   {
     id: 'org_limits',
@@ -165,9 +140,6 @@ export const SALESFORCE_JOBS: SalesforceJob[] = [
     output: 'model',
     deliverable: 'model',
     details: [{ kind: 'limit', required: false }],
-    operations: [],
-    whenToUse: 'the question is when an org limit (data or file storage, email, API requests) runs out',
-    path: 'The forecast model (`forecast_limits`, the Salesforce models rule) from the readings in the imported packets\' `limits.csv`. With none, ask for them in an org evidence request (`sf org list limits`).',
   },
   {
     id: 'troubleshoot',
@@ -177,9 +149,6 @@ export const SALESFORCE_JOBS: SalesforceJob[] = [
     deliverable: 'report',
     reportTypeId: 'technical_handoff',
     details: [{ kind: 'error', required: true }],
-    operations: ['troubleshooting'],
-    whenToUse: 'the user pasted a Flow error, an Apex exception, a validation failure or a bug report',
-    path: '`salesforce_metadata_audit(operation="troubleshooting")` with `query` set to the pasted error, then read the source it points at with `salesforce_read_source`. Write a report; add the diagram the cause needs (the failing Flow, or the save order when the failure depends on what runs during a save) and place it in the report.',
   },
   {
     id: 'audit',
@@ -189,9 +158,6 @@ export const SALESFORCE_JOBS: SalesforceJob[] = [
     deliverable: 'report',
     reportTypeId: 'source_grounded_audit',
     details: [],
-    operations: ['audit'],
-    whenToUse: 'a broad review of the org\'s metadata: risks, conflicts, technical debt',
-    path: '`salesforce_metadata_audit(operation="audit")`, then `salesforce_docs_lookup` with its topics. Write a report.',
   },
   {
     id: 'access_review',
@@ -201,9 +167,6 @@ export const SALESFORCE_JOBS: SalesforceJob[] = [
     deliverable: 'report',
     reportTypeId: 'source_grounded_audit',
     details: [{ kind: 'objects', required: false }],
-    operations: ['risks'],
-    whenToUse: 'a review of profiles, permission sets, sharing and broad permissions',
-    path: '`salesforce_metadata_audit(operation="risks")` (or `audit` for the full context), then `salesforce_docs_lookup`. Keep the metadata\'s access risks apart from imported agent evidence. Write a report.',
   },
   {
     id: 'readiness',
@@ -213,9 +176,6 @@ export const SALESFORCE_JOBS: SalesforceJob[] = [
     deliverable: 'report',
     reportTypeId: 'decision_memo',
     details: [{ kind: 'readiness', required: true }],
-    operations: ['feature_readiness'],
-    whenToUse: 'readiness for a Salesforce seasonal release or a planned feature or go-live',
-    path: '`salesforce_metadata_audit(operation="feature_readiness")` with `query` set to the release or the feature, then `salesforce_docs_lookup` (for a release: its release notes, deprecations and retirements). Write a report with a checklist that keeps the workspace\'s evidence apart from the documentation\'s.',
   },
   {
     id: 'handoff',
@@ -225,9 +185,6 @@ export const SALESFORCE_JOBS: SalesforceJob[] = [
     deliverable: 'report',
     reportTypeId: 'technical_handoff',
     details: [{ kind: 'handoff', required: true }],
-    operations: ['handoff'],
-    whenToUse: 'the user wants a change planned for a developer to build outside Symposium',
-    path: '`salesforce_metadata_audit(operation="handoff")` with `query` set to the change. Write a report with the implementation steps, prompts and acceptance criteria, not deployable patches.',
   },
 ];
 
@@ -280,16 +237,6 @@ export function readSalesforceJobId(record: { salesforceJobId?: unknown; selecte
   if (!record) return null;
   if (isSalesforceJobId(record.salesforceJobId)) return record.salesforceJobId;
   return salesforceJobFromLegacyLensIds(record.selectedAnalysisLensIds);
-}
-
-/**
- * The job that fits an audit operation the AI chose (the server's synthesis note
- * under Auto): the one whose path starts with it. feature_readiness reads as
- * readiness for either kind.
- */
-export function salesforceJobForOperation(operation: string | undefined): SalesforceJob | undefined {
-  if (!operation) return undefined;
-  return SALESFORCE_JOBS.find((job) => job.operations[0] === operation);
 }
 
 function listWords(items: string[], conjunction = 'and'): string {

@@ -15,6 +15,7 @@ import {
   validateAnalysisArtifactSpec,
 } from '../../contract/services/analyze/artifacts/AnalysisArtifactSpecService';
 import { withNotes } from './toolResultNotes';
+import { guideHint } from '../guides';
 
 const DECLARES_SPEC = /"kind"\s*:\s*"analysis_artifact_spec"/;
 
@@ -39,13 +40,13 @@ export function reportSpecProblem(text: string): string | null {
   return `it doesn't match the report format:\n- ${validation.errors.join('\n- ')}`;
 }
 
-export function checkReportSpecs(result: ToolResult): ToolResult {
+export function checkReportSpecs(result: ToolResult, guides?: Record<string, string>): ToolResult {
   const notes: string[] = [];
   for (const output of result.dataOutputs ?? []) {
     if (!output.filename.toLowerCase().endsWith('.json')) continue;
     const problem = reportSpecProblem(Buffer.from(output.base64, 'base64').toString('utf8'));
     if (!problem) continue;
-    notes.push(`Report NOT saved: /output/${outputRelativePath(output.filename)} declares itself a report (analysis_artifact_spec), but ${problem}\nIt is kept only as a data file and will not appear in Reports. Fix it and save the report again before saying it is ready.`);
+    notes.push(`Report NOT saved: /output/${outputRelativePath(output.filename)} declares itself a report (analysis_artifact_spec), but ${problem}\nIt is kept only as a data file and will not appear in Reports. Fix it and save the report again before saying it is ready.${guideHint(guides, 'report')}`);
   }
   return notes.length > 0 ? withNotes(result, notes) : result;
 }

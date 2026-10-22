@@ -169,7 +169,8 @@ describe('team calls: decisions and results', () => {
     expect(isTeamRoundReady(state)).toBe(true);
     const [r1] = composeTeamResults(state, team);
     expect(r1).toMatchObject({ success: true });
-    expect(r1.content).toBe('The user declined this plan: Add a task for B.\n\nPropose a revised plan with propose_team, ask the user if something is unclear, or say if you\'d rather work alone.');
+    // What to do next is the prompt's (the team section); the result says what happened.
+    expect(r1.content).toBe('The user declined this plan: Add a task for B.');
   });
 
   it('a decline needs feedback', () => {

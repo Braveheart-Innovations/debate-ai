@@ -111,7 +111,7 @@ function readFile(file: SalesforceSourceFile, startLine = 1, endLine?: number): 
   const end = Math.min(endLine ?? start + SOURCE_PAGE_LINES - 1, start + SOURCE_PAGE_LINES - 1, lines.length);
   const body = lines.slice(start - 1, end).map((line, index) => formatLine(start + index, line, end)).join('\n');
   const header = `${file.path} — lines ${start}-${end} of ${lines.length}`;
-  const next = end < lines.length ? `\n\n(More: call again with path="${file.path}", start_line=${end + 1}.)` : '';
+  const next = end < lines.length ? `\n\n(The file continues: path="${file.path}", start_line=${end + 1} reads the next lines.)` : '';
   return `${header}\n${body}${next}`;
 }
 

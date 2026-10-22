@@ -225,7 +225,7 @@ function buildModelContent(
   if (pages.length === 0) {
     lines.push('No official Salesforce documentation was read for these topics, so there is nothing to quote or cite.');
   } else {
-    lines.push('Passages read. Quote them, and cite a page by its id. A statement about how Salesforce behaves needs a passage here that says it.');
+    lines.push('Passages read, each page under its id:');
     let budget = INLINE_PASSAGE_BUDGET_CHARS;
     const overflow: SalesforceDocReadPage[] = [];
     for (const page of pages) {
@@ -252,7 +252,7 @@ function buildModelContent(
       }
     }
     if (overflow.length > 0 && filesSaved) {
-      lines.push('', `Also read; their passages are in ${SALESFORCE_DOCS_DIR}/${base}.md (read it before quoting them):`);
+      lines.push('', `Also read; their passages are in ${SALESFORCE_DOCS_DIR}/${base}.md:`);
       for (const page of overflow) {
         lines.push(`- [${page.citationId}] ${page.title} - ${page.url} (${describePage(page, topicLabel)})`);
       }
@@ -266,7 +266,7 @@ function buildModelContent(
   }
 
   if (unreadPages.length > 0) {
-    lines.push('', 'Found but not read. These are not evidence: never cite them, and never write "per Salesforce Help" from a title or a link.');
+    lines.push('', 'Found but not read (not evidence):');
     for (const page of unreadPages) {
       lines.push(`- ${page.title} - ${page.url} (${topicLabel(page.topicId)}: ${describeUnreadReason(page.reason)})`);
     }
@@ -277,12 +277,11 @@ function buildModelContent(
     lines.push(
       '',
       `No documentation read for: ${missed.map((topic) => `${topic.label || topicLabel(topic.topicId)} (${topic.reason.replace(/_/g, ' ')})`).join('; ')}.`,
-      'For these, say the Salesforce documentation was not found or read, and mark any claim about them unverified.',
     );
   }
 
   if (pages.some((page) => page.status === 'preview' || page.confidenceImpact === 'preview-risk')) {
-    lines.push('', 'Some pages describe preview, beta or pilot features: downgrade confidence wherever they are material.');
+    lines.push('', 'Some pages describe preview, beta or pilot features.');
   }
 
   lines.push(
@@ -290,13 +289,12 @@ function buildModelContent(
     ...(filesSaved
       ? [
         `Files: ${SALESFORCE_DOCS_DIR}/${base}.md (every passage in full), ${base}.json, and ${base}.provenance.json.`,
-        `In a report, cite a page as a source with its title and url, and set its sourceArtifactId to "${SALESFORCE_DOCS_DIR}/${base}.provenance.json".`,
+        `A report cites a page as a source by its title and url; the report check matches the url against the pages read. Provenance for those sources: ${SALESFORCE_DOCS_DIR}/${base}.provenance.json.`,
       ]
       : [
         'Files: none saved. This account already has the most Analyze sessions using their Python environment at once, so the evidence files weren\'t written.',
-        'Answer from the passages above, citing each page by its id. A report can cite them only after salesforce_docs_lookup runs again once a slot frees up: the report check reads the saved files.',
+        'A report can cite these pages only after salesforce_docs_lookup runs again with a free slot: the report check reads the saved files.',
       ]),
-    'Keep apart: your org\'s metadata, org runtime evidence, imported agent assertions, and Salesforce documentation (only the passages above).',
   );
   return lines.join('\n');
 }
@@ -381,8 +379,8 @@ function describePage(page: SalesforceDocReadPage, topicLabel: (topicId: string)
     page.releaseLabel ? `release ${page.releaseLabel}` : '',
     page.apiVersion ? `API ${page.apiVersion}` : '',
     `topics: ${page.topicIds.map(topicLabel).join(', ')}`,
-    page.confidenceImpact === 'preview-risk' ? 'preview/beta/pilot: downgrade confidence' : '',
-    page.confidenceImpact === 'stale-risk' ? 'cached copy is old: verify before release-sensitive claims' : '',
+    page.confidenceImpact === 'preview-risk' ? 'preview/beta/pilot' : '',
+    page.confidenceImpact === 'stale-risk' ? 'cached copy is old: may predate the current release' : '',
     page.confidenceImpact === 'release-link-risk' ? 'may link to previous-release material' : '',
   ].filter(Boolean).join(' · ');
 }

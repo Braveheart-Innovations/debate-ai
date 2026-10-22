@@ -41,8 +41,7 @@ export function executeRequestSalesforceOrgEvidenceTool(
     success: true,
     content: [
       'Org evidence request presented to the user with a copyable local-agent handoff prompt targeting your requested checks, an import affordance for the resulting findings packet, and a continue-without-evidence option.',
-      'Your turn ends here. Do not call this tool again this session.',
-      'The analysis resumes when the user imports the findings packet (verify its claims via salesforce_metadata_audit operation="packet_findings", reusing the existing audit artifacts) or asks you to continue without org evidence (finalize with confidence labels on the unverified claims).',
+      'Your turn ends here. The analysis resumes as a new turn when the user imports the findings packet or continues without org evidence.',
     ].join('\n'),
   };
 }

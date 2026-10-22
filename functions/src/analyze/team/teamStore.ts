@@ -99,6 +99,7 @@ export function buildChildRun(spec: ChildRunSpec): { run: AnalyzeRunDoc; brief: 
     aiId: spec.ai.id,
     aiName: spec.ai.name,
     systemPrompt: base.subagentSystemPrompt ?? '',
+    guides: base.guides,
     toolNames: base.toolNames.filter((name) => !TEAM_TOOL_NAMES.has(name) && !OPERATOR_ONLY_TOOL_NAMES.has(name)),
     sandboxSessionKey: base.sandboxSessionKey,
     outputSelection: base.outputSelection,

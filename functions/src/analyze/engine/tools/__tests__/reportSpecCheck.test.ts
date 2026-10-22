@@ -53,4 +53,10 @@ describe('checkReportSpecs', () => {
     expect(checked.content).toMatch(/Fix it and save the report again/);
     expect(checked.dataOutputs).toHaveLength(1);
   });
+
+  it('names the report guide when the run has one', () => {
+    const broken = result(dataOutput('/output/report.json', '{"kind": "analysis_artifact_spec", "version": 1, oops}'));
+    expect(checkReportSpecs(broken, { report: 'The report contract.' }).content).toMatch(/The how-to is in read_guide\("report"\)\.$/);
+    expect(checkReportSpecs(broken).content).not.toContain('read_guide');
+  });
 });

@@ -7,19 +7,26 @@
 import type { ToolResult } from '../../contract/lib/ai/tools/types';
 import { isDiagramFilename, reviewDiagramText } from '../../contract/services/analyze/diagrams/diagramFile';
 import { outputPath, withNotes } from './toolResultNotes';
+import { guideHint } from '../guides';
+
+/** The guide for a diagram file: a process flow's, or the data model's. */
+function diagramGuide(text: string): string {
+  return /"kind"\s*:\s*"process_flow"/.test(text) ? 'process_flow' : 'diagram';
+}
 
 function plural(count: number, one: string, many: string): string {
   return `${count} ${count === 1 ? one : many}`;
 }
 
-export function checkDiagrams(result: ToolResult): ToolResult {
+export function checkDiagrams(result: ToolResult, guides?: Record<string, string>): ToolResult {
   const notes: string[] = [];
   for (const output of result.dataOutputs ?? []) {
     if (!isDiagramFilename(output.filename)) continue;
     const path = outputPath(output.filename);
-    const review = reviewDiagramText(Buffer.from(output.base64, 'base64').toString('utf8'));
+    const text = Buffer.from(output.base64, 'base64').toString('utf8');
+    const review = reviewDiagramText(text);
     if (!review.diagram) {
-      notes.push(`Diagram NOT readable: ${path}: ${review.problems.join('; ')}. The user can't open it in Outputs; fix these and save it again.`);
+      notes.push(`Diagram NOT readable: ${path}: ${review.problems.join('; ')}. The user can't open it in Outputs; fix these and save it again.${guideHint(guides, diagramGuide(text))}`);
       continue;
     }
     const diagram = review.diagram;
@@ -27,7 +34,7 @@ export function checkDiagrams(result: ToolResult): ToolResult {
       ? `${plural(diagram.entities.length, 'entity', 'entities')}, ${plural(diagram.relationships.length, 'relationship', 'relationships')}`
       : `${plural(diagram.nodes.length, 'node', 'nodes')}, ${plural(diagram.flows.length, 'flow', 'flows')}`;
     notes.push(review.warnings.length > 0
-      ? `Diagram saved: ${path} (${size}), with warnings the user sees in the editor: ${review.warnings.join('; ')}. Fix them unless they're intended, and save it again.`
+      ? `Diagram saved: ${path} (${size}), with warnings the user sees in the editor: ${review.warnings.join('; ')}.`
       : `Diagram saved: ${path} (${size}). The user can open it in Outputs and edit it.`);
   }
   return notes.length > 0 ? withNotes(result, notes) : result;

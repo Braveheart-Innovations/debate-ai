@@ -23,19 +23,17 @@ function buildDataOutputSummary(result: ToolResult): string[] {
   if (result.dataOutputs && result.dataOutputs.length > 0) {
     summaries.push(
       'Durable generated files retained for this run:',
-      ...result.dataOutputs.slice(0, 12).map((output) => `- /output/${output.filename} (${formatBytes(output.size)})`),
-      result.dataOutputs.length > 12 ? `- ${result.dataOutputs.length - 12} more artifact(s) omitted from this summary` : '',
+      ...result.dataOutputs.map((output) => `- /output/${output.filename} (${formatBytes(output.size)})`),
     );
   }
 
   if (result.bundleOutputs && result.bundleOutputs.length > 0) {
     if (summaries.length === 0) summaries.push('Durable generated files retained for this run:');
     summaries.push(
-      ...result.bundleOutputs.slice(0, 12).map((output) => {
+      ...result.bundleOutputs.map((output) => {
         const fileCount = Object.keys(output.manifest.files).length;
         return `- bundle: ${output.name || output.manifest.entryPoint} (${fileCount} bundled file${fileCount === 1 ? '' : 's'}; entry /output/${output.manifest.entryPoint})`;
       }),
-      result.bundleOutputs.length > 12 ? `- ${result.bundleOutputs.length - 12} more bundle(s) omitted from this summary` : '',
     );
   }
 
@@ -51,8 +49,8 @@ function buildDataOutputSummary(result: ToolResult): string[] {
  * rebuilt them — slightly differently each time — in an endless loop. Total
  * context pressure is governed instead by `pruneHistoryIfNeeded`, which knows the
  * model's real context window and drops whole oldest tool exchanges only when
- * genuinely needed. The retained /output + bundle files are always summarised so
- * the model knows the durable artifacts exist and can reuse them.
+ * genuinely needed. The retained /output + bundle files are always listed, every
+ * one, so the model knows the durable artifacts exist and can reuse them.
  */
 export function buildToolResultContentForFollowUp(result: ToolResult): string {
   if (result.success) {
@@ -62,5 +60,5 @@ export function buildToolResultContentForFollowUp(result: ToolResult): string {
   }
 
   const rawFailure = (result.error || result.content || 'Tool execution failed').trim();
-  return `Tool execution failed: ${rawFailure}\nContinue with remaining successful tool outputs and explain the limitation from this failure.`;
+  return `Tool execution failed: ${rawFailure}`;
 }

@@ -176,6 +176,7 @@ export async function runStep(payload: StepPayload, owner: string, finalAttempt 
         kernelKey: run.config.kernel,
         keyValue,
         signal: cancel.signal,
+        guides: run.config.guides,
         onSandboxTime: (ms) => {
           sandboxTime.ms += ms;
           sandboxTime.calls += 1;

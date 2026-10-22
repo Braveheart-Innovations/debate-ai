@@ -48,4 +48,13 @@ describe('checkDiagrams', () => {
     const result = saved('orders.json', model);
     expect(checkDiagrams(result)).toBe(result);
   });
+
+  it('names the guide for a diagram it can\'t open, when the run has one', () => {
+    const guides = { diagram: 'Data models.', process_flow: 'Process flows.' };
+    expect(checkDiagrams(saved('orders.diagram.json', { ...model, platform: 'oracle' }), guides).content)
+      .toMatch(/fix these and save it again\. The how-to is in read_guide\("diagram"\)\.$/);
+    expect(checkDiagrams(saved('intake.diagram.json', { version: 1, kind: 'process_flow', title: 'Intake' }), guides).content)
+      .toMatch(/The how-to is in read_guide\("process_flow"\)\.$/);
+    expect(checkDiagrams(saved('orders.diagram.json', { ...model, platform: 'oracle' })).content).not.toContain('read_guide');
+  });
 });

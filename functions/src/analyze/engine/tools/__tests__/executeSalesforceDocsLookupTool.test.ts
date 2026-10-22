@@ -114,7 +114,8 @@ describe('packageSalesforceDocsLookupEvidence', () => {
     expect(provenance.pages[0].topicIds).toEqual(['storage', 'limits']);
     expect(written(`/data/salesforce/docs/${base}.md`)).toContain('Passages read: 1');
     expect(JSON.parse(written(`/data/salesforce/docs/${base}.json`)).sources[0].id).toBe(storageId);
-    expect(result.content).toContain(`set its sourceArtifactId to "/data/salesforce/docs/${base}.provenance.json"`);
+    expect(result.content).toContain(`Provenance for those sources: /data/salesforce/docs/${base}.provenance.json.`);
+    expect(result.content).toContain('Passages read, each page under its id:');
 
     expect(result.provenance).toMatchObject({
       tool: 'salesforce_docs_lookup',
@@ -144,10 +145,10 @@ describe('packageSalesforceDocsLookupEvidence', () => {
 
     expect(result.content).toContain('read 0 official page(s) for 2 topic(s); 1 more found but not read');
     expect(result.content).toContain('No official Salesforce documentation was read for these topics');
-    expect(result.content).toContain('Found but not read. These are not evidence');
+    expect(result.content).toContain('Found but not read (not evidence):');
     expect(result.content).toContain(`- Data and File Storage Allocations - ${STORAGE_URL} (Org storage limits: a Help article not in the docs index yet`);
     expect(result.content).toContain('No documentation read for: Org storage limits (not read).');
-    expect(result.content).toContain('mark any claim about them unverified');
+    expect(result.content).not.toContain('mark any claim');
     expect(result.content).not.toContain(`[${salesforceDocCitationId(STORAGE_URL)}]`);
     expect(result.provenance?.cacheStatus).toBe('fresh');
     const provenance = JSON.parse(written('/data/salesforce/docs/lookup_call_unread.provenance.json'));
@@ -243,7 +244,8 @@ describe('packageSalesforceDocsLookupEvidence', () => {
   it('notes preview pages', async () => {
     const raw = JSON.stringify(bundle({ sources: [source({ status: 'preview', confidenceImpact: 'preview-risk' })] }));
     const result = await packageSalesforceDocsLookupEvidence('call-preview', raw, { mountFile });
-    expect(result.content).toContain('preview/beta/pilot: downgrade confidence');
+    expect(result.content).toContain('preview/beta/pilot');
+    expect(result.content).not.toContain('downgrade confidence');
     expect(result.content).toContain('Some pages describe preview, beta or pilot features');
   });
 });
