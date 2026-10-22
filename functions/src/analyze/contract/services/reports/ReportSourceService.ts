@@ -109,6 +109,26 @@ export function mergeReportSources(
   return merged;
 }
 
+/**
+ * The artifacts a report shows or cites: a block's artifact (a chart's file, an
+ * image, an interactive component), or one whose sources a block cites. Its
+ * sources come from these, never from the whole session: publishing used to list
+ * every session file with provenance, the report's own PDF, PowerPoint and spec
+ * versions among them, as "verified sources" (2026-10-22).
+ */
+export function artifactsReportUses(spec: ReportSpecV1, artifacts: readonly Artifact[]): Artifact[] {
+  const shown = new Set<string>();
+  const cited = new Set<string>();
+  for (const page of spec.pages) {
+    for (const block of page.blocks) {
+      if ('artifactId' in block && typeof block.artifactId === 'string') shown.add(block.artifactId);
+      for (const id of block.citations ?? []) cited.add(id);
+    }
+  }
+  return artifacts.filter((artifact) => shown.has(artifact.id)
+    || sourceIdsForArtifact(artifact, spec.sources).some((id) => cited.has(id)));
+}
+
 export function withReportSourcesFromArtifacts(spec: ReportSpecV1, artifacts: Artifact[]): ReportSpecV1 {
   const sources = mergeReportSources(spec.sources, deriveReportSourcesFromArtifacts(artifacts));
   return sources.length > 0 ? { ...spec, sources } : spec;
