@@ -121,6 +121,7 @@ export class GoogleRuntime implements ProviderRuntime {
         temperature: request.temperature ?? 0.7,
         maxTokens: request.maxTokens,
         deepThinking: request.deepThinking,
+        includeThoughts: request.streamReasoning,
       }),
     };
 
@@ -177,8 +178,13 @@ export class GoogleRuntime implements ProviderRuntime {
           const parts = candidate.content?.parts;
           if (parts && Array.isArray(parts)) {
             for (const part of parts) {
+              // A thought summary (thinkingConfig.includeThoughts), never the answer
+              if (part.thought && part.text) {
+                yield { type: 'reasoning_delta', delta: part.text };
+              }
+
               // Text content
-              if (part.text) {
+              else if (part.text) {
                 yield {
                   type: 'text_delta',
                   delta: part.text,

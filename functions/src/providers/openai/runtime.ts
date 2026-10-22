@@ -167,6 +167,7 @@ export class OpenAIRuntime implements ProviderRuntime {
           toolChoice: request.toolChoice,
           stream: true,
           reasoningEffort: request.deepThinking ? openAIDeepThinkingEffort(request.model) : undefined,
+          reasoningSummary: request.streamReasoning,
         }),
       };
     }
@@ -271,6 +272,12 @@ export class OpenAIRuntime implements ProviderRuntime {
       try {
         const event = JSON.parse(data);
         const choice = event.choices?.[0];
+
+        // Reasoning the provider streams on its own (DeepSeek, Kimi, GLM, Grok)
+        const deltaReasoning = choice?.delta?.reasoning_content;
+        if (typeof deltaReasoning === 'string' && deltaReasoning) {
+          yield { type: 'reasoning_delta', delta: deltaReasoning };
+        }
 
         // Text delta
         const deltaContent = choice?.delta?.content;

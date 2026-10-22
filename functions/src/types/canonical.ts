@@ -110,6 +110,17 @@ export interface TextDeltaEvent {
 }
 
 /**
+ * The model's reasoning as its provider streams it: a summary of its thinking
+ * (Claude, OpenAI Responses, Gemini) or the reasoning itself (DeepSeek, Kimi,
+ * GLM, Grok, Cohere). Only a caller that asks for it gets it
+ * (ModelStreamRequest.streamReasoning); it is never part of the answer.
+ */
+export interface ReasoningDeltaEvent {
+  type: 'reasoning_delta';
+  delta: string;
+}
+
+/**
  * Tool call start event - emitted when AI begins a tool call
  */
 export interface ToolCallStartEvent {
@@ -179,6 +190,7 @@ export interface ErrorEvent {
  */
 export type CanonicalSSEEvent =
   | TextDeltaEvent
+  | ReasoningDeltaEvent
   | ToolCallStartEvent
   | ToolCallDeltaEvent
   | ToolCallCompleteEvent
