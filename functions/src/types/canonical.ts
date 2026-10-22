@@ -170,6 +170,8 @@ export interface ErrorEvent {
   message: string;
   /** Error code for programmatic handling */
   code: string;
+  /** Typed detail, as on a callable's HttpsError (the free-limit refusal) */
+  details?: unknown;
 }
 
 /**

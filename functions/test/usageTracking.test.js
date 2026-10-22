@@ -10,6 +10,8 @@ const {
   normalizeSessionType,
   mapSessionTypeToFreeTier,
   computeFreeTierGate,
+  freeLimitError,
+  freeTierGateError,
   buildSandboxUsageUpdate,
   freeTierLimit,
 } = require('../lib/usageTracking');
@@ -302,55 +304,90 @@ test('mapSessionTypeToFreeTier maps comparison->compare and passes others throug
   assert.equal(mapSessionTypeToFreeTier(undefined), undefined);
 });
 
-test('gate: unknown session type is not metered (allowed, no decrement)', () => {
-  const { result, decrementTo } = computeFreeTierGate({
-    mappedType: undefined, interactionId: 'i1', isPremium: false, markerExists: false, usage: FULL_USAGE,
-  });
-  assert.deepEqual(result, { allowed: true, reason: 'not-metered' });
+const gate = (overrides) => computeFreeTierGate({
+  sessionType: 'chat', interactionId: 'i1', isPremium: false, markerType: undefined, usage: FULL_USAGE,
+  ...overrides,
+});
+
+test('gate: a free account\'s call without a session type is refused, not let through', () => {
+  const { result, decrementTo } = gate({ sessionType: undefined });
+  assert.deepEqual(result, { allowed: false, reason: 'unlabeled' });
   assert.equal(decrementTo, undefined);
 });
 
-test('gate: missing interactionId is skipped (backward-compatible, no decrement)', () => {
-  const { result, decrementTo } = computeFreeTierGate({
-    mappedType: 'chat', interactionId: undefined, isPremium: false, markerExists: false, usage: FULL_USAGE,
-  });
-  assert.deepEqual(result, { allowed: true, reason: 'skipped' });
+test('gate: a free account\'s call with an unknown session type is refused', () => {
+  assert.deepEqual(gate({ sessionType: 'bogus' }).result, { allowed: false, reason: 'unlabeled' });
+  assert.deepEqual(gate({ sessionType: 'constructor' }).result, { allowed: false, reason: 'unlabeled' });
+});
+
+test('gate: a free account\'s call without a session id is refused, not let through', () => {
+  const { result, decrementTo } = gate({ interactionId: undefined });
+  assert.deepEqual(result, { allowed: false, reason: 'unlabeled' });
   assert.equal(decrementTo, undefined);
 });
 
-test('gate: premium users always pass without decrement', () => {
-  const { result, decrementTo } = computeFreeTierGate({
-    mappedType: 'chat', interactionId: 'i1', isPremium: true, markerExists: false,
-    usage: { ...FULL_USAGE, freeChatsRemaining: 0 },
-  });
+test('gate: Create isn\'t a free-tier session type (it checks a trial or subscription instead)', () => {
+  assert.deepEqual(gate({ sessionType: 'create' }).result, { allowed: false, reason: 'unlabeled' });
+});
+
+test('gate: premium users always pass without decrement, labeled or not', () => {
+  const { result, decrementTo } = gate({ isPremium: true, usage: { ...FULL_USAGE, freeChatsRemaining: 0 } });
   assert.deepEqual(result, { allowed: true, reason: 'premium' });
   assert.equal(decrementTo, undefined);
+  assert.deepEqual(gate({ isPremium: true, sessionType: undefined, interactionId: undefined }).result, { allowed: true, reason: 'premium' });
 });
 
 test('gate: an already-counted interaction passes idempotently (no second decrement)', () => {
-  const { result, decrementTo } = computeFreeTierGate({
-    mappedType: 'debate', interactionId: 'i1', isPremium: false, markerExists: true, usage: FULL_USAGE,
-  });
+  const { result, decrementTo } = gate({ sessionType: 'debate', markerType: 'debate' });
   assert.deepEqual(result, { allowed: true, reason: 'counted' });
   assert.equal(decrementTo, undefined);
 });
 
+test('gate: a compare session\'s later calls find its marker (comparison maps to compare)', () => {
+  assert.deepEqual(gate({ sessionType: 'comparison', markerType: 'compare' }).result, { allowed: true, reason: 'counted' });
+});
+
+test('gate: an id counted as one type can\'t stand in for another', () => {
+  const { result, decrementTo } = gate({ sessionType: 'debate', markerType: 'chat' });
+  assert.deepEqual(result, { allowed: false, reason: 'unlabeled' });
+  assert.equal(decrementTo, undefined);
+});
+
 test('gate: first use of an interaction decrements the right counter', () => {
-  const { result, decrementTo } = computeFreeTierGate({
-    mappedType: 'compare', interactionId: 'i1', isPremium: false, markerExists: false,
-    usage: { ...FULL_USAGE, freeComparesRemaining: 3 },
-  });
+  const { result, decrementTo } = gate({ sessionType: 'comparison', usage: { ...FULL_USAGE, freeComparesRemaining: 3 } });
   assert.deepEqual(result, { allowed: true, reason: 'decremented', remaining: 2 });
   assert.equal(decrementTo, 2);
 });
 
 test('gate: exhausted free tier is rejected', () => {
-  const { result, decrementTo } = computeFreeTierGate({
-    mappedType: 'analyze', interactionId: 'i1', isPremium: false, markerExists: false,
-    usage: { ...FULL_USAGE, freeAnalyzesRemaining: 0 },
-  });
+  const { result, decrementTo } = gate({ sessionType: 'analyze', usage: { ...FULL_USAGE, freeAnalyzesRemaining: 0 } });
   assert.deepEqual(result, { allowed: false, reason: 'exhausted', remaining: 0 });
   assert.equal(decrementTo, undefined);
+});
+
+test('gate: an id that can\'t be a doc id is unlabeled', () => {
+  assert.deepEqual(gate({ interactionId: 'a/b' }).result, { allowed: false, reason: 'unlabeled' });
+  assert.deepEqual(gate({ interactionId: '..' }).result, { allowed: false, reason: 'unlabeled' });
+  assert.deepEqual(gate({ interactionId: 'x'.repeat(257) }).result, { allowed: false, reason: 'unlabeled' });
+});
+
+test('refusals: every mode at its limit gets Analyze\'s typed free-limit error', () => {
+  for (const [sessionType, type, label] of [['chat', 'chat', 'Chat'], ['comparison', 'compare', 'Compare'], ['debate', 'debate', 'Debate'], ['analyze', 'analyze', 'Analyze']]) {
+    const error = freeTierGateError({ allowed: false, reason: 'exhausted', remaining: 0 }, sessionType);
+    assert.equal(error.code, 'resource-exhausted');
+    assert.equal(error.message, `You've used your 5 free ${label} sessions.`);
+    assert.deepEqual(error.details, { reason: 'free-limit', type, limit: 5 });
+  }
+});
+
+test('refusals: Create has no free sessions; an unlabeled call is an out-of-date page', () => {
+  const create = freeLimitError('create');
+  assert.equal(create.code, 'resource-exhausted');
+  assert.equal(create.message, 'Create comes with a free trial or a subscription.');
+  assert.deepEqual(create.details, { reason: 'free-limit', type: 'create', limit: 0 });
+  const unlabeled = freeTierGateError({ allowed: false, reason: 'unlabeled' }, undefined);
+  assert.equal(unlabeled.code, 'failed-precondition');
+  assert.equal(unlabeled.message, 'This page is out of date. Reload it to keep going.');
 });
 
 test('free tier: 5 Analyze sessions', () => {

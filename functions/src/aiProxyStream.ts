@@ -2,7 +2,7 @@ import { onRequest, HttpsError } from 'firebase-functions/v2/https';
 import { getAuth } from 'firebase-admin/auth';
 import { getDecryptedApiKey, encryptionKey } from './apiKeys';
 import { normalizeProviderTemperature, resolveProviderModelId } from './modelRegistry';
-import { recordUsageInternal, enforceFreeTierForInteraction } from './usageTracking';
+import { recordUsageInternal, enforceFreeTierForInteraction, freeTierGateError } from './usageTracking';
 import { buildGeminiGenerationConfig } from './providers/google/thinking';
 import {
   type ToolDefinition,
@@ -160,6 +160,8 @@ interface SSEErrorEvent {
   type: 'error';
   error: string;
   code?: string;
+  /** Typed detail, as on a callable's HttpsError (the free-limit refusal) */
+  details?: unknown;
 }
 
 type SSEEvent = SSEDeltaEvent | SSEToolCallStartEvent | SSEToolCallDoneEvent | SSEDoneEvent | SSEErrorEvent;
@@ -1393,15 +1395,13 @@ export const proxyAIRequestStream = onRequest(
         return;
       }
 
-      // Server-authoritative free-tier gate (no-op unless the client sends an
-      // interactionId; premium/trial users always pass).
-      const freeTierGate = await enforceFreeTierForInteraction(uid, sessionType, interactionId);
+      // Server-authoritative free-tier gate: trial and paid accounts always pass;
+      // anyone else's call must say which session it belongs to (the session id
+      // stands in for interactionId), and is counted once per session.
+      const freeTierGate = await enforceFreeTierForInteraction(uid, sessionType, interactionId ?? sessionId);
       if (!freeTierGate.allowed) {
-        writeSSE(res, {
-          type: 'error',
-          error: 'You have used all of your free interactions. Subscribe to keep going.',
-          code: 'resource-exhausted',
-        });
+        const refusal = freeTierGateError(freeTierGate, sessionType);
+        writeSSE(res, { type: 'error', error: refusal.message, code: refusal.code, details: refusal.details });
         res.end();
         return;
       }

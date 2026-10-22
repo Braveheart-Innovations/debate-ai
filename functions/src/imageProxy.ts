@@ -1,5 +1,6 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getDecryptedApiKey, encryptionKey } from './apiKeys';
+import { freeLimitError, isPremiumOrTrial } from './usageTracking';
 import {
   getImageModels,
   getResolvedImageModel,
@@ -73,6 +74,9 @@ export const proxyImageGeneration = onCall(
     if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
       throw new HttpsError('invalid-argument', 'Prompt is required');
     }
+
+    // Image generation is Create, which needs a trial or a subscription.
+    if (!await isPremiumOrTrial(request.auth.uid)) throw freeLimitError('create');
 
     if (prompt.length > (modelConfig.maxPromptLength || 4000)) {
       throw new HttpsError('invalid-argument', `Prompt exceeds maximum length of ${modelConfig.maxPromptLength || 4000} characters`);

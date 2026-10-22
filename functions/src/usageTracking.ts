@@ -564,46 +564,72 @@ const FREE_TIER_TYPE_BY_SESSION_TYPE: Record<string, FreeTierInteractionType> = 
 
 export interface FreeTierGateResult {
   allowed: boolean;
-  reason: 'not-metered' | 'skipped' | 'premium' | 'counted' | 'decremented' | 'exhausted';
+  /**
+   * 'unlabeled': no session type or id, or an id already counted as another
+   * type, so the call can't be counted; refused unless the account pays.
+   */
+  reason: 'premium' | 'counted' | 'decremented' | 'exhausted' | 'unlabeled';
   remaining?: number;
 }
 
 /**
- * Idempotent, server-authoritative free-tier gate for the AI proxies.
+ * Idempotent, server-authoritative free-tier gate for the text proxies and
+ * analyzeStartTurn: Analyze's rule for every mode. Create isn't in the free
+ * tier (image and media generation check isPremiumOrTrial, like Watches).
  *
- * The web free tier grants a fixed number of interactions per type. The proxies
- * (and analyzeStartTurn, keyed on the session id) are the authority.
+ * The web free tier grants a fixed number of sessions per type; trial and paid
+ * accounts are uncapped. A call says which session it belongs to (`sessionType`
+ * and `interactionId`, the session's id) so one session (a debate's many turns,
+ * a compare's parallel calls, its title) counts exactly once, at its first
+ * call; the marker doc also makes the check idempotent across retries.
  *
- * Metering is keyed on a client-supplied `interactionId` so one interaction
- * (a debate's many turns, a multi-AI compare's parallel calls) counts exactly
- * once; the marker doc also makes the check idempotent across retries. Counted
- * markers are bounded (<= the per-type free limits) per non-paying user.
- *
- * Calls without an interactionId return { allowed: true, reason: 'skipped' }.
+ * It fails closed: a call from an account without a trial or subscription that
+ * doesn't say which session it belongs to is refused, so a client that forgets
+ * the label can't hand out free use.
  */
 export function mapSessionTypeToFreeTier(sessionType: string | undefined): FreeTierInteractionType | undefined {
-  return sessionType ? FREE_TIER_TYPE_BY_SESSION_TYPE[sessionType] : undefined;
+  return typeof sessionType === 'string' && Object.prototype.hasOwnProperty.call(FREE_TIER_TYPE_BY_SESSION_TYPE, sessionType)
+    ? FREE_TIER_TYPE_BY_SESSION_TYPE[sessionType]
+    : undefined;
+}
+
+/** A session id usable as the marker's doc id; anything else counts as unlabeled. */
+function usableInteractionId(interactionId: unknown): string | undefined {
+  return typeof interactionId === 'string'
+    && interactionId.length > 0
+    && interactionId.length <= 256
+    && !interactionId.includes('/')
+    && interactionId !== '.'
+    && interactionId !== '..'
+    ? interactionId
+    : undefined;
 }
 
 /**
  * Pure decision table for the free-tier gate — no I/O, exported for tests.
- * `decrementTo` (when present) is the new counter value the caller must persist,
- * paired with writing the interaction marker.
+ * `markerType` is the type an earlier call counted this interaction as
+ * (undefined when it hasn't been counted). `decrementTo` (when present) is the
+ * new counter value the caller must persist, paired with writing the marker.
  */
 export function computeFreeTierGate(params: {
-  mappedType: FreeTierInteractionType | undefined;
+  sessionType: string | undefined;
   interactionId: string | undefined;
   isPremium: boolean;
-  markerExists: boolean;
+  markerType: string | undefined;
   usage: FreeTierUsageState;
 }): { result: FreeTierGateResult; decrementTo?: number } {
-  const { mappedType, interactionId, isPremium, markerExists, usage } = params;
-  if (!mappedType) return { result: { allowed: true, reason: 'not-metered' } };
-  if (!interactionId) return { result: { allowed: true, reason: 'skipped' } };
+  const { sessionType, interactionId, isPremium, markerType, usage } = params;
   if (isPremium) return { result: { allowed: true, reason: 'premium' } };
-  if (markerExists) {
-    // Same interaction already counted (later debate turn / parallel AI call).
-    return { result: { allowed: true, reason: 'counted' } };
+  const mappedType = mapSessionTypeToFreeTier(sessionType);
+  if (!mappedType || !usableInteractionId(interactionId)) {
+    return { result: { allowed: false, reason: 'unlabeled' } };
+  }
+  if (markerType !== undefined) {
+    // Same session already counted (a later turn, a parallel AI, its title or
+    // voices). An id counted as another type can't stand in for this one.
+    return markerType === mappedType
+      ? { result: { allowed: true, reason: 'counted' } }
+      : { result: { allowed: false, reason: 'unlabeled' } };
   }
   const currentRemaining = usage[FREE_TIER_FIELD_BY_TYPE[mappedType]];
   if (currentRemaining <= 0) {
@@ -613,40 +639,42 @@ export function computeFreeTierGate(params: {
   return { result: { allowed: true, reason: 'decremented', remaining }, decrementTo: remaining };
 }
 
+function markerTypeOf(markerDoc: FirebaseFirestore.DocumentSnapshot | null): string | undefined {
+  if (!markerDoc?.exists) return undefined;
+  const type = markerDoc.get('type');
+  return typeof type === 'string' ? type : '';
+}
+
 export async function enforceFreeTierForInteraction(
   uid: string,
   sessionType: string | undefined,
   interactionId: string | undefined
 ): Promise<FreeTierGateResult> {
-  const mappedType = mapSessionTypeToFreeTier(sessionType);
-  // Fast paths that need no read: unknown type, or old clients without an id.
-  if (!mappedType) return { allowed: true, reason: 'not-metered' };
-  if (!interactionId) return { allowed: true, reason: 'skipped' };
-
   const db = getFirestore();
   const userRef = db.collection('users').doc(uid);
   const billingRef = userRef.collection('billing').doc('subscription');
-  const markerRef = userRef.collection('freeTierInteractions').doc(interactionId);
-  const usageField = FREE_TIER_FIELD_BY_TYPE[mappedType];
+  const markerId = usableInteractionId(interactionId);
+  const markerRef = markerId ? userRef.collection('freeTierInteractions').doc(markerId) : null;
 
   return db.runTransaction<FreeTierGateResult>(async (transaction) => {
     const [userDoc, billingDoc, markerDoc] = await Promise.all([
       transaction.get(userRef),
       transaction.get(billingRef),
-      transaction.get(markerRef),
+      markerRef ? transaction.get(markerRef) : Promise.resolve(null),
     ]);
 
     const { result, decrementTo } = computeFreeTierGate({
-      mappedType,
-      interactionId,
+      sessionType,
+      interactionId: markerId,
       isPremium: isActiveServerOwnedPremium(userDoc.data(), billingDoc.data()),
-      markerExists: markerDoc.exists,
+      markerType: markerTypeOf(markerDoc),
       usage: normalizeFreeTierUsage(userDoc.data()),
     });
 
-    if (typeof decrementTo === 'number') {
+    const mappedType = mapSessionTypeToFreeTier(sessionType);
+    if (typeof decrementTo === 'number' && mappedType && markerRef) {
       transaction.set(userRef, {
-        [usageField]: decrementTo,
+        [FREE_TIER_FIELD_BY_TYPE[mappedType]]: decrementTo,
         updatedAt: FieldValue.serverTimestamp(),
       }, { merge: true });
       transaction.set(markerRef, {
@@ -669,21 +697,18 @@ export async function checkFreeTierForInteraction(
   sessionType: string | undefined,
   interactionId: string | undefined
 ): Promise<FreeTierGateResult> {
-  const mappedType = mapSessionTypeToFreeTier(sessionType);
-  if (!mappedType) return { allowed: true, reason: 'not-metered' };
-  if (!interactionId) return { allowed: true, reason: 'skipped' };
-
   const userRef = getFirestore().collection('users').doc(uid);
+  const markerId = usableInteractionId(interactionId);
   const [userDoc, billingDoc, markerDoc] = await Promise.all([
     userRef.get(),
     userRef.collection('billing').doc('subscription').get(),
-    userRef.collection('freeTierInteractions').doc(interactionId).get(),
+    markerId ? userRef.collection('freeTierInteractions').doc(markerId).get() : Promise.resolve(null),
   ]);
   return computeFreeTierGate({
-    mappedType,
-    interactionId,
+    sessionType,
+    interactionId: markerId,
     isPremium: isActiveServerOwnedPremium(userDoc.data(), billingDoc.data()),
-    markerExists: markerDoc.exists,
+    markerType: markerTypeOf(markerDoc),
     usage: normalizeFreeTierUsage(userDoc.data()),
   }).result;
 }
@@ -691,6 +716,44 @@ export async function checkFreeTierForInteraction(
 /** The free sessions a type grants (the limit card names it). */
 export function freeTierLimit(type: FreeTierInteractionType): number {
   return FREE_TIER_LIMITS[FREE_TIER_FIELD_BY_TYPE[type]];
+}
+
+const FREE_LIMIT_LABEL: Record<FreeLimitType, string> = {
+  chat: 'Chat',
+  compare: 'Compare',
+  debate: 'Debate',
+  analyze: 'Analyze',
+  create: 'Create',
+};
+
+/** Create has no free sessions: it needs a trial or a subscription. */
+export type FreeLimitType = FreeTierInteractionType | 'create';
+
+/** The typed detail on resource-exhausted at the free limit; the web shows it as the limit card, in every mode. */
+export const FREE_LIMIT_REASON = 'free-limit';
+
+export interface FreeLimitDetails {
+  reason: typeof FREE_LIMIT_REASON;
+  type: FreeLimitType;
+  limit: number;
+}
+
+/** The refusal at the free limit, from every AI entry point. */
+export function freeLimitError(type: FreeLimitType): HttpsError {
+  const limit = type === 'create' ? 0 : freeTierLimit(type);
+  const details: FreeLimitDetails = { reason: FREE_LIMIT_REASON, type, limit };
+  const message = type === 'create'
+    ? 'Create comes with a free trial or a subscription.'
+    : `You've used your ${limit} free ${FREE_LIMIT_LABEL[type]} sessions.`;
+  return new HttpsError('resource-exhausted', message, details);
+}
+
+/** What a call the gate refused gets: the limit, or, unlabeled, the page is from before calls named their session. */
+export function freeTierGateError(result: FreeTierGateResult, sessionType: string | undefined): HttpsError {
+  const type = mapSessionTypeToFreeTier(sessionType);
+  return result.reason === 'exhausted' && type
+    ? freeLimitError(type)
+    : new HttpsError('failed-precondition', 'This page is out of date. Reload it to keep going.');
 }
 
 // ============================================================================

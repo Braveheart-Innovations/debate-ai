@@ -189,11 +189,12 @@ export function extractSystemPrompt(
 /**
  * Create a canonical error event
  */
-export function createErrorEvent(message: string, code: string): CanonicalSSEEvent {
+export function createErrorEvent(message: string, code: string, details?: unknown): CanonicalSSEEvent {
   return {
     type: 'error',
     message,
     code,
+    ...(details !== undefined ? { details } : {}),
   };
 }
 
