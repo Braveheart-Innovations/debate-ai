@@ -94,7 +94,8 @@ def _sym_post(include_visuals, scan_root, exclude_agents):
             fig.savefig(buf, format='png', dpi=150, bbox_inches='tight', facecolor='white', edgecolor='none')
             images.append(_sym_base64.b64encode(buf.getvalue()).decode('ascii'))
     plt.close('all')
-    for rel, (path, size, key) in sorted(_sym_scan(scan_root, exclude_agents).items()):
+    found = _sym_scan(scan_root, exclude_agents)
+    for rel, (path, size, key) in sorted(found.items()):
         if _sym_snapshot.get(rel) == key:
             continue
         lower = rel.lower()
@@ -104,7 +105,8 @@ def _sym_post(include_visuals, scan_root, exclude_agents):
                 html.append(entry)
         elif lower.endswith(_SYM_DATA_EXT):
             data.append(entry)
-    print('${POST_MARKER}' + _sym_json.dumps({'images': images, 'html': html, 'data': data}))
+    deleted = sorted(rel for rel in _sym_snapshot if rel not in found)
+    print('${POST_MARKER}' + _sym_json.dumps({'images': images, 'html': html, 'data': data, 'deleted': deleted}))
 ${RECIPE_RUNNER_SOURCE}`;
 
 function scopeArgs(key: string): string {
@@ -117,7 +119,7 @@ function scopeArgs(key: string): string {
  * still running an older runtime (a resumed sandbox outlives a deploy) installs
  * the new one before its next cell.
  */
-export const RUNTIME_VERSION = 8;
+export const RUNTIME_VERSION = 9;
 
 /** Runs before every cell; installs the runtime on a fresh, restarted or outdated kernel. */
 export function preCode(key: string = DEFAULT_KERNEL): string {
@@ -136,6 +138,8 @@ export interface PostScan {
   images: string[];
   html: Array<{ filename: string; path: string; size: number }>;
   data: Array<{ filename: string; path: string; size: number }>;
+  /** Files the cell removed, by their path under /output. */
+  deleted: string[];
 }
 
 export function parsePostScan(stdout: string): PostScan | null {
@@ -147,6 +151,7 @@ export function parsePostScan(stdout: string): PostScan | null {
       images: Array.isArray(parsed.images) ? parsed.images : [],
       html: Array.isArray(parsed.html) ? parsed.html : [],
       data: Array.isArray(parsed.data) ? parsed.data : [],
+      deleted: Array.isArray(parsed.deleted) ? parsed.deleted : [],
     };
   } catch {
     return null;

@@ -130,6 +130,8 @@ export interface ToolResult {
         base64: string;
         size: number;
     }>;
+    /** Files the call removed from /output/, by their path under it */
+    deletedFiles?: string[];
     /** Explicitly assembled HTML bundles from /output/ files */
     bundleOutputs?: Array<{
         name?: string;

@@ -19,6 +19,8 @@ export interface ExecutionResult {
   images?: string[];
   htmlOutputs?: Array<{ filename: string; content: string }>;
   dataOutputs?: Array<{ filename: string; size: number; base64: string }>;
+  /** Files the cell removed from /output, by their path under it. */
+  deletedFiles?: string[];
   error?: string;
 }
 
@@ -53,6 +55,7 @@ async function hydrate(uid: string, sessionKey: string, remote: ServiceExecution
     images: remote.images,
     htmlOutputs,
     dataOutputs,
+    deletedFiles: remote.deletedFiles,
     error: remote.error,
   };
 }

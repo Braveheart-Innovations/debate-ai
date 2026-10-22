@@ -128,6 +128,8 @@ export interface ExecutionResult {
   images: string[];
   htmlOutputs: Array<{ filename: string; path: string; size: number; content?: string }>;
   dataOutputs: OutputFile[];
+  /** Files the cell removed from /output, by their path under it. */
+  deletedFiles: string[];
   error?: string;
   errorCode?: 'TIMEOUT';
   /** True when the sandbox had to be recreated, so prior Python state and files are gone. */

@@ -2160,3 +2160,69 @@ describe('sanitizeToolExecutionResultsForPersistence', () => {
     expect(sanitizeToolExecutionResultsForPersistence(plain)).toEqual(plain);
   });
 });
+
+describe('a file a call deletes', () => {
+  const pngBytes = btoa('PNG-BYTES');
+  const draw = (filename: string) => ({
+    toolName: 'execute_python', success: true, content: 'Drew.',
+    dataOutputs: [{ filename, base64: pngBytes, size: 9 }],
+  });
+  const remove = (...deletedFiles: string[]) => ({
+    toolName: 'execute_python', success: true, content: 'Executed successfully (no output).', deletedFiles,
+  });
+
+  /** One round of the turn `run_7` (its rounds are `run_7_r<n>`), over the session's artifacts. */
+  function round(messageId: string, results: NonNullable<StreamCompletedEventData['toolExecutionResults']>, artifacts: Artifact[]): Artifact[] {
+    const messages: Message[] = [{ id: messageId, sender: 'AI', senderType: 'ai', content: '', timestamp: 1 }];
+    handleStreamCompleted(
+      {
+        messageId,
+        turnId: 'run_7',
+        finalContent: '',
+        toolCalls: results.map((_, i) => ({ id: `${messageId}-call-${i}`, type: 'function' as const, function: { name: 'execute_python', arguments: '{"code":"x"}' } })),
+        toolExecutionResults: results,
+      },
+      {
+        dispatch: (action) => {
+          if (action.type === 'ADD_ARTIFACT') {
+            const index = artifacts.findIndex((item) => item.id === action.payload.id);
+            if (index >= 0) artifacts[index] = action.payload;
+            else artifacts.push(action.payload);
+          }
+          if (action.type === 'REMOVE_ARTIFACT') {
+            const index = artifacts.findIndex((item) => item.id === action.payload);
+            if (index >= 0) artifacts.splice(index, 1);
+          }
+        },
+        getState: () => ({ artifacts, outputSelection: createDefaultAnalyzeOutputSelection(), currentSession: { id: 'session-1' }, messages }),
+        now: () => 1,
+        persistMessage: jest.fn(),
+        getFetchProvenanceMap: () => new Map(),
+        getTeamPanel: () => null,
+        setFetchProvenanceMap: jest.fn(),
+        setLatestCompletedOperatorMessageId: jest.fn(),
+        getSessionWorkbookManager: () => ({ initialized: true, reset: jest.fn(), addDataTab: jest.fn() }) as unknown as ReturnType<StreamCompletedDeps['getSessionWorkbookManager']>,
+      },
+    );
+    return artifacts;
+  }
+
+  it('takes along the artifact this turn saved for it (the test chart drawn, then deleted)', () => {
+    const artifacts = round('run_7_r10', [draw('test.png')], []);
+    expect(artifacts.map((artifact) => artifact.name)).toEqual(['test.png']);
+    round('run_7_r12', [remove('test.png')], artifacts);
+    expect(artifacts).toEqual([]);
+  });
+
+  it('keeps an earlier turn\'s artifact for it, that turn\'s record of what it made', () => {
+    const artifacts = round('run_6_r3', [draw('chart.png')], []);
+    round('run_7_r1', [remove('chart.png')], artifacts);
+    expect(artifacts.map((artifact) => artifact.name)).toEqual(['chart.png']);
+  });
+
+  it('saves a file written again after the delete anew, and leaves other files alone', () => {
+    const artifacts = round('run_7_r2', [draw('chart.png'), draw('keep.png')], []);
+    round('run_7_r3', [remove('chart.png'), draw('chart.png')], artifacts);
+    expect(artifacts.map((artifact) => [artifact.name, artifact.cellId]).sort()).toEqual([['chart.png', 'run_7_r3'], ['keep.png', 'run_7_r2']]);
+  });
+});

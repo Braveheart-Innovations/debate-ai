@@ -108,6 +108,8 @@ export interface StreamCompletedEventData {
     images?: Array<{ mimeType: string; base64: string }>;
     htmlOutputs?: Array<{ content: string; filename?: string }>;
     dataOutputs?: Array<{ filename: string; base64: string; size: number }>;
+    /** Files the call removed from /output, by their path under it. */
+    deletedFiles?: string[];
     bundleOutputs?: Array<{ name?: string; manifest: BundleManifest; sourceFiles: string[] }>;
     provenance?: ToolResultProvenance;
   }>;
@@ -439,6 +441,26 @@ function removeExistingArtifactByName(
   ));
   for (const existing of existingArtifactsByName) {
     deps.dispatch({ type: 'REMOVE_ARTIFACT', payload: existing.id });
+  }
+}
+
+/**
+ * A file a call deleted takes along the artifacts this turn saved for it (by this
+ * round, or an earlier round of the turn's run, `<turnId>_r<n>`): a test chart
+ * drawn and deleted in one turn stayed in Artifacts (2026-10-22). An earlier
+ * turn's artifact stays, as that turn's record of what it made.
+ */
+function removeDeletedTurnFiles(
+  deletedFiles: string[] | undefined,
+  turnId: string | undefined,
+  messageId: string,
+  deps: Pick<StreamCompletedDeps, 'dispatch' | 'getState'>,
+): void {
+  if (!deletedFiles?.length) return;
+  const deleted = new Set(deletedFiles);
+  for (const artifact of deps.getState().artifacts) {
+    const savedThisTurn = artifact.cellId === messageId || (turnId !== undefined && artifact.cellId.startsWith(`${turnId}_r`));
+    if (savedThisTurn && deleted.has(artifact.name)) deps.dispatch({ type: 'REMOVE_ARTIFACT', payload: artifact.id });
   }
 }
 
@@ -1493,6 +1515,8 @@ export function handleStreamCompleted(
       const result = processedToolExecutionResults[i];
       const toolCall = toolCalls?.[i];
       const bundleResult = bundleResultsMap.get(i) || null;
+      // Before this call's own outputs: a later call that writes the file again saves it anew.
+      removeDeletedTurnFiles(result.deletedFiles, turnId, messageId, deps);
 
       // Determine which data outputs to process (excluding bundled files)
       const datasToProcess = (bundleResult?.shouldBundle

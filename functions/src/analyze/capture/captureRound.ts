@@ -76,6 +76,7 @@ export function toToolExecutionResult(call: ToolCall, result: ToolResult): NonNu
     images: result.images,
     htmlOutputs: result.htmlOutputs,
     dataOutputs: result.dataOutputs,
+    deletedFiles: result.deletedFiles,
     bundleOutputs: result.bundleOutputs,
     provenance: result.provenance,
   };
