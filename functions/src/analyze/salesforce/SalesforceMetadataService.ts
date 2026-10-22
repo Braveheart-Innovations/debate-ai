@@ -2896,7 +2896,7 @@ function componentTypeLines(index: SalesforceMetadataIndex, prefix: (label: stri
 }
 
 /** "Snapshot: QA (00D…), pulled 2026-10-15T18:27:40Z, pull success; 72783 components retrieved, 60 failed (60 project-owned); org API 68.0, source API 64.0." */
-function describeRetrieveRun(run: SalesforceRetrieveRun): string {
+export function describeRetrieveRun(run: SalesforceRetrieveRun): string {
   const org = [run.org?.alias, run.org?.orgId ? `(${run.org.orgId})` : ''].filter(Boolean).join(' ') || 'the org';
   const when = run.finishedAt ?? run.createdAt;
   const parts = [`Snapshot: ${org}${when ? `, pulled ${when}` : ''}${run.status ? `, pull ${run.status}` : ''}`];

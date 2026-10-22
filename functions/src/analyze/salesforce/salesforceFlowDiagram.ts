@@ -560,7 +560,7 @@ function chainContext(sourceFiles: SalesforceSourceFile[], flowFiles: Map<string
   return { flowFiles, flowsByEvent, apexByName };
 }
 
-interface DrawnFlow {
+export interface DrawnFlow {
   nodes: FlowNode[];
   flows: Flow[];
   startId: string;
@@ -569,7 +569,7 @@ interface DrawnFlow {
 }
 
 /** One flow's nodes and flows, ids prefixed (in a chain) so flows can share a file. */
-function drawFlow(flow: ParsedSalesforceFlow, prefix: string, startLabel: string): DrawnFlow {
+export function drawFlow(flow: ParsedSalesforceFlow, prefix: string, startLabel: string): DrawnFlow {
   const source = sourceFileRef(flow.file);
   const id = (name: string) => `${prefix}${name}`;
   const taken = new Set([...flow.elements.keys()]);
