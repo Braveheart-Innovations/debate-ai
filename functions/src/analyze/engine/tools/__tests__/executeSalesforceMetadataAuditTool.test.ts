@@ -193,6 +193,37 @@ describe('executeSalesforceMetadataAuditTool', () => {
       expect(result.content).toContain('unpacked at /data/salesforce/workspace/');
     });
 
+    it('starts with the workspace: its snapshot, and the evidence packets it carries and where their findings are', async () => {
+      // The Flow redesign live test (2026-10-22): a run that began with operation="flows" never learned
+      // the upload carried a packet, and read its evidence file a slice at a time.
+      const zip = new JSZip();
+      zip.file('qa/force-app/main/default/flows/Set_Source.flow-meta.xml', '<Flow><label>Set source</label><processType>AutoLaunchedFlow</processType><status>Active</status></Flow>');
+      zip.file('qa/.symposium/salesforce-runs/latest.json', JSON.stringify({ version: 1, kind: 'salesforce_retrieve_run', runId: 'pull-1', createdAt: '2026-10-15T18:27:40Z', org: { alias: 'QA', orgId: '00Dca000005CnrhEAC' } }));
+      const packet = 'qa/.symposium/salesforce-insights/20261022T002800Z-flow-runtime';
+      zip.file(`${packet}/manifest.json`, JSON.stringify({
+        version: 1, kind: 'salesforce_insight_packet', createdAt: '2026-10-22T00:28:00Z',
+        source: { workspaceName: 'QA', gitBranch: '', gitCommit: null },
+        agentSession: { agent: 'claude_code', toolsUsed: ['salesforce_mcp'] },
+        goals: ['Flow runtime'],
+        files: { findings: 'findings.json', evidence: 'evidence.md' },
+      }));
+      const finding = (id: string, title: string) => ({
+        id, title, severity: 'high', audienceImpact: 'engineering', summary: `${title}.`, affectedPaths: [],
+        affectedComponents: ['Set_Source'], evidenceRefs: [`evidence.md#${id}`], recommendedNextStep: 'Check it.', confidence: 0.9,
+      });
+      zip.file(`${packet}/findings.json`, JSON.stringify({ findings: [finding('f1', 'Trigger order set'), finding('f2', 'SOQL limit failures')] }));
+      zip.file(`${packet}/evidence.md`, '# Evidence');
+      mockSandboxService.readFile.mockResolvedValue(await zip.generateAsync({ type: 'arraybuffer' }));
+
+      const result = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-flows-packet', { operation: 'flows', paths: ['/uploads/qa.zip'] });
+
+      expect(result.content!.split('\n').slice(0, 3)).toEqual([
+        expect.stringMatching(/^Snapshot: QA \(00Dca000005CnrhEAC\)/),
+        'Imported agent evidence: 2 findings across 1 packet; operation="packet_findings" lists them.',
+        '',
+      ]);
+    });
+
     it('says what a Flow is when the upload has none', async () => {
       mockSandboxService.readFile.mockResolvedValue(new TextEncoder().encode('public class A {}').buffer);
       const result = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-flows-none', { operation: 'flows', paths: ['/uploads/force-app/main/default/classes/A.cls'] });

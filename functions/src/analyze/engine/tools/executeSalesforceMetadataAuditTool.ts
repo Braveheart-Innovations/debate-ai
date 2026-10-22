@@ -34,6 +34,7 @@ import {
   buildSalesforceTroubleshootingBrief,
   buildSalesforceWorkbenchSummary,
   buildSalesforceVsCodeHandoff,
+  describeImportedEvidence,
   describeRetrieveRun,
   findSalesforceComponent,
   formatComponentList,
@@ -105,17 +106,20 @@ export async function executeSalesforceMetadataAuditTool(
 
     const workspaceNote = await unpackWorkspace(files, workspaceZips);
 
+    // The operations that don't build the index start with the workspace header too.
+    const header = workspaceHeader(retrieveRun, insightPackets.length, insightPackets.reduce((sum, packet) => sum + packet.findings.length, 0));
+    const headed = (result: ToolResult): ToolResult => (result.success && result.content ? { ...result, content: withHeader(header, result.content) } : result);
     if (parsedArgs.operation === 'data_model') {
-      return await writeSalesforceDataModel(files, toolCallId, sourceFiles, parsedArgs);
+      return headed(await writeSalesforceDataModel(files, toolCallId, sourceFiles, parsedArgs));
     }
     if (parsedArgs.operation === 'flow_diagram') {
-      return await writeSalesforceFlowDiagrams(files, toolCallId, sourceFiles, parsedArgs);
+      return headed(await writeSalesforceFlowDiagrams(files, toolCallId, sourceFiles, parsedArgs));
     }
     if (parsedArgs.operation === 'save_order') {
-      return await writeSalesforceSaveOrders(files, toolCallId, sourceFiles, parsedArgs);
+      return headed(await writeSalesforceSaveOrders(files, toolCallId, sourceFiles, parsedArgs));
     }
     if (parsedArgs.operation === 'flows') {
-      return await writeSalesforceFlowTable(files, toolCallId, sourceFiles, retrieveRun, workspaceNote);
+      return headed(await writeSalesforceFlowTable(files, toolCallId, sourceFiles, workspaceNote));
     }
 
     const index = buildSalesforceMetadataIndex(sourceFiles, parsedArgs.paths || [], insightPackets, parsedArgs.query, retrieveRun);
@@ -217,17 +221,23 @@ function isOperation(value: string): value is SalesforceMetadataAuditOperation {
 }
 
 /**
- * Which pull the workspace is, in a line: every operation but audit and
- * inventory starts with it instead of the index's full summary, which one call
- * already gave (the Flow redesign live tests repeated it in every audit result).
+ * The workspace in a line or two: which pull it is, and the agent evidence
+ * packets it carries. Every operation but audit and inventory starts with it
+ * instead of the index's full summary, which one call already gave (the Flow
+ * redesign live tests repeated the summary in every audit result, and one that
+ * started with operation="flows" never learned a packet was there).
  */
-function snapshotLine(index: SalesforceMetadataIndex): string {
-  return index.sourceSummary.retrieveRun ? describeRetrieveRun(index.sourceSummary.retrieveRun) : '';
+function workspaceHeader(retrieveRun: SalesforceRetrieveRun | undefined, packetCount: number, findingCount: number): string[] {
+  return [retrieveRun ? describeRetrieveRun(retrieveRun) : '', describeImportedEvidence(packetCount, findingCount)].filter(Boolean);
+}
+
+function withHeader(header: string[], content: string): string {
+  return header.length > 0 ? [...header, '', content].join('\n') : content;
 }
 
 function withSnapshot(index: SalesforceMetadataIndex, lines: string[]): string {
-  const snapshot = snapshotLine(index);
-  return (snapshot ? [snapshot, '', ...lines] : lines).join('\n');
+  const { retrieveRun, insightPacketCount, importedFindingCount } = index.sourceSummary;
+  return withHeader(workspaceHeader(retrieveRun, insightPacketCount, importedFindingCount), lines.join('\n'));
 }
 
 const SEVERITY_ORDER = ['critical', 'high', 'medium', 'low'];
@@ -862,7 +872,6 @@ async function writeSalesforceFlowTable(
   files: SandboxFiles,
   toolCallId: string,
   sourceFiles: SalesforceSourceFile[],
-  retrieveRun: SalesforceRetrieveRun | undefined,
   workspaceNote: string,
 ): Promise<ToolResult> {
   const table = buildSalesforceFlowTable(sourceFiles);
@@ -881,7 +890,6 @@ async function writeSalesforceFlowTable(
     toolCallId,
     success: true,
     content: [
-      ...(retrieveRun ? [describeRetrieveRun(retrieveRun), ''] : []),
       ...summarizeSalesforceFlowTable(table),
       '',
       `The table, one row per Flow: ${SALESFORCE_DATA_ROOT}/salesforce-flows.csv (lists separated by "; ") and ${SALESFORCE_DATA_ROOT}/salesforce-flows.json, also in ${SALESFORCE_OUTPUT_ROOT}/. Columns: ${FLOW_TABLE_COLUMNS.join(', ')}. fieldsWritten names $Record.<field> for the record that triggered the flow and <Object>.<field> for other records; path is the file in the upload.`,
