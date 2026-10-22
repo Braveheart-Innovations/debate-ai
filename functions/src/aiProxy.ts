@@ -1,6 +1,6 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getDecryptedApiKey, encryptionKey } from './apiKeys';
-import { recordUsageInternal, enforceFreeTierForInteraction } from './usageTracking';
+import { recordUsageInternal, enforceFreeTierForInteraction, freeTierRefusal } from './usageTracking';
 import { normalizeProviderTemperature, resolveProviderModelId, requiresResponsesApi } from './modelRegistry';
 import { OPENAI_RESPONSES_URL, buildResponsesBody, parseResponsesOutput } from './providers/openai/responses';
 import { buildGeminiGenerationConfig } from './providers/google/thinking';
@@ -358,14 +358,13 @@ export const proxyAIRequest = onCall(
 
     const uid = request.auth.uid;
 
-    // Server-authoritative free-tier gate (no-op unless the client sends an
-    // interactionId; premium/trial users always pass).
-    const freeTierGate = await enforceFreeTierForInteraction(uid, sessionType, interactionId);
+    // Server-authoritative free-tier gate: trial and paid accounts always pass;
+    // anyone else's call must say which session it belongs to (the session id
+    // stands in for interactionId), and is counted once per session.
+    const freeTierGate = await enforceFreeTierForInteraction(uid, sessionType, interactionId ?? sessionId);
     if (!freeTierGate.allowed) {
-      throw new HttpsError(
-        'resource-exhausted',
-        'You have used all of your free interactions. Subscribe to keep going.'
-      );
+      const refusal = freeTierRefusal(freeTierGate, sessionType);
+      throw new HttpsError(refusal.code, refusal.message, refusal.details);
     }
 
     // Get the user's API key for this provider

@@ -1,5 +1,6 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getDecryptedApiKey, encryptionKey } from './apiKeys';
+import { checkFreeTierForInteraction, freeTierRefusal } from './usageTracking';
 import {
   getImageModels,
   getResolvedImageModel,
@@ -72,6 +73,13 @@ export const proxyImageGeneration = onCall(
     // Validate prompt
     if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
       throw new HttpsError('invalid-argument', 'Prompt is required');
+    }
+
+    // Image generation is Create, which needs a trial or a subscription.
+    const freeTierGate = await checkFreeTierForInteraction(request.auth.uid, 'create', undefined);
+    if (!freeTierGate.allowed) {
+      const refusal = freeTierRefusal(freeTierGate, 'create');
+      throw new HttpsError(refusal.code, refusal.message, refusal.details);
     }
 
     if (prompt.length > (modelConfig.maxPromptLength || 4000)) {

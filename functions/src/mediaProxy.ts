@@ -1,5 +1,6 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getDecryptedApiKey, encryptionKey } from './apiKeys';
+import { enforceFreeTierForInteraction, freeTierRefusal } from './usageTracking';
 
 type MediaProviderId = 'runway' | 'elevenlabs';
 type CreateMediaType = 'video' | 'audio';
@@ -18,6 +19,9 @@ interface ProxyMediaGenerationRequest {
   durationSeconds?: number;
   aspectRatio?: string;
   promptInfluence?: number;
+  /** The session this belongs to: 'create' (trial or subscription only), or a debate's voices ('debate' and the debate's id). */
+  sessionType?: string;
+  sessionId?: string;
 }
 
 interface MediaProviderOptionsRequest {
@@ -621,6 +625,13 @@ export const proxyMediaGeneration = onCall(
     }
 
     const prompt = validatePrompt(input.prompt, providerId === 'runway' ? 1000 : input.operation === 'sound_effect' ? 450 : 5000);
+
+    const freeTierGate = await enforceFreeTierForInteraction(request.auth!.uid, input.sessionType, input.sessionId);
+    if (!freeTierGate.allowed) {
+      const refusal = freeTierRefusal(freeTierGate, input.sessionType);
+      throw new HttpsError(refusal.code, refusal.message, refusal.details);
+    }
+
     const apiKey = await getUserApiKey(request.auth!.uid, providerId, keyValue);
 
     try {

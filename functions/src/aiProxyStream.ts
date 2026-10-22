@@ -2,7 +2,7 @@ import { onRequest, HttpsError } from 'firebase-functions/v2/https';
 import { getAuth } from 'firebase-admin/auth';
 import { getDecryptedApiKey, encryptionKey } from './apiKeys';
 import { normalizeProviderTemperature, resolveProviderModelId } from './modelRegistry';
-import { recordUsageInternal, enforceFreeTierForInteraction } from './usageTracking';
+import { recordUsageInternal, enforceFreeTierForInteraction, freeTierRefusal } from './usageTracking';
 import { buildGeminiGenerationConfig } from './providers/google/thinking';
 import {
   type ToolDefinition,
@@ -1393,15 +1393,13 @@ export const proxyAIRequestStream = onRequest(
         return;
       }
 
-      // Server-authoritative free-tier gate (no-op unless the client sends an
-      // interactionId; premium/trial users always pass).
-      const freeTierGate = await enforceFreeTierForInteraction(uid, sessionType, interactionId);
+      // Server-authoritative free-tier gate: trial and paid accounts always pass;
+      // anyone else's call must say which session it belongs to (the session id
+      // stands in for interactionId), and is counted once per session.
+      const freeTierGate = await enforceFreeTierForInteraction(uid, sessionType, interactionId ?? sessionId);
       if (!freeTierGate.allowed) {
-        writeSSE(res, {
-          type: 'error',
-          error: 'You have used all of your free interactions. Subscribe to keep going.',
-          code: 'resource-exhausted',
-        });
+        const refusal = freeTierRefusal(freeTierGate, sessionType);
+        writeSSE(res, { type: 'error', error: refusal.message, code: refusal.code });
         res.end();
         return;
       }
