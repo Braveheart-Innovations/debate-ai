@@ -30,7 +30,7 @@ export function guideNames(guides: Record<string, string> | undefined): string[]
 export function buildReadGuideTool(names: string[]): ToolDefinition {
   return {
     name: READ_GUIDE_TOOL_NAME,
-    description: 'Read the instructions for making one kind of output (a report, a model, a diagram, a Salesforce job), before you make it. Each guide is the full how-to for that output; read it once per session, since it stays in your context.',
+    description: 'Read the instructions for making one kind of output (a report, a model, a diagram, a Salesforce job) or a data connector\'s documentation, before you make it or call it. A guide you read stays in your context for the rest of this turn.',
     parameters: {
       type: 'object',
       properties: {
