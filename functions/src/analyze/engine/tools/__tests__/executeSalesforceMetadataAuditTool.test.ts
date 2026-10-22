@@ -1,6 +1,7 @@
 import JSZip from 'jszip';
 
-import { executeSalesforceMetadataAuditTool } from '../executeSalesforceMetadataAuditTool';
+import { executeSalesforceMetadataAuditTool, formatRisksByRule, matchingRisks } from '../executeSalesforceMetadataAuditTool';
+import type { SalesforceMetadataRisk } from '../../../salesforce/SalesforceMetadataService';
 
 // The sandbox filesystem is injected on the server (the browser mocked the sandboxService singleton).
 const mockSandboxService = {
@@ -79,7 +80,9 @@ describe('executeSalesforceMetadataAuditTool', () => {
       expect(result.content).toContain('Snapshot: QA (00D5g000000AbCdEAA), pulled 2026-10-15T18:27:40Z, pull success; 72783 components retrieved, 60 failed (60 project-owned); org API 68.0, source API 64.0.');
       expect(result.content).toContain('unpacked at /data/salesforce/workspace/');
       expect(result.content).toContain('Other metadata: 4 (3 project-owned); by folder: email 1, listViews 1, recordTypes 1, roles 1');
-      expect(result.content).toContain('- Lead.Center (recordTypes) - qa/force-app/main/default/objects/Lead/recordTypes/Center.recordType-meta.xml');
+      // The counts are the inventory; search finds a component (no preview of the first 40, as in the live tests).
+      expect(result.content).not.toContain('Component inventory preview');
+      expect(result.content).not.toContain('- Lead.Center (recordTypes)');
       expect(result.content).not.toContain('/Users/someone');
       expect(result.content).not.toContain('objectTranslation');
 
@@ -162,6 +165,38 @@ describe('executeSalesforceMetadataAuditTool', () => {
       expect(none).toMatchObject({ success: false, error: expect.stringContaining('operation=flow_diagram needs flows') });
       const missing = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-flow-missing', { operation: 'flow_diagram', paths: ['/uploads/force-app/main/default/classes/A.cls'], flows: ['Nope'] });
       expect(missing).toMatchObject({ success: false, error: expect.stringContaining('No Flow file was found for Nope') });
+    });
+  });
+
+  describe('operation=flows', () => {
+    it('writes one row per Flow the org owns as working files, and sums them up', async () => {
+      const zip = new JSZip();
+      zip.file('qa/force-app/main/default/flows/Set_Source.flow-meta.xml', '<Flow><label>Set source</label><processType>AutoLaunchedFlow</processType><status>Active</status><triggerOrder>100</triggerOrder><start><connector><targetReference>Set</targetReference></connector><object>Lead</object><recordTriggerType>Create</recordTriggerType><triggerType>RecordAfterSave</triggerType></start><recordUpdates><name>Set</name><label>Set the source</label><inputReference>$Record</inputReference></recordUpdates></Flow>');
+      zip.file('qa/force-app/main/default/flows/hed__Package_Flow.flow-meta.xml', '<Flow><label>Package</label><processType>AutoLaunchedFlow</processType><status>Active</status></Flow>');
+      zip.file('qa/.symposium/salesforce-runs/latest.json', JSON.stringify({ version: 1, kind: 'salesforce_retrieve_run', runId: 'pull-1', createdAt: '2026-10-15T18:27:40Z', org: { alias: 'QA', orgId: '00Dca000005CnrhEAC' } }));
+      mockSandboxService.readFile.mockResolvedValue(await zip.generateAsync({ type: 'arraybuffer' }));
+
+      const result = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-flows', { operation: 'flows', paths: ['/uploads/qa.zip'] });
+
+      expect(result.success).toBe(true);
+      // Working files: kept out of the user's Outputs.
+      expect(result.dataOutputs).toBeUndefined();
+      const csv = writtenFile('/output/salesforce/salesforce-flows.csv')!;
+      expect(writtenFile('/data/salesforce/salesforce-flows.csv')).toBe(csv);
+      expect(csv.split('\n')[1]).toMatch(/^Set_Source,Set source,Active,AutoLaunchedFlow,RecordAfterSave,Lead,Create,100,/);
+      expect(JSON.parse(writtenFile('/data/salesforce/salesforce-flows.json')!)).toEqual([expect.objectContaining({ name: 'Set_Source', updatesOwnRecord: true })]);
+      expect(result.content).toContain('Snapshot: QA (00Dca000005CnrhEAC)');
+      expect(result.content).toContain('Flows the org owns: 1, 1 active.');
+      expect(result.content).toContain('- Lead: after-save 1');
+      expect(result.content).toContain('The table, one row per Flow: /data/salesforce/salesforce-flows.csv');
+      expect(result.content).toContain('Columns: name, label, status, processType, triggerType, object, recordTriggerType, triggerOrder, entryCriteria,');
+      expect(result.content).toContain('unpacked at /data/salesforce/workspace/');
+    });
+
+    it('says what a Flow is when the upload has none', async () => {
+      mockSandboxService.readFile.mockResolvedValue(new TextEncoder().encode('public class A {}').buffer);
+      const result = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-flows-none', { operation: 'flows', paths: ['/uploads/force-app/main/default/classes/A.cls'] });
+      expect(result).toMatchObject({ success: false, error: expect.stringContaining('No Flow files the org owns were found') });
     });
   });
 
@@ -498,10 +533,59 @@ describe('executeSalesforceMetadataAuditTool', () => {
       paths: ['/uploads/qa-salesforce-metadata.zip'],
     });
 
-    expect(result.content).toContain('- 20261017T143000Z-latency: Queried QA (sandbox), Prod (production). Prod is production; the workspace\'s metadata came from QA. Say that these facts are production\'s wherever you use them');
+    // Each query by id, org and what it returned; the SOQL and rows stay in the packet file.
+    expect(result.content).toContain('  Queries: q1 (Prod); q2 (QA)');
+    expect(result.content).not.toContain('SELECT COUNT() FROM Lead');
+    expect(result.content).toContain('- 20261017T143000Z-latency: Queried QA (sandbox), Prod (production). Prod is production; the workspace\'s metadata came from QA.');
     const summary = JSON.parse(writtenFile('/output/salesforce/salesforce-insight-packets.json')!);
     expect(summary.validPackets[0]).toMatchObject({ queriedOrgs: ['Prod', 'QA'], productionEvidence: true });
     expect(summary.importedFindings[0].runtimeQueries[0]).toMatchObject({ id: 'q1', org: 'Prod' });
+  });
+
+  describe('operation=risks', () => {
+    const risk = (overrides: Partial<SalesforceMetadataRisk>): SalesforceMetadataRisk => ({
+      id: 'r', componentId: 'c', componentName: 'Lead_Flow', path: 'force-app/main/default/flows/Lead_Flow.flow-meta.xml',
+      severity: 'medium', title: 'Active flow lacks visible fault paths', ruleId: 'flow.active-no-fault-path', confidence: 0.64,
+      docTopicIds: ['flow-fault-paths'], recommendation: 'Add fault paths for data mutations.',
+      ...overrides,
+    } as SalesforceMetadataRisk);
+    const risks = [
+      risk({ componentName: 'Lead_Flow' }),
+      risk({ componentName: 'Event_Flow', path: 'force-app/main/default/flows/Event_Flow.flow-meta.xml' }),
+      risk({ componentName: 'Lead_Flow' }),
+      risk({ componentName: 'TourHelper', path: 'force-app/main/default/classes/TourHelper.cls', severity: 'high', title: 'SOQL query inside loop', ruleId: 'apex.soql-in-loop', confidence: 0.78, docTopicIds: [], recommendation: 'Bulkify.' }),
+    ];
+
+    it('matches a query against component, title, rule and path, ignoring case', () => {
+      expect(matchingRisks(risks, 'FLOW')).toHaveLength(3);
+      expect(matchingRisks(risks, 'soql')).toHaveLength(1);
+      expect(matchingRisks(risks, '/classes/')).toHaveLength(1);
+      expect(matchingRisks(risks, undefined)).toHaveLength(4);
+    });
+
+    it('lists every signal by rule, most severe first, each rule\'s recommendation once', () => {
+      expect(formatRisksByRule(risks)).toBe([
+        '[HIGH] SOQL query inside loop (rule apex.soql-in-loop; confidence 0.78): 1 signal.',
+        '  Recommendation: Bulkify.',
+        '  Components: TourHelper',
+        '[MEDIUM] Active flow lacks visible fault paths (rule flow.active-no-fault-path; confidence 0.64; docs topics flow-fault-paths): 3 signals.',
+        '  Recommendation: Add fault paths for data mutations.',
+        '  Components: Event_Flow, Lead_Flow (×2)',
+      ].join('\n'));
+    });
+
+    it('starts with the snapshot, not the index\'s full summary, and says how many signals match', async () => {
+      const zip = new JSZip();
+      zip.file('qa/force-app/main/default/classes/CaseService.cls', 'public with sharing class CaseService {}');
+      zip.file('qa/.symposium/salesforce-runs/latest.json', JSON.stringify({ version: 1, kind: 'salesforce_retrieve_run', runId: 'pull-1', createdAt: '2026-10-15T18:27:40Z', org: { alias: 'QA', orgId: '00Dca000005CnrhEAC' } }));
+      mockSandboxService.readFile.mockResolvedValue(await zip.generateAsync({ type: 'arraybuffer' }));
+
+      const result = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-risks', { operation: 'risks', query: 'flow', paths: ['/uploads/qa.zip'] });
+
+      expect(result.content!.startsWith('Snapshot: QA (00Dca000005CnrhEAC)')).toBe(true);
+      expect(result.content).not.toContain('Components indexed:');
+      expect(result.content).toMatch(/Static signals requiring docs\/AI review that match "flow" \(component, title, rule or path\): \d+ of \d+/);
+    });
   });
 
   it('supports packet_findings as a direct operation for imported agent evidence', async () => {
@@ -558,7 +642,11 @@ describe('executeSalesforceMetadataAuditTool', () => {
     expect(result.content).toContain('Agent insight packets detected: 1');
     expect(result.content).toContain('Imported agent evidence from .symposium packets: 1');
     expect(result.content).toContain('Invalid insight packets / validation warnings: 0');
-    expect(result.content).toContain('sf-token-risk: Token field is not constrained');
+    expect(result.content).toContain('- sf-token-risk: Token field is not constrained (medium, security, ');
+    expect(result.content).toContain('  Summary: The public token lookup has no unique or external-id constraint.');
+    expect(result.content).toContain('  Affected paths force-app/main/default/classes/CaseService.cls');
+    // Names the matched components once, in the summary's own words: no list of them twice over.
+    expect(result.content).not.toContain('Matched components:');
     expect(result.content).toContain('The agent\'s recommended next step: Review the token lookup path before implementation.');
     expect(result.content).toMatch(/The audit's \d+ working files are listed below; each is also at \/data\/salesforce\/<name> and \/output\/salesforce\/<name>\./);
     expect(result.dataOutputs?.map((output) => output.filename)).toEqual(

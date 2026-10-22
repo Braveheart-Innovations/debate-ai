@@ -523,3 +523,54 @@ describe('refreshCoverageError', () => {
     assert.deepEqual(comparison.addedUrls, ['https://developer.salesforce.com/docs/d.htm']);
   });
 });
+
+describe('index lookup passages', () => {
+  it('give their uncapped relevance beside the score, which stops at 80', async () => {
+    // Only the download is stubbed: the lookup reads this index as it reads the bucket's.
+    const { GoogleAuth } = require('google-auth-library');
+    GoogleAuth.prototype.getClient = async () => ({ getAccessToken: async () => ({ token: 'test' }) });
+    const text = (words) => `${words} `.repeat(40).trim();
+    const record = {
+      id: 'guide',
+      topicIds: [],
+      title: 'Record-Triggered Automation',
+      url: 'https://architect.salesforce.com/docs/architect/decision-guides/guide/record-triggered.html',
+      domain: 'architect.salesforce.com',
+      sourceType: 'architect_doc',
+      status: 'unknown',
+      retrievedAt: new Date().toISOString(),
+      responseHash: 'hash',
+      contentQuality: 'full_text',
+      contentLength: 8000,
+      excerpt: 'Record-triggered automation decision guide.',
+      keywords: [],
+      warnings: [],
+      textChunks: [
+        { id: 'guide-chunk-1', ordinal: 1, text: text('automation density selection matrix record triggered flow apex'), contentLength: 2400 },
+        { id: 'guide-chunk-2', ordinal: 2, text: text('record triggered automation density entry criteria'), contentLength: 1500 },
+        { id: 'guide-chunk-3', ordinal: 3, text: text('unrelated words about something else'), contentLength: 1500 },
+      ],
+    };
+    const index = { version: 1, generatedAt: new Date().toISOString(), sourcePolicy: {}, topics: [], records: [record], failures: [], warnings: [] };
+    const originalFetch = global.fetch;
+    global.fetch = async (url) => (String(url).includes('alt=media')
+      ? new Response(JSON.stringify(index))
+      : new Response(JSON.stringify({ generation: '1' })));
+    try {
+      const { lookupSalesforceDocsIndex } = require('../lib/salesforceDocsIndex');
+      const label = 'Record-triggered automation density selection matrix';
+      const topic = { id: 'density', label, query: label, category: 'general', reasons: [], componentTypes: [], apiVersions: [], riskSignalIds: [] };
+      const result = await lookupSalesforceDocsIndex([topic], { generatedAt: new Date().toISOString(), maxResultsPerTopic: 2 });
+      const chunks = result.sources[0].matchedChunks;
+      assert.ok(chunks.length >= 2);
+      for (const chunk of chunks) {
+        assert.ok(chunk.score <= 80);
+        assert.ok(chunk.relevance > 0);
+        assert.equal(chunk.score, Math.max(1, Math.min(Math.round(chunk.relevance * 8), 80)));
+      }
+      assert.ok(chunks[0].relevance > chunks[1].relevance, 'the density passage is the most relevant');
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+});

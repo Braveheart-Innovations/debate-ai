@@ -173,6 +173,63 @@ describe('packageSalesforceDocsLookupEvidence', () => {
     expect(result.content).toContain('Page 3 - https://help.salesforce.com/s/articleView?id=xcloud.page_3.htm');
   });
 
+  it('quotes the most relevant passages first, whatever topic id or title they sort under', async () => {
+    // The Flow redesign live test: sources come sorted by topic id, and a loosely
+    // matching release-notes page under an early topic took the budget from the
+    // decision guide a later topic asked for.
+    // 9,000 characters each: three fit the 28,000-character inline budget.
+    const passage = (word: string) => `${word} `.repeat(2000).slice(0, 9000);
+    const page = (key: string, topicId: string, chunk: Record<string, unknown>) => source({
+      id: `sf-doc-${key}`,
+      topicId,
+      url: `https://help.salesforce.com/s/articleView?id=xcloud.${key}.htm&language=en_US&type=5`,
+      title: `Page ${key}`,
+      matchedChunks: [{ id: key, ordinal: 1, contentLength: 9000, ...chunk }],
+    });
+    const sources = [
+      page('overview', 'a-automation', { text: passage('overview'), score: 80, relevance: 2 }),
+      page('guide', 'z-decision-guide', { text: passage('guide'), score: 80, relevance: 30 }),
+      page('considerations', 'm-considerations', { text: passage('considerations'), score: 80, relevance: 10 }),
+      // Read live: no index relevance, its keyword score on the index's scale (÷8).
+      page('live', 'm-live', { text: passage('live'), score: 120 }),
+    ];
+    const topics = ['a-automation', 'z-decision-guide', 'm-considerations', 'm-live'].map((id) => topic(id, id));
+
+    const result = await packageSalesforceDocsLookupEvidence('call-rank', JSON.stringify(bundle({ topics, sources })), { mountFile });
+    const quoted = parseDocsLookupResult(result.content!).filter((entry) => entry.passages.length > 0).map((entry) => entry.title);
+
+    expect(quoted).toEqual(['Page guide', 'Page live', 'Page considerations']);
+    expect(result.content!.slice(result.content!.indexOf('Also read;'))).toContain('Page overview');
+  });
+
+  it('ranks a passage that answers several topics by the topic it answers best, two at most from a page', async () => {
+    const text = (word: string) => `${word} `.repeat(1000);
+    const shared = text('density');
+    const guideUrl = 'https://architect.salesforce.com/docs/architect/decision-guides/guide/record-triggered.html';
+    const sources = [
+      source({ topicId: 'a-lock-contention', url: guideUrl, title: 'Decision guide', matchedChunks: [{ id: 'g1', ordinal: 1, text: shared, score: 67, relevance: 3, contentLength: 5000 }] }),
+      source({ topicId: 'b-other', title: 'Other page', matchedChunks: [{ id: 'o1', ordinal: 1, text: text('other'), score: 80, relevance: 20, contentLength: 5000 }] }),
+      source({
+        topicId: 'r-density',
+        url: guideUrl,
+        title: 'Decision guide',
+        matchedChunks: [
+          { id: 'g1', ordinal: 1, text: shared, score: 80, relevance: 60, contentLength: 5000 },
+          { id: 'g2', ordinal: 2, text: text('second'), score: 80, relevance: 50, contentLength: 5000 },
+          { id: 'g3', ordinal: 3, text: text('third'), score: 80, relevance: 40, contentLength: 5000 },
+        ],
+      }),
+    ];
+    const topics = ['a-lock-contention', 'b-other', 'r-density'].map((id) => topic(id, id));
+
+    const result = await packageSalesforceDocsLookupEvidence('call-shared', JSON.stringify(bundle({ topics, sources })), { mountFile });
+    const pages = parseDocsLookupResult(result.content!);
+
+    expect(pages[0]).toMatchObject({ title: 'Decision guide', passages: [shared.trim(), text('second').trim()] });
+    expect(pages[1]).toMatchObject({ title: 'Other page' });
+    expect(result.content).toContain('(1 more passage(s) from this page in /data/salesforce/docs/lookup_call_shared.md)');
+  });
+
   it('reads its own result back: each quoted page with its passages, overflow pages without', async () => {
     const longText = 'Storage allocations per edition. '.repeat(400);
     const sources = [

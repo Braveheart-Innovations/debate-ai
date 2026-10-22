@@ -30,6 +30,12 @@ const RELEASE_CONTEXT_TOPIC_ID = 'salesforce-release-context';
  */
 const INLINE_PASSAGE_BUDGET_CHARS = 28_000;
 const PASSAGES_PER_PAGE_INLINE = 2;
+/**
+ * A page read live (not from the docs index) scores its passages by the topic
+ * terms they hold, 2 or 4 a term; the index shows BM25 ×8. Divided by 8, a
+ * live passage ranks on about the index's scale.
+ */
+const LIVE_SCORE_SCALE = 8;
 const CITATION_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
 
 /** A page's citation id, from its URL: the same page has the same id in every lookup of a session. */
@@ -56,7 +62,8 @@ export interface SalesforceDocReadPage {
   confidenceImpact: SalesforceDocEvidenceSource['confidenceImpact'];
   warnings: string[];
   topicIds: string[];
-  passages: Array<{ id: string; text: string; score: number }>;
+  /** Each with its relevance: the docs index's uncapped BM25, or a live page's keyword score on the same scale (LIVE_SCORE_SCALE). */
+  passages: Array<{ id: string; text: string; score: number; relevance: number }>;
 }
 
 /** The provenance file a lookup writes: what was read, exactly, and what wasn't. */
@@ -104,13 +111,15 @@ export function readPagesFromEvidence(evidence: SalesforceDocEvidenceBundle): Sa
     }
     if (!page.topicIds.includes(source.topicId)) page.topicIds.push(source.topicId);
     for (const chunk of chunks) {
-      if (!page.passages.some((passage) => passage.text === chunk.text)) {
-        page.passages.push({ id: chunk.id, text: chunk.text, score: chunk.score });
-      }
+      const relevance = chunk.relevance ?? chunk.score / LIVE_SCORE_SCALE;
+      const seen = page.passages.find((passage) => passage.text === chunk.text);
+      // The same passage under several topics keeps its relevance to the topic it answers best.
+      if (seen) seen.relevance = Math.max(seen.relevance, relevance);
+      else page.passages.push({ id: chunk.id, text: chunk.text, score: chunk.score, relevance });
     }
   }
   for (const page of pages.values()) {
-    page.passages.sort((a, b) => b.score - a.score);
+    page.passages.sort((a, b) => b.relevance - a.relevance);
   }
   return Array.from(pages.values());
 }
@@ -200,6 +209,35 @@ export async function packageSalesforceDocsLookupEvidence(
   };
 }
 
+/**
+ * Which passages the result quotes: the most relevant first, across every
+ * page and topic, at most PASSAGES_PER_PAGE_INLINE a page, until the budget is
+ * spent. Pages come in the order of their first quoted passage; a page with
+ * none quoted is overflow, by its best passage. Relevance is uncapped: the
+ * displayed score stops at 80, which most good passages reach.
+ *
+ * The lookup's sources come sorted by topic id and title, and the budget used
+ * to fill in that order: in the Flow redesign live test (2026-10-22) a
+ * release-notes overview filed under an early topic id took it, and the
+ * decision guide a topic asked for went to the file, which the model then
+ * read a slice per round.
+ */
+export function inlinePassages(pages: SalesforceDocReadPage[]): { inline: Map<SalesforceDocReadPage, string[]>; overflow: SalesforceDocReadPage[] } {
+  const ranked = pages
+    .flatMap((page, pageIndex) => page.passages.map((passage) => ({ page, pageIndex, passage })))
+    .sort((a, b) => b.passage.relevance - a.passage.relevance || a.pageIndex - b.pageIndex);
+  const chosen = new Map<SalesforceDocReadPage, string[]>();
+  let budget = INLINE_PASSAGE_BUDGET_CHARS;
+  for (const { page, passage } of ranked) {
+    const texts = chosen.get(page) ?? [];
+    if (texts.length >= PASSAGES_PER_PAGE_INLINE || passage.text.length > budget) continue;
+    chosen.set(page, [...texts, passage.text]);
+    budget -= passage.text.length;
+  }
+  const best = (page: SalesforceDocReadPage) => Math.max(...page.passages.map((passage) => passage.relevance));
+  return { inline: chosen, overflow: pages.filter((page) => !chosen.has(page)).sort((a, b) => best(b) - best(a)) };
+}
+
 function buildModelContent(
   evidence: SalesforceDocEvidenceBundle,
   pages: SalesforceDocReadPage[],
@@ -226,29 +264,18 @@ function buildModelContent(
     lines.push('No official Salesforce documentation was read for these topics, so there is nothing to quote or cite.');
   } else {
     lines.push('Passages read, each page under its id:');
-    let budget = INLINE_PASSAGE_BUDGET_CHARS;
-    const overflow: SalesforceDocReadPage[] = [];
-    for (const page of pages) {
-      const inline: string[] = [];
-      for (const passage of page.passages.slice(0, PASSAGES_PER_PAGE_INLINE)) {
-        if (passage.text.length > budget) break;
-        inline.push(passage.text);
-        budget -= passage.text.length;
-      }
-      if (inline.length === 0) {
-        overflow.push(page);
-        continue;
-      }
+    const { inline, overflow } = inlinePassages(pages);
+    for (const [page, texts] of inline) {
       lines.push('', `[${page.citationId}] ${page.title} - ${page.url}`);
       lines.push(`  ${describePage(page, topicLabel)}`);
-      inline.forEach((text, passageIndex) => {
+      texts.forEach((text, passageIndex) => {
         lines.push(`  Passage ${passageIndex + 1}:`);
         for (const textLine of text.replace(/\r\n/g, '\n').trim().split('\n')) lines.push(`    ${textLine}`);
       });
-      if (page.passages.length > inline.length) {
+      if (page.passages.length > texts.length) {
         lines.push(filesSaved
-          ? `  (${page.passages.length - inline.length} more passage(s) from this page in ${SALESFORCE_DOCS_DIR}/${base}.md)`
-          : `  (${page.passages.length - inline.length} more passage(s) from this page, not shown and not saved)`);
+          ? `  (${page.passages.length - texts.length} more passage(s) from this page in ${SALESFORCE_DOCS_DIR}/${base}.md)`
+          : `  (${page.passages.length - texts.length} more passage(s) from this page, not shown and not saved)`);
       }
     }
     if (overflow.length > 0 && filesSaved) {

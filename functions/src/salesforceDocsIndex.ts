@@ -290,7 +290,10 @@ export interface SalesforceDocsIndexEvidenceSource {
     id: string;
     ordinal: number;
     text: string;
+    /** BM25 relevance for display, scaled ×8 and capped at 80. */
     score: number;
+    /** The same relevance uncapped: what ranks passages against each other (the cap ties most of them at 80). */
+    relevance?: number;
     contentLength: number;
   }>;
   searchSnippet?: string;
@@ -3987,6 +3990,7 @@ function matchedChunksForRecord(
       ordinal: chunk.ordinal,
       text: chunk.text,
       score: scaleBm25ForDisplay(rawScore),
+      relevance: Math.round(rawScore * 100) / 100,
       contentLength: chunk.contentLength,
     }));
 }

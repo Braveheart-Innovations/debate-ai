@@ -10,6 +10,7 @@ import { diagramFileText } from '../../contract/services/analyze/diagrams/diagra
 import { buildSalesforceDataModel } from '../../salesforce/salesforceDataModel';
 import { buildSalesforceFlowDiagrams, countLoopIssues } from '../../salesforce/salesforceFlowDiagram';
 import { buildSalesforceSaveOrders } from '../../salesforce/salesforceSaveOrder';
+import { buildSalesforceFlowTable, FLOW_TABLE_COLUMNS, salesforceFlowTableCsv, summarizeSalesforceFlowTable } from '../../salesforce/salesforceFlowTable';
 import { buildSalesforceReferenceIndex } from '../../salesforce/salesforceReferenceIndex';
 import { referencesFileFor } from '../../contract/services/analyze/diagrams/salesforceReferences';
 import { accessFileFor } from '../../contract/services/analyze/diagrams/salesforceAccess';
@@ -33,6 +34,7 @@ import {
   buildSalesforceTroubleshootingBrief,
   buildSalesforceWorkbenchSummary,
   buildSalesforceVsCodeHandoff,
+  describeRetrieveRun,
   findSalesforceComponent,
   formatComponentList,
   formatRiskList,
@@ -40,8 +42,11 @@ import {
   SALESFORCE_WORKSPACE_ROOT,
   searchSalesforceMetadata,
   summarizeSalesforceIndex,
+  type SalesforceImportedInsightFinding,
   type SalesforceInvalidInsightPacket,
   type SalesforceMetadataIndex,
+  type SalesforceMetadataRisk,
+  type SalesforceRetrieveRun,
   type SalesforceSourceFile,
 } from '../../salesforce/SalesforceMetadataService';
 
@@ -108,6 +113,9 @@ export async function executeSalesforceMetadataAuditTool(
     }
     if (parsedArgs.operation === 'save_order') {
       return await writeSalesforceSaveOrders(files, toolCallId, sourceFiles, parsedArgs);
+    }
+    if (parsedArgs.operation === 'flows') {
+      return await writeSalesforceFlowTable(files, toolCallId, sourceFiles, retrieveRun, workspaceNote);
     }
 
     const index = buildSalesforceMetadataIndex(sourceFiles, parsedArgs.paths || [], insightPackets, parsedArgs.query, retrieveRun);
@@ -205,7 +213,101 @@ function normalizeArgs(args: Record<string, unknown>): AuditArgs {
 }
 
 function isOperation(value: string): value is SalesforceMetadataAuditOperation {
-  return ['audit', 'inventory', 'search', 'component', 'dependencies', 'risks', 'packet_findings', 'handoff', 'feature_readiness', 'troubleshooting', 'data_model', 'flow_diagram', 'save_order'].includes(value);
+  return ['audit', 'inventory', 'search', 'component', 'dependencies', 'risks', 'packet_findings', 'handoff', 'feature_readiness', 'troubleshooting', 'data_model', 'flow_diagram', 'save_order', 'flows'].includes(value);
+}
+
+/**
+ * Which pull the workspace is, in a line: every operation but audit and
+ * inventory starts with it instead of the index's full summary, which one call
+ * already gave (the Flow redesign live tests repeated it in every audit result).
+ */
+function snapshotLine(index: SalesforceMetadataIndex): string {
+  return index.sourceSummary.retrieveRun ? describeRetrieveRun(index.sourceSummary.retrieveRun) : '';
+}
+
+function withSnapshot(index: SalesforceMetadataIndex, lines: string[]): string {
+  const snapshot = snapshotLine(index);
+  return (snapshot ? [snapshot, '', ...lines] : lines).join('\n');
+}
+
+const SEVERITY_ORDER = ['critical', 'high', 'medium', 'low'];
+
+/** The signals a query names: by component, title, rule or path, ignoring case. */
+export function matchingRisks(risks: SalesforceMetadataRisk[], query: string | undefined): SalesforceMetadataRisk[] {
+  const needle = query?.trim().toLowerCase();
+  if (!needle) return risks;
+  return risks.filter((risk) => [risk.componentName, risk.title, risk.ruleId, risk.path].some((value) => value?.toLowerCase().includes(needle)));
+}
+
+/**
+ * Signals by rule, most severe first: each rule's title, severity, confidence,
+ * docs topics and recommendation once, then every component it flagged.
+ */
+export function formatRisksByRule(risks: SalesforceMetadataRisk[]): string {
+  if (risks.length === 0) return 'No static signals match.';
+  const groups = new Map<string, SalesforceMetadataRisk[]>();
+  for (const risk of risks) {
+    const key = `${risk.severity}|${risk.ruleId}|${risk.title}`;
+    groups.set(key, [...(groups.get(key) ?? []), risk]);
+  }
+  const rank = (severity: string) => {
+    const index = SEVERITY_ORDER.indexOf(severity);
+    return index < 0 ? SEVERITY_ORDER.length : index;
+  };
+  return [...groups.values()]
+    .sort((a, b) => rank(a[0].severity) - rank(b[0].severity) || b.length - a.length || a[0].title.localeCompare(b[0].title))
+    .map((group) => {
+      const [first] = group;
+      const confidences = [...new Set(group.map((risk) => risk.confidence.toFixed(2)))].sort();
+      const topics = [...new Set(group.flatMap((risk) => risk.docTopicIds))];
+      const counts = new Map<string, number>();
+      for (const risk of group) counts.set(risk.componentName, (counts.get(risk.componentName) ?? 0) + 1);
+      const components = [...counts.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([name, count]) => (count > 1 ? `${name} (×${count})` : name));
+      return [
+        `[${first.severity.toUpperCase()}] ${first.title} (rule ${first.ruleId}; confidence ${confidences.length > 1 ? `${confidences[0]}–${confidences[confidences.length - 1]}` : confidences[0]}${topics.length > 0 ? `; docs topics ${topics.join(', ')}` : ''}): ${group.length} ${group.length === 1 ? 'signal' : 'signals'}.`,
+        `  Recommendation: ${first.recommendation}`,
+        `  Components: ${components.join(', ')}`,
+      ].join('\n');
+    })
+    .join('\n');
+}
+
+function severityCounts(risks: SalesforceMetadataRisk[]): string {
+  return SEVERITY_ORDER.map((severity) => `${risks.filter((risk) => risk.severity === severity).length} ${severity}`).join(', ');
+}
+
+/** Paths with the folder they all share said once: `under force-app/main/default/: flows/A.flow-meta.xml, …`. */
+function compactPaths(paths: string[]): string {
+  const folders = paths.map((path) => path.slice(0, path.lastIndexOf('/') + 1));
+  let shared = folders[0] ?? '';
+  for (const folder of folders) while (shared && !folder.startsWith(shared)) shared = shared.slice(0, shared.slice(0, -1).lastIndexOf('/') + 1);
+  return shared && paths.length > 1 ? `under ${shared}: ${paths.map((path) => path.slice(shared.length)).join(', ')}` : paths.join(', ');
+}
+
+/**
+ * An imported finding's substance: what it says, the claims and the queries
+ * behind them (each query's org, what it returned and how many rows; its SOQL
+ * and rows stay in salesforce-insight-packets.json), and its agent's next step.
+ */
+export function formatImportedFinding(finding: SalesforceImportedInsightFinding): string {
+  const lines = [
+    `- ${finding.id}: ${finding.title} (${finding.severity}, ${finding.audienceImpact}, ${finding.sourceType}, confidence ${finding.confidence})`,
+    `  Summary: ${finding.summary}`,
+  ];
+  const claims = finding.evidenceClaims ?? [];
+  if (claims.length > 0) {
+    lines.push('  Claims:', ...claims.map((claim) => `  - ${claim.claim}${claim.queryRefs.length > 0 ? ` [${claim.queryRefs.join(', ')}]` : ''}`));
+  }
+  const queries = finding.runtimeQueries ?? [];
+  if (queries.length > 0) {
+    lines.push(`  Queries: ${queries.map((query) => {
+      const result = [query.resultShape, query.rowCount !== undefined ? `${query.rowCount} ${query.rowCount === 1 ? 'row' : 'rows'}` : ''].filter(Boolean).join(', ');
+      return `${query.id}${query.org ? ` (${query.org})` : ''}${result ? `: ${result}` : ''}`;
+    }).join('; ')}`);
+  }
+  if (finding.affectedPaths.length > 0) lines.push(`  Affected paths ${compactPaths(finding.affectedPaths)}`);
+  lines.push(`  The agent's recommended next step: ${finding.recommendedNextStep}`);
+  return lines.join('\n');
 }
 
 function buildOperationContent(
@@ -217,31 +319,24 @@ function buildOperationContent(
   const filesystemSection = formatWorkingFiles(filesystemArtifacts);
   switch (args.operation) {
     case 'inventory':
-      return [
-        summarizeSalesforceIndex(index),
-        '',
-        'Component inventory preview:',
-        formatComponentList(index.components.slice(0, 40)),
-      ].join('\n');
+      return summarizeSalesforceIndex(index);
 
     case 'search':
-      return [
-        summarizeSalesforceIndex(index),
-        '',
+      return withSnapshot(index, [
         `Search results for "${args.query || ''}":`,
         formatComponentList(searchSalesforceMetadata(index, args.query || '')),
-      ].join('\n');
+      ]);
 
     case 'component': {
       const component = args.component ? findSalesforceComponent(index, args.component) : null;
       if (!component) {
-        return `No component named "${args.component ?? ''}" in the workspace; operation="search" finds components by part of a name.\n\n${summarizeSalesforceIndex(index)}`;
+        return withSnapshot(index, [`No component named "${args.component ?? ''}" in the workspace; operation="search" finds components by part of a name.`]);
       }
       const dependencies = index.dependencies.filter((dependency) =>
         dependency.sourceId === component.id || dependency.targetId === component.id
       );
       const risks = index.risks.filter((risk) => risk.componentId === component.id);
-      return [
+      return withSnapshot(index, [
         `Component: ${component.name} (${component.metadataType ?? component.type})`,
         ...(component.managed
           ? [`Owner: installed package${component.namespace ? ` ${component.namespace}` : ''}${component.sourceHidden ? ' (source hidden)' : ''}; no risk rules run on it`]
@@ -256,7 +351,7 @@ function buildOperationContent(
         '',
         `Risk findings: ${risks.length}`,
         formatRiskList(risks),
-      ].join('\n');
+      ]);
     }
 
     case 'dependencies': {
@@ -264,66 +359,56 @@ function buildOperationContent(
       const dependencies = component
         ? index.dependencies.filter((dependency) => dependency.sourceId === component.id || dependency.targetId === component.id)
         : index.dependencies;
-      return [
-        summarizeSalesforceIndex(index),
-        '',
+      return withSnapshot(index, [
         component ? `Dependency links for ${component.name}:` : 'Dependency map preview:',
         dependencies.length === 0
           ? 'No dependency links inferred from the indexed metadata.'
           : dependencies.slice(0, 80).map((dependency) => `- ${dependency.sourceName} -> ${dependency.targetName} (${dependency.reference})`).join('\n'),
-      ].join('\n');
+      ]);
     }
 
-    case 'risks':
-      return [
-        summarizeSalesforceIndex(index),
-        '',
-        'Static signals requiring docs/AI review:',
-        formatRiskList(index.risks),
-      ].join('\n');
+    case 'risks': {
+      const matched = matchingRisks(index.risks, args.query);
+      const query = args.query?.trim();
+      return withSnapshot(index, [
+        query
+          ? `Static signals requiring docs/AI review that match "${query}" (component, title, rule or path): ${matched.length} of ${index.risks.length} (${severityCounts(matched)}), by rule, most severe first.`
+          : `Static signals requiring docs/AI review: ${matched.length} (${severityCounts(matched)}), by rule, most severe first.`,
+        formatRisksByRule(matched),
+        ...(filesystemArtifacts.some((entry) => entry.filename === 'salesforce-signal-evidence.json')
+          ? [`Each signal's file, lines and evidence: ${SALESFORCE_DATA_ROOT}/salesforce-signal-evidence.json.`]
+          : []),
+        filesystemSection,
+      ]);
+    }
 
     case 'packet_findings':
-      return [
-        summarizeSalesforceIndex(index),
-        '',
+      return withSnapshot(index, [
         `Agent insight packets detected: ${index.insightPackets.length}`,
         `Imported agent evidence from .symposium packets: ${index.importedFindings.length}`,
         `Invalid insight packets / validation warnings: ${invalidInsightPackets.length}`,
-        'Imported agent evidence entries are available at the top-level `importedFindings` key in `salesforce-insight-packets.json`; packet metadata is in `validPackets` and rejected packets are in `invalidPackets`.',
+        'Imported agent evidence entries are available at the top-level `importedFindings` key in `salesforce-insight-packets.json` (with each query\'s SOQL and rows); packet metadata is in `validPackets` and rejected packets are in `invalidPackets`.',
         '',
         ...(index.insightPackets.length > 0
           ? ['Which org each packet queried:', ...index.insightPackets.map((packet) => `- ${packet.runId}: ${packet.orgNote}`), '']
           : []),
         index.importedFindings.length === 0
           ? 'No valid imported agent evidence was found; `invalidPackets[]` in `salesforce-insight-packets.json` holds the validation warnings and errors.'
-          : index.importedFindings.slice(0, 20).map((finding) => [
-            `- ${finding.id}: ${finding.title} (${finding.severity}, ${finding.audienceImpact}, confidence ${finding.confidence})`,
-            `  Matched components: ${finding.matchedComponents.map((component) => component.name).join(', ') || 'none'}`,
-            `  Affected paths: ${finding.affectedPaths.join(', ') || 'none'}`,
-            `  The agent's recommended next step: ${finding.recommendedNextStep}`,
-          ].join('\n')).join('\n'),
+          : index.importedFindings.map(formatImportedFinding).join('\n'),
         filesystemSection,
-      ].join('\n');
+      ]);
 
     case 'handoff':
-      return [
-        summarizeSalesforceIndex(index),
-        '',
+      return withSnapshot(index, [
         'Engineering handoff package generated as an artifact. It includes target components, imported agent evidence when present, desired changes, acceptance criteria, test guidance, and local agent prompts.',
         filesystemSection,
-      ].join('\n');
+      ]);
 
     case 'feature_readiness':
-      return [
-        buildSalesforceFeatureReadinessBrief(index, args.query),
-        filesystemSection,
-      ].filter(Boolean).join('\n\n');
+      return withSnapshot(index, [[buildSalesforceFeatureReadinessBrief(index, args.query), filesystemSection].filter(Boolean).join('\n\n')]);
 
     case 'troubleshooting':
-      return [
-        buildSalesforceTroubleshootingBrief(index, args.query),
-        filesystemSection,
-      ].filter(Boolean).join('\n\n');
+      return withSnapshot(index, [[buildSalesforceTroubleshootingBrief(index, args.query), filesystemSection].filter(Boolean).join('\n\n')]);
 
     case 'audit':
     default:
@@ -765,4 +850,43 @@ async function writeSalesforceSaveOrders(
   if (notFound.length > 0) lines.push(`No metadata for: ${notFound.join(', ')}.`);
   lines.push('The order is the Apex Developer Guide\'s "Triggers and Order of Execution"; record-triggered flows run by trigger order (1–1000, then flows without one by activation date, then 1001–2000). Each step names its file and the saves it runs on. Drawn from metadata (platform "salesforce": no simulation).');
   return { toolCallId, success: true, content: lines.join('\n'), dataOutputs: deliveredOutputs(args, dataOutputs) };
+}
+
+/**
+ * operation=flows: one row per Flow the org owns (salesforceFlowTable), as
+ * salesforce-flows.csv and .json in /output/salesforce/, linked under
+ * /data/salesforce/. Working files: not returned for capture, so they stay out
+ * of the user's Outputs. The result is the table in counts and where it is.
+ */
+async function writeSalesforceFlowTable(
+  files: SandboxFiles,
+  toolCallId: string,
+  sourceFiles: SalesforceSourceFile[],
+  retrieveRun: SalesforceRetrieveRun | undefined,
+  workspaceNote: string,
+): Promise<ToolResult> {
+  const table = buildSalesforceFlowTable(sourceFiles);
+  if (table.rows.length === 0 && table.unreadable.length === 0) {
+    return { toolCallId, success: false, error: 'No Flow files the org owns were found: a Flow is flows/<Name>.flow-meta.xml (source format) or flows/<Name>.flow in the upload.' };
+  }
+  const written = [
+    { filename: 'salesforce-flows.csv', content: salesforceFlowTableCsv(table.rows) },
+    { filename: 'salesforce-flows.json', content: JSON.stringify(table.rows) },
+  ];
+  for (const file of written) {
+    await files.writeFile(`${SALESFORCE_OUTPUT_ROOT}/${file.filename}`, Buffer.from(file.content, 'utf8'));
+  }
+  await files.linkFiles(written.map((file) => ({ target: `${SALESFORCE_OUTPUT_ROOT}/${file.filename}`, links: [`${SALESFORCE_DATA_ROOT}/${file.filename}`] })));
+  return {
+    toolCallId,
+    success: true,
+    content: [
+      ...(retrieveRun ? [describeRetrieveRun(retrieveRun), ''] : []),
+      ...summarizeSalesforceFlowTable(table),
+      '',
+      `The table, one row per Flow: ${SALESFORCE_DATA_ROOT}/salesforce-flows.csv (lists separated by "; ") and ${SALESFORCE_DATA_ROOT}/salesforce-flows.json, also in ${SALESFORCE_OUTPUT_ROOT}/. Columns: ${FLOW_TABLE_COLUMNS.join(', ')}. fieldsWritten names $Record.<field> for the record that triggered the flow and <Object>.<field> for other records; path is the file in the upload.`,
+      '',
+      workspaceNote,
+    ].join('\n'),
+  };
 }

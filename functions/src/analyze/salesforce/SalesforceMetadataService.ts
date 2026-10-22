@@ -1582,7 +1582,7 @@ function describePacketOrgs(packet: SalesforceInsightPacket, retrieveRun?: Sales
   const orgNote = queried.length === 0
     ? 'This packet ran no org queries or describes.'
     : production.length > 0
-      ? `Queried ${names.join(', ')}. ${production.map((org) => org.alias).join(', ')} is production; the workspace's metadata came from ${workspaceOrg}. Say that these facts are production's wherever you use them, and don't present them as the workspace org's.`
+      ? `Queried ${names.join(', ')}. ${production.map((org) => org.alias).join(', ')} is production; the workspace's metadata came from ${workspaceOrg}.`
       : `Queried ${names.join(', ')}; the workspace's metadata came from ${workspaceOrg}.`;
   return { orgs, queriedOrgs: packet.queriedOrgs, productionEvidence: production.length > 0, orgNote };
 }
@@ -2896,7 +2896,7 @@ function componentTypeLines(index: SalesforceMetadataIndex, prefix: (label: stri
 }
 
 /** "Snapshot: QA (00D…), pulled 2026-10-15T18:27:40Z, pull success; 72783 components retrieved, 60 failed (60 project-owned); org API 68.0, source API 64.0." */
-function describeRetrieveRun(run: SalesforceRetrieveRun): string {
+export function describeRetrieveRun(run: SalesforceRetrieveRun): string {
   const org = [run.org?.alias, run.org?.orgId ? `(${run.org.orgId})` : ''].filter(Boolean).join(' ') || 'the org';
   const when = run.finishedAt ?? run.createdAt;
   const parts = [`Snapshot: ${org}${when ? `, pulled ${when}` : ''}${run.status ? `, pull ${run.status}` : ''}`];
