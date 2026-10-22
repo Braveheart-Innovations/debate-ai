@@ -222,6 +222,17 @@ interface ResponsesUsage {
   input_tokens?: number;
   output_tokens?: number;
   total_tokens?: number;
+  /** The part of input_tokens read from, or written to, OpenAI's prompt cache (automatic for repeated prefixes). */
+  input_tokens_details?: { cached_tokens?: number; cache_write_tokens?: number };
+}
+
+/** The cache's share of the input, as CanonicalUsage counts it. */
+function cacheUsage(usage: ResponsesUsage | undefined): { cacheReadTokens?: number; cacheWriteTokens?: number } {
+  const details = usage?.input_tokens_details;
+  return {
+    ...(details?.cached_tokens ? { cacheReadTokens: details.cached_tokens } : {}),
+    ...(details?.cache_write_tokens ? { cacheWriteTokens: details.cache_write_tokens } : {}),
+  };
 }
 
 interface ResponsesOutputItem {
@@ -297,6 +308,7 @@ export function parseResponsesOutput(response: ResponsesObject): {
     usage: {
       inputTokens: response.usage?.input_tokens || 0,
       outputTokens: response.usage?.output_tokens || 0,
+      ...cacheUsage(response.usage),
     },
     finishReason: mapResponsesStatus(response, toolCalls.length > 0),
   };
@@ -447,6 +459,7 @@ export async function* parseResponsesStream(
       inputTokens,
       outputTokens,
       totalTokens: inputTokens + outputTokens,
+      ...cacheUsage(finalResponse?.usage),
     },
     tool_calls: completedToolCalls.length > 0 ? completedToolCalls : undefined,
   };
