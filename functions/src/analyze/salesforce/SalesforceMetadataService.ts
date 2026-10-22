@@ -2896,6 +2896,12 @@ function componentTypeLines(index: SalesforceMetadataIndex, prefix: (label: stri
 }
 
 /** "Snapshot: QA (00D…), pulled 2026-10-15T18:27:40Z, pull success; 72783 components retrieved, 60 failed (60 project-owned); org API 68.0, source API 64.0." */
+/** The upload's agent insight packets, in a line ('' without any), and where their findings are. */
+export function describeImportedEvidence(packetCount: number, findingCount: number): string {
+  if (packetCount === 0) return '';
+  return `Imported agent evidence: ${findingCount} finding${findingCount === 1 ? '' : 's'} across ${packetCount} packet${packetCount === 1 ? '' : 's'}; operation="packet_findings" lists them.`;
+}
+
 export function describeRetrieveRun(run: SalesforceRetrieveRun): string {
   const org = [run.org?.alias, run.org?.orgId ? `(${run.org.orgId})` : ''].filter(Boolean).join(' ') || 'the org';
   const when = run.finishedAt ?? run.createdAt;
@@ -2945,9 +2951,7 @@ export function summarizeSalesforceIndex(index: SalesforceMetadataIndex): string
       : []),
     `Dependencies inferred: ${index.dependencies.length}`,
     `Static metadata signals requiring docs/AI review${summary.managedComponentCount > 0 ? ', project-owned components only' : ''}: ${index.risks.length} (${riskCounts.critical || 0} critical, ${riskCounts.high || 0} high, ${riskCounts.medium || 0} medium, ${riskCounts.low || 0} low)`,
-    summary.insightPacketCount > 0
-      ? `Imported agent evidence: ${index.sourceSummary.importedFindingCount} finding${index.sourceSummary.importedFindingCount === 1 ? '' : 's'} across ${index.sourceSummary.insightPacketCount} packet${index.sourceSummary.insightPacketCount === 1 ? '' : 's'}`
-      : '',
+    describeImportedEvidence(summary.insightPacketCount, summary.importedFindingCount),
     '',
     typeLines || '- No recognized Salesforce metadata components found.',
     '',
