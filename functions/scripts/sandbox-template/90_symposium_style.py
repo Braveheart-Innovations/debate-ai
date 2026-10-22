@@ -22,7 +22,7 @@ def _sym_plotly_template():
     template.layout.update(
         font=dict(family=font, color='#334155', size=12),
         title=dict(font=dict(family=font, color='#0f172a', size=16), x=0, xanchor='left', xref='paper'),
-        colorway=['#0E9594', '#4888F8', '#ea580c', '#10A37F', '#7c3aed', '#a16207', '#db2777', '#4f46e5'],
+        colorway=['#0E9594', '#4888F8', '#ea580c', '#db2777', '#7c3aed', '#a16207', '#10A37F', '#4f46e5'],
         paper_bgcolor='white', plot_bgcolor='white',
         xaxis=axis, yaxis=axis,
         legend=dict(font=dict(color='#475569', size=11)),

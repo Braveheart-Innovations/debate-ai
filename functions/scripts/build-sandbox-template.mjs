@@ -19,6 +19,10 @@
  * against sandbox-template/constraints.txt, v2's pip freeze, so every package v2 had
  * keeps its version. Graphviz draws in the house style through a wrapper on its
  * programs (sandbox-template/symposium-graphviz), the one place every caller passes.
+ * v4 changes only the chart palette's order, as the report's changed (symposium-ai-web
+ * a02a7a92: the brand green, nearly the teal's twin, moves from fourth to seventh), in
+ * the matplotlib and Plotly copies. It installs against v3's pip freeze
+ * (sandbox-template/constraints.txt), so every package keeps v3's version.
  * Sandboxes run with no internet access, so anything Analyze needs must be baked in.
  * Every download is pinned by SHA-256 so an upstream change fails the build. Only
  * permissive licences (MIT, BSD, Apache-2.0, OFL), plus programs under weak copyleft
@@ -35,7 +39,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Template, defaultBuildLogger } from 'e2b';
 
-const TEMPLATE = 'symposium-analyze-v3';
+const TEMPLATE = 'symposium-analyze-v4';
 const here = dirname(fileURLToPath(import.meta.url));
 
 const PACKAGES = [
@@ -64,7 +68,7 @@ const PACKAGES = [
   // and PULP_CBC_CMD, which is what models write.
   'simpy==4.1.2', 'pulp==3.3.2', 'ortools==9.15.6755', 'pint==0.26.1',
 ];
-// v2's pip freeze: pipInstall resolves against it, so nothing v2 had changes version.
+// v3's pip freeze: pipInstall resolves against it, so nothing v3 had changes version.
 const CONSTRAINTS = '/opt/symposium/constraints.txt';
 
 // Debian packages (the base image's apt sources are a dated snapshot, so these pin too).
@@ -253,6 +257,11 @@ const template = Template({ fileContextPath: join(here, 'sandbox-template') })
   .fromTemplate('code-interpreter-v1')
   .copy('constraints.txt', CONSTRAINTS, { user: 'root', mode: 0o644 })
   .pipInstall(['-c', CONSTRAINTS, ...PACKAGES])
+  // E2B's base image moves under a template (at v4's build, 11 of its Jupyter-stack
+  // packages, pydantic among them, were newer than at v3's), and constraints don't touch
+  // what is already installed. Installing the freeze itself, without dependencies, puts
+  // every package back at the version the last template ran in production.
+  .pipInstall(['--no-deps', '-r', CONSTRAINTS])
   .setUser('root')
   .aptInstall(APT_PACKAGES, { noInstallRecommends: true })
   .runCmd(configureChromium)
