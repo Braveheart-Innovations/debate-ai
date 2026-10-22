@@ -1,10 +1,10 @@
 const assert = require('node:assert/strict');
-const crypto = require('node:crypto');
+const { createHash } = require('node:crypto');
 const dns = require('node:dns');
 const test = require('node:test');
 const { dispatchServerTool, refetchServerTool } = require('../lib/tools');
 
-const sha = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
+const sha = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const realFetch = globalThis.fetch;
 const realLookup = dns.promises.lookup;
 

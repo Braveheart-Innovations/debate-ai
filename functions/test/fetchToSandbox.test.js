@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict');
-const crypto = require('node:crypto');
+const { createHash } = require('node:crypto');
 const test = require('node:test');
 
 const {
@@ -49,7 +49,7 @@ test('saveFetchToSandbox writes the whole body and returns only a preview', asyn
   assert.deepEqual(writes, [{ sessionKey: 's1', path: '/data/fetch_call_1.xml', text: body }]);
   assert.equal(summary.path, '/data/fetch_call_1.xml');
   assert.equal(summary.bytes, Buffer.byteLength(body));
-  assert.equal(summary.responseHash, crypto.createHash('sha256').update(body).digest('hex'));
+  assert.equal(summary.responseHash, createHash('sha256').update(body).digest('hex'));
   assert.equal(summary.preview, body.slice(0, SANDBOX_FETCH_PREVIEW_CHARS));
   assert.equal(summary.previewTruncated, true);
 });
@@ -110,7 +110,7 @@ test('saveFetchToSandbox writes a binary file byte for byte, with a note instead
   assert.equal(writes[0].path, '/data/fetch_call_x.xlsx');
   assert.ok(writes[0].bytes.equals(bytes));
   assert.equal(summary.bytes, 256);
-  assert.equal(summary.responseHash, crypto.createHash('sha256').update(bytes).digest('hex'));
+  assert.equal(summary.responseHash, createHash('sha256').update(bytes).digest('hex'));
   assert.match(summary.preview, /binary \.xlsx file/);
   assert.equal(summary.previewTruncated, false);
 });

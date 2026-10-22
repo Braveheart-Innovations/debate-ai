@@ -96,7 +96,6 @@ window.__renderVega = async function(spec, opts) {
 export async function renderVegaToSvg(
   spec: object,
   page: Page,
-  timeout = 20_000,
 ): Promise<string> {
   await ensureRendererLoaded(page);
 
@@ -115,7 +114,7 @@ export async function renderVegaToSvg(
     throw new Error('SVG rendering returned empty result');
   } catch (err) {
     console.warn('[vegaRenderer] SVG failed, falling back to PNG:', err);
-    return renderVegaToPngFallback(spec, page, timeout);
+    return renderVegaToPngFallback(spec, page);
   }
 }
 
@@ -125,7 +124,6 @@ export async function renderVegaToSvg(
 export async function renderVegaToPng(
   spec: object,
   page: Page,
-  timeout = 20_000,
 ): Promise<string> {
   await ensureRendererLoaded(page);
 
@@ -150,8 +148,7 @@ export async function renderVegaToPng(
 async function renderVegaToPngFallback(
   spec: object,
   page: Page,
-  timeout: number,
 ): Promise<string> {
-  const dataUrl = await renderVegaToPng(spec, page, timeout);
+  const dataUrl = await renderVegaToPng(spec, page);
   return `<img src="${dataUrl}" alt="Vega visualization" style="max-width:100%">`;
 }

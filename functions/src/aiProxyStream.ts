@@ -1,6 +1,7 @@
 import { onRequest, HttpsError } from 'firebase-functions/v2/https';
 import { getAuth } from 'firebase-admin/auth';
 import { getDecryptedApiKey, encryptionKey } from './apiKeys';
+import { isRecord, messageOf, statusOf } from './errorDetails';
 import { normalizeProviderTemperature, resolveProviderModelId } from './modelRegistry';
 import { recordUsageInternal, enforceFreeTierForInteraction, freeTierGateError } from './usageTracking';
 import { buildGeminiGenerationConfig } from './providers/google/thinking';
@@ -11,12 +12,8 @@ import {
   type ToolResult,
   transformToolsForClaude,
   transformToolChoiceForClaude,
-  parseClaudeToolCalls,
   transformToolsForOpenAI,
   transformToolChoiceForOpenAI,
-  parseOpenAIToolCalls,
-  transformToolsForGemini,
-  parseGeminiToolCalls,
 } from './tools';
 
 // Provider streaming endpoints
@@ -183,7 +180,12 @@ function getBase64Data(attachment: MessageAttachment): string {
 /**
  * Write an SSE event to the response
  */
-function writeSSE(res: any, event: SSEEvent): void {
+/** What an SSE event is written to: the handler's response. */
+interface SSEResponse {
+  write(chunk: string): unknown;
+}
+
+function writeSSE(res: SSEResponse, event: SSEEvent): void {
   res.write(`data: ${JSON.stringify(event)}\n\n`);
 }
 
@@ -199,7 +201,7 @@ async function verifyAuthToken(authHeader: string | undefined): Promise<string> 
   try {
     const decodedToken = await getAuth().verifyIdToken(token);
     return decodedToken.uid;
-  } catch (error) {
+  } catch {
     throw new HttpsError('unauthenticated', 'Invalid or expired auth token');
   }
 }
@@ -208,7 +210,7 @@ async function verifyAuthToken(authHeader: string | undefined): Promise<string> 
  * Stream Claude API response
  */
 async function streamClaude(
-  res: any,
+  res: SSEResponse,
   apiKey: string,
   model: string,
   messages: Message[],
@@ -362,8 +364,8 @@ async function streamClaude(
     role: m.role,
     contentType: typeof m.content === 'string' ? 'string' : 'array',
     contentLength: typeof m.content === 'string' ? m.content.length : m.content.length,
-    hasToolUse: Array.isArray(m.content) && m.content.some((c: any) => c.type === 'tool_use'),
-    hasToolResult: Array.isArray(m.content) && m.content.some((c: any) => c.type === 'tool_result'),
+    hasToolUse: Array.isArray(m.content) && m.content.some((c: { type?: string }) => c.type === 'tool_use'),
+    hasToolResult: Array.isArray(m.content) && m.content.some((c: { type?: string }) => c.type === 'tool_result'),
   })), null, 2));
 
   // Build request body with optional tools
@@ -520,7 +522,7 @@ async function streamClaude(
  * Gemini uses a different streaming format (streamGenerateContent)
  */
 async function streamGemini(
-  res: any,
+  res: SSEResponse,
   apiKey: string,
   model: string,
   messages: Message[],
@@ -670,7 +672,7 @@ async function streamGemini(
  * Stream OpenAI-compatible API response (OpenAI, Mistral, DeepSeek, Grok)
  */
 async function streamOpenAICompatible(
-  res: any,
+  res: SSEResponse,
   apiKey: string,
   baseUrl: string,
   model: string,
@@ -691,11 +693,6 @@ async function streamOpenAICompatible(
     | { type: 'text'; text: string }
     | { type: 'image_url'; image_url: { url: string } }
     | { type: 'file'; file: { filename: string; file_data: string } };
-
-  type OpenAIMessage = {
-    role: 'user' | 'assistant' | 'system';
-    content: string | OpenAIContentPart[];
-  };
 
   const formattedMessages: Array<Record<string, unknown>> = [];
   for (let idx = 0; idx < messages.length; idx++) {
@@ -943,7 +940,7 @@ async function streamOpenAICompatible(
  * Stream Cohere API response
  */
 async function streamCohere(
-  res: any,
+  res: SSEResponse,
   apiKey: string,
   model: string,
   messages: Message[],
@@ -1082,7 +1079,7 @@ async function streamCohere(
  * Stream Perplexity API response (always performs web search)
  */
 async function streamPerplexity(
-  res: any,
+  res: SSEResponse,
   apiKey: string,
   model: string,
   messages: Message[],
@@ -1473,26 +1470,28 @@ export const proxyAIRequestStream = onRequest(
       }
 
       res.end();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Streaming error:', error);
 
       const displayName = PROVIDER_NAMES[req.body?.providerId] || 'AI';
       let userMessage = `${displayName} encountered an error. Please try again.`;
       let code = 'internal';
 
-      const status = error.status || 500;
+      const status = statusOf(error) || 500;
 
       // Try to parse the error body for specific messages
       let errorDetails = '';
-      if (error.message) {
+      const rawMessage = messageOf(error);
+      if (rawMessage) {
         try {
-          const parsed = JSON.parse(error.message);
-          if (parsed.error?.message) {
-            errorDetails = parsed.error.message;
+          const parsed: unknown = JSON.parse(rawMessage);
+          const nested = isRecord(parsed) && isRecord(parsed.error) ? parsed.error : {};
+          if (typeof nested.message === 'string' && nested.message) {
+            errorDetails = nested.message;
           }
         } catch {
           // Not JSON, use raw message
-          errorDetails = error.message;
+          errorDetails = rawMessage;
         }
       }
 
