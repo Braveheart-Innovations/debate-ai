@@ -358,6 +358,8 @@ interface SalesforceDocEvidenceSource {
     ordinal: number;
     text: string;
     score: number;
+    /** The docs index's uncapped relevance (a live fallback page has only score). */
+    relevance?: number;
     contentLength: number;
   }>;
   searchSnippet?: string;
