@@ -182,6 +182,7 @@ export interface UserDocument {
   freeDebatesRemaining: number | null;
   freeComparesRemaining: number | null;
   freeChatsRemaining: number | null;
+  freeAnalyzesRemaining: number | null;
 
   // === User Preferences ===
   preferences: Record<string, unknown>;
@@ -247,10 +248,12 @@ function buildNewUserDocument(
     lastReceiptData: null,
     lastValidated: null,
 
-    // Free Tier Limits (web only, null for mobile)
+    // Free Tier Limits (web only, null for mobile). The same four counters the
+    // web writes (web AuthContext INITIAL_ENTITLEMENT_FIELDS) and the server meters.
     freeDebatesRemaining: null,
     freeComparesRemaining: null,
     freeChatsRemaining: null,
+    freeAnalyzesRemaining: null,
 
     // Preferences
     preferences: {},
