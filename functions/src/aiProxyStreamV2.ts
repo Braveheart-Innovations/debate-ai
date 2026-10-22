@@ -54,6 +54,10 @@ function mapToClientFormat(event: CanonicalSSEEvent): Record<string, unknown> {
     case 'text_delta':
       return { type: 'delta', text: event.delta };
 
+    // Never reaches here: the proxy doesn't ask for reasoning (streamModel drops it).
+    case 'reasoning_delta':
+      return { type: 'reasoning_delta', delta: event.delta };
+
     case 'tool_call_start':
       return {
         type: 'tool_call_start',

@@ -11,6 +11,8 @@ interface GeminiGenerationConfigOptions {
   maxTokens?: number;
   /** Think harder than the default (ProviderRequest.deepThinking). */
   deepThinking?: boolean;
+  /** Stream thought summaries (ProviderRequest.streamReasoning). */
+  includeThoughts?: boolean;
 }
 
 /**
@@ -92,11 +94,20 @@ function supportsMinimalThinkingLevel(normalizedModel: string): boolean {
   return major < 3 || (major === 3 && minor < 7);
 }
 
+/** Gemini 2.5 and later think; earlier models take no thinkingConfig. */
+function geminiThinks(model: string): boolean {
+  const version = /gemini-(\d+)(?:\.(\d+))?/.exec(model.toLowerCase());
+  if (!version) return false;
+  const major = Number(version[1]);
+  return major > 2 || (major === 2 && Number(version[2] ?? '0') >= 5);
+}
+
 export function buildGeminiGenerationConfig({
   model,
   temperature,
   maxTokens,
   deepThinking,
+  includeThoughts,
 }: GeminiGenerationConfigOptions): Record<string, unknown> {
   const resolvedMaxTokens = normalizeMaxTokens(maxTokens);
   const maxOutputTokens = resolvedMaxTokens ?? DEFAULT_MAX_OUTPUT_TOKENS;
@@ -108,8 +119,10 @@ export function buildGeminiGenerationConfig({
   const thinkingConfig = deepThinking
     ? getGeminiDeepThinkingConfig(model, maxOutputTokens)
     : getGeminiThinkingConfig(model, resolvedMaxTokens);
-  if (thinkingConfig) {
-    generationConfig.thinkingConfig = thinkingConfig;
+  // Thought summaries come back as parts marked `thought`, on the models that think.
+  const withThoughts = includeThoughts && geminiThinks(model);
+  if (thinkingConfig || withThoughts) {
+    generationConfig.thinkingConfig = { ...thinkingConfig, ...(withThoughts ? { includeThoughts: true } : {}) };
   }
 
   return generationConfig;

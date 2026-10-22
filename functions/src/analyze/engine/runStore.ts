@@ -283,6 +283,8 @@ export async function finishRun(
 
 export type RunEvent =
   | { type: 'text'; messageId: string; text: string }
+  /** The model's reasoning for the round as its provider streams it (the live progress line; never saved). */
+  | { type: 'reasoning'; messageId: string; text: string }
   | { type: 'tool_call_start'; messageId: string; toolCallId: string; toolName: string }
   /** execute_python's argument JSON as the model writes it (the cell's live code). */
   | { type: 'tool_call_delta'; messageId: string; toolCallId: string; delta: string }
@@ -292,8 +294,8 @@ export type RunEvent =
 
 /**
  * Batches live events into runEvents docs, one doc per ~250 ms of activity
- * (spike: ~65 ms write→listener). Text deltas for the same message merge, as
- * do argument deltas for the same tool call.
+ * (spike: ~65 ms write→listener). Text and reasoning deltas for the same
+ * message merge, as do argument deltas for the same tool call.
  */
 export class RunEventWriter {
   private pending: RunEvent[] = [];
@@ -304,12 +306,12 @@ export class RunEventWriter {
 
   push(event: RunEvent): void {
     const last = this.pending[this.pending.length - 1];
-    if (event.type === 'text' && last?.type === 'text' && last.messageId === event.messageId) {
+    if ((event.type === 'text' || event.type === 'reasoning') && last?.type === event.type && last.messageId === event.messageId) {
       last.text += event.text;
     } else if (event.type === 'tool_call_delta' && last?.type === 'tool_call_delta' && last.toolCallId === event.toolCallId) {
       last.delta += event.delta;
     } else {
-      this.pending.push(event.type === 'text' || event.type === 'tool_call_delta' ? { ...event } : event);
+      this.pending.push(event.type === 'text' || event.type === 'reasoning' || event.type === 'tool_call_delta' ? { ...event } : event);
     }
     if (!this.timer) this.timer = setTimeout(() => this.flush(), EVENT_BATCH_MS);
   }

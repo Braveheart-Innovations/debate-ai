@@ -64,6 +64,8 @@ export interface ResponsesBodyInput {
   stream: boolean;
   /** reasoning.effort; omitted = the model's default. */
   reasoningEffort?: 'high';
+  /** reasoning.summary 'auto': a summary of each reasoning step, streamed (ProviderRequest.streamReasoning). */
+  reasoningSummary?: boolean;
 }
 
 // ============================================================================
@@ -197,7 +199,12 @@ export function buildResponsesBody(params: ResponsesBodyInput): Record<string, u
   };
   if (instructions) body.instructions = instructions;
   if (params.maxTokens !== undefined) body.max_output_tokens = params.maxTokens;
-  if (params.reasoningEffort) body.reasoning = { effort: params.reasoningEffort };
+  if (params.reasoningEffort || params.reasoningSummary) {
+    body.reasoning = {
+      ...(params.reasoningEffort ? { effort: params.reasoningEffort } : {}),
+      ...(params.reasoningSummary ? { summary: 'auto' } : {}),
+    };
+  }
   if (params.tools && params.tools.length > 0) {
     body.tools = transformToolsForResponses(params.tools);
     if (params.toolChoice) {
@@ -327,6 +334,17 @@ export async function* parseResponsesStream(
         if (typeof event.delta === 'string' && event.delta.length > 0) {
           yield { type: 'text_delta', delta: event.delta };
         }
+        break;
+
+      // Reasoning summaries (reasoning.summary), a part per step, each "**Title**\n\nText".
+      case 'response.reasoning_summary_text.delta':
+        if (typeof event.delta === 'string' && event.delta.length > 0) {
+          yield { type: 'reasoning_delta', delta: event.delta };
+        }
+        break;
+
+      case 'response.reasoning_summary_part.done':
+        yield { type: 'reasoning_delta', delta: '\n\n' };
         break;
 
       case 'response.output_item.added': {

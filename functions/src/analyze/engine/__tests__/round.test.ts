@@ -212,6 +212,24 @@ describe('runRound', () => {
     expect(stored.find((m) => m.id === 'toolresult_c1')!.content).toBe('cached');
   });
 
+  it('asks for the model\'s reasoning and streams it live, never into the message', async () => {
+    const { context, events } = makeContext();
+    streamQueue.push([
+      { type: 'reasoning_delta', delta: 'The flows share an object, ' },
+      { type: 'reasoning_delta', delta: 'so I\'ll check their order.' },
+      { type: 'text_delta', delta: 'Sales grew 4%.' },
+      done(),
+    ]);
+    await runRound(context, state());
+    expect((streamCalls.at(-1) as { streamReasoning?: boolean }).streamReasoning).toBe(true);
+    const reasoning = events.push.mock.calls.map(([e]) => e).filter((e) => e.type === 'reasoning');
+    expect(reasoning).toEqual([
+      { type: 'reasoning', messageId: 'run1_r0', text: 'The flows share an object, ' },
+      { type: 'reasoning', messageId: 'run1_r0', text: 'so I\'ll check their order.' },
+    ]);
+    expect(stored.at(-1)).toMatchObject({ id: 'run1_r0', content: 'Sales grew 4%.' });
+  });
+
   it('completes with the final answer when the model calls no tools', async () => {
     const { context } = makeContext();
     streamQueue.push([{ type: 'text_delta', delta: 'Sales grew 4%.' }, done()]);

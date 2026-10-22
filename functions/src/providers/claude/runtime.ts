@@ -254,9 +254,15 @@ export class ClaudeRuntime implements ProviderRuntime {
       body.output_config = { effort };
     }
     // Named explicitly (the same setting as leaving it out) for the binding beta.
+    // These models omit their thinking's text by default; summarized returns a
+    // summary of it to stream as reasoning (billed as the same thinking).
     const bindThinking = claudeThinksByDefault(request.model);
     if (bindThinking) {
-      body.thinking = { type: 'adaptive', block_binding: { prefix_mismatch_behavior: 'drop_block' } };
+      body.thinking = {
+        type: 'adaptive',
+        block_binding: { prefix_mismatch_behavior: 'drop_block' },
+        ...(request.streamReasoning ? { display: 'summarized' } : {}),
+      };
     }
 
     // Add system prompt as top-level field (a block with a breakpoint when caching)
@@ -318,6 +324,11 @@ export class ClaudeRuntime implements ProviderRuntime {
             type: 'text_delta',
             delta: event.delta.text,
           };
+        }
+
+        // Thinking, summarized (display: 'summarized'); empty when omitted
+        else if (event.type === 'content_block_delta' && event.delta?.type === 'thinking_delta' && event.delta.thinking) {
+          yield { type: 'reasoning_delta', delta: event.delta.thinking };
         }
 
         // Tool call start

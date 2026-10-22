@@ -263,6 +263,8 @@ async function callModel(
     deepThinking: roundToolSet.deepThinking,
     // Every round resends the session so far; the next round reads it from the cache.
     promptCache: true,
+    // What the model is working on, shown live between its tool calls.
+    streamReasoning: true,
     keyValue: context.keyValue,
     sessionId: run.sessionId,
     sessionType: 'analyze',
@@ -273,6 +275,9 @@ async function callModel(
       case 'text_delta':
         attempt.text += event.delta;
         context.events.push({ type: 'text', messageId, text: event.delta });
+        break;
+      case 'reasoning_delta':
+        context.events.push({ type: 'reasoning', messageId, text: event.delta });
         break;
       case 'tool_call_start':
         attempt.toolCallStarted = true;

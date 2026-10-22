@@ -53,6 +53,8 @@ export interface ModelStreamRequest {
   deepThinking?: boolean;
   /** Cache the request's prefix for the next call that resends it (ProviderRequest.promptCache). */
   promptCache?: boolean;
+  /** Stream the model's reasoning as reasoning_delta events (ProviderRequest.streamReasoning); no other caller gets them. */
+  streamReasoning?: boolean;
   /** `encryptionKey.value()` — the caller's function must declare the secret. */
   keyValue: string;
   sessionId?: string;
@@ -124,6 +126,11 @@ export function validateModelTarget(
  * `deadline-exceeded`). A successful stream ends with `message_complete`, and
  * usage is recorded (awaited) before the generator returns.
  */
+/** A provider's refusal of reasoning summaries (OpenAI, for an organization that isn't verified). */
+export function refusesReasoningSummary(errorText: string): boolean {
+  return /reasoning[._ ]summar/i.test(errorText);
+}
+
 export async function* streamModel(
   request: ModelStreamRequest,
   deps: ModelStreamDeps = defaultDeps,
@@ -180,7 +187,7 @@ async function* streamModelCall(
   const runtime = ProviderRegistry.get(providerId);
   /** The latest request body's size, logged so a prompt's growth shows. */
   let requestChars = 0;
-  const send = (toolChoice: CanonicalToolChoice | undefined) => {
+  const send = (toolChoice: CanonicalToolChoice | undefined, streamReasoning: boolean) => {
     const built = runtime.buildRequest({
       model: resolvedModel,
       messages: request.messages,
@@ -192,6 +199,7 @@ async function* streamModelCall(
       attachments: request.attachments,
       deepThinking: request.deepThinking,
       promptCache: request.promptCache,
+      streamReasoning,
     }, apiKey);
     const bodyText = JSON.stringify(built.body);
     requestChars = bodyText.length;
@@ -219,19 +227,29 @@ async function* streamModelCall(
   let toolCallsDetected: CanonicalToolCall[] = [];
 
   try {
-    let response = await send(request.toolChoice);
+    let toolChoice = request.toolChoice;
+    let streamReasoning = request.streamReasoning === true;
+    let response = await send(toolChoice, streamReasoning);
     let preReadErrorText: string | undefined;
 
-    // Analyze Team mode forces its first round; models that can't be forced
-    // get the same request once more, unforced (see toolChoiceFallback).
-    if (!response.ok && response.status === 400 && isForcedToolChoice(request.toolChoice)) {
+    // A request refused for a setting it can do without goes again without it,
+    // one setting at a time: a forced tool choice (Analyze Team mode's first
+    // round; see toolChoiceFallback), or reasoning summaries, which OpenAI
+    // gives only to verified organizations ("Your organization must be
+    // verified to generate reasoning summaries").
+    while (!response.ok && response.status === 400 && (isForcedToolChoice(toolChoice) || streamReasoning)) {
       const text = await response.text();
-      if (shouldRetryUnforced(response.status, text, request.toolChoice)) {
+      if (isForcedToolChoice(toolChoice) && shouldRetryUnforced(response.status, text, toolChoice)) {
         console.warn(JSON.stringify({ traceId, event: 'tool_choice_unsupported_retry', providerId, model: resolvedModel }));
-        response = await send(undefined);
+        toolChoice = undefined;
+      } else if (streamReasoning && refusesReasoningSummary(text)) {
+        console.warn(JSON.stringify({ traceId, event: 'reasoning_summary_unavailable_retry', providerId, model: resolvedModel }));
+        streamReasoning = false;
       } else {
         preReadErrorText = text;
+        break;
       }
+      response = await send(toolChoice, streamReasoning);
     }
 
     if (!response.ok) {
@@ -261,6 +279,8 @@ async function* streamModelCall(
     }
 
     for await (const event of runtime.streamParse(response.body, traceId)) {
+      // Some providers stream their reasoning unasked; only a caller that asked gets it.
+      if (event.type === 'reasoning_delta' && !request.streamReasoning) continue;
       if (event.type === 'message_complete') {
         if (event.usage) {
           inputTokens = event.usage.inputTokens;

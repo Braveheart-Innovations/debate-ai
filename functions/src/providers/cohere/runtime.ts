@@ -5,7 +5,8 @@
  *
  * Cohere uses OpenAI-compatible request format (JSON schema tools, role-based messages)
  * but has its own SSE streaming event format:
- * - content-delta: { delta.message.content.text }
+ * - content-delta: { delta.message.content.text }, or { delta.message.content.thinking } (reasoning)
+ * - tool-plan-delta: { delta.message.tool_plan } (reasoning)
  * - tool-call-start: { delta.message.tool_calls: { id, type, function: { name } } }
  * - tool-call-delta: { delta.message.tool_calls: { function: { arguments } } }
  * - tool-call-end: { index }
@@ -185,6 +186,20 @@ export class CohereRuntime implements ProviderRuntime {
             if (text) {
               yield { type: 'text_delta', delta: text };
             }
+            // The reasoning models' thinking, streamed as it goes
+            const thinking = event.delta?.message?.content?.thinking;
+            if (thinking) {
+              yield { type: 'reasoning_delta', delta: thinking };
+            }
+            break;
+          }
+
+          // The plan a model states before its tool calls
+          case 'tool-plan-delta': {
+            const plan = event.delta?.message?.tool_plan;
+            if (plan) {
+              yield { type: 'reasoning_delta', delta: plan };
+            }
             break;
           }
 
@@ -259,7 +274,7 @@ export class CohereRuntime implements ProviderRuntime {
             break;
           }
 
-          // tool-plan-delta and other events are ignored
+          // other events are ignored
         }
       } catch {
         // Skip invalid JSON

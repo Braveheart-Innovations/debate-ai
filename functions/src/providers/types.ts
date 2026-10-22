@@ -51,6 +51,14 @@ export interface ProviderRequest {
    * repeated prefixes on their own, so other runtimes ignore it.
    */
   promptCache?: boolean;
+  /**
+   * Stream the model's reasoning as reasoning_delta events, where the provider
+   * has it: Claude's summarized thinking, OpenAI's reasoning summaries, Gemini's
+   * thought summaries. Providers that always stream their reasoning
+   * (reasoning_content, Cohere's thinking) need no setting. Analyze's rounds
+   * ask, so the user sees what the model is working on between tool calls.
+   */
+  streamReasoning?: boolean;
 }
 
 /**
