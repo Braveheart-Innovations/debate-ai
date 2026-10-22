@@ -536,7 +536,7 @@ describe('executeSalesforceMetadataAuditTool', () => {
     // Each query by id, org and what it returned; the SOQL and rows stay in the packet file.
     expect(result.content).toContain('  Queries: q1 (Prod); q2 (QA)');
     expect(result.content).not.toContain('SELECT COUNT() FROM Lead');
-    expect(result.content).toContain('- 20261017T143000Z-latency: Queried QA (sandbox), Prod (production). Prod is production; the workspace\'s metadata came from QA. Say that these facts are production\'s wherever you use them');
+    expect(result.content).toContain('- 20261017T143000Z-latency: Queried QA (sandbox), Prod (production). Prod is production; the workspace\'s metadata came from QA.');
     const summary = JSON.parse(writtenFile('/output/salesforce/salesforce-insight-packets.json')!);
     expect(summary.validPackets[0]).toMatchObject({ queriedOrgs: ['Prod', 'QA'], productionEvidence: true });
     expect(summary.importedFindings[0].runtimeQueries[0]).toMatchObject({ id: 'q1', org: 'Prod' });

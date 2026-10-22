@@ -172,7 +172,7 @@ export function renderSalesforceDocEvidenceMarkdown(bundle: SalesforceDocEvidenc
       }
       const matchedChunks = Array.isArray(source.matchedChunks) ? source.matchedChunks : [];
       if (matchedChunks.length > 0) {
-        lines.push(`  Passages read: ${matchedChunks.length} of this page's ${source.contentLength.toLocaleString()} characters. Quote these; the URL alone is not evidence.`);
+        lines.push(`  Passages read: ${matchedChunks.length} of this page's ${source.contentLength.toLocaleString()} characters.`);
         for (const chunk of matchedChunks) {
           lines.push(`  Chunk ${chunk.ordinal} (score: ${chunk.score}; ${chunk.contentLength.toLocaleString()} chars):`);
           appendIndentedMarkdownText(lines, chunk.text, '    ');
