@@ -197,6 +197,35 @@ test('execute maps stdout, filtered stderr, last-expression text, images and out
   assert.equal(Buffer.from(result.dataOutputs[0].base64, 'base64').toString(), 'a,b\n1,2\n');
 });
 
+test('execute shows each chart once: the PNGs the cell saved, then open figures, then its own displays', async () => {
+  const png = new TextEncoder().encode('PNG-SAVED');
+  const csv = new TextEncoder().encode('a\n1\n');
+  const provider = fakeProvider({
+    async runCode(id, code) {
+      if (isPre(code)) return { stdout: '', stderr: '', pngs: [], timedOut: false };
+      if (code.startsWith('_sym_post')) {
+        return {
+          stdout: `${POST_MARKER}${JSON.stringify({
+            images: ['OPEN-FIGURE'],
+            html: [],
+            data: [
+              { filename: 'chart.png', path: '/output/chart.png', size: png.byteLength },
+              { filename: 't.csv', path: '/output/t.csv', size: csv.byteLength },
+            ],
+          })}\n`,
+          stderr: '', pngs: [], timedOut: false,
+        };
+      }
+      return { stdout: '', stderr: '', pngs: ['DISPLAYED'], timedOut: false };
+    },
+  });
+  provider.files.set('/output/chart.png', png);
+  provider.files.set('/output/t.csv', csv);
+  const { svc } = service(provider);
+  const result = await svc.execute('u1', 's', 'x', 5000);
+  assert.deepEqual(result.images, [Buffer.from(png).toString('base64'), 'OPEN-FIGURE', 'DISPLAYED']);
+});
+
 test('execute reports the files the cell removed from /output', async () => {
   const provider = fakeProvider({
     async runCode(id, code) {

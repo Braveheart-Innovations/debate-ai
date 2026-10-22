@@ -55,6 +55,7 @@ const bootstrap = (key: string) => `
 import os as _sym_os, json as _sym_json, base64 as _sym_base64, io as _sym_io
 import matplotlib as _sym_mpl
 _sym_mpl.use('Agg')
+import matplotlib.figure as _sym_mfig
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -64,6 +65,39 @@ with open('${kernelPidFile(key)}', 'w') as _sym_pid_file:
     _sym_pid_file.write(str(_sym_os.getpid()))
 _SYM_DATA_EXT = tuple(${JSON.stringify(DATA_EXTENSIONS)})
 _sym_snapshot = {}
+_sym_saved_figs = set()
+
+# E2B's kernel startup (0003_images.py) replaces Pillow's Image.save with one that
+# also displays the image whenever it is saved to a path, so every plt.savefig
+# showed as a picture and the scan below drew the same figure again. A PNG a cell
+# saves to /output reaches the turn as its file; Pillow's own save goes back.
+def _sym_unhook_image_display():
+    try:
+        from PIL.Image import Image as _SymPilImage
+    except Exception:
+        return
+    original = getattr(_SymPilImage.save, '__globals__', {}).get('original_save')
+    if callable(original) and getattr(original, '__module__', None) == 'PIL.Image' and _SymPilImage.save is not original:
+        _SymPilImage.save = original
+_sym_unhook_image_display()
+
+# Each figure saved as a PNG during the cell, with the file it went to: the scan
+# leaves a figure out of the open-figure render when its PNG is among the cell's files.
+if not getattr(_sym_mfig.Figure.savefig, '_sym_wrapped', False):
+    _sym_figure_savefig = _sym_mfig.Figure.savefig
+    def _sym_savefig(self, fname, *args, **kwargs):
+        result = _sym_figure_savefig(self, fname, *args, **kwargs)
+        try:
+            if isinstance(fname, (str, _sym_os.PathLike)):
+                path = _sym_os.path.abspath(_sym_os.fspath(fname))
+                fmt = kwargs.get('format') or _sym_os.path.splitext(path)[1][1:] or _sym_mpl.rcParams['savefig.format']
+                if str(fmt).lower() == 'png':
+                    _sym_saved_figs.add((id(self), path))
+        except Exception:
+            pass
+        return result
+    _sym_savefig._sym_wrapped = True
+    _sym_mfig.Figure.savefig = _sym_savefig
 
 def _sym_scan(scan_root, exclude_agents):
     found = {}
@@ -80,20 +114,14 @@ def _sym_scan(scan_root, exclude_agents):
     return found
 
 def _sym_pre(scan_root, exclude_agents):
-    global _sym_snapshot
+    global _sym_snapshot, _sym_saved_figs
     _sym_os.makedirs(scan_root, exist_ok=True)
     plt.close('all')
+    _sym_saved_figs = set()
     _sym_snapshot = {rel: key for rel, (_p, _s, key) in _sym_scan(scan_root, exclude_agents).items()}
 
 def _sym_post(include_visuals, scan_root, exclude_agents):
     images, html, data = [], [], []
-    if include_visuals:
-        for num in plt.get_fignums():
-            fig = plt.figure(num)
-            buf = _sym_io.BytesIO()
-            fig.savefig(buf, format='png', dpi=150, bbox_inches='tight', facecolor='white', edgecolor='none')
-            images.append(_sym_base64.b64encode(buf.getvalue()).decode('ascii'))
-    plt.close('all')
     found = _sym_scan(scan_root, exclude_agents)
     for rel, (path, size, key) in sorted(found.items()):
         if _sym_snapshot.get(rel) == key:
@@ -105,6 +133,18 @@ def _sym_post(include_visuals, scan_root, exclude_agents):
                 html.append(entry)
         elif lower.endswith(_SYM_DATA_EXT):
             data.append(entry)
+    # A figure the cell saved as one of the PNGs above shows as that file.
+    written = {entry['path'] for entry in data}
+    saved = {fig_id for fig_id, path in _sym_saved_figs if path in written}
+    if include_visuals:
+        for num in plt.get_fignums():
+            fig = plt.figure(num)
+            if id(fig) in saved:
+                continue
+            buf = _sym_io.BytesIO()
+            fig.savefig(buf, format='png', dpi=150, bbox_inches='tight', facecolor='white', edgecolor='none')
+            images.append(_sym_base64.b64encode(buf.getvalue()).decode('ascii'))
+    plt.close('all')
     deleted = sorted(rel for rel in _sym_snapshot if rel not in found)
     print('${POST_MARKER}' + _sym_json.dumps({'images': images, 'html': html, 'data': data, 'deleted': deleted}))
 ${RECIPE_RUNNER_SOURCE}`;
@@ -119,7 +159,7 @@ function scopeArgs(key: string): string {
  * still running an older runtime (a resumed sandbox outlives a deploy) installs
  * the new one before its next cell.
  */
-export const RUNTIME_VERSION = 9;
+export const RUNTIME_VERSION = 10;
 
 /** Runs before every cell; installs the runtime on a fresh, restarted or outdated kernel. */
 export function preCode(key: string = DEFAULT_KERNEL): string {
