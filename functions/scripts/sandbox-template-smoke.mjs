@@ -3,7 +3,7 @@
  * probe per template capability. Creates a sandbox exactly as production does
  * (E2BSandboxProvider: no internet access), so offline gaps show up here.
  *
- *   E2B_API_KEY=... node scripts/sandbox-template-smoke.mjs [--template symposium-analyze-v3] [--out DIR] [--compare symposium-analyze-v2]
+ *   E2B_API_KEY=... node scripts/sandbox-template-smoke.mjs [--template symposium-analyze-v4] [--out DIR] [--compare symposium-analyze-v3]
  *
  * --out saves the probe images (house-style chart, Plotly export, choropleth, PDF page,
  * table image, diagrams, animation) for the screen-cap review. --compare also draws the sample chart
@@ -19,7 +19,7 @@ const option = (name, fallback) => {
   const at = args.indexOf(`--${name}`);
   return at >= 0 ? args[at + 1] : fallback;
 };
-const TEMPLATE = option('template', 'symposium-analyze-v3');
+const TEMPLATE = option('template', 'symposium-analyze-v4');
 const OUT = option('out', null);
 const COMPARE = option('compare', null);
 
@@ -150,14 +150,14 @@ from great_tables import GT
 GT(pd.DataFrame({'Center': ['Austin', 'Denver'], 'Utilisation': [0.87, 0.95]})).fmt_percent('Utilisation').gtsave('/output/smoke-table.png')
 import os; print(os.path.getsize('/output/smoke-table.png'), 'bytes')`],
   // v3 (from here down).
-  ['v2 packages unchanged', `
+  ['packages unchanged', `
 import importlib.metadata as md, re
 norm = lambda name: re.sub(r'[-_.]+', '-', name).lower()
 have = {norm(d.metadata['Name']): d.version for d in md.distributions()}
 want = dict(line.strip().split('==') for line in open('/opt/symposium/constraints.txt') if '==' in line and not line.startswith('#'))
 drift = {name: (version, have.get(norm(name))) for name, version in want.items() if have.get(norm(name)) != version}
 assert not drift, drift
-print(len(want), 'packages at their v2 versions')`],
+print(len(want), 'packages at the last template's versions (constraints.txt)')`],
   ['graphviz house style', `
 import graphviz, re, struct, subprocess
 fonts = lambda svg: set(re.findall(r'font-family="([^"]+)"', svg))

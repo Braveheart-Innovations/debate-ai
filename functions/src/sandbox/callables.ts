@@ -16,7 +16,7 @@ export const SANDBOX_TEMPLATE = 'symposium-analyze-v3';
  * The next template, dark-tested by SANDBOX_TEMPLATE_TESTERS before the switch.
  * The switch is: SANDBOX_TEMPLATE = this, then this = null.
  */
-export const SANDBOX_TEMPLATE_CANDIDATE: string | null = null;
+export const SANDBOX_TEMPLATE_CANDIDATE: string | null = 'symposium-analyze-v4';
 /**
  * Accounts that get SANDBOX_TEMPLATE_CANDIDATE while one is set:
  *  - mspencer@braveheartinnovations.com (Michael's web account)

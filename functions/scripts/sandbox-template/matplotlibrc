@@ -13,7 +13,7 @@ font.monospace:  JetBrains Mono, DejaVu Sans Mono
 font.size:       10.5
 
 ## BRAND_CATEGORY_PALETTE, in order.
-axes.prop_cycle:   cycler('color', ['0E9594', '4888F8', 'ea580c', '10A37F', '7c3aed', 'a16207', 'db2777', '4f46e5'])
+axes.prop_cycle:   cycler('color', ['0E9594', '4888F8', 'ea580c', 'db2777', '7c3aed', 'a16207', '10A37F', '4f46e5'])
 axes.facecolor:    white
 axes.edgecolor:    cbd5e1
 axes.linewidth:    0.8
