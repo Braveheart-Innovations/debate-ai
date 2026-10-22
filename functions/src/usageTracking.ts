@@ -1,6 +1,7 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
-import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { getDecryptedApiKey, encryptionKey } from './apiKeys';
+import { messageOf } from './errorDetails';
 
 // ============================================================================
 // Types
@@ -55,14 +56,6 @@ interface MediaGenerationRecord {
   timestamp: number;
 }
 
-interface DailyProviderUsage {
-  providerId: string;
-  date: string;
-  totalInputTokens: number;
-  totalOutputTokens: number;
-  totalTokens: number;
-  requestCount: number;
-}
 
 interface ImageGenerationStats {
   totalImages: number;
@@ -180,7 +173,7 @@ export const getProviderBalances = onCall(
           errorMessage: 'No API key configured',
         });
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('DeepSeek balance error:', error);
       balances.push({
         providerId: 'deepseek',
@@ -188,7 +181,7 @@ export const getProviderBalances = onCall(
         currency: 'USD',
         status: 'error',
         lastUpdated: Date.now(),
-        errorMessage: error.message || 'Failed to fetch balance',
+        errorMessage: messageOf(error, 'Failed to fetch balance'),
       });
     }
 
@@ -250,47 +243,6 @@ async function fetchDeepSeekBalance(apiKey: string): Promise<ProviderBalance> {
     granted: grantedBalance,
     currency: balanceInfo?.currency || 'CNY',
     status: data.is_available ? 'available' : 'error',
-    lastUpdated: Date.now(),
-  };
-}
-
-async function fetchOpenAIBalance(apiKey: string): Promise<ProviderBalance> {
-  // Note: This is an undocumented endpoint that may change
-  console.log('Fetching OpenAI balance...');
-  const response = await fetch('https://api.openai.com/v1/dashboard/billing/credit_grants', {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-  });
-
-  console.log('OpenAI response status:', response.status);
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('OpenAI API error:', response.status, errorText);
-    // If the endpoint doesn't work, return unavailable instead of error
-    // since this is an undocumented endpoint
-    return {
-      providerId: 'openai',
-      available: 0,
-      currency: 'USD',
-      status: 'unavailable',
-      lastUpdated: Date.now(),
-      errorMessage: `Balance API not available (${response.status})`,
-    };
-  }
-
-  const data = await response.json();
-
-  return {
-    providerId: 'openai',
-    available: data.total_available || 0,
-    used: data.total_used || 0,
-    granted: data.total_granted || 0,
-    currency: 'USD',
-    status: 'available',
     lastUpdated: Date.now(),
   };
 }

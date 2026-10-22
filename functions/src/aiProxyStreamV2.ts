@@ -17,6 +17,7 @@ import { enforceFreeTierForInteraction, freeTierGateError } from './usageTrackin
 import { generateTraceId, createErrorEvent } from './providers/base-runtime';
 import { PROVIDER_NAMES, streamModel, validateModelTarget } from './modelStream';
 import type { CanonicalSSEEvent } from './types/canonical';
+import { messageOf, stackOf } from './errorDetails';
 
 // ============================================================================
 // Types
@@ -31,7 +32,13 @@ interface SSEWriter {
 // SSE Helpers
 // ============================================================================
 
-function createSSEWriter(res: any): SSEWriter {
+/** What the stream is written to: the handler's response. */
+interface SSEResponse {
+  write(chunk: string): unknown;
+  end(): unknown;
+}
+
+function createSSEWriter(res: SSEResponse): SSEWriter {
   return {
     write(event: CanonicalSSEEvent) {
       // Map canonical events to the format expected by the client
@@ -119,7 +126,7 @@ async function verifyAuthToken(authHeader: string | undefined): Promise<string> 
   try {
     const decodedToken = await getAuth().verifyIdToken(token);
     return decodedToken.uid;
-  } catch (error) {
+  } catch {
     throw new HttpsError('unauthenticated', 'Invalid or expired auth token');
   }
 }
@@ -292,14 +299,14 @@ export const proxyAIRequestStreamV2 = onRequest(
 
       writer.end();
 
-    } catch (error: any) {
+    } catch (error) {
       const duration = Date.now() - startTime;
       console.error(JSON.stringify({
         traceId,
         event: 'request_error',
         duration,
-        error: error.message || 'Unknown error',
-        stack: error.stack?.slice(0, 500),
+        error: messageOf(error, 'Unknown error'),
+        stack: stackOf(error)?.slice(0, 500),
       }));
 
       const displayName = PROVIDER_NAMES[req.body?.providerId] || 'AI';

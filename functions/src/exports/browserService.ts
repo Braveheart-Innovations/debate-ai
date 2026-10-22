@@ -33,7 +33,7 @@ export async function launchBrowser(): Promise<Browser> {
     // In emulator, try to use locally-installed puppeteer's bundled Chrome
     try {
       // Dynamic require to avoid compile-time dependency on 'puppeteer'
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      // eslint-disable-next-line @typescript-eslint/no-require-imports -- puppeteer is a local-run fallback that isn't a deploy dependency; an import would need it to compile
       const localPuppeteer = require('puppeteer');
       executablePath = localPuppeteer.executablePath();
     } catch {

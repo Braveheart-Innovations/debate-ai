@@ -26,7 +26,7 @@
     "lint:fix": "eslint src __tests__ jest.setup.ts jest.setupAfterEnv.ts test-utils __mocks__ App.tsx index.ts '*.js' '*.mjs' plugins scripts --fix",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.tests.json",
     "check:app": "npm run typecheck && npm run lint && npm run lint:escape-hatches && npm run test",
-    "check:functions": "npm --prefix functions run build && npm --prefix functions test",
+    "check:functions": "npm --prefix functions run build && npm --prefix functions run lint && npm --prefix functions test",
     "audit:all": "audit-ci --config audit-ci.jsonc && npm --prefix functions audit --audit-level=moderate",
     "check:all": "npm run check:app && npm run check:functions && npm run audit:all",
     "check": "npm run check:app",
