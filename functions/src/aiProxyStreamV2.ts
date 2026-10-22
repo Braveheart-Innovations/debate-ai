@@ -18,6 +18,7 @@ import { generateTraceId, createErrorEvent } from './providers/base-runtime';
 import { PROVIDER_NAMES, streamModel, validateModelTarget } from './modelStream';
 import type { CanonicalSSEEvent } from './types/canonical';
 import { messageOf, stackOf } from './errorDetails';
+import { refusalOf } from './streamRefusal';
 
 // ============================================================================
 // Types
@@ -308,6 +309,13 @@ export const proxyAIRequestStreamV2 = onRequest(
         error: messageOf(error, 'Unknown error'),
         stack: stackOf(error)?.slice(0, 500),
       }));
+
+      const refusal = refusalOf(error);
+      if (refusal) {
+        writer.write(createErrorEvent(refusal.message, refusal.code));
+        writer.end();
+        return;
+      }
 
       const displayName = PROVIDER_NAMES[req.body?.providerId] || 'AI';
       writer.write(createErrorEvent(
