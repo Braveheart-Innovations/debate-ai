@@ -557,6 +557,17 @@ function proposeResult(call: TeamCallState, team: TeamMember[], solo: boolean): 
   );
 }
 
+/** A teammate on the call the sandbox refused: its message, which ends the operator's turn (round.ts). */
+export function teamCallSandboxRefusal(state: TeamTurnState, toolCallId: string): string | undefined {
+  const call = (state.calls ?? []).find((candidate) => candidate.toolCallId === toolCallId);
+  for (const entry of call?.approved ?? []) {
+    for (const { result } of entry.slots) {
+      if (result?.sandboxUnavailable) return result.sandboxUnavailable;
+    }
+  }
+  return undefined;
+}
+
 /** The waiting team calls' tool results, once isTeamRoundReady. */
 export function composeTeamResults(state: TeamTurnState, team: TeamMember[]): ToolResult[] {
   const solo = state.solo === true;

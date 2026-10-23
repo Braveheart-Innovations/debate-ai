@@ -355,6 +355,8 @@ export interface StoredToolResult {
   dataOutputs?: Array<{ filename: string; size: number }>;
   /** Team tool results: the runs behind them (the Team panel after a reload). */
   teamRuns?: AnalyzeTeamRunSummary[];
+  /** The sandbox refused the call (or a teammate's): the user's message, which ends the turn (round.ts). */
+  sandboxUnavailable?: string;
 }
 
 export type ToolCallRecord =

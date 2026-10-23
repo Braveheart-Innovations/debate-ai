@@ -40,6 +40,7 @@ import {
   resolvePendingPlans,
   slotsToSpawn,
   stopUnstartedSlots,
+  teamCallSandboxRefusal,
   validateDecision,
 } from './teamState';
 import type { AgentPurpose, AgentRunResult, ApprovedAgents, TeamMember, TeamPlan, TeamPlanDecision, TeamPlanOutcome } from './types';
@@ -246,9 +247,10 @@ function settleInTx(tx: Transaction, parentRef: DocumentReference, parent: Analy
   }
   if (isTeamRoundReady(spawned.team)) {
     for (const result of composeTeamResults(spawned.team, teamMembers(parent.config))) {
+      const sandboxUnavailable = teamCallSandboxRefusal(spawned.team, result.toolCallId);
       tx.set(toolCallRef(parentRef, result.toolCallId), removeUndefined({
         state: 'done',
-        result: toStoredToolResult(result) as StoredToolResult,
+        result: { ...toStoredToolResult(result), sandboxUnavailable } as StoredToolResult,
         finishedAt: now,
       }));
     }

@@ -54,3 +54,17 @@ test('the UN Population connector sends the managed Data Portal token as a beare
   assert.equal(config.authType, 'bearer');
   assert.equal(typeof config.getManagedKey, 'function');
 });
+
+test('a fetch the sandbox refuses throws, so an Analyze turn ends with the message instead of a tool result', async () => {
+  const { SandboxLimitError } = require('../lib/sandbox/service');
+  const refused = {
+    claimSlot: async () => { throw new SandboxLimitError(3, 4 * 60_000, 15 * 60_000); },
+    writeFile: async () => { throw new Error('never written'); },
+  };
+  await assert.rejects(dispatchServerTool('u1', {
+    toolName: 'fetch_api',
+    toolCallId: 'call-r',
+    args: { url: 'https://api.worldbank.org/v2/country' },
+    sandboxTarget: { sessionKey: 's1', pathBase: '/data/fetch_call-r' },
+  }, 'k', refused), SandboxLimitError);
+});

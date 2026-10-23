@@ -15,6 +15,7 @@ import {
   type SandboxFetchTarget,
 } from './fetchToSandbox';
 import { e2bApiKey, getSandboxService } from './sandbox/callables';
+import { SandboxUnavailableError } from './sandbox/service';
 import {
   SalesforceDocNotReadError,
   fetchOfficialDocContent,
@@ -2395,6 +2396,8 @@ export async function dispatchServerTool(
     result.toolCallId = toolCallId;
     return result;
   } catch (error: unknown) {
+    // No sandbox: the caller decides (an Analyze turn ends with the message).
+    if (error instanceof SandboxUnavailableError) throw error;
     console.error(`Error executing tool ${toolName}:`, error);
     return {
       toolCallId,
@@ -2460,11 +2463,16 @@ export const executeTool = onCall(
       throw new HttpsError('invalid-argument', 'Tool name is required');
     }
 
-    return dispatchServerTool(request.auth.uid, {
-      toolName,
-      toolCallId,
-      args,
-      sandboxTarget: parseSandboxFetchTarget(sandbox),
-    }, encryptionKey.value());
+    try {
+      return await dispatchServerTool(request.auth.uid, {
+        toolName,
+        toolCallId,
+        args,
+        sandboxTarget: parseSandboxFetchTarget(sandbox),
+      }, encryptionKey.value());
+    } catch (error) {
+      if (error instanceof SandboxUnavailableError) return { toolCallId, success: false, error: error.message };
+      throw error;
+    }
   }
 );

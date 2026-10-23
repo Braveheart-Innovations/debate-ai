@@ -995,25 +995,28 @@ describeEmulator('step 7 free tier and sandbox time', () => {
     expect(sandboxFiles.has(SESSION_FILES_MARKER)).toBe(true);
   });
 
-  it('at the per-user sandbox limit the turn still runs: Python gets the wait message, files sync on a later round', async () => {
+  it('at the per-user sandbox limit the turn ends with the wait message as a notice, and files sync on a later turn', async () => {
     await writeUploadChunk(uid, sessionId, {
       pythonPath: '/uploads/scan.pdf', chunkIndex: 0, totalChunks: 1, size: 13, mimeType: 'application/pdf',
       sha256: createHash('sha256').update('%PDF-1.7 fake').digest('hex'),
       base64: Buffer.from('%PDF-1.7 fake').toString('base64'),
     });
     sandboxLimit.refused = true;
-    let toolError: string | undefined;
-    script = (request) => {
-      const results = request.messages.filter((message) => message.role === 'tool');
-      if (results.length === 0) return calls({ id: 'py1', name: 'execute_python', args: { code: 'print(1)' } });
-      toolError ??= String(results[0].content);
-      return text('Python is busy in your other sessions; try again in about 5 minutes.');
+    let modelCalls = 0;
+    script = () => {
+      modelCalls += 1;
+      return calls({ id: 'py1', name: 'execute_python', args: { code: 'print(1)' } });
     };
     const { runId } = await startOperatorTurn({ uid, sessionId, content: 'Read it', config: config({ team: undefined }) });
     await drain();
     expect((await run(runId)).status).toBe('completed');
-    expect(toolError).toContain('You already have 3 Analyze sessions using their Python environment');
-    expect(toolError).toContain('the next one frees up in about 5 minutes');
+    // Nothing ran, so the model isn't asked to go on: with nothing fetched it can only answer from memory.
+    expect(modelCalls).toBe(1);
+    const messages = await loadSessionMessages(uid, sessionId);
+    expect(toolMessages(messages)[0].content).toContain('You already have 3 Analyze sessions using their Python environment');
+    const notice = messages[messages.length - 1];
+    expect(notice.metadata?.appNotice).toEqual({ kind: 'sandbox_unavailable' });
+    expect(notice.content).toContain('the next one frees up in about 5 minutes');
     expect(sandboxFiles.has('/uploads/scan.pdf')).toBe(false);
 
     // A slot frees up: the next turn syncs the upload before its first round.
@@ -1023,6 +1026,27 @@ describeEmulator('step 7 free tier and sandbox time', () => {
     await drain();
     expect((await run(next.runId)).status).toBe('completed');
     expect(sandboxFiles.get('/uploads/scan.pdf')?.toString()).toBe('%PDF-1.7 fake');
+  });
+
+  it('a teammate the sandbox refused ends the operator\'s turn too, with the wait message as a notice', async () => {
+    sandboxLimit.refused = true;
+    let operatorCalls = 0;
+    script = (request) => {
+      if (isTeammate(request)) return calls({ id: 'py_sub', name: 'execute_python', args: { code: 'print(1)' } });
+      operatorCalls += 1;
+      return calls({ id: 'd1', name: 'delegate', args: { task: 'Sum A', agent: 'teammate1' } });
+    };
+    const { runId } = await startOperatorTurn({ uid, sessionId, content: 'Go', config: config({ teamAutoApprove: true }) });
+    await drain();
+    expect((await run(runId)).status).toBe('completed');
+    // Teammates share the session's sandbox, so the operator has none either: it isn't asked to go on.
+    expect(operatorCalls).toBe(1);
+    const [kid] = await children(runId);
+    expect(kid.result?.sandboxUnavailable).toContain('You already have 3 Analyze sessions using their Python environment');
+    const messages = await loadSessionMessages(uid, sessionId);
+    const notice = messages[messages.length - 1];
+    expect(notice.metadata?.appNotice).toEqual({ kind: 'sandbox_unavailable' });
+    expect(notice.content).toContain('the next one frees up in about 5 minutes');
   });
 
   it('the awake-slot claim holds under parallel calls: 10 at once with a limit of 3 get exactly 3', async () => {

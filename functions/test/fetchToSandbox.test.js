@@ -139,7 +139,7 @@ test('saveFetchToSandbox surfaces a failed write', async () => {
   );
 });
 
-test('runSandboxFetch claims the sandbox slot first: a refusal downloads nothing and tells the model not to retry (F5)', async () => {
+test('runSandboxFetch claims the sandbox slot first: a refusal downloads nothing and throws, so the turn ends with it (F5)', async () => {
   const { runSandboxFetch } = require('../lib/fetchToSandbox');
   const { SandboxLimitError } = require('../lib/sandbox/service');
   let fetched = 0;
@@ -147,14 +147,11 @@ test('runSandboxFetch claims the sandbox slot first: a refusal downloads nothing
     claimSlot: async () => { throw new SandboxLimitError(3, 4 * 60_000, 15 * 60_000); },
     writeFile: async () => { throw new Error('never written'); },
   };
-  const result = await runSandboxFetch('u1', { sessionKey: 's1', pathBase: '/data/fetch_c1' }, refused, async () => {
+  await assert.rejects(runSandboxFetch('u1', { sessionKey: 's1', pathBase: '/data/fetch_c1' }, refused, async () => {
     fetched += 1;
     return { toolCallId: 'c1', success: true, content: '{}' };
-  });
+  }), SandboxLimitError);
   assert.equal(fetched, 0);
-  assert.equal(result.success, false);
-  assert.match(result.error, /You already have 3 Analyze sessions using their Python environment/);
-  assert.match(result.error, /Nothing ran\. Don't retry Python, file, or data-fetch tools in this turn/);
 });
 
 test('runSandboxFetch with a slot fetches, then saves the body into the sandbox', async () => {
