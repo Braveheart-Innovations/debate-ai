@@ -281,8 +281,8 @@ const mockImageModels: Record<string, Array<Record<string, unknown>>> = {
       resolutions: [],
     },
     {
-      id: 'imagen-4.0-generate-001',
-      displayName: 'Imagen 4',
+      id: 'text-only-image-model',
+      displayName: 'Text-only Image',
       supportsImageInput: false,
       maxImagesPerRequest: 1,
       maxReferenceImages: 0,
@@ -643,7 +643,7 @@ describe('CreateSetupScreen', () => {
       multi.unmount();
 
       mockStateWith({
-        createSelection: { image: [imageSelection('google', 'imagen-4.0-generate-001')] },
+        createSelection: { image: [imageSelection('google', 'text-only-image-model')] },
       });
       const single = renderWithProviders(<CreateSetupScreen />);
       fireEvent.press(single.getByTestId('create-composer-options'));
@@ -736,7 +736,7 @@ describe('CreateSetupScreen', () => {
     it('blocks send and explains when an attachment has no image-input model', () => {
       mockStateWith({
         createSelection: {
-          image: [imageSelection('google', 'imagen-4.0-generate-001')],
+          image: [imageSelection('google', 'text-only-image-model')],
           attachments: {
             image: [{ uri: 'file://source.png' }],
             video: [],

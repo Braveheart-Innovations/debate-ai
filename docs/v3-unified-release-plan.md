@@ -61,15 +61,16 @@ bring Michael its design. What a step teaches can reorder or reshape the steps a
 |---|---|---|---|
 | 0 | web 2.9.7, with Watches | Groundwork: mobile-ready notifications, the sandbox ceiling, the server-written session summary, watch writes behind callables, the stale privacy line | Watches needs most of it anyway |
 | 1 | Functions PRs | Key custody hardened before more keys arrive; a key fingerprint | Every stored key is safer, web included |
-| 2 | mobile 2.5.0 | Optional account keys | A key entered on the phone works on symposiumai.app |
-| 3 | Functions PRs + web 2.9.8 | The server builds prompts, tool lists, the session doc and the title | One copy of the prompt; server-started turns (Run again, review hand-off, watches) use current prompts |
-| 4 | mobile 2.6.0 (native) | Analyze companion: sessions, results, approvals, push | Follow and approve a web run from the phone |
-| 5 | mobile 2.7.0 | Start Analyze on the phone | The whole loop from the phone |
-| 6 | mobile 2.8.0 + Functions | Depth: models, review, exports, watches, diagrams | The phone does what a phone does well |
+| 2 | mobile 2.6.0 | Optional account keys | A key entered on the phone works on symposiumai.app |
+| 3 | Functions PRs + web 2.9.9 | The server builds prompts, tool lists, the session doc and the title | One copy of the prompt; server-started turns (Run again, review hand-off, watches) use current prompts |
+| 4 | mobile 2.7.0 (native) | Analyze companion: sessions, results, approvals, push | Follow and approve a web run from the phone |
+| 5 | mobile 2.8.0 | Start Analyze on the phone | The whole loop from the phone |
+| 6 | mobile 2.9.0 + Functions | Depth: models, review, exports, watches, diagrams | The phone does what a phone does well |
 | 7 | 3.0.0, both apps | The unified release | Start on the phone, finish on the laptop |
 
 Version numbers are proposals (question 1). Steps 1 and 3 have no app release of their own; they deploy when
-their PRs merge.
+their PRs merge. Renumbered 2026-10-23 (Michael): mobile 2.5.0 became the Expo patch set, Kimi K3.1 Pro and
+dependency release, and web 2.9.8 the Kimi K3.1 Pro and Mermaid 12 release, so every step below moved up one.
 
 ### Step 0: groundwork in web 2.9.7
 
@@ -103,7 +104,7 @@ Why: mobile users will add keys the server holds. Fix the custody weak spots whi
 Check: functions tests; a key saved before the change still decrypts; a web Chat still works after a key is
 re-saved.
 
-### Step 2: mobile 2.5.0, optional account keys
+### Step 2: mobile 2.6.0, optional account keys
 
 Goal: for each provider, the user can add the phone's key to their account, see whether the account has a key
 and whether it's the phone's, update it and remove it. Nothing else changes.
@@ -149,7 +150,7 @@ account."
     (`UpgradeScreen.tsx:106`).
 
 **Release:** a store release, not an OTA, because the data practice changes (question 3). Marketing version
-and `runtimeVersion` 2.5.0, through `npm run release:build`.
+and `runtimeVersion` 2.6.0, through `npm run release:build`.
 
 Check (live, on a device):
 - Add a key on the phone. Web Settings shows the provider as configured, and a web Chat with it works.
@@ -157,7 +158,7 @@ Check (live, on a device):
 - Remove it from the account: web Settings shows it as not configured.
 - Phone Chat works throughout.
 
-### Step 3: the server builds what a second client would copy (Functions + web 2.9.8)
+### Step 3: the server builds what a second client would copy (Functions + web 2.9.9)
 
 Why: today the web builds the Analyze system prompts, the tool list, the session doc and the title. A phone
 would need copies, and copies drift. Server-started turns (Run again, review hand-off) reuse the
@@ -169,7 +170,7 @@ would need copies, and copies drift. Server-started turns (Run again, review han
    `baseSystemPrompt.ts` move into `functions/src/analyze/`. Some of what they import already reaches Functions
    through `npm run analyze:contract` (`data-connectors`). Going in, list the rest (`FileMetadata` for Salesforce
    detection, `describeMember`, `renderOutputSelectionInstructions`).
-2. **Cutover.** The callable accepts both forms. The web switches in 2.9.8. Then the text fields leave the
+2. **Cutover.** The callable accepts both forms. The web switches in 2.9.9. Then the text fields leave the
    callable and the builder leaves the web: removed, not kept as a fallback.
 3. **The server writes the session doc** on the first turn and its summary when a run ends. **It titles the
    session** after the first turn. Check `firestore.rules`' field allowlists on `conversations/{id}`, so client
@@ -180,7 +181,7 @@ would need copies, and copies drift. Server-started turns (Run again, review han
 Check: the golden prompts (charts, Excel export, map, model, Salesforce audit, team plan) on the dev server
 against production, with prompts built on the server.
 
-### Step 4: mobile 2.6.0, the Analyze companion (outline)
+### Step 4: mobile 2.7.0, the Analyze companion (outline)
 
 Goal: everything a phone needs to follow Analyze work started on the web. It's the web plan's Phase 4 "Mobile
 v1" without starting runs.
@@ -207,12 +208,12 @@ v1" without starting runs.
   - Device tokens are stored at `users/{uid}/devices/{id}`.
   - A Functions trigger on a new `users/{uid}/notifications/{id}` sends the push. Tapping it opens the session.
   - Ask for notification permission the first time the user follows a run, not at launch.
-- **Release:** native, so a store release with `runtimeVersion` 2.6.0.
+- **Release:** native, so a store release with `runtimeVersion` 2.7.0.
 
 Check: start a team run on the web and lock the phone. "Plan needs approval" arrives; approve it on the phone,
 watch the lanes finish, and open the report.
 
-### Step 5: mobile 2.7.0, start Analyze on the phone (outline)
+### Step 5: mobile 2.8.0, start Analyze on the phone (outline)
 
 - **The composer:**
   - the question;
@@ -233,7 +234,7 @@ watch the lanes finish, and open the report.
 
 Check: the golden prompts started on the phone, then the same session continued on the web.
 
-### Step 6: mobile 2.8.0, depth (outline)
+### Step 6: mobile 2.9.0, depth (outline)
 
 - **Models:** the parameter form and scenarios (`analyzeRunRecipe`), native.
 - **Review queue:** verify, dismiss, send to operator (`analyzeReviewControl`).
@@ -264,7 +265,7 @@ Check: the golden prompts started on the phone, then the same session continued 
 
 ## Ask Michael (before the step that needs it)
 
-1. **Version numbers:** mobile 2.5 → 2.8 and web 2.9.8, then 3.0.0 on both. Or fewer mobile store releases,
+1. **Version numbers:** mobile 2.6 → 2.9 and web 2.9.9, then 3.0.0 on both. Or fewer mobile store releases,
    since each is a review cycle. Other mobile work can ride in any of these releases.
 2. **Step 1:** a per-record salt and key version on the current secret, or envelope encryption with Cloud KMS.
 3. **Step 2:** a store release, not an OTA (recommended: the data practice changes).

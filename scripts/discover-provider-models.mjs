@@ -54,6 +54,7 @@ const KNOWN_SUPERSEDED_IDS = new Set([
   'zai-glm-5',
   'zai-glm-5-2',
   'zai-glm-5-3',
+  'zai-glm-5-3-flash',
   'gpt-5-mini',
   'gpt-5-nano',
   'gpt-5-pro',

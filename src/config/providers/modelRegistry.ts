@@ -174,6 +174,13 @@ export const MODEL_ALIASES: Record<string, string> = {
   'deepseek-latest': 'deepseek-flash',
   'deepseek-v4-flash': 'deepseek-flash',
   'deepseek-v4-flash-vision-exp': 'deepseek-flash',
+
+  // Moonshot aliases
+  // Moonshot closes the K2 series to newly registered accounts on 2026-10-31
+  // and retires it by the end of December 2026; selections move to K3.1 Pro.
+  'kimi-k2.6': 'kimi-k3.1-pro',
+  'kimi-k2.7-code': 'kimi-k3.1-pro',
+  'kimi-k2.7-code-highspeed': 'kimi-k3.1-pro-highspeed',
 };
 
 export const resolveModelAlias = (modelId: string): string => {
@@ -192,7 +199,7 @@ export const DEFAULT_PROVIDER_MODELS: Record<string, string> = {
   mistral: 'mistral-medium-2604',
   cohere: 'command-a-reasoning-08-2025',
   deepseek: 'deepseek-flash',
-  moonshot: 'kimi-k3',
+  moonshot: 'kimi-k3.1-pro',
   zai: 'glm-5.3',
 };
 

@@ -917,7 +917,7 @@ Tap Gallery in the tab row to browse everything you've generated. You can previe
 
 Supported Providers:
 - OpenAI (GPT Image models): High-quality image generation and editing
-- Google (Gemini image models and Imagen): Photorealistic results; Gemini models can edit, Imagen creates from text only
+- Google (Gemini image models): Photorealistic results; every Gemini image model can edit
 - Grok (xAI): Fast image generation and editing
 - Runway: Text-to-video and image-to-video generation
 - ElevenLabs: Text-to-speech voiceovers and generated sound effects
@@ -987,7 +987,7 @@ Refinement vs New Generation:
 - With a source image, models use it as a reference, maintaining composition
 
 Which Models Can Edit:
-GPT Image (OpenAI), Gemini image models (Google), and Grok can edit images and use references. Imagen models create from text only - if you attach an image, you'll be prompted to switch any model that can't edit.`,
+GPT Image (OpenAI), Gemini image models (Google), and Grok can edit images and use references. If you attach an image, you'll be prompted to switch any model that can't edit.`,
     relatedTopics: ["create-mode", "create-gallery", "create-providers"],
   },
 

@@ -1,6 +1,6 @@
 {
   "name": "symposium-ai",
-  "version": "2.4.1",
+  "version": "2.5.0",
   "main": "index.ts",
   "scripts": {
     "start": "expo start --dev-client",
@@ -171,7 +171,12 @@
     "protobufjs": "^7.5.8",
     "@protobufjs/utf8": "^1.1.1",
     "websocket-driver": "^0.7.5",
-    "@grpc/grpc-js": "^1.14.5"
+    "@grpc/grpc-js": "^1.14.5",
+    "@react-native/community-cli-plugin@0.86.3": {
+      "metro": "0.84.5",
+      "metro-config": "0.84.5",
+      "metro-core": "0.84.5"
+    }
   },
   "private": true
 }

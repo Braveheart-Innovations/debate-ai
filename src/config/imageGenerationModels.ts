@@ -8,7 +8,6 @@ import { AIProvider } from '../types';
 export type ImageModelApiFamily =
   | 'openai-images'
   | 'google-gemini-image'
-  | 'google-imagen'
   | 'xai-images';
 
 export type ImageOutputQuality = 'auto' | 'low' | 'medium' | 'high' | 'standard' | 'hd';
@@ -111,6 +110,12 @@ const IMAGE_MODEL_ALIASES: Partial<Record<AIProvider, Record<string, string>>> =
     'gemini-3-pro-image-preview': 'gemini-3-pro-image',
     'nano-banana-pro-preview': 'gemini-3-pro-image',
     'nano-banana-2-lite': 'gemini-3.1-flash-lite-image',
+    // Google shut down Imagen 4 on the Gemini API on 2026-08-17; a saved choice
+    // of any of them generates with Gemini 3.1 Flash Image, its named
+    // replacement (the web and the server do the same).
+    'imagen-4.0-fast-generate-001': 'gemini-3.1-flash-image',
+    'imagen-4.0-generate-001': 'gemini-3.1-flash-image',
+    'imagen-4.0-ultra-generate-001': 'gemini-3.1-flash-image',
   },
   grok: {
     'grok-2-image-1212': 'grok-imagine-image',
@@ -359,51 +364,6 @@ export const IMAGE_MODELS: Partial<Record<AIProvider, ImageModelConfig[]>> = {
       maxImagesPerRequest: 1,
       maxReferenceImages: 14,
       supportsMultipleReferenceImages: true,
-      qualityOptions: [...GOOGLE_IMAGE_QUALITIES],
-      isDefault: false,
-    }),
-    createImageModel({
-      id: 'imagen-4.0-fast-generate-001',
-      displayName: 'Imagen 4 Fast',
-      providerDisplayName: 'Gemini (Imagen 4 Fast)',
-      shortProviderName: 'Gemini',
-      description: 'Fast Imagen 4 generation model surfaced through Google’s media generation API.',
-      apiFamily: 'google-imagen',
-      supportsImageInput: false,
-      sizes: [...GOOGLE_STANDARD_ASPECT_RATIOS],
-      aspectRatios: [...GOOGLE_STANDARD_ASPECT_RATIOS],
-      resolutions: ['1K'],
-      maxImagesPerRequest: 4,
-      qualityOptions: [...GOOGLE_IMAGE_QUALITIES],
-      isDefault: false,
-    }),
-    createImageModel({
-      id: 'imagen-4.0-generate-001',
-      displayName: 'Imagen 4',
-      providerDisplayName: 'Gemini (Imagen 4)',
-      shortProviderName: 'Gemini',
-      description: 'Balanced Imagen 4 text-to-image model for more specialized prompt rendering.',
-      apiFamily: 'google-imagen',
-      supportsImageInput: false,
-      sizes: [...GOOGLE_STANDARD_ASPECT_RATIOS],
-      aspectRatios: [...GOOGLE_STANDARD_ASPECT_RATIOS],
-      resolutions: ['1K', '2K'],
-      maxImagesPerRequest: 4,
-      qualityOptions: [...GOOGLE_IMAGE_QUALITIES],
-      isDefault: false,
-    }),
-    createImageModel({
-      id: 'imagen-4.0-ultra-generate-001',
-      displayName: 'Imagen 4 Ultra',
-      providerDisplayName: 'Gemini (Imagen 4 Ultra)',
-      shortProviderName: 'Gemini',
-      description: 'Highest-quality Imagen 4 generation model for premium single-pass image output.',
-      apiFamily: 'google-imagen',
-      supportsImageInput: false,
-      sizes: [...GOOGLE_STANDARD_ASPECT_RATIOS],
-      aspectRatios: [...GOOGLE_STANDARD_ASPECT_RATIOS],
-      resolutions: ['1K', '2K'],
-      maxImagesPerRequest: 4,
       qualityOptions: [...GOOGLE_IMAGE_QUALITIES],
       isDefault: false,
     }),

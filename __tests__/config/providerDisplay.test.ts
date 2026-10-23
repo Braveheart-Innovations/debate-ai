@@ -42,7 +42,7 @@ describe('Provider capability matrix', () => {
     expect(capabilities.videoGeneration).toEqual({ supported: false });
   });
 
-  it('surfaces both Gemini and Imagen offerings for Google', () => {
+  it('surfaces the Gemini image models for Google', () => {
     const capabilities = getProviderCapabilities('google');
     expect(capabilities.videoGeneration).toEqual({ supported: false });
     expect(capabilities.imageGeneration).toEqual(expect.objectContaining({
@@ -54,9 +54,6 @@ describe('Provider capability matrix', () => {
         'gemini-3.1-flash-image',
         'gemini-3.1-flash-lite-image',
         'gemini-3-pro-image',
-        'imagen-4.0-fast-generate-001',
-        'imagen-4.0-generate-001',
-        'imagen-4.0-ultra-generate-001',
       ],
       sizes: [
         '1:1',

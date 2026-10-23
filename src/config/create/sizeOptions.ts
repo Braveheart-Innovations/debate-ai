@@ -96,7 +96,6 @@ export function mapSizeToProvider(
     case 'grok':
       if (
         resolvedModel?.apiFamily === 'google-gemini-image' ||
-        resolvedModel?.apiFamily === 'google-imagen' ||
         resolvedModel?.apiFamily === 'xai-images'
       ) {
         return mapToAspectRatio(size);

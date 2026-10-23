@@ -25,7 +25,6 @@ describe('Image generation model config', () => {
     expect(resolveImageModelId('openai', 'gpt-image-latest')).toBe('gpt-image-2.5-flare');
     expect(resolveImageModelId('openai', 'gpt-image-2.5-sunburst-2026-09-08')).toBe('gpt-image-2.5-sunburst');
     expect(resolveImageModelId('openai', 'gpt-image-2')).toBe('gpt-image-2');
-    expect(resolveImageModelId('google', 'imagen-4.0-generate-001')).toBe('imagen-4.0-generate-001');
     expect(resolveImageModelId('google', 'gemini-3.1-flash-image-preview')).toBe('gemini-3.1-flash-image');
     expect(resolveImageModelId('google', 'gemini-3-pro-image-preview')).toBe('gemini-3-pro-image');
     expect(resolveImageModelId('google', 'nano-banana-2-lite')).toBe('gemini-3.1-flash-lite-image');
@@ -42,7 +41,6 @@ describe('Image generation model config', () => {
     expect(supportsImageInput('openai', 'gpt-image-2.5-sunburst')).toBe(true);
     expect(supportsImageInput('openai', 'gpt-image-2')).toBe(true);
     expect(supportsImageInput('openai', 'unknown-openai-image-model')).toBe(true);
-    expect(supportsImageInput('google', 'imagen-4.0-generate-001')).toBe(false);
     expect(supportsImageInput('grok', 'grok-imagine-image')).toBe(true);
   });
 
@@ -59,7 +57,6 @@ describe('Image generation model config', () => {
   it('groups models by transport family for scalable routing', () => {
     expect(getImageModelApiFamily('openai', 'gpt-image-1-mini')).toBe('openai-images');
     expect(getImageModelApiFamily('google', 'gemini-3-pro-image')).toBe('google-gemini-image');
-    expect(getImageModelApiFamily('google', 'imagen-4.0-fast-generate-001')).toBe('google-imagen');
     expect(getImageModelApiFamily('grok', 'grok-imagine-image')).toBe('xai-images');
   });
 
@@ -87,10 +84,17 @@ describe('Image generation model config', () => {
       'gemini-2.5-flash-image',
       'gemini-3.1-flash-image',
       'gemini-3-pro-image',
-      'imagen-4.0-fast-generate-001',
-      'imagen-4.0-generate-001',
-      'imagen-4.0-ultra-generate-001',
     ]));
+  });
+
+  it('moves Imagen 4 selections to Gemini 3.1 Flash Image', () => {
+    // Google shut down Imagen 4 on the Gemini API on 2026-08-17.
+    const ids = ['imagen-4.0-fast-generate-001', 'imagen-4.0-generate-001', 'imagen-4.0-ultra-generate-001'];
+    for (const id of ids) {
+      expect(getImageModels('google').map((model) => model.id)).not.toContain(id);
+      expect(resolveImageModelId('google', id)).toBe('gemini-3.1-flash-image');
+      expect(getImageModelApiFamily('google', id)).toBe('google-gemini-image');
+    }
   });
 
   it('exposes adaptive output capabilities for Image Studio controls', () => {

@@ -734,30 +734,47 @@ export const MODEL_VERSIONS: ProviderVersions = {
   moonshot: {
     main: [
       {
+        id: 'kimi-k3.1-pro',
+        version: 'k3.1-pro',
+        releaseDate: '2026-10-23',
+        isLatest: true,
+      },
+      {
+        id: 'kimi-k3.1-pro-highspeed',
+        version: 'k3.1-pro-highspeed',
+        releaseDate: '2026-10-23',
+        isLatest: false,
+      },
+      {
         id: 'kimi-k3',
         version: 'k3',
         releaseDate: '2026-06-10',
-        isLatest: true,
+        isLatest: false,
       },
       {
         id: 'kimi-k2.6',
         version: 'k2.6',
         releaseDate: '2026-02-20',
         isLatest: false,
+        // Closed to new accounts 2026-10-31; retired by end of December 2026.
+        isDeprecated: true,
+        replacedBy: 'kimi-k3.1-pro',
       },
-    ],
-    code: [
       {
         id: 'kimi-k2.7-code',
         version: 'k2.7-code',
         releaseDate: '2026-05-05',
-        isLatest: true,
+        isLatest: false,
+        isDeprecated: true,
+        replacedBy: 'kimi-k3.1-pro',
       },
       {
         id: 'kimi-k2.7-code-highspeed',
         version: 'k2.7-code-highspeed',
         releaseDate: '2026-05-05',
         isLatest: false,
+        isDeprecated: true,
+        replacedBy: 'kimi-k3.1-pro-highspeed',
       },
     ],
   },

@@ -444,8 +444,18 @@ export const MODEL_PRICING: { [provider: string]: ProviderPricing } = {
       outputPer1M: 0.5,
     },
   },
-  // Source: platform.kimi.ai/docs/pricing ($0.30/M cache-hit input on kimi-k3 not modeled)
+  // Source: platform.kimi.ai/docs/pricing ($0.30/M cache-hit input on kimi-k3 not modeled).
+  // K3.1 Pro: Moonshot's own endpoint as listed on OpenRouter, 2026-10-23 (the
+  // pricing page renders its tables client-side); $0.20/M cache hits not modeled.
   moonshot: {
+    'kimi-k3.1-pro': {
+      inputPer1M: 2.0,
+      outputPer1M: 10.0,
+    },
+    'kimi-k3.1-pro-highspeed': {
+      inputPer1M: 4.0,
+      outputPer1M: 20.0,
+    },
     'kimi-k3': {
       inputPer1M: 3.0,
       outputPer1M: 15.0,

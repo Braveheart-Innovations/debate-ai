@@ -287,7 +287,7 @@ export const FAQ_ITEMS: FAQItem[] = [
     id: 'faq-which-providers-generate-images',
     question: 'Which AI providers can generate images?',
     answer:
-      'Image generation is supported by OpenAI (GPT Image models), Google (Gemini image models and Imagen), and Grok. Each provider requires a valid API key. You can run up to 3 image models at once, and each model\'s settings sheet shows whether it can edit images and use references or creates from text prompts only.',
+      'Image generation is supported by OpenAI (GPT Image models), Google (Gemini image models), and Grok. Each provider requires a valid API key. You can run up to 3 image models at once, and each model\'s settings sheet shows whether it can edit images and use references or creates from text prompts only.',
     category: 'create',
     relatedTopic: 'create-providers',
   },
