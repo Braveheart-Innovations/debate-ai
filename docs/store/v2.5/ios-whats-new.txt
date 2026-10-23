@@ -7,6 +7,9 @@ RETIRED MODELS
 • Moonshot is retiring the Kimi K2 models. Chats and debates that used Kimi K2.6 or K2.7 Code now use Kimi K3.1 Pro.
 • Google shut down Imagen 4. Imagen 4, Imagen 4 Fast and Imagen 4 Ultra are gone from Create, and a saved choice of any of them now creates with Gemini 3.1 Flash Image instead of failing.
 
+FIXES
+Replies are no longer cut short. The app sets no response length unless you choose one, so Cohere, Perplexity and models that think before they answer can finish, in chats and in voice debates. Changing another setting, like temperature, no longer adds a hidden limit either.
+
 UNDER THE HOOD
 Updated app framework and navigation libraries, with security fixes.
 

@@ -53,6 +53,29 @@ describe('ParameterSlider', () => {
     expect(onChange).toHaveBeenLastCalledWith(0.8);
   });
 
+  it('shows an empty value as its label, starts the steppers from emptyStart, and clears back', () => {
+    const onChange = jest.fn<void, [number]>();
+    const onClear = jest.fn<void, []>();
+    const tokenProps = { name: 'maxTokens', min: 1, max: 128000, step: 1, emptyLabel: 'Model default', emptyStart: 128000 };
+    const empty = renderWithProviders(
+      <ParameterSlider {...tokenProps} value={undefined} onChange={onChange} onClear={onClear} />
+    );
+
+    expect(empty.getByPlaceholderText('Model default')).toBeTruthy();
+    expect(empty.getByTestId('parameter-label').props.children).toBe('maxTokens:Model default:');
+    // Nothing to clear while empty.
+    expect(empty.queryByText('Use model default')).toBeNull();
+    fireEvent.press(empty.getByTestId('icon-decrement'));
+    expect(onChange).toHaveBeenLastCalledWith(128000);
+    empty.unmount();
+
+    const set = renderWithProviders(
+      <ParameterSlider {...tokenProps} value={4096} onChange={onChange} onClear={onClear} />
+    );
+    fireEvent.press(set.getByText('Use model default'));
+    expect(onClear).toHaveBeenCalledTimes(1);
+  });
+
   it('does not exceed bounds and ignores invalid text input', () => {
     const onChange = jest.fn();
     const { getByTestId, getByDisplayValue } = renderWithProviders(

@@ -747,7 +747,8 @@ describe('DebateOrchestrator', () => {
       [],
       expect.any(Object),
       undefined,
-      expect.objectContaining({ maxTokens: 1536 }),
+      // Claude Sonnet 5.5 thinks by default, so a voice turn gets the 6144 text ceiling.
+      expect.objectContaining({ maxTokens: 6144 }),
       'claude-sonnet-5-5'
     );
     expect(mcAdapter.sendMessage.mock.invocationCallOrder[0]).toBeLessThan(
@@ -921,11 +922,13 @@ describe('DebateOrchestrator', () => {
       undefined,
       'gpt-5'
     );
+    // GPT-5 reasons first, so the voice turn gets the 6144 text ceiling; the
+    // host's own temperature must not leak onto the debater's adapter.
     expect(debaterAdapter.config.parameters).toEqual(expect.objectContaining({
-      maxTokens: 1536,
+      maxTokens: 6144,
     }));
     expect(debaterAdapter.config.parameters).not.toEqual(expect.objectContaining({
-      maxTokens: 1024,
+      temperature: 0.62,
     }));
     expect(mcAdapter.sendMessage.mock.invocationCallOrder[0]).toBeLessThan(
       debaterAdapter.sendMessage.mock.invocationCallOrder[0]

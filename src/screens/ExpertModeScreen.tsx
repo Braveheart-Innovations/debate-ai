@@ -9,6 +9,7 @@ import { AI_PROVIDERS } from '../config/aiProviders';
 import { useTheme } from '../theme';
 import { ProviderExpertSettings } from '../components/organisms';
 import { DEFAULT_PARAMETERS } from '../config/modelConfigs';
+import type { ModelParameters } from '../types';
 import { RootState, updateExpertMode, showSheet, isApiKeyConfigured } from '../store';
 import { useDispatch } from 'react-redux';
 import Animated, { FadeInDown, FadeOutUp, Layout } from 'react-native-reanimated';
@@ -185,16 +186,14 @@ const ExpertModeScreen: React.FC<{
                           onModelChange={(modelId) => dispatch(updateExpertMode({ provider: provider.id, config: { ...cfg, selectedModel: modelId || undefined } }))}
                           parameters={{ ...DEFAULT_PARAMETERS, ...cfg.parameters }}
                           onParameterChange={(param, value) => {
+                            const base: Partial<ModelParameters> = { ...DEFAULT_PARAMETERS, ...cfg.parameters };
+                            if (value === undefined) {
+                              delete base[param];
+                            }
+                            const parameters = value === undefined ? base : { ...base, [param]: Number(value) };
                             dispatch(updateExpertMode({
                               provider: provider.id,
-                              config: {
-                                ...cfg,
-                                parameters: {
-                                  ...DEFAULT_PARAMETERS,
-                                  ...cfg.parameters,
-                                  [param]: Number(value),
-                                },
-                              },
+                              config: { ...cfg, parameters },
                             }));
                           }}
                         />

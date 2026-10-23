@@ -244,7 +244,7 @@ const AdvancedParamsPage: React.FC<
   const [values, setValues] = useState<ModelParameters>({ ...savedDefaults, ...config.parameters });
 
   const matchesSavedDefaults = editableParams.every(
-    (param) => (values[param] ?? 0) === (savedDefaults[param] ?? 0)
+    (param) => values[param] === savedDefaults[param]
   );
 
   const handleSaveForSession = () => {
@@ -287,8 +287,11 @@ const AdvancedParamsPage: React.FC<
 
       {editableParams.map((param) => {
         const range = getParameterRange(config.providerId, param, currentModel?.id);
-        const rawValue = Number(values[param] ?? DEFAULT_PARAMETERS[param] ?? range.min);
-        const value = Math.max(range.min, Math.min(rawValue, range.max));
+        // An unset maxTokens stays empty: the model's own limit.
+        const stored = values[param] ?? DEFAULT_PARAMETERS[param];
+        const value = param === 'maxTokens' && stored === undefined
+          ? undefined
+          : Math.max(range.min, Math.min(Number(stored ?? range.min), range.max));
         const helpTopicId = PARAM_HELP_TOPICS[param];
 
         return (
@@ -304,6 +307,13 @@ const AdvancedParamsPage: React.FC<
             rightElement={
               helpTopicId ? <InfoButton topicId={helpTopicId} size="small" /> : undefined
             }
+            {...(param === 'maxTokens'
+              ? {
+                  emptyLabel: 'Model default',
+                  emptyStart: range.max,
+                  onClear: () => setValues((prev) => ({ ...prev, maxTokens: undefined })),
+                }
+              : {})}
           />
         );
       })}

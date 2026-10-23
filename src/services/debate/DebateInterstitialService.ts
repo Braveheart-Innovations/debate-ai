@@ -259,10 +259,16 @@ function validateGeneratedScript(text: string): McScriptValidation {
   return { ok: true, script };
 }
 
-function getMcParameters(): Partial<ModelParameters> {
+// A host model that reasons first gets the debaters' ceiling: its reasoning shares the limit, and
+// 1024 leaves it little room to answer.
+const MC_THINKING_OUTPUT_SAFETY_TOKENS = 6144;
+
+function getMcParameters(session: DebateSession): Partial<ModelParameters> {
+  const mc = session.voiceConfig?.podcast?.mc;
+  const thinks = mc ? Boolean(getModelById(mc.provider, getResolvedMcModel(session))?.supportsThinking) : false;
   return {
     temperature: MC_TEMPERATURE,
-    maxTokens: MC_OUTPUT_SAFETY_TOKENS,
+    maxTokens: thinks ? MC_THINKING_OUTPUT_SAFETY_TOKENS : MC_OUTPUT_SAFETY_TOKENS,
   };
 }
 
@@ -519,7 +525,7 @@ export async function createDebateInterstitialMessage(input: CreateDebateInterst
   let adapter: McAdapter | undefined;
   let snapshot: McAdapterConfigSnapshot | undefined;
   let webSearchApplied = false;
-  const mcParameters = getMcParameters();
+  const mcParameters = getMcParameters(input.session);
 
   try {
     const webSearchConfig = await configureMcWebSearch(input.aiService, input.session, mcWebSearchEnabled, mcParameters);

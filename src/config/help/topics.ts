@@ -369,7 +369,7 @@ Note: Some models only support their default temperature - for those, the slider
     icon: "text",
     category: "expert-mode",
     shortDescription: "Control response length",
-    content: `Max Tokens limits how long the AI's response can be.
+    content: `Max Tokens limits how long the AI's response can be. It's empty by default: the model answers up to its own limit. Set a number only if you want shorter answers.
 
 What Are Tokens?
 Tokens are pieces of text - roughly 4 characters or 0.75 words in English. "Hello world" is about 2 tokens.
@@ -388,7 +388,10 @@ When to Adjust:
 - Essays/stories: 2048-4096 tokens
 - Code generation: 2048+ tokens
 
-Note: The AI may stop before reaching max tokens if it completes its thought. Debate speeches are an exception - their length is set by the debate format, not this setting.`,
+Reasoning Models:
+Models that think before they answer (Kimi, ChatGPT reasoning models, Gemini, DeepSeek and others) spend part of the limit on that thinking. A low limit can cut them off before they answer, or leave the answer empty.
+
+Note: The AI may stop before reaching max tokens if it completes its thought. Tap "Use model default" to clear a limit you set. Debate speeches are an exception - their length is set by the debate format, not this setting.`,
     relatedTopics: ["expert-mode", "expert-temperature", "byok-cost-savings"],
   },
 

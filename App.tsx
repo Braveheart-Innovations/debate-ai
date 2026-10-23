@@ -12,6 +12,7 @@ import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { store, RootState } from './src/store';
 import { updateApiKeys, restoreVerificationData, restoreStats, restoreOnboarding, setPrices, hydrateAISelection, hydrateCreateSelection, setDebateSpeechLength } from './src/store';
 import AISelectionPersistenceService from './src/services/home/AISelectionPersistenceService';
+import { migrateLegacyMaxTokensDefault } from './src/services/lifecycle/LegacyMaxTokensMigration';
 import CreateSelectionPersistenceService from './src/services/create/CreateSelectionPersistenceService';
 import DebateSetupPreferencesService from './src/services/debate/DebateSetupPreferencesService';
 import { loadPersistedPrices, fetchAndPersistPrices, FALLBACK_PRICES } from './src/services/prices/PricesPersistenceService';
@@ -251,6 +252,9 @@ function AppContent() {
         } else {
           logger.debug('No verification data found');
         }
+
+        // Once: drop the pre-2.5.0 default response limit from stored AI configs.
+        await migrateLegacyMaxTokensDefault();
 
         // Load persisted composer AI selection (chat/compare pills).
         // Always dispatch so `hydrated` flips even on first run.

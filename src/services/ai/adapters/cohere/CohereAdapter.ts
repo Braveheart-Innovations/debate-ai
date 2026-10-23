@@ -155,7 +155,9 @@ export class CohereAdapter extends BaseAdapter {
           model,
           messages,
           temperature: this.resolveSamplingParameters(model).temperature ?? 0.7,
-          max_tokens: this.config.parameters?.maxTokens || 2048,
+          // Only a limit the user set; v2/chat takes none (live-verified
+          // 2026-10-23) and then runs to the model's own limit.
+          max_tokens: this.config.parameters?.maxTokens,
         }),
       });
 
@@ -199,7 +201,7 @@ export class CohereAdapter extends BaseAdapter {
       model,
       messages,
       temperature: this.resolveSamplingParameters(model).temperature ?? 0.7,
-      max_tokens: this.config.parameters?.maxTokens || 2048,
+      max_tokens: this.config.parameters?.maxTokens,
       stream: true,
     });
 

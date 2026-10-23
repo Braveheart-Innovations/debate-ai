@@ -1,11 +1,12 @@
 import React from 'react';
-import { View, TextInput } from 'react-native';
+import { View, TextInput, TouchableOpacity } from 'react-native';
 import { Typography, ParameterLabel, IconButton } from '@/components/molecules';
 import { useTheme } from '@/theme';
 
 interface ParameterSliderProps {
   name: string;
-  value: number;
+  /** Undefined shows `emptyLabel` (e.g. the model's own limit) until the user sets a value. */
+  value: number | undefined;
   min: number;
   max: number;
   step: number;
@@ -13,6 +14,12 @@ interface ParameterSliderProps {
   onChange: (value: number) => void;
   /** Optional element to render on the right side of the label (e.g., InfoButton) */
   rightElement?: React.ReactNode;
+  /** Shown while value is undefined. */
+  emptyLabel?: string;
+  /** Where the steppers start from an empty value. */
+  emptyStart?: number;
+  /** Renders a link that empties the value again. */
+  onClear?: () => void;
 }
 
 export const ParameterSlider: React.FC<ParameterSliderProps> = ({
@@ -24,16 +31,21 @@ export const ParameterSlider: React.FC<ParameterSliderProps> = ({
   description,
   onChange,
   rightElement,
+  emptyLabel,
+  emptyStart,
+  onClear,
 }) => {
   const { theme } = useTheme();
+  const isEmpty = value === undefined;
+  const current = value ?? Math.max(min, Math.min(emptyStart ?? min, max));
   
   const handleDecrement = () => {
-    const newValue = Math.max(min, value - step);
+    const newValue = isEmpty ? current : Math.max(min, current - step);
     onChange(Number(newValue.toFixed(2)));
   };
   
   const handleIncrement = () => {
-    const newValue = Math.min(max, value + step);
+    const newValue = isEmpty ? current : Math.min(max, current + step);
     onChange(Number(newValue.toFixed(2)));
   };
   
@@ -50,7 +62,7 @@ export const ParameterSlider: React.FC<ParameterSliderProps> = ({
         <View style={{ flex: 1 }}>
           <ParameterLabel
             name={name}
-            value={value}
+            value={isEmpty ? (emptyLabel ?? '') : value}
             description={description}
           />
         </View>
@@ -65,7 +77,7 @@ export const ParameterSlider: React.FC<ParameterSliderProps> = ({
         <IconButton 
           type="decrement"
           onPress={handleDecrement}
-          disabled={value <= min}
+          disabled={!isEmpty && current <= min}
         />
         
         <TextInput
@@ -83,7 +95,9 @@ export const ParameterSlider: React.FC<ParameterSliderProps> = ({
             fontSize: 16,
             fontWeight: '600',
           }}
-          value={String(value)}
+          value={isEmpty ? '' : String(value)}
+          placeholder={isEmpty ? emptyLabel : undefined}
+          placeholderTextColor={theme.colors.text.secondary}
           onChangeText={handleTextChange}
           keyboardType="numeric"
         />
@@ -91,7 +105,7 @@ export const ParameterSlider: React.FC<ParameterSliderProps> = ({
         <IconButton 
           type="increment"
           onPress={handleIncrement}
-          disabled={value >= max}
+          disabled={!isEmpty && current >= max}
         />
       </View>
       
@@ -107,6 +121,19 @@ export const ParameterSlider: React.FC<ParameterSliderProps> = ({
           Max: {max}
         </Typography>
       </View>
+      {onClear && !isEmpty && (
+        <TouchableOpacity
+          onPress={onClear}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={emptyLabel ? `Use ${emptyLabel.toLowerCase()}` : 'Clear'}
+          style={{ marginTop: theme.spacing.xs, alignSelf: 'flex-start' }}
+        >
+          <Typography variant="caption" weight="medium" style={{ color: theme.colors.primary[500] }}>
+            {emptyLabel ? `Use ${emptyLabel.toLowerCase()}` : 'Clear'}
+          </Typography>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };

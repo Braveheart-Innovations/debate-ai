@@ -7,9 +7,9 @@ user-visible effect; everything below comes from the 2.5.0 release branch.
 
 | File | Where it goes | Limit | Count |
 |------|---------------|-------|-------|
-| `ios-whats-new.txt` | App Store **What's New in This Version** | 4000 | 811 |
-| `android-whats-new.txt` | Google Play **What's new** (release notes) | 500 | 349 |
-| `app-review-notes.txt` | App Store Connect **App Review Information → Notes** | 4000 | 872 |
+| `ios-whats-new.txt` | App Store **What's New in This Version** | 4000 | 1094 |
+| `android-whats-new.txt` | Google Play **What's new** (release notes) | 500 | 418 |
+| `app-review-notes.txt` | App Store Connect **App Review Information → Notes** | 4000 | 949 |
 
 Description, short description, subtitle, and promotional text are unchanged from v2.0 (`docs/store/v2.0/`).
 
@@ -26,6 +26,13 @@ Description, short description, subtitle, and promotional text are unchanged fro
 - **Imagen 4**: Google shut it down on the Gemini API on 2026-08-17 (web 2.9.1 removed it then). The app called
   Google's `:predict` endpoint directly, so a saved Imagen pick failed until now. The `google-imagen` request path is
   removed and the three IDs alias to Gemini 3.1 Flash Image, Google's named replacement.
+- **Replies no longer cut short**: the Advanced parameters sheet and Expert Mode saved every default with any
+  edit, `maxTokens` 2048 included, so changing only temperature capped replies at 2,048 tokens. Cohere and
+  Perplexity sent 2,048 even with nothing set (live check 2026-10-23: sonar-pro answered in 2,799 tokens with no
+  limit), and voice debates gave every model 1,536, which models that reason first usually exceed. Now no limit is
+  sent unless the user sets one (Claude, which requires one, gets the model's maximum when streamed and 16K
+  otherwise), models that reason first get the 6,144 text ceiling in voice debates and as podcast host, and a
+  one-time migration removes the old 2,048 from saved AI selections, chats and snapshots.
 - **Under the hood**: the Expo SDK 57 patch set (expo 57.0.31), React Navigation 7.5, and Metro 0.84.5 everywhere.
   Clears Dependabot alerts for decode-uri-component and image-size; the braces and sprintf-js advisories were
   withdrawn. Not described further: no visible change.

@@ -108,8 +108,32 @@ describe('ProviderExpertSettings', () => {
     fireEvent.press(utils.getByText('Reset to Defaults'));
 
     expect(onParameterChange).toHaveBeenCalledWith('temperature', DEFAULT_PARAMETERS.temperature);
-    expect(onParameterChange).toHaveBeenCalledWith('maxTokens', DEFAULT_PARAMETERS.maxTokens);
+    // There is no default response limit: reset clears it back to the model's own.
+    expect(onParameterChange).toHaveBeenCalledWith('maxTokens', undefined);
     expect(onParameterChange).toHaveBeenCalledWith('topP', DEFAULT_PARAMETERS.topP);
+  });
+
+  it('leaves an unset response limit empty and lets it reach the model maximum', () => {
+    const onParameterChange = jest.fn<void, [string, number | string | string[] | undefined]>();
+    renderWithProviders(
+      <ProviderExpertSettings
+        providerId="claude"
+        isEnabled
+        onToggle={jest.fn<void, [boolean]>()}
+        selectedModel="claude-sonnet-4-6"
+        onModelChange={jest.fn<void, [string]>()}
+        parameters={{ temperature: 0.6 }}
+        onParameterChange={onParameterChange}
+      />
+    );
+
+    const maxTokensProps = mockParameterSlider.mock.calls.find((call) => call[0].name === 'maxTokens')[0];
+    expect(maxTokensProps.value).toBeUndefined();
+    expect(maxTokensProps.emptyLabel).toBe('Model default');
+    // Claude Sonnet 4.6 writes up to 128K tokens.
+    expect(maxTokensProps.max).toBe(128000);
+    maxTokensProps.onClear();
+    expect(onParameterChange).toHaveBeenCalledWith('maxTokens', undefined);
   });
 
   it('hides sliders for parameters the selected model does not support', () => {

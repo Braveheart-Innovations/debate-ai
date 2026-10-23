@@ -1621,9 +1621,10 @@ export const CURATED_MODEL_IDS: { [providerId: string]: string[] } = {
   zai: ["glm-5.3", "glm-5.3-flash", "glm-5.3-flashx", "glm-5.2", "glm-5-turbo", "glm-5.1"],
 };
 
+// No maxTokens: a response is limited only when the user sets a limit. A default here was saved
+// with every other setting and sent a 2048-token cap that cut thinking models off mid-answer.
 export const DEFAULT_PARAMETERS: ModelParameters = {
   temperature: 0.7,
-  maxTokens: 2048,
   topP: 0.95,
   frequencyPenalty: 0,
   presencePenalty: 0,
@@ -1641,7 +1642,7 @@ export const PARAMETER_RANGES = {
     min: 1,
     max: 8192,
     step: 1,
-    description: "Maximum response length in tokens",
+    description: "Maximum response length in tokens. Empty uses the model's own limit.",
   },
   topP: {
     min: 0,
@@ -1712,6 +1713,14 @@ export function getParameterRange(
 
   const providerOverride = PROVIDER_PARAMETER_RANGES[providerId]?.[param];
   const defaultRange = PARAMETER_RANGES[param];
+
+  // A response limit can go up to the model's own maximum when the catalog knows it.
+  if (param === 'maxTokens' && modelId) {
+    const modelMax = getModelById(providerId, modelId)?.maxOutputTokens;
+    if (modelMax) {
+      return { ...defaultRange, ...providerOverride, max: modelMax };
+    }
+  }
 
   if (providerOverride) {
     return {
