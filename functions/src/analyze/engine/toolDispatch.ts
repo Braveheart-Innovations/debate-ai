@@ -130,13 +130,9 @@ export function createToolDispatcher(context: ToolDispatchContext): (call: ToolC
           return await serverTools.executeServerTool(call.id, name, args);
       }
     } catch (error) {
-      return {
-        toolCallId: call.id,
-        success: false,
-        error: error instanceof SandboxUnavailableError
-          ? `${error.message} ${error.modelNote}`
-          : error instanceof Error ? error.message : 'Tool execution failed',
-      };
+      // No sandbox: the turn ends with the message (round.ts runToolOnce).
+      if (error instanceof SandboxUnavailableError) throw error;
+      return { toolCallId: call.id, success: false, error: error instanceof Error ? error.message : 'Tool execution failed' };
     }
   };
 }

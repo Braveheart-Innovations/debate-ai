@@ -82,6 +82,8 @@ export interface AgentRunResult {
   /** Where the app saved the sub-agent's final reply, so every run leaves a file to open and cite. */
   answerFile?: string;
   toolSummary: Array<{ name: string; ok: boolean }>;
+  /** The sandbox refused the run's tool call: its message, which ends the operator's turn too. */
+  sandboxUnavailable?: string;
   startedAt: number;
   endedAt: number;
 }

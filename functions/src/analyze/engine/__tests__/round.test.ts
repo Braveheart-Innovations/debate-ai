@@ -39,6 +39,7 @@ jest.mock('../runStore', () => ({
 
 import { runRound, type RoundContext, type TurnState } from '../round';
 import type { CaptureInput } from '../../capture/captureRound';
+import { SandboxCeilingError, SandboxLimitError } from '../../../sandbox/service';
 
 // --- helpers -----------------------------------------------------------------
 const user: Message = { id: 'u1', sender: 'You', senderType: 'user', content: 'Analyze sales', timestamp: 1 };
@@ -345,6 +346,54 @@ describe('runRound', () => {
     expect(await runRound(context, state())).toBe('stopped');
     expect(executeTool).toHaveBeenCalledTimes(1);
     expect(capture.mock.calls[0][0].results.map((r) => r.toolCallId)).toEqual(['c1']);
+  });
+
+  it('ends the turn when the sandbox refuses a call: its message is an app notice, and the model isn\'t asked to go on (2026-10-23)', async () => {
+    // Asked to answer from what it had, with nothing fetched yet, Gemini wrote Census figures from memory.
+    const refusal = new SandboxLimitError(3, 13 * 60_000, 15 * 60_000);
+    const { context, executeTool } = makeContext();
+    executeTool.mockRejectedValueOnce(refusal);
+    streamQueue.push([done({ finish_reason: 'tool_calls', tool_calls: [call('c1')] })]);
+
+    expect(await runRound(context, state())).toBe('completed');
+    expect(streamCalls).toHaveLength(1);
+    expect(stored.map((m) => m.id)).toEqual(['u1', 'run1_r0', 'toolresult_c1', 'run1_r0_sandbox']);
+    // The call's result is what happened, with no instruction in it.
+    expect(stored[2]).toMatchObject({ content: expect.stringContaining(refusal.message), metadata: expect.objectContaining({ success: false }) });
+    expect(stored[2].content).not.toMatch(/retry|answer from/i);
+    expect(toolRecords.get('c1')).toEqual({ state: 'done', result: expect.objectContaining({ success: false, error: refusal.message, sandboxUnavailable: refusal.message }) });
+    expect(stored[3]).toMatchObject({ senderType: 'ai', content: refusal.message, metadata: expect.objectContaining({ appNotice: { kind: 'sandbox_unavailable' } }) });
+    // Sorted by time, the notice comes after the results even when the clock hasn't moved.
+    expect(stored[3].timestamp).toBeGreaterThan(stored[2].timestamp);
+    expect(latestCompleted).toBe('run1_r0_sandbox');
+  });
+
+  it('ends a resumed round the same way when a call\'s record holds a refusal (a teammate\'s, from the team\'s results)', async () => {
+    const refusal = new SandboxCeilingError(12 * 60 * 60_000, 3 * 60 * 60_000).message;
+    stored = [user, { id: 'run1_r0', sender: 'Claude', senderType: 'ai', content: '', timestamp: 2, metadata: { toolCalls: [call('d1', 'delegate')] } }];
+    toolRecords.set('d1', { state: 'done', result: { success: true, content: 'The user approved this handoff and it has run. Result: …', sandboxUnavailable: refusal } });
+    const { context, executeTool } = makeContext();
+
+    expect(await runRound(context, state(1))).toBe('completed');
+    expect(executeTool).not.toHaveBeenCalled();
+    expect(streamCalls).toHaveLength(0);
+    expect(stored[stored.length - 1]).toMatchObject({ id: 'run1_r0_sandbox', content: refusal, metadata: expect.objectContaining({ appNotice: { kind: 'sandbox_unavailable' } }) });
+  });
+
+  it('ends the turn for a refused round that a crashed step wrote but never captured', async () => {
+    const refusal = new SandboxLimitError(3, 60_000, 15 * 60_000).message;
+    stored = [
+      user,
+      { id: 'run1_r0', sender: 'Claude', senderType: 'ai', content: '', timestamp: 2, metadata: { toolCalls: [call('c1')] } },
+      { id: 'toolresult_c1', sender: 'tool', senderType: 'tool', content: refusal, timestamp: 3, metadata: { isToolResult: true, toolCallId: 'c1', toolName: 'execute_python', success: false } },
+    ];
+    toolRecords.set('c1', { state: 'done', result: { success: false, error: refusal, sandboxUnavailable: refusal } });
+    const { context, capture } = makeContext();
+
+    expect(await runRound(context, state(1))).toBe('completed');
+    expect(capture).toHaveBeenCalledTimes(1);
+    expect(streamCalls).toHaveLength(0);
+    expect(stored[stored.length - 1]).toMatchObject({ id: 'run1_r0_sandbox', content: refusal });
   });
 
   it('records the final reply as the latest completed operator message', async () => {

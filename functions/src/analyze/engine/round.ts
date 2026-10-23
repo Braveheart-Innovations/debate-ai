@@ -79,6 +79,7 @@ import {
   toolCallRef,
 } from './runStore';
 import type { CaptureInput } from '../capture/captureRound';
+import { SandboxUnavailableError } from '../../sandbox/service';
 
 // loop.ts DEFAULT_ANALYZE_TEMPERATURE / GOOGLE_ANALYZE_TEMPERATURE
 const DEFAULT_ANALYZE_TEMPERATURE = 0.7;
@@ -368,13 +369,21 @@ async function runToolOnce(context: RoundContext, call: ToolCall): Promise<Round
 
   await markToolCallStarted(ref);
   context.events.push({ type: 'tool_executing', toolCallId: call.id, toolName: call.function.name });
-  const result = call.function.name === READ_TURN_TOOL_NAME
-    ? await readTurnResult(context, call)
-    : call.function.name === READ_GUIDE_TOOL_NAME
-      ? readGuideResult(context, call)
-      : await context.executeTool(call);
+  let result: ToolResult;
+  let refused: string | undefined;
+  try {
+    result = call.function.name === READ_TURN_TOOL_NAME
+      ? await readTurnResult(context, call)
+      : call.function.name === READ_GUIDE_TOOL_NAME
+        ? readGuideResult(context, call)
+        : await context.executeTool(call);
+  } catch (error) {
+    if (!(error instanceof SandboxUnavailableError)) throw error;
+    result = { toolCallId: call.id, success: false, error: error.message };
+    refused = error.message;
+  }
   context.toolResults.set(call.id, result);
-  const stored = toStoredToolResult(result);
+  const stored: StoredToolResult = { ...toStoredToolResult(result), ...(refused ? { sandboxUnavailable: refused } : {}) };
   await markToolCallDone(ref, stored, await saveToolOutputs(ref, result));
   context.events.push({ type: 'tool_completed', toolCallId: call.id, toolName: call.function.name, success: result.success });
   return { ...stored, provenance: result.provenance };
@@ -557,13 +566,18 @@ async function notOfferedResult(context: RoundContext, call: ToolCall, offered: 
   return result;
 }
 
+/** What running a round's calls came to: 'waiting' (held for the team), 'stopped' (Stop), else null; and the calls' results. */
+interface ToolsOutcome {
+  outcome: RoundOutcome | null;
+  results: Map<string, RoundToolResult>;
+}
+
 /**
  * Run a round's calls (AnalyzeOrchestrator.executeOperatorTools for the
  * operator), then write every result message in call order. Only the tools
- * the round offered run. Returns
- * 'waiting' when the round is held for the team, 'stopped' on Stop.
+ * the round offered run.
  */
-async function executeTools(context: RoundContext, calls: ToolCall[], offered: ReadonlySet<string>): Promise<RoundOutcome | null> {
+async function executeTools(context: RoundContext, calls: ToolCall[], offered: ReadonlySet<string>): Promise<ToolsOutcome> {
   context.events.push({ type: 'status', status: 'tool_executing' });
   const results = new Map<string, RoundToolResult>();
   let stopped = false;
@@ -606,7 +620,7 @@ async function executeTools(context: RoundContext, calls: ToolCall[], offered: R
         }
       } else {
         const team = await resolveTeamCalls(context, teamCalls);
-        if (team === 'waiting') return 'waiting';
+        if (team === 'waiting') return { outcome: 'waiting', results };
         for (const [id, result] of team) results.set(id, result);
       }
     }
@@ -622,7 +636,7 @@ async function executeTools(context: RoundContext, calls: ToolCall[], offered: R
     const result = results.get(call.id);
     if (result) await context.messages.write(toolResultMessage(call, result, base + index));
   }
-  return stopped || context.signal.aborted ? 'stopped' : null;
+  return { outcome: stopped || context.signal.aborted ? 'stopped' : null, results };
 }
 
 /** The reply that ends the turn after this round's tools (loop.ts endTurnAfterTools), if any. */
@@ -633,8 +647,31 @@ function endTurnReply(context: RoundContext): string | null {
   return state.orgEvidenceRequested ? ORG_EVIDENCE_REQUESTED_REPLY : null;
 }
 
-/** Tools done (or resumed): fill an empty end-of-turn reply, capture, and decide what's next. */
-async function finishToolRound(context: RoundContext, toolMessage: Message, outcome: RoundOutcome | null): Promise<RoundOutcome> {
+/**
+ * The message of a call in this round that the sandbox refused (a teammate's
+ * counts: they share the session's sandbox). Results come from this step, else
+ * from the calls' records.
+ */
+async function sandboxRefusal(context: RoundContext, message: Message, results?: Map<string, RoundToolResult>): Promise<string | null> {
+  for (const call of (message.metadata?.toolCalls ?? []) as ToolCall[]) {
+    const result = results ? results.get(call.id) : await doneResult(context, call);
+    if (result?.sandboxUnavailable) return result.sandboxUnavailable;
+  }
+  return null;
+}
+
+/**
+ * Tools done (or resumed): fill an empty end-of-turn reply, capture, and decide
+ * what's next. A call the sandbox refused ends the turn with its message: on a
+ * turn's first sandbox call the model has nothing fetched yet, and asked to go
+ * on it answered from memory, with invented figures (2026-10-23).
+ */
+async function finishToolRound(
+  context: RoundContext,
+  toolMessage: Message,
+  outcome: RoundOutcome | null,
+  results?: Map<string, RoundToolResult>,
+): Promise<RoundOutcome> {
   let message = toolMessage;
   const reply = endTurnReply(context);
   if (reply && !message.content.trim()) {
@@ -643,7 +680,14 @@ async function finishToolRound(context: RoundContext, toolMessage: Message, outc
   }
   await captureToolRound(context, message);
   if (outcome) return outcome;
-  return reply ? 'completed' : 'continue';
+  if (reply) return 'completed';
+  const refusal = await sandboxRefusal(context, message, results);
+  if (!refusal) return 'continue';
+  const notice = aiMessage(context, `${message.id}_sandbox`, refusal, { appNotice: { kind: 'sandbox_unavailable' } });
+  // After the round's result messages, which take a millisecond each from when they were written.
+  const calls = (message.metadata?.toolCalls ?? []) as ToolCall[];
+  await writeFinalMessage(context, { ...notice, timestamp: notice.timestamp + calls.length });
+  return 'completed';
 }
 
 export async function runRound(context: RoundContext, state: TurnState): Promise<RoundOutcome> {
@@ -654,11 +698,11 @@ export async function runRound(context: RoundContext, state: TurnState): Promise
   // writes the results that exist, as the browser did.
   const pending = pendingToolCalls(messages);
   if (pending.length > 0) {
-    const outcome = await executeTools(context, pending, offeredToolNames(roundTools(context)));
+    const { outcome, results } = await executeTools(context, pending, offeredToolNames(roundTools(context)));
     if (outcome === 'waiting') return 'waiting';
     const toolMessage = lastAssistantMessage(messages);
     if (!toolMessage) return outcome ?? 'continue';
-    return finishToolRound(context, toolMessage, outcome);
+    return finishToolRound(context, toolMessage, outcome, results);
   }
   if (context.signal.aborted) return 'stopped';
   const uncaptured = uncapturedToolMessage(context, messages);
@@ -713,7 +757,7 @@ export async function runRound(context: RoundContext, state: TurnState): Promise
 async function runToolRound(context: RoundContext, toolMessage: Message, calls: ToolCall[], toolSet: RoundTools): Promise<RoundOutcome> {
   await context.messages.write(toolMessage);
   const offered = offeredToolNames(toolSet);
-  const outcome = await executeTools(context, calls, offered);
+  const { outcome, results } = await executeTools(context, calls, offered);
   // A plan round the model ignored (none of its calls were planning tools) is
   // spent: the turn goes on with the normal tools. Planning calls (a Salesforce
   // audit before the plan) keep the gate until the model proposes.
@@ -721,7 +765,7 @@ async function runToolRound(context: RoundContext, toolMessage: Message, calls: 
     await context.team?.saveTurnState({ planRoundSpent: true });
   }
   if (outcome === 'waiting') return 'waiting';
-  return finishToolRound(context, toolMessage, outcome);
+  return finishToolRound(context, toolMessage, outcome, results);
 }
 
 /** The current turn's last assistant message. */

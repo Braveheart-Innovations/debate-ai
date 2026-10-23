@@ -20,6 +20,7 @@ import {
   resolvePendingPlans,
   setupTeamCalls,
   slotsToSpawn,
+  teamCallSandboxRefusal,
   validateDecision,
   type TeamTurnState,
 } from '../teamState';
@@ -140,6 +141,21 @@ describe('team calls: decisions and results', () => {
     expect(r1.content).toContain('Tools run: none');
     expect(r1.metadata?.teamRuns).toHaveLength(1);
     expect(r2.metadata?.teamRuns?.map((run) => run.assignmentKey)).toEqual(['d2', 'd2']);
+  });
+
+  it('names the call a teammate the sandbox refused was on, with its message, so the operator\'s turn ends too', () => {
+    let state = held([delegateCall('d1', 'teammate1', 'Sum A'), delegateCall('d2', 'teammate2', 'Sum B')]);
+    const plan = state.plans![0].plan;
+    state = decidePlan(state, plan.id, validateDecision(plan, { type: 'approve', assignments: plan.assignments.map(({ id, agents }) => ({ id, agents })) }), 'approved', team, 2000);
+    const refusal = 'You already have 3 Analyze sessions using their Python environment, the most at once.';
+    const [first, second] = slotsToSpawn(state);
+    state = assignSlotRun(state, first, 'run_1');
+    state = recordChildResult(state, 'run_1', result('run_1', first.handle, 'answer from claude-opus'));
+    state = assignSlotRun(state, second, 'run_2');
+    state = recordChildResult(state, 'run_2', result('run_2', second.handle, refusal, 'completed', { sandboxUnavailable: refusal }));
+    expect(isTeamRoundReady(state)).toBe(true);
+    expect(teamCallSandboxRefusal(state, 'd1')).toBeUndefined();
+    expect(teamCallSandboxRefusal(state, 'd2')).toBe(refusal);
   });
 
   it('declining a delegate plan answers each handoff with the feedback; nothing runs', () => {

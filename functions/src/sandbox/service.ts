@@ -30,19 +30,13 @@ export class SandboxInputError extends Error {}
 
 /**
  * No sandbox for this call right now: the user's awake limit or their daily
- * ceiling. A tool result gives the model the message and then `modelNote`; a
- * callable answers resource-exhausted with `reason`.
+ * ceiling. The message is for the user. A turn's tool call that's refused ends
+ * the turn with it (round.ts), and a callable answers resource-exhausted with
+ * `reason`.
  */
 export abstract class SandboxUnavailableError extends Error {
   abstract readonly reason: 'sandbox-limit' | 'sandbox-ceiling';
-  abstract readonly modelNote: string;
 }
-
-/**
- * Added to the limit message where a model reads it (a tool result): retrying
- * can't succeed until a slot frees up, so it shouldn't spend the turn trying.
- */
-export const SANDBOX_LIMIT_MODEL_NOTE = 'Nothing ran. Don\'t retry Python, file, or data-fetch tools in this turn: answer from what you already have, or tell the user they can reply once a slot frees up.';
 
 function minutesText(ms: number): string {
   const count = Math.max(1, Math.ceil(ms / 60_000));
@@ -65,7 +59,6 @@ function waitText(ms: number): string {
  */
 export class SandboxLimitError extends SandboxUnavailableError {
   readonly reason = 'sandbox-limit';
-  readonly modelNote = SANDBOX_LIMIT_MODEL_NOTE;
 
   constructor(readonly limit: number, readonly waitMs: number, idleTimeoutMs: number) {
     super(
@@ -85,7 +78,6 @@ export class SandboxLimitError extends SandboxUnavailableError {
  */
 export class SandboxCeilingError extends SandboxUnavailableError {
   readonly reason = 'sandbox-ceiling';
-  readonly modelNote: string;
 
   constructor(readonly ceilingMs: number, readonly resetsInMs: number) {
     const hours = Math.round(ceilingMs / (60 * 60_000));
@@ -93,8 +85,6 @@ export class SandboxCeilingError extends SandboxUnavailableError {
       `Your Analyze sessions have had their Python environment running for ${hours} hours today, the most in a day. `
       + `It's available again in ${waitText(resetsInMs)}, when the day resets at midnight UTC.`,
     );
-    this.modelNote = 'Nothing ran. Don\'t retry Python, file, or data-fetch tools in this turn: answer from what you already have, '
-      + `or tell the user Python is available again in ${waitText(resetsInMs)}.`;
   }
 }
 

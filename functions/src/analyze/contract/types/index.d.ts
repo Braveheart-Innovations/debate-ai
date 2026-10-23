@@ -165,11 +165,12 @@ export interface MessageMetadata {
      */
     toolProvenance?: ToolResultProvenance;
     /**
-     * Set by the app (not the model) when the operator's reply came back empty:
-     * the transcript shows a notice with Retry instead of AI text.
+     * Set by the app (not the model) instead of AI text: the operator's reply came
+     * back empty (the notice has Retry), or the turn ended because the sandbox was
+     * unavailable (the message says when it frees up).
      */
     appNotice?: {
-        kind: 'empty_after_tools' | 'empty_reply';
+        kind: 'empty_after_tools' | 'empty_reply' | 'sandbox_unavailable';
     };
     /** Team mode was on for this turn, but the operator answered without a team plan (app note). */
     teamModeSkipped?: boolean;

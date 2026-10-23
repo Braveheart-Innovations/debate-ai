@@ -494,7 +494,6 @@ test('past the day\'s ceiling every use is refused until midnight UTC; a failed 
     assert.equal(error.message,
       'Your Analyze sessions have had their Python environment running for 12 hours today, the most in a day. '
       + 'It\'s available again in about 3 hours, when the day resets at midnight UTC.');
-    assert.match(error.modelNote, /^Nothing ran\. .*available again in about 3 hours\.$/);
     return true;
   });
   await assert.rejects(svc.claimSlot('u1', 's2'), SandboxCeilingError);

@@ -180,7 +180,8 @@ export interface FetchSandbox {
 
 /**
  * Fetch a response straight into the session's sandbox. The slot is claimed
- * first: a refused sandbox is refused before anything is downloaded (Step 8 F5).
+ * first: a refused sandbox throws before anything is downloaded (Step 8 F5),
+ * and the turn ends with its message (round.ts).
  */
 export async function runSandboxFetch(
   uid: string,
@@ -188,12 +189,7 @@ export async function runSandboxFetch(
   sandbox: FetchSandbox,
   fetch: (maxBytes: number) => Promise<ToolResult>,
 ): Promise<ToolResult> {
-  try {
-    await sandbox.claimSlot(uid, target.sessionKey);
-  } catch (error) {
-    if (!(error instanceof SandboxUnavailableError)) throw error;
-    return { toolCallId: '', success: false, error: `${error.message} ${error.modelNote}` };
-  }
+  await sandbox.claimSlot(uid, target.sessionKey);
   const result = await fetch(MAX_SANDBOX_FETCH_BYTES);
   if (!result.success || typeof result.content !== 'string') return result;
   try {
@@ -212,11 +208,12 @@ export async function runSandboxFetch(
       },
     };
   } catch (error) {
+    if (error instanceof SandboxUnavailableError) throw error;
     console.error('[executeTool] Failed to save fetch_api response to the sandbox', { uid, sessionKey: target.sessionKey, error });
     return {
       toolCallId: result.toolCallId,
       success: false,
-      error: `Fetched ${Buffer.byteLength(result.content, result.metadata?.binaryExtension ? 'base64' : 'utf8')} bytes but could not save them to the sandbox: ${error instanceof Error ? error.message : String(error)}${error instanceof SandboxUnavailableError ? ` ${error.modelNote}` : ''}`,
+      error: `Fetched ${Buffer.byteLength(result.content, result.metadata?.binaryExtension ? 'base64' : 'utf8')} bytes but could not save them to the sandbox: ${error instanceof Error ? error.message : String(error)}`,
       metadata: result.metadata,
     };
   }

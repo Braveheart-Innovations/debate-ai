@@ -87,6 +87,8 @@ export async function buildChildResult(child: AnalyzeRunDoc, outcome: ChildOutco
   const { messages, partialText } = splitPartial(transcript, child, finalRound, outcome);
   const files = await listRunFiles(child, kernel);
   const answer = finalAnswer(messages, crashed ?? null, partialText);
+  const reply = [...transcript].reverse().find((message) => message.senderType === 'ai' && !message.metadata?.toolCalls?.length);
+  const sandboxUnavailable = reply?.metadata?.appNotice?.kind === 'sandbox_unavailable' ? reply.content : undefined;
   const answerFile = hasReplyText(answer) ? await saveAnswer(child, kernel, files, answer, status) : undefined;
   void getSandboxService().releaseKernel(child.uid, child.config.sandboxSessionKey, kernel).catch((error) => {
     console.warn('[analyzeTeam] failed to release subagent kernel', { kernel, error });
@@ -103,6 +105,7 @@ export async function buildChildResult(child: AnalyzeRunDoc, outcome: ChildOutco
     files,
     ...(answerFile ? { answerFile } : {}),
     toolSummary: toolSummaryFromMessages(transcript),
+    ...(sandboxUnavailable ? { sandboxUnavailable } : {}),
     startedAt: child.createdAt,
     endedAt: Date.now(),
   };
