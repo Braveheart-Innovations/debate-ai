@@ -1,7 +1,7 @@
 # v3 — One Symposium: Analyze on Mobile, Optional Account Keys
 
-Status: **Plan v1** (2026-10-18). Nothing built. Decision owner: Michael.
-Web 2.9.7 (Watches) is in progress on web branch `v2.9.7`. Mobile 2.4.1 is in store review. v3 is "the
+Status: **Plan v1** (2026-10-18). Step 0 shipped in web 2.9.7 (Watches, 2026-10-23, web #289). Decision owner:
+Michael. Mobile 2.4.1 is in store review. v3 is "the
 unified release that brings Analyze to mobile" (web `docs/analyze-beyond-reports-plan.md`, header).
 Related (web repo): `docs/analyze-server-loop-plan.md` (the server loop; "Mobile can't run Analyze" was one of
 its reasons), `docs/analyze-agents-architecture-plan.md` Part E (Phase 4: Mobile + Watches),
@@ -45,7 +45,7 @@ bring Michael its design. What a step teaches can reorder or reshape the steps a
 | Keys | Mobile: SecureStore, direct to providers. Web: AES-256-GCM in Firestore, server-proxied | Optional account keys (Steps 1–2) |
 | Who can use Analyze | Server: 5 free Analyze sessions, lifetime; premium and trial uncapped. Mobile: non-premium users are in demo mode and can't enter keys (`APIConfigScreen.tsx:189-200`) | Premium and trial only on mobile (question 6) |
 | App Check | Mobile initializes it (`src/services/firebase/appCheck.ts`); nothing enforces it | Enforce before v3 (Step 7) |
-| Sandbox limits | 3 awake sandboxes per user. Daily sandbox time is recorded (`recordSandboxUsage`, `usageTracking.ts:718`), but the daily ceiling decided in the server-loop plan (Decisions, item 5) isn't built | Lands with Watches (Step 0) |
+| Sandbox limits | 3 awake sandboxes per user, and the daily ceiling decided in the server-loop plan (Decisions, item 5): 12 sandbox-hours per user per UTC day (`DAILY_SANDBOX_CEILING_MS`, `sandbox/callables.ts:41`) | Shipped with Watches (Step 0, 2.9.7) |
 
 ## Decisions
 
