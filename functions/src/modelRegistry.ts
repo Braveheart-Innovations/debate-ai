@@ -128,6 +128,14 @@ export const MODEL_ALIASES: Record<string, string> = {
   'deepseek-latest': 'deepseek-flash',
   'deepseek-v4-flash': 'deepseek-flash',
   'deepseek-v4-flash-vision-exp': 'deepseek-flash',
+
+  // Moonshot aliases
+  // Moonshot closes the K2 series to newly registered accounts on 2026-10-31
+  // and retires it by the end of December 2026; requests move to K3.1 Pro
+  // (web modelRegistry and the mobile client mirror this).
+  'kimi-k2.6': 'kimi-k3.1-pro',
+  'kimi-k2.7-code': 'kimi-k3.1-pro',
+  'kimi-k2.7-code-highspeed': 'kimi-k3.1-pro-highspeed',
 };
 
 export const DEFAULT_PROVIDER_MODELS: Record<string, string> = {
@@ -139,7 +147,7 @@ export const DEFAULT_PROVIDER_MODELS: Record<string, string> = {
   cohere: 'command-a-reasoning-08-2025',
   deepseek: 'deepseek-flash',
   grok: 'grok-4.3',
-  moonshot: 'kimi-k3',
+  moonshot: 'kimi-k3.1-pro',
   zai: 'glm-5.3',
 };
 
@@ -177,11 +185,13 @@ const MODELS_REQUIRING_TEMPERATURE_1 = new Set([
   'o4-mini',
   // Moonshot rejects any temperature except 1 ("invalid temperature: only 1
   // is allowed for this model"; live-verified 2026-08-17 on all four models).
-  // First caught by the live smoke once a MOONSHOT_API_KEY existed.
+  // First caught by the live smoke once a MOONSHOT_API_KEY existed. The K2
+  // models are aliased to K3.1 Pro above, so only K3-generation ids are here.
+  // K3.1 Pro and High-Speed: same 400 on temperature 0.7 (live-verified
+  // 2026-10-23); top_p is fixed at 0.95, which this proxy never sends.
+  'kimi-k3.1-pro',
+  'kimi-k3.1-pro-highspeed',
   'kimi-k3',
-  'kimi-k2.7-code',
-  'kimi-k2.7-code-highspeed',
-  'kimi-k2.6',
 ]);
 
 const MODELS_DEPRECATING_TEMPERATURE = new Set([
