@@ -63,6 +63,9 @@
     "fast-xml-builder": "^1.2.0",
     "ip-address": "^10.2.0",
     "websocket-driver": "^0.7.5",
-    "qs": "6.16.0"
+    "qs": "6.16.0",
+    "e2b@2.52.0": {
+      "undici8": "npm:undici@^8.12.2"
+    }
   }
 }

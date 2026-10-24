@@ -45,9 +45,9 @@ describe('modelRegistry', () => {
     assert.equal(getDefaultModel('grok'), 'grok-4.3');
     assert.equal(resolveProviderModelId('grok', 'grok-build-latest'), 'grok-build-0.1');
     assert.equal(getDefaultModel('cohere'), 'command-a-reasoning-08-2025');
-    assert.equal(getDefaultModel('moonshot'), 'kimi-k3');
+    assert.equal(getDefaultModel('moonshot'), 'kimi-k3.1-pro');
     assert.equal(getDefaultModel('zai'), 'glm-5.3');
-    assert.equal(resolveProviderModelId('moonshot', ''), 'kimi-k3');
+    assert.equal(resolveProviderModelId('moonshot', ''), 'kimi-k3.1-pro');
     assert.equal(resolveProviderModelId('zai', ''), 'glm-5.3');
     assert.equal(getDefaultModel('google'), 'gemini-3.8-flash');
     assert.equal(resolveProviderModelId('google', 'gemini-latest'), 'gemini-3.8-flash');
@@ -131,7 +131,16 @@ describe('modelRegistry', () => {
     assert.equal(resolveProviderModelId('mistral', 'magistral-medium-latest'), 'mistral-small-2603');
   });
 
+  it('routes the retiring Kimi K2 models to Kimi K3.1 Pro', () => {
+    assert.equal(resolveProviderModelId('moonshot', 'kimi-k2.6'), 'kimi-k3.1-pro');
+    assert.equal(resolveProviderModelId('moonshot', 'kimi-k2.7-code'), 'kimi-k3.1-pro');
+    assert.equal(resolveProviderModelId('moonshot', 'kimi-k2.7-code-highspeed'), 'kimi-k3.1-pro-highspeed');
+    assert.equal(resolveProviderModelId('moonshot', 'kimi-k3'), 'kimi-k3');
+  });
+
   it('normalizes Kimi temperatures to the required value of 1', () => {
+    assert.equal(normalizeProviderTemperature('moonshot', 'kimi-k3.1-pro', 0.7), 1);
+    assert.equal(normalizeProviderTemperature('moonshot', 'kimi-k3.1-pro-highspeed', 0), 1);
     assert.equal(normalizeProviderTemperature('moonshot', 'kimi-k3', 0.7), 1);
     assert.equal(normalizeProviderTemperature('moonshot', 'kimi-k2.7-code', 0), 1);
     assert.equal(normalizeProviderTemperature('moonshot', 'kimi-k2.7-code-highspeed', 0.7), 1);
