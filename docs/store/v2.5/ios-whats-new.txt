@@ -8,7 +8,8 @@ RETIRED MODELS
 • Google shut down Imagen 4. Imagen 4, Imagen 4 Fast and Imagen 4 Ultra are gone from Create, and a saved choice of any of them now creates with Gemini 3.1 Flash Image instead of failing.
 
 FIXES
-Replies are no longer cut short. The app sets no response length unless you choose one, so Cohere, Perplexity and models that think before they answer can finish, in chats and in voice debates. Changing another setting, like temperature, no longer adds a hidden limit either.
+• Replies are no longer cut short. Chats send no response limit unless you set one, so Cohere, Perplexity and models that think before they answer can finish. In voice debates, models that think first get room to finish too. Changing another setting, like temperature, no longer adds a hidden limit either.
+• Save to Photos works again.
 
 UNDER THE HOOD
 Updated app framework and navigation libraries, with security fixes.
