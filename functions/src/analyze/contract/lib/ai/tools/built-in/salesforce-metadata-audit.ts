@@ -12,7 +12,7 @@ import type { ToolDefinition } from '../types';
 export const salesforceMetadataAuditTool: ToolDefinition = {
   name: 'salesforce_metadata_audit',
 
-  description: `Inspect uploaded Salesforce metadata in read-only mode. Use this for Salesforce DX project or metadata ZIPs, uploaded source files, or GitHub source snapshots. If the upload contains .symposium/salesforce-insights/<run-id>/manifest.json plus findings/evidence files, import those findings as imported agent evidence and join them to the metadata by path/component name. It builds an index of the workspace (components, dependencies, risk signals, Flow and Apex drilldowns) and the brief each operation asks for; its result lists the files. Its outputs summarize the workspace; to read the source code itself (method bodies, SOQL, DML), use salesforce_read_source. Its files stay under /data/salesforce/ for the session: run it again only for another operation or query, or a new upload. For a data model (an ERD of the workspace's objects), use operation=data_model: it reads the object and field metadata (types with their sizes, required, unique, external IDs, picklist values and value sets, lookups and master-details, sharing models, record types) and writes <name>.diagram.json, a diagram the user edits, with every object and field's source file, and <name>.references.json and <name>.access.json beside it. Without objects it draws the org's own objects; installed-package objects appear collapsed where those point at them. For a Flow as a diagram, use operation=flow_diagram with flows (API names): it draws each Flow's start (its trigger and entry conditions), decisions, loops, record operations, actions, subflows and fault paths as flow_<name>.diagram.json, and marks each record operation or action that has no fault path; chain=true draws the named flows and every flow they start (subflows, platform events they or their invocable Apex publish, flows Apex starts) as one diagram. For what runs when a record saves, use operation=save_order with objects: for each object it writes save_order_<object>.diagram.json, Salesforce's documented order of execution with the object's own automation in it (before-save flows, triggers, validation rules, duplicate rules, assignment, auto-response and workflow rules, after-save flows in trigger order, roll-ups, sharing, asynchronous paths), each step linking to its file and saying which saves it runs on. The audit draws Flows, the save order and the data model: don't draw them yourself. It never edits files, deploys or changes an org.`,
+  description: `Inspect uploaded Salesforce metadata in read-only mode. Use this for Salesforce DX project or metadata ZIPs, uploaded source files, or GitHub source snapshots. If the upload contains .symposium/salesforce-insights/<run-id>/manifest.json plus findings/evidence files, import those findings as imported agent evidence and join them to the metadata by path/component name. It builds an index of the workspace (components, dependencies, risk signals, Flow and Apex drilldowns) and the brief each operation asks for; its result lists the files. Its outputs summarize the workspace; to read the source code itself (method bodies, SOQL, DML), use salesforce_read_source. Its files stay under /data/salesforce/ for the session: run it again only for another operation or query, or a new upload. The audit draws Flows, the save order and the data model: don't draw them yourself. It never edits files, deploys or changes an org.`,
 
   parameters: {
     type: 'object',
@@ -26,24 +26,24 @@ export const salesforceMetadataAuditTool: ToolDefinition = {
       objects: {
         type: 'array',
         items: { type: 'string' },
-        description: 'For operation=data_model: the object API names to include with all their fields (e.g. ["Center__c", "Enrollment__c", "Account"]). Objects they look up to are added without fields so both ends of each relationship show. If omitted, the org\'s own objects are included: its custom objects and the standard objects it added fields to. ["*"] includes every object in the workspace. For operation=save_order (required): the objects whose save order to draw, one diagram each (e.g. ["Lead"]).',
+        description: 'Object API names (e.g. ["Lead", "Center__c"]). For operation=data_model, the objects to draw with their fields: leave it out for the org\'s own objects, or ["*"] for every object. Required for operation=save_order: one diagram each.',
       },
       flows: {
         type: 'array',
         items: { type: 'string' },
-        description: 'For operation=flow_diagram: the Flow API names to draw (e.g. ["Conversion_1_Search_Match"]), each as its own diagram unless chain is true.',
+        description: 'For operation=flow_diagram: the Flow API names to draw (e.g. ["Conversion_1_Search_Match"]).',
       },
       chain: {
         type: 'boolean',
-        description: 'For operation=flow_diagram: draw the named flows and every flow they start (subflows, platform events, flows their Apex starts) as one diagram.',
+        description: 'For operation=flow_diagram: one diagram of the named flows and every flow they start.',
       },
       name: {
         type: 'string',
-        description: 'For operation=data_model or flow_diagram: the diagram file name, a short snake_case name (defaults: salesforce_data_model, flow_<flow name>, flow_chain_<first flow>); the file is <name>.diagram.json. With several flows not chained, each keeps its default name.',
+        description: 'For operation=data_model or flow_diagram: a short snake_case name for <name>.diagram.json (defaults: salesforce_data_model, flow_<flow name>).',
       },
       deliver: {
         type: 'boolean',
-        description: 'For operation=data_model, flow_diagram or save_order: true saves the diagram to the user\'s Outputs (/output), when the user asked for it or your report shows it (an artifact_ref block). Leave it out to look at the org: the diagram is then a working file under /data/salesforce/diagrams/.',
+        description: 'For operation=data_model, flow_diagram or save_order: true puts the diagram in the user\'s Outputs, when the user asked for it or your report shows it (an artifact_ref block). Without it, the diagram is a working file under /data/salesforce/diagrams/.',
       },
       paths: {
         type: 'array',
