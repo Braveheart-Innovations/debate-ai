@@ -1,7 +1,7 @@
 • New Kimi default: Kimi K3.1 Pro, plus K3.1 Pro High-Speed
 • Kimi K2 models are retiring; chats and debates that used them now use K3.1 Pro
 • Imagen 4 is gone from Create (Google shut it down); a saved Imagen pick now creates with Gemini 3.1 Flash Image
-• Replies no longer stop early: no response limit unless you set one
+• Replies no longer stop early: chats send no response limit unless you set one
 • Updated app framework and navigation, with security fixes
 
 Keys stay private on your device.
