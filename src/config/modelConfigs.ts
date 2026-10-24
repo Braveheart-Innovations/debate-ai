@@ -1617,7 +1617,7 @@ export const CURATED_MODEL_IDS: { [providerId: string]: string[] } = {
     "grok-4.20-0309-non-reasoning",
     "grok-4.20-0309-reasoning",
   ],
-  moonshot: ["kimi-k3.1-pro", "kimi-k3"],
+  moonshot: ["kimi-k3.1-pro", "kimi-k3.1-pro-highspeed", "kimi-k3"],
   zai: ["glm-5.3", "glm-5.3-flash", "glm-5.3-flashx", "glm-5.2", "glm-5-turbo", "glm-5.1"],
 };
 
