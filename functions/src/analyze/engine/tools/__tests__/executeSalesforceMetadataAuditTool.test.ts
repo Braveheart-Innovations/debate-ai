@@ -109,6 +109,53 @@ describe('executeSalesforceMetadataAuditTool', () => {
       expect(mockSandboxService.extractZips).toHaveBeenCalledWith(['/uploads/qa-salesforce-insights.zip', '/uploads/qa-salesforce-metadata.zip'], '/data/salesforce/workspace');
     });
 
+    it('reads org retrieves saved with an agent\'s evidence as evidence for Python, not as the workspace\'s source', async () => {
+      // The QA workspace after the admin-access packet run (2026-10-23): Production's and QA's retrieves of the
+      // Admin profile and the objects it names, in metadata format, under .symposium/salesforce-runs/<run>/.
+      const run = 'qa/.symposium/salesforce-runs/20261023T231200Z-admin-profile-access-gaps';
+      const profile = (field: string, readable: boolean) => `<Profile><fieldPermissions><editable>false</editable><field>${field}</field><readable>${readable}</readable></fieldPermissions><objectPermissions><allowCreate>true</allowCreate><allowDelete>true</allowDelete><allowEdit>true</allowEdit><allowRead>true</allowRead><modifyAllRecords>true</modifyAllRecords><object>Account</object><viewAllRecords>true</viewAllRecords></objectPermissions><userPermissions><enabled>true</enabled><name>ViewAllData</name></userPermissions></Profile>`;
+      const objectXml = '<CustomObject><label>Account</label><fields><fullName>Code__c</fullName><label>Code</label><type>Text</type><length>10</length></fields><fields><fullName>Region__c</fullName><label>Region</label><type>Text</type><length>20</length></fields></CustomObject>';
+      const flow = '<Flow><status>Active</status><start><object>Account</object><triggerType>RecordAfterSave</triggerType><recordTriggerType>Update</recordTriggerType></start><recordUpdates><name>Stamp</name><object>Account</object></recordUpdates></Flow>';
+      const zip = new JSZip();
+      zip.file('qa/sfdx-project.json', JSON.stringify({ packageDirectories: [{ path: 'force-app', default: true }] }));
+      zip.file('qa/force-app/main/default/objects/Account/Account.object-meta.xml', '<CustomObject><label>Account</label></CustomObject>');
+      zip.file('qa/force-app/main/default/objects/Account/fields/Code__c.field-meta.xml', '<CustomField><fullName>Code__c</fullName><label>Code</label><type>Text</type><length>10</length></CustomField>');
+      zip.file('qa/force-app/main/default/profiles/Admin.profile-meta.xml', profile('Account.Code__c', true));
+      zip.file('qa/force-app/main/default/flows/Account_Stamp.flow-meta.xml', flow);
+      for (const org of ['org-Prod', 'org-QA']) {
+        zip.file(`${run}/${org}/unpackaged/unpackaged/package.xml`, '<Package />');
+        zip.file(`${run}/${org}/unpackaged/unpackaged/profiles/Admin.profile`, profile('Account.Code__c', false));
+        zip.file(`${run}/${org}/unpackaged/unpackaged/objects/Account.object`, objectXml);
+        zip.file(`${run}/${org}/unpackaged/unpackaged/flows/Account_Stamp.flow`, flow);
+      }
+      mockSandboxService.readFile.mockResolvedValue(await zip.generateAsync({ type: 'arraybuffer' }));
+      const paths = ['/uploads/qa-salesforce-metadata.zip'];
+
+      const model = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-retrieves-dm', { operation: 'data_model', objects: ['Account'], paths });
+      expect(model.success).toBe(true);
+      // Still unpacked, for Python.
+      expect(mockSandboxService.extractZips).toHaveBeenCalledWith(paths, '/data/salesforce/workspace');
+      const diagram = JSON.parse(writtenFile('/data/salesforce/diagrams/salesforce_data_model.diagram.json')!);
+      const account = diagram.entities.find((entity: { id: string }) => entity.id === 'Account');
+      // Each field once, and only the workspace's: the retrieves drew every field of their objects twice more.
+      expect(account.fields.map((field: { name: string }) => field.name)).toEqual(['Code__c']);
+      const access = JSON.parse(writtenFile('/data/salesforce/diagrams/salesforce_data_model.access.json')!);
+      // One Admin profile, the workspace's: the retrieves made three.
+      expect(access.holders).toEqual([expect.objectContaining({ kind: 'profile', name: 'Admin', source: '/uploads/qa-salesforce-metadata.zip#qa/force-app/main/default/profiles/Admin.profile-meta.xml' })]);
+      expect(access.objects.Account.fields.Code__c).toEqual({ read: [0], edit: [] });
+      expect(Object.keys(access.objects.Account.fields)).toEqual(['Code__c']);
+      expect(model.content).not.toContain('.symposium');
+
+      const admin = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-retrieves-admin', { operation: 'component', component: 'Admin', paths });
+      expect(admin.content).toContain('Path: qa/force-app/main/default/profiles/Admin.profile-meta.xml');
+      expect(admin.content).toContain('Files: qa/force-app/main/default/profiles/Admin.profile-meta.xml\n');
+      const risks = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-retrieves-risks', { operation: 'risks', paths });
+      expect(risks.content).not.toContain('.symposium');
+      const evidence = JSON.parse(writtenFile('/data/salesforce/salesforce-signal-evidence.json')!);
+      expect(evidence.signals.length).toBeGreaterThan(0);
+      expect(JSON.stringify(evidence)).not.toContain('.symposium');
+    });
+
     it('still audits when the workspace cannot be unpacked, and says so', async () => {
       mockSandboxService.readFile.mockResolvedValue(await qaBundle());
       mockSandboxService.extractZips.mockRejectedValue(new Error('sandbox busy'));

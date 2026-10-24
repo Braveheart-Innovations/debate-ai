@@ -103,6 +103,8 @@ describe('executeSalesforceReadSourceTool', () => {
     zip.file('qa/force-app/main/default/objects/Lead/recordTypes/Center.recordType-meta.xml', '<RecordType>\n  <label>Enrolled Family Center</label>\n</RecordType>');
     zip.file('qa/force-app/main/default/email/Tours/Welcome.email-meta.xml', '<EmailTemplate><attachments><content>JVBERi0xLjQNJeLjz9MNCjMx</content><name>a.pdf</name></attachments></EmailTemplate>');
     zip.file('qa/force-app/main/default/objectTranslations/Lead-es/Lead-es.objectTranslation-meta.xml', '<label>Enrolled Family</label>');
+    // Production's copy, retrieved by an agent with its evidence: in the upload, not the workspace's source.
+    zip.file('qa/.symposium/salesforce-runs/run/org-Prod/unpackaged/unpackaged/classes/TourService.cls', 'public with sharing class TourService {\n  // Enrolled Family in Production\n}');
     const bytes = await zip.generateAsync({ type: 'arraybuffer' });
     return {
       listFiles: jest.fn().mockResolvedValue([{ name: 'qa-salesforce-metadata.zip', path: '/uploads/qa-salesforce-metadata.zip' }]),
@@ -125,6 +127,18 @@ describe('executeSalesforceReadSourceTool', () => {
     const result = await executeSalesforceReadSourceTool(await bundle(), 'call-search', { pattern: 'Enrolled Family' });
     expect(result.content).toContain('2 matching lines for /Enrolled Family/i in the workspace');
     expect(result.content).not.toContain('objectTranslation');
+  });
+
+  it('reads the workspace\'s own copy, not an org retrieve saved with an agent\'s evidence', async () => {
+    const files = await bundle();
+    const read = await executeSalesforceReadSourceTool(files, 'call-own', { component: 'TourService' });
+    expect(read.content).toContain('qa/force-app/main/default/classes/TourService.cls');
+    expect(read.content).not.toContain('.symposium');
+    const retrieve = await executeSalesforceReadSourceTool(files, 'call-retrieve', { path: 'qa/.symposium/salesforce-runs/run/org-Prod/unpackaged/unpackaged/classes/TourService.cls' });
+    expect(retrieve).toMatchObject({
+      success: false,
+      error: 'No source file matches path "qa/.symposium/salesforce-runs/run/org-Prod/unpackaged/unpackaged/classes/TourService.cls": it\'s in an org retrieve saved under .symposium/, which isn\'t the workspace\'s source. Its files are under /data/salesforce/workspace/ for Python.',
+    });
   });
 
   it('says when nothing matches a path, without reading the workspace', async () => {
