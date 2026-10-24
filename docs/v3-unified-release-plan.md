@@ -62,7 +62,7 @@ bring Michael its design. What a step teaches can reorder or reshape the steps a
 | 0 | web 2.9.7, with Watches | Groundwork: mobile-ready notifications, the sandbox ceiling, the server-written session summary, watch writes behind callables, the stale privacy line | Watches needs most of it anyway |
 | 1 | Functions PRs | Key custody hardened before more keys arrive; a key fingerprint | Every stored key is safer, web included |
 | 2 | mobile 2.6.0 | Optional account keys | A key entered on the phone works on symposiumai.app |
-| 3 | Functions PRs + web 2.9.9 | The server builds prompts, tool lists, the session doc and the title | One copy of the prompt; server-started turns (Run again, review hand-off, watches) use current prompts |
+| 3 | Functions PRs + web 2.9.10 | The server builds prompts, tool lists, the session doc and the title | One copy of the prompt; server-started turns (Run again, review hand-off, watches) use current prompts |
 | 4 | mobile 2.7.0 (native) | Analyze companion: sessions, results, approvals, push | Follow and approve a web run from the phone |
 | 5 | mobile 2.8.0 | Start Analyze on the phone | The whole loop from the phone |
 | 6 | mobile 2.9.0 + Functions | Depth: models, review, exports, watches, diagrams | The phone does what a phone does well |
@@ -71,6 +71,8 @@ bring Michael its design. What a step teaches can reorder or reshape the steps a
 Version numbers are proposals (question 1). Steps 1 and 3 have no app release of their own; they deploy when
 their PRs merge. Renumbered 2026-10-23 (Michael): mobile 2.5.0 became the Expo patch set, Kimi K3.1 Pro and
 dependency release, and web 2.9.8 the Kimi K3.1 Pro and Mermaid 12 release, so every step below moved up one.
+Renumbered again 2026-10-24 (Michael): web 2.9.9 is the Salesforce `access` operation (web
+`docs/salesforce-audit-operations-plan.md`, D8), so Step 3 is web 2.9.10.
 
 ### Step 0: groundwork in web 2.9.7
 
@@ -158,7 +160,7 @@ Check (live, on a device):
 - Remove it from the account: web Settings shows it as not configured.
 - Phone Chat works throughout.
 
-### Step 3: the server builds what a second client would copy (Functions + web 2.9.9)
+### Step 3: the server builds what a second client would copy (Functions + web 2.9.10)
 
 Why: today the web builds the Analyze system prompts, the tool list, the session doc and the title. A phone
 would need copies, and copies drift. Server-started turns (Run again, review hand-off) reuse the
@@ -170,7 +172,7 @@ would need copies, and copies drift. Server-started turns (Run again, review han
    `baseSystemPrompt.ts` move into `functions/src/analyze/`. Some of what they import already reaches Functions
    through `npm run analyze:contract` (`data-connectors`). Going in, list the rest (`FileMetadata` for Salesforce
    detection, `describeMember`, `renderOutputSelectionInstructions`).
-2. **Cutover.** The callable accepts both forms. The web switches in 2.9.9. Then the text fields leave the
+2. **Cutover.** The callable accepts both forms. The web switches in 2.9.10. Then the text fields leave the
    callable and the builder leaves the web: removed, not kept as a fallback.
 3. **The server writes the session doc** on the first turn and its summary when a run ends. **It titles the
    session** after the first turn. Check `firestore.rules`' field allowlists on `conversations/{id}`, so client
@@ -265,7 +267,7 @@ Check: the golden prompts started on the phone, then the same session continued 
 
 ## Ask Michael (before the step that needs it)
 
-1. **Version numbers:** mobile 2.6 → 2.9 and web 2.9.9, then 3.0.0 on both. Or fewer mobile store releases,
+1. **Version numbers:** mobile 2.6 → 2.9 and web 2.9.10, then 3.0.0 on both. Or fewer mobile store releases,
    since each is a review cycle. Other mobile work can ride in any of these releases.
 2. **Step 1:** a per-record salt and key version on the current secret, or envelope encryption with Cloud KMS.
 3. **Step 2:** a store release, not an OTA (recommended: the data practice changes).
