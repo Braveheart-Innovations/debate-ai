@@ -67,7 +67,11 @@ export function isSalesforceInsightPacketPath(path: string): boolean {
   return !!info && INSIGHT_PACKET_FILES.has(info.relativePath.toLowerCase());
 }
 
-export function isSalesforceMetadataSourcePath(path: string): boolean {
+/** Symposium's evidence folder: insight packets, the run record, and org retrieves an agent saved. */
+const EVIDENCE_FOLDER = '.symposium';
+
+/** A metadata file by the path rules, wherever it is. */
+function matchesMetadataPathRules(path: string): boolean {
   const normalized = normalizeSalesforcePath(path);
   const lower = normalized.toLowerCase();
   const segments = lower.split('/').filter(Boolean);
@@ -90,9 +94,30 @@ export function isSalesforceMetadataSourcePath(path: string): boolean {
   return false;
 }
 
+function inEvidenceFolder(path: string): boolean {
+  return normalizeSalesforcePath(path).toLowerCase().split('/').includes(EVIDENCE_FOLDER);
+}
+
+/** The workspace's own metadata: by the path rules, outside `.symposium/`. */
+export function isSalesforceMetadataSourcePath(path: string): boolean {
+  return matchesMetadataPathRules(path) && !inEvidenceFolder(path);
+}
+
+/**
+ * Metadata an agent retrieved from an org and saved with its evidence
+ * (`.symposium/salesforce-runs/<run>/org-Prod/…/profiles/Admin.profile`): another org's
+ * copy, or another day's, of the workspace's components. The bundle carries it for
+ * Python, but it isn't the workspace's source: read as source, QA's and Production's
+ * retrieves drew every field of their objects twice more and made three Admin profiles.
+ */
+export function isSalesforceOrgRetrievePath(path: string): boolean {
+  return matchesMetadataPathRules(path) && inEvidenceFolder(path);
+}
+
 /**
  * What a workspace bundle carries: metadata files (by the path rules, or anywhere under a
- * package directory when `packageRoots` are known), insight packets, and the run record.
+ * package directory when `packageRoots` are known), org retrieves, insight packets, and
+ * the run record.
  */
 export function isSalesforceWorkspaceBundlePath(path: string, packageRoots: string[] = []): boolean {
   const normalized = normalizeSalesforcePath(path);
@@ -105,6 +130,7 @@ export function isSalesforceWorkspaceBundlePath(path: string, packageRoots: stri
 
   return isSalesforceMetadataSourcePath(normalized)
     || getSalesforcePackagePath(normalized, packageRoots) !== null
+    || isSalesforceOrgRetrievePath(normalized)
     || isSalesforceInsightPacketPath(normalized)
     || isSalesforceRunRecordPath(normalized);
 }
@@ -129,7 +155,8 @@ function joinPath(base: string, child: string): string {
  * The folders that hold a workspace's metadata: the package directories each
  * sfdx-project.json names. With no project file: each source-format `main/default` folder
  * (a workspace picked below its project file), else each folder holding a package.xml
- * (metadata format), except `manifest/`, where source-format projects keep manifests.
+ * (metadata format), except `manifest/`, where source-format projects keep manifests. An org
+ * retrieve's folders under `.symposium/` are never package directories.
  */
 export function findSalesforcePackageRoots(
   paths: string[],
@@ -137,6 +164,7 @@ export function findSalesforcePackageRoots(
 ): string[] {
   const roots = new Set<string>();
   for (const project of projectFiles) {
+    if (inEvidenceFolder(project.path)) continue;
     const base = parentFolder(normalizeSalesforcePath(project.path));
     try {
       const parsed = JSON.parse(project.content) as { packageDirectories?: Array<{ path?: unknown }> };
@@ -150,6 +178,7 @@ export function findSalesforcePackageRoots(
   if (roots.size > 0) return Array.from(roots);
 
   for (const path of paths) {
+    if (inEvidenceFolder(path)) continue;
     const match = normalizeSalesforcePath(path).match(/^((?:.*\/)?main\/default)\//i);
     if (match) roots.add(match[1]);
   }
@@ -158,7 +187,7 @@ export function findSalesforcePackageRoots(
   for (const path of paths) {
     const normalized = normalizeSalesforcePath(path);
     const segments = normalized.toLowerCase().split('/');
-    if (segments.some((segment) => IGNORED_WORKSPACE_BUNDLE_PATH_SEGMENTS.has(segment))) continue;
+    if (segments.some((segment) => IGNORED_WORKSPACE_BUNDLE_PATH_SEGMENTS.has(segment) || segment === EVIDENCE_FOLDER)) continue;
     if (segments[segments.length - 1] !== 'package.xml' || segments[segments.length - 2] === 'manifest') continue;
     roots.add(parentFolder(normalized));
   }
@@ -168,10 +197,12 @@ export function findSalesforcePackageRoots(
 /**
  * A file's path inside its package directory (`classes/Foo.cls`, without the source
  * format's `main/default/`), or null when it isn't workspace metadata: outside every root,
- * a tooling file, an excluded folder (object translations), or the binary content of a
- * static resource, document or content asset (their -meta.xml stays).
+ * in `.symposium/` (an org retrieve, under a root of `''`), a tooling file, an excluded
+ * folder (object translations), or the binary content of a static resource, document or
+ * content asset (their -meta.xml stays).
  */
 export function getSalesforcePackagePath(path: string, packageRoots: string[]): string | null {
+  if (inEvidenceFolder(path)) return null;
   const normalized = normalizeSalesforcePath(path);
   const lower = normalized.toLowerCase();
   const root = packageRoots

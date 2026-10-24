@@ -3,8 +3,10 @@ import type { ToolResult } from '../../contract/lib/ai/tools/types';
 import type { SalesforceReadSourceArgs } from '../../contract/lib/ai/tools/built-in/salesforce-read-source';
 import {
   listSalesforceWorkspace,
+  SALESFORCE_WORKSPACE_ROOT,
   type SalesforceSourceFile,
 } from '../../salesforce/SalesforceMetadataService';
+import { isSalesforceOrgRetrievePath } from '../../contract/services/salesforce/SalesforceMetadataPaths';
 import type { SandboxFiles } from './sandboxFiles';
 
 /** Lines per read: a page, with the next page one call away. */
@@ -65,6 +67,10 @@ type ReadResult = { ok: true; content: string } | { ok: false; error: string };
 const NO_TARGET_ERROR = 'Give `component` or `path` to read a file, or `pattern` to search the source.';
 
 function noMatchError(args: SalesforceReadSourceArgs): string {
+  // An org retrieve an agent saved with its evidence is in the upload, but not the workspace's source.
+  if (args.path && isSalesforceOrgRetrievePath(args.path)) {
+    return `No source file matches ${describeTarget(args)}: it's in an org retrieve saved under .symposium/, which isn't the workspace's source. Its files are under ${SALESFORCE_WORKSPACE_ROOT}/ for Python.`;
+  }
   return `No source file matches ${describeTarget(args)}. Search with \`pattern\` to find it.`;
 }
 
