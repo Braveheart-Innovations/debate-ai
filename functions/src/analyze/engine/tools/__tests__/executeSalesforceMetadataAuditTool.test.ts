@@ -215,6 +215,94 @@ describe('executeSalesforceMetadataAuditTool', () => {
     });
   });
 
+  describe('operation=component and operation=dependencies', () => {
+    // A profile names every object and field it sets: on QA, component Admin returned 162,708 characters,
+    // 158,048 of them one References line (253 objects, 3,124 fields), resent every later round.
+    async function profileBundle(): Promise<ArrayBuffer> {
+      const fields = Array.from({ length: 25 }, (_, i) => `F${i + 1}__c`);
+      const zip = new JSZip();
+      zip.file('qa/sfdx-project.json', JSON.stringify({ packageDirectories: [{ path: 'force-app', default: true }] }));
+      zip.file('qa/force-app/main/default/objects/Account/Account.object-meta.xml', '<CustomObject><label>Account</label></CustomObject>');
+      zip.file('qa/force-app/main/default/objects/Lead/Lead.object-meta.xml', '<CustomObject><label>Lead</label></CustomObject>');
+      for (const field of fields) {
+        zip.file(`qa/force-app/main/default/objects/Account/fields/${field}.field-meta.xml`, `<CustomField><fullName>${field}</fullName><type>Text</type><length>10</length></CustomField>`);
+      }
+      const permissions = [...fields.map((field) => `Account.${field}`), 'Lead.Status']
+        .map((field) => `<fieldPermissions><editable>true</editable><field>${field}</field><readable>true</readable></fieldPermissions>`).join('');
+      const objects = ['Account', 'Lead'].map((object) => `<objectPermissions><allowRead>true</allowRead><object>${object}</object></objectPermissions>`).join('');
+      zip.file('qa/force-app/main/default/profiles/Admin.profile-meta.xml', `<Profile>${permissions}${objects}</Profile>`);
+      zip.file('qa/force-app/main/default/flows/Account_Stamp.flow-meta.xml', '<Flow><status>Active</status><start><object>Account</object><triggerType>RecordAfterSave</triggerType></start></Flow>');
+      return zip.generateAsync({ type: 'arraybuffer' });
+    }
+    const paths = ['/uploads/qa-salesforce-metadata.zip'];
+
+    it('counts a component\'s references and dependency links by kind and says where each is listed', async () => {
+      mockSandboxService.readFile.mockResolvedValue(await profileBundle());
+      const result = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-component', { operation: 'component', component: 'Admin', paths });
+
+      expect(result.success).toBe(true);
+      expect(result.content).toContain('References: 28 (fields 26, objects 2). Each, with its kind: the references of "profile:Admin" in components[] of /data/salesforce/salesforce-component-index.json.');
+      // Lead.Status has no field file, so it's a reference without a link.
+      expect(result.content).toContain('Dependency links: 27: 27 from Admin (to fields 25, objects 2).');
+      expect(result.content).toContain('Each link, with what it refers to: edges[] in /data/salesforce/salesforce-dependency-map.json whose sourceId or targetId is "profile:Admin".');
+      expect(result.content).not.toContain('F1__c');
+
+      // Nothing is cut: every reference and link is in the files the call wrote.
+      const indexFile = JSON.parse(writtenFile('/data/salesforce/salesforce-component-index.json')!);
+      const admin = indexFile.components.find((component: { id: string }) => component.id === 'profile:Admin');
+      expect(admin.references).toHaveLength(28);
+      const map = JSON.parse(writtenFile('/data/salesforce/salesforce-dependency-map.json')!);
+      expect(map.edges.filter((edge: { sourceId: string }) => edge.sourceId === 'profile:Admin')).toHaveLength(27);
+    });
+
+    it('counts the links into a component by the kind they come from', async () => {
+      mockSandboxService.readFile.mockResolvedValue(await profileBundle());
+      const result = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-deps-account', { operation: 'dependencies', component: 'Account', paths });
+
+      expect(result.content).toContain('Component: Account (custom_object)');
+      expect(result.content).toMatch(/Dependency links: \d+: .*to it \(from Flows 1, profiles 1\)\./);
+      expect(result.content).toContain('whose sourceId or targetId is "custom_object:Account"');
+      expect(result.content).not.toContain(' -> ');
+    });
+
+    it('counts the whole dependency map instead of previewing its first links', async () => {
+      mockSandboxService.readFile.mockResolvedValue(await profileBundle());
+      const result = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-deps', { operation: 'dependencies', paths });
+
+      expect(result.content).toMatch(/Dependency map: \d+ links, by the kind of component they start from: profiles 27/);
+      expect(result.content).toContain('edges[] in /data/salesforce/salesforce-dependency-map.json');
+      expect(result.content).not.toContain(' -> ');
+    });
+
+    it('says a component isn\'t in the workspace rather than showing the whole map', async () => {
+      mockSandboxService.readFile.mockResolvedValue(await profileBundle());
+      const result = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-deps-missing', { operation: 'dependencies', component: 'Nope', paths });
+
+      expect(result.content).toContain('No component named "Nope" in the workspace');
+      expect(result.content).not.toContain('Dependency map');
+    });
+  });
+
+  describe('the operation', () => {
+    it('refuses an operation the tool doesn\'t have, instead of running a whole audit', async () => {
+      const result = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-unknown', { operation: 'access', paths: ['/uploads/qa.zip'] });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('operation="access" isn\'t an audit operation. The operations are audit, inventory, search, component,');
+      expect(mockSandboxService.readFile).not.toHaveBeenCalled();
+    });
+
+    it('runs the audit when the operation is left blank, as models that fill every parameter send it', async () => {
+      const zip = new JSZip();
+      zip.file('force-app/main/default/classes/A.cls', 'public class A {}');
+      mockSandboxService.readFile.mockResolvedValue(await zip.generateAsync({ type: 'arraybuffer' }));
+      const result = await executeSalesforceMetadataAuditTool(mockSandboxService, 'call-blank', { operation: '', paths: ['/uploads/qa.zip'] });
+
+      expect(result.success).toBe(true);
+      expect(result.content).toContain('Salesforce metadata audit index built.');
+    });
+  });
+
   describe('operation=flows', () => {
     it('writes one row per Flow the org owns as working files, and sums them up', async () => {
       const zip = new JSZip();

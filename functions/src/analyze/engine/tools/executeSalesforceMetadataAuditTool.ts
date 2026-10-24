@@ -4,7 +4,8 @@
  * artifact is also written at /output/<filename> (see buildFilesystemEntry).
  */
 import type { ToolResult } from '../../contract/lib/ai/tools/types';
-import type { SalesforceMetadataAuditArgs, SalesforceMetadataAuditOperation } from '../../contract/lib/ai/tools/built-in/salesforce-metadata-audit';
+import { salesforceMetadataAuditTool, type SalesforceMetadataAuditArgs, type SalesforceMetadataAuditOperation } from '../../contract/lib/ai/tools/built-in/salesforce-metadata-audit';
+import type { SalesforceComponentType } from '../../contract/services/salesforce/componentTypes';
 import type { SandboxFiles } from './sandboxFiles';
 import { diagramFileText } from '../../contract/services/analyze/diagrams/diagramFile';
 import { buildSalesforceDataModel } from '../../salesforce/salesforceDataModel';
@@ -45,6 +46,8 @@ import {
   summarizeSalesforceIndex,
   type SalesforceImportedInsightFinding,
   type SalesforceInvalidInsightPacket,
+  type SalesforceMetadataComponent,
+  type SalesforceMetadataDependency,
   type SalesforceMetadataIndex,
   type SalesforceMetadataRisk,
   type SalesforceRetrieveRun,
@@ -53,8 +56,20 @@ import {
 
 const DEFAULT_OPERATION: SalesforceMetadataAuditOperation = 'audit';
 
+/** The operations the tool definition offers (synced from the web), so this list can't fall behind it. */
+const OPERATIONS: readonly string[] = (salesforceMetadataAuditTool.parameters.properties.operation.enum ?? []).map(String);
+
 /** The arguments as the operations use them: `deliver` puts a diagram in the user's Outputs. */
 type AuditArgs = SalesforceMetadataAuditArgs & { operation: SalesforceMetadataAuditOperation; deliver: boolean };
+
+/** The operations that write their own files; the rest build the metadata index. */
+type WriterOperation = 'data_model' | 'flow_diagram' | 'save_order' | 'flows';
+type IndexArgs = AuditArgs & { operation: Exclude<SalesforceMetadataAuditOperation, WriterOperation> };
+
+/** An operation the definition offers and nothing here handles: a type error, so it can't run as another operation. */
+function unhandledOperation(operation: never): never {
+  throw new Error(`salesforce_metadata_audit has no handler for operation="${String(operation)}".`);
+}
 
 /** Where a diagram goes that the model drew to look at the org, not to deliver: kept out of the user's Outputs. */
 export const SALESFORCE_DIAGRAM_WORK_DIR = '/data/salesforce/diagrams';
@@ -93,6 +108,9 @@ export async function executeSalesforceMetadataAuditTool(
   args: Record<string, unknown>,
 ): Promise<ToolResult> {
   try {
+    if (isUnknownOperation(args.operation)) {
+      return { toolCallId, success: false, error: `operation="${String(args.operation)}" isn't an audit operation. The operations are ${OPERATIONS.join(', ')}.` };
+    }
     const parsedArgs = normalizeArgs(args);
     const { sourceFiles, insightPackets, invalidInsightPackets, retrieveRun, workspaceZips } = await loadSalesforceWorkspaceInputs(files, parsedArgs.paths);
 
@@ -109,27 +127,27 @@ export async function executeSalesforceMetadataAuditTool(
     // The operations that don't build the index start with the workspace header too.
     const header = workspaceHeader(retrieveRun, insightPackets.length, insightPackets.reduce((sum, packet) => sum + packet.findings.length, 0));
     const headed = (result: ToolResult): ToolResult => (result.success && result.content ? { ...result, content: withHeader(header, result.content) } : result);
-    if (parsedArgs.operation === 'data_model') {
-      return headed(await writeSalesforceDataModel(files, toolCallId, sourceFiles, parsedArgs));
+    const { operation } = parsedArgs;
+    switch (operation) {
+      case 'data_model':
+        return headed(await writeSalesforceDataModel(files, toolCallId, sourceFiles, parsedArgs));
+      case 'flow_diagram':
+        return headed(await writeSalesforceFlowDiagrams(files, toolCallId, sourceFiles, parsedArgs));
+      case 'save_order':
+        return headed(await writeSalesforceSaveOrders(files, toolCallId, sourceFiles, parsedArgs));
+      case 'flows':
+        return headed(await writeSalesforceFlowTable(files, toolCallId, sourceFiles, workspaceNote));
     }
-    if (parsedArgs.operation === 'flow_diagram') {
-      return headed(await writeSalesforceFlowDiagrams(files, toolCallId, sourceFiles, parsedArgs));
-    }
-    if (parsedArgs.operation === 'save_order') {
-      return headed(await writeSalesforceSaveOrders(files, toolCallId, sourceFiles, parsedArgs));
-    }
-    if (parsedArgs.operation === 'flows') {
-      return headed(await writeSalesforceFlowTable(files, toolCallId, sourceFiles, workspaceNote));
-    }
+    const indexArgs: IndexArgs = { ...parsedArgs, operation };
 
-    const index = buildSalesforceMetadataIndex(sourceFiles, parsedArgs.paths || [], insightPackets, parsedArgs.query, retrieveRun);
-    const artifactFiles = parsedArgs.include_artifacts === false
+    const index = buildSalesforceMetadataIndex(sourceFiles, indexArgs.paths || [], insightPackets, indexArgs.query, retrieveRun);
+    const artifactFiles = indexArgs.include_artifacts === false
       ? []
-      : buildArtifactFiles(index, parsedArgs, invalidInsightPackets);
+      : buildArtifactFiles(index, indexArgs, invalidInsightPackets);
     const filesystemArtifacts = artifactFiles.length > 0
       ? await persistArtifactFilesToFilesystem(files, artifactFiles)
       : [];
-    const content = `${buildOperationContent(index, parsedArgs, filesystemArtifacts, invalidInsightPackets)}\n\n${workspaceNote}`;
+    const content = `${buildOperationContent(index, indexArgs, filesystemArtifacts, invalidInsightPackets)}\n\n${workspaceNote}`;
     const dataOutputs = artifactFiles.length > 0
       ? encodeArtifactOutputs(artifactFiles)
       : undefined;
@@ -217,7 +235,13 @@ function normalizeArgs(args: Record<string, unknown>): AuditArgs {
 }
 
 function isOperation(value: string): value is SalesforceMetadataAuditOperation {
-  return ['audit', 'inventory', 'search', 'component', 'dependencies', 'risks', 'packet_findings', 'handoff', 'feature_readiness', 'troubleshooting', 'data_model', 'flow_diagram', 'save_order', 'flows'].includes(value);
+  return OPERATIONS.includes(value);
+}
+
+/** An operation the model named that the tool doesn't have. Left out (or blank, from models that fill every parameter) is the default. */
+function isUnknownOperation(value: unknown): boolean {
+  if (value === undefined || value === null || (typeof value === 'string' && value.trim() === '')) return false;
+  return !(typeof value === 'string' && isOperation(value));
 }
 
 /**
@@ -320,9 +344,90 @@ export function formatImportedFinding(finding: SalesforceImportedInsightFinding)
   return lines.join('\n');
 }
 
+/** A dependency link's end in words: its kind, or for other metadata its folder (`reports`, `listViews`). */
+const LINK_KIND_WORDS: Record<SalesforceComponentType, string> = {
+  apex_class: 'Apex classes',
+  apex_trigger: 'Apex triggers',
+  lwc_component: 'Lightning web components',
+  aura_component: 'Aura components',
+  custom_object: 'objects',
+  custom_field: 'fields',
+  validation_rule: 'validation rules',
+  flow: 'Flows',
+  permission_set: 'permission sets',
+  profile: 'profiles',
+  layout: 'layouts',
+  package_manifest: 'package manifests',
+  custom_metadata: 'custom metadata records',
+  unknown: 'other metadata',
+};
+
+const REFERENCE_KIND_WORDS: Record<SalesforceMetadataComponent['references'][number]['kind'], string> = {
+  apex: 'Apex classes',
+  object: 'objects',
+  field: 'fields',
+  flow: 'Flows',
+  permission: 'permissions',
+  unknown: 'other names',
+};
+
+function componentsById(index: SalesforceMetadataIndex): Map<string, SalesforceMetadataComponent> {
+  return new Map(index.components.map((entry) => [entry.id, entry]));
+}
+
+function linkKind(byId: Map<string, SalesforceMetadataComponent>, id: string, type: SalesforceComponentType): string {
+  return (type === 'unknown' ? byId.get(id)?.metadataType : undefined) ?? LINK_KIND_WORDS[type];
+}
+
+/** Each kind once with how many, the most first, as the inventory counts folders: `fields 3124, objects 253`. */
+export function countsByKind(kinds: string[]): string {
+  const counts = new Map<string, number>();
+  for (const kind of kinds) counts.set(kind, (counts.get(kind) ?? 0) + 1);
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([kind, count]) => `${kind} ${count}`)
+    .join(', ');
+}
+
+/**
+ * A component's references and dependency links as counts, and where each one
+ * is listed. A profile names every object and field it sets (Admin on QA: 253
+ * objects and 3,124 fields, 158,048 characters as one line), and a tool result
+ * is resent every later round, so the lists stay in the files the call writes.
+ */
+function describeComponentLinks(
+  index: SalesforceMetadataIndex,
+  component: SalesforceMetadataComponent,
+  dependencies: SalesforceMetadataDependency[],
+  filesystemArtifacts: SalesforceArtifactFilesystemEntry[],
+  { references }: { references: boolean },
+): string[] {
+  const byId = componentsById(index);
+  const kindOf = (id: string, type: SalesforceComponentType) => linkKind(byId, id, type);
+  const written = (filename: string) => filesystemArtifacts.find((entry) => entry.filename === filename)?.dataPath;
+  const lines: string[] = [];
+  if (references) {
+    const indexPath = written('salesforce-component-index.json');
+    lines.push(component.references.length === 0
+      ? 'References: none'
+      : `References: ${component.references.length} (${countsByKind(component.references.map((reference) => REFERENCE_KIND_WORDS[reference.kind]))}).${indexPath ? ` Each, with its kind: the references of "${component.id}" in components[] of ${indexPath}.` : ''}`);
+  }
+  const from = dependencies.filter((dependency) => dependency.sourceId === component.id);
+  const to = dependencies.filter((dependency) => dependency.targetId === component.id && dependency.sourceId !== component.id);
+  if (dependencies.length === 0) return [...lines, 'Dependency links: none inferred from the indexed metadata.'];
+  const ends = [
+    from.length > 0 ? `${from.length} from ${component.name} (to ${countsByKind(from.map((dependency) => kindOf(dependency.targetId, dependency.targetType)))})` : '',
+    to.length > 0 ? `${to.length} to it (from ${countsByKind(to.map((dependency) => kindOf(dependency.sourceId, dependency.sourceType)))})` : '',
+  ].filter(Boolean);
+  const mapPath = written('salesforce-dependency-map.json');
+  lines.push(`Dependency links: ${dependencies.length}: ${ends.join('; ')}.`);
+  if (mapPath) lines.push(`Each link, with what it refers to: edges[] in ${mapPath} whose sourceId or targetId is "${component.id}".`);
+  return lines;
+}
+
 function buildOperationContent(
   index: SalesforceMetadataIndex,
-  args: AuditArgs,
+  args: IndexArgs,
   filesystemArtifacts: SalesforceArtifactFilesystemEntry[] = [],
   invalidInsightPackets: SalesforceInvalidInsightPacket[] = [],
 ): string {
@@ -354,10 +459,7 @@ function buildOperationContent(
         `Path: ${component.path}`,
         `Files: ${component.paths.join(', ')}`,
         `Tags: ${component.tags.join(', ') || 'none'}`,
-        `References: ${component.references.map((reference) => `${reference.name} (${reference.kind})`).join(', ') || 'none'}`,
-        '',
-        `Dependency links: ${dependencies.length}`,
-        ...dependencies.slice(0, 20).map((dependency) => `- ${dependency.sourceName} -> ${dependency.targetName} (${dependency.reference})`),
+        ...describeComponentLinks(index, component, dependencies, filesystemArtifacts, { references: true }),
         '',
         `Risk findings: ${risks.length}`,
         formatRiskList(risks),
@@ -366,15 +468,24 @@ function buildOperationContent(
 
     case 'dependencies': {
       const component = args.component ? findSalesforceComponent(index, args.component) : null;
-      const dependencies = component
-        ? index.dependencies.filter((dependency) => dependency.sourceId === component.id || dependency.targetId === component.id)
-        : index.dependencies;
-      return withSnapshot(index, [
-        component ? `Dependency links for ${component.name}:` : 'Dependency map preview:',
-        dependencies.length === 0
-          ? 'No dependency links inferred from the indexed metadata.'
-          : dependencies.slice(0, 80).map((dependency) => `- ${dependency.sourceName} -> ${dependency.targetName} (${dependency.reference})`).join('\n'),
-      ]);
+      if (args.component?.trim() && !component) {
+        return withSnapshot(index, [`No component named "${args.component}" in the workspace; operation="search" finds components by part of a name.`]);
+      }
+      if (component) {
+        const dependencies = index.dependencies.filter((dependency) => dependency.sourceId === component.id || dependency.targetId === component.id);
+        return withSnapshot(index, [
+          `Component: ${component.name} (${component.metadataType ?? component.type})`,
+          ...describeComponentLinks(index, component, dependencies, filesystemArtifacts, { references: false }),
+        ]);
+      }
+      const mapPath = filesystemArtifacts.find((entry) => entry.filename === 'salesforce-dependency-map.json')?.dataPath;
+      const byId = componentsById(index);
+      return withSnapshot(index, index.dependencies.length === 0
+        ? ['Dependency map: no links inferred from the indexed metadata.']
+        : [
+          `Dependency map: ${index.dependencies.length} links, by the kind of component they start from: ${countsByKind(index.dependencies.map((dependency) => linkKind(byId, dependency.sourceId, dependency.sourceType)))}.`,
+          ...(mapPath ? [`Each link (sourceId, targetId, reference, relationship): edges[] in ${mapPath}; nodes[] names each component.`] : []),
+        ]);
     }
 
     case 'risks': {
@@ -421,7 +532,6 @@ function buildOperationContent(
       return withSnapshot(index, [[buildSalesforceTroubleshootingBrief(index, args.query), filesystemSection].filter(Boolean).join('\n\n')]);
 
     case 'audit':
-    default:
       return [
         summarizeSalesforceIndex(index),
         '',
@@ -432,6 +542,9 @@ function buildOperationContent(
         'Imported agent evidence entries are available at the top-level `importedFindings` key in `salesforce-insight-packets.json`; packet metadata is in `validPackets`.',
         filesystemSection,
       ].join('\n');
+
+    default:
+      return unhandledOperation(args.operation);
   }
 }
 
@@ -447,7 +560,7 @@ function formatWorkingFiles(filesystemArtifacts: SalesforceArtifactFilesystemEnt
 
 function buildArtifactFiles(
   index: SalesforceMetadataIndex,
-  args: AuditArgs,
+  args: IndexArgs,
   invalidInsightPackets: SalesforceInvalidInsightPacket[],
 ): SalesforceArtifactFile[] {
   const outputs: SalesforceArtifactFile[] = [];
@@ -471,72 +584,91 @@ function buildArtifactFiles(
     );
   };
 
-  if (args.operation === 'audit') {
-    addCoreAuditOutputs();
-    outputs.push(
-      { filename: 'salesforce-feature-readiness-brief.md', content: buildSalesforceFeatureReadinessBrief(index, args.query) },
-      { filename: 'salesforce-executive-brief.md', content: buildSalesforceExecutiveBrief(index, args.query) },
-      { filename: 'salesforce-vscode-handoff.json', content: JSON.stringify(buildSalesforceVsCodeHandoff(index, args.query)) },
-    );
-  } else if (args.operation === 'inventory' || args.operation === 'search' || args.operation === 'component') {
-    outputs.push({ filename: 'salesforce-component-index.json', content: buildSalesforceInventory(index) });
-  } else if (args.operation === 'dependencies') {
-    outputs.push({ filename: 'salesforce-dependency-map.json', content: buildSalesforceDependencyMap(index) });
-  } else if (args.operation === 'risks') {
-    outputs.push(
-      { filename: 'salesforce-metadata-audit-report.md', content: buildSalesforceAuditReport(index) },
-      { filename: 'salesforce-remediation-backlog.json', content: buildSalesforceRemediationBacklog(index) },
-      { filename: 'salesforce-signal-evidence.json', content: buildSalesforceSignalEvidence(index) },
-      { filename: 'salesforce-evidence-ledger.json', content: buildSalesforceEvidenceLedger(index) },
-      { filename: 'salesforce-flow-drilldowns.json', content: buildSalesforceFlowDrilldowns(index) },
-      { filename: 'salesforce-apex-drilldowns.json', content: buildSalesforceApexDrilldowns(index) },
-      { filename: 'salesforce-feature-reference-map.json', content: buildSalesforceFeatureReferenceMap(index) },
-      { filename: 'salesforce-workbench-summary.json', content: buildSalesforceWorkbenchSummary(index) },
-      { filename: 'salesforce-insight-packets.json', content: buildSalesforceInsightPacketSummary(index, invalidInsightPackets) },
-      { filename: 'salesforce-doc-topics.json', content: buildSalesforceDocumentationTopics(index, args.query) },
-    );
-  } else if (args.operation === 'packet_findings') {
-    outputs.push(
-      { filename: 'salesforce-insight-packets.json', content: buildSalesforceInsightPacketSummary(index, invalidInsightPackets) },
-      { filename: 'salesforce-evidence-ledger.json', content: buildSalesforceEvidenceLedger(index) },
-      { filename: 'salesforce-feature-reference-map.json', content: buildSalesforceFeatureReferenceMap(index) },
-      { filename: 'salesforce-doc-topics.json', content: buildSalesforceDocumentationTopics(index, args.query) },
-      { filename: 'salesforce-artifact-schema.json', content: buildSalesforceArtifactSchema(index) },
-    );
-  } else if (args.operation === 'handoff') {
-    outputs.push(
-      { filename: 'salesforce-vscode-handoff.json', content: JSON.stringify(buildSalesforceVsCodeHandoff(index, args.query)) },
-      { filename: 'salesforce-evidence-ledger.json', content: buildSalesforceEvidenceLedger(index) },
-      { filename: 'salesforce-feature-reference-map.json', content: buildSalesforceFeatureReferenceMap(index) },
-      { filename: 'salesforce-doc-topics.json', content: buildSalesforceDocumentationTopics(index, args.query) },
-    );
-  } else if (args.operation === 'feature_readiness') {
-    outputs.push(
-      { filename: 'salesforce-feature-readiness-brief.md', content: buildSalesforceFeatureReadinessBrief(index, args.query) },
-      { filename: 'salesforce-executive-brief.md', content: buildSalesforceExecutiveBrief(index, args.query) },
-      { filename: 'salesforce-evidence-ledger.json', content: buildSalesforceEvidenceLedger(index) },
-      { filename: 'salesforce-flow-drilldowns.json', content: buildSalesforceFlowDrilldowns(index) },
-      { filename: 'salesforce-apex-drilldowns.json', content: buildSalesforceApexDrilldowns(index) },
-      { filename: 'salesforce-feature-reference-map.json', content: buildSalesforceFeatureReferenceMap(index) },
-      { filename: 'salesforce-stakeholder-visual-artifacts.json', content: buildSalesforceStakeholderArtifactPlan(index) },
-      { filename: 'salesforce-doc-topics.json', content: buildSalesforceDocumentationTopics(index, args.query) },
-    );
-  } else if (args.operation === 'troubleshooting') {
-    outputs.push(
-      { filename: 'salesforce-troubleshooting-brief.md', content: buildSalesforceTroubleshootingBrief(index, args.query) },
-      { filename: 'salesforce-component-index.json', content: buildSalesforceInventory(index) },
-      { filename: 'salesforce-dependency-map.json', content: buildSalesforceDependencyMap(index) },
-      { filename: 'salesforce-remediation-backlog.json', content: buildSalesforceRemediationBacklog(index) },
-      { filename: 'salesforce-signal-evidence.json', content: buildSalesforceSignalEvidence(index) },
-      { filename: 'salesforce-evidence-ledger.json', content: buildSalesforceEvidenceLedger(index) },
-      { filename: 'salesforce-flow-drilldowns.json', content: buildSalesforceFlowDrilldowns(index) },
-      { filename: 'salesforce-apex-drilldowns.json', content: buildSalesforceApexDrilldowns(index) },
-      { filename: 'salesforce-feature-reference-map.json', content: buildSalesforceFeatureReferenceMap(index) },
-      { filename: 'salesforce-workbench-summary.json', content: buildSalesforceWorkbenchSummary(index) },
-      { filename: 'salesforce-insight-packets.json', content: buildSalesforceInsightPacketSummary(index, invalidInsightPackets) },
-      { filename: 'salesforce-doc-topics.json', content: buildSalesforceDocumentationTopics(index, args.query) },
-      { filename: 'salesforce-artifact-schema.json', content: buildSalesforceArtifactSchema(index) },
-    );
+  switch (args.operation) {
+    case 'audit':
+      addCoreAuditOutputs();
+      outputs.push(
+        { filename: 'salesforce-feature-readiness-brief.md', content: buildSalesforceFeatureReadinessBrief(index, args.query) },
+        { filename: 'salesforce-executive-brief.md', content: buildSalesforceExecutiveBrief(index, args.query) },
+        { filename: 'salesforce-vscode-handoff.json', content: JSON.stringify(buildSalesforceVsCodeHandoff(index, args.query)) },
+      );
+      break;
+    case 'inventory':
+    case 'search':
+      outputs.push({ filename: 'salesforce-component-index.json', content: buildSalesforceInventory(index) });
+      break;
+    case 'component':
+      // The component's references and dependency links, which its result counts.
+      outputs.push(
+        { filename: 'salesforce-component-index.json', content: buildSalesforceInventory(index) },
+        { filename: 'salesforce-dependency-map.json', content: buildSalesforceDependencyMap(index) },
+      );
+      break;
+    case 'dependencies':
+      outputs.push({ filename: 'salesforce-dependency-map.json', content: buildSalesforceDependencyMap(index) });
+      break;
+    case 'risks':
+      outputs.push(
+        { filename: 'salesforce-metadata-audit-report.md', content: buildSalesforceAuditReport(index) },
+        { filename: 'salesforce-remediation-backlog.json', content: buildSalesforceRemediationBacklog(index) },
+        { filename: 'salesforce-signal-evidence.json', content: buildSalesforceSignalEvidence(index) },
+        { filename: 'salesforce-evidence-ledger.json', content: buildSalesforceEvidenceLedger(index) },
+        { filename: 'salesforce-flow-drilldowns.json', content: buildSalesforceFlowDrilldowns(index) },
+        { filename: 'salesforce-apex-drilldowns.json', content: buildSalesforceApexDrilldowns(index) },
+        { filename: 'salesforce-feature-reference-map.json', content: buildSalesforceFeatureReferenceMap(index) },
+        { filename: 'salesforce-workbench-summary.json', content: buildSalesforceWorkbenchSummary(index) },
+        { filename: 'salesforce-insight-packets.json', content: buildSalesforceInsightPacketSummary(index, invalidInsightPackets) },
+        { filename: 'salesforce-doc-topics.json', content: buildSalesforceDocumentationTopics(index, args.query) },
+      );
+      break;
+    case 'packet_findings':
+      outputs.push(
+        { filename: 'salesforce-insight-packets.json', content: buildSalesforceInsightPacketSummary(index, invalidInsightPackets) },
+        { filename: 'salesforce-evidence-ledger.json', content: buildSalesforceEvidenceLedger(index) },
+        { filename: 'salesforce-feature-reference-map.json', content: buildSalesforceFeatureReferenceMap(index) },
+        { filename: 'salesforce-doc-topics.json', content: buildSalesforceDocumentationTopics(index, args.query) },
+        { filename: 'salesforce-artifact-schema.json', content: buildSalesforceArtifactSchema(index) },
+      );
+      break;
+    case 'handoff':
+      outputs.push(
+        { filename: 'salesforce-vscode-handoff.json', content: JSON.stringify(buildSalesforceVsCodeHandoff(index, args.query)) },
+        { filename: 'salesforce-evidence-ledger.json', content: buildSalesforceEvidenceLedger(index) },
+        { filename: 'salesforce-feature-reference-map.json', content: buildSalesforceFeatureReferenceMap(index) },
+        { filename: 'salesforce-doc-topics.json', content: buildSalesforceDocumentationTopics(index, args.query) },
+      );
+      break;
+    case 'feature_readiness':
+      outputs.push(
+        { filename: 'salesforce-feature-readiness-brief.md', content: buildSalesforceFeatureReadinessBrief(index, args.query) },
+        { filename: 'salesforce-executive-brief.md', content: buildSalesforceExecutiveBrief(index, args.query) },
+        { filename: 'salesforce-evidence-ledger.json', content: buildSalesforceEvidenceLedger(index) },
+        { filename: 'salesforce-flow-drilldowns.json', content: buildSalesforceFlowDrilldowns(index) },
+        { filename: 'salesforce-apex-drilldowns.json', content: buildSalesforceApexDrilldowns(index) },
+        { filename: 'salesforce-feature-reference-map.json', content: buildSalesforceFeatureReferenceMap(index) },
+        { filename: 'salesforce-stakeholder-visual-artifacts.json', content: buildSalesforceStakeholderArtifactPlan(index) },
+        { filename: 'salesforce-doc-topics.json', content: buildSalesforceDocumentationTopics(index, args.query) },
+      );
+      break;
+    case 'troubleshooting':
+      outputs.push(
+        { filename: 'salesforce-troubleshooting-brief.md', content: buildSalesforceTroubleshootingBrief(index, args.query) },
+        { filename: 'salesforce-component-index.json', content: buildSalesforceInventory(index) },
+        { filename: 'salesforce-dependency-map.json', content: buildSalesforceDependencyMap(index) },
+        { filename: 'salesforce-remediation-backlog.json', content: buildSalesforceRemediationBacklog(index) },
+        { filename: 'salesforce-signal-evidence.json', content: buildSalesforceSignalEvidence(index) },
+        { filename: 'salesforce-evidence-ledger.json', content: buildSalesforceEvidenceLedger(index) },
+        { filename: 'salesforce-flow-drilldowns.json', content: buildSalesforceFlowDrilldowns(index) },
+        { filename: 'salesforce-apex-drilldowns.json', content: buildSalesforceApexDrilldowns(index) },
+        { filename: 'salesforce-feature-reference-map.json', content: buildSalesforceFeatureReferenceMap(index) },
+        { filename: 'salesforce-workbench-summary.json', content: buildSalesforceWorkbenchSummary(index) },
+        { filename: 'salesforce-insight-packets.json', content: buildSalesforceInsightPacketSummary(index, invalidInsightPackets) },
+        { filename: 'salesforce-doc-topics.json', content: buildSalesforceDocumentationTopics(index, args.query) },
+        { filename: 'salesforce-artifact-schema.json', content: buildSalesforceArtifactSchema(index) },
+      );
+      break;
+    default:
+      unhandledOperation(args.operation);
   }
 
   const manifest = buildArtifactFilesystemManifest(outputs);
