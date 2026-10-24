@@ -10,6 +10,13 @@
     // configured, and the native updates client verifies without it.
     // Allowlisted 2026-10-01; REMOVE when node-forge ships a fix (> 1.4.0)
     // and drop the direct "node-forge" pin in package.json at the same time.
-    "GHSA-86w9-cpqp-85rv"
+    "GHSA-86w9-cpqp-85rv",
+    // zod memory exhaustion while validating oversized collections (high); fixed
+    // only in zod 4.6.6. Allowlisted for this one path: @expo/cli pins
+    // zod ^3.25.76 in every SDK 57 and SDK 58 release and uses it to check
+    // local project config at build time. The app never imports zod (not in
+    // the bundle). Allowlisted 2026-10-24; REMOVE when @expo/cli moves to
+    // zod >= 4.6.6.
+    "GHSA-mrhx-c7xc-m3w5|expo>@expo/cli>zod"
   ]
 }
