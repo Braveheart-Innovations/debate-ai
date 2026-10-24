@@ -151,8 +151,10 @@ export class PerplexityAdapter extends OpenAICompatibleAdapter {
           messages,
           temperature: this.config.parameters?.temperature ?? 0.7,
           // Floored per model: Sonar Deep Research returns no text below its
-          // minOutputTokens because reasoning shares the budget.
-          max_tokens: this.resolveMaxTokens(resolvedModel, 2048),
+          // minOutputTokens because reasoning shares the budget. Omitted when
+          // nothing is set (live-verified 2026-10-23: sonar-pro answered in
+          // full, 2,799 tokens).
+          max_tokens: this.resolveMaxTokens(resolvedModel),
           top_p: this.config.parameters?.topP,
           stream: false,
           // Perplexity-specific parameters

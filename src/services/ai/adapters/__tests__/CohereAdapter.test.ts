@@ -103,6 +103,14 @@ describe('CohereAdapter', () => {
       expect(body.max_tokens).toBe(2048);
     });
 
+    it('sends no max_tokens when no limit is set', async () => {
+      const adapter = new CohereAdapter(makeConfig({ parameters: { temperature: 0.7 } }));
+      await adapter.sendMessage('Hello');
+
+      const [, requestInit] = fetchMock.mock.calls[0];
+      expect(JSON.parse(String(requestInit?.body))).not.toHaveProperty('max_tokens');
+    });
+
     it('extracts response text from v2 format', async () => {
       const adapter = new CohereAdapter(makeConfig());
       const result = await adapter.sendMessage('Hello') as AdapterResponse;

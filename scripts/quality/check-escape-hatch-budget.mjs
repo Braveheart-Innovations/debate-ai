@@ -18,8 +18,8 @@ const BUDGETS = {
   'tests: skipped or todo tests': 0,
   'tests: untyped require() of app modules': 0,
   'tests: untyped require() of packages': 0,
-  'src: single `as` casts': 516,
-  'tests: single `as` casts': 411,
+  'src: single `as` casts': 515,
+  'tests: single `as` casts': 407,
   'tests: untyped bare jest.fn()': 1566,
   'tests: malformed() inputs': 7,
 };

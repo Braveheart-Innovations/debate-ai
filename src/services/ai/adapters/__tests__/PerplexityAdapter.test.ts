@@ -351,6 +351,18 @@ describe('PerplexityAdapter', () => {
       expect(sentMaxTokens()).toBe(64000);
     });
 
+    it('sends the floor alone when no limit is set', async () => {
+      const adapter = new PerplexityAdapter(makeConfig({ model: 'sonar-deep-research', parameters: { temperature: 0.7 } }));
+      await adapter.sendMessage('Research this');
+      expect(sentMaxTokens()).toBe(32768);
+    });
+
+    it('sends no limit for a model without a floor when none is set', async () => {
+      const adapter = new PerplexityAdapter(makeConfig({ model: 'sonar-pro', parameters: { temperature: 0.7 } }));
+      await adapter.sendMessage('Quick answer');
+      expect(sentMaxTokens()).toBeUndefined();
+    });
+
     it('leaves models without a floor on the configured budget', async () => {
       const adapter = new PerplexityAdapter(makeConfig({ model: 'sonar-pro' }));
       await adapter.sendMessage('Quick answer');

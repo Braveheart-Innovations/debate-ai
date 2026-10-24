@@ -78,7 +78,8 @@ interface ActiveSessionIndexEntry {
 
 const STORAGE_VERSION = 1;
 const INDEX_KEY = 'activeSessionSnapshots_index_v1';
-const SNAPSHOT_PREFIX = 'activeSessionSnapshot_v1_';
+export const ACTIVE_SESSION_SNAPSHOT_PREFIX = 'activeSessionSnapshot_v1_';
+const SNAPSHOT_PREFIX = ACTIVE_SESSION_SNAPSHOT_PREFIX;
 const SENSITIVE_FIELD_PATTERN = /(api[_-]?key|authorization|bearer|secret|token|password)/i;
 
 const getSnapshotKey = (mode: ActiveSessionMode, sessionId: string): string =>

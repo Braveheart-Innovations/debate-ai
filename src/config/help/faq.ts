@@ -173,7 +173,7 @@ export const FAQ_ITEMS: FAQItem[] = [
     id: 'faq-max-tokens-setting',
     question: 'What are max tokens?',
     answer:
-      'Max tokens limits response length. One token is roughly 4 characters or 0.75 words. 256 tokens ≈ 200 words (short answers), 1024 tokens ≈ 750 words (detailed responses), 4096 tokens ≈ 3000 words (long-form content).',
+      'Max tokens limits response length. It is empty by default, so the model answers up to its own limit. One token is roughly 4 characters or 0.75 words. 256 tokens ≈ 200 words (short answers), 1024 tokens ≈ 750 words (detailed responses), 4096 tokens ≈ 3000 words (long-form content). Models that think first spend part of the limit thinking, so a low limit can cut them off.',
     category: 'expert-mode',
     relatedTopic: 'expert-tokens',
   },
@@ -287,7 +287,7 @@ export const FAQ_ITEMS: FAQItem[] = [
     id: 'faq-which-providers-generate-images',
     question: 'Which AI providers can generate images?',
     answer:
-      'Image generation is supported by OpenAI (GPT Image models), Google (Gemini image models and Imagen), and Grok. Each provider requires a valid API key. You can run up to 3 image models at once, and each model\'s settings sheet shows whether it can edit images and use references or creates from text prompts only.',
+      'Image generation is supported by OpenAI (GPT Image models), Google (Gemini image models), and Grok. Each provider requires a valid API key. You can run up to 3 image models at once, and each model\'s settings sheet shows whether it can edit images and use references or creates from text prompts only.',
     category: 'create',
     relatedTopic: 'create-providers',
   },

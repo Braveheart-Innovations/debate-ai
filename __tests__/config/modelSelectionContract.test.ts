@@ -95,6 +95,18 @@ describe('Model selection contract', () => {
     expect(getSupportedParams('claude', 'claude-haiku-5-5')).toEqual(['maxTokens', 'stopSequences']);
   });
 
+  it('offers Kimi K3.1 Pro, its High-Speed version and K3, and moves retiring K2 selections to K3.1', () => {
+    expect(getProviderModels('moonshot').map((model) => model.id)).toEqual([
+      'kimi-k3.1-pro',
+      'kimi-k3.1-pro-highspeed',
+      'kimi-k3',
+    ]);
+    expect(resolveProviderModelId('moonshot', 'kimi-k2.6')).toBe('kimi-k3.1-pro');
+    expect(resolveProviderModelId('moonshot', 'kimi-k2.7-code')).toBe('kimi-k3.1-pro');
+    // Like-for-like: the High-Speed selection keeps its speed.
+    expect(resolveProviderModelId('moonshot', 'kimi-k2.7-code-highspeed')).toBe('kimi-k3.1-pro-highspeed');
+  });
+
   it('routes deprecated Claude Sonnet 4.5 to the default with its 200K window', () => {
     expect(getModelById('claude', 'claude-sonnet-4-5-20250929')).toMatchObject({
       contextLength: 200000,

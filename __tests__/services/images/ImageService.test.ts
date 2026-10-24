@@ -202,14 +202,6 @@ describe('ImageService', () => {
           aspectRatio: '1:1',
         }));
         expect(requestBody.generationConfig.responseFormat).toBeUndefined();
-      } else if (apiFamily === 'google-imagen') {
-        expect(String(url)).toContain(`/v1beta/models/${resolvedModel?.id}:predict`);
-        expect(requestBody).toMatchObject({
-          instances: [{ prompt: 'transport test' }],
-          parameters: expect.objectContaining({
-            aspectRatio: '1:1',
-          }),
-        });
       } else if (apiFamily === 'xai-images') {
         expect(String(url)).toBe('https://api.x.ai/v1/images/generations');
         expect(requestBody).toMatchObject({
@@ -527,15 +519,14 @@ describe('ImageService', () => {
       });
     });
 
-    it('routes Imagen models to the predict endpoint and parses generatedImages', async () => {
+    it('sends a saved Imagen 4 choice to Gemini 3.1 Flash Image', async () => {
+      // Google shut down Imagen 4 on the Gemini API on 2026-08-17.
       mockedFetch.mockResolvedValue(jsonResponse({
-        generatedImages: [
-          { image: { imageBytes: 'aW1hZ2Vu', mimeType: 'image/png' } },
-        ],
+        candidates: [{ content: { parts: [{ inlineData: { data: 'aW1hZ2Vu', mimeType: 'image/png' } }] } }],
       }));
-      mockedSaveBase64Image.mockResolvedValue('/cache/images/imagen.png');
+      mockedSaveBase64Image.mockResolvedValue('/cache/images/gemini.png');
 
-      const result = await ImageService.generateImage({
+      await ImageService.generateImage({
         provider: 'google',
         model: 'imagen-4.0-generate-001',
         apiKey: 'key',
@@ -543,52 +534,8 @@ describe('ImageService', () => {
         size: '16:9',
       });
 
-      expect(mockedFetch).toHaveBeenCalledWith(
-        expect.stringContaining('imagen-4.0-generate-001:predict'),
-        expect.objectContaining({
-          method: 'POST',
-          headers: expect.objectContaining({ 'x-goog-api-key': 'key' }),
-        })
-      );
-      expect(String(mockedFetch.mock.calls[0][0])).not.toContain('key=');
-      const body = JSON.parse((mockedFetch.mock.calls[0][1] as RequestInit).body as string);
-      expect(body).toMatchObject({
-        instances: [{ prompt: 'clean product photo' }],
-        parameters: {
-          sampleCount: 1,
-          aspectRatio: '16:9',
-        },
-      });
-      expect(result).toEqual([{ url: '/cache/images/imagen.png', mimeType: 'image/png', b64: 'aW1hZ2Vu' }]);
-    });
-
-    it('maps Imagen sample count and image size when supported', async () => {
-      mockedFetch.mockResolvedValue(jsonResponse({
-        generatedImages: [
-          { image: { imageBytes: 'aW1hZ2VuMQ==', mimeType: 'image/png' } },
-          { image: { imageBytes: 'aW1hZ2VuMg==', mimeType: 'image/png' } },
-        ],
-      }));
-      mockedSaveBase64Image
-        .mockResolvedValueOnce('/cache/images/imagen-1.png')
-        .mockResolvedValueOnce('/cache/images/imagen-2.png');
-
-      await ImageService.generateImage({
-        provider: 'google',
-        model: 'imagen-4.0-generate-001',
-        apiKey: 'key',
-        prompt: 'clean product photo',
-        size: '9:16',
-        resolution: '2K',
-        n: 3,
-      });
-
-      const body = JSON.parse((mockedFetch.mock.calls[0][1] as RequestInit).body as string);
-      expect(body.parameters).toMatchObject({
-        sampleCount: 3,
-        aspectRatio: '9:16',
-        imageSize: '2K',
-      });
+      expect(String(mockedFetch.mock.calls[0][0])).toContain('/v1beta/models/gemini-3.1-flash-image:generateContent');
+      expect(String(mockedFetch.mock.calls[0][0])).not.toContain(':predict');
     });
 
     it('handles multiple image parts from Google response', async () => {

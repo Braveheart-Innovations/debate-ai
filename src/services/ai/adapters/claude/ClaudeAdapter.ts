@@ -11,6 +11,9 @@ import EventSource, { CustomEvent } from 'react-native-sse';
 import { extractSSEErrorMessage, mapErrorTypeToMessage } from '../../utils/extractSSEErrorMessage';
 import { normalizeFinishReason } from '../../utils/normalizeFinishReason';
 
+// Non-streaming replies above ~16K output risk outlasting the HTTP request.
+const NON_STREAMING_MAX_TOKENS = 16000;
+
 // Define Claude's custom SSE event types
 type ClaudeEventTypes = 'message_start' | 'content_block_start' | 'content_block_delta' | 'content_block_stop' | 'message_stop' | 'ping' | 'message';
 
@@ -35,6 +38,21 @@ export class ClaudeAdapter extends BaseAdapter {
     };
   }
   
+  /**
+   * Claude requires max_tokens. With no user limit a streamed reply gets the
+   * model's full output; a non-streamed one stops at 16K so a long reply can't
+   * outlast the HTTP request (Anthropic's guidance for non-streaming calls).
+   * Adaptive thinking counts toward it on the 5.x models.
+   */
+  private resolveClaudeMaxTokens(modelId: string, streaming: boolean): number {
+    const requested = this.config.parameters?.maxTokens;
+    if (requested !== undefined) {
+      return requested;
+    }
+    const modelMax = getModelById('claude', modelId)?.maxOutputTokens ?? 8192;
+    return streaming ? modelMax : Math.min(modelMax, NON_STREAMING_MAX_TOKENS);
+  }
+
   public getLastModelUsed(): string | undefined {
     return this.lastModelUsed;
   }
@@ -182,7 +200,7 @@ export class ClaudeAdapter extends BaseAdapter {
       try {
         const requestBody: Record<string, unknown> = {
           model: modelId,
-          max_tokens: this.config.parameters?.maxTokens || 8192,
+          max_tokens: this.resolveClaudeMaxTokens(modelId, false),
           system: this.getSystemPrompt(),
           messages: [
             ...formattedHistory,
@@ -276,7 +294,7 @@ export class ClaudeAdapter extends BaseAdapter {
     
     const requestBodyObj: Record<string, unknown> = {
       model: modelId,
-      max_tokens: this.config.parameters?.maxTokens || 8192,
+      max_tokens: this.resolveClaudeMaxTokens(modelId, true),
       stream: true,
       system: this.getSystemPrompt(),
       messages: [

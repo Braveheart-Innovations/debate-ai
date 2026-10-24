@@ -2,23 +2,6 @@
   "$schema": "https://raw.githubusercontent.com/IBM/audit-ci/main/docs/schema.json",
   "moderate": true,
   "allowlist": [
-    // image-size DoS advisories (ICNS / JXL / HEIF parser infinite loops),
-    // reached only through metro's dev-time asset pipeline (metro -> expo /
-    // react-native). Patched 2.0.3+ shipped 2026-09-14, but there is no
-    // patched 1.x and metro 0.84 requires ^1.0.2: it calls imageSize(filePath),
-    // which 2.x rejects (buffers only), so overriding to 2.x breaks every image
-    // asset in the bundle (verified 2026-09-30). Remove both entries once metro
-    // moves to image-size 2.x. Allowlisted 2026-08-18 during the Expo SDK 57
-    // upgrade.
-    "GHSA-w3rx-r6r6-pgpr",
-    "GHSA-5p2g-fcmc-qvqq",
-    // decode-uri-component DoS (exponential decoding of malformed input),
-    // reached only through @react-navigation/native -> @react-navigation/core
-    // -> query-string. The only "fix" npm offers is `--force`, which DOWNGRADES
-    // @react-navigation/native to 3.8.4 — never do that. Allowlisted
-    // 2026-09-04; REVISIT when a react-navigation release bumps query-string
-    // (or query-string's decode-uri-component) to a patched version.
-    "GHSA-vcc3-ghjq-m6fr",
     // node-forge RSA PKCS#1 v1.5 signature-verification bypass (high). No
     // patched release exists (every version <= 1.4.0, the latest, is
     // affected). Reached only through dev/build tooling: @expo/cli and

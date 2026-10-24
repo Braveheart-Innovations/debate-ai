@@ -35,12 +35,16 @@ export abstract class BaseAdapter {
    * the provider/model range (e.g. Claude/Cohere cap at 1, requiresTemperature1
    * models lock to 1). Single choke point for chat, compare, and debate.
    */
-  // max_tokens for a request: the configured value (or the caller's fallback),
-  // raised to the model's minOutputTokens floor when it has one.
-  protected resolveMaxTokens(modelId: string, fallback: number): number {
-    const requested = this.config.parameters?.maxTokens || fallback;
-    const floor = getModelById(this.config.provider, modelId)?.minOutputTokens ?? 0;
-    return Math.max(requested, floor);
+  // max_tokens for a request: the user's limit raised to the model's
+  // minOutputTokens floor, or the floor alone. Undefined (nothing set, no
+  // floor) means the request carries no limit and the model's own applies.
+  protected resolveMaxTokens(modelId: string): number | undefined {
+    const requested = this.config.parameters?.maxTokens;
+    const floor = getModelById(this.config.provider, modelId)?.minOutputTokens;
+    if (requested === undefined) {
+      return floor;
+    }
+    return Math.max(requested, floor ?? 0);
   }
 
   protected resolveSamplingParameters(modelId: string): {

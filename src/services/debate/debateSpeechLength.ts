@@ -8,6 +8,8 @@ interface DebateSpeechLengthInput {
   phase: PhaseId;
   cxRole?: CxRole;
   voiceMode?: boolean;
+  /** The speaker's model reasons before it answers; its reasoning shares the output limit. */
+  thinkingModel?: boolean;
   /** The debate's speech length setting. Exchanges set how many speeches there are, not their length. */
   level?: DebateSpeechLength;
 }
@@ -34,7 +36,8 @@ const DEBATE_OUTPUT_SAFETY_TOKENS = 6144;
 // Generous voice ceiling: a runaway safety net, NOT a length control. Deliberately set well above
 // the 3000-char TTS budget (~750 tokens) so a token-limit finish is rare. Per-phase length is
 // controlled by the prompt's word target, and audio length is bounded at the TTS boundary on
-// completed text (see DebateVoiceService).
+// completed text (see DebateVoiceService). A model that reasons first gets the text ceiling instead:
+// Kimi K3.1 used 1,083-2,011 tokens on a 150-word opening (2026-10-23), so 1536 cut most of them off.
 const DEBATE_VOICE_OUTPUT_SAFETY_TOKENS = 1536;
 
 // Measured on Claude, ChatGPT and Gemini in text and voice mode (docs/evals/debate-length/): every
@@ -95,7 +98,7 @@ export function getDebateSpeechLengthGuidance(input: DebateSpeechLengthInput): D
     targetWords,
     minWords,
     maxWords,
-    maxTokens: input.voiceMode ? DEBATE_VOICE_OUTPUT_SAFETY_TOKENS : DEBATE_OUTPUT_SAFETY_TOKENS,
+    maxTokens: input.voiceMode && !input.thinkingModel ? DEBATE_VOICE_OUTPUT_SAFETY_TOKENS : DEBATE_OUTPUT_SAFETY_TOKENS,
     directive: `Length guidance: about ${targetWords} words (between ${minWords} and ${maxWords}), in natural prose with no headings or lists, then stop.`,
   };
 }

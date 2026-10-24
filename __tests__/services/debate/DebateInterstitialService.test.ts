@@ -93,8 +93,9 @@ describe('DebateInterstitialService', () => {
       }),
     };
 
+    const service = aiService as unknown as AIService;
     const message = await createDebateInterstitialMessage({
-      aiService: aiService as unknown as AIService,
+      aiService: service,
       session: createSession(),
       kind: 'intro',
       now: () => 123,
@@ -106,8 +107,29 @@ describe('DebateInterstitialService', () => {
       [],
       undefined,
       undefined,
-      expect.objectContaining({ maxTokens: 1024, temperature: 0.62 }),
+      // GPT-5 reasons first, so the host gets the debaters' 6144 ceiling.
+      expect.objectContaining({ maxTokens: 6144, temperature: 0.62 }),
       'gpt-5'
+    );
+
+    // A host that answers without reasoning first keeps the 1024 ceiling.
+    const base = createSession();
+    const podcast = base.voiceConfig?.podcast;
+    if (!podcast?.mc || !base.voiceConfig) throw new Error('fixture needs a podcast host');
+    await createDebateInterstitialMessage({
+      aiService: service,
+      session: { ...base, voiceConfig: { ...base.voiceConfig, podcast: { ...podcast, mc: { ...podcast.mc, model: 'gpt-4.1' } } } },
+      kind: 'intro',
+      now: () => 124,
+    });
+    expect(aiService.sendMessage).toHaveBeenLastCalledWith(
+      'openai',
+      expect.any(String),
+      [],
+      undefined,
+      undefined,
+      expect.objectContaining({ maxTokens: 1024 }),
+      'gpt-4.1'
     );
     expect(aiService.sendMessage).not.toHaveBeenCalledWith(
       expect.anything(),

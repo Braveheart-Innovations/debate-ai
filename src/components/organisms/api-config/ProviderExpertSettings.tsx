@@ -29,7 +29,8 @@ interface ProviderExpertSettingsProps {
   selectedModel?: string;
   onModelChange: (modelId: string) => void;
   parameters: ModelParameters;
-  onParameterChange: (param: keyof ModelParameters, value: number | string | string[]) => void;
+  /** Undefined clears the parameter (maxTokens back to the model's own limit). */
+  onParameterChange: (param: keyof ModelParameters, value: number | string | string[] | undefined) => void;
 }
 
 export const ProviderExpertSettings: React.FC<ProviderExpertSettingsProps> = ({
@@ -63,6 +64,9 @@ export const ProviderExpertSettings: React.FC<ProviderExpertSettingsProps> = ({
         }
       }
     });
+    if (parameters.maxTokens !== undefined) {
+      onParameterChange('maxTokens', undefined);
+    }
   };
   
   const renderParameter = (param: keyof ModelParameters) => {
@@ -71,8 +75,11 @@ export const ProviderExpertSettings: React.FC<ProviderExpertSettingsProps> = ({
 
     // Display-clamp stored out-of-range values (e.g. a saved temperature of
     // 1.8 before the Claude cap); the adapters clamp again at request time.
-    const rawValue = Number(parameters[param] ?? DEFAULT_PARAMETERS[param] ?? range.min);
-    const value = Math.max(range.min, Math.min(rawValue, range.max));
+    // An unset maxTokens stays empty: the model's own limit.
+    const stored = parameters[param] ?? DEFAULT_PARAMETERS[param];
+    const value = param === 'maxTokens' && stored === undefined
+      ? undefined
+      : Math.max(range.min, Math.min(Number(stored ?? range.min), range.max));
     const helpTopicId = PARAM_HELP_TOPICS[param];
 
     return (
@@ -88,6 +95,9 @@ export const ProviderExpertSettings: React.FC<ProviderExpertSettingsProps> = ({
           rightElement={
             helpTopicId ? <InfoButton topicId={helpTopicId} size="small" /> : undefined
           }
+          {...(param === 'maxTokens'
+            ? { emptyLabel: 'Model default', emptyStart: range.max, onClear: () => onParameterChange(param, undefined) }
+            : {})}
         />
       </View>
     );

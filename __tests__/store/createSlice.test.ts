@@ -465,14 +465,14 @@ describe('createSlice', () => {
       mockedReadStoredApiKey.mockResolvedValue('image-key');
       mockedGenerateImage.mockReset();
       mockedGenerateImage.mockImplementationOnce(async () => {
-        throw new Error('Imagen 4 does not support image refinement.');
+        throw new Error('Text-only Image does not support image refinement.');
       });
       const store = configureStore({ reducer: { create: reducer } });
 
       const actionResult = await store.dispatch(generateCreateImages({
         prompt: 'Improve the lighting',
         providers: ['google'],
-        selectedModels: { google: 'imagen-4.0-generate-001' },
+        selectedModels: { google: 'text-only-image-model' },
         sourceImages: [{ uri: 'base64-source-image-data-that-is-long-enough-to-detect', base64: 'source-base64' }],
         refinementInstructions: 'Improve the lighting',
       }));
@@ -480,12 +480,12 @@ describe('createSlice', () => {
       if (!generateCreateImages.rejected.match(actionResult)) {
         throw new Error('expected generateCreateImages to reject');
       }
-      expect(actionResult.error.message).toContain('Imagen 4 does not support image refinement.');
+      expect(actionResult.error.message).toContain('Text-only Image does not support image refinement.');
 
       expect(store.getState().create.lastImageGenerationResult).toMatchObject({
         ids: [],
         status: 'failed',
-        message: expect.stringContaining('Imagen 4 does not support image refinement.'),
+        message: expect.stringContaining('Text-only Image does not support image refinement.'),
       });
       expect(store.getState().create.generationProgress.google).toBe('error');
     });

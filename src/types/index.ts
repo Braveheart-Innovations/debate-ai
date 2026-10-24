@@ -296,7 +296,9 @@ export interface RuntimePersonalityConfig extends PersonalityConfig {
 // Expert mode types
 export interface ModelParameters {
   temperature: number;
-  maxTokens: number;
+  /** Output-token limit. Unset means the model's own limit: requests send none (Claude, which
+   * requires one, gets the model's maximum). */
+  maxTokens?: number;
   topP?: number;
   topK?: number; // Claude-specific parameter
   frequencyPenalty?: number;

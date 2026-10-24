@@ -10,7 +10,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AISelectionConfig } from '../../types/aiSelection';
 
-const STORAGE_KEY = '@ai_selection_v1';
+export const AI_SELECTION_STORAGE_KEY = '@ai_selection_v1';
+const STORAGE_KEY = AI_SELECTION_STORAGE_KEY;
 
 export interface PersistedAISelection {
   chat: AISelectionConfig[];

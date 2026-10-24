@@ -64,23 +64,6 @@ interface GoogleGeminiResponse {
   }>;
 }
 
-interface GoogleImagenResponse {
-  generatedImages?: Array<{
-    image?: {
-      imageBytes?: string;
-      mimeType?: string;
-    };
-  }>;
-  predictions?: Array<{
-    bytesBase64Encoded?: string;
-    mimeType?: string;
-    image?: {
-      imageBytes?: string;
-      mimeType?: string;
-    };
-  }>;
-}
-
 function normalizeAspectRatio(size?: string): string | undefined {
   if (!size) return undefined;
   return PIXEL_SIZE_TO_ASPECT_RATIO[size] || size;
@@ -181,8 +164,6 @@ export class ImageService {
         return this.generateOpenAI(model, normalizedOpts);
       case 'google-gemini-image':
         return this.generateGoogleGemini(model, normalizedOpts);
-      case 'google-imagen':
-        return this.generateGoogleImagen(model, normalizedOpts);
       case 'xai-images':
         return this.generateXai(model, normalizedOpts);
       default:
@@ -486,48 +467,6 @@ export class ImageService {
     return this.parseGoogleGeminiImages(data);
   }
 
-  private static async generateGoogleImagen(
-    model: ImageModelConfig,
-    opts: GenerateImageOptions
-  ): Promise<GeneratedImage[]> {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model.id}:predict`;
-    const aspectRatio = normalizeAspectRatio(opts.size) || '1:1';
-
-    const parameters: Record<string, unknown> = {
-      sampleCount: clampImageCount(model, opts.n),
-      aspectRatio,
-    };
-
-    const preferredResolution = getPreferredResolution(model, opts.resolution);
-    if (preferredResolution && model.id !== 'imagen-4.0-fast-generate-001') {
-      parameters.imageSize = preferredResolution;
-    }
-
-    const body = {
-      instances: [{ prompt: opts.prompt }],
-      parameters,
-    };
-
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': opts.apiKey,
-      },
-      body: JSON.stringify(body),
-      signal: opts.signal,
-    });
-
-    const text = await res.text();
-    if (!res.ok) {
-      const message = parseProviderErrorBody(text) || text;
-      throw new Error(`Google Images error ${res.status}: ${message}`);
-    }
-
-    const data = JSON.parse(text) as GoogleImagenResponse;
-    return this.parseGoogleImagenImages(data);
-  }
-
   private static async parseOpenAICompatibleImages(
     data: OpenAICompatibleImageResponse
   ): Promise<GeneratedImage[]> {
@@ -580,48 +519,6 @@ export class ImageService {
         throw new Error(`Google returned text instead of image data: ${textPart.text.slice(0, 160)}`);
       }
       throw new Error('Google returned no image data.');
-    }
-
-    return results;
-  }
-
-  private static async parseGoogleImagenImages(
-    data: GoogleImagenResponse
-  ): Promise<GeneratedImage[]> {
-    const results: GeneratedImage[] = [];
-
-    for (const item of data.generatedImages || []) {
-      const base64 = item.image?.imageBytes;
-      if (!base64) {
-        continue;
-      }
-
-      const mimeType = item.image?.mimeType || 'image/png';
-      const fileUri = await saveBase64Image(base64, mimeType);
-      results.push({
-        url: fileUri,
-        b64: base64,
-        mimeType,
-      });
-    }
-
-    for (const item of data.predictions || []) {
-      const base64 = item.bytesBase64Encoded || item.image?.imageBytes;
-      if (!base64) {
-        continue;
-      }
-
-      const mimeType = item.mimeType || item.image?.mimeType || 'image/png';
-      const fileUri = await saveBase64Image(base64, mimeType);
-      results.push({
-        url: fileUri,
-        b64: base64,
-        mimeType,
-      });
-    }
-
-    if (results.length === 0) {
-      throw new Error('Google returned no Imagen image data.');
     }
 
     return results;

@@ -8,9 +8,9 @@ describe('Create image size mapping', () => {
     expect(mapSizeToProvider('landscape', 'openai', 'unknown-openai-image-model')).toBe('1536x1024');
   });
 
-  it('preserves provider-native aspect ratios for Gemini, Imagen, and Grok', () => {
+  it('preserves provider-native aspect ratios for Gemini and Grok', () => {
     expect(mapSizeToProvider('portrait', 'google', 'gemini-2.5-flash-image')).toBe('9:16');
-    expect(mapSizeToProvider('landscape', 'google', 'imagen-4.0-generate-001')).toBe('16:9');
+    expect(mapSizeToProvider('landscape', 'google', 'gemini-3-pro-image')).toBe('16:9');
     expect(mapSizeToProvider('landscape', 'google', 'gemini-2.5-flash-image')).toBe('16:9');
     expect(mapSizeToProvider('square', 'grok', 'grok-imagine-image')).toBe('1:1');
   });

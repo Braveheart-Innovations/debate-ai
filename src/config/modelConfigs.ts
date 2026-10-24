@@ -1392,9 +1392,11 @@ export const AI_MODELS: ProviderModels = {
   ],
   moonshot: [
     {
-      id: "kimi-k3",
+      // Live-verified 2026-10-23: always thinks; temperature only 1 and top_p
+      // only 0.95 (both 400 otherwise); tools and image input work.
+      id: "kimi-k3.1-pro",
       requiresTemperature1: true,
-      name: "Kimi K3",
+      name: "Kimi K3.1 Pro",
       description: "Moonshot flagship multimodal reasoning model with a 1M-token context window",
       contextLength: 1048576,
       isDefault: true,
@@ -1404,37 +1406,65 @@ export const AI_MODELS: ProviderModels = {
       supportsThinking: true,
     },
     {
+      id: "kimi-k3.1-pro-highspeed",
+      requiresTemperature1: true,
+      name: "Kimi K3.1 Pro High-Speed",
+      description: "Faster variant of Kimi K3.1 Pro (2-3x the output speed, twice the price)",
+      contextLength: 1048576,
+      supportsVision: true,
+      supportsImageInput: true,
+      supportsFunctions: true,
+      supportsThinking: true,
+    },
+    {
+      id: "kimi-k3",
+      requiresTemperature1: true,
+      name: "Kimi K3",
+      description: "Previous Moonshot flagship multimodal reasoning model with a 1M-token context window",
+      contextLength: 1048576,
+      supportsVision: true,
+      supportsImageInput: true,
+      supportsFunctions: true,
+      supportsThinking: true,
+    },
+    {
+      // Moonshot closes the K2 series to newly registered accounts on
+      // 2026-10-31 and retires it by the end of December 2026. Deprecated here
+      // so persisted selections resolve, via MODEL_ALIASES, to Kimi K3.1 Pro.
       id: "kimi-k2.7-code",
       requiresTemperature1: true,
       name: "Kimi K2.7 Code",
-      description: "Dedicated Moonshot coding model with reasoning and vision input",
+      description: "Retiring Moonshot coding model; selections now use Kimi K3.1 Pro",
       contextLength: 262144,
       supportsVision: true,
       supportsImageInput: true,
       supportsFunctions: true,
       supportsThinking: true,
+      isDeprecated: true,
     },
     {
       id: "kimi-k2.7-code-highspeed",
       requiresTemperature1: true,
       name: "Kimi K2.7 Code High-Speed",
-      description: "High-throughput variant of Kimi K2.7 Code (~180 tokens/s output)",
+      description: "Retiring high-throughput Kimi K2.7 Code; selections now use Kimi K3.1 Pro High-Speed",
       contextLength: 262144,
       supportsVision: true,
       supportsImageInput: true,
       supportsFunctions: true,
       supportsThinking: true,
+      isDeprecated: true,
     },
     {
       id: "kimi-k2.6",
       requiresTemperature1: true,
       name: "Kimi K2.6",
-      description: "Previous-generation Kimi multimodal model with thinking modes and agent support",
+      description: "Retiring Kimi multimodal model; selections now use Kimi K3.1 Pro",
       contextLength: 262144,
       supportsVision: true,
       supportsImageInput: true,
       supportsFunctions: true,
       supportsThinking: true,
+      isDeprecated: true,
     },
   ],
   zai: [
@@ -1587,13 +1617,14 @@ export const CURATED_MODEL_IDS: { [providerId: string]: string[] } = {
     "grok-4.20-0309-non-reasoning",
     "grok-4.20-0309-reasoning",
   ],
-  moonshot: ["kimi-k3", "kimi-k2.7-code", "kimi-k2.6"],
+  moonshot: ["kimi-k3.1-pro", "kimi-k3.1-pro-highspeed", "kimi-k3"],
   zai: ["glm-5.3", "glm-5.3-flash", "glm-5.3-flashx", "glm-5.2", "glm-5-turbo", "glm-5.1"],
 };
 
+// No maxTokens: a response is limited only when the user sets a limit. A default here was saved
+// with every other setting and sent a 2048-token cap that cut thinking models off mid-answer.
 export const DEFAULT_PARAMETERS: ModelParameters = {
   temperature: 0.7,
-  maxTokens: 2048,
   topP: 0.95,
   frequencyPenalty: 0,
   presencePenalty: 0,
@@ -1611,7 +1642,7 @@ export const PARAMETER_RANGES = {
     min: 1,
     max: 8192,
     step: 1,
-    description: "Maximum response length in tokens",
+    description: "Maximum response length in tokens. Empty uses the model's own limit.",
   },
   topP: {
     min: 0,
@@ -1682,6 +1713,14 @@ export function getParameterRange(
 
   const providerOverride = PROVIDER_PARAMETER_RANGES[providerId]?.[param];
   const defaultRange = PARAMETER_RANGES[param];
+
+  // A response limit can go up to the model's own maximum when the catalog knows it.
+  if (param === 'maxTokens' && modelId) {
+    const modelMax = getModelById(providerId, modelId)?.maxOutputTokens;
+    if (modelMax) {
+      return { ...defaultRange, ...providerOverride, max: modelMax };
+    }
+  }
 
   if (providerOverride) {
     return {

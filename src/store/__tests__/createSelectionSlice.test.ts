@@ -81,9 +81,9 @@ describe('createSelectionSlice', () => {
 
       state = reducer(
         state,
-        updateImageSelection({ index: 1, config: { ...config('google', 'imagen-4'), settings: { quality: 'hd' } } })
+        updateImageSelection({ index: 1, config: { ...config('google', 'gemini-3-pro-image'), settings: { quality: 'hd' } } })
       );
-      expect(state.image[1].modelId).toBe('imagen-4');
+      expect(state.image[1].modelId).toBe('gemini-3-pro-image');
       expect(state.image[1].settings).toEqual({ quality: 'hd' });
 
       state = reducer(state, updateImageSelection({ index: 5, config: config('grok') }));

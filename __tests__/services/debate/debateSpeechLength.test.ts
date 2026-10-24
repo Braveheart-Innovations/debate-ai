@@ -82,6 +82,10 @@ describe('debateSpeechLength', () => {
       expect(getDebateSpeechLengthGuidance({ formatId, phase, cxRole, level }).maxTokens).toBe(6144);
       // Voice is a generous runaway safety net (well above the TTS budget), not a length control.
       expect(getDebateSpeechLengthGuidance({ formatId, phase, cxRole, level, voiceMode: true }).maxTokens).toBe(1536);
+      // A model that reasons first spends part of the limit thinking, so voice gets the text ceiling.
+      expect(
+        getDebateSpeechLengthGuidance({ formatId, phase, cxRole, level, voiceMode: true, thinkingModel: true }).maxTokens
+      ).toBe(6144);
     }
   });
 

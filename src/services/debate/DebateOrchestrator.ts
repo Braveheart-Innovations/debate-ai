@@ -33,7 +33,7 @@ import { ErrorService } from '@/services/errors/ErrorService';
 import { AppError } from '@/errors/types/AppError';
 import { ErrorCode } from '@/errors/codes/ErrorCodes';
 import { mergeAvailabilitiesStrict } from '@/hooks/multimodal/useModalityAvailability';
-import { resolveProviderModelId } from '@/config/modelConfigs';
+import { getModelById, resolveProviderModelId } from '@/config/modelConfigs';
 import { buildPersonalityRuntime, mergeRuntimeModelParameters } from '@/services/personality';
 import { applyDebateOutputTokenCap, DEFAULT_DEBATE_SPEECH_LENGTH, getDebateSpeechLengthGuidance } from './debateSpeechLength';
 import { DebateTurnRunner, type DebateTurnFailed } from './DebateTurnRunner';
@@ -895,6 +895,7 @@ export class DebateOrchestrator {
         phase,
         cxRole: messageSpec.cxRole,
         voiceMode: Boolean(this.session.voiceConfig?.enabled),
+        thinkingModel: Boolean(getModelById(currentAI.provider, currentAI.model)?.supportsThinking),
         level: this.session.speechLength,
       });
       const minimal = this.promptBuilder.buildTurnPrompt({

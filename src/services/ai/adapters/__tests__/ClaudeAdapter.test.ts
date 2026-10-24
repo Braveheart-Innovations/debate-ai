@@ -336,6 +336,40 @@ describe('ClaudeAdapter', () => {
     await expect(adapter.sendMessage('fail')).rejects.toThrow('Claude API error: 400 - bad request');
   });
 
+  describe('max_tokens', () => {
+    const noLimit = (model: string): AIAdapterConfig => ({ ...makeConfig(model), parameters: { temperature: 0.7 } });
+    const streamedBody = (options: unknown): unknown => {
+      if (typeof options === 'object' && options !== null && 'body' in options && typeof options.body === 'string') {
+        return JSON.parse(options.body);
+      }
+      throw new Error('EventSource options carry no body');
+    };
+
+    it('sends the model maximum on a streamed reply when no limit is set', async () => {
+      const iterator = new ClaudeAdapter(noLimit('claude-sonnet-5-5')).streamMessage('Hello');
+      const pending = iterator.next();
+      await flushMicrotasks();
+      const eventSource = mockEventSourceInstances[0];
+      if (!eventSource) throw new Error('EventSource not created');
+
+      expect(streamedBody(eventSource.options)).toEqual(expect.objectContaining({ max_tokens: 128000 }));
+      eventSource.emit('message_stop', null);
+      await pending;
+    });
+
+    it('stops a non-streamed reply at 16K when no limit is set', async () => {
+      await new ClaudeAdapter(noLimit('claude-sonnet-5-5')).sendMessage('Hello');
+      const [, requestInit] = fetchMock.mock.calls[0];
+      expect(JSON.parse(String(requestInit?.body)).max_tokens).toBe(16000);
+    });
+
+    it('sends the limit the user set', async () => {
+      await new ClaudeAdapter(makeConfig('claude-sonnet-5-5')).sendMessage('Hello');
+      const [, requestInit] = fetchMock.mock.calls[0];
+      expect(JSON.parse(String(requestInit?.body)).max_tokens).toBe(4096);
+    });
+  });
+
   it('streams SSE deltas verbatim and completes', async () => {
     const adapter = new ClaudeAdapter(makeConfig('claude-3-7-sonnet-20250219'));
     const onEvent = jest.fn();

@@ -1,0 +1,8 @@
+What's new in 2.5.0: model catalog updates (Kimi K3.1 Pro becomes the Kimi default, retiring Kimi K2 models move to it, and the shut-down Imagen 4 image models are removed from Create), a fix that stops replies being cut short by a default response-length limit, plus framework and navigation library updates. There are no new permissions, no new data collection, and no in-app purchase changes.
+
+The model changes take effect when a user adds their own API key for that provider. Demo Mode and every other screen work as in 2.4.
+
+ABOUT THE APP
+Symposium AI uses a bring-your-own-keys model: users add their own API keys for AI providers, and the keys are stored only on the device. Without a subscription, Demo Mode plays clearly labeled, pre-recorded AI responses, so every screen can be reviewed. The in-app subscription unlocks first-party features; it does not sell access to third-party AI services.
+
+Contact: support@braveheartinnovations.com

@@ -86,7 +86,7 @@ describe('AIConfigSheet', () => {
   });
 
   it('commits session parameter edits only on Save for This Session', () => {
-    const { store, getByTestId, getByText, getByDisplayValue } = renderWithProviders(
+    const { store, getByTestId, getByText, getByPlaceholderText } = renderWithProviders(
       <AIConfigSheet {...baseProps} showAdvanced />
     );
 
@@ -95,9 +95,9 @@ describe('AIConfigSheet', () => {
     // Stays in-sheet: no navigation, so the sheet was never closed.
     expect(baseProps.onClose).not.toHaveBeenCalled();
 
-    // maxTokens is supported by every Claude model; default shows 2048.
-    // Edits stay local until saved.
-    fireEvent.changeText(getByDisplayValue('2048'), '4096');
+    // maxTokens is supported by every Claude model and starts empty: the
+    // model's own limit. Edits stay local until saved.
+    fireEvent.changeText(getByPlaceholderText('Model default'), '4096');
     expect(baseProps.onChangeParameters).not.toHaveBeenCalled();
 
     fireEvent.press(getByText('Save for This Session'));
@@ -120,13 +120,47 @@ describe('AIConfigSheet', () => {
     expect(getByTestId('ai-config-advanced-row-dot')).toBeTruthy();
   });
 
+  it('saves no response limit when only another parameter changes', () => {
+    // Claude 5.x takes no temperature, so this uses a model that does.
+    const config = { providerId: 'google', modelId: 'gemini-3.8-flash', personalityId: 'default' };
+    const { getByTestId, getByText, getByDisplayValue } = renderWithProviders(
+      <AIConfigSheet {...baseProps} config={config} showAdvanced />
+    );
+
+    fireEvent.press(getByTestId('ai-config-advanced-row'));
+    fireEvent.changeText(getByDisplayValue('0.7'), '0.5');
+    fireEvent.press(getByText('Save for This Session'));
+
+    expect(baseProps.onChangeParameters).toHaveBeenCalledWith(
+      expect.objectContaining({ temperature: 0.5 })
+    );
+    expect(baseProps.onChangeParameters).not.toHaveBeenCalledWith(
+      expect.objectContaining({ maxTokens: expect.anything() })
+    );
+  });
+
+  it('clears a set response limit back to the model default', () => {
+    const config = { ...baseProps.config, parameters: { temperature: 0.7, maxTokens: 4096 } };
+    const { getByTestId, getByText, getByPlaceholderText } = renderWithProviders(
+      <AIConfigSheet {...baseProps} config={config} showAdvanced />
+    );
+
+    fireEvent.press(getByTestId('ai-config-advanced-row'));
+    fireEvent.press(getByText('Use model default'));
+    expect(getByPlaceholderText('Model default')).toBeTruthy();
+
+    fireEvent.press(getByText('Save for This Session'));
+    // Back to the defaults, so no session override is stored.
+    expect(baseProps.onChangeParameters).toHaveBeenCalledWith(undefined);
+  });
+
   it('saves to Model Defaults via the separate Save as Default button', () => {
-    const { store, getByTestId, getByText, getByDisplayValue } = renderWithProviders(
+    const { store, getByTestId, getByText, getByPlaceholderText } = renderWithProviders(
       <AIConfigSheet {...baseProps} showAdvanced />
     );
 
     fireEvent.press(getByTestId('ai-config-advanced-row'));
-    fireEvent.changeText(getByDisplayValue('2048'), '4096');
+    fireEvent.changeText(getByPlaceholderText('Model default'), '4096');
 
     fireEvent.press(getByText('Save as Default'));
     const saved = store.getState().settings.expertMode.claude;

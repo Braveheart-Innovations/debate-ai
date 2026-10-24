@@ -100,7 +100,6 @@ describe('ExpertModeSettings', () => {
     onParameterChange.mockClear();
     fireEvent.press(getByTestId('button-Reset to Defaults'));
     expect(onParameterChange).toHaveBeenCalledWith('temperature', DEFAULT_PARAMETERS.temperature);
-    expect(onParameterChange).toHaveBeenCalledWith('maxTokens', DEFAULT_PARAMETERS.maxTokens);
     expect(onParameterChange).toHaveBeenCalledWith('topP', DEFAULT_PARAMETERS.topP);
     expect(onParameterChange).toHaveBeenCalledWith('frequencyPenalty', DEFAULT_PARAMETERS.frequencyPenalty);
     expect(onParameterChange).toHaveBeenCalledWith('presencePenalty', DEFAULT_PARAMETERS.presencePenalty);

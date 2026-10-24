@@ -30,10 +30,12 @@ export interface UserPreferences {
   retentionDays: number;
 }
 
+export const CHAT_SESSION_KEY_PREFIX = 'chatSession_';
+
 export class StorageService {
   private static readonly STORAGE_KEYS: StorageKeys = {
     SESSION_INDEX: 'sessionIndex',
-    SESSION_PREFIX: 'chatSession_',
+    SESSION_PREFIX: CHAT_SESSION_KEY_PREFIX,
     USER_PREFERENCES: 'userPreferences'
   };
 
