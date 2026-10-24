@@ -72,8 +72,60 @@ describe('buildSalesforceAccess', () => {
       { holder: 1, read: true, create: false, edit: true, delete: false, viewAll: true, modifyAll: false },
       { holder: 7, read: true, create: false, edit: false, delete: false, viewAll: false, modifyAll: false, viewAllFields: true },
     ]);
-    // Edit implies read; a grant of neither adds no one (Status is still listed); a field of an object the diagram doesn't draw is left out.
-    expect(lead.fields).toEqual({ Status: { read: [], edit: [] }, Ready_to_Convert__c: { read: [0, 2], edit: [2, 5] } });
+    // Edit implies read; a field permission with neither is off; a field of an object the diagram doesn't draw is left out.
+    expect(lead.fields).toEqual({ Status: { read: [], edit: [], off: [0] }, Ready_to_Convert__c: { read: [0, 2], edit: [2, 5] } });
     expect(access.objects.Contact).toBeUndefined();
+  });
+
+  it('lists every field on the drawn objects, Activity\'s on Task and Event, and marks the objects whose fields take no field permissions', () => {
+    const source = (path: string) => `/uploads/qa.zip#${D}/${path}`;
+    const access = buildSalesforceAccess([
+      // A package field the diagram leaves off the org's object.
+      file('objects/Lead/fields/SFGA__Web_Source__c.field-meta.xml', '<CustomField><fullName>SFGA__Web_Source__c</fullName><type>Text</type></CustomField>'),
+      file('objects/Activity/fields/Temp_Related_To__c.field-meta.xml', '<CustomField><fullName>Temp_Related_To__c</fullName><type>Text</type></CustomField>'),
+      file('objects/Field_Trip_Settings__c/Field_Trip_Settings__c.object-meta.xml', '<CustomObject><customSettingsType>Hierarchy</customSettingsType></CustomObject>'),
+      file('profiles/Admin.profile-meta.xml', `<Profile>${objectPermission('Lead', true, true)}${objectPermission('Case', false, false)}`
+        + '<customMetadataTypeAccesses><enabled>true</enabled><name>Holiday__mdt</name></customMetadataTypeAccesses>'
+        + '<customSettingAccesses><enabled>false</enabled><name>Field_Trip_Settings__c</name></customSettingAccesses>'
+        + fieldPermission('Lead.SFGA__Web_Source__c', false, false)
+        + fieldPermission('Task.Temp_Related_To__c', false, false)
+        + fieldPermission('Event.Temp_Related_To__c', true, false)
+        // A standard field with no field file.
+        + fieldPermission('Case.ClosedOnCreate', false, false)
+        + fieldPermission('Holiday__mdt.Date__c', false, false)
+        + fieldPermission('Convert_Lead__e.Lead_Id__c', false, false)
+        + '</Profile>'),
+      // A muting set's read off mutes nothing.
+      file('mutingpermissionsets/Mute.mutingpermissionset-meta.xml', `<MutingPermissionSet>${fieldPermission('Lead.Status', false, false)}</MutingPermissionSet>`),
+    ], {
+      ...diagram,
+      entities: [
+        { id: 'Lead', name: 'Lead', fields: [{ name: 'Status', type: 'Picklist' }] },
+        { id: 'Activity', name: 'Activity', fields: [{ name: 'Temp_Related_To__c', type: 'Text', source: source('objects/Activity/fields/Temp_Related_To__c.field-meta.xml') }] },
+        { id: 'Case', name: 'Case', fields: [] },
+        { id: 'Holiday__mdt', name: 'Holiday__mdt', fields: [{ name: 'Date__c', type: 'Date' }] },
+        { id: 'Convert_Lead__e', name: 'Convert_Lead__e', fields: [{ name: 'Lead_Id__c', type: 'Text' }] },
+        { id: 'Field_Trip_Settings__c', name: 'Field_Trip_Settings__c', fields: [{ name: 'Enabled__c', type: 'Checkbox' }] },
+      ],
+    }, 'admin.diagram.json');
+
+    expect(access.objects.Lead.fields).toEqual({ Status: { read: [], edit: [] }, SFGA__Web_Source__c: { read: [], edit: [], off: [0] } });
+    expect(access.objects.Activity.fields).toEqual({});
+    expect(access.objects.Task.fields).toEqual({ Temp_Related_To__c: { read: [], edit: [], off: [0] } });
+    expect(access.objects.Event.fields).toEqual({ Temp_Related_To__c: { read: [0], edit: [] } });
+    expect(access.objects.Case.fields).toEqual({ ClosedOnCreate: { read: [], edit: [], off: [0] } });
+    // Object permissions with everything off are kept apart from an object no holder names (Task: access set elsewhere).
+    expect(access.objects.Case).toMatchObject({ grants: [], off: [0] });
+    expect(access.objects.Task.grants).toEqual([]);
+    expect(access.objects.Task.off).toBeUndefined();
+    expect(access.objects.Lead.noFieldSecurity).toBeUndefined();
+    expect(access.objects.Holiday__mdt).toMatchObject({
+      noFieldSecurity: 'customMetadataType',
+      grants: [{ holder: 0, read: true, create: false, edit: false, delete: false, viewAll: false, modifyAll: false }],
+      fields: { Date__c: { read: [], edit: [], off: [0] } },
+    });
+    expect(access.objects.Convert_Lead__e.noFieldSecurity).toBe('platformEvent');
+    // Access that isn't enabled grants nothing: it's off.
+    expect(access.objects.Field_Trip_Settings__c).toMatchObject({ noFieldSecurity: 'customSetting', grants: [], off: [0] });
   });
 });

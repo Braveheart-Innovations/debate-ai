@@ -186,7 +186,8 @@ export function buildSalesforceReferenceIndex(
     else if (!isStandardObject(target.object)) object.references.push(reference);
   };
 
-  const fieldAccess = new Map<string, { ps: { read: number; edit: number }; pr: { read: number; edit: number } }>();
+  /** The profiles and permission sets that read and edit each field, by name: Activity's fields are permissioned on Task and Event, once per holder. */
+  const fieldAccess = new Map<string, { ps: { read: Set<string>; edit: Set<string> }; pr: { read: Set<string>; edit: Set<string> } }>();
   /** The index's file table: each source once, references point at it. */
   const files: string[] = [];
   const fileIds = new Map<string, number>();
@@ -413,13 +414,14 @@ export function buildSalesforceReferenceIndex(
       for (const block of blocks(content, 'fieldPermissions')) {
         const field = block.body.match(/<field>([^<]+)<\/field>/)?.[1]?.trim();
         const [objectName, fieldName] = field?.split('.') ?? [];
-        const target = fieldOf(objectNamed(objectName), fieldName);
+        const activity = /^(task|event)$/i.test(objectName ?? '') ? fieldOf(objectNamed('Activity'), fieldName) : undefined;
+        const target = fieldOf(objectNamed(objectName), fieldName) ?? activity;
         if (!target?.field) continue;
         const key = `${target.object}.${target.field}`;
-        const access = fieldAccess.get(key) ?? { ps: { read: 0, edit: 0 }, pr: { read: 0, edit: 0 } };
-        const counts = group === 'permissionSets' ? access.ps : access.pr;
-        if (/<editable>true<\/editable>/.test(block.body)) counts.edit += 1;
-        if (/<readable>true<\/readable>/.test(block.body)) counts.read += 1;
+        const access = fieldAccess.get(key) ?? { ps: { read: new Set<string>(), edit: new Set<string>() }, pr: { read: new Set<string>(), edit: new Set<string>() } };
+        const holders = group === 'permissionSets' ? access.ps : access.pr;
+        if (/<editable>true<\/editable>/.test(block.body)) holders.edit.add(name);
+        if (/<readable>true<\/readable>/.test(block.body)) holders.read.add(name);
         fieldAccess.set(key, access);
       }
       for (const block of blocks(content, 'objectPermissions')) {
@@ -435,7 +437,7 @@ export function buildSalesforceReferenceIndex(
   for (const [key, access] of fieldAccess) {
     const [object, field] = key.split('.');
     const entry = objects[object]?.fields[field];
-    if (entry) entry.access = { permissionSets: access.ps, profiles: access.pr };
+    if (entry) entry.access = { permissionSets: { read: access.ps.read.size, edit: access.ps.edit.size }, profiles: { read: access.pr.read.size, edit: access.pr.edit.size } };
   }
 
   const calls = buildSalesforceCalls(sourceFiles, fileId);

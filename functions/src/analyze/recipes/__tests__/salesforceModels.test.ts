@@ -90,6 +90,29 @@ const access = {
         Status: { read: [0, 1, 2], edit: [1, 2, 5] },
       },
     },
+    Account: {
+      grants: [
+        { holder: 0, read: true, create: false, edit: false, delete: false, viewAll: false, modifyAll: false },
+        { holder: 1, read: true, create: true, edit: true, delete: true, viewAll: true, modifyAll: true },
+      ],
+      // Both profiles turn read off: hidden, not a field without field-level security.
+      fields: { Rating: { read: [], edit: [], off: [0, 1] } },
+    },
+    Holiday__mdt: {
+      noFieldSecurity: 'customMetadataType',
+      grants: [{ holder: 1, read: true, create: false, edit: false, delete: false, viewAll: false, modifyAll: false }],
+      // Admin's read off hides nothing: the field follows the type's access.
+      fields: { Date__c: { read: [], edit: [], off: [1] } },
+    },
+    // No holder names Task in object permissions: its access comes from elsewhere (Edit Tasks).
+    Task: {
+      grants: [],
+      fields: {
+        Private__c: { read: [], edit: [], off: [0] },
+        Subject: { read: [], edit: [] },
+        Temp_Related_To__c: { read: [0, 2], edit: [2] },
+      },
+    },
   },
   limits: ['Who can, not who does.'],
 };
@@ -215,8 +238,59 @@ describe('the Salesforce models', () => {
     const notes = items.filter((item) => item.kind === 'note');
     expect(notes[0].title).toBe('How to read this');
     expect(notes.slice(1).every((note) => note.title === undefined)).toBe(true);
-    expect(notes.map((note) => note.text)).toContain('View All Data and Modify All Data see every record, whatever the sharing model. Which fields they see still follows field permissions, or View All Fields on the object.');
+    expect(notes.map((note) => note.text)).toContain('View All Data and Modify All Data read every object and see every record, whatever the sharing model. Which fields they see still follows field permissions, or View All Fields on the object.');
     expect(notes[notes.length - 1].text).toBe('Who can, not who does.');
+  });
+
+  it('keeps a field every profile turns off hidden, and lets a custom metadata type\'s fields follow the type', () => {
+    const items = run(`show_access(salesforce_access(${JSON.stringify(path.join(dir, 'leads.access.json'))}, PARAMS["fields"]))`, { fields: 'Account.Rating, Holiday__mdt.Date__c' });
+    const row = (security: string, profilesRead: number) => ({
+      'Field-level security': security,
+      'Profiles that can read': profilesRead, 'Profiles that can edit': 0,
+      'Permission sets and groups that can read': 0, 'Permission sets and groups that can edit': 0,
+      'Granted without read on the object': 0,
+    });
+    expect(table(items, 'Who can read and edit each field')).toEqual([
+      { Field: 'Account.Rating', ...row('Yes', 0) },
+      { Field: 'Holiday__mdt.Date__c', ...row('None: follows Holiday__mdt', 1) },
+    ]);
+    const fields = items.find((item) => item.title === 'Who can read and edit each field')!;
+    expect(fields.details![0]!.map((group) => group.label)).toEqual(['No profile, permission set or group grants it']);
+    expect(fields.details![1]![0]).toEqual({ label: 'Salesforce applies no field permissions to a custom metadata type\'s fields: it follows access to Holiday__mdt', values: [] });
+  });
+
+  it('counts only View All Data on an object no holder names in object permissions, and names whom its access decides for', () => {
+    const items = run(`show_access(salesforce_access(${JSON.stringify(path.join(dir, 'leads.access.json'))}, PARAMS["fields"]))`, { fields: 'Lead.Status, Task' });
+    const row = (object: string, security: string, counts: [number, number, number, number]) => ({
+      'Object access': object, 'Field-level security': security,
+      'Profiles that can read': counts[0], 'Profiles that can edit': counts[1],
+      'Permission sets and groups that can read': counts[2], 'Permission sets and groups that can edit': counts[3],
+      'Granted without read on the object': 0,
+    });
+    expect(table(items, 'Who can read and edit each field')).toEqual([
+      { Field: 'Lead.Status', ...row('Object permissions', 'Yes', [2, 1, 3, 1]) },
+      { Field: 'Task.Private__c', ...row('Set elsewhere', 'Yes', [0, 0, 0, 0]) },
+      // Admin reads it through View All Data.
+      { Field: 'Task.Subject', ...row('Set elsewhere', 'None: follows Task', [1, 0, 0, 0]) },
+      { Field: 'Task.Temp_Related_To__c', ...row('Set elsewhere', 'Yes', [0, 0, 0, 0]) },
+    ]);
+    const fields = items.find((item) => item.title === 'Who can read and edit each field')!;
+    expect(fields.details![3]!.map((group) => [group.label, group.values])).toEqual([
+      ['Object permissions don\'t set access to Task: it comes from a parent object or a permission such as Edit Tasks, so only View All Data and Modify All Data count as reading it here', []],
+      ['Their field permission reads it, and access to Task decides (3)', ['Center Director (profile)', 'Lead Editor (permission set)', 'Lead Team (permission set group)']],
+    ]);
+
+    const holders = items.find((item) => item.title === 'Who can see the most')!;
+    expect(table(items, 'Who can see the most')!.map((entry) => entry.Holder)).toEqual(['Admin', 'Center Director', 'Lead Editor', 'Lead Team', 'Read All']);
+    // Center Director's read off on Task.Private__c is decided; the other two Task fields are up to Task's access.
+    expect(holders.details![1]).toEqual([
+      { label: 'Can only read (1)', values: ['Lead.Status'] },
+      { label: 'Can\'t read (1)', values: ['Task.Private__c'] },
+      { label: 'Up to access to the object, which object permissions don\'t set (2)', values: ['Task.Subject', 'Task.Temp_Related_To__c'] },
+    ]);
+    expect(items.filter((item) => item.kind === 'note').map((item) => item.text)).toContain(
+      'Object permissions don\'t set access to Task: it comes from a parent object or a permission such as Edit Tasks, which the metadata here doesn\'t settle. Their fields count only View All Data and Modify All Data as readers, and name whoever else a field permission reads them for.',
+    );
   });
 
   it('names one field\'s holders without opening each holder, and the fields it doesn\'t know', () => {

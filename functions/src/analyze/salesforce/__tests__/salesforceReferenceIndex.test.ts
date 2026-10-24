@@ -125,6 +125,17 @@ describe('the references index', () => {
     expect(index.objects.Lead.fields.Ready_to_Convert__c.labelMentions).toBeUndefined();
   });
 
+  it('counts an Activity field\'s security from its Task and Event permissions, once per holder', () => {
+    const diagram = model();
+    diagram.entities.push({ id: 'Activity', name: 'Activity', fields: [{ name: 'Temp_Related_To__c', type: 'Text', source: `${ZIP}#${D}/objects/Activity/fields/Temp_Related_To__c.field-meta.xml` }] });
+    const permission = (field: string, readable: boolean, editable: boolean) => `<fieldPermissions><editable>${editable}</editable><field>${field}</field><readable>${readable}</readable></fieldPermissions>`;
+    const index = buildSalesforceReferenceIndex([
+      zipped('profiles/Admin.profile-meta.xml', `<Profile>${permission('Task.Temp_Related_To__c', true, true)}${permission('Event.Temp_Related_To__c', true, false)}</Profile>`),
+      zipped('profiles/Sales.profile-meta.xml', `<Profile>${permission('Task.Temp_Related_To__c', false, false)}${permission('Event.Temp_Related_To__c', true, false)}</Profile>`),
+    ], diagram, 'leads.diagram.json');
+    expect(index.objects.Activity.fields.Temp_Related_To__c.access).toEqual({ permissionSets: { read: 0, edit: 0 }, profiles: { read: 2, edit: 1 } });
+  });
+
   it('records what refers to a custom object, never to a standard one', () => {
     const index = buildSalesforceReferenceIndex(workspace(), model(), 'leads.diagram.json');
     expect(index.objects.Tour__c.references.map((reference) => `${reference.kind}:${reference.component}:${reference.line}:${reference.how}`)).toEqual([
