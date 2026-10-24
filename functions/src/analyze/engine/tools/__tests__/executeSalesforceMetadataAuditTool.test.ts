@@ -297,7 +297,7 @@ describe('executeSalesforceMetadataAuditTool', () => {
       expect(result.content).toContain('What refers to each object and field');
       // The calls between components, for a change's reach past the direct references.
       expect(references.calls).toEqual([expect.objectContaining({ from: 'flow:Enroll', to: 'flow:Enroll_Child', how: 'subflow' })]);
-      // Who can read or edit each drawn object and field.
+      // Who can read or edit each drawn object and every field on it.
       const access = JSON.parse(writtenFile('/output/enrollment_model.access.json')!);
       expect(access).toMatchObject({ version: 1, kind: 'salesforce_access', diagram: 'enrollment_model.diagram.json' });
       expect(access.holders).toEqual([
@@ -306,7 +306,9 @@ describe('executeSalesforceMetadataAuditTool', () => {
       ]);
       expect(access.objects.Enrollment__c.grants).toEqual([{ holder: 0, read: true, create: false, edit: true, delete: false, viewAll: false, modifyAll: false }]);
       expect(access.objects.Enrollment__c.fields.Center__c).toEqual({ read: [0], edit: [0] });
-      expect(result.content).toContain('Who can read or edit each object and field');
+      expect(result.content).toContain('Who can read or edit each object and every field on it, drawn or not');
+      expect(result.content).toContain('Each object and field names its source file: a standard field without one isn\'t drawn.');
+      expect(result.content).not.toContain('Activity\'s custom fields');
       const written = JSON.parse(writtenFile('/output/enrollment_model.diagram.json')!);
       expect(written).toMatchObject({ kind: 'data_model', platform: 'salesforce', summary: '2 objects with their fields and relationships, read from salesforce-metadata-kc.zip.' });
       expect(written.entities.map((entity: { id: string }) => entity.id)).toEqual(['Center__c', 'Enrollment__c', 'Contact']);

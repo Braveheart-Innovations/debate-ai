@@ -244,6 +244,10 @@ def _sym_salesforce_access(access, fields, users=None):
                 _out.add(_group)
         return _out
 
+    # View All Data and Modify All Data read every object; Modify All Data edits it.
+    _all_read = [_index for _index, _holder in enumerate(_holders) if _holder.get('viewAllData') or _holder.get('modifyAllData')]
+    _all_edit = [_index for _index, _holder in enumerate(_holders) if _holder.get('modifyAllData')]
+
     _counts = _sf_user_counts(users)
     _rows, _unknown, _models = [], [], {}
     for _name in _sf_names(fields):
@@ -263,14 +267,18 @@ def _sym_salesforce_access(access, fields, users=None):
         else:
             _keys = sorted(_object.get('fields', {}))
         _grants = _object.get('grants', [])
-        _object_read = _holding(_grant['holder'] for _grant in _grants if _grant['read'] or _grant['viewAll'] or _grant['modifyAll'])
-        _object_edit = _holding(_grant['holder'] for _grant in _grants if _grant['edit'] or _grant['modifyAll'])
+        # No holder names it in object permissions: its access comes from elsewhere (a parent object, Edit Tasks…).
+        _elsewhere = not _grants and not _object.get('off')
+        _object_read = _holding([_grant['holder'] for _grant in _grants if _grant['read'] or _grant['viewAll'] or _grant['modifyAll']] + _all_read)
+        _object_edit = _holding([_grant['holder'] for _grant in _grants if _grant['edit'] or _grant['modifyAll']] + _all_edit)
         _all_fields = [_grant['holder'] for _grant in _grants if _grant.get('viewAllFields')]
+        _no_security = _object.get('noFieldSecurity') or ''
         for _key in _keys:
             _grant = _object['fields'][_key]
-            _open = not _grant['read'] and not _grant['edit']
+            # A field no holder names (a required or system field), or one on an object whose fields take no field permissions.
+            _open = bool(_no_security) or not (_grant['read'] or _grant['edit'] or _grant.get('off'))
             if _open:
-                # No field-level security (a required or system field): it follows access to the object.
+                # No field-level security: it follows access to the object.
                 _field_read, _field_edit, _through_all = set(_object_read), set(_object_edit), set()
             else:
                 _granted = _holding(_grant['read'])
@@ -281,10 +289,14 @@ def _sym_salesforce_access(access, fields, users=None):
             _read = _field_read & _object_read
             _edit = _field_edit & _object_edit & _read
             _row = {
-                'field': f"{_object_key}.{_key}", 'object': _object_key, 'open': _open,
+                'field': f"{_object_key}.{_key}", 'object': _object_key, 'open': _open, 'no_field_security': _no_security,
+                'object_elsewhere': _elsewhere,
                 'read': _sf_holders(_access, _read), 'edit': _sf_holders(_access, _edit),
                 'read_ids': sorted(_read), 'edit_ids': sorted(_edit),
-                'field_only_ids': sorted(_field_read - _object_read),
+                # Where the object's access is set elsewhere, a field read without it isn't "without read on the object".
+                'field_only_ids': [] if _elsewhere else sorted(_field_read - _object_read),
+                # There, whoever else the field permission reads it for reads it if the object lets them (all of them, for a field without field-level security).
+                'depends_ids': sorted(_field_read - _read) if _elsewhere and not _open else [],
                 'view_all_fields_ids': sorted(_through_all & _read),
             }
             _row['field_only'] = sorted(_sf_holder_name(_holders[_id]) for _id in _row['field_only_ids'])
@@ -304,11 +316,17 @@ def _sf_fields_words(count, other=False):
         return f"the other {count} fields"
     return 'both fields' if count == 2 else f"all {count} fields"
 
+_SF_NO_FIELD_SECURITY_WORDS = {'customMetadataType': 'custom metadata type', 'platformEvent': 'platform event', 'customSetting': 'custom setting'}
+
 def _sf_field_detail(row, holders):
     """Opening a field's row: who can edit it and who can only read it, by kind, and who is granted it without the object."""
     _detail = []
+    if row.get('object_elsewhere'):
+        _detail.append((f"Object permissions don't set access to {row['object']}: it comes from a parent object or a permission such as Edit Tasks, so only View All Data and Modify All Data count as reading it here", []))
     if row['open']:
-        _detail.append((f"No field-level security (a required or system field): it follows access to {row['object']}", []))
+        _kind = row.get('no_field_security')
+        _why = f"Salesforce applies no field permissions to a {_SF_NO_FIELD_SECURITY_WORDS.get(_kind, _kind)}'s fields" if _kind else 'No field-level security (a required or system field)'
+        _detail.append((f"{_why}: it follows access to {row['object']}", []))
     _through_all = set(row['view_all_fields_ids'])
     _edit = set(row['edit_ids'])
     _read_only = set(row['read_ids']) - _edit
@@ -321,29 +339,40 @@ def _sf_field_detail(row, holders):
             _found = _names(_ids, _kind)
             if _found:
                 _detail.append((f"{_plural} that {_verb} it ({len(_found)})", _found))
-    _only = sorted(f"{_sf_holder_name(holders[_id])} ({_SF_HOLDER_WORDS[holders[_id]['kind']].lower()})" for _id in row['field_only_ids'])
+    _name = lambda _id: f"{_sf_holder_name(holders[_id])} ({_SF_HOLDER_WORDS[holders[_id]['kind']].lower()})"
+    _depends = sorted(_name(_id) for _id in row.get('depends_ids', []))
+    if _depends:
+        _detail.append((f"Their field permission reads it, and access to {row['object']} decides ({len(_depends)})", _depends))
+    _only = sorted(_name(_id) for _id in row['field_only_ids'])
     if _only:
         _detail.append((f"Granted it without read on {row['object']}, so it opens only with another grant that has that read ({len(_only)})", _only))
-    if not row['read_ids'] and not _only:
+    if not row['read_ids'] and not _only and not _depends and not row.get('object_elsewhere'):
         _detail.append(('No profile, permission set or group grants it', []))
     return _detail
 
 def _sf_holder_detail(holder_id, rows):
-    """Opening a holder's row: the fields it can edit, can only read and can't read, the largest group in words when it's most of them."""
+    """Opening a holder's row: the fields it can edit, can only read and can't read, the largest group in words when it's most of them,
+    and the fields whose object's access is set elsewhere, where that access decides."""
+    def _depends(row):
+        return row.get('object_elsewhere') and holder_id not in row['read_ids'] and (row['open'] or holder_id in row.get('depends_ids', []))
+    _undecided = sorted(_row['field'] for _row in rows if _depends(_row))
     _groups = [
         ('Can edit', [_row['field'] for _row in rows if holder_id in _row['edit_ids']]),
         ('Can only read', [_row['field'] for _row in rows if holder_id in _row['read_ids'] and holder_id not in _row['edit_ids']]),
-        ("Can't read", [_row['field'] for _row in rows if holder_id not in _row['read_ids']]),
+        ("Can't read", [_row['field'] for _row in rows if holder_id not in _row['read_ids'] and not _depends(_row)]),
     ]
     _groups = [(_label, _fields) for _label, _fields in _groups if _fields]
-    _largest = max(_groups, key=lambda _group: len(_group[1]))
-    _rest = sum(len(_fields) for _label, _fields in _groups) - len(_largest[1])
     _detail, _in_words = [], []
-    for _label, _fields in _groups:
-        if _label == _largest[0] and len(_fields) > _rest and len(_fields) > 1:
-            _in_words.append((f"{_label} {_sf_fields_words(len(_fields), other=_rest > 0)}", []))
-        else:
-            _detail.append((f"{_label} ({len(_fields)})", sorted(_fields)))
+    if _groups:
+        _largest = max(_groups, key=lambda _group: len(_group[1]))
+        _rest = sum(len(_fields) for _label, _fields in _groups) - len(_largest[1]) + len(_undecided)
+        for _label, _fields in _groups:
+            if _label == _largest[0] and len(_fields) > _rest and len(_fields) > 1:
+                _in_words.append((f"{_label} {_sf_fields_words(len(_fields), other=_rest > 0)}", []))
+            else:
+                _detail.append((f"{_label} ({len(_fields)})", sorted(_fields)))
+    if _undecided:
+        _detail.append((f"Up to access to the object, which object permissions don't set ({len(_undecided)})", _undecided))
     return _detail + _in_words
 
 def _sym_show_access(result, show_metric, show_chart, show_table, show_note, title=None):
@@ -360,12 +389,15 @@ def _sym_show_access(result, show_metric, show_chart, show_table, show_note, tit
     show_metric(f"{_prefix}Profiles, permission sets and groups that can edit at least one", len(_editors))
     if result['users']:
         show_metric(f"{_prefix}Most active users who can read a field (by profile)", max((_row.get('users', 0) for _row in _rows), default=0), detail='permission sets can add more')
+    _elsewhere = sorted({_row['object'] for _row in _rows if _row.get('object_elsewhere')})
     if _rows:
         _any_open = any(_row['open'] for _row in _rows)
         _table = []
         for _row in _rows:
             _sets = lambda _mode: len(_row[_mode]['permissionSet']) + len(_row[_mode]['permissionSetGroup'])
             _entry = {'Field': _row['field']}
+            if _elsewhere:
+                _entry['Object access'] = 'Set elsewhere' if _row.get('object_elsewhere') else 'Object permissions'
             if _any_open:
                 _entry['Field-level security'] = f"None: follows {_row['object']}" if _row['open'] else 'Yes'
             _entry.update({
@@ -398,7 +430,9 @@ def _sym_show_access(result, show_metric, show_chart, show_table, show_note, tit
         } for _id in _field_only], title=f"{_prefix}Granted fields without read on the object", details=[[('Fields', _granted[_id])] for _id in _field_only])
     _notes = ['Can read and can edit count what each profile, permission set or group grants on its own, the object permission and the field permission together. A user has one profile plus any permission sets and groups, and their access is all of those added up.']
     if _everything:
-        _notes.append('View All Data and Modify All Data see every record, whatever the sharing model. Which fields they see still follows field permissions, or View All Fields on the object.')
+        _notes.append('View All Data and Modify All Data read every object and see every record, whatever the sharing model. Which fields they see still follows field permissions, or View All Fields on the object.')
+    if _elsewhere:
+        _notes.append(f"Object permissions don't set access to {', '.join(_elsewhere)}: it comes from a parent object or a permission such as Edit Tasks, which the metadata here doesn't settle. Their fields count only View All Data and Modify All Data as readers, and name whoever else a field permission reads them for.")
     if _field_only:
         _notes.append("A grant without read on the object opens its fields only for users whose profile or another permission set has that read.")
     if any(_row['view_all_fields_ids'] for _row in _rows):
